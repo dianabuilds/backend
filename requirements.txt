@@ -5,3 +5,6 @@ asyncpg
 alembic
 python-dotenv
 pydantic
+passlib[bcrypt]
+pyjwt
+web3

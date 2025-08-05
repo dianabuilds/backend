@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     db_name: str
     db_sslmode: str = "require"
 
+    # JWT settings
+    jwt_secret: str = "change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_expiration: int = 60 * 60  # seconds
+
     @property
     def database_url(self) -> str:
         return (
