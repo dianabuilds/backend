@@ -15,8 +15,9 @@ class UserBase(BaseModel):
     bio: str | None = None
     avatar_url: str | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 
 class UserOut(UserBase):

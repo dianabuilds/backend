@@ -1,10 +1,29 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-asyncpg
-alembic
-python-dotenv
-pydantic
-passlib[bcrypt]
-pyjwt
-web3
+# Main dependencies
+fastapi>=0.110.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+sqlalchemy>=2.0.0
+alembic>=1.13.0
+email-validator>=2.0.0
+
+# Database
+asyncpg>=0.28.0
+psycopg2-binary>=2.9.9  # For Alembic migrations
+
+# Security
+passlib[bcrypt]>=1.7.4
+pyjwt>=2.8.0
+
+# Web3 related
+eth-account>=0.10.0
+web3>=6.0.0
+
+# Server
+uvicorn[standard]>=0.24.0
+gunicorn>=21.2.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Utilities
+python-multipart>=0.0.6  # For form data processing
