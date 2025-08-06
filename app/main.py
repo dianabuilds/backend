@@ -4,8 +4,11 @@ import logging
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
 from app.core.config import settings
-from app.db.base import Base
-from app.db.session import get_engine, check_database_connection, close_db_connection
+from app.db.session import (
+    check_database_connection,
+    close_db_connection,
+    init_db,
+)
 
 # Настройка логирования
 logging.basicConfig(
@@ -39,15 +42,7 @@ async def startup_event():
     # Проверяем подключение к базе данных
     if await check_database_connection():
         logger.info("Database connection successful")
-
-        # Создание таблиц в режиме разработки
-        if settings.ENVIRONMENT.lower() == "development":
-            logger.info("Creating database tables in development mode")
-            engine = get_engine()
-            async with engine.begin() as conn:
-                # await conn.run_sync(Base.metadata.drop_all)  # Раскомментируйте для сброса базы
-                await conn.run_sync(Base.metadata.create_all)
-            logger.info("Database tables created successfully")
+        await init_db()
     else:
         logger.error("Failed to connect to database during startup")
 
