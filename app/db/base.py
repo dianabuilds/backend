@@ -21,5 +21,6 @@ class Base(DeclarativeBase):
 # Import all models here so Base has them registered
 # This is needed for Alembic and session management
 from app.models.user import User  # noqa
+from app.models.node import Node  # noqa
 
 # Add all other models here
