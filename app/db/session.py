@@ -1,13 +1,18 @@
 import logging
 import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator, Optional
 
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, AsyncEngine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 
 from app.core.config import settings
+from app.db.base import Base
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +89,41 @@ async def db_session():
         await session.close()
 
 
+async def run_migrations() -> None:
+    """Apply database migrations using Alembic if migration scripts are present."""
+    if not Path("alembic").exists():
+        raise FileNotFoundError("alembic directory not found")
+
+    loop = asyncio.get_running_loop()
+
+    def _upgrade() -> None:
+        cfg = Config("alembic.ini")
+        cfg.set_main_option(
+            "sqlalchemy.url", settings.database_url.replace("asyncpg", "psycopg2")
+        )
+        command.upgrade(cfg, "head")
+
+    await loop.run_in_executor(None, _upgrade)
+    logger.info("Alembic migrations applied")
+
+
+async def create_tables() -> None:
+    """Create all tables based on the SQLAlchemy models."""
+    engine = get_engine()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables created")
+
+
+async def init_db() -> None:
+    """Initialize database by running migrations or creating tables."""
+    try:
+        await run_migrations()
+    except Exception as e:
+        logger.warning(f"Migrations not applied ({e}). Falling back to create_all().")
+        await create_tables()
+
+
 async def check_database_connection(max_retries: int = 5) -> bool:
     """
     Проверяет подключение к базе данных с механизмом повторных попыток.
@@ -96,7 +136,7 @@ async def check_database_connection(max_retries: int = 5) -> bool:
         try:
             # Проверяем соединение
             async with engine.connect() as conn:
-                await conn.execute("SELECT 1")
+                await conn.execute(text("SELECT 1"))
             logger.info("Database connection successful")
             return True
         except OperationalError as e:
