@@ -6,6 +6,7 @@ from app.core.security import verify_access_token
 from app.db.session import get_db
 from app.models.user import User
 
+# Обновляем URL для получения токена, указывая, что используется username+password
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 

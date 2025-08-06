@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiration: int = 60 * 60  # seconds
 
+    # Security settings
+    min_password_length: int = 3  # Минимальная длина пароля
+    secure_password_policy: bool = False  # Строгая политика паролей (требование букв, цифр и т.д.)
+
     @property
     def database_url(self) -> str:
         """Создает URL для подключения к базе данных"""

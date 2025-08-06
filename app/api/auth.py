@@ -28,30 +28,83 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 nonce_store: dict[str, str] = {}
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 @router.post("/signup", response_model=Token)
 async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == payload.email))
-    existing = result.scalars().first()
-    if existing:
+    logger.info(f"Signup attempt for email: {payload.email} with username: {payload.username}")
+
+    # Проверка на пустые значения
+    if not payload.email or not payload.password or not payload.username:
+        logger.warning("Signup attempt with empty email, username or password")
+        raise HTTPException(status_code=400, detail="Email, username and password are required")
+
+    # Проверка на существующий email
+    email_result = await db.execute(select(User).where(User.email == payload.email))
+    if email_result.scalars().first():
+        logger.warning(f"Signup attempt with existing email: {payload.email}")
         raise HTTPException(status_code=400, detail="Email already registered")
-    user = User(
-        email=payload.email,
-        username=payload.username,
-        password_hash=get_password_hash(payload.password),
-    )
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    token = create_access_token(user.id)
-    return Token(access_token=token)
+
+    # Проверка на существующий username
+    username_result = await db.execute(select(User).where(User.username == payload.username))
+    if username_result.scalars().first():
+        logger.warning(f"Signup attempt with existing username: {payload.username}")
+        raise HTTPException(status_code=400, detail="Username already taken")
+
+    try:
+        # Создаем хэш пароля
+        password_hash = get_password_hash(payload.password)
+
+        # Создаем пользователя
+        user = User(
+            email=payload.email,
+            username=payload.username,
+            password_hash=password_hash,
+        )
+
+        # Добавляем в сессию и сохраняем
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+
+        # Создаем токен
+        token = create_access_token(user.id)
+        logger.info(f"User created successfully: {user.id}")
+
+        return Token(access_token=token)
+    except Exception as e:
+        await db.rollback()
+        error_msg = str(e)
+        logger.error(f"Error during user creation: {error_msg}")
+
+        # Обработка известных ошибок
+        if "unique constraint" in error_msg.lower():
+            if "users_email_key" in error_msg:
+                raise HTTPException(status_code=400, detail="Email already registered")
+            elif "users_username_key" in error_msg:
+                raise HTTPException(status_code=400, detail="Username already taken")
+
+        # Для отладки в разработке можно возвращать полное сообщение об ошибке
+        if settings.ENVIRONMENT.lower() == "development":
+            raise HTTPException(status_code=500, detail=f"Internal server error: {error_msg}")
+        else:
+            # В продакшене скрываем детали ошибки
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/login", response_model=Token)
 async def login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == payload.email))
+    # Поиск пользователя по имени пользователя
+    result = await db.execute(select(User).where(User.username == payload.username))
     user = result.scalars().first()
+
+    # Проверка пользователя и пароля
     if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+    # Создание токена
     token = create_access_token(user.id)
     return Token(access_token=token)
 

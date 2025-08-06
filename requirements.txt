@@ -8,9 +8,10 @@ email-validator>=2.0.0
 
 # Database
 asyncpg>=0.28.0
-psycopg2-binary>=2.9.9  # For Alembic migrations
-
+psycopg2-binary>=2.9.9
+# bcrypt<=4.0.1
 # Security
+bcrypt==4.0.1
 passlib[bcrypt]>=1.7.4
 pyjwt>=2.8.0
 
@@ -26,4 +27,4 @@ gunicorn>=21.2.0
 python-dotenv>=1.0.0
 
 # Utilities
-python-multipart>=0.0.6  # For form data processing
+python-multipart>=0.0.6
