@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE NOT NULL,
     bio TEXT,
     avatar_url TEXT,
+    role TEXT DEFAULT 'user',
     deleted_at TIMESTAMP
 )
 """
@@ -94,6 +95,7 @@ class TestUser:
         self.username = kwargs.get('username')
         self.bio = kwargs.get('bio')
         self.avatar_url = kwargs.get('avatar_url')
+        self.role = kwargs.get('role', 'user')
         self.deleted_at = kwargs.get('deleted_at')
 
     @staticmethod
@@ -111,8 +113,9 @@ class TestUser:
             is_premium=bool(row[6]),
             username=row[7],
             bio=row[8],
-            avatar_url=row[9],
-            deleted_at=row[10]
+            avatar_url=row[10],
+            role=row[11],
+            deleted_at=row[12]
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -130,6 +133,7 @@ class TestUser:
             'username': self.username,
             'bio': self.bio,
             'avatar_url': self.avatar_url,
+            'role': self.role,
             'deleted_at': self.deleted_at.isoformat() if isinstance(self.deleted_at, datetime) and self.deleted_at else None
         }
 

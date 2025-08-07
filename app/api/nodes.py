@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import get_current_user, require_premium
+from app.api.deps import (
+    ensure_can_post,
+    get_current_user,
+    require_premium,
+)
 from app.db.session import get_db
 from app.models.node import Node
 from app.models.user import User
@@ -16,7 +20,7 @@ router = APIRouter(prefix="/nodes", tags=["nodes"])
 @router.post("", response_model=dict)
 async def create_node(
     payload: NodeCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(ensure_can_post),
     db: AsyncSession = Depends(get_db),
 ):
     node = Node(
@@ -44,7 +48,7 @@ async def read_node(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Node).where(Node.slug == slug))
+    result = await db.execute(select(Node).where(Node.slug == slug, Node.is_visible == True))
     node = result.scalars().first()
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")

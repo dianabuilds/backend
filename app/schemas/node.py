@@ -50,6 +50,7 @@ class NodeOut(NodeBase):
     reactions: dict[str, int]
     created_at: datetime
     updated_at: datetime
+    is_visible: bool
 
     model_config = {"from_attributes": True}
 
