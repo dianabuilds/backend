@@ -1,6 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 
+from typing import Literal
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -13,6 +15,7 @@ class UserBase(BaseModel):
     username: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
+    role: str
 
     model_config = {
         "from_attributes": True
@@ -32,3 +35,7 @@ class UserUpdate(BaseModel):
 class UserPremiumUpdate(BaseModel):
     is_premium: bool
     premium_until: datetime | None = None
+
+
+class UserRoleUpdate(BaseModel):
+    role: Literal["user", "moderator", "admin"]

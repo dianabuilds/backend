@@ -11,6 +11,7 @@ from app.db.base import Base  # re-export Base from the DB layer
 # Import models here to register them with SQLAlchemy's metadata
 from .user import User  # noqa: F401
 from .node import Node  # noqa: F401
+from .moderation import ContentModeration, UserRestriction  # noqa: F401
 
 # Add future models' imports above
 

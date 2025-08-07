@@ -22,5 +22,6 @@ class Base(DeclarativeBase):
 # This is needed for Alembic and session management
 from app.models.user import User  # noqa
 from app.models.node import Node  # noqa
+from app.models.moderation import ContentModeration, UserRestriction  # noqa
 
 # Add all other models here

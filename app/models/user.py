@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum as SAEnum, String, Text
 from .adapters import UUID
 
 from . import Base
@@ -22,6 +22,16 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_premium = Column(Boolean, default=False)
     premium_until = Column(DateTime, nullable=True)
+    role = Column(
+        SAEnum(
+            "user",
+            "moderator",
+            "admin",
+            name="user_role",
+        ),
+        default="user",
+        nullable=False,
+    )
 
     # Profile
     username = Column(String, unique=True, nullable=True)
