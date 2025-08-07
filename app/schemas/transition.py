@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -29,6 +29,33 @@ class TransitionOption(BaseModel):
 class NextTransitions(BaseModel):
     mode: str
     transitions: list[TransitionOption]
+
+
+class TransitionMode(BaseModel):
+    """Describes a transition selection mode."""
+
+    mode: str
+    label: str
+    filters: dict[str, Any] | None = Field(default_factory=dict)
+
+
+class TransitionController(BaseModel):
+    """DSL definition for transition behaviour."""
+
+    type: Literal["transition_controller"] = "transition_controller"
+    max_options: int = 3
+    default_mode: str = "auto"
+    modes: list[TransitionMode] = Field(default_factory=list)
+
+
+class AvailableMode(BaseModel):
+    mode: str
+    label: str
+
+
+class NextModes(BaseModel):
+    default_mode: str
+    modes: list[AvailableMode]
 
 
 class NodeTransitionOut(BaseModel):
