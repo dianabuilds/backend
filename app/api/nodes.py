@@ -12,6 +12,7 @@ from app.api.deps import (
 from app.db.session import get_db
 from app.engine.transitions import get_transitions
 from app.engine.random import get_random_node
+from app.engine.transition_controller import apply_mode
 from app.models.node import Node
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.user import User
@@ -20,6 +21,10 @@ from app.schemas.transition import (
     NodeTransitionCreate,
     NextTransitions,
     TransitionOption,
+    TransitionController,
+    TransitionMode,
+    NextModes,
+    AvailableMode,
 )
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
@@ -121,35 +126,72 @@ async def get_next_nodes(
     node = result.scalars().first()
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
+
+    controller_data = node.meta.get("transition_controller") or {}
+    try:
+        controller = TransitionController.model_validate(controller_data)
+    except Exception:
+        controller = TransitionController()
+
+    def find_mode(name: str) -> TransitionMode | None:
+        for m in controller.modes:
+            if m.mode == name:
+                return m
+        return None
+
+    async def run_mode(m: TransitionMode) -> list[TransitionOption]:
+        return await apply_mode(db, node, current_user, m, controller.max_options)
+
+    # Determine active mode
+    if mode == "auto":
+        if controller.default_mode != "auto":
+            mode = controller.default_mode
+        else:
+            for m in controller.modes:
+                opts = await run_mode(m)
+                if opts:
+                    return NextTransitions(mode=m.mode, transitions=opts)
+            return NextTransitions(mode="auto", transitions=[])
+
+    m = find_mode(mode)
+    if m:
+        opts = await run_mode(m)
+        return NextTransitions(mode=m.mode, transitions=opts)
+
+    # Fallback to previous behaviour if no DSL modes defined
     transitions: list[TransitionOption] = []
-    response_mode = mode
-    if mode in ("manual", "locked", "auto"):
-        t_type = None
-        if mode == "manual":
-            t_type = NodeTransitionType.manual
-        elif mode == "locked":
-            t_type = NodeTransitionType.locked
-        found = await get_transitions(db, node, current_user, t_type)
-        if found:
-            transitions = [
-                TransitionOption(
-                    slug=t.to_node.slug,
-                    label=t.label,
-                    mode=t.type.value,
-                )
-                for t in found
-            ]
-            if mode == "auto":
-                response_mode = "manual"
-            return NextTransitions(mode=response_mode, transitions=transitions)
-    if mode in ("random", "auto"):
-        rnd = await get_random_node(db, exclude_node_id=node.id)
-        if rnd:
-            transitions = [
-                TransitionOption(slug=rnd.slug, label=rnd.title, mode="random")
-            ]
-        return NextTransitions(mode="random", transitions=transitions)
-    return NextTransitions(mode=response_mode, transitions=transitions)
+    found = await get_transitions(db, node, current_user)
+    if found:
+        transitions = [
+            TransitionOption(slug=t.to_node.slug, label=t.label, mode=t.type.value)
+            for t in found[: controller.max_options]
+        ]
+        return NextTransitions(mode="manual", transitions=transitions)
+    rnd = await get_random_node(db, exclude_node_id=node.id)
+    if rnd:
+        transitions = [
+            TransitionOption(slug=rnd.slug, label=rnd.title, mode="random")
+        ]
+    return NextTransitions(mode="random", transitions=transitions)
+
+
+@router.get("/{slug}/next_modes", response_model=NextModes)
+async def get_next_modes(
+    slug: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Node).where(Node.slug == slug))
+    node = result.scalars().first()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    controller_data = node.meta.get("transition_controller") or {}
+    try:
+        controller = TransitionController.model_validate(controller_data)
+    except Exception:
+        controller = TransitionController()
+    modes = [AvailableMode(mode=m.mode, label=m.label) for m in controller.modes]
+    return NextModes(default_mode=controller.default_mode, modes=modes)
 
 
 @router.patch("/{slug}", response_model=NodeOut)
