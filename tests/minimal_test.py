@@ -5,6 +5,7 @@ import os
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 
 # Устанавливаем флаг для использования минимальной конфигурации
 os.environ["USE_MINIMAL_CONFIG"] = "True"
@@ -33,7 +34,7 @@ async def test_signup_success(client: AsyncClient, db_session: AsyncSession):
     assert data["token_type"] == "bearer"
 
     # Проверяем, что пользователь создан в БД, используя сырой SQL запрос
-    sql = "SELECT * FROM users WHERE username = :username"
+    sql = text("SELECT * FROM users WHERE username = :username")
     result = await db_session.execute(sql, {"username": "newuser"})
     user = result.fetchone()
 

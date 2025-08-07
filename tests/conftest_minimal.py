@@ -5,9 +5,10 @@ import os
 import asyncio
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 from typing import AsyncGenerator, Dict, Any
 
 # Устанавливаем переменные окружения для тестов
@@ -56,7 +57,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
         # Очищаем данные после теста
         try:
-            await session.execute("DELETE FROM users")
+            await session.execute(text("DELETE FROM users"))
             await session.commit()
         except:
             await session.rollback()
@@ -73,7 +74,8 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 
     app.dependency_overrides.clear()
@@ -96,7 +98,7 @@ async def test_user(db_session: AsyncSession) -> TestUser:
     columns = ", ".join(user_dict.keys())
     placeholders = ", ".join(f":{key}" for key in user_dict.keys())
 
-    sql = f"INSERT INTO users ({columns}) VALUES ({placeholders})"
+    sql = text(f"INSERT INTO users ({columns}) VALUES ({placeholders})")
     await db_session.execute(sql, user_dict)
     await db_session.commit()
 

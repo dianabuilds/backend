@@ -9,6 +9,7 @@ from pathlib import Path
 import asyncio
 from datetime import datetime
 from typing import Dict, Any, List, Optional
+from sqlalchemy import text
 
 
 # Путь к тестовой базе данных
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
     wallet_address TEXT UNIQUE,
     is_active INTEGER DEFAULT 1,
     is_premium INTEGER DEFAULT 0,
+    premium_until TIMESTAMP,
     username TEXT UNIQUE NOT NULL,
     bio TEXT,
     avatar_url TEXT,
@@ -142,7 +144,7 @@ async def create_user(user: TestUser, conn) -> bool:
     columns = ", ".join(user_dict.keys())
     placeholders = ", ".join(f":{key}" for key in user_dict.keys())
 
-    sql = f"INSERT INTO users ({columns}) VALUES ({placeholders})"
+    sql = text(f"INSERT INTO users ({columns}) VALUES ({placeholders})")
 
     try:
         await conn.execute(sql, user_dict)
@@ -158,7 +160,7 @@ async def get_user_by_username(username: str, conn) -> Optional[TestUser]:
     """
     Получает пользователя по имени пользователя.
     """
-    sql = "SELECT * FROM users WHERE username = :username"
+    sql = text("SELECT * FROM users WHERE username = :username")
 
     try:
         result = await conn.execute(sql, {"username": username})
