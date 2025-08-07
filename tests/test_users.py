@@ -4,6 +4,7 @@
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 
 from app.models.user import User
 
@@ -56,7 +57,7 @@ class TestUsers:
         assert data["avatar_url"] == "https://example.com/avatar.jpg"
 
         # Проверяем, что данные обновились в БД
-        user_query = await db_session.execute(f"SELECT * FROM users WHERE username = 'updateduser'")
+        user_query = await db_session.execute(text("SELECT * FROM users WHERE username = 'updateduser'"))
         user = user_query.first()
         assert user is not None
         assert user.bio == "This is my new bio"

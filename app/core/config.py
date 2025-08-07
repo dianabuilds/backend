@@ -11,11 +11,11 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # Database settings
-    db_username: str
-    db_password: str
-    db_host: str
-    db_port: int
-    db_name: str
+    db_username: str = ""
+    db_password: str = ""
+    db_host: str = ""
+    db_port: int = 5432
+    db_name: str = ""
     db_sslmode: str = "require"
 
     # Настройки пула соединений
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     db_echo: bool = False
 
     # JWT settings
-    jwt_secret: str
+    jwt_secret: str = "test-secret"
     jwt_algorithm: str = "HS256"
     jwt_expiration: int = 60 * 60  # seconds
 

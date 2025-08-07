@@ -77,3 +77,42 @@ class JSONB(TypeDecorator):
             except (TypeError, json.JSONDecodeError):
                 return value
         return value
+
+
+class ARRAY(TypeDecorator):
+    """Универсальный тип ARRAY для разных баз данных.
+
+    Использует PostgreSQL ARRAY, а в SQLite хранит данные как JSON-строку.
+    """
+
+    impl = types.Text
+    cache_ok = True
+
+    def __init__(self, item_type, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.item_type = item_type
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql" and not IS_TESTING:
+            from sqlalchemy.dialects.postgresql import ARRAY as pg_ARRAY
+
+            return dialect.type_descriptor(pg_ARRAY(self.item_type))
+        else:
+            return dialect.type_descriptor(types.Text())
+
+    def process_bind_param(self, value, dialect):
+        import json
+
+        if value is not None and not isinstance(value, str):
+            return json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        import json
+
+        if value is not None:
+            try:
+                return json.loads(value)
+            except (TypeError, json.JSONDecodeError):
+                return value
+        return value

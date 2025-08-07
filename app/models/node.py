@@ -14,8 +14,8 @@ from sqlalchemy import (
     Integer,
     String,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
-from sqlalchemy.ext.mutable import MutableDict
+from .adapters import ARRAY, JSONB, UUID
+from sqlalchemy.ext.mutable import MutableDict, MutableList
 
 from . import Base
 
@@ -36,14 +36,14 @@ def generate_slug() -> str:
 class Node(Base):
     __tablename__ = "nodes"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid4)
     slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=True)
     content_format = Column(SAEnum(ContentFormat), nullable=False)
     content = Column(JSONB, nullable=False)
-    media = Column(ARRAY(String), default=list)
-    tags = Column(ARRAY(String), default=list)
-    author_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    media = Column(MutableList.as_mutable(ARRAY(String)), default=list)
+    tags = Column(MutableList.as_mutable(ARRAY(String)), default=list)
+    author_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
     views = Column(Integer, default=0)
     reactions = Column(MutableDict.as_mutable(JSONB), default=dict)
     is_public = Column(Boolean, default=False, index=True)
