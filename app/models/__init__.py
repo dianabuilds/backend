@@ -13,6 +13,7 @@ from .user import User  # noqa: F401
 from .node import Node  # noqa: F401
 from .moderation import ContentModeration, UserRestriction  # noqa: F401
 from .transition import NodeTransition  # noqa: F401
+from .echo_trace import EchoTrace  # noqa: F401
 
 # Add future models' imports above
 

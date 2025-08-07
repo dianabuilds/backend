@@ -116,3 +116,46 @@ class ARRAY(TypeDecorator):
             except (TypeError, json.JSONDecodeError):
                 return value
         return value
+
+
+class VECTOR(TypeDecorator):
+    """Simple vector type compatible with PostgreSQL pgvector and SQLite.
+
+    In PostgreSQL environments (outside of tests) it uses the native pgvector
+    type. For SQLite and tests it falls back to storing the vector as a JSON
+    encoded string.
+    """
+
+    impl = types.Text
+    cache_ok = True
+
+    def __init__(self, dim: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dim = dim
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql" and not IS_TESTING:
+            try:  # pragma: no cover - pgvector may not be installed in tests
+                from pgvector.sqlalchemy import Vector
+
+                return dialect.type_descriptor(Vector(self.dim))
+            except Exception:  # pragma: no cover
+                pass
+        return dialect.type_descriptor(types.Text())
+
+    def process_bind_param(self, value, dialect):
+        import json
+
+        if value is not None and not isinstance(value, str):
+            return json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        import json
+
+        if value is not None:
+            try:
+                return json.loads(value)
+            except (TypeError, json.JSONDecodeError):
+                return value
+        return value

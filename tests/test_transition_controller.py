@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.node import Node, ContentFormat
 from app.models.transition import NodeTransition, NodeTransitionType
+from app.engine.embedding import update_node_embedding
 
 
 @pytest.mark.asyncio
@@ -52,6 +53,7 @@ async def test_next_modes_and_max_options(
     await db_session.commit()
     for n in [base, *targets]:
         await db_session.refresh(n)
+        await update_node_embedding(db_session, n)
     for n in targets:
         tr = NodeTransition(
             from_node_id=base.id,

@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.engine.random import get_random_node
-from app.engine.transitions import get_transitions
+from app.engine.compass import get_compass_nodes
+from app.engine.echo import get_echo_transitions
 from app.models.node import Node
-from app.models.transition import NodeTransitionType
 from app.models.user import User
 from app.schemas.transition import TransitionMode, TransitionOption
 
@@ -22,24 +21,16 @@ async def apply_mode(
 ) -> List[TransitionOption]:
     """Return transition options for a given mode."""
     if mode.mode == "compass":
-        transitions = await get_transitions(db, node, user, NodeTransitionType.manual)
-        transitions.sort(
-            key=lambda t: len(set(node.tags or []) & set(t.to_node.tags or [])),
-            reverse=True,
-        )
+        nodes = await get_compass_nodes(db, node, user, max_options)
         return [
-            TransitionOption(slug=t.to_node.slug, label=t.label, mode=mode.mode)
-            for t in transitions[:max_options]
+            TransitionOption(slug=n.slug, label=n.title, mode=mode.mode)
+            for n in nodes
         ]
     if mode.mode == "echo":
-        transitions = await get_transitions(db, node, user)
-        transitions.sort(
-            key=lambda t: getattr(t.to_node, "updated_at", datetime.min),
-            reverse=True,
-        )
+        nodes = await get_echo_transitions(db, node, max_options)
         return [
-            TransitionOption(slug=t.to_node.slug, label=t.label, mode=mode.mode)
-            for t in transitions[:max_options]
+            TransitionOption(slug=n.slug, label=n.title, mode=mode.mode)
+            for n in nodes
         ]
     if mode.mode == "random":
         options: List[TransitionOption] = []

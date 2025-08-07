@@ -13,6 +13,8 @@ from app.db.session import get_db
 from app.engine.transitions import get_transitions
 from app.engine.random import get_random_node
 from app.engine.transition_controller import apply_mode
+from app.engine.embedding import update_node_embedding
+from app.engine.echo import record_echo_trace
 from app.models.node import Node
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.user import User
@@ -52,6 +54,7 @@ async def create_node(
     db.add(node)
     await db.commit()
     await db.refresh(node)
+    await update_node_embedding(db, node)
     return {"slug": node.slug}
 
 
@@ -73,6 +76,26 @@ async def read_node(
     await db.commit()
     await db.refresh(node)
     return node
+
+
+
+@router.post("/{slug}/visit/{to_slug}", response_model=dict)
+async def record_visit(
+    slug: str,
+    to_slug: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Node).where(Node.slug == slug))
+    from_node = result.scalars().first()
+    if not from_node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    result = await db.execute(select(Node).where(Node.slug == to_slug))
+    to_node = result.scalars().first()
+    if not to_node:
+        raise HTTPException(status_code=404, detail="Target node not found")
+    await record_echo_trace(db, from_node, to_node, current_user)
+    return {"status": "ok"}
 
 
 @router.get("/{slug}/echo", dependencies=[Depends(require_premium)])
@@ -213,6 +236,7 @@ async def update_node(
     node.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(node)
+    await update_node_embedding(db, node)
     return node
 
 

@@ -14,7 +14,7 @@ from sqlalchemy import (
     Integer,
     String,
 )
-from .adapters import ARRAY, JSONB, UUID
+from .adapters import ARRAY, JSONB, UUID, VECTOR
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 
 from . import Base
@@ -43,6 +43,7 @@ class Node(Base):
     content = Column(JSONB, nullable=False)
     media = Column(MutableList.as_mutable(ARRAY(String)), default=list)
     tags = Column(MutableList.as_mutable(ARRAY(String)), default=list)
+    embedding_vector = Column(MutableList.as_mutable(VECTOR(384)), nullable=True)
     author_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
     views = Column(Integer, default=0)
     reactions = Column(MutableDict.as_mutable(JSONB), default=dict)
