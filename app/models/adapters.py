@@ -1,0 +1,79 @@
+"""
+Адаптеры типов данных SQLAlchemy для совместимости между PostgreSQL и SQLite.
+"""
+import os
+import uuid
+from typing import Any, Dict, Optional, Union
+
+from sqlalchemy.dialects.postgresql import JSONB as pg_JSONB, UUID as pg_UUID
+from sqlalchemy.types import JSON, TypeDecorator, CHAR
+import sqlalchemy.types as types
+
+# Определяем, находимся ли мы в тестовой среде
+IS_TESTING = os.environ.get("TESTING", "").lower() in ("true", "1", "t")
+
+
+class UUID(TypeDecorator):
+    """Универсальный тип UUID для разных баз данных."""
+
+    impl = CHAR
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(pg_UUID())
+        else:
+            return dialect.type_descriptor(CHAR(36))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == 'postgresql':
+            return value
+        else:
+            if not isinstance(value, uuid.UUID):
+                return str(uuid.UUID(value))
+            else:
+                return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        else:
+            if not isinstance(value, uuid.UUID):
+                value = uuid.UUID(value)
+            return value
+
+
+class JSONB(TypeDecorator):
+    """
+    Универсальный тип JSONB для разных баз данных.
+    Использует JSONB в PostgreSQL и Text в SQLite и тестах.
+    """
+
+    impl = types.Text
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql' and not IS_TESTING:
+            return dialect.type_descriptor(pg_JSONB())
+        else:
+            return dialect.type_descriptor(types.Text())
+
+    def process_bind_param(self, value, dialect):
+        import json
+        if value is not None:
+            # Преобразуем в JSON строку, если это не строка
+            if not isinstance(value, str):
+                return json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        import json
+        if value is not None:
+            # Пытаемся преобразовать строку в объект JSON
+            try:
+                return json.loads(value)
+            except (TypeError, json.JSONDecodeError):
+                return value
+        return value
