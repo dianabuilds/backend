@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -39,6 +39,37 @@ async def get_current_user(
     )
     if result.scalars().first():
         raise HTTPException(status_code=403, detail="User is banned")
+    return user
+
+
+async def get_current_user_optional(
+    request: Request, db: AsyncSession = Depends(get_db)
+) -> User | None:
+    """Return current user if Authorization header present, otherwise None."""
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.lower().startswith("bearer "):
+        return None
+    token = auth.split(" ", 1)[1]
+    user_id_str = verify_access_token(token)
+    if not user_id_str:
+        return None
+    try:
+        user_id = UUID(user_id_str)
+    except ValueError:
+        return None
+    user = await db.get(User, user_id)
+    if not user or not user.is_active or user.deleted_at is not None:
+        return None
+    result = await db.execute(
+        select(UserRestriction).where(
+            UserRestriction.user_id == user.id,
+            UserRestriction.type == "ban",
+            (UserRestriction.expires_at == None)
+            | (UserRestriction.expires_at > datetime.utcnow()),
+        )
+    )
+    if result.scalars().first():
+        return None
     return user
 
 

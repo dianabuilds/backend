@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     min_password_length: int = 3  # Минимальная длина пароля
     secure_password_policy: bool = False  # Строгая политика паролей (требование букв, цифр и т.д.)
 
+    # Cache settings
+    redis_url: str | None = None
+    navigation_ttl_hours: int = 2
+
     @property
     def database_url(self) -> str:
         """Создает URL для подключения к базе данных"""
