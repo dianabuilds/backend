@@ -21,7 +21,7 @@ async def update_me(
     payload: UserUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+    ):
     data = payload.dict(exclude_unset=True)
     for field, value in data.items():
         setattr(current_user, field, value)
@@ -41,5 +41,7 @@ async def delete_me(
     current_user.username = None
     current_user.bio = None
     current_user.avatar_url = None
+    current_user.is_premium = False
+    current_user.premium_until = None
     await db.commit()
     return {"message": "Account deleted"}

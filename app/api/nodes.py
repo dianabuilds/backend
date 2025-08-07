@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_premium
 from app.db.session import get_db
 from app.models.node import Node
 from app.models.user import User
@@ -50,10 +50,17 @@ async def read_node(
         raise HTTPException(status_code=404, detail="Node not found")
     if not node.is_public and node.author_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to view this node")
+    if node.premium_only:
+        await require_premium(current_user)
     node.views += 1
     await db.commit()
     await db.refresh(node)
     return node
+
+
+@router.get("/{slug}/echo", dependencies=[Depends(require_premium)])
+async def view_echo(slug: str):
+    return {"slug": slug}
 
 
 @router.patch("/{slug}", response_model=NodeOut)

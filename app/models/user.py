@@ -21,6 +21,7 @@ class User(Base):
     # Meta
     is_active = Column(Boolean, default=True)
     is_premium = Column(Boolean, default=False)
+    premium_until = Column(DateTime, nullable=True)
 
     # Profile
     username = Column(String, unique=True, nullable=True)

@@ -10,7 +10,6 @@ class UserBase(BaseModel):
     email: EmailStr | None = None
     wallet_address: str | None = None
     is_active: bool
-    is_premium: bool
     username: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
@@ -28,3 +27,8 @@ class UserUpdate(BaseModel):
     username: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
+
+
+class UserPremiumUpdate(BaseModel):
+    is_premium: bool
+    premium_until: datetime | None = None
