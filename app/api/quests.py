@@ -3,9 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import or_, func
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
@@ -29,6 +30,61 @@ async def list_quests(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Quest).where(Quest.is_draft == False, Quest.is_deleted == False)
     )
+    return result.scalars().all()
+
+
+@router.get("/search", response_model=list[QuestOut])
+async def search_quests(
+    q: str | None = None,
+    tags: str | None = Query(None),
+    author_id: UUID | None = None,
+    free_only: bool = False,
+    premium_only: bool = False,
+    sort_by: str = "new",
+    page: int = 1,
+    per_page: int = 10,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(Quest).where(Quest.is_draft == False, Quest.is_deleted == False)
+
+    if q:
+        pattern = f"%{q}%"
+        stmt = stmt.where(
+            or_(
+                Quest.title.ilike(pattern),
+                Quest.subtitle.ilike(pattern),
+                Quest.description.ilike(pattern),
+            )
+        )
+
+    if tags:
+        tag_list = [t for t in tags.split(",") if t]
+        if tag_list:
+            for tag in tag_list:
+                stmt = stmt.where(Quest.tags.like(f'%"{tag}"%'))
+
+    if author_id:
+        stmt = stmt.where(Quest.author_id == author_id)
+
+    if free_only:
+        stmt = stmt.where(or_(Quest.price == None, Quest.price == 0))
+
+    if premium_only:
+        stmt = stmt.where(Quest.is_premium_only == True)
+
+    if sort_by == "price":
+        stmt = stmt.order_by(Quest.price.asc())
+    elif sort_by == "title":
+        stmt = stmt.order_by(Quest.title.asc())
+    elif sort_by == "popularity":
+        stmt = stmt.order_by(func.coalesce(Quest.published_at, datetime.min).desc())
+    else:  # "new" default
+        stmt = stmt.order_by(Quest.published_at.desc())
+
+    offset = (page - 1) * per_page
+    stmt = stmt.offset(offset).limit(per_page)
+
+    result = await db.execute(stmt)
     return result.scalars().all()
 
 

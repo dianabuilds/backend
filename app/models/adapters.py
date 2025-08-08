@@ -5,7 +5,7 @@ import os
 import uuid
 from typing import Any, Dict, Optional, Union
 
-from sqlalchemy.dialects.postgresql import JSONB as pg_JSONB, UUID as pg_UUID
+from sqlalchemy.dialects.postgresql import JSONB as pg_JSONB, UUID as pg_UUID, TSVECTOR as pg_TSVECTOR
 from sqlalchemy.types import JSON, TypeDecorator, CHAR
 import sqlalchemy.types as types
 
@@ -159,3 +159,20 @@ class VECTOR(TypeDecorator):
             except (TypeError, json.JSONDecodeError):
                 return value
         return value
+
+
+class TSVector(TypeDecorator):
+    """Universal tsvector type compatible with PostgreSQL and SQLite.
+
+    In PostgreSQL it uses the native TSVECTOR type while in SQLite (used in
+    tests) it falls back to plain text. This allows defining tsvector columns
+    without breaking schema creation in tests.
+    """
+
+    impl = types.Text
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql" and not IS_TESTING:
+            return dialect.type_descriptor(pg_TSVECTOR())
+        return dialect.type_descriptor(types.Text())
