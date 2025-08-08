@@ -18,7 +18,7 @@ from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import relationship
 
 from . import Base
-from .adapters import ARRAY, JSONB, UUID
+from .adapters import ARRAY, JSONB, UUID, TSVector
 
 
 def generate_slug() -> str:
@@ -34,6 +34,7 @@ class Quest(Base):
     title = Column(String, nullable=False)
     subtitle = Column(String, nullable=True)
     description = Column(Text, nullable=True)
+    search_vector = Column(TSVector(), nullable=True, index=True)
     cover_image = Column(String, nullable=True)
     tags = Column(MutableList.as_mutable(ARRAY(String)), default=list)
     author_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
