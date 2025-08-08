@@ -49,6 +49,7 @@ class Node(Base):
     reactions = Column(MutableDict.as_mutable(JSONB), default=dict)
     is_public = Column(Boolean, default=False, index=True)
     is_visible = Column(Boolean, default=True, index=True)
+    allow_feedback = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     meta = Column(MutableDict.as_mutable(JSONB), default=dict)

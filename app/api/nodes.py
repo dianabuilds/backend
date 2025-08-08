@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,9 +17,11 @@ from app.engine.transition_controller import apply_mode
 from app.engine.embedding import update_node_embedding
 from app.engine.echo import record_echo_trace
 from app.models.node import Node
+from app.models.feedback import Feedback
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.user import User
 from app.schemas.node import NodeCreate, NodeOut, NodeUpdate, ReactionUpdate
+from app.schemas.feedback import FeedbackCreate, FeedbackOut
 from app.schemas.transition import (
     NodeTransitionCreate,
     NextTransitions,
@@ -45,6 +48,7 @@ async def create_node(
         media=payload.media or [],
         tags=payload.tags or [],
         is_public=payload.is_public,
+        allow_feedback=payload.allow_feedback,
         meta=payload.meta or {},
         premium_only=payload.premium_only if payload.premium_only is not None else False,
         nft_required=payload.nft_required,
@@ -280,3 +284,72 @@ async def update_reactions(
     await db.commit()
     await db.refresh(node)
     return {"reactions": node.reactions}
+
+
+@router.get("/{slug}/feedback", response_model=list[FeedbackOut])
+async def list_feedback(
+    slug: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Node).where(Node.slug == slug))
+    node = result.scalars().first()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    if not node.allow_feedback and node.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Feedback disabled")
+    result = await db.execute(
+        select(Feedback).where(Feedback.node_id == node.id, Feedback.is_hidden == False)
+    )
+    return result.scalars().all()
+
+
+@router.post("/{slug}/feedback", response_model=FeedbackOut)
+async def create_feedback(
+    slug: str,
+    payload: FeedbackCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Node).where(Node.slug == slug))
+    node = result.scalars().first()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    if not node.allow_feedback:
+        raise HTTPException(status_code=403, detail="Feedback disabled")
+    if not node.is_public and node.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to comment on this node")
+    feedback = Feedback(
+        node_id=node.id,
+        author_id=current_user.id,
+        content=payload.content,
+        is_anonymous=payload.is_anonymous,
+    )
+    db.add(feedback)
+    await db.commit()
+    await db.refresh(feedback)
+    return feedback
+
+
+@router.delete("/{slug}/feedback/{feedback_id}", response_model=dict)
+async def delete_feedback(
+    slug: str,
+    feedback_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Node).where(Node.slug == slug))
+    node = result.scalars().first()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    result = await db.execute(
+        select(Feedback).where(Feedback.id == feedback_id, Feedback.node_id == node.id)
+    )
+    feedback = result.scalars().first()
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    if current_user.id not in (node.author_id, feedback.author_id):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    feedback.is_hidden = True
+    await db.commit()
+    return {"status": "ok"}
