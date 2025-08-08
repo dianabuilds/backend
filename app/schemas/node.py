@@ -29,6 +29,7 @@ class NodeBase(BaseModel):
     nft_required: str | None = None
     ai_generated: bool | None = None
     allow_feedback: bool = True
+    is_recommendable: bool = True
 
 
 class NodeCreate(NodeBase):
@@ -42,6 +43,7 @@ class NodeUpdate(BaseModel):
     tags: list[str] | None = None
     is_public: bool | None = None
     allow_feedback: bool | None = None
+    is_recommendable: bool | None = None
 
 
 class NodeOut(NodeBase):
@@ -54,6 +56,7 @@ class NodeOut(NodeBase):
     created_at: datetime
     updated_at: datetime
     is_visible: bool
+    popularity_score: float
 
     model_config = {"from_attributes": True}
 

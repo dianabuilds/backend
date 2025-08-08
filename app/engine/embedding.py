@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.node import Node
 
-EMBEDDING_DIM = 384
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "384"))
 
 
 def _extract_text(node: Node) -> str:
@@ -16,6 +17,7 @@ def _extract_text(node: Node) -> str:
         parts.append(node.title)
     if node.content is not None:
         parts.append(str(node.content))
+    parts.extend(node.tag_slugs)
     return " ".join(parts)
 
 

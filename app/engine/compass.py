@@ -1,40 +1,87 @@
 from __future__ import annotations
 
+import random
+import uuid
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.models.echo_trace import EchoTrace
 from app.models.node import Node
 from app.models.user import User
+from app.services.compass_cache import compass_cache
 from .embedding import cosine_similarity, update_node_embedding
 
 
 async def get_compass_nodes(
-    db: AsyncSession, node: Node, user: User, limit: int = 3
+    db: AsyncSession, node: Node, user: User | None, limit: int = 5
 ) -> List[Node]:
     """Return nodes similar to the given node using embeddings and tags."""
+    if not node.is_recommendable:
+        return []
     if not node.embedding_vector:
         await update_node_embedding(db, node)
 
+    user_key = str(user.id) if user else None
+    cached = await compass_cache.get(user_key, str(node.id))
+    if cached:
+        nodes: List[Node] = []
+        for node_id in cached:
+            n = await db.get(Node, uuid.UUID(node_id))
+            if not n or not n.is_visible or not n.is_public or not n.is_recommendable:
+                continue
+            if n.premium_only and (not user or not user.is_premium):
+                continue
+            nodes.append(n)
+        return nodes
+
     query = select(Node).where(
-        Node.id != node.id, Node.is_visible == True, Node.is_public == True
+        Node.id != node.id,
+        Node.is_visible == True,
+        Node.is_public == True,
+        Node.is_recommendable == True,
+        Node.embedding_vector.isnot(None),
     )
     result = await db.execute(query)
     candidates = result.scalars().all()
 
-    def score(other: Node) -> float:
-        if not other.embedding_vector:
-            return -1
-        sim = cosine_similarity(node.embedding_vector, other.embedding_vector)
-        tag_bonus = len({t.slug for t in node.tags} & {t.slug for t in other.tags})
-        return sim + tag_bonus
+    visited: set[uuid.UUID] = set()
+    if user:
+        res = await db.execute(
+            select(EchoTrace.to_node_id).where(EchoTrace.user_id == user.id)
+        )
+        visited = {r for r in res.scalars().all()}
 
-    filtered = []
-    for n in candidates:
-        if n.premium_only and not user.is_premium:
+    scored: list[tuple[Node, float, float, int]] = []
+    surprises: list[Node] = []
+    node_tags = set(node.tag_slugs)
+    for cand in candidates:
+        if cand.id in visited:
             continue
-        filtered.append(n)
+        if cand.premium_only and (not user or not user.is_premium):
+            continue
+        if not cand.embedding_vector:
+            continue
+        sim = cosine_similarity(node.embedding_vector, cand.embedding_vector)
+        tag_match = len(node_tags & set(cand.tag_slugs))
+        rarity = 1 / (1 + (cand.popularity_score or 0))
+        deviation_boost = random.uniform(0.9, 1.1)
+        score = (sim * 0.5 + tag_match * 0.2 + rarity * 0.3) * deviation_boost
+        scored.append((cand, score, sim, tag_match))
+        if tag_match > 0 and sim < 0.3:
+            surprises.append(cand)
 
-    filtered.sort(key=score, reverse=True)
-    return filtered[:limit]
+    scored.sort(key=lambda x: x[1], reverse=True)
+    selected = [c for c, _, _, _ in scored[:limit]]
+
+    if surprises:
+        surprise_node = random.choice(surprises)
+        if surprise_node not in selected:
+            pos = random.randint(0, len(selected))
+            selected.insert(pos, surprise_node)
+            if len(selected) > limit:
+                selected = selected[:limit]
+
+    await compass_cache.set(user_key, str(node.id), [str(n.id) for n in selected])
+    return selected
