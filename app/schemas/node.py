@@ -28,6 +28,7 @@ class NodeBase(BaseModel):
     premium_only: bool | None = None
     nft_required: str | None = None
     ai_generated: bool | None = None
+    allow_feedback: bool = True
 
 
 class NodeCreate(NodeBase):
@@ -40,6 +41,7 @@ class NodeUpdate(BaseModel):
     media: list[str] | None = None
     tags: list[str] | None = None
     is_public: bool | None = None
+    allow_feedback: bool | None = None
 
 
 class NodeOut(NodeBase):
