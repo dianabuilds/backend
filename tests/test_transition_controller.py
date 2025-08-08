@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.node import Node, ContentFormat
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.engine.embedding import update_node_embedding
+from app.services.tags import get_or_create_tags
 
 
 @pytest.mark.asyncio
@@ -31,11 +32,11 @@ async def test_next_modes_and_max_options(
         title="base",
         content_format=ContentFormat.text,
         content={},
-        tags=["a", "b"],
         is_public=True,
         author_id=test_user.id,
         meta={"transition_controller": controller},
     )
+    base.tags = await get_or_create_tags(db_session, ["a", "b"])
     db_session.add(base)
     targets = []
     tags_list = [["a", "b"], ["a"], ["b"], ["c"], ["d"]]
@@ -44,10 +45,10 @@ async def test_next_modes_and_max_options(
             title=f"n{i}",
             content_format=ContentFormat.text,
             content={},
-            tags=tags,
             is_public=True,
             author_id=test_user.id,
         )
+        n.tags = await get_or_create_tags(db_session, tags)
         db_session.add(n)
         targets.append(n)
     await db_session.commit()

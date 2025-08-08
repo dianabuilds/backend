@@ -27,7 +27,7 @@ async def get_compass_nodes(
         if not other.embedding_vector:
             return -1
         sim = cosine_similarity(node.embedding_vector, other.embedding_vector)
-        tag_bonus = len(set(node.tags or []) & set(other.tags or []))
+        tag_bonus = len({t.slug for t in node.tags} & {t.slug for t in other.tags})
         return sim + tag_bonus
 
     filtered = []

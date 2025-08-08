@@ -4,6 +4,7 @@ import logging
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
 from app.api.nodes import router as nodes_router
+from app.api.tags import router as tags_router
 from app.api.admin import router as admin_router
 from app.api.moderation import router as moderation_router
 from app.api.transitions import router as transitions_router
@@ -28,6 +29,7 @@ app = FastAPI()
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(nodes_router)
+app.include_router(tags_router)
 app.include_router(admin_router)
 app.include_router(moderation_router)
 app.include_router(transitions_router)

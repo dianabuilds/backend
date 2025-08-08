@@ -16,6 +16,7 @@ from sqlalchemy import (
 )
 from .adapters import ARRAY, JSONB, UUID, VECTOR
 from sqlalchemy.ext.mutable import MutableDict, MutableList
+from sqlalchemy.orm import relationship
 
 from . import Base
 
@@ -42,7 +43,6 @@ class Node(Base):
     content_format = Column(SAEnum(ContentFormat), nullable=False)
     content = Column(JSONB, nullable=False)
     media = Column(MutableList.as_mutable(ARRAY(String)), default=list)
-    tags = Column(MutableList.as_mutable(ARRAY(String)), default=list)
     embedding_vector = Column(MutableList.as_mutable(VECTOR(384)), nullable=True)
     author_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
     views = Column(Integer, default=0)
@@ -57,3 +57,9 @@ class Node(Base):
     premium_only = Column(Boolean, default=False)
     nft_required = Column(String, nullable=True)
     ai_generated = Column(Boolean, default=False)
+
+    tags = relationship("Tag", secondary="node_tags", back_populates="nodes", lazy="selectin")
+
+    @property
+    def tag_slugs(self) -> list[str]:
+        return [t.slug for t in self.tags]

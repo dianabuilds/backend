@@ -20,7 +20,7 @@ async def get_random_node(
     nodes = result.scalars().all()
     if tag_whitelist:
         whitelist = set(tag_whitelist)
-        nodes = [n for n in nodes if set(n.tags or []) & whitelist]
+        nodes = [n for n in nodes if {t.slug for t in n.tags} & whitelist]
     if not nodes:
         return None
     return random.choice(nodes)
