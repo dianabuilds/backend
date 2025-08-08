@@ -23,6 +23,7 @@ from .event_quest import EventQuest, EventQuestCompletion  # noqa: F401
 from .quest import Quest, QuestPurchase, QuestProgress  # noqa: F401
 from .tag import Tag, NodeTag  # noqa: F401
 from .node_trace import NodeTrace  # noqa: F401
+from .achievement import Achievement, UserAchievement  # noqa: F401
 
 # Add future models' imports above
 
