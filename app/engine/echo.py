@@ -7,9 +7,11 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
 
 from app.models.node import Node
 from app.models.echo_trace import EchoTrace
+from app.models.node_trace import NodeTrace
 from app.models.user import User
 
 
@@ -41,6 +43,14 @@ async def get_echo_transitions(
         counter[str(tr.to_node_id)] += 1
     if not counter:
         return []
+    node_ids = [uuid.UUID(node_id) for node_id in counter.keys()]
+    trace_result = await db.execute(
+        select(NodeTrace.node_id, func.count())
+        .where(NodeTrace.node_id.in_(node_ids))
+        .group_by(NodeTrace.node_id)
+    )
+    for nid, tcount in trace_result.all():
+        counter[str(nid)] += tcount
     ordered_nodes: List[Node] = []
     for node_id, _ in counter.most_common(20):
         n = await db.get(Node, uuid.UUID(node_id))

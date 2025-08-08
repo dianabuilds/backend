@@ -11,3 +11,4 @@ from .transition import (
 from .moderation import RestrictionCreate, ContentHide
 from .feedback import FeedbackCreate, FeedbackOut
 from .notification import NotificationOut
+from .trace import NodeTraceCreate, NodeTraceOut

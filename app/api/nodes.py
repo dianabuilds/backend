@@ -18,6 +18,7 @@ from app.engine.random import get_random_node
 from app.engine.transition_controller import apply_mode
 from app.engine.embedding import update_node_embedding
 from app.engine.echo import record_echo_trace
+from app.engine.traces import maybe_add_auto_trace
 from app.models.node import Node
 from app.models.feedback import Feedback
 from app.models.transition import NodeTransition, NodeTransitionType
@@ -116,6 +117,7 @@ async def read_node(
     await db.commit()
     await db.refresh(node)
     await check_quest_completion(db, current_user, node)
+    await maybe_add_auto_trace(db, node, current_user)
     return node
 
 
