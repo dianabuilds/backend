@@ -2,8 +2,10 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import (
     ensure_can_post,
@@ -21,6 +23,7 @@ from app.models.feedback import Feedback
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.user import User
 from app.schemas.node import NodeCreate, NodeOut, NodeUpdate, ReactionUpdate
+from app.schemas.tag import NodeTagsUpdate
 from app.schemas.feedback import FeedbackCreate, FeedbackOut
 from app.schemas.transition import (
     NodeTransitionCreate,
@@ -32,8 +35,37 @@ from app.schemas.transition import (
     AvailableMode,
 )
 from app.services.quests import check_quest_completion
+from app.services.tags import get_or_create_tags
+from app.models.tag import Tag
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
+
+
+@router.get("", response_model=list[NodeOut])
+async def list_nodes(
+    tags: str | None = Query(None),
+    match: str = Query("any", pattern="^(any|all)$"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(Node)
+        .options(selectinload(Node.tags))
+        .where(
+            Node.is_visible == True,
+            or_(Node.is_public == True, Node.author_id == current_user.id),
+        )
+    )
+    if tags:
+        slugs = [t.strip() for t in tags.split(",") if t.strip()]
+        if slugs:
+            stmt = stmt.join(Node.tags).where(Tag.slug.in_(slugs))
+            if match == "all":
+                stmt = stmt.group_by(Node.id).having(func.count(Tag.id) == len(slugs))
+            else:
+                stmt = stmt.distinct()
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 @router.post("", response_model=dict)
@@ -42,12 +74,12 @@ async def create_node(
     current_user: User = Depends(ensure_can_post),
     db: AsyncSession = Depends(get_db),
 ):
+    tag_objs = await get_or_create_tags(db, payload.tags) if payload.tags else []
     node = Node(
         title=payload.title,
         content_format=payload.content_format,
         content=payload.content,
         media=payload.media or [],
-        tags=payload.tags or [],
         is_public=payload.is_public,
         allow_feedback=payload.allow_feedback,
         meta=payload.meta or {},
@@ -56,6 +88,8 @@ async def create_node(
         ai_generated=payload.ai_generated if payload.ai_generated is not None else False,
         author_id=current_user.id,
     )
+    if tag_objs:
+        node.tags = tag_objs
     db.add(node)
     await db.commit()
     await db.refresh(node)
@@ -81,6 +115,27 @@ async def read_node(
     await db.commit()
     await db.refresh(node)
     await check_quest_completion(db, current_user, node)
+    return node
+
+
+@router.post("/{node_id}/tags", response_model=NodeOut)
+async def set_node_tags(
+    node_id: UUID,
+    payload: NodeTagsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Node).where(Node.id == node_id))
+    node = result.scalars().first()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    if node.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this node")
+    await db.refresh(node, attribute_names=["tags"])
+    node.tags = await get_or_create_tags(db, payload.tags)
+    node.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(node)
     return node
 
 
@@ -237,8 +292,12 @@ async def update_node(
     if node.author_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this node")
     data = payload.dict(exclude_unset=True)
+    tags = data.pop("tags", None)
     for field, value in data.items():
         setattr(node, field, value)
+    if tags is not None:
+        await db.refresh(node, attribute_names=["tags"])
+        node.tags = await get_or_create_tags(db, tags)
     node.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(node)

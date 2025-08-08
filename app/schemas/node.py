@@ -45,6 +45,7 @@ class NodeUpdate(BaseModel):
 
 
 class NodeOut(NodeBase):
+    tags: list[str] = Field(default_factory=list, validation_alias="tag_slugs")
     id: UUID
     slug: str
     author_id: UUID
