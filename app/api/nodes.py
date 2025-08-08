@@ -31,6 +31,7 @@ from app.schemas.transition import (
     NextModes,
     AvailableMode,
 )
+from app.services.quests import check_quest_completion
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 
@@ -79,6 +80,7 @@ async def read_node(
     node.views += 1
     await db.commit()
     await db.refresh(node)
+    await check_quest_completion(db, current_user, node)
     return node
 
 
