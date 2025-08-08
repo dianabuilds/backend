@@ -1,46 +1,79 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+import hashlib
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime, Enum as SAEnum, ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.ext.mutable import MutableList
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.ext.mutable import MutableDict, MutableList
+from sqlalchemy.orm import relationship
 
 from . import Base
-from .adapters import ARRAY, UUID
+from .adapters import ARRAY, JSONB, UUID
 
 
-class QuestRewardType(str, Enum):
-    achievement = "achievement"
-    premium = "premium"
-    custom = "custom"
+def generate_slug() -> str:
+    seed = f"{datetime.utcnow().isoformat()}-{uuid4()}"
+    return hashlib.sha256(seed.encode()).hexdigest()[:16]
 
 
 class Quest(Base):
     __tablename__ = "quests"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
+    slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=False)
-    target_node_id = Column(UUID(), ForeignKey("nodes.id"), nullable=False)
-    hints_tags = Column(MutableList.as_mutable(ARRAY(String)), default=list)
-    hints_keywords = Column(MutableList.as_mutable(ARRAY(String)), default=list)
-    hints_trace = Column(MutableList.as_mutable(ARRAY(UUID())), default=list)
-    starts_at = Column(DateTime, nullable=False)
-    expires_at = Column(DateTime, nullable=False)
-    max_rewards = Column(Integer, default=0)
-    reward_type = Column(SAEnum(QuestRewardType), nullable=False)
-    is_active = Column(Boolean, default=False)
+    subtitle = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+    cover_image = Column(String, nullable=True)
+    tags = Column(MutableList.as_mutable(ARRAY(String)), default=list)
+    author_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
+    price = Column(Integer, nullable=True)
+    is_premium_only = Column(Boolean, default=False)
+    entry_node_id = Column(UUID(), ForeignKey("nodes.id"), nullable=True)
+    nodes = Column(MutableList.as_mutable(ARRAY(UUID())), default=list)
+    custom_transitions = Column(MutableDict.as_mutable(JSONB), nullable=True)
+    is_draft = Column(Boolean, default=True)
+    published_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    allow_comments = Column(Boolean, default=True)
+    is_deleted = Column(Boolean, default=False)
+
+    purchases = relationship("QuestPurchase", back_populates="quest", cascade="all, delete-orphan")
+    progresses = relationship("QuestProgress", back_populates="quest", cascade="all, delete-orphan")
 
 
-class QuestCompletion(Base):
-    __tablename__ = "quest_completions"
+class QuestPurchase(Base):
+    __tablename__ = "quest_purchases"
+
+    id = Column(UUID(), primary_key=True, default=uuid4)
+    quest_id = Column(UUID(), ForeignKey("quests.id"), nullable=False)
+    user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
+    paid_at = Column(DateTime, default=datetime.utcnow)
+
+    quest = relationship("Quest", back_populates="purchases")
+
+
+class QuestProgress(Base):
+    __tablename__ = "quest_progress"
     __table_args__ = (
-        UniqueConstraint("quest_id", "user_id", name="uq_quest_user"),
+        UniqueConstraint("quest_id", "user_id", name="uq_quest_progress"),
     )
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("quests.id"), nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
-    node_id = Column(UUID(), ForeignKey("nodes.id"), nullable=False)
-    completed_at = Column(DateTime, default=datetime.utcnow)
+    current_node_id = Column(UUID(), ForeignKey("nodes.id"), nullable=False)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    quest = relationship("Quest", back_populates="progresses")
