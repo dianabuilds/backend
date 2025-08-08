@@ -82,6 +82,7 @@ async def create_node(
         media=payload.media or [],
         is_public=payload.is_public,
         allow_feedback=payload.allow_feedback,
+        is_recommendable=payload.is_recommendable,
         meta=payload.meta or {},
         premium_only=payload.premium_only if payload.premium_only is not None else False,
         nft_required=payload.nft_required,

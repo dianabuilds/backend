@@ -13,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Float,
 )
 from .adapters import ARRAY, JSONB, UUID, VECTOR
 from sqlalchemy.ext.mutable import MutableDict, MutableList
@@ -50,6 +51,8 @@ class Node(Base):
     is_public = Column(Boolean, default=False, index=True)
     is_visible = Column(Boolean, default=True, index=True)
     allow_feedback = Column(Boolean, default=True, index=True)
+    is_recommendable = Column(Boolean, default=True, index=True)
+    popularity_score = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     meta = Column(MutableDict.as_mutable(JSONB), default=dict)
