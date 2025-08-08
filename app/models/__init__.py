@@ -16,7 +16,11 @@ from .transition import NodeTransition  # noqa: F401
 from .echo_trace import EchoTrace  # noqa: F401
 from .feedback import Feedback  # noqa: F401
 from .notification import Notification  # noqa: F401
-from .quest import Quest, QuestCompletion  # noqa: F401
+# Legacy event quests
+from .event_quest import EventQuest, EventQuestCompletion  # noqa: F401
+
+# User authored quests
+from .quest import Quest, QuestPurchase, QuestProgress  # noqa: F401
 from .tag import Tag, NodeTag  # noqa: F401
 
 # Add future models' imports above
