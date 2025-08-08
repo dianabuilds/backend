@@ -12,6 +12,7 @@ from app.api.navigation import router as navigation_router
 from app.api.notifications import router as notifications_router
 from app.api.quests import router as quests_router
 from app.api.traces import router as traces_router
+from app.api.achievements import router as achievements_router
 from app.core.config import settings
 from app.db.session import (
     check_database_connection,
@@ -39,6 +40,7 @@ app.include_router(navigation_router)
 app.include_router(notifications_router)
 app.include_router(quests_router)
 app.include_router(traces_router)
+app.include_router(achievements_router)
 
 
 @app.get("/")
