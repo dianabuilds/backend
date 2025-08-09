@@ -10,7 +10,7 @@ from app.web.admin import router as admin_ui_router
 from app.api.moderation import router as moderation_router
 from app.api.transitions import router as transitions_router
 from app.api.navigation import router as navigation_router
-from app.api.notifications import router as notifications_router
+from app.api.notifications import router as notifications_router, ws_router as notifications_ws_router
 from app.api.quests import router as quests_router
 from app.api.traces import router as traces_router
 from app.api.achievements import router as achievements_router
@@ -41,6 +41,7 @@ app.include_router(moderation_router)
 app.include_router(transitions_router)
 app.include_router(navigation_router)
 app.include_router(notifications_router)
+app.include_router(notifications_ws_router)
 app.include_router(quests_router)
 app.include_router(traces_router)
 app.include_router(achievements_router)
