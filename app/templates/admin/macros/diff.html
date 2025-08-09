@@ -1,0 +1,12 @@
+{% macro json_diff(before, after) -%}
+<div class="row">
+  <div class="col">
+    <h6>Before</h6>
+    <pre class="bg-light p-2"><code>{{ before | tojson(indent=2) }}</code></pre>
+  </div>
+  <div class="col">
+    <h6>After</h6>
+    <pre class="bg-light p-2"><code>{{ after | tojson(indent=2) }}</code></pre>
+  </div>
+</div>
+{%- endmacro %}
