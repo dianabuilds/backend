@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import random
 import uuid
-from typing import List
+from typing import List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.core.config import settings
 from app.models.echo_trace import EchoTrace
 from app.models.node import Node
 from app.models.user import User
+from app.repositories.compass_repository import CompassRepository
 from app.services.compass_cache import compass_cache
 from .embedding import cosine_similarity, update_node_embedding
 
@@ -36,15 +38,29 @@ async def get_compass_nodes(
             nodes.append(n)
         return nodes
 
-    query = select(Node).where(
-        Node.id != node.id,
-        Node.is_visible == True,
-        Node.is_public == True,
-        Node.is_recommendable == True,
-        Node.embedding_vector.isnot(None),
+    repo = CompassRepository(db)
+    candidates_with_dist: Optional[List[Tuple[Node, float]]] = await repo.get_similar_nodes_pgvector(
+        node,
+        settings.compass_top_k_db,
+        settings.compass_pgv_probes,
     )
-    result = await db.execute(query)
-    candidates = result.scalars().all()
+
+    if candidates_with_dist is None:
+        query = select(Node).where(
+            Node.id != node.id,
+            Node.is_visible == True,
+            Node.is_public == True,
+            Node.is_recommendable == True,
+            Node.embedding_vector.isnot(None),
+        )
+        result = await db.execute(query)
+        nodes = result.scalars().all()
+        candidates_with_dist = []
+        for cand in nodes:
+            if not cand.embedding_vector:
+                continue
+            dist = 1 - cosine_similarity(node.embedding_vector, cand.embedding_vector)
+            candidates_with_dist.append((cand, dist))
 
     visited: set[uuid.UUID] = set()
     if user:
@@ -56,14 +72,14 @@ async def get_compass_nodes(
     scored: list[tuple[Node, float, float, int]] = []
     surprises: list[Node] = []
     node_tags = set(node.tag_slugs)
-    for cand in candidates:
+    for cand, dist in candidates_with_dist:
         if cand.id in visited:
             continue
         if cand.premium_only and (not user or not user.is_premium):
             continue
         if not cand.embedding_vector:
             continue
-        sim = cosine_similarity(node.embedding_vector, cand.embedding_vector)
+        sim = 1 - dist
         tag_match = len(node_tags & set(cand.tag_slugs))
         rarity = 1 / (1 + (cand.popularity_score or 0))
         deviation_boost = random.uniform(0.9, 1.1)
@@ -73,6 +89,7 @@ async def get_compass_nodes(
             surprises.append(cand)
 
     scored.sort(key=lambda x: x[1], reverse=True)
+    limit = min(limit, settings.compass_top_k_result)
     selected = [c for c, _, _, _ in scored[:limit]]
 
     if surprises:
