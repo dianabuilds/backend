@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.models.achievement import Achievement, UserAchievement
+from app.models.node import Node
 from app.models.notification import Notification
 from app.services.achievements import AchievementsService
 
@@ -50,3 +51,34 @@ async def test_achievements_flow(client: AsyncClient, db_session: AsyncSession, 
     result = await db_session.execute(select(Notification).where(Notification.user_id == test_user.id))
     notifs = result.scalars().all()
     assert any(n.message == "First cave" for n in notifs)
+
+
+@pytest.mark.asyncio
+async def test_nodes_created_achievement(client: AsyncClient, db_session: AsyncSession, auth_headers, test_user):
+    ach = Achievement(
+        code="five_nodes",
+        title="Contributor",
+        description="Create 5 nodes",
+        icon="📝",
+        condition={"type": "nodes_created", "count": 5},
+        visible=True,
+    )
+    db_session.add(ach)
+    await db_session.commit()
+
+    for i in range(5):
+        node = Node(
+            title=f"Node {i}",
+            content_format="text",
+            content={},
+            author_id=test_user.id,
+        )
+        db_session.add(node)
+        await db_session.commit()
+        await AchievementsService.process_event(db_session, test_user.id, "node_created")
+
+    resp = await client.get("/achievements", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    created = next(a for a in data if a["code"] == "five_nodes")
+    assert created["unlocked"]

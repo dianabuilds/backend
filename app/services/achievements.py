@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.models.achievement import Achievement, UserAchievement
 from app.models.user import User
+from app.models.node import Node
+from app.models.event_counter import UserEventCounter
 from app.services.notifications import create_notification
 
 
 class AchievementsService:
-    _counters: dict[UUID, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     @classmethod
     async def process_event(
@@ -28,7 +28,7 @@ class AchievementsService:
         key = event_type
         if event_type == "tag_interaction" and metadata.get("tag"):
             key = f"tag:{metadata['tag']}"
-        cls._counters[user_id][key] += 1
+        await cls._increment_counter(db, user_id, key)
 
         result = await db.execute(
             select(Achievement).where(
@@ -67,13 +67,13 @@ class AchievementsService:
         if ctype == "event_count":
             if event_type != condition.get("event"):
                 return False
-            count = cls._counters[user_id][event_type]
+            count = await cls._get_counter(db, user_id, event_type)
             return count >= int(condition.get("count", 0))
         if ctype == "tag_interaction":
             if event_type != "tag_interaction" or metadata.get("tag") != condition.get("tag"):
                 return False
             key = f"tag:{condition.get('tag')}"
-            count = cls._counters[user_id][key]
+            count = await cls._get_counter(db, user_id, key)
             return count >= int(condition.get("count", 0))
         if ctype == "premium_status":
             result = await db.execute(
@@ -83,6 +83,46 @@ class AchievementsService:
         if ctype == "first_action":
             if event_type != condition.get("event"):
                 return False
-            count = cls._counters[user_id][event_type]
+            count = await cls._get_counter(db, user_id, event_type)
             return count == 1
+        if ctype == "quest_complete":
+            if event_type != "quest_complete":
+                return False
+            return metadata.get("quest_id") == condition.get("quest_id")
+        if ctype == "nodes_created":
+            result = await db.execute(
+                select(func.count(Node.id)).where(Node.author_id == user_id)
+            )
+            count = result.scalar() or 0
+            return count >= int(condition.get("count", 0))
+        if ctype == "views_count":
+            result = await db.execute(
+                select(func.coalesce(func.sum(Node.views), 0)).where(Node.author_id == user_id)
+            )
+            views = result.scalar() or 0
+            return views >= int(condition.get("count", 0))
         return False
+
+    @staticmethod
+    async def _increment_counter(db: AsyncSession, user_id: UUID, key: str) -> None:
+        result = await db.execute(
+            select(UserEventCounter).where(
+                UserEventCounter.user_id == user_id,
+                UserEventCounter.event == key,
+            )
+        )
+        counter = result.scalars().first()
+        if counter:
+            counter.count += 1
+        else:
+            db.add(UserEventCounter(user_id=user_id, event=key, count=1))
+
+    @staticmethod
+    async def _get_counter(db: AsyncSession, user_id: UUID, key: str) -> int:
+        result = await db.execute(
+            select(UserEventCounter.count).where(
+                UserEventCounter.user_id == user_id,
+                UserEventCounter.event == key,
+            )
+        )
+        return result.scalar() or 0
