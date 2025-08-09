@@ -47,3 +47,7 @@ class QuestProgressOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class QuestBuyIn(BaseModel):
+    payment_token: str | None = None
