@@ -14,6 +14,7 @@ from app.models.quest import Quest, QuestPurchase, QuestProgress
 from app.models.node import Node
 from app.models.user import User
 from app.schemas.quest import (
+    QuestBuyIn,
     QuestCreate,
     QuestUpdate,
     QuestOut,
@@ -21,6 +22,7 @@ from app.schemas.quest import (
 )
 from app.schemas.node import NodeOut
 from app.services.quests import has_access
+from app.services.payments import payment_service
 
 router = APIRouter(prefix="/quests", tags=["quests"])
 
@@ -272,6 +274,7 @@ async def get_quest_node(
 @router.post("/{quest_id}/buy", response_model=dict)
 async def buy_quest(
     quest_id: UUID,
+    payload: QuestBuyIn,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -290,6 +293,10 @@ async def buy_quest(
     purchase = res.scalars().first()
     if purchase:
         return {"status": "already"}
+    if not payload.payment_token or not await payment_service.verify(
+        payload.payment_token, quest.price
+    ):
+        raise HTTPException(status_code=400, detail="Payment not confirmed")
     purchase = QuestPurchase(quest_id=quest.id, user_id=current_user.id)
     db.add(purchase)
     await db.commit()
