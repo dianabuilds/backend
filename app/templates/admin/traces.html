@@ -1,0 +1,27 @@
+{% extends "admin/layout.html" %}
+{% block title %}Node Traces{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Node Traces</h1>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Node</th>
+      <th>User</th>
+      <th>Kind</th>
+      <th>Created</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in traces %}
+    <tr>
+      <td>{{ t.id }}</td>
+      <td>{{ t.node.slug if t.node else '' }}</td>
+      <td>{{ t.user_id }}</td>
+      <td>{{ t.kind }}</td>
+      <td>{{ t.created_at }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

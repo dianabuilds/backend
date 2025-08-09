@@ -1,0 +1,35 @@
+{% extends "admin/layout.html" %}
+{% block title %}Premium{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Premium Users</h1>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Username</th>
+      <th>Until</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.id }}</td>
+      <td>{{ u.username }}</td>
+      <td>{{ u.premium_until }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<h2 class="h5 mt-4">Set Premium</h2>
+<form method="post" class="row g-3">
+  <div class="col-md-4">
+    <input name="user_id" class="form-control" placeholder="User ID" />
+  </div>
+  <div class="col-md-4">
+    <input name="premium_until" class="form-control" placeholder="YYYY-MM-DD" />
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-primary" type="submit">Set</button>
+  </div>
+</form>
+{% endblock %}

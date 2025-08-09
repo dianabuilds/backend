@@ -14,7 +14,8 @@
         <div id="content">
             <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
                 <a class="navbar-brand" href="/admin">Admin</a>
-                <span class="badge bg-secondary ms-auto">{{ env|upper }}</span>
+                <span class="badge bg-secondary ms-auto me-3">{{ env|upper }}</span>
+                <a class="btn btn-outline-secondary btn-sm" href="/admin/logout">Logout</a>
             </nav>
             <div class="container-fluid">
                 {% block content %}{% endblock %}

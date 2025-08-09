@@ -2,7 +2,6 @@ import uuid
 
 from eth_account.messages import encode_defunct
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from web3.auto import w3
@@ -114,9 +113,16 @@ async def _authenticate(db: AsyncSession, username: str, password: str) -> Token
 
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    # Поддержка Swagger Authorize (form-data)
-    return await _authenticate(db, form_data.username, form_data.password)
+async def login(request: Request, db: AsyncSession = Depends(get_db)):
+    if request.headers.get("content-type", "").startswith("application/json"):
+        data = await request.json()
+        username = data.get("username")
+        password = data.get("password")
+    else:
+        form = await request.form()
+        username = form.get("username")
+        password = form.get("password")
+    return await _authenticate(db, username, password)
 
 
 @router.post("/login-json", response_model=Token, include_in_schema=True)
