@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import load_only
 
 from app.core.security import verify_access_token
 from app.db.session import get_db
@@ -27,7 +28,27 @@ async def get_current_user(
         user_id = UUID(user_id_str)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    user = await db.get(User, user_id)
+    # Выбираем только безопасные колонки, чтобы не падать на отсутствующих (например, premium_until)
+    result = await db.execute(
+        select(User)
+        .options(
+            load_only(
+                User.id,
+                User.created_at,
+                User.email,
+                User.password_hash,
+                User.wallet_address,
+                User.is_active,
+                User.username,
+                User.bio,
+                User.avatar_url,
+                User.role,
+                User.deleted_at,
+            )
+        )
+        .where(User.id == user_id)
+    )
+    user = result.scalars().first()
     if not user or not user.is_active or user.deleted_at is not None:
         raise HTTPException(status_code=404, detail="User not found")
     result = await db.execute(

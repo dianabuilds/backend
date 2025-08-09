@@ -13,7 +13,7 @@ from sqlalchemy import text
 
 
 # Путь к тестовой базе данных
-TEST_DB_PATH = "./test_db.sqlite"
+TEST_DB_PATH = "../test.db"
 
 # SQL для создания таблицы users
 CREATE_USERS_TABLE = """

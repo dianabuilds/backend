@@ -1,12 +1,14 @@
 import uuid
 
 from eth_account.messages import encode_defunct
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from web3.auto import w3
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.core.security import (
     create_access_token,
     get_password_hash,
@@ -94,19 +96,33 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/login", response_model=Token)
-async def login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
-    # Поиск пользователя по имени пользователя
-    result = await db.execute(select(User).where(User.username == payload.username))
-    user = result.scalars().first()
-
-    # Проверка пользователя и пароля
-    if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
+async def _authenticate(db: AsyncSession, username: str, password: str) -> Token:
+    # Выбираем только необходимые поля, чтобы не падать на отсутствующих колонках
+    result = await db.execute(
+        select(User.id, User.password_hash).where(User.username == username)
+    )
+    row = result.first()
+    if not row:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
-    # Создание токена
-    token = create_access_token(user.id)
+    user_id, password_hash = row[0], row[1]
+    if not password_hash or not verify_password(password, password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+    token = create_access_token(user_id)
     return Token(access_token=token)
+
+
+@router.post("/login", response_model=Token)
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    # Поддержка Swagger Authorize (form-data)
+    return await _authenticate(db, form_data.username, form_data.password)
+
+
+@router.post("/login-json", response_model=Token, include_in_schema=True)
+async def login_json(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
+    # Поддержка ручных JSON-вызовов
+    return await _authenticate(db, payload.username, payload.password)
 
 
 @router.post("/change-password")

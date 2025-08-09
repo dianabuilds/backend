@@ -15,6 +15,7 @@ from app.api.quests import router as quests_router
 from app.api.traces import router as traces_router
 from app.api.achievements import router as achievements_router
 from app.core.config import settings
+from app.engine import configure_from_settings
 from app.db.session import (
     check_database_connection,
     close_db_connection,
@@ -60,6 +61,9 @@ async def health_check():
 async def startup_event():
     """Выполняется при запуске приложения"""
     logger.info(f"Starting application in {settings.ENVIRONMENT} environment")
+
+    # Конфигурируем провайдер эмбеддингов из настроек
+    configure_from_settings()
 
     # Проверяем подключение к базе данных
     if await check_database_connection():

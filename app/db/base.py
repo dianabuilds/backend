@@ -23,5 +23,7 @@ class Base(DeclarativeBase):
 from app.models.user import User  # noqa
 from app.models.node import Node  # noqa
 from app.models.moderation import ContentModeration, UserRestriction  # noqa
+from app.models.echo_trace import EchoTrace  # noqa
+from app.models.transition import NodeTransition  # noqa
 
 # Add all other models here

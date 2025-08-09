@@ -2,8 +2,12 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# Абсолютный путь к .env в корне проекта: app/core/config.py -> app/core -> app -> проект
+ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 
 class Settings(BaseSettings):
     # Общие настройки
@@ -29,6 +33,14 @@ class Settings(BaseSettings):
     jwt_secret: str = "test-secret"
     jwt_algorithm: str = "HS256"
     jwt_expiration: int = 60 * 60  # seconds
+
+    # AI/Embedding settings
+    # backend: simple | aimlapi (в дальнейшем можно добавить другие значения)
+    embedding_backend: str = "simple"
+    embedding_model: str = ""
+    embedding_dim: int = 384
+    embedding_api_base: str = ""
+    embedding_api_key: str = ""
 
     # Security settings
     min_password_length: int = 3  # Минимальная длина пароля
@@ -86,7 +98,7 @@ class Settings(BaseSettings):
         }
 
     model_config = SettingsConfigDict(
-        env_file=".env" if os.path.exists(".env") else None,
+        env_file=str(ENV_PATH) if ENV_PATH.exists() else None,
         env_file_encoding="utf-8",
         case_sensitive=False
     )
@@ -107,6 +119,15 @@ def validate_settings(settings: Settings) -> None:
 
     if not settings.jwt_secret or settings.jwt_secret == "change-me-in-production":
         missing.append("jwt_secret")
+
+    # Проверяем обязательные переменные для внешнего провайдера эмбеддингов
+    if settings.embedding_backend.lower() == "aimlapi":
+        if not settings.embedding_api_base:
+            missing.append("embedding_api_base")
+        if not settings.embedding_api_key:
+            missing.append("embedding_api_key")
+        if not settings.embedding_model:
+            missing.append("embedding_model")
 
     if missing:
         missing_vars = ", ".join(missing)
