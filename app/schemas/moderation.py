@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -10,3 +11,25 @@ class RestrictionCreate(BaseModel):
 
 class ContentHide(BaseModel):
     reason: str
+
+
+class HiddenNodeOut(BaseModel):
+    slug: str
+    title: str | None = None
+    reason: str | None = None
+    hidden_by: UUID | None = None
+    hidden_at: datetime
+
+
+class RestrictionOut(BaseModel):
+    id: UUID
+    user_id: UUID
+    type: str
+    reason: str | None = None
+    created_at: datetime
+    expires_at: datetime | None = None
+    issued_by: UUID | None = None
+
+    model_config = {
+        "from_attributes": True,
+    }
