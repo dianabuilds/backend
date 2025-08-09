@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from uuid import UUID as PyUUID
 
 from app.core.config import settings
 from app.core.security import verify_access_token
@@ -18,6 +19,7 @@ from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.echo_trace import EchoTrace
 from app.models.node_trace import NodeTrace
 from app.models.achievement import Achievement
+from app.models.event_quest import EventQuest, EventQuestRewardType
 from app.api.auth import _authenticate
 from app.services.tags import get_or_create_tags
 from app.engine.embedding import update_node_embedding
@@ -244,6 +246,118 @@ async def create_transition_action(request: Request, db: AsyncSession = Depends(
     db.add(transition)
     await db.commit()
     return RedirectResponse(url="/admin/transitions", status_code=303)
+
+
+@router.get("/event-quests", response_class=HTMLResponse)
+async def list_event_quests(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    result = await db.execute(select(EventQuest).order_by(EventQuest.starts_at.desc()))
+    quests = result.scalars().all()
+    return templates.TemplateResponse(
+        "admin/event_quests.html", {"request": request, "quests": quests}
+    )
+
+
+@router.get("/event-quests/new", response_class=HTMLResponse)
+async def new_event_quest_form(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    result = await db.execute(select(Node).order_by(Node.created_at.desc()).limit(100))
+    nodes = result.scalars().all()
+    return templates.TemplateResponse(
+        "admin/event_quest_form.html",
+        {
+            "request": request,
+            "quest": None,
+            "nodes": nodes,
+            "reward_types": [r.value for r in EventQuestRewardType],
+        },
+    )
+
+
+@router.post("/event-quests/new")
+async def create_event_quest_action(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    form = await request.form()
+    hints_tags = [t.strip() for t in (form.get("hints_tags") or "").split(",") if t.strip()]
+    hints_keywords = [t.strip() for t in (form.get("hints_keywords") or "").split(",") if t.strip()]
+    traces_raw = [t.strip() for t in (form.get("hints_trace") or "").split(",") if t.strip()]
+    hints_trace = []
+    for tr in traces_raw:
+        try:
+            hints_trace.append(PyUUID(tr))
+        except Exception:
+            continue
+    quest = EventQuest(
+        title=form.get("title") or "",
+        target_node_id=form.get("target_node"),
+        hints_tags=hints_tags,
+        hints_keywords=hints_keywords,
+        hints_trace=hints_trace,
+        starts_at=datetime.fromisoformat(form.get("starts_at")),
+        expires_at=datetime.fromisoformat(form.get("expires_at")),
+        max_rewards=int(form.get("max_rewards") or 0),
+        reward_type=EventQuestRewardType(form.get("reward_type")),
+        is_active=form.get("is_active") == "on",
+    )
+    db.add(quest)
+    await db.commit()
+    return RedirectResponse(url="/admin/event-quests", status_code=303)
+
+
+@router.get("/event-quests/{quest_id}/edit", response_class=HTMLResponse)
+async def edit_event_quest_form(quest_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    quest = await db.get(EventQuest, quest_id)
+    if not quest:
+        return RedirectResponse(url="/admin/event-quests", status_code=303)
+    result = await db.execute(select(Node).order_by(Node.created_at.desc()).limit(100))
+    nodes = result.scalars().all()
+    return templates.TemplateResponse(
+        "admin/event_quest_form.html",
+        {
+            "request": request,
+            "quest": quest,
+            "nodes": nodes,
+            "reward_types": [r.value for r in EventQuestRewardType],
+        },
+    )
+
+
+@router.post("/event-quests/{quest_id}/edit")
+async def update_event_quest_action(quest_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    quest = await db.get(EventQuest, quest_id)
+    if not quest:
+        return RedirectResponse(url="/admin/event-quests", status_code=303)
+    form = await request.form()
+    quest.title = form.get("title") or ""
+    quest.target_node_id = form.get("target_node")
+    quest.hints_tags = [t.strip() for t in (form.get("hints_tags") or "").split(",") if t.strip()]
+    quest.hints_keywords = [t.strip() for t in (form.get("hints_keywords") or "").split(",") if t.strip()]
+    traces_raw = [t.strip() for t in (form.get("hints_trace") or "").split(",") if t.strip()]
+    quest.hints_trace = []
+    for tr in traces_raw:
+        try:
+            quest.hints_trace.append(PyUUID(tr))
+        except Exception:
+            continue
+    quest.starts_at = datetime.fromisoformat(form.get("starts_at"))
+    quest.expires_at = datetime.fromisoformat(form.get("expires_at"))
+    quest.max_rewards = int(form.get("max_rewards") or 0)
+    quest.reward_type = EventQuestRewardType(form.get("reward_type"))
+    quest.is_active = form.get("is_active") == "on"
+    await db.commit()
+    return RedirectResponse(url="/admin/event-quests", status_code=303)
 
 
 @router.get("/echoes", response_class=HTMLResponse)
