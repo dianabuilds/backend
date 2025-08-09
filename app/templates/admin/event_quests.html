@@ -1,0 +1,30 @@
+{% extends "admin/layout.html" %}
+{% block title %}Event Quests{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Event Quests</h1>
+<a href="/admin/event-quests/new" class="btn btn-primary mb-3">Create Event Quest</a>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Target Node</th>
+      <th>Active</th>
+      <th>Starts</th>
+      <th>Ends</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for q in quests %}
+    <tr>
+      <td>{{ q.title }}</td>
+      <td>{{ q.target_node_id }}</td>
+      <td>{{ 'Yes' if q.is_active else 'No' }}</td>
+      <td>{{ q.starts_at }}</td>
+      <td>{{ q.expires_at }}</td>
+      <td><a class="btn btn-sm btn-outline-secondary" href="/admin/event-quests/{{ q.id }}/edit">Edit</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
