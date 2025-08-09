@@ -1,0 +1,17 @@
+{% macro input(name, value='', type='text', label='', placeholder='', **attrs) -%}
+<div class="mb-3">
+  {% if label %}<label for="{{ name }}" class="form-label">{{ label }}</label>{% endif %}
+  <input type="{{ type }}" class="form-control" id="{{ name }}" name="{{ name }}" value="{{ value }}" placeholder="{{ placeholder }}" {{ attrs|xmlattr }}>
+</div>
+{%- endmacro %}
+
+{% macro textarea(name, value='', label='', rows=4, placeholder='', **attrs) -%}
+<div class="mb-3">
+  {% if label %}<label for="{{ name }}" class="form-label">{{ label }}</label>{% endif %}
+  <textarea class="form-control" id="{{ name }}" name="{{ name }}" rows="{{ rows }}" placeholder="{{ placeholder }}" {{ attrs|xmlattr }}>{{ value }}</textarea>
+</div>
+{%- endmacro %}
+
+{% macro csrf_input(token) -%}
+<input type="hidden" name="csrf_token" value="{{ token }}" />
+{%- endmacro %}
