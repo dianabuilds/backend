@@ -1,0 +1,57 @@
+{% extends "admin/layout.html" %}
+{% block title %}{{ 'Edit Event Quest' if quest else 'Create Event Quest' }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">{{ 'Edit Event Quest' if quest else 'Create Event Quest' }}</h1>
+<form method="post">
+  <div class="mb-3">
+    <label class="form-label">Title</label>
+    <input type="text" class="form-control" name="title" value="{{ quest.title if quest else '' }}" />
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Target node</label>
+    <select class="form-select" name="target_node">
+      {% for n in nodes %}
+      <option value="{{ n.id }}" {% if quest and quest.target_node_id == n.id %}selected{% endif %}>{{ n.title }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Hint tags (comma separated)</label>
+    <input type="text" class="form-control" name="hints_tags" value="{{ quest.hints_tags|join(',') if quest else '' }}" />
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Hint keywords (comma separated)</label>
+    <input type="text" class="form-control" name="hints_keywords" value="{{ quest.hints_keywords|join(',') if quest else '' }}" />
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Hint trace IDs (comma separated)</label>
+    <input type="text" class="form-control" name="hints_trace" value="{{ quest.hints_trace|join(',') if quest else '' }}" />
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Starts at</label>
+    <input type="datetime-local" class="form-control" name="starts_at" value="{{ quest.starts_at.isoformat(timespec='minutes') if quest else '' }}" />
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Expires at</label>
+    <input type="datetime-local" class="form-control" name="expires_at" value="{{ quest.expires_at.isoformat(timespec='minutes') if quest else '' }}" />
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Max rewards</label>
+    <input type="number" class="form-control" name="max_rewards" value="{{ quest.max_rewards if quest else 0 }}" />
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Reward type</label>
+    <select class="form-select" name="reward_type">
+      {% for rt in reward_types %}
+      <option value="{{ rt }}" {% if quest and quest.reward_type.value == rt %}selected{% endif %}>{{ rt }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" name="is_active" id="is_active" {% if quest and quest.is_active %}checked{% endif %}>
+    <label class="form-check-label" for="is_active">Active</label>
+  </div>
+  <button type="submit" class="btn btn-primary">Save</button>
+  <a href="/admin/event-quests" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}
