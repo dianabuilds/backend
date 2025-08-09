@@ -2,6 +2,12 @@
 {% block title %}Users{% endblock %}
 {% block content %}
 <h1 class="h3 mb-4 text-gray-800">Users</h1>
+<form method="get" class="mb-3">
+  <div class="input-group">
+    <input type="text" name="q" class="form-control" placeholder="Search" value="{{ q }}" />
+    <button class="btn btn-outline-secondary" type="submit">Search</button>
+  </div>
+</form>
 <table class="table table-striped">
   <thead>
     <tr>
@@ -24,4 +30,14 @@
     {% endfor %}
   </tbody>
 </table>
+<nav>
+  <ul class="pagination">
+    {% if has_prev %}
+    <li class="page-item"><a class="page-link" href="?page={{ page - 1 }}{% if q %}&q={{ q }}{% endif %}">Previous</a></li>
+    {% endif %}
+    {% if has_next %}
+    <li class="page-item"><a class="page-link" href="?page={{ page + 1 }}{% if q %}&q={{ q }}{% endif %}">Next</a></li>
+    {% endif %}
+  </ul>
+</nav>
 {% endblock %}
