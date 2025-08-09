@@ -1,5 +1,7 @@
 from pathlib import Path
 from datetime import datetime
+import json
+from types import SimpleNamespace
 
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -15,6 +17,7 @@ from app.models.user import User
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.echo_trace import EchoTrace
 from app.models.node_trace import NodeTrace
+from app.models.achievement import Achievement
 from app.api.auth import _authenticate
 from app.services.tags import get_or_create_tags
 from app.engine.embedding import update_node_embedding
@@ -291,3 +294,167 @@ async def set_premium(
     target.premium_until = datetime.fromisoformat(until) if until else None
     await db.commit()
     return RedirectResponse(url="/admin/premium", status_code=303)
+# Achievements admin
+@router.get('/achievements', response_class=HTMLResponse)
+async def list_achievements(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url='/admin/login', status_code=303)
+    result = await db.execute(select(Achievement).order_by(Achievement.code))
+    achievements = result.scalars().all()
+    return templates.TemplateResponse(
+        'admin/achievements.html',
+        {'request': request, 'achievements': achievements},
+    )
+
+ALLOWED_CONDITION_TYPES = {
+    'event_count',
+    'tag_interaction',
+    'premium_status',
+    'first_action',
+    'quest_complete',
+    'nodes_created',
+    'views_count',
+}
+
+def _parse_condition(condition_str: str):
+    try:
+        data = json.loads(condition_str)
+    except Exception:
+        return None, 'Invalid JSON condition'
+    if data.get('type') not in ALLOWED_CONDITION_TYPES:
+        return None, 'Unknown condition type'
+    return data, None
+
+@router.get('/achievements/new', response_class=HTMLResponse)
+async def new_achievement_form(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url='/admin/login', status_code=303)
+    return templates.TemplateResponse(
+        'admin/achievement_form.html',
+        {'request': request, 'achievement': None, 'condition': '{}', 'error': None},
+    )
+
+@router.post('/achievements/new')
+async def create_achievement_action(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url='/admin/login', status_code=303)
+    form = await request.form()
+    code = form.get('code')
+    title = form.get('title')
+    description = form.get('description') or None
+    icon = form.get('icon') or None
+    condition_str = form.get('condition') or '{}'
+    visible = form.get('visible') == 'on'
+
+    condition, error = _parse_condition(condition_str)
+    if not code:
+        error = 'Code is required'
+    else:
+        result = await db.execute(select(Achievement).where(Achievement.code == code))
+        if result.scalars().first():
+            error = 'Code must be unique'
+    if error:
+        temp = SimpleNamespace(
+            code=code,
+            title=title,
+            description=description,
+            icon=icon,
+            visible=visible,
+        )
+        return templates.TemplateResponse(
+            'admin/achievement_form.html',
+            {
+                'request': request,
+                'achievement': temp,
+                'condition': condition_str,
+                'error': error,
+            },
+        )
+
+    ach = Achievement(
+        code=code,
+        title=title,
+        description=description,
+        icon=icon,
+        condition=condition,
+        visible=visible,
+    )
+    db.add(ach)
+    await db.commit()
+    return RedirectResponse(url='/admin/achievements', status_code=303)
+
+@router.get('/achievements/{achievement_id}/edit', response_class=HTMLResponse)
+async def edit_achievement_form(achievement_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url='/admin/login', status_code=303)
+    achievement = await db.get(Achievement, achievement_id)
+    if not achievement:
+        return RedirectResponse(url='/admin/achievements', status_code=303)
+    condition_str = json.dumps(achievement.condition, indent=2)
+    return templates.TemplateResponse(
+        'admin/achievement_form.html',
+        {
+            'request': request,
+            'achievement': achievement,
+            'condition': condition_str,
+            'error': None,
+        },
+    )
+
+@router.post('/achievements/{achievement_id}/edit')
+async def update_achievement_action(achievement_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url='/admin/login', status_code=303)
+    achievement = await db.get(Achievement, achievement_id)
+    if not achievement:
+        return RedirectResponse(url='/admin/achievements', status_code=303)
+    form = await request.form()
+    code = form.get('code')
+    title = form.get('title')
+    description = form.get('description') or None
+    icon = form.get('icon') or None
+    condition_str = form.get('condition') or '{}'
+    visible = form.get('visible') == 'on'
+
+    condition, error = _parse_condition(condition_str)
+    if not code:
+        error = 'Code is required'
+    else:
+        result = await db.execute(
+            select(Achievement).where(
+                Achievement.code == code, Achievement.id != achievement.id
+            )
+        )
+        if result.scalars().first():
+            error = 'Code must be unique'
+    if error:
+        temp = SimpleNamespace(
+            code=code,
+            title=title,
+            description=description,
+            icon=icon,
+            visible=visible,
+        )
+        return templates.TemplateResponse(
+            'admin/achievement_form.html',
+            {
+                'request': request,
+                'achievement': temp,
+                'condition': condition_str,
+                'error': error,
+            },
+        )
+
+    achievement.code = code
+    achievement.title = title
+    achievement.description = description
+    achievement.icon = icon
+    achievement.condition = condition
+    achievement.visible = visible
+    await db.commit()
+    return RedirectResponse(url='/admin/achievements', status_code=303)

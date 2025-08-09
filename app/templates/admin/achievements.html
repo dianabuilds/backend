@@ -1,0 +1,28 @@
+{% extends "admin/layout.html" %}
+{% block title %}Achievements{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Achievements</h1>
+<a href="/admin/achievements/new" class="btn btn-primary mb-3">Create Achievement</a>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Code</th>
+      <th>Title</th>
+      <th>Visible</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in achievements %}
+    <tr>
+      <td>{{ a.id }}</td>
+      <td>{{ a.code }}</td>
+      <td>{{ a.title }}</td>
+      <td>{{ 'Yes' if a.visible else 'No' }}</td>
+      <td><a class="btn btn-sm btn-outline-secondary" href="/admin/achievements/{{ a.id }}/edit">Edit</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
