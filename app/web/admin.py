@@ -6,8 +6,10 @@ from types import SimpleNamespace
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import load_only
 
 from app.core.config import settings
 from app.core.security import verify_access_token
@@ -18,6 +20,8 @@ from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.echo_trace import EchoTrace
 from app.models.node_trace import NodeTrace
 from app.models.achievement import Achievement
+from app.models.quest import Quest
+from app.models.event_quest import EventQuest
 from app.api.auth import _authenticate
 from app.services.tags import get_or_create_tags
 from app.engine.embedding import update_node_embedding
@@ -72,17 +76,59 @@ async def admin_dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     user = await _get_admin_user(request, db)
     if not user:
         return RedirectResponse(url="/admin/login", status_code=303)
-    return templates.TemplateResponse("admin/dashboard.html", {"request": request, "user": user})
+    stats = {
+        "users_total": await db.scalar(select(func.count()).select_from(User)),
+        "users_active": await db.scalar(
+            select(func.count()).select_from(User).where(User.is_active == True)
+        ),
+        "users_banned": await db.scalar(
+            select(func.count()).select_from(User).where(User.is_active == False)
+        ),
+        "nodes_total": await db.scalar(select(func.count()).select_from(Node)),
+        "nodes_hidden": await db.scalar(
+            select(func.count()).select_from(Node).where(Node.is_visible == False)
+        ),
+        "quests_total": await db.scalar(select(func.count()).select_from(Quest)),
+        "event_active": await db.scalar(
+            select(func.count()).select_from(EventQuest).where(EventQuest.is_active == True)
+        ),
+    }
+    context = {"request": request, "user": user, "stats": stats}
+    return templates.TemplateResponse("admin/dashboard.html", context)
 
 
 @router.get("/nodes", response_class=HTMLResponse)
-async def list_nodes(request: Request, db: AsyncSession = Depends(get_db)):
+async def list_nodes(
+    request: Request,
+    q: str | None = None,
+    page: int = 1,
+    db: AsyncSession = Depends(get_db),
+):
     user = await _get_admin_user(request, db)
     if not user:
         return RedirectResponse(url="/admin/login", status_code=303)
-    result = await db.execute(select(Node).order_by(Node.created_at.desc()).limit(100))
+
+    limit = 50
+    stmt = select(Node).options(load_only(Node.id, Node.slug, Node.title)).order_by(
+        Node.created_at.desc()
+    )
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(or_(Node.title.ilike(like), Node.slug.ilike(like)))
+
+    total = await db.scalar(select(func.count()).select_from(stmt.subquery()))
+    result = await db.execute(stmt.offset((page - 1) * limit).limit(limit))
     nodes = result.scalars().all()
-    return templates.TemplateResponse("admin/nodes.html", {"request": request, "nodes": nodes})
+
+    context = {
+        "request": request,
+        "nodes": nodes,
+        "page": page,
+        "q": q or "",
+        "has_prev": page > 1,
+        "has_next": total > page * limit,
+    }
+    return templates.TemplateResponse("admin/nodes.html", context)
 
 
 @router.get("/nodes/new", response_class=HTMLResponse)
@@ -182,13 +228,35 @@ async def update_node_action(node_id: str, request: Request, db: AsyncSession = 
 
 
 @router.get("/users", response_class=HTMLResponse)
-async def list_users(request: Request, db: AsyncSession = Depends(get_db)):
+async def list_users(
+    request: Request,
+    q: str | None = None,
+    page: int = 1,
+    db: AsyncSession = Depends(get_db),
+):
     user = await _get_admin_user(request, db)
     if not user:
         return RedirectResponse(url="/admin/login", status_code=303)
-    result = await db.execute(select(User).order_by(User.created_at.desc()).limit(100))
+
+    limit = 50
+    stmt = select(User).order_by(User.created_at.desc())
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(or_(User.email.ilike(like), User.username.ilike(like)))
+
+    total = await db.scalar(select(func.count()).select_from(stmt.subquery()))
+    result = await db.execute(stmt.offset((page - 1) * limit).limit(limit))
     users = result.scalars().all()
-    return templates.TemplateResponse("admin/users.html", {"request": request, "users": users})
+
+    context = {
+        "request": request,
+        "users": users,
+        "page": page,
+        "q": q or "",
+        "has_prev": page > 1,
+        "has_next": total > page * limit,
+    }
+    return templates.TemplateResponse("admin/users.html", context)
 
 
 @router.get("/transitions", response_class=HTMLResponse)
