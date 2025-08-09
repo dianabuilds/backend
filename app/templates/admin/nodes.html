@@ -2,12 +2,14 @@
 {% block title %}Nodes{% endblock %}
 {% block content %}
 <h1 class="h3 mb-4 text-gray-800">Nodes</h1>
+<a href="/admin/nodes/new" class="btn btn-primary mb-3">Create New Node</a>
 <table class="table table-striped">
   <thead>
     <tr>
       <th>ID</th>
       <th>Slug</th>
       <th>Title</th>
+      <th></th>
     </tr>
   </thead>
   <tbody>
@@ -16,6 +18,7 @@
       <td>{{ n.id }}</td>
       <td>{{ n.slug }}</td>
       <td>{{ n.title }}</td>
+      <td><a class="btn btn-sm btn-outline-secondary" href="/admin/nodes/{{ n.id }}/edit">Edit</a></td>
     </tr>
     {% endfor %}
   </tbody>

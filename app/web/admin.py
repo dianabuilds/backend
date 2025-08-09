@@ -10,12 +10,14 @@ from sqlalchemy.future import select
 from app.core.config import settings
 from app.core.security import verify_access_token
 from app.db.session import get_db
-from app.models.node import Node
+from app.models.node import Node, ContentFormat
 from app.models.user import User
-from app.models.transition import NodeTransition
+from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.echo_trace import EchoTrace
 from app.models.node_trace import NodeTrace
 from app.api.auth import _authenticate
+from app.services.tags import get_or_create_tags
+from app.engine.embedding import update_node_embedding
 
 router = APIRouter(prefix="/admin", tags=["admin-ui"])
 
@@ -80,6 +82,102 @@ async def list_nodes(request: Request, db: AsyncSession = Depends(get_db)):
     return templates.TemplateResponse("admin/nodes.html", {"request": request, "nodes": nodes})
 
 
+@router.get("/nodes/new", response_class=HTMLResponse)
+async def new_node_form(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    return templates.TemplateResponse(
+        "admin/node_form.html",
+        {"request": request, "node": None, "formats": [f.value for f in ContentFormat]},
+    )
+
+
+@router.post("/nodes/new")
+async def create_node_action(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    form = await request.form()
+    title = form.get("title") or None
+    content_format = ContentFormat(form.get("content_format"))
+    content = form.get("content")
+    tags_raw = form.get("tags") or ""
+    tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
+    is_public = form.get("is_public") == "on"
+    is_visible = form.get("is_visible") == "on"
+    allow_feedback = form.get("allow_feedback") == "on"
+    is_recommendable = form.get("is_recommendable") == "on"
+    premium_only = form.get("premium_only") == "on"
+
+    node = Node(
+        title=title,
+        content_format=content_format,
+        content=content,
+        media=[],
+        is_public=is_public,
+        is_visible=is_visible,
+        allow_feedback=allow_feedback,
+        is_recommendable=is_recommendable,
+        premium_only=premium_only,
+        author_id=user.id,
+    )
+    if tags:
+        node.tags = await get_or_create_tags(db, tags)
+    db.add(node)
+    await db.commit()
+    await db.refresh(node)
+    await update_node_embedding(db, node)
+    return RedirectResponse(url="/admin/nodes", status_code=303)
+
+
+@router.get("/nodes/{node_id}/edit", response_class=HTMLResponse)
+async def edit_node_form(node_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    node = await db.get(Node, node_id)
+    if not node:
+        return RedirectResponse(url="/admin/nodes", status_code=303)
+    await db.refresh(node, attribute_names=["tags"])
+    return templates.TemplateResponse(
+        "admin/node_form.html",
+        {
+            "request": request,
+            "node": node,
+            "formats": [f.value for f in ContentFormat],
+        },
+    )
+
+
+@router.post("/nodes/{node_id}/edit")
+async def update_node_action(node_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    node = await db.get(Node, node_id)
+    if not node:
+        return RedirectResponse(url="/admin/nodes", status_code=303)
+    form = await request.form()
+    node.title = form.get("title") or None
+    node.content_format = ContentFormat(form.get("content_format"))
+    node.content = form.get("content")
+    tags_raw = form.get("tags") or ""
+    tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
+    node.is_public = form.get("is_public") == "on"
+    node.is_visible = form.get("is_visible") == "on"
+    node.allow_feedback = form.get("allow_feedback") == "on"
+    node.is_recommendable = form.get("is_recommendable") == "on"
+    node.premium_only = form.get("premium_only") == "on"
+    await db.refresh(node, attribute_names=["tags"])
+    node.tags = await get_or_create_tags(db, tags) if tags else []
+    node.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(node)
+    await update_node_embedding(db, node)
+    return RedirectResponse(url="/admin/nodes", status_code=303)
+
+
 @router.get("/users", response_class=HTMLResponse)
 async def list_users(request: Request, db: AsyncSession = Depends(get_db)):
     user = await _get_admin_user(request, db)
@@ -98,6 +196,51 @@ async def list_transitions(request: Request, db: AsyncSession = Depends(get_db))
     result = await db.execute(select(NodeTransition).order_by(NodeTransition.created_at.desc()).limit(100))
     transitions = result.scalars().all()
     return templates.TemplateResponse("admin/transitions.html", {"request": request, "transitions": transitions})
+
+
+@router.get("/transitions/new", response_class=HTMLResponse)
+async def new_transition_form(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    result = await db.execute(select(Node).order_by(Node.created_at.desc()).limit(100))
+    nodes = result.scalars().all()
+    return templates.TemplateResponse(
+        "admin/transition_form.html",
+        {
+            "request": request,
+            "nodes": nodes,
+            "types": [t.value for t in NodeTransitionType],
+        },
+    )
+
+
+@router.post("/transitions/new")
+async def create_transition_action(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_admin_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    form = await request.form()
+    from_id = form.get("from_node")
+    to_id = form.get("to_node")
+    type_val = form.get("type") or NodeTransitionType.manual.value
+    weight = int(form.get("weight") or 1)
+    label = form.get("label") or None
+    from_node = await db.get(Node, from_id)
+    to_node = await db.get(Node, to_id)
+    if not from_node or not to_node:
+        return RedirectResponse(url="/admin/transitions/new", status_code=303)
+    transition = NodeTransition(
+        from_node_id=from_node.id,
+        to_node_id=to_node.id,
+        type=NodeTransitionType(type_val),
+        weight=weight,
+        label=label,
+        created_by=user.id,
+    )
+    db.add(transition)
+    await db.commit()
+    return RedirectResponse(url="/admin/transitions", status_code=303)
 
 
 @router.get("/echoes", response_class=HTMLResponse)
