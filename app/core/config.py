@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     redis_url: str | None = None
     navigation_ttl_hours: int = 2
 
+    # Compass / recommendation settings
+    compass_top_k_db: int = 200
+    compass_top_k_result: int = 20
+    compass_pgv_probes: int = 10
+
     @property
     def database_url(self) -> str:
         """Создает URL для подключения к базе данных"""
