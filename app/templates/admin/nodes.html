@@ -1,0 +1,23 @@
+{% extends "admin/layout.html" %}
+{% block title %}Nodes{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Nodes</h1>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Slug</th>
+      <th>Title</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for n in nodes %}
+    <tr>
+      <td>{{ n.id }}</td>
+      <td>{{ n.slug }}</td>
+      <td>{{ n.title }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
