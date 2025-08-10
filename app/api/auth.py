@@ -1,4 +1,8 @@
 import uuid
+import secrets
+import hashlib
+import hmac
+from datetime import datetime, timedelta
 
 from eth_account.messages import encode_defunct
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -15,6 +19,8 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models.user import User
+from app.models.user_token import UserToken, TokenAction
+from app.services.mail import mail_service
 from app.schemas.auth import (
     ChangePassword,
     EVMVerify,
@@ -35,7 +41,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@router.post("/signup", response_model=Token)
+@router.post("/signup")
 async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
     logger.info(f"Signup attempt for email: {payload.email} with username: {payload.username}")
 
@@ -75,12 +81,44 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
         await db.commit()
         await db.refresh(user)
 
-        # Создаем токен
-        token = create_access_token(user.id)
+        # Создаем токен подтверждения email
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hmac.new(
+            settings.jwt.secret.encode(), raw_token.encode(), hashlib.sha256
+        ).hexdigest()
+        expires_at = datetime.utcnow() + timedelta(hours=24)
+        db.add(
+            UserToken(
+                user_id=user.id,
+                action=TokenAction.verify,
+                token_hash=token_hash,
+                expires_at=expires_at,
+            )
+        )
+        await db.commit()
+
+        verify_link = f"/auth/verify?token={raw_token}"
+        try:
+            await mail_service.send_email(
+                to=user.email,
+                subject="Verify your email",
+                template="verify_email",
+                context={
+                    "username": user.username,
+                    "link": verify_link,
+                    "expire_hours": 24,
+                },
+            )
+        except Exception as e:
+            logger.error(f"Failed to send verification email: {e}")
+
         logger.info(f"User created successfully: {user.id}")
         user_id_var.set(str(user.id))
         auth_success(str(user.id))
-        return Token(access_token=token)
+        resp = {"message": "Verification email sent"}
+        if not settings.is_production:
+            resp["verification_token"] = raw_token
+        return resp
     except Exception as e:
         await db.rollback()
         error_msg = str(e)
@@ -102,15 +140,42 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@router.get("/verify")
+async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
+    token_hash = hmac.new(
+        settings.jwt.secret.encode(), token.encode(), hashlib.sha256
+    ).hexdigest()
+    result = await db.execute(
+        select(UserToken).where(
+            UserToken.token_hash == token_hash,
+            UserToken.action == TokenAction.verify,
+        )
+    )
+    user_token = result.scalars().first()
+    if (
+        not user_token
+        or user_token.used_at
+        or user_token.expires_at < datetime.utcnow()
+    ):
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    user = await db.get(User, user_token.user_id)
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid token")
+    user.is_active = True
+    user_token.used_at = datetime.utcnow()
+    await db.commit()
+    return {"message": "Email verified"}
+
+
 async def _authenticate(db: AsyncSession, login: str, password: str) -> Token:
     if not login or not password:
         raise HTTPException(status_code=422, detail="username and password are required")
 
     # Логиним по username или email
     if "@" in login:
-        query = select(User.id, User.password_hash).where(User.email == login)
+        query = select(User.id, User.password_hash, User.is_active).where(User.email == login)
     else:
-        query = select(User.id, User.password_hash).where(User.username == login)
+        query = select(User.id, User.password_hash, User.is_active).where(User.username == login)
 
     result = await db.execute(query)
     row = result.first()
@@ -118,7 +183,10 @@ async def _authenticate(db: AsyncSession, login: str, password: str) -> Token:
         auth_failure("user_not_found")
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
-    user_id, password_hash = row[0], row[1]
+    user_id, password_hash, is_active = row[0], row[1], row[2]
+    if not is_active:
+        auth_failure("inactive_user", user=str(user_id))
+        raise HTTPException(status_code=400, detail="Email not verified")
     if not password_hash or not verify_password(password, password_hash):
         auth_failure("bad_password", user=str(user_id))
         raise HTTPException(status_code=400, detail="Incorrect username or password")

@@ -8,6 +8,7 @@ from .embedding import EmbeddingSettings
 from .admin import AdminSettings
 from .security import SecuritySettings
 from .logging import LoggingSettings
+from .smtp import SMTPSettings
 
 __all__ = [
     "DatabaseSettings",
@@ -20,4 +21,5 @@ __all__ = [
     "AdminSettings",
     "SecuritySettings",
     "LoggingSettings",
+    "SMTPSettings",
 ]

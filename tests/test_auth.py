@@ -4,6 +4,7 @@
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.models.user import User
 
@@ -44,16 +45,20 @@ class TestAuth:
         # Проверяем ответ
         assert response.status_code == 200
         data = response.json()
-        assert "access_token" in data
-        assert data["token_type"] == "bearer"
+        assert "verification_token" in data
 
-        # Проверяем, что пользователь создан в БД
+        # Проверяем, что пользователь создан в БД и не активен
         try:
             query = text("SELECT * FROM users WHERE username = :username")
             result = await db_session.execute(query, {"username": "newuser"})
             user = result.first()
             assert user is not None
             assert user.email == "newuser@example.com"
+            # is_active field is at index ? depends on schema; easier use ORM
+            query2 = select(User).where(User.username == "newuser")
+            result2 = await db_session.execute(query2)
+            orm_user = result2.scalars().first()
+            assert orm_user is not None and not orm_user.is_active
         except Exception as e:
             print(f"Ошибка при проверке пользователя: {str(e)}")
             raise
@@ -113,6 +118,27 @@ class TestAuth:
         assert response.status_code == 422
         data = response.json()
         assert "detail" in data
+
+    @pytest.mark.asyncio
+    async def test_email_verification_flow(self, client: AsyncClient, db_session: AsyncSession):
+        signup_data = {
+            "email": "verify@example.com",
+            "username": "verifyuser",
+            "password": "Password123",
+        }
+        response = await client.post("/auth/signup", json=signup_data)
+        assert response.status_code == 200
+        token = response.json()["verification_token"]
+
+        login_data = {"username": "verifyuser", "password": "Password123"}
+        login_resp = await client.post("/auth/login", json=login_data)
+        assert login_resp.status_code == 400
+
+        verify_resp = await client.get(f"/auth/verify?token={token}")
+        assert verify_resp.status_code == 200
+
+        login_resp = await client.post("/auth/login", json=login_data)
+        assert login_resp.status_code == 200
 
     @pytest.mark.asyncio
     async def test_login_success(self, client: AsyncClient, test_user: User):

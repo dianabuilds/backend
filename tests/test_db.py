@@ -34,6 +34,19 @@ CREATE TABLE IF NOT EXISTS users (
 )
 """
 
+CREATE_USER_TOKENS_TABLE = """
+CREATE TABLE IF NOT EXISTS user_tokens (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    token_hash TEXT UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+)
+"""
+
 # Индексы для таблицы users
 USER_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
@@ -58,6 +71,7 @@ def setup_test_db():
 
     # Создаем таблицу users
     cursor.execute(CREATE_USERS_TABLE)
+    cursor.execute(CREATE_USER_TOKENS_TABLE)
 
     # Создаем индексы
     for index_sql in USER_INDEXES:
