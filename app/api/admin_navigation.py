@@ -1,0 +1,78 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from app.api.deps import require_role
+from app.db.session import get_db
+from app.models.node import Node
+from app.models.user import User
+from app.engine.navigation_engine import generate_transitions
+from app.services.navcache import navcache
+from app.schemas.navigation_admin import (
+    NavigationRunRequest,
+    NavigationCacheSetRequest,
+    NavigationCacheInvalidateRequest,
+)
+
+router = APIRouter(prefix="/admin/navigation", tags=["admin"])
+
+
+@router.post("/run", summary="Run navigation generation")
+async def run_navigation(
+    payload: NavigationRunRequest,
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    node_result = await db.execute(select(Node).where(Node.slug == payload.node_slug))
+    node = node_result.scalars().first()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    user: User | None = None
+    if payload.user_id:
+        user = await db.get(User, payload.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+    transitions = await generate_transitions(db, node, user)
+    return {"transitions": transitions}
+
+
+@router.post("/cache/set", summary="Set navigation cache")
+async def set_cache(
+    payload: NavigationCacheSetRequest,
+    current_user: User = Depends(require_role("moderator")),
+):
+    user_key = str(payload.user_id) if payload.user_id else "anon"
+    await navcache.set_navigation(user_key, payload.node_slug, "auto", payload.payload)
+    return {"status": "ok"}
+
+
+@router.post("/cache/invalidate", summary="Invalidate navigation cache")
+async def invalidate_cache(
+    payload: NavigationCacheInvalidateRequest,
+    current_user: User = Depends(require_role("moderator")),
+):
+    if payload.scope == "node":
+        if not payload.node_slug:
+            raise HTTPException(status_code=400, detail="node_slug required")
+        await navcache.invalidate_navigation_by_node(payload.node_slug)
+    elif payload.scope == "user":
+        if not payload.user_id:
+            raise HTTPException(status_code=400, detail="user_id required")
+        await navcache.invalidate_navigation_by_user(payload.user_id)
+    else:
+        await navcache.invalidate_navigation_all()
+    return {"status": "ok"}
+
+
+@router.get("/pgvector/status", summary="pgvector status")
+async def pgvector_status(
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.repositories.compass_repository import CompassRepository
+
+    repo = CompassRepository(db)
+    enabled = repo.session.get_bind().dialect.name == "postgresql"
+    return {"enabled": enabled}
