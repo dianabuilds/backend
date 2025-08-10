@@ -30,9 +30,6 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         except Exception:  # pragma: no cover - safety
             pass
 
-        if settings.logging.requests:
-            logger.info(f"REQUEST {method} {path}")
-
         try:
             response: Response = await call_next(request)
         except Exception:
@@ -43,12 +40,16 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             raise
         finally:
             dur_ms = int((time.perf_counter() - start) * 1000)
+            status = getattr(response, "status_code", 500)
+            base_level = getattr(
+                logging, settings.logging.request_level.upper(), logging.INFO
+            )
             level = (
                 logging.WARNING
                 if dur_ms >= settings.logging.slow_request_ms
-                else logging.INFO
+                else base_level
             )
-            logger.log(level, f"RESPONSE {method} {path} {dur_ms}ms")
+            logger.log(level, f"{method} {path} {status} {dur_ms}ms")
             request_id_var.reset(token_req)
             user_id_var.reset(token_user)
 

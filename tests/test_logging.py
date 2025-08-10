@@ -1,5 +1,4 @@
 import asyncio
-import asyncio
 import json
 import logging
 
@@ -21,8 +20,7 @@ async def test_logging_middleware_basic(client, caplog):
         resp = await client.get("/health")
     assert resp.status_code == 200
     assert "X-Request-Id" in resp.headers
-    assert "REQUEST GET /health" in caplog.text
-    assert "RESPONSE GET /health" in caplog.text
+    assert "GET /health 200" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -76,7 +74,7 @@ async def test_slow_request_threshold(capsys):
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             await ac.get("/slow")
         err = capsys.readouterr().err
-        assert "RESPONSE GET /slow" in err
+        assert "GET /slow 200" in err
         assert "WARNING" in err
     finally:
         settings.logging.slow_request_ms = prev

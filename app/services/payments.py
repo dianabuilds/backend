@@ -26,4 +26,7 @@ class PaymentService:
         return data.get("amount") == amount
 
 
-payment_service = PaymentService(settings.jwt.secret, settings.jwt.algorithm)
+payment_service = PaymentService(
+    settings.payment.jwt_secret or "",
+    settings.jwt.algorithm,
+)

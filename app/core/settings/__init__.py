@@ -10,6 +10,8 @@ from .security import SecuritySettings
 from .logging import LoggingSettings
 from .smtp import SMTPSettings
 from .sentry import SentrySettings
+from .payment import PaymentSettings
+from .cookie import CookieSettings
 
 __all__ = [
     "DatabaseSettings",
@@ -24,4 +26,6 @@ __all__ = [
     "LoggingSettings",
     "SMTPSettings",
     "SentrySettings",
+    "PaymentSettings",
+    "CookieSettings",
 ]

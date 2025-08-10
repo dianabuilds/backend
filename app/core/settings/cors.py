@@ -1,10 +1,21 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class CorsSettings(BaseSettings):
-    allowed_origins: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    allowed_origins: List[str] = Field(default_factory=list)
     allow_credentials: bool = True
-    allowed_methods: List[str] = ["*"]
-    allowed_headers: List[str] = ["*"]
+    allowed_methods: List[str] = Field(
+        default_factory=lambda: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+    )
+    allowed_headers: List[str] = Field(
+        default_factory=lambda: ["Authorization", "Content-Type"]
+    )
 
     model_config = SettingsConfigDict(env_prefix="CORS_")
+
+    @field_validator("allowed_origins", "allowed_methods", "allowed_headers", mode="before")
+    def split_csv(cls, v):
+        if isinstance(v, str):
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v

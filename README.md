@@ -22,6 +22,29 @@
 
 ## Структура проекта
 
+## Production config
+
+Для запуска в продакшене заполните переменные окружения из `.env.example`.
+
+Ключевые секции:
+
+- **База данных**: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`.
+- **JWT и сессии**: `JWT_SECRET`, `JWT_ALG`, `JWT_EXPIRES_MIN`, `COOKIE_DOMAIN`, `COOKIE_SECURE`, `COOKIE_SAMESITE`.
+- **Оплаты**: `PAYMENT_JWT_SECRET` или `PAYMENT_WEBHOOK_SECRET` (секреты должны отличаться от `JWT_SECRET`).
+- **CORS**: `CORS_ALLOWED_ORIGINS`, `CORS_ALLOW_CREDENTIALS`, `CORS_ALLOWED_METHODS`, `CORS_ALLOWED_HEADERS`.
+- **Sentry и логи**: `SENTRY_DSN`, `SENTRY_ENV`, `LOG_LEVEL`, `REQUEST_LOG_LEVEL`, `SLOW_QUERY_MS`.
+- **Redis**: `REDIS_URL`, если используете кеш или очереди.
+
+Чек‑лист продакшна:
+
+1. Сгенерируйте случайные значения для `JWT_SECRET` и `PAYMENT_JWT_SECRET`; они **обязаны отличаться**.
+2. Задайте реальные параметры базы данных и уберите значения `change_me`.
+3. Ограничьте `CORS_ALLOWED_ORIGINS` только доверенными доменами.
+4. Включите защищённые cookie (`COOKIE_SECURE=True`, `COOKIE_SAMESITE=Strict` или `Lax`) и задайте `COOKIE_DOMAIN`.
+5. Укажите `SENTRY_DSN` и проверьте отправку ошибок.
+6. Настройте уровни логирования и порог `SLOW_QUERY_MS`.
+7. Выполните миграции и убедитесь, что `/health` возвращает `200`.
+
 ## Настройка почты
 
 Отправка писем реализована через SMTP. Все параметры настраиваются через переменные окружения с префиксом `SMTP_`.

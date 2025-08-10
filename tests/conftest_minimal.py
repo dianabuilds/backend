@@ -19,6 +19,7 @@ os.environ["DB_HOST"] = "localhost"
 os.environ["DB_PORT"] = "5432"
 os.environ["DB_NAME"] = "testdb"
 os.environ["JWT_SECRET"] = "test-secret-key"
+os.environ["PAYMENT_JWT_SECRET"] = "test-payment-secret"
 
 # Импортируем только то, что нам нужно
 from app.main import app

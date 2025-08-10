@@ -16,6 +16,8 @@ from .settings import (
     LoggingSettings,
     SMTPSettings,
     SentrySettings,
+    PaymentSettings,
+    CookieSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,6 +49,8 @@ class Settings(ProjectSettings):
     logging: LoggingSettings = LoggingSettings()
     smtp: SMTPSettings = SMTPSettings()
     sentry: SentrySettings = SentrySettings()
+    payment: PaymentSettings = PaymentSettings()
+    cookie: CookieSettings = CookieSettings()
 
     @property
     def is_production(self) -> bool:
@@ -83,17 +87,32 @@ class Settings(ProjectSettings):
 
 def validate_settings(settings: Settings) -> None:
     missing = []
-    if not settings.database.username:
+
+    def _is_placeholder(value: str | None) -> bool:
+        if value is None:
+            return True
+        return value == "" or "change_me" in value or "change-me" in value
+
+    if _is_placeholder(settings.database.username):
         missing.append("DB_USERNAME")
-    if not settings.database.password:
+    if _is_placeholder(settings.database.password):
         missing.append("DB_PASSWORD")
-    if not settings.database.host:
+    if _is_placeholder(settings.database.host):
         missing.append("DB_HOST")
-    if not settings.database.name:
+    if _is_placeholder(settings.database.name):
         missing.append("DB_NAME")
 
-    if not settings.jwt.secret or settings.jwt.secret == "change-me-in-production":
+    if _is_placeholder(settings.jwt.secret):
         missing.append("JWT_SECRET")
+    if settings.payment.jwt_secret:
+        if _is_placeholder(settings.payment.jwt_secret):
+            missing.append("PAYMENT_JWT_SECRET")
+        if settings.payment.jwt_secret == settings.jwt.secret:
+            missing.append("PAYMENT_JWT_SECRET distinct from JWT_SECRET")
+    if settings.payment.webhook_secret and _is_placeholder(
+        settings.payment.webhook_secret
+    ):
+        missing.append("PAYMENT_WEBHOOK_SECRET")
 
     if settings.embedding.name == "aimlapi":
         if not settings.embedding.api_base:
