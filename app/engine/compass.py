@@ -14,7 +14,7 @@ from app.models.user import User
 from app.repositories.compass_repository import CompassRepository
 from app.services.compass_cache import compass_cache
 from .embedding import cosine_similarity, update_node_embedding
-from .filters import has_access
+from .filters import has_access_async
 
 
 async def get_compass_nodes(
@@ -32,7 +32,7 @@ async def get_compass_nodes(
         nodes: List[Node] = []
         for node_id in cached:
             n = await db.get(Node, uuid.UUID(node_id))
-            if not n or not has_access(n, user):
+            if not n or not await has_access_async(n, user):
                 continue
             nodes.append(n)
         return nodes
@@ -74,7 +74,7 @@ async def get_compass_nodes(
     for cand, dist in candidates_with_dist:
         if cand.id in visited:
             continue
-        if not has_access(cand, user):
+        if not await has_access_async(cand, user):
             continue
         if not cand.embedding_vector:
             continue

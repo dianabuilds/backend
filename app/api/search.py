@@ -7,7 +7,7 @@ from sqlalchemy import func
 
 from app.api.deps import get_current_user_optional
 from app.db.session import get_db
-from app.engine.filters import has_access
+from app.engine.filters import has_access_async
 from app.models.node import Node
 from app.models.tag import Tag
 from app.models.user import User
@@ -40,7 +40,7 @@ async def search_nodes(
     stmt = stmt.offset(offset).limit(limit)
     result = await db.execute(stmt)
     nodes = result.scalars().all()
-    filtered = [n for n in nodes if has_access(n, user)]
+    filtered = [n for n in nodes if await has_access_async(n, user)]
     return [
         {"slug": n.slug, "title": n.title, "tags": n.tag_slugs, "score": 1.0}
         for n in filtered

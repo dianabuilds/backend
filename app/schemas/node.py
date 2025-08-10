@@ -44,6 +44,9 @@ class NodeUpdate(BaseModel):
     is_public: bool | None = None
     allow_feedback: bool | None = None
     is_recommendable: bool | None = None
+    premium_only: bool | None = None
+    nft_required: str | None = None
+    ai_generated: bool | None = None
 
 
 class NodeOut(NodeBase):
