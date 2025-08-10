@@ -34,7 +34,7 @@ class TestUsers:
         # Проверяем ответ - должна быть ошибка авторизации
         assert response.status_code == 401
         data = response.json()
-        assert "detail" in data
+        assert data["error"]["code"] == "UNAUTHORIZED"
 
     @pytest.mark.asyncio
     async def test_update_user(self, client: AsyncClient, auth_headers: dict, db_session: AsyncSession):

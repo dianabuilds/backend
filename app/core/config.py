@@ -15,6 +15,7 @@ from .settings import (
     SecuritySettings,
     LoggingSettings,
     SMTPSettings,
+    SentrySettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ class Settings(ProjectSettings):
     security: SecuritySettings = SecuritySettings()
     logging: LoggingSettings = LoggingSettings()
     smtp: SMTPSettings = SMTPSettings()
+    sentry: SentrySettings = SentrySettings()
 
     @property
     def is_production(self) -> bool:

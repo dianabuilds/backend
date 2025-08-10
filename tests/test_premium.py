@@ -29,7 +29,9 @@ class TestPremium:
 
         # Проверяем, что доступ запрещен
         assert response.status_code == 403
-        assert response.json()["detail"] == "Premium subscription required"
+        data = response.json()
+        assert data["error"]["code"] == "FORBIDDEN"
+        assert data["error"]["message"] == "Premium subscription required"
 
     @pytest.mark.asyncio
     async def test_set_premium_requires_admin(

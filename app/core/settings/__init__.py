@@ -9,6 +9,7 @@ from .admin import AdminSettings
 from .security import SecuritySettings
 from .logging import LoggingSettings
 from .smtp import SMTPSettings
+from .sentry import SentrySettings
 
 __all__ = [
     "DatabaseSettings",
@@ -22,4 +23,5 @@ __all__ = [
     "SecuritySettings",
     "LoggingSettings",
     "SMTPSettings",
+    "SentrySettings",
 ]

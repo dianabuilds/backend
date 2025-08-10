@@ -22,6 +22,8 @@ from app.api.search import router as search_router
 from app.core.config import settings
 from app.core.logging_config import configure_logging
 from app.core.logging_middleware import RequestLoggingMiddleware
+from app.core.exception_handlers import register_exception_handlers
+from app.core.sentry import init_sentry
 from app.engine import configure_from_settings
 from app.db.session import (
     check_database_connection,
@@ -32,10 +34,12 @@ from app.services.bootstrap import ensure_default_admin
 
 # Настройка логирования
 configure_logging()
+init_sentry(settings)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 app.add_middleware(RequestLoggingMiddleware)
+register_exception_handlers(app)
 
 # CORS: разрешаем фронту ходить на API в dev
 app.add_middleware(
