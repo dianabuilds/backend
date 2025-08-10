@@ -48,3 +48,19 @@ SMTP_TLS=True
 SMTP_MAIL_FROM=noreply@example.com
 SMTP_MAIL_FROM_NAME=Наш новый сайт
 ```
+=======
+## Настройка эмбеддингов
+
+Для использования внешних провайдеров эмбеддингов задайте переменные окружения.
+Пример для AIML API приведён в `.env.example`:
+
+```
+EMBEDDING_PROVIDER=aimlapi
+EMBEDDING_API_BASE=https://api.aimlapi.com/v1/embeddings
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_API_KEY=<ваш ключ>
+EMBEDDING_DIM=384
+```
+
+Реальный ключ храните только в локальном `.env`, который уже добавлен в `.gitignore`.
+
