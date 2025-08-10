@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     # Cache settings
     redis_url: str | None = None
     navigation_ttl_hours: int = 2
+    navigation_max_options: int = 3
+    navigation_weight_compass: float = 0.5
+    navigation_weight_echo: float = 0.3
+    navigation_weight_random: float = 0.2
 
     # Compass / recommendation settings
     compass_top_k_db: int = 200

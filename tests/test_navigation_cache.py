@@ -26,7 +26,7 @@ async def test_navigation_cached(client: AsyncClient, db_session: AsyncSession, 
     # patch random and other engines to controlled outputs
     call = {"count": 0}
 
-    async def fake_random(db, exclude_node_id=None, tag_whitelist=None):
+    async def fake_random(db, user=None, exclude_node_id=None, tag_whitelist=None):
         call["count"] += 1
         slug = n1 if call["count"] == 1 else n2
         result = await db.execute(select(Node).where(Node.slug == slug))

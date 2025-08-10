@@ -27,7 +27,7 @@ async def apply_mode(
             for n in nodes
         ]
     if mode.mode == "echo":
-        nodes = await get_echo_transitions(db, node, max_options)
+        nodes = await get_echo_transitions(db, node, max_options, user=user)
         return [
             TransitionOption(slug=n.slug, label=n.title, mode=mode.mode)
             for n in nodes
@@ -39,7 +39,10 @@ async def apply_mode(
             whitelist = mode.filters.get("tag_whitelist")
         for _ in range(max_options):
             rnd = await get_random_node(
-                db, exclude_node_id=node.id, tag_whitelist=whitelist
+                db,
+                user=user,
+                exclude_node_id=node.id,
+                tag_whitelist=whitelist,
             )
             if not rnd:
                 break
