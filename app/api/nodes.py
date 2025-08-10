@@ -11,6 +11,7 @@ from app.api.deps import (
     ensure_can_post,
     get_current_user,
     require_premium,
+    assert_owner_or_role,
 )
 from app.db.session import get_db
 from app.engine.transitions import get_transitions
@@ -178,11 +179,7 @@ async def create_transition(
     from_node = result.scalars().first()
     if not from_node:
         raise HTTPException(status_code=404, detail="Node not found")
-    if from_node.author_id != current_user.id and current_user.role not in (
-        "moderator",
-        "admin",
-    ):
-        raise HTTPException(status_code=403, detail="Not allowed")
+    assert_owner_or_role(from_node.author_id, "moderator", current_user)
     result = await db.execute(select(Node).where(Node.slug == payload.to_slug))
     to_node = result.scalars().first()
     if not to_node:

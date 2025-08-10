@@ -112,6 +112,38 @@ async def test_user(db_session: AsyncSession) -> User:
 
 
 @pytest_asyncio.fixture(scope="function")
+async def admin_user(db_session: AsyncSession) -> User:
+    """Create a test admin user."""
+    user = User(
+        email="admin@example.com",
+        username="admin",
+        password_hash=get_password_hash("Password123"),
+        is_active=True,
+        role="admin",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest_asyncio.fixture(scope="function")
+async def moderator_user(db_session: AsyncSession) -> User:
+    """Create a test moderator user."""
+    user = User(
+        email="moderator@example.com",
+        username="moderator",
+        password_hash=get_password_hash("Password123"),
+        is_active=True,
+        role="moderator",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest_asyncio.fixture(scope="function")
 async def auth_headers(client: AsyncClient, test_user: User) -> dict:
     """
     Получает заголовки авторизации для тестового пользователя.

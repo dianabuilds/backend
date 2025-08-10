@@ -1,6 +1,7 @@
 """
 Тесты для функционала премиум-подписки.
 """
+import logging
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,45 +32,53 @@ class TestPremium:
         assert response.json()["detail"] == "Premium subscription required"
 
     @pytest.mark.asyncio
-    async def test_set_premium_via_admin_api(
-        self, client: AsyncClient, db_session: AsyncSession, test_user: User
+    async def test_set_premium_requires_admin(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        test_user: User,
+        admin_user: User,
+        caplog,
     ):
-        """Проверка установки премиум-статуса через админское API."""
-        # Получаем токен для тестового пользователя
-        token = create_access_token(test_user.id)
-
-        # Данные для запроса
-        payload = {"is_premium": True}
-
-        # Отправляем запрос на установку премиум-статуса
+        """Проверка, что премиум может менять только админ и действие логируется."""
+        user_token = create_access_token(test_user.id)
         response = await client.post(
             f"/admin/users/{test_user.id}/premium",
-            json=payload,
-            headers={"Authorization": f"Bearer {token}"}
+            json={"is_premium": True},
+            headers={"Authorization": f"Bearer {user_token}"},
         )
+        assert response.status_code == 403
 
-        # Проверяем успешный ответ
-        assert response.status_code == 200
+        admin_token = create_access_token(admin_user.id)
+        with caplog.at_level(logging.INFO):
+            response = await client.post(
+                f"/admin/users/{test_user.id}/premium",
+                json={"is_premium": True},
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert response.status_code == 200
 
-        # Обновляем данные пользователя из БД
         await db_session.refresh(test_user)
-
-        # Проверяем, что статус премиум установлен
         assert test_user.is_premium is True
+        assert any(getattr(rec, "action", None) == "set_premium" for rec in caplog.records)
 
     @pytest.mark.asyncio
     async def test_premium_endpoint_allowed_with_subscription(
-        self, client: AsyncClient, db_session: AsyncSession, test_user: User
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        test_user: User,
+        admin_user: User,
     ):
         """Проверка, что премиум-эндпоинт доступен с подпиской."""
         # Получаем токен для тестового пользователя
         token = create_access_token(test_user.id)
+        admin_token = create_access_token(admin_user.id)
 
-        # Устанавливаем премиум-статус через API
         await client.post(
             f"/admin/users/{test_user.id}/premium",
             json={"is_premium": True},
-            headers={"Authorization": f"Bearer {token}"}
+            headers={"Authorization": f"Bearer {admin_token}"},
         )
 
         # Делаем запрос к премиум-эндпоинту

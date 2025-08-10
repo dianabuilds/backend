@@ -1,11 +1,12 @@
 from datetime import datetime
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import get_db, require_role
+from app.api.deps import assert_seniority_over, get_db, require_role
 from app.models.moderation import ContentModeration, UserRestriction
 from app.models.node import Node
 from app.models.user import User
@@ -18,6 +19,8 @@ from app.schemas.moderation import (
 
 router = APIRouter(prefix="/moderation", tags=["moderation"])
 
+logger = logging.getLogger(__name__)
+
 
 @router.post("/users/{user_id}/ban")
 async def ban_user(
@@ -26,8 +29,10 @@ async def ban_user(
     current_user: User = Depends(require_role("moderator")),
     db: AsyncSession = Depends(get_db),
 ):
-    if not await db.get(User, user_id):
+    target_user = await db.get(User, user_id)
+    if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
+    assert_seniority_over(target_user, current_user)
     restriction = UserRestriction(
         user_id=user_id,
         type="ban",
@@ -38,6 +43,16 @@ async def ban_user(
     db.add(restriction)
     await db.commit()
     await db.refresh(restriction)
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "ban_user",
+            "actor_id": str(current_user.id),
+            "target_user_id": str(user_id),
+            "payload": payload.model_dump(),
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
     return {"id": restriction.id}
 
 
@@ -48,8 +63,10 @@ async def restrict_posting(
     current_user: User = Depends(require_role("moderator")),
     db: AsyncSession = Depends(get_db),
 ):
-    if not await db.get(User, user_id):
+    target_user = await db.get(User, user_id)
+    if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
+    assert_seniority_over(target_user, current_user)
     restriction = UserRestriction(
         user_id=user_id,
         type="post_restrict",
@@ -60,6 +77,16 @@ async def restrict_posting(
     db.add(restriction)
     await db.commit()
     await db.refresh(restriction)
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "restrict_posting",
+            "actor_id": str(current_user.id),
+            "target_user_id": str(user_id),
+            "payload": payload.model_dump(),
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
     return {"id": restriction.id}
 
 
@@ -88,6 +115,9 @@ async def hide_node(
     node = result.scalars().first()
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
+    author = await db.get(User, node.author_id)
+    if author:
+        assert_seniority_over(author, current_user)
     node.is_visible = False
     moderation = ContentModeration(
         node_id=node.id,
@@ -96,6 +126,16 @@ async def hide_node(
     )
     db.add(moderation)
     await db.commit()
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "hide_node",
+            "actor_id": str(current_user.id),
+            "node_id": str(node.id),
+            "payload": payload.model_dump(),
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
     return {"message": "Node hidden"}
 
 
@@ -133,6 +173,9 @@ async def restore_node(
     node = result.scalars().first()
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
+    author = await db.get(User, node.author_id)
+    if author:
+        assert_seniority_over(author, current_user)
     node.is_visible = True
     mod_result = await db.execute(
         select(ContentModeration).where(ContentModeration.node_id == node.id)
@@ -141,6 +184,15 @@ async def restore_node(
     for mod in moderations:
         await db.delete(mod)
     await db.commit()
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "restore_node",
+            "actor_id": str(current_user.id),
+            "node_id": str(node.id),
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
     return {"message": "Node restored"}
 
 

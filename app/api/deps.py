@@ -105,6 +105,12 @@ async def require_premium(user: User = Depends(get_current_user)) -> User:
     return user
 
 
+"""Common authorization helpers and role hierarchy for API dependencies.
+
+Roles have strict seniority: ``user < moderator < admin``.  Helpers below
+leverage this ranking to provide unified access checks across the API.
+"""
+
 role_order = {"user": 0, "moderator": 1, "admin": 2}
 
 
@@ -115,6 +121,29 @@ def require_role(min_role: str = "moderator"):
         return user
 
     return _require_role
+
+
+def assert_owner_or_role(owner_id: UUID, min_role: str, current_user: User) -> None:
+    """Allow action if ``current_user`` owns the entity or has ``min_role``.
+
+    Args:
+        owner_id: Identifier of the entity owner.
+        min_role: Minimal role required when user is not the owner.
+        current_user: Authenticated user performing the action.
+    """
+    if current_user.id != owner_id and role_order.get(current_user.role, 0) < role_order[
+        min_role
+    ]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+
+def assert_seniority_over(target_user: User, current_user: User) -> None:
+    """Ensure ``current_user`` is strictly senior to ``target_user``.
+
+    Raises ``HTTPException`` with status 403 if the check fails.
+    """
+    if role_order.get(current_user.role, 0) <= role_order.get(target_user.role, 0):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 
 async def ensure_can_post(
