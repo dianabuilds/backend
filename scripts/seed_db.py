@@ -205,7 +205,7 @@ async def main():
     parser.add_argument("--no-embeddings", action="store_true", help="Не считать эмбеддинги для узлов")
     args = parser.parse_args()
 
-    logger.info("Seeding database for environment: %s", settings.ENVIRONMENT)
+    logger.info("Seeding database for environment: %s", settings.environment)
 
     # Применяем миграции, затем гарантируем создание всех таблиц из моделей
     await init_db()

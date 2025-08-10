@@ -27,7 +27,7 @@ def get_engine() -> AsyncEngine:
     """
     global _engine
     if _engine is None:
-        logger.info(f"Creating database engine for environment: {settings.ENVIRONMENT}")
+        logger.info(f"Creating database engine for environment: {settings.environment}")
         _engine = create_async_engine(
             settings.database_url,
             connect_args=settings.db_connect_args,

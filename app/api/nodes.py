@@ -239,7 +239,7 @@ async def get_next_nodes(
         return await apply_mode(db, node, current_user, m, controller.max_options)
 
     user_id = str(current_user.id)
-    if settings.enable_nav_cache:
+    if settings.cache.enable_nav_cache:
         cached = await navcache.get_navigation(user_id, slug, mode)
         if cached:
             return NextTransitions(**cached)
@@ -253,15 +253,15 @@ async def get_next_nodes(
                 opts = await run_mode(m)
                 if opts:
                     result_obj = NextTransitions(mode=m.mode, transitions=opts)
-                    if settings.enable_nav_cache:
+                    if settings.cache.enable_nav_cache:
                         await navcache.set_navigation(
-                            user_id, slug, mode, result_obj.model_dump(), settings.nav_cache_ttl
+                            user_id, slug, mode, result_obj.model_dump(), settings.cache.nav_cache_ttl
                         )
                     return result_obj
             result_obj = NextTransitions(mode="auto", transitions=[])
-            if settings.enable_nav_cache:
+            if settings.cache.enable_nav_cache:
                 await navcache.set_navigation(
-                    user_id, slug, mode, result_obj.model_dump(), settings.nav_cache_ttl
+                    user_id, slug, mode, result_obj.model_dump(), settings.cache.nav_cache_ttl
                 )
             return result_obj
 
@@ -269,9 +269,9 @@ async def get_next_nodes(
     if m:
         opts = await run_mode(m)
         result_obj = NextTransitions(mode=m.mode, transitions=opts)
-        if settings.enable_nav_cache:
+        if settings.cache.enable_nav_cache:
             await navcache.set_navigation(
-                user_id, slug, mode, result_obj.model_dump(), settings.nav_cache_ttl
+                user_id, slug, mode, result_obj.model_dump(), settings.cache.nav_cache_ttl
             )
         return result_obj
 
@@ -284,9 +284,9 @@ async def get_next_nodes(
             for t in found[: controller.max_options]
         ]
         result_obj = NextTransitions(mode="manual", transitions=transitions)
-        if settings.enable_nav_cache:
+        if settings.cache.enable_nav_cache:
             await navcache.set_navigation(
-                user_id, slug, mode, result_obj.model_dump(), settings.nav_cache_ttl
+                user_id, slug, mode, result_obj.model_dump(), settings.cache.nav_cache_ttl
             )
         return result_obj
     rnd = await get_random_node(db, user=current_user, exclude_node_id=node.id)
@@ -295,9 +295,9 @@ async def get_next_nodes(
             TransitionOption(slug=rnd.slug, label=rnd.title, mode="random")
         ]
     result_obj = NextTransitions(mode="random", transitions=transitions)
-    if settings.enable_nav_cache:
+    if settings.cache.enable_nav_cache:
         await navcache.set_navigation(
-            user_id, slug, mode, result_obj.model_dump(), settings.nav_cache_ttl
+            user_id, slug, mode, result_obj.model_dump(), settings.cache.nav_cache_ttl
         )
     return result_obj
 
@@ -318,15 +318,15 @@ async def get_next_modes(
     except Exception:
         controller = TransitionController()
     user_id = str(current_user.id)
-    if settings.enable_nav_cache:
+    if settings.cache.enable_nav_cache:
         cached = await navcache.get_modes(user_id, slug)
         if cached:
             return NextModes(**cached)
     modes = [AvailableMode(mode=m.mode, label=m.label) for m in controller.modes]
     result_obj = NextModes(default_mode=controller.default_mode, modes=modes)
-    if settings.enable_nav_cache:
+    if settings.cache.enable_nav_cache:
         await navcache.set_modes(
-            user_id, slug, result_obj.model_dump(), settings.nav_cache_ttl
+            user_id, slug, result_obj.model_dump(), settings.cache.nav_cache_ttl
         )
     return result_obj
 

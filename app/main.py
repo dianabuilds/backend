@@ -40,10 +40,10 @@ app = FastAPI()
 # CORS: разрешаем фронту ходить на API в dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_allowed_origins,
-    allow_credentials=settings.cors_allow_credentials,
-    allow_methods=settings.cors_allowed_methods,
-    allow_headers=settings.cors_allowed_headers,
+    allow_origins=settings.cors.allowed_origins,
+    allow_credentials=settings.cors.allow_credentials,
+    allow_methods=settings.cors.allowed_methods,
+    allow_headers=settings.cors.allowed_headers,
 )
 
 DIST_DIR = Path(__file__).resolve().parent.parent / "admin-frontend" / "dist"
@@ -82,7 +82,7 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     """Выполняется при запуске приложения"""
-    logger.info(f"Starting application in {settings.ENVIRONMENT} environment")
+    logger.info(f"Starting application in {settings.environment} environment")
 
     # Конфигурируем провайдер эмбеддингов из настроек
     configure_from_settings()

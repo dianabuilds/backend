@@ -43,7 +43,7 @@ class NavCache:
     ) -> None:
         uid = str(user_id)
         key = self._nav_key(uid, node_slug, mode)
-        ttl = ttl_sec or settings.nav_cache_ttl
+        ttl = ttl_sec or settings.cache.nav_cache_ttl
         await self._cache.set(key, json.dumps(payload), ttl=ttl)
 
     async def invalidate_navigation_by_node(self, node_slug: str) -> None:
@@ -92,7 +92,7 @@ class NavCache:
     ) -> None:
         uid = str(user_id)
         key = self._mode_key(uid, node_slug)
-        ttl = ttl_sec or settings.nav_cache_ttl
+        ttl = ttl_sec or settings.cache.nav_cache_ttl
         await self._cache.set(key, json.dumps(payload), ttl=ttl)
 
     async def invalidate_modes_by_node(self, node_slug: str) -> None:
@@ -119,7 +119,7 @@ class NavCache:
     ) -> None:
         uid = str(user_id)
         key = self._compass_key(uid, params_hash)
-        ttl = ttl_sec or settings.compass_cache_ttl
+        ttl = ttl_sec or settings.cache.compass_cache_ttl
         await self._cache.set(key, json.dumps(payload), ttl=ttl)
 
     async def invalidate_compass_by_user(self, user_id: UUID | str) -> None:

@@ -30,7 +30,7 @@ async def generate_transitions(
 ) -> List[Dict[str, object]]:
     """Collect transition candidates from different sources and score them."""
 
-    max_options = settings.navigation_max_options
+    max_options = settings.navigation.max_options
 
     # Manual transitions always come first
     manual: List[Dict[str, object]] = []
@@ -78,9 +78,9 @@ async def generate_transitions(
         n: Node = data["node"]
         s = data["scores"]
         total = (
-            settings.navigation_weight_compass * s.get("compass", 0)
-            + settings.navigation_weight_echo * s.get("echo", 0)
-            + settings.navigation_weight_random * s.get("random", 0)
+            settings.navigation.weight_compass * s.get("compass", 0)
+            + settings.navigation.weight_echo * s.get("echo", 0)
+            + settings.navigation.weight_random * s.get("random", 0)
         )
         source_type = max(s.items(), key=lambda kv: kv[1])[0]
         weighted.append(
@@ -102,7 +102,7 @@ async def get_navigation(
     db: AsyncSession, node: Node, user: Optional[User]
 ) -> Dict[str, object]:
     user_key = str(user.id) if user else "anon"
-    if settings.enable_nav_cache:
+    if settings.cache.enable_nav_cache:
         cached = await navcache.get_navigation(user_key, str(node.id), "auto")
         if cached:
             return cached
@@ -112,7 +112,7 @@ async def get_navigation(
         "transitions": transitions,
         "generated_at": datetime.utcnow().isoformat(),
     }
-    if settings.enable_nav_cache:
+    if settings.cache.enable_nav_cache:
         await navcache.set_navigation(user_key, str(node.id), "auto", data)
     return data
 
