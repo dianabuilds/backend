@@ -1,10 +1,17 @@
 # Backend сервис
 
+[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+
 Современный асинхронный бэкенд на FastAPI и SQLAlchemy 2.0 с поддержкой:
 - Аутентификации по логину/паролю (JWT) и EVM‑подписей
 - Пользовательских профилей, ролей и премиум‑статусов
 - Контентных узлов с тегами, переходами, метриками и эмбеддингами
 - Модерации, уведомлений, квестов/достижений и платежей
+
+## CI
+
+- PR в ветки `main` и `develop` запускают линтеры (`ruff`), проверку форматирования (`black --check`), типизацию (`mypy`), миграции `alembic upgrade head` и тесты `pytest`.
+- Push в `main` дополнительно собирает и публикует Docker‑образ в GHCR.
 
 ## Архитектура
 Краткое описание основных компонент приведено ниже. Детали см. в [docs/architecture.md](docs/architecture.md).
