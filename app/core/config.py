@@ -95,7 +95,7 @@ def validate_settings(settings: Settings) -> None:
     if not settings.jwt.secret or settings.jwt.secret == "change-me-in-production":
         missing.append("JWT_SECRET")
 
-    if settings.embedding.backend.lower() == "aimlapi":
+    if settings.embedding.name == "aimlapi":
         if not settings.embedding.api_base:
             missing.append("EMBEDDING_API_BASE")
         if not settings.embedding.api_key:
