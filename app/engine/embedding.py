@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from __future__ import annotations
+
 import hashlib
 import logging
-from typing import Callable, List, Optional
-import os
-from typing import List
+from typing import Callable, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,14 +13,9 @@ from app.models.node import Node
 
 logger = logging.getLogger(__name__)
 
-# ВАЖНО: размер вектора должен совпадать со схемой БД (VECTOR(384) в моделях).
+# ВАЖНО: размер вектора должен совпадать со схемой БД (VECTOR(N) в моделях).
 # Менять embedding_dim без миграции нельзя.
-EMBEDDING_DIM = getattr(settings, "embedding_dim", 384)
-if EMBEDDING_DIM != 384:
-    logger.warning(
-        "embedding_dim=%s отличается от 384, возможно потребуется миграция схемы.",
-        EMBEDDING_DIM,
-    )
+EMBEDDING_DIM = settings.embedding.dim
 
 # Глобальный провайдер эмбеддингов
 _provider_func: Callable[[str], List[float]] | None = None
@@ -76,10 +71,11 @@ def register_embedding_provider(func: Callable[[str], List[float]], dim: int) ->
     _provider_func = func
     _provider_dim = dim
     logger.info("Embedding provider registered: dim=%s", dim)
-    if _provider_dim != 384:
+    if _provider_dim != EMBEDDING_DIM:
         logger.warning(
-            "Зарегистрирован провайдер с размерностью %s. Убедитесь, что колонка VECTOR в БД совместима.",
+            "Зарегистрирован провайдер с размерностью %s, ожидалась %s.",
             _provider_dim,
+            EMBEDDING_DIM,
         )
 
 
@@ -97,7 +93,7 @@ def get_embedding(text: str) -> List[float]:
 async def update_node_embedding(db: AsyncSession, node: Node) -> None:
     """Compute and store embedding for a node."""
     text = _extract_text(node)
-    node.embedding_vector = simple_embedding(text)
+    node.embedding_vector = get_embedding(text)
     await db.commit()
     await db.refresh(node)
 

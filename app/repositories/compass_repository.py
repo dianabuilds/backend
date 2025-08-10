@@ -63,3 +63,44 @@ class CompassRepository:
         result = await self.session.execute(select(Node).where(Node.id.in_(ids)))
         node_map = {n.id: n for n in result.scalars().all()}
         return [(node_map[i], dists[i]) for i in ids if i in node_map]
+
+    async def search_by_vector_pgvector(
+        self, query_vec: List[float], limit: int, probes: int
+    ) -> Optional[List[Tuple[Node, float]]]:
+        """Search nodes similar to an arbitrary vector using pgvector kNN."""
+        bind = self.session.get_bind()
+        if bind.dialect.name != "postgresql":
+            return None
+        try:
+            await self.session.execute(
+                text("SET LOCAL ivfflat.probes = :p"), {"p": probes}
+            )
+            query = text(
+                """
+                SELECT id, embedding_vector <=> :vec AS dist
+                FROM nodes
+                WHERE is_visible = true
+                  AND is_public = true
+                  AND is_recommendable = true
+                  AND embedding_vector IS NOT NULL
+                ORDER BY embedding_vector <=> :vec
+                LIMIT :limit
+                """
+            )
+            rows = await self.session.execute(
+                query, {"vec": query_vec, "limit": limit}
+            )
+            mappings = rows.mappings().all()
+        except Exception:
+            return None
+        if not mappings:
+            return []
+        ids: List[uuid.UUID] = []
+        dists: dict[uuid.UUID, float] = {}
+        for m in mappings:
+            uid = uuid.UUID(m["id"])
+            ids.append(uid)
+            dists[uid] = float(m["dist"])
+        result = await self.session.execute(select(Node).where(Node.id.in_(ids)))
+        node_map = {n.id: n for n in result.scalars().all()}
+        return [(node_map[i], dists[i]) for i in ids if i in node_map]
