@@ -23,6 +23,7 @@ from app.schemas.quest import (
 from app.schemas.node import NodeOut
 from app.services.quests import has_access
 from app.services.payments import payment_service
+from app.services.navcache import navcache
 
 router = APIRouter(prefix="/quests", tags=["quests"])
 
@@ -126,6 +127,7 @@ async def create_quest(
     db.add(quest)
     await db.commit()
     await db.refresh(quest)
+    await navcache.invalidate_compass_by_user(current_user.id)
     return quest
 
 
@@ -147,6 +149,7 @@ async def update_quest(
         setattr(quest, field, value)
     await db.commit()
     await db.refresh(quest)
+    await navcache.invalidate_compass_by_user(current_user.id)
     return quest
 
 
@@ -166,6 +169,7 @@ async def publish_quest(
     quest.published_at = datetime.utcnow()
     await db.commit()
     await db.refresh(quest)
+    await navcache.invalidate_compass_all()
     return quest
 
 
@@ -183,6 +187,7 @@ async def delete_quest(
         raise HTTPException(status_code=403, detail="Not authorized")
     quest.is_deleted = True
     await db.commit()
+    await navcache.invalidate_compass_by_user(current_user.id)
     return {"status": "ok"}
 
 

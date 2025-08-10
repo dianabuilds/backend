@@ -14,7 +14,7 @@ from app.engine.filters import has_access_async
 from app.engine.transitions import get_transitions
 from app.models.node import Node
 from app.models.user import User
-from app.services.navigation_cache import navigation_cache
+from app.services.navcache import navcache
 
 
 def _normalise(scores: List[Node]) -> dict[str, float]:
@@ -101,23 +101,25 @@ async def generate_transitions(
 async def get_navigation(
     db: AsyncSession, node: Node, user: Optional[User]
 ) -> Dict[str, object]:
-    user_key = str(user.id) if user else None
-    cached = await navigation_cache.get(user_key, str(node.id))
-    if cached:
-        return cached
+    user_key = str(user.id) if user else "anon"
+    if settings.enable_nav_cache:
+        cached = await navcache.get_navigation(user_key, str(node.id), "auto")
+        if cached:
+            return cached
     transitions = await generate_transitions(db, node, user)
     data = {
         "mode": "auto",
         "transitions": transitions,
         "generated_at": datetime.utcnow().isoformat(),
     }
-    await navigation_cache.set(user_key, str(node.id), data)
+    if settings.enable_nav_cache:
+        await navcache.set_navigation(user_key, str(node.id), "auto", data)
     return data
 
 
 async def invalidate_navigation_cache(user: Optional[User], node: Node) -> None:
-    await navigation_cache.invalidate(str(user.id) if user else None, str(node.id))
+    await navcache.invalidate_navigation_by_node(str(node.id))
 
 
 async def invalidate_all_for_node(node: Node) -> None:
-    await navigation_cache.invalidate_all_for_node(str(node.id))
+    await navcache.invalidate_navigation_by_node(str(node.id))

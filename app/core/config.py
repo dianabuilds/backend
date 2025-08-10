@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     navigation_weight_compass: float = 0.5
     navigation_weight_echo: float = 0.3
     navigation_weight_random: float = 0.2
+    # New cache configuration
+    nav_cache_ttl: int = 90
+    compass_cache_ttl: int = 90
+    enable_nav_cache: bool = True
+    enable_compass_cache: bool = True
 
     # Compass / recommendation settings
     compass_top_k_db: int = 200
