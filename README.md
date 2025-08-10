@@ -48,7 +48,26 @@ SMTP_TLS=True
 SMTP_MAIL_FROM=noreply@example.com
 SMTP_MAIL_FROM_NAME=Наш новый сайт
 ```
-=======
+
+## Email templates
+
+* Шаблоны лежат в `app/templates`.
+* Для каждого письма должна существовать пара файлов `*.html` и `*.txt`.
+* Пример вызова:
+
+```python
+await mail_service.send_email(
+    to=user.email,
+    subject="Подтверждение email",
+    template="auth/verify_email",  # имя без расширения
+    context={"username": user.username, "verify_url": url},
+)
+```
+
+* Локализация: передайте префикс локали в имени шаблона, например `ru/auth/verify_email`.
+* Общие элементы (хедер, футер, кнопки) находятся в `app/templates/_partials` и подключаются через `{% include %}`.
+* **Контент:** HTML‑версии со встроенными стилями, текстовые — лаконичные и чистые.
+
 ## Настройка эмбеддингов
 
 Для использования внешних провайдеров эмбеддингов задайте переменные окружения.

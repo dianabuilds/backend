@@ -101,12 +101,11 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
         try:
             await mail_service.send_email(
                 to=user.email,
-                subject="Verify your email",
-                template="verify_email",
+                subject="Подтверждение e‑mail",
+                template="auth/verify_email",
                 context={
                     "username": user.username,
-                    "link": verify_link,
-                    "expire_hours": 24,
+                    "verify_url": verify_link,
                 },
             )
         except Exception as e:

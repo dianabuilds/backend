@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Подтверждение e‑mail{% endblock %}
+{% block content %}
+  <p>Привет{% if username %}, {{ username }}{% endif %}!</p>
+  <p>Подтвердите адрес электронной почты, перейдя по кнопке ниже:</p>
+  <p style="margin:24px 0;">
+    <a class="btn btn-primary" href="{{ verify_url }}" target="_blank" rel="noopener">Подтвердить e‑mail</a>
+  </p>
+  <p class="muted">Если кнопка не работает, скопируйте ссылку вручную:<br>{{ verify_url }}</p>
+{% endblock %}
