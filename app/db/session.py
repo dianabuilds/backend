@@ -1,12 +1,13 @@
-import logging
 import asyncio
+import logging
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator, Optional
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import text
+from sqlalchemy import text, event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, AsyncEngine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
@@ -33,6 +34,22 @@ def get_engine() -> AsyncEngine:
             connect_args=settings.db_connect_args,
             **settings.db_pool_settings
         )
+
+        if settings.logging.slow_query_ms:
+            @event.listens_for(_engine.sync_engine, "before_cursor_execute")
+            def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):  # noqa: D401
+                context._query_start_time = time.perf_counter()
+
+            @event.listens_for(_engine.sync_engine, "after_cursor_execute")
+            def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):  # noqa: D401
+                total = (time.perf_counter() - context._query_start_time) * 1000
+                if total >= settings.logging.slow_query_ms:
+                    logger.warning(
+                        "SLOW SQL %.2fms: %s %s",
+                        total,
+                        statement,
+                        parameters,
+                    )
     return _engine
 
 

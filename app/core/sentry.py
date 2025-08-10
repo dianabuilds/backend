@@ -35,6 +35,6 @@ def init_sentry(settings: Settings) -> None:
         dsn=settings.sentry.dsn,
         integrations=[FastApiIntegration(), StarletteIntegration()],
         traces_sample_rate=settings.sentry.traces_sample_rate,
-        environment=settings.environment,
+        environment=settings.sentry.env or settings.environment,
         before_send=_before_send,
     )

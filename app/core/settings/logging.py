@@ -1,18 +1,22 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class LoggingSettings(BaseSettings):
-    level: str = "INFO"
-    json: bool = False
-    include_traceback: bool = True
-    requests: bool = True
-    slow_request_ms: int = 800
-    file_enabled: bool = False
-    file_path: str = "logs/app.log"
-    file_rotate_bytes: int = 10_000_000
-    file_backup_count: int = 5
-    sampling_rate_debug: float = 0.0
-    service_name: str = "backend"
+    level: str = Field("INFO", alias="LOG_LEVEL")
+    request_level: str = Field("INFO", alias="REQUEST_LOG_LEVEL")
+    slow_query_ms: int = Field(200, alias="SLOW_QUERY_MS")
 
-    model_config = SettingsConfigDict(env_prefix="LOG_")
+    json: bool = Field(False, alias="LOG_JSON")
+    include_traceback: bool = Field(True, alias="LOG_INCLUDE_TRACEBACK")
+    requests: bool = Field(True, alias="LOG_REQUESTS")
+    slow_request_ms: int = Field(800, alias="LOG_SLOW_REQUEST_MS")
+    file_enabled: bool = Field(False, alias="LOG_FILE_ENABLED")
+    file_path: str = Field("logs/app.log", alias="LOG_FILE_PATH")
+    file_rotate_bytes: int = Field(10_000_000, alias="LOG_FILE_ROTATE_BYTES")
+    file_backup_count: int = Field(5, alias="LOG_FILE_BACKUP_COUNT")
+    sampling_rate_debug: float = Field(0.0, alias="LOG_SAMPLING_RATE_DEBUG")
+    service_name: str = Field("backend", alias="SERVICE_NAME")
+
+    model_config = SettingsConfigDict(extra="ignore")
 
