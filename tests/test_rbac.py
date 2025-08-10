@@ -200,6 +200,31 @@ async def test_moderator_cannot_hide_admin_node(
     assert resp.status_code == 403
 
 
+# --- Admin users listing ----------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_moderator_lists_users(
+    client: AsyncClient, moderator_user: User, test_user: User
+):
+    token = create_access_token(moderator_user.id)
+    resp = await client.get(
+        "/admin/users", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert any(u["id"] == str(test_user.id) for u in data)
+
+
+@pytest.mark.asyncio
+async def test_regular_user_cannot_list_users(client: AsyncClient, test_user: User):
+    token = create_access_token(test_user.id)
+    resp = await client.get(
+        "/admin/users", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert resp.status_code == 403
+
+
 # --- Owner vs role helpers -------------------------------------------------
 
 
