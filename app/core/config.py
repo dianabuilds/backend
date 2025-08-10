@@ -18,6 +18,7 @@ from .settings import (
     SentrySettings,
     PaymentSettings,
     CookieSettings,
+    RateLimitSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ class Settings(ProjectSettings):
     sentry: SentrySettings = SentrySettings()
     payment: PaymentSettings = PaymentSettings()
     cookie: CookieSettings = CookieSettings()
+    rate_limit: RateLimitSettings = RateLimitSettings()
 
     @property
     def is_production(self) -> bool:

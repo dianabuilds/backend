@@ -12,6 +12,7 @@ from .smtp import SMTPSettings
 from .sentry import SentrySettings
 from .payment import PaymentSettings
 from .cookie import CookieSettings
+from .rate_limit import RateLimitSettings
 
 __all__ = [
     "DatabaseSettings",
@@ -28,4 +29,5 @@ __all__ = [
     "SentrySettings",
     "PaymentSettings",
     "CookieSettings",
+    "RateLimitSettings",
 ]
