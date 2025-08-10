@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, EmailStr
 
+from app.schemas.moderation import RestrictionOut
+
 
 class UserBase(BaseModel):
     id: UUID
@@ -39,3 +41,9 @@ class UserPremiumUpdate(BaseModel):
 
 class UserRoleUpdate(BaseModel):
     role: Literal["user", "moderator", "admin"]
+
+
+class AdminUserOut(UserBase):
+    is_premium: bool
+    premium_until: datetime | None = None
+    restrictions: list[RestrictionOut] = []
