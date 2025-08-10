@@ -1,7 +1,7 @@
 from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 import logging
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .settings import (
     DatabaseSettings,
@@ -13,6 +13,7 @@ from .settings import (
     EmbeddingSettings,
     AdminSettings,
     SecuritySettings,
+    LoggingSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ class Settings(ProjectSettings):
     embedding: EmbeddingSettings = EmbeddingSettings()
     admin: AdminSettings = AdminSettings()
     security: SecuritySettings = SecuritySettings()
+    logging: LoggingSettings = LoggingSettings()
 
     @property
     def is_production(self) -> bool:

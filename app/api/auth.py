@@ -22,6 +22,8 @@ from app.schemas.auth import (
     SignupSchema,
     Token,
 )
+from app.core.log_events import auth_success, auth_failure
+from app.core.log_filters import user_id_var
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -40,18 +42,21 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
     # Проверка на пустые значения
     if not payload.email or not payload.password or not payload.username:
         logger.warning("Signup attempt with empty email, username or password")
+        auth_failure("missing_fields")
         raise HTTPException(status_code=400, detail="Email, username and password are required")
 
     # Проверка на существующий email
     email_result = await db.execute(select(User).where(User.email == payload.email))
     if email_result.scalars().first():
         logger.warning(f"Signup attempt with existing email: {payload.email}")
+        auth_failure("duplicate_email")
         raise HTTPException(status_code=400, detail="Email already registered")
 
     # Проверка на существующий username
     username_result = await db.execute(select(User).where(User.username == payload.username))
     if username_result.scalars().first():
         logger.warning(f"Signup attempt with existing username: {payload.username}")
+        auth_failure("duplicate_username")
         raise HTTPException(status_code=400, detail="Username already taken")
 
     try:
@@ -73,12 +78,14 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
         # Создаем токен
         token = create_access_token(user.id)
         logger.info(f"User created successfully: {user.id}")
-
+        user_id_var.set(str(user.id))
+        auth_success(str(user.id))
         return Token(access_token=token)
     except Exception as e:
         await db.rollback()
         error_msg = str(e)
         logger.error(f"Error during user creation: {error_msg}")
+        auth_failure("signup_error")
 
         # Обработка известных ошибок
         if "unique constraint" in error_msg.lower():
@@ -108,13 +115,17 @@ async def _authenticate(db: AsyncSession, login: str, password: str) -> Token:
     result = await db.execute(query)
     row = result.first()
     if not row:
+        auth_failure("user_not_found")
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
     user_id, password_hash = row[0], row[1]
     if not password_hash or not verify_password(password, password_hash):
+        auth_failure("bad_password", user=str(user_id))
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
+    user_id_var.set(str(user_id))
     token = create_access_token(user_id)
+    auth_success(str(user_id))
     return Token(access_token=token)
 
 

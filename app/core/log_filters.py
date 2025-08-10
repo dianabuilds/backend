@@ -1,0 +1,19 @@
+import logging
+from contextvars import ContextVar
+
+
+request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
+user_id_var: ContextVar[str | None] = ContextVar("user_id", default=None)
+
+
+class RequestContextFilter(logging.Filter):
+    def __init__(self, service: str = "backend") -> None:
+        super().__init__()
+        self.service = service
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.service = self.service
+        record.request_id = request_id_var.get() or "-"
+        record.user_id = user_id_var.get() or "-"
+        return True
+

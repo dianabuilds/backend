@@ -7,6 +7,7 @@ from .cors import CorsSettings
 from .embedding import EmbeddingSettings
 from .admin import AdminSettings
 from .security import SecuritySettings
+from .logging import LoggingSettings
 
 __all__ = [
     "DatabaseSettings",
@@ -18,4 +19,5 @@ __all__ = [
     "EmbeddingSettings",
     "AdminSettings",
     "SecuritySettings",
+    "LoggingSettings",
 ]
