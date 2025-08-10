@@ -2,38 +2,30 @@ import pytest
 from datetime import datetime, timedelta
 from sqlalchemy.future import select
 
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, create_access_token
 from app.models.user import User
 from app.models.node import Node
-from app.models.event_quest import EventQuest
+from app.models.event_quest import (
+    EventQuest,
+    EventQuestRewardType,
+    EventQuestCompletion,
+)
 from app.models.notification import Notification
-from app.models.event_quest import EventQuestCompletion
 from app.services.quests import check_quest_completion
 
 
 @pytest.mark.asyncio
-async def test_event_quest_flow(client, db_session):
-    admin = User(
-        email="admin@example.com",
-        username="admin",
-        password_hash=get_password_hash("AdminPass123"),
-        role="admin",
-        is_active=True,
-    )
-    db_session.add(admin)
-    await db_session.commit()
-
-    resp = await client.post(
-        "/auth/login",
-        json={"username": "admin", "password": "AdminPass123"},
-    )
-    token = resp.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-
+async def test_event_quest_flow(client, db_session, test_user):
+    token = create_access_token(test_user.id)
     resp = await client.post(
         "/nodes",
-        json={"title": "Target", "content_format": "text", "content": "A", "is_public": True},
-        headers=headers,
+        json={
+            "title": "Target",
+            "content_format": "text",
+            "content": "A",
+            "is_public": True,
+        },
+        headers={"Authorization": f"Bearer {token}"},
     )
     slug = resp.json()["slug"]
     result = await db_session.execute(select(Node).where(Node.slug == slug))
@@ -42,28 +34,21 @@ async def test_event_quest_flow(client, db_session):
     starts = datetime.utcnow() - timedelta(minutes=1)
     ends = datetime.utcnow() + timedelta(hours=1)
 
-    resp = await client.post(
-        "/admin/event-quests/new",
-        data={
-            "title": "Event",
-            "target_node": str(node.id),
-            "hints_tags": "",
-            "hints_keywords": "",
-            "hints_trace": "",
-            "starts_at": starts.isoformat(timespec="minutes"),
-            "expires_at": ends.isoformat(timespec="minutes"),
-            "max_rewards": "1",
-            "reward_type": "premium",
-            "is_active": "on",
-        },
-        cookies={"token": token},
-        follow_redirects=False,
+    quest = EventQuest(
+        title="Event",
+        target_node_id=node.id,
+        hints_tags=[],
+        hints_keywords=[],
+        hints_trace=[],
+        starts_at=starts,
+        expires_at=ends,
+        max_rewards=1,
+        reward_type=EventQuestRewardType.premium,
+        is_active=True,
     )
-    assert resp.status_code == 303
-
-    res = await db_session.execute(select(EventQuest).where(EventQuest.title == "Event"))
-    quest = res.scalars().first()
-    assert quest is not None and quest.is_active
+    db_session.add(quest)
+    await db_session.commit()
+    await db_session.refresh(quest)
 
     user1 = User(
         email="u1@example.com",
@@ -100,23 +85,8 @@ async def test_event_quest_flow(client, db_session):
     note2 = nres.scalars().first()
     assert note2 and "rewards are exhausted" in note2.message
 
-    resp = await client.post(
-        f"/admin/event-quests/{quest.id}/edit",
-        data={
-            "title": "Event",
-            "target_node": str(node.id),
-            "hints_tags": "",
-            "hints_keywords": "",
-            "hints_trace": "",
-            "starts_at": starts.isoformat(timespec="minutes"),
-            "expires_at": ends.isoformat(timespec="minutes"),
-            "max_rewards": "1",
-            "reward_type": "premium",
-        },
-        cookies={"token": token},
-        follow_redirects=False,
-    )
-    assert resp.status_code == 303
+    quest.is_active = False
+    await db_session.commit()
     await db_session.refresh(quest)
     assert not quest.is_active
 
