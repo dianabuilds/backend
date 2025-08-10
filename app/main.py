@@ -17,6 +17,7 @@ from app.api.quests import router as quests_router
 from app.api.traces import router as traces_router
 from app.api.achievements import router as achievements_router
 from app.api.payments import router as payments_router
+from app.api.search import router as search_router
 from app.core.config import settings
 from app.engine import configure_from_settings
 from app.db.session import (
@@ -53,6 +54,7 @@ app.include_router(quests_router)
 app.include_router(traces_router)
 app.include_router(achievements_router)
 app.include_router(payments_router)
+app.include_router(search_router)
 
 
 @app.get("/")
