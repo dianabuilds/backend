@@ -53,16 +53,20 @@ class MailService:
         if self.mock:
             logger.info("Mock email to %s: %s", to, subject)
             return
-
-        await aiosmtplib.send(
-            msg,
-            hostname=self.host,
-            port=self.port,
-            username=self.username,
-            password=self.password,
-            start_tls=self.use_tls,
-            timeout=10,
-        )
+        try:
+            await aiosmtplib.send(
+                msg,
+                hostname=self.host,
+                port=self.port,
+                username=self.username,
+                password=self.password,
+                start_tls=self.use_tls,
+                timeout=10,
+            )
+            logger.info("Email sent to %s: %s", to, subject)
+        except Exception as exc:
+            logger.warning("Failed to send email to %s: %s", to, exc)
+            raise
 
 
 mail_service = MailService()

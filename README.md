@@ -21,3 +21,30 @@
 - Uvicorn / Gunicorn (ASGI)
 
 ## Структура проекта
+
+## Настройка почты
+
+Отправка писем реализована через SMTP. Все параметры настраиваются через переменные окружения с префиксом `SMTP_`.
+
+- `SMTP_MOCK` — если `True`, письма не отправляются, а только логируются (используйте в dev/staging);
+- `SMTP_HOST` — адрес SMTP‑сервера;
+- `SMTP_PORT` — порт сервера;
+- `SMTP_USERNAME` — логин или имя пользователя;
+- `SMTP_PASSWORD` — пароль или API‑ключ;
+- `SMTP_TLS` — включить TLS при подключении;
+- `SMTP_MAIL_FROM` — адрес отправителя;
+- `SMTP_MAIL_FROM_NAME` — имя отправителя.
+
+В разработке оставляйте `SMTP_MOCK=True`. Для боевого окружения установите `SMTP_MOCK=False` и заполните остальные поля.
+
+Пример конфигурации для SendGrid:
+
+```
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USERNAME=apikey
+SMTP_PASSWORD=<SG_API_KEY>
+SMTP_TLS=True
+SMTP_MAIL_FROM=noreply@example.com
+SMTP_MAIL_FROM_NAME=Наш новый сайт
+```
