@@ -18,11 +18,18 @@ from app.api.deps import (
 from app.db.session import get_db
 from app.models.user import User
 from app.models.node import Node
-from app.models.tag import Tag
+from app.models.tag import Tag, NodeTag
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.moderation import UserRestriction
 from app.schemas.user import AdminUserOut, UserPremiumUpdate, UserRoleUpdate
 from app.schemas.node import NodeOut, NodeBulkOperation
+from app.schemas.tag import (
+    AdminTagOut,
+    TagCreate,
+    TagUpdate,
+    TagMerge,
+    TagDetachRequest,
+)
 from app.schemas.transition import (
     AdminTransitionOut,
     NodeTransitionUpdate,
@@ -450,3 +457,201 @@ async def disable_transitions_by_node(
         },
     )
     return {"disabled": len(transitions)}
+
+
+@router.get("/tags", response_model=list[AdminTagOut], summary="List tags")
+async def list_tags_admin(
+    search: str | None = None,
+    hidden: bool | None = None,
+    page: int = 1,
+    page_size: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return tags with optional search and pagination."""
+    stmt = (
+        select(Tag, func.count(NodeTag.node_id).label("count"))
+        .join(NodeTag, Tag.id == NodeTag.tag_id, isouter=True)
+    )
+    if search:
+        pattern = f"%{search}%"
+        stmt = stmt.where(or_(Tag.slug.ilike(pattern), Tag.name.ilike(pattern)))
+    if hidden is not None:
+        stmt = stmt.where(Tag.is_hidden == hidden)
+    stmt = stmt.group_by(Tag.id).order_by(Tag.slug)
+    offset = (page - 1) * page_size
+    stmt = stmt.offset(offset).limit(page_size)
+    result = await db.execute(stmt)
+    rows = result.all()
+    return [
+        AdminTagOut(
+            slug=t.slug,
+            name=t.name,
+            is_hidden=t.is_hidden,
+            uses_count=c,
+        )
+        for t, c in rows
+    ]
+
+
+@router.post("/tags", response_model=AdminTagOut, summary="Create tag")
+async def create_tag_admin(
+    payload: TagCreate,
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new tag. Example: `{ "slug": "demo", "name": "Demo" }`."""
+    existing = await db.execute(select(Tag).where(Tag.slug == payload.slug))
+    if existing.scalars().first():
+        raise HTTPException(status_code=400, detail="Tag with this slug already exists")
+    tag = Tag(slug=payload.slug, name=payload.name)
+    db.add(tag)
+    await db.commit()
+    await db.refresh(tag)
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "create_tag",
+            "actor_id": str(current_user.id),
+            "slug": tag.slug,
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
+    return AdminTagOut(
+        slug=tag.slug,
+        name=tag.name,
+        is_hidden=tag.is_hidden,
+        uses_count=0,
+    )
+
+
+@router.patch("/tags/{slug}", response_model=AdminTagOut, summary="Update tag")
+async def update_tag_admin(
+    slug: str,
+    payload: TagUpdate,
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rename or hide/unhide a tag."""
+    result = await db.execute(select(Tag).where(Tag.slug == slug))
+    tag = result.scalars().first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    if payload.name is not None:
+        tag.name = payload.name
+    if payload.hidden is not None:
+        tag.is_hidden = payload.hidden
+    await db.commit()
+    await db.refresh(tag)
+    res = await db.execute(select(func.count(NodeTag.node_id)).where(NodeTag.tag_id == tag.id))
+    count = res.scalar() or 0
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "update_tag",
+            "actor_id": str(current_user.id),
+            "slug": slug,
+            "payload": payload.model_dump(exclude_none=True),
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
+    return AdminTagOut(
+        slug=tag.slug,
+        name=tag.name,
+        is_hidden=tag.is_hidden,
+        uses_count=count,
+    )
+
+
+@router.post("/tags/merge", summary="Merge tags")
+async def merge_tags_admin(
+    payload: TagMerge,
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Merge one tag into another, reassigning all node links."""
+    if payload.from_slug == payload.to_slug:
+        raise HTTPException(status_code=400, detail="Cannot merge the same tag")
+    res = await db.execute(select(Tag).where(Tag.slug.in_([payload.from_slug, payload.to_slug])))
+    tags = {t.slug: t for t in res.scalars().all()}
+    from_tag = tags.get(payload.from_slug)
+    to_tag = tags.get(payload.to_slug)
+    if not from_tag or not to_tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    res = await db.execute(select(NodeTag).where(NodeTag.tag_id == from_tag.id))
+    nodetags = res.scalars().all()
+    node_ids: set[UUID] = {nt.node_id for nt in nodetags}
+    for nt in nodetags:
+        exists = await db.execute(
+            select(NodeTag).where(
+                NodeTag.node_id == nt.node_id, NodeTag.tag_id == to_tag.id
+            )
+        )
+        if exists.scalars().first():
+            await db.delete(nt)
+        else:
+            nt.tag_id = to_tag.id
+    await db.delete(from_tag)
+    await db.commit()
+    if node_ids:
+        res = await db.execute(select(Node.slug).where(Node.id.in_(node_ids)))
+        slugs = [row[0] for row in res.all()]
+        for s in slugs:
+            await navcache.invalidate_navigation_by_node(s)
+            await navcache.invalidate_compass_by_node(s)
+            cache_invalidate("nav", reason="tag_merge", key=s)
+            cache_invalidate("comp", reason="tag_merge", key=s)
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "merge_tags",
+            "actor_id": str(current_user.id),
+            "from_slug": payload.from_slug,
+            "to_slug": payload.to_slug,
+            "moved": len(nodetags),
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
+    return {"moved": len(nodetags)}
+
+
+@router.post("/tags/{slug}/detach", summary="Detach tag from nodes")
+async def detach_tag_admin(
+    slug: str,
+    payload: TagDetachRequest,
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Detach a tag from specified nodes or from all if `node_ids` omitted."""
+    result = await db.execute(select(Tag).where(Tag.slug == slug))
+    tag = result.scalars().first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    stmt = select(NodeTag).where(NodeTag.tag_id == tag.id)
+    if payload.node_ids:
+        stmt = stmt.where(NodeTag.node_id.in_(payload.node_ids))
+    res = await db.execute(stmt)
+    nodetags = res.scalars().all()
+    node_ids: set[UUID] = {nt.node_id for nt in nodetags}
+    for nt in nodetags:
+        await db.delete(nt)
+    await db.commit()
+    if node_ids:
+        res = await db.execute(select(Node.slug).where(Node.id.in_(node_ids)))
+        slugs = [row[0] for row in res.all()]
+        for s in slugs:
+            await navcache.invalidate_navigation_by_node(s)
+            await navcache.invalidate_compass_by_node(s)
+            cache_invalidate("nav", reason="tag_detach", key=s)
+            cache_invalidate("comp", reason="tag_detach", key=s)
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "detach_tag",
+            "actor_id": str(current_user.id),
+            "slug": slug,
+            "detached": len(nodetags),
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
+    return {"detached": len(nodetags)}
