@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
@@ -12,12 +13,37 @@ class NodeTransitionType(str, Enum):
     locked = "locked"
 
 
+class TransitionCondition(BaseModel):
+    """Schema for manual transition conditions."""
+
+    premium_required: bool | None = Field(default=None, example=True)
+    nft_required: str | None = Field(default=None, example="cool-nft")
+    tags: list[str] | None = Field(default=None, example=["tag-a", "tag-b"])
+    cooldown: int | None = Field(default=None, ge=0, example=3600)
+
+    model_config = {"extra": "forbid"}
+
+
 class NodeTransitionCreate(BaseModel):
     to_slug: str
     label: str | None = None
     type: NodeTransitionType = NodeTransitionType.manual
-    condition: dict[str, Any] | None = Field(default_factory=dict)
+    condition: TransitionCondition | None = Field(
+        default_factory=TransitionCondition,
+        examples=[{"premium_required": True}],
+    )
     weight: int = 1
+
+
+class NodeTransitionUpdate(BaseModel):
+    from_slug: str | None = Field(default=None, example="start")
+    to_slug: str | None = Field(default=None, example="end")
+    label: str | None = Field(default=None, example="Go next")
+    type: NodeTransitionType | None = None
+    condition: TransitionCondition | None = Field(
+        default=None, example={"premium_required": True}
+    )
+    weight: int | None = Field(default=None, ge=1, example=1)
 
 
 class TransitionOption(BaseModel):
@@ -69,3 +95,20 @@ class NodeTransitionOut(BaseModel):
     created_by: UUID
 
     model_config = {"from_attributes": True}
+
+
+class AdminTransitionOut(BaseModel):
+    id: UUID
+    from_slug: str
+    to_slug: str
+    type: NodeTransitionType
+    weight: int
+    label: str | None
+    created_by: UUID
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class TransitionDisableRequest(BaseModel):
+    slug: str = Field(..., example="intro")

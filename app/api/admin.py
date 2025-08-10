@@ -2,10 +2,10 @@ from datetime import datetime
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_
+from sqlalchemy import String, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select, or_, func, String
-from sqlalchemy.orm import selectinload
+from sqlalchemy.future import select
+from sqlalchemy.orm import aliased, selectinload
 
 from uuid import UUID
 
@@ -19,10 +19,18 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.node import Node
 from app.models.tag import Tag
-from app.schemas.user import UserPremiumUpdate, UserRoleUpdate
+from app.models.transition import NodeTransition, NodeTransitionType
+from app.models.moderation import UserRestriction
+from app.schemas.user import AdminUserOut, UserPremiumUpdate, UserRoleUpdate
 from app.schemas.node import NodeOut, NodeBulkOperation
+from app.schemas.transition import (
+    AdminTransitionOut,
+    NodeTransitionUpdate,
+    TransitionDisableRequest,
+)
 from app.engine.embedding import update_node_embedding
-
+from app.services.navcache import navcache
+from app.core.log_events import cache_invalidate
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -241,3 +249,204 @@ async def bulk_node_operation(
         node.updated_at = datetime.utcnow()
     await db.commit()
     return {"updated": [str(n.id) for n in nodes]}
+
+
+# --- Transitions -------------------------------------------------------------
+
+
+@router.get(
+    "/transitions",
+    response_model=list[AdminTransitionOut],
+    summary="List transitions",
+)
+async def list_transitions_admin(
+    from_slug: str | None = Query(None, alias="from"),
+    to_slug: str | None = Query(None, alias="to"),
+    type: NodeTransitionType | None = None,
+    author: UUID | None = None,
+    page: int = 1,
+    page_size: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return a paginated list of manual transitions."""
+    from_node = aliased(Node)
+    to_node = aliased(Node)
+    stmt = (
+        select(NodeTransition, from_node.slug, to_node.slug)
+        .join(from_node, NodeTransition.from_node_id == from_node.id)
+        .join(to_node, NodeTransition.to_node_id == to_node.id)
+    )
+    if from_slug:
+        stmt = stmt.where(from_node.slug == from_slug)
+    if to_slug:
+        stmt = stmt.where(to_node.slug == to_slug)
+    if type:
+        stmt = stmt.where(NodeTransition.type == type)
+    if author:
+        stmt = stmt.where(NodeTransition.created_by == author)
+    stmt = stmt.order_by(NodeTransition.created_at.desc())
+    offset = (page - 1) * page_size
+    stmt = stmt.offset(offset).limit(page_size)
+    result = await db.execute(stmt)
+    rows = result.all()
+    return [
+        AdminTransitionOut(
+            id=t.id,
+            from_slug=fs,
+            to_slug=ts,
+            type=t.type,
+            weight=t.weight,
+            label=t.label,
+            created_by=t.created_by,
+            created_at=t.created_at,
+        )
+        for t, fs, ts in rows
+    ]
+
+
+@router.patch(
+    "/transitions/{transition_id}",
+    response_model=AdminTransitionOut,
+    summary="Update transition",
+)
+async def update_transition_admin(
+    transition_id: UUID,
+    payload: NodeTransitionUpdate,
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update fields of a manual transition."""
+    transition = await db.get(NodeTransition, transition_id)
+    if not transition:
+        raise HTTPException(status_code=404, detail="Transition not found")
+
+    old_from = await db.get(Node, transition.from_node_id)
+    old_from_slug = old_from.slug if old_from else None
+
+    if payload.from_slug:
+        res = await db.execute(select(Node).where(Node.slug == payload.from_slug))
+        new_from = res.scalars().first()
+        if not new_from:
+            raise HTTPException(status_code=404, detail="Source node not found")
+        transition.from_node_id = new_from.id
+    if payload.to_slug:
+        res = await db.execute(select(Node).where(Node.slug == payload.to_slug))
+        new_to = res.scalars().first()
+        if not new_to:
+            raise HTTPException(status_code=404, detail="Target node not found")
+        transition.to_node_id = new_to.id
+    if payload.type:
+        transition.type = payload.type
+    if payload.condition is not None:
+        transition.condition = payload.condition.model_dump(exclude_none=True)
+    if payload.weight is not None:
+        transition.weight = payload.weight
+    if payload.label is not None:
+        transition.label = payload.label
+
+    await db.commit()
+    await db.refresh(transition)
+
+    from_node = await db.get(Node, transition.from_node_id)
+    from_slug = from_node.slug if from_node else old_from_slug
+
+    await navcache.invalidate_navigation_by_node(from_slug)
+    await navcache.invalidate_compass_by_node(from_slug)
+    cache_invalidate("nav", reason="transition_update", key=from_slug)
+    cache_invalidate("comp", reason="transition_update", key=from_slug)
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "update_transition",
+            "actor_id": str(current_user.id),
+            "transition_id": str(transition.id),
+            "payload": payload.model_dump(exclude_none=True),
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
+
+    to_node = await db.get(Node, transition.to_node_id)
+    return AdminTransitionOut(
+        id=transition.id,
+        from_slug=from_node.slug if from_node else "",
+        to_slug=to_node.slug if to_node else "",
+        type=transition.type,
+        weight=transition.weight,
+        label=transition.label,
+        created_by=transition.created_by,
+        created_at=transition.created_at,
+    )
+
+
+@router.delete("/transitions/{transition_id}", summary="Delete transition")
+async def delete_transition_admin(
+    transition_id: UUID,
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove a manual transition."""
+    transition = await db.get(NodeTransition, transition_id)
+    if not transition:
+        raise HTTPException(status_code=404, detail="Transition not found")
+    from_node = await db.get(Node, transition.from_node_id)
+    from_slug = from_node.slug if from_node else None
+    await db.delete(transition)
+    await db.commit()
+    if from_slug:
+        await navcache.invalidate_navigation_by_node(from_slug)
+        await navcache.invalidate_compass_by_node(from_slug)
+        cache_invalidate("nav", reason="transition_delete", key=from_slug)
+        cache_invalidate("comp", reason="transition_delete", key=from_slug)
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "delete_transition",
+            "actor_id": str(current_user.id),
+            "transition_id": str(transition_id),
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
+    return {"message": "Transition deleted"}
+
+
+@router.post(
+    "/transitions/disable_by_node",
+    summary="Disable transitions by node",
+)
+async def disable_transitions_by_node(
+    payload: TransitionDisableRequest,
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Lock all transitions related to the given node."""
+    result = await db.execute(select(Node).where(Node.slug == payload.slug))
+    node = result.scalars().first()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    stmt = select(NodeTransition).where(
+        or_(
+            NodeTransition.from_node_id == node.id,
+            NodeTransition.to_node_id == node.id,
+        )
+    )
+    res = await db.execute(stmt)
+    transitions = res.scalars().all()
+    for t in transitions:
+        t.type = NodeTransitionType.locked
+    await db.commit()
+    await navcache.invalidate_navigation_by_node(node.slug)
+    await navcache.invalidate_compass_by_node(node.slug)
+    cache_invalidate("nav", reason="transition_disable", key=node.slug)
+    cache_invalidate("comp", reason="transition_disable", key=node.slug)
+    logger.info(
+        "admin_action",
+        extra={
+            "action": "disable_transitions_by_node",
+            "actor_id": str(current_user.id),
+            "node_slug": node.slug,
+            "count": len(transitions),
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
+    return {"disabled": len(transitions)}
