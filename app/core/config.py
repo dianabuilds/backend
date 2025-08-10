@@ -30,6 +30,7 @@ class ProjectSettings(BaseSettings):
         env_file=str(BASE_DIR / ".env") if (BASE_DIR / ".env").exists() else None,
         env_file_encoding="utf-8",
         case_sensitive=False,
+        env_nested_delimiter="__",
     )
 
 
@@ -94,25 +95,25 @@ def validate_settings(settings: Settings) -> None:
         return value == "" or "change_me" in value or "change-me" in value
 
     if _is_placeholder(settings.database.username):
-        missing.append("DB_USERNAME")
+        missing.append("DATABASE__USERNAME")
     if _is_placeholder(settings.database.password):
-        missing.append("DB_PASSWORD")
+        missing.append("DATABASE__PASSWORD")
     if _is_placeholder(settings.database.host):
-        missing.append("DB_HOST")
+        missing.append("DATABASE__HOST")
     if _is_placeholder(settings.database.name):
-        missing.append("DB_NAME")
+        missing.append("DATABASE__NAME")
 
     if _is_placeholder(settings.jwt.secret):
-        missing.append("JWT_SECRET")
+        missing.append("JWT__SECRET")
     if settings.payment.jwt_secret:
         if _is_placeholder(settings.payment.jwt_secret):
-            missing.append("PAYMENT_JWT_SECRET")
+            missing.append("PAYMENT__JWT_SECRET")
         if settings.payment.jwt_secret == settings.jwt.secret:
-            missing.append("PAYMENT_JWT_SECRET distinct from JWT_SECRET")
+            missing.append("PAYMENT__JWT_SECRET distinct from JWT__SECRET")
     if settings.payment.webhook_secret and _is_placeholder(
         settings.payment.webhook_secret
     ):
-        missing.append("PAYMENT_WEBHOOK_SECRET")
+        missing.append("PAYMENT__WEBHOOK_SECRET")
 
     if settings.embedding.name == "aimlapi":
         if not settings.embedding.api_base:

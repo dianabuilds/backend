@@ -13,7 +13,7 @@ from typing import AsyncGenerator, Generator
 
 # Устанавливаем флаг тестирования
 os.environ["TESTING"] = "True"
-os.environ["PAYMENT_JWT_SECRET"] = "test-payment-secret"
+os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
 
 from app.db.base import Base
 from app.main import app

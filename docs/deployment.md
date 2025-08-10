@@ -5,7 +5,7 @@
      ```sql
      CREATE EXTENSION IF NOT EXISTS vector;
      ```
-   - Настройте параметры подключения через переменные `DB_*`.
+   - Настройте параметры подключения через переменные `DATABASE__*`.
 2. **Миграции**
    ```bash
    alembic upgrade head
@@ -14,7 +14,7 @@
    - Укажите провайдера и ключи (`EMBEDDING_PROVIDER`, `EMBEDDING_API_KEY`).
    - Убедитесь, что размерность `EMBEDDING_DIM` соответствует колонке в БД.
 4. **Платежный провайдер**
-   - Настройте секреты `PAYMENT_JWT_SECRET` или `PAYMENT_WEBHOOK_SECRET`.
+   - Настройте секреты `PAYMENT__JWT_SECRET` или `PAYMENT__WEBHOOK_SECRET`.
    - Реализуйте проверку webhook'ов в `app/services/payments.py`.
 5. **Безопасность CORS и cookies**
    - Ограничьте `CORS_ALLOWED_ORIGINS` доверенными доменами.

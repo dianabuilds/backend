@@ -1,11 +1,10 @@
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class JwtSettings(BaseSettings):
-    secret: str = Field("test-secret", alias="JWT_SECRET")
-    algorithm: str = Field("HS256", alias="JWT_ALG")
-    expires_min: int = Field(60, alias="JWT_EXPIRES_MIN")
+    secret: str = "test-secret"
+    algorithm: str = "HS256"
+    expires_min: int = 60
 
     model_config = SettingsConfigDict(extra="ignore")
 
