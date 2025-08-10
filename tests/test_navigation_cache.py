@@ -53,9 +53,7 @@ async def test_navigation_cached(client: AsyncClient, db_session: AsyncSession, 
     assert call["count"] == 1
 
     # invalidate cache and ensure new value is produced
-    result = await db_session.execute(select(Node).where(Node.slug == base))
-    base_node = result.scalars().first()
-    await navcache.invalidate_navigation_by_node(str(base_node.id))
+    await navcache.invalidate_navigation_by_node(base)
 
     resp3 = await client.get(f"/navigation/{base}", headers=auth_headers)
     data3 = resp3.json()
