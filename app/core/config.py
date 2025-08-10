@@ -96,25 +96,25 @@ def validate_settings(settings: Settings) -> None:
         return value == "" or "change_me" in value or "change-me" in value
 
     if _is_placeholder(settings.database.username):
-        missing.append("DATABASE_USERNAME")
+        missing.append("DATABASE__USERNAME")
     if _is_placeholder(settings.database.password):
-        missing.append("DATABASE_PASSWORD")
+        missing.append("DATABASE__PASSWORD")
     if _is_placeholder(settings.database.host):
-        missing.append("DATABASE_HOST")
+        missing.append("DATABASE__HOST")
     if _is_placeholder(settings.database.name):
-        missing.append("DATABASE_NAME")
+        missing.append("DATABASE__NAME")
 
     if _is_placeholder(settings.jwt.secret):
-        missing.append("JWT_SECRET")
+        missing.append("JWT__SECRET")
     if settings.payment.jwt_secret:
         if _is_placeholder(settings.payment.jwt_secret):
-            missing.append("PAYMENT_JWT_SECRET")
+            missing.append("PAYMENT__JWT_SECRET")
         if settings.payment.jwt_secret == settings.jwt.secret:
-            missing.append("PAYMENT_JWT_SECRET distinct from JWT_SECRET")
+            missing.append("PAYMENT__JWT_SECRET distinct from JWT__SECRET")
     if settings.payment.webhook_secret and _is_placeholder(
         settings.payment.webhook_secret
     ):
-        missing.append("PAYMENT_WEBHOOK_SECRET")
+        missing.append("PAYMENT__WEBHOOK_SECRET")
 
     if settings.embedding.name == "aimlapi":
         if not settings.embedding.api_base:
