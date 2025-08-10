@@ -95,9 +95,13 @@ async def create_node(
         allow_feedback=payload.allow_feedback,
         is_recommendable=payload.is_recommendable,
         meta=payload.meta or {},
-        premium_only=payload.premium_only if payload.premium_only is not None else False,
+        premium_only=(
+            payload.premium_only if payload.premium_only is not None else False
+        ),
         nft_required=payload.nft_required,
-        ai_generated=payload.ai_generated if payload.ai_generated is not None else False,
+        ai_generated=(
+            payload.ai_generated if payload.ai_generated is not None else False
+        ),
         author_id=current_user.id,
     )
     if tag_objs:
@@ -118,7 +122,9 @@ async def read_node(
     db: AsyncSession = Depends(get_db),
 ):
     """Retrieve a node by its slug."""
-    result = await db.execute(select(Node).where(Node.slug == slug, Node.is_visible == True))
+    result = await db.execute(
+        select(Node).where(Node.slug == slug, Node.is_visible == True)
+    )
     node = result.scalars().first()
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
@@ -160,7 +166,6 @@ async def set_node_tags(
     cache_invalidate("nav", reason="node_edit", key=node.slug)
     cache_invalidate("comp", reason="node_edit")
     return node
-
 
 
 @router.post(
@@ -222,7 +227,9 @@ async def create_transition(
         from_node_id=from_node.id,
         to_node_id=to_node.id,
         type=NodeTransitionType(payload.type),
-        condition=payload.condition or {},
+        condition=(
+            payload.condition.model_dump(exclude_none=True) if payload.condition else {}
+        ),
         weight=payload.weight,
         label=payload.label,
         created_by=current_user.id,
@@ -284,13 +291,21 @@ async def get_next_nodes(
                     result_obj = NextTransitions(mode=m.mode, transitions=opts)
                     if settings.cache.enable_nav_cache:
                         await navcache.set_navigation(
-                            user_id, slug, mode, result_obj.model_dump(), settings.cache.nav_cache_ttl
+                            user_id,
+                            slug,
+                            mode,
+                            result_obj.model_dump(),
+                            settings.cache.nav_cache_ttl,
                         )
                     return result_obj
             result_obj = NextTransitions(mode="auto", transitions=[])
             if settings.cache.enable_nav_cache:
                 await navcache.set_navigation(
-                    user_id, slug, mode, result_obj.model_dump(), settings.cache.nav_cache_ttl
+                    user_id,
+                    slug,
+                    mode,
+                    result_obj.model_dump(),
+                    settings.cache.nav_cache_ttl,
                 )
             return result_obj
 
@@ -300,7 +315,11 @@ async def get_next_nodes(
         result_obj = NextTransitions(mode=m.mode, transitions=opts)
         if settings.cache.enable_nav_cache:
             await navcache.set_navigation(
-                user_id, slug, mode, result_obj.model_dump(), settings.cache.nav_cache_ttl
+                user_id,
+                slug,
+                mode,
+                result_obj.model_dump(),
+                settings.cache.nav_cache_ttl,
             )
         return result_obj
 
@@ -315,14 +334,16 @@ async def get_next_nodes(
         result_obj = NextTransitions(mode="manual", transitions=transitions)
         if settings.cache.enable_nav_cache:
             await navcache.set_navigation(
-                user_id, slug, mode, result_obj.model_dump(), settings.cache.nav_cache_ttl
+                user_id,
+                slug,
+                mode,
+                result_obj.model_dump(),
+                settings.cache.nav_cache_ttl,
             )
         return result_obj
     rnd = await get_random_node(db, user=current_user, exclude_node_id=node.id)
     if rnd:
-        transitions = [
-            TransitionOption(slug=rnd.slug, label=rnd.title, mode="random")
-        ]
+        transitions = [TransitionOption(slug=rnd.slug, label=rnd.title, mode="random")]
     result_obj = NextTransitions(mode="random", transitions=transitions)
     if settings.cache.enable_nav_cache:
         await navcache.set_navigation(
@@ -411,7 +432,9 @@ async def delete_node(
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     if node.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this node")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to delete this node"
+        )
     await db.delete(node)
     await db.commit()
     await navcache.invalidate_navigation_by_node(slug)
@@ -497,7 +520,9 @@ async def create_feedback(
     if not node.allow_feedback:
         raise HTTPException(status_code=403, detail="Feedback disabled")
     if not node.is_public and node.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to comment on this node")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to comment on this node"
+        )
     feedback = Feedback(
         node_id=node.id,
         author_id=current_user.id,

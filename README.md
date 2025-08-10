@@ -85,3 +85,12 @@ EMBEDDING_DIM=384
 
 ## API документация
 Swagger доступен по адресу `http://localhost:8000/docs`, Redoc — `http://localhost:8000/redoc`.
+
+## Admin API
+
+Доступные только модераторам и выше административные эндпойнты:
+
+- `GET /admin/transitions` — список переходов с фильтрами (`from`, `to`, `type`, `author`) и пагинацией (`page`, `page_size`).
+- `PATCH /admin/transitions/{id}` — обновление параметров перехода.
+- `DELETE /admin/transitions/{id}` — удаление перехода.
+- `POST /admin/transitions/disable_by_node` — блокировка всех переходов, связанных с узлом.
