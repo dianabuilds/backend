@@ -31,6 +31,7 @@ from app.db.session import (
     init_db,
 )
 from app.services.bootstrap import ensure_default_admin
+from app.core.rate_limit import init_rate_limiter, close_rate_limiter
 
 # Настройка логирования
 configure_logging()
@@ -91,6 +92,8 @@ async def startup_event():
     # Конфигурируем провайдер эмбеддингов из настроек
     configure_from_settings()
 
+    await init_rate_limiter()
+
     # Проверяем подключение к базе данных
     if await check_database_connection():
         logger.info("Database connection successful")
@@ -109,4 +112,5 @@ async def shutdown_event():
     """Выполняется при остановке приложения"""
     logger.info("Shutting down application")
     await close_db_connection()
+    await close_rate_limiter()
 

@@ -30,8 +30,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         except Exception:  # pragma: no cover - safety
             pass
 
+        response: Response | None = None
         try:
-            response: Response = await call_next(request)
+            response = await call_next(request)
         except Exception:
             if settings.logging.include_traceback:
                 logger.exception("UNHANDLED_EXCEPTION")
