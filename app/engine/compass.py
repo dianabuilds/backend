@@ -28,7 +28,7 @@ async def get_compass_nodes(
 
     user_key = str(user.id) if user else "anon"
     params_hash = f"{node.id}:{limit}"
-    if settings.enable_compass_cache:
+    if settings.cache.enable_compass_cache:
         cached = await navcache.get_compass(user_key, params_hash)
         if cached:
             ids = cached.get("ids", [])
@@ -43,8 +43,8 @@ async def get_compass_nodes(
     repo = CompassRepository(db)
     candidates_with_dist: Optional[List[Tuple[Node, float]]] = await repo.get_similar_nodes_pgvector(
         node,
-        settings.compass_top_k_db,
-        settings.compass_pgv_probes,
+        settings.compass.top_k_db,
+        settings.compass.pgv_probes,
     )
 
     if candidates_with_dist is None:
@@ -91,7 +91,7 @@ async def get_compass_nodes(
             surprises.append(cand)
 
     scored.sort(key=lambda x: x[1], reverse=True)
-    limit = min(limit, settings.compass_top_k_result)
+    limit = min(limit, settings.compass.top_k_result)
     selected = [c for c, _, _, _ in scored[:limit]]
 
     if surprises:
@@ -102,7 +102,7 @@ async def get_compass_nodes(
             if len(selected) > limit:
                 selected = selected[:limit]
 
-    if settings.enable_compass_cache:
+    if settings.cache.enable_compass_cache:
         await navcache.set_compass(
             user_key,
             params_hash,

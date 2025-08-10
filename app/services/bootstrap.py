@@ -15,12 +15,12 @@ async def ensure_default_admin() -> None:
     Создаёт администратора (или чинит пароль/роль), если включён bootstrap.
     Параметры берутся из .env: admin_username, admin_email, admin_password.
     """
-    if not settings.admin_bootstrap_enabled:
+    if not settings.admin.bootstrap_enabled:
         return
 
-    username = settings.admin_username.strip()
-    email = settings.admin_email.strip()
-    password = settings.admin_password
+    username = settings.admin.username.strip()
+    email = settings.admin.email.strip()
+    password = settings.admin.password
 
     if not username or not email or not password:
         logger.warning("Admin bootstrap skipped: incomplete credentials in settings.")

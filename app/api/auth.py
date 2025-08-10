@@ -88,7 +88,7 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
                 raise HTTPException(status_code=400, detail="Username already taken")
 
         # Для отладки в разработке можно возвращать полное сообщение об ошибке
-        if settings.ENVIRONMENT.lower() == "development":
+        if settings.environment.lower() == "development":
             raise HTTPException(status_code=500, detail=f"Internal server error: {error_msg}")
         else:
             # В продакшене скрываем детали ошибки

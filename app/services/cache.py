@@ -222,9 +222,9 @@ class FallbackCache(Cache):
 
 
 def _create_cache() -> Cache:
-    if settings.redis_url and redis is not None:
+    if settings.cache.redis_url and redis is not None:
         try:
-            return FallbackCache(RedisCache(settings.redis_url), MemoryCache())
+            return FallbackCache(RedisCache(settings.cache.redis_url), MemoryCache())
         except Exception as e:  # pragma: no cover - fallback on init failure
             logger.warning("Failed to init Redis cache, using memory", exc_info=e)
             return MemoryCache()

@@ -20,14 +20,14 @@ def create_access_token(user_id) -> str:
     payload = {
         "sub": str(user_id),
         "iat": datetime.utcnow(),
-        "exp": datetime.utcnow() + timedelta(seconds=settings.jwt_expiration),
+        "exp": datetime.utcnow() + timedelta(seconds=settings.jwt.expiration),
     }
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    return jwt.encode(payload, settings.jwt.secret, algorithm=settings.jwt.algorithm)
 
 
 def verify_access_token(token: str):
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(token, settings.jwt.secret, algorithms=[settings.jwt.algorithm])
     except jwt.PyJWTError:
         return None
     return payload.get("sub")

@@ -12,7 +12,7 @@ from app.models.user import User
 
 
 def _make_token(amount: int) -> str:
-    return jwt.encode({"amount": amount}, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    return jwt.encode({"amount": amount}, settings.jwt.secret, algorithm=settings.jwt.algorithm)
 
 
 @pytest.mark.asyncio
