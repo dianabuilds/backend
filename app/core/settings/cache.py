@@ -6,5 +6,6 @@ class CacheSettings(BaseSettings):
     compass_cache_ttl: int = 90
     enable_nav_cache: bool = True
     enable_compass_cache: bool = True
+    key_version: str = "v1"
 
     model_config = SettingsConfigDict(env_prefix="CACHE_")

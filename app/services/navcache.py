@@ -1,36 +1,69 @@
 from __future__ import annotations
 
 import json
-from typing import Optional, Dict
+from typing import Dict, Optional
 from uuid import UUID
 
 from app.core.config import settings
-from app.services.cache import Cache, cache
 from app.core.log_events import cache_hit, cache_miss, cache_invalidate
+from app.services.cache_backends import redis_cache, MemoryCache
+
+
+# key helpers -------------------------------------------------------------
+
+def k_nav(user_id: str, slug: str, mode: str, v: str | None = None) -> str:
+    version = v or settings.cache.key_version
+    m = mode or "auto"
+    return f"{version}:nav:{user_id}:{slug}:{m}"
+
+
+def k_navm(user_id: str, slug: str, v: str | None = None) -> str:
+    version = v or settings.cache.key_version
+    return f"{version}:navm:{user_id}:{slug}"
+
+
+def k_comp(user_id: str, phash: str, v: str | None = None) -> str:
+    version = v or settings.cache.key_version
+    return f"{version}:comp:{user_id}:{phash}"
+
+
+def idx_node_nav(slug: str, v: str | None = None) -> str:
+    version = v or settings.cache.key_version
+    return f"{version}:idx:node->nav:{slug}"
+
+
+def idx_node_navm(slug: str, v: str | None = None) -> str:
+    version = v or settings.cache.key_version
+    return f"{version}:idx:node->navm:{slug}"
+
+
+def idx_user_nav(uid: str, v: str | None = None) -> str:
+    version = v or settings.cache.key_version
+    return f"{version}:idx:user->nav:{uid}"
+
+
+def idx_user_comp(uid: str, v: str | None = None) -> str:
+    version = v or settings.cache.key_version
+    return f"{version}:idx:user->comp:{uid}"
+
+
+def idx_node_comp(slug: str, v: str | None = None) -> str:
+    version = v or settings.cache.key_version
+    return f"{version}:idx:node->comp:{slug}"
 
 
 class NavCache:
     """Unified cache facade for navigation, modes and compass results."""
 
-    def __init__(self, backend: Cache = cache) -> None:
+    def __init__(self, backend=redis_cache) -> None:
         self._cache = backend
 
-    # Navigation -----------------------------------------------------
-    def _nav_key(self, user_id: str, node_slug: str, mode: str | None) -> str:
-        m = mode or "auto"
-        return f"nav:{user_id}:{node_slug}:{m}"
-
-    def _mode_key(self, user_id: str, node_slug: str) -> str:
-        return f"navm:{user_id}:{node_slug}"
-
-    def _compass_key(self, user_id: str, params_hash: str) -> str:
-        return f"comp:{user_id}:{params_hash}"
-
+    # Navigation ---------------------------------------------------------
     async def get_navigation(
         self, user_id: UUID | str, node_slug: str, mode: str | None
     ) -> Optional[Dict]:
         uid = str(user_id)
-        key = self._nav_key(uid, node_slug, mode)
+        key = k_nav(uid, node_slug, mode or "auto")
         data = await self._cache.get(key)
         if data:
             cache_hit("nav", key, user=uid)
@@ -47,48 +80,46 @@ class NavCache:
         ttl_sec: int | None = None,
     ) -> None:
         uid = str(user_id)
-        key = self._nav_key(uid, node_slug, mode)
+        key = k_nav(uid, node_slug, mode or "auto")
         ttl = ttl_sec or settings.cache.nav_cache_ttl
-        await self._cache.set(key, json.dumps(payload), ttl=ttl)
+        await self._cache.setex(key, ttl, json.dumps(payload))
+        await self._cache.sadd(idx_user_nav(uid), key)
+        await self._cache.sadd(idx_node_nav(node_slug), key)
 
     async def invalidate_navigation_by_node(self, node_slug: str) -> None:
-        pattern = f"nav:*:{node_slug}:*"
-        keys = await self._cache.scan(pattern)
-        if keys:
-            await self._cache.delete(*keys)
+        keys = await self._cache.smembers(idx_node_nav(node_slug))
+        count = len(keys)
+        await self._cache.delete_many(keys)
+        await self._cache.delete_key(idx_node_nav(node_slug))
+        keys_modes = await self._cache.smembers(idx_node_navm(node_slug))
+        count += len(keys_modes)
+        await self._cache.delete_many(keys_modes)
+        await self._cache.delete_key(idx_node_navm(node_slug))
+        if count:
             cache_invalidate("nav", reason="by_node", key=node_slug)
-        # also invalidate modes for this node
-        pattern = f"navm:*:{node_slug}"
-        keys = await self._cache.scan(pattern)
-        if keys:
-            await self._cache.delete(*keys)
-            cache_invalidate("navm", reason="by_node", key=node_slug)
 
     async def invalidate_navigation_by_user(self, user_id: UUID | str) -> None:
         uid = str(user_id)
-        pattern_nav = f"nav:{uid}:*"
-        pattern_mode = f"navm:{uid}:*"
-        keys = await self._cache.scan(pattern_nav)
-        keys += await self._cache.scan(pattern_mode)
+        idx = idx_user_nav(uid)
+        keys = await self._cache.smembers(idx)
+        await self._cache.delete_many(keys)
+        await self._cache.delete_key(idx)
         if keys:
-            await self._cache.delete(*keys)
             cache_invalidate("nav", reason="by_user", key=uid)
 
     async def invalidate_navigation_all(self) -> None:
-        patterns = ["nav:*", "navm:*"]
-        keys: list[str] = []
-        for p in patterns:
-            keys += await self._cache.scan(p)
+        pattern = f"{settings.cache.key_version}:nav*"
+        keys = await self._cache.scan(pattern)
+        await self._cache.delete_many(keys)
         if keys:
-            await self._cache.delete(*keys)
             cache_invalidate("nav", reason="all")
 
-    # Modes ---------------------------------------------------------
+    # Modes -------------------------------------------------------------
     async def get_modes(
         self, user_id: UUID | str, node_slug: str
     ) -> Optional[Dict]:
         uid = str(user_id)
-        key = self._mode_key(uid, node_slug)
+        key = k_navm(uid, node_slug)
         data = await self._cache.get(key)
         if data:
             cache_hit("navm", key, user=uid)
@@ -104,23 +135,25 @@ class NavCache:
         ttl_sec: int | None = None,
     ) -> None:
         uid = str(user_id)
-        key = self._mode_key(uid, node_slug)
+        key = k_navm(uid, node_slug)
         ttl = ttl_sec or settings.cache.nav_cache_ttl
-        await self._cache.set(key, json.dumps(payload), ttl=ttl)
+        await self._cache.setex(key, ttl, json.dumps(payload))
+        await self._cache.sadd(idx_user_nav(uid), key)
+        await self._cache.sadd(idx_node_navm(node_slug), key)
 
     async def invalidate_modes_by_node(self, node_slug: str) -> None:
-        pattern = f"navm:*:{node_slug}"
-        keys = await self._cache.scan(pattern)
+        keys = await self._cache.smembers(idx_node_navm(node_slug))
+        await self._cache.delete_many(keys)
+        await self._cache.delete_key(idx_node_navm(node_slug))
         if keys:
-            await self._cache.delete(*keys)
             cache_invalidate("navm", reason="by_node", key=node_slug)
 
-    # Compass -------------------------------------------------------
+    # Compass -----------------------------------------------------------
     async def get_compass(
         self, user_id: UUID | str, params_hash: str
     ) -> Optional[Dict]:
         uid = str(user_id)
-        key = self._compass_key(uid, params_hash)
+        key = k_comp(uid, params_hash)
         data = await self._cache.get(key)
         if data:
             cache_hit("comp", key, user=uid)
@@ -136,23 +169,38 @@ class NavCache:
         ttl_sec: int | None = None,
     ) -> None:
         uid = str(user_id)
-        key = self._compass_key(uid, params_hash)
+        key = k_comp(uid, params_hash)
         ttl = ttl_sec or settings.cache.compass_cache_ttl
-        await self._cache.set(key, json.dumps(payload), ttl=ttl)
+        await self._cache.setex(key, ttl, json.dumps(payload))
+        await self._cache.sadd(idx_user_comp(uid), key)
 
     async def invalidate_compass_by_user(self, user_id: UUID | str) -> None:
         uid = str(user_id)
-        pattern = f"comp:{uid}:*"
-        keys = await self._cache.scan(pattern)
+        idx = idx_user_comp(uid)
+        keys = await self._cache.smembers(idx)
+        await self._cache.delete_many(keys)
+        await self._cache.delete_key(idx)
         if keys:
-            await self._cache.delete(*keys)
             cache_invalidate("comp", reason="by_user", key=uid)
 
-    async def invalidate_compass_all(self) -> None:
-        pattern = "comp:*"
-        keys = await self._cache.scan(pattern)
+    async def invalidate_compass_by_node(self, node_slug: str) -> None:
+        idx = idx_node_comp(node_slug)
+        keys = await self._cache.smembers(idx)
+        await self._cache.delete_many(keys)
+        await self._cache.delete_key(idx)
         if keys:
-            await self._cache.delete(*keys)
+            cache_invalidate("comp", reason="by_node", key=node_slug)
+
+    async def invalidate_compass_all(self) -> None:
+        pattern = f"{settings.cache.key_version}:comp*"
+        keys = await self._cache.scan(pattern)
+        await self._cache.delete_many(keys)
+        idx_keys = await self._cache.scan(
+            f"{settings.cache.key_version}:idx:user->comp:*"
+        )
+        for idx in idx_keys:
+            await self._cache.delete_key(idx)
+        if keys:
             cache_invalidate("comp", reason="all")
 
 

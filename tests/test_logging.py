@@ -12,7 +12,7 @@ from app.core.logging_config import configure_logging
 from app.core.logging_middleware import RequestLoggingMiddleware
 from app.core.log_filters import request_id_var, user_id_var
 from app.services.navcache import NavCache
-from app.services.cache import MemoryCache
+from app.services.cache_backends import MemoryCache
 
 
 @pytest.mark.asyncio

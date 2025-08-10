@@ -103,7 +103,7 @@ async def get_navigation(
 ) -> Dict[str, object]:
     user_key = str(user.id) if user else "anon"
     if settings.cache.enable_nav_cache:
-        cached = await navcache.get_navigation(user_key, str(node.id), "auto")
+        cached = await navcache.get_navigation(user_key, node.slug, "auto")
         if cached:
             return cached
     transitions = await generate_transitions(db, node, user)
@@ -113,13 +113,13 @@ async def get_navigation(
         "generated_at": datetime.utcnow().isoformat(),
     }
     if settings.cache.enable_nav_cache:
-        await navcache.set_navigation(user_key, str(node.id), "auto", data)
+        await navcache.set_navigation(user_key, node.slug, "auto", data)
     return data
 
 
 async def invalidate_navigation_cache(user: Optional[User], node: Node) -> None:
-    await navcache.invalidate_navigation_by_node(str(node.id))
+    await navcache.invalidate_navigation_by_node(node.slug)
 
 
 async def invalidate_all_for_node(node: Node) -> None:
-    await navcache.invalidate_navigation_by_node(str(node.id))
+    await navcache.invalidate_navigation_by_node(node.slug)
