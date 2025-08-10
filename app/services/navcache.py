@@ -6,6 +6,7 @@ from uuid import UUID
 
 from app.core.config import settings
 from app.services.cache import Cache, cache
+from app.core.log_events import cache_hit, cache_miss, cache_invalidate
 
 
 class NavCache:
@@ -31,7 +32,11 @@ class NavCache:
         uid = str(user_id)
         key = self._nav_key(uid, node_slug, mode)
         data = await self._cache.get(key)
-        return json.loads(data) if data else None
+        if data:
+            cache_hit("nav", key, user=uid)
+            return json.loads(data)
+        cache_miss("nav", key, user=uid)
+        return None
 
     async def set_navigation(
         self,
@@ -51,11 +56,13 @@ class NavCache:
         keys = await self._cache.scan(pattern)
         if keys:
             await self._cache.delete(*keys)
+            cache_invalidate("nav", reason="by_node", key=node_slug)
         # also invalidate modes for this node
         pattern = f"navm:*:{node_slug}"
         keys = await self._cache.scan(pattern)
         if keys:
             await self._cache.delete(*keys)
+            cache_invalidate("navm", reason="by_node", key=node_slug)
 
     async def invalidate_navigation_by_user(self, user_id: UUID | str) -> None:
         uid = str(user_id)
@@ -65,6 +72,7 @@ class NavCache:
         keys += await self._cache.scan(pattern_mode)
         if keys:
             await self._cache.delete(*keys)
+            cache_invalidate("nav", reason="by_user", key=uid)
 
     async def invalidate_navigation_all(self) -> None:
         patterns = ["nav:*", "navm:*"]
@@ -73,6 +81,7 @@ class NavCache:
             keys += await self._cache.scan(p)
         if keys:
             await self._cache.delete(*keys)
+            cache_invalidate("nav", reason="all")
 
     # Modes ---------------------------------------------------------
     async def get_modes(
@@ -81,7 +90,11 @@ class NavCache:
         uid = str(user_id)
         key = self._mode_key(uid, node_slug)
         data = await self._cache.get(key)
-        return json.loads(data) if data else None
+        if data:
+            cache_hit("navm", key, user=uid)
+            return json.loads(data)
+        cache_miss("navm", key, user=uid)
+        return None
 
     async def set_modes(
         self,
@@ -100,6 +113,7 @@ class NavCache:
         keys = await self._cache.scan(pattern)
         if keys:
             await self._cache.delete(*keys)
+            cache_invalidate("navm", reason="by_node", key=node_slug)
 
     # Compass -------------------------------------------------------
     async def get_compass(
@@ -108,7 +122,11 @@ class NavCache:
         uid = str(user_id)
         key = self._compass_key(uid, params_hash)
         data = await self._cache.get(key)
-        return json.loads(data) if data else None
+        if data:
+            cache_hit("comp", key, user=uid)
+            return json.loads(data)
+        cache_miss("comp", key, user=uid)
+        return None
 
     async def set_compass(
         self,
@@ -128,12 +146,14 @@ class NavCache:
         keys = await self._cache.scan(pattern)
         if keys:
             await self._cache.delete(*keys)
+            cache_invalidate("comp", reason="by_user", key=uid)
 
     async def invalidate_compass_all(self) -> None:
         pattern = "comp:*"
         keys = await self._cache.scan(pattern)
         if keys:
             await self._cache.delete(*keys)
+            cache_invalidate("comp", reason="all")
 
 
 navcache = NavCache()

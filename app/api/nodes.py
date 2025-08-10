@@ -43,6 +43,7 @@ from app.schemas.transition import (
 from app.services.quests import check_quest_completion
 from app.services.tags import get_or_create_tags
 from app.models.tag import Tag
+from app.core.log_events import cache_invalidate
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 
@@ -104,6 +105,7 @@ async def create_node(
     await db.refresh(node)
     await update_node_embedding(db, node)
     await navcache.invalidate_compass_all()
+    cache_invalidate("comp", reason="node_create")
     return {"slug": node.slug}
 
 
@@ -151,6 +153,8 @@ async def set_node_tags(
     await db.refresh(node)
     await navcache.invalidate_navigation_by_node(node.slug)
     await navcache.invalidate_compass_all()
+    cache_invalidate("nav", reason="node_edit", key=node.slug)
+    cache_invalidate("comp", reason="node_edit")
     return node
 
 
@@ -208,6 +212,7 @@ async def create_transition(
     await db.commit()
     await db.refresh(transition)
     await navcache.invalidate_navigation_by_node(slug)
+    cache_invalidate("nav", reason="transition_create", key=slug)
     return {"id": str(transition.id)}
 
 
@@ -358,6 +363,9 @@ async def update_node(
     await navcache.invalidate_navigation_by_node(slug)
     await navcache.invalidate_modes_by_node(slug)
     await navcache.invalidate_compass_all()
+    cache_invalidate("nav", reason="node_update", key=slug)
+    cache_invalidate("navm", reason="node_update", key=slug)
+    cache_invalidate("comp", reason="node_update")
     return node
 
 
@@ -378,6 +386,9 @@ async def delete_node(
     await navcache.invalidate_navigation_by_node(slug)
     await navcache.invalidate_modes_by_node(slug)
     await navcache.invalidate_compass_all()
+    cache_invalidate("nav", reason="node_delete", key=slug)
+    cache_invalidate("navm", reason="node_delete", key=slug)
+    cache_invalidate("comp", reason="node_delete")
     return {"message": "Node deleted"}
 
 
@@ -404,6 +415,7 @@ async def update_reactions(
     await db.commit()
     await db.refresh(node)
     await navcache.invalidate_compass_all()
+    cache_invalidate("comp", reason="reaction_update", key=slug)
     return {"reactions": node.reactions}
 
 

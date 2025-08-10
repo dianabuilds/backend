@@ -11,13 +11,16 @@ from app.core.security import verify_access_token
 from app.db.session import get_db
 from app.models.user import User
 from app.models.moderation import UserRestriction
+from app.core.log_filters import user_id_var
 
 # Обновляем URL для получения токена, указывая, что используется username+password
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     user_id_str = verify_access_token(token)
     if not user_id_str:
@@ -60,6 +63,8 @@ async def get_current_user(
     )
     if result.scalars().first():
         raise HTTPException(status_code=403, detail="User is banned")
+    request.state.user_id = str(user.id)
+    user_id_var.set(str(user.id))
     return user
 
 
@@ -91,6 +96,8 @@ async def get_current_user_optional(
     )
     if result.scalars().first():
         return None
+    request.state.user_id = str(user.id)
+    user_id_var.set(str(user.id))
     return user
 
 

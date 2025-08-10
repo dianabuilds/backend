@@ -20,6 +20,8 @@ from app.api.achievements import router as achievements_router
 from app.api.payments import router as payments_router
 from app.api.search import router as search_router
 from app.core.config import settings
+from app.core.logging_config import configure_logging
+from app.core.logging_middleware import RequestLoggingMiddleware
 from app.engine import configure_from_settings
 from app.db.session import (
     check_database_connection,
@@ -29,13 +31,11 @@ from app.db.session import (
 from app.services.bootstrap import ensure_default_admin
 
 # Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+configure_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+app.add_middleware(RequestLoggingMiddleware)
 
 # CORS: разрешаем фронту ходить на API в dev
 app.add_middleware(
