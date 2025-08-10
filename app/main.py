@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 import logging
 
 from app.api.auth import router as auth_router
@@ -7,6 +9,7 @@ from app.api.nodes import router as nodes_router
 from app.api.tags import router as tags_router
 from app.api.admin import router as admin_router
 from app.web.admin import router as admin_ui_router
+from app.web.admin_spa import router as admin_spa_router
 from app.api.moderation import router as moderation_router
 from app.api.transitions import router as transitions_router
 from app.api.navigation import router as navigation_router
@@ -32,12 +35,17 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+DIST_DIR = Path(__file__).resolve().parent.parent / "admin-frontend" / "dist"
+if DIST_DIR.exists():
+    app.mount("/admin/assets", StaticFiles(directory=DIST_DIR), name="admin-assets")
+
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(nodes_router)
 app.include_router(tags_router)
 app.include_router(admin_router)
 app.include_router(admin_ui_router)
+app.include_router(admin_spa_router)
 app.include_router(moderation_router)
 app.include_router(transitions_router)
 app.include_router(navigation_router)
