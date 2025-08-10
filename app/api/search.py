@@ -18,7 +18,7 @@ from app.models.user import User
 router = APIRouter(tags=["search"])
 
 
-@router.get("/search")
+@router.get("/search", summary="Search nodes")
 async def search_nodes(
     q: str | None = None,
     tags: str | None = Query(None),
@@ -50,14 +50,14 @@ async def search_nodes(
     ]
 
 
-@router.get("/search/semantic")
+@router.get("/search/semantic", summary="Semantic search")
 async def semantic_search(
     q: str,
     limit: int = 20,
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
 ):
-    """Semantic search using vector similarity."""
+    """Semantic search for nodes using vector similarity."""
     query_vec = get_embedding(q)
     repo = CompassRepository(db)
     candidates = await repo.search_by_vector_pgvector(

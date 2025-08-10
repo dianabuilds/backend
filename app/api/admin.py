@@ -14,13 +14,14 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 logger = logging.getLogger(__name__)
 
 
-@router.post("/users/{user_id}/premium")
+@router.post("/users/{user_id}/premium", summary="Set user premium status")
 async def set_user_premium(
     user_id: UUID,
     payload: UserPremiumUpdate,
     current_user: User = Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
 ):
+    """Grant or revoke premium access for a specific user."""
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -44,13 +45,14 @@ async def set_user_premium(
     return {"is_premium": user.is_premium, "premium_until": user.premium_until}
 
 
-@router.post("/users/{user_id}/role")
+@router.post("/users/{user_id}/role", summary="Change user role")
 async def set_user_role(
     user_id: UUID,
     payload: UserRoleUpdate,
     current_user: User = Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
 ):
+    """Assign a new role to a user."""
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

@@ -17,12 +17,13 @@ from app.schemas.trace import NodeTraceCreate, NodeTraceOut
 router = APIRouter(prefix="/traces", tags=["traces"])
 
 
-@router.post("", response_model=NodeTraceOut)
+@router.post("", response_model=NodeTraceOut, summary="Create trace")
 async def create_trace(
     payload: NodeTraceCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Create a new user trace for a node."""
     node = await db.get(Node, payload.node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
@@ -40,13 +41,14 @@ async def create_trace(
     return trace
 
 
-@router.get("", response_model=list[NodeTraceOut])
+@router.get("", response_model=list[NodeTraceOut], summary="List traces")
 async def list_traces(
     node_id: UUID = Query(...),
     visible_to: str = Query("all", pattern="^(all|me)$"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Return traces for a node with optional visibility filtering."""
     stmt = select(NodeTrace).where(NodeTrace.node_id == node_id)
     if visible_to == "me":
         stmt = stmt.where(

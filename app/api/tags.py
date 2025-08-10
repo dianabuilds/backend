@@ -12,13 +12,14 @@ from app.schemas.tag import TagOut
 router = APIRouter(prefix="/tags", tags=["tags"])
 
 
-@router.get("/", response_model=list[TagOut])
+@router.get("/", response_model=list[TagOut], summary="List tags")
 async def list_tags(
     q: str | None = Query(None),
     popular: bool = Query(False),
     limit: int = Query(10),
     db: AsyncSession = Depends(get_db),
 ):
+    """Retrieve available tags with optional search and popularity filter."""
     stmt = (
         select(Tag, func.count(NodeTag.node_id).label("count"))
         .join(NodeTag, Tag.id == NodeTag.tag_id, isouter=True)

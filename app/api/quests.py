@@ -28,15 +28,16 @@ from app.services.navcache import navcache
 router = APIRouter(prefix="/quests", tags=["quests"])
 
 
-@router.get("", response_model=list[QuestOut])
+@router.get("", response_model=list[QuestOut], summary="List quests")
 async def list_quests(db: AsyncSession = Depends(get_db)):
+    """Return all published quests."""
     result = await db.execute(
         select(Quest).where(Quest.is_draft == False, Quest.is_deleted == False)
     )
     return result.scalars().all()
 
 
-@router.get("/search", response_model=list[QuestOut])
+@router.get("/search", response_model=list[QuestOut], summary="Search quests")
 async def search_quests(
     q: str | None = None,
     tags: str | None = Query(None),
@@ -91,12 +92,13 @@ async def search_quests(
     return result.scalars().all()
 
 
-@router.get("/{slug}", response_model=QuestOut)
+@router.get("/{slug}", response_model=QuestOut, summary="Get quest")
 async def get_quest(
     slug: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Fetch a quest by slug, ensuring access permissions."""
     result = await db.execute(select(Quest).where(Quest.slug == slug, Quest.is_deleted == False))
     quest = result.scalars().first()
     if not quest or (quest.is_draft and quest.author_id != current_user.id):
@@ -104,12 +106,13 @@ async def get_quest(
     return quest
 
 
-@router.post("", response_model=QuestOut)
+@router.post("", response_model=QuestOut, summary="Create quest")
 async def create_quest(
     payload: QuestCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Create a new quest owned by the current user."""
     quest = Quest(
         title=payload.title,
         subtitle=payload.subtitle,
@@ -131,13 +134,14 @@ async def create_quest(
     return quest
 
 
-@router.put("/{quest_id}", response_model=QuestOut)
+@router.put("/{quest_id}", response_model=QuestOut, summary="Update quest")
 async def update_quest(
     quest_id: UUID,
     payload: QuestUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Modify quest fields if the user is the author."""
     result = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
     quest = result.scalars().first()
     if not quest:
@@ -153,12 +157,17 @@ async def update_quest(
     return quest
 
 
-@router.post("/{quest_id}/publish", response_model=QuestOut)
+@router.post(
+    "/{quest_id}/publish",
+    response_model=QuestOut,
+    summary="Publish quest",
+)
 async def publish_quest(
     quest_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Mark a draft quest as published."""
     result = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
     quest = result.scalars().first()
     if not quest:
@@ -173,12 +182,13 @@ async def publish_quest(
     return quest
 
 
-@router.delete("/{quest_id}", response_model=dict)
+@router.delete("/{quest_id}", response_model=dict, summary="Delete quest")
 async def delete_quest(
     quest_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Soft delete a quest owned by the current user."""
     result = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
     quest = result.scalars().first()
     if not quest:
@@ -191,12 +201,17 @@ async def delete_quest(
     return {"status": "ok"}
 
 
-@router.post("/{quest_id}/start", response_model=QuestProgressOut)
+@router.post(
+    "/{quest_id}/start",
+    response_model=QuestProgressOut,
+    summary="Start quest",
+)
 async def start_quest(
     quest_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Begin or restart progress for a quest."""
     result = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
     quest = result.scalars().first()
     if not quest or quest.is_draft:
@@ -225,12 +240,17 @@ async def start_quest(
     return progress
 
 
-@router.get("/{quest_id}/progress", response_model=QuestProgressOut)
+@router.get(
+    "/{quest_id}/progress",
+    response_model=QuestProgressOut,
+    summary="Get progress",
+)
 async def get_progress(
     quest_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Retrieve progress of the current user in a quest."""
     res = await db.execute(
         select(QuestProgress).where(
             QuestProgress.quest_id == quest_id,
@@ -243,13 +263,18 @@ async def get_progress(
     return progress
 
 
-@router.get("/{quest_id}/nodes/{node_id}", response_model=NodeOut)
+@router.get(
+    "/{quest_id}/nodes/{node_id}",
+    response_model=NodeOut,
+    summary="Get quest node",
+)
 async def get_quest_node(
     quest_id: UUID,
     node_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Return node details within a quest and update progress."""
     result = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
     quest = result.scalars().first()
     if not quest or quest.is_draft:
@@ -276,13 +301,14 @@ async def get_quest_node(
     return node
 
 
-@router.post("/{quest_id}/buy", response_model=dict)
+@router.post("/{quest_id}/buy", response_model=dict, summary="Buy quest")
 async def buy_quest(
     quest_id: UUID,
     payload: QuestBuyIn,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Purchase access to a paid quest."""
     result = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
     quest = result.scalars().first()
     if not quest or quest.is_draft:

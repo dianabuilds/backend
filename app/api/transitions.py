@@ -13,12 +13,13 @@ from app.models.user import User
 router = APIRouter(prefix="/transitions", tags=["transitions"])
 
 
-@router.delete("/{transition_id}")
+@router.delete("/{transition_id}", summary="Delete transition")
 async def delete_transition(
     transition_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Delete a specific manual transition between nodes."""
     transition = await db.get(NodeTransition, transition_id)
     if not transition:
         raise HTTPException(status_code=404, detail="Transition not found")
