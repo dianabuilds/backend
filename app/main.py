@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import logging
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
@@ -25,6 +26,7 @@ from app.db.session import (
     close_db_connection,
     init_db,
 )
+from app.services.bootstrap import ensure_default_admin
 
 # Настройка логирования
 logging.basicConfig(
@@ -34,6 +36,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# CORS: разрешаем фронту ходить на API в dev
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allowed_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allowed_methods,
+    allow_headers=settings.cors_allowed_headers,
+)
 
 DIST_DIR = Path(__file__).resolve().parent.parent / "admin-frontend" / "dist"
 if DIST_DIR.exists():
@@ -80,6 +91,11 @@ async def startup_event():
     if await check_database_connection():
         logger.info("Database connection successful")
         await init_db()
+        # Создаём/чиним дефолтного администратора (для dev)
+        try:
+            await ensure_default_admin()
+        except Exception as e:
+            logger.warning(f"Admin bootstrap failed: {e}")
     else:
         logger.error("Failed to connect to database during startup")
 

@@ -95,11 +95,17 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=500, detail="Internal server error")
 
 
-async def _authenticate(db: AsyncSession, username: str, password: str) -> Token:
-    # Выбираем только необходимые поля, чтобы не падать на отсутствующих колонках
-    result = await db.execute(
-        select(User.id, User.password_hash).where(User.username == username)
-    )
+async def _authenticate(db: AsyncSession, login: str, password: str) -> Token:
+    if not login or not password:
+        raise HTTPException(status_code=422, detail="username and password are required")
+
+    # Логиним по username или email
+    if "@" in login:
+        query = select(User.id, User.password_hash).where(User.email == login)
+    else:
+        query = select(User.id, User.password_hash).where(User.username == login)
+
+    result = await db.execute(query)
     row = result.first()
     if not row:
         raise HTTPException(status_code=400, detail="Incorrect username or password")

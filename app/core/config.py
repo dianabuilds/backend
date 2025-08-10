@@ -42,6 +42,18 @@ class Settings(BaseSettings):
     embedding_api_base: str = ""
     embedding_api_key: str = ""
 
+    # CORS settings
+    cors_allowed_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    cors_allow_credentials: bool = True
+    cors_allowed_methods: list[str] = ["*"]
+    cors_allowed_headers: list[str] = ["*"]
+
+    # Admin bootstrap (создание/исправление дефолтного администратора в dev)
+    admin_bootstrap_enabled: bool = True
+    admin_username: str = "admin"
+    admin_email: str = "admin@example.com"
+    admin_password: str = "admin123"
+
     # Security settings
     min_password_length: int = 3  # Минимальная длина пароля
     secure_password_policy: bool = False  # Строгая политика паролей (требование букв, цифр и т.д.)
@@ -53,11 +65,6 @@ class Settings(BaseSettings):
     navigation_weight_compass: float = 0.5
     navigation_weight_echo: float = 0.3
     navigation_weight_random: float = 0.2
-    # New cache configuration
-    nav_cache_ttl: int = 90
-    compass_cache_ttl: int = 90
-    enable_nav_cache: bool = True
-    enable_compass_cache: bool = True
 
     # Compass / recommendation settings
     compass_top_k_db: int = 200
