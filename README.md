@@ -26,7 +26,7 @@
 
 ## Деплой в production
 Рекомендации по продакшн‑запуску описаны в [docs/deployment.md](docs/deployment.md). Основной чек‑лист:
-1. Сгенерируйте уникальные `JWT__SECRET` и `PAYMENT__JWT_SECRET`.
+1. Сгенерируйте уникальные `JWT_SECRET` и `PAYMENT_JWT_SECRET`.
 2. Установите реальные параметры БД и удалите значения `change_me`.
 3. Ограничьте `CORS_ALLOWED_ORIGINS` доверенными доменами и настройте защищённые cookie.
 4. Выполните Alembic‑миграции и настройте расширение `pgvector`.

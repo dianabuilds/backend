@@ -13,13 +13,13 @@ from typing import AsyncGenerator, Dict, Any
 
 # Устанавливаем переменные окружения для тестов
 os.environ["TESTING"] = "True"
-os.environ["DATABASE__USERNAME"] = "testuser"
-os.environ["DATABASE__PASSWORD"] = "testpass"
-os.environ["DATABASE__HOST"] = "localhost"
-os.environ["DATABASE__PORT"] = "5432"
-os.environ["DATABASE__NAME"] = "testdb"
-os.environ["JWT__SECRET"] = "test-secret-key"
-os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
+os.environ["DATABASE_USERNAME"] = "testuser"
+os.environ["DATABASE_PASSWORD"] = "testpass"
+os.environ["DATABASE_HOST"] = "localhost"
+os.environ["DATABASE_PORT"] = "5432"
+os.environ["DATABASE_NAME"] = "testdb"
+os.environ["JWT_SECRET"] = "test-secret-key"
+os.environ["PAYMENT_JWT_SECRET"] = "test-payment-secret"
 
 # Импортируем только то, что нам нужно
 from app.main import app
