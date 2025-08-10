@@ -5,4 +5,4 @@ class PaymentSettings(BaseSettings):
     jwt_secret: str | None = None
     webhook_secret: str | None = None
 
-    model_config = SettingsConfigDict(env_prefix="PAYMENT_")
+    model_config = SettingsConfigDict(extra="ignore")

@@ -14,7 +14,7 @@ class DatabaseSettings(BaseSettings):
     pool_recycle: int = 1800
     echo: bool = False
 
-    model_config = SettingsConfigDict(env_prefix="DB_")
+    model_config = SettingsConfigDict(extra="ignore")
 
     @property
     def url(self) -> str:
