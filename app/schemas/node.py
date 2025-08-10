@@ -67,3 +67,17 @@ class NodeOut(NodeBase):
 class ReactionUpdate(BaseModel):
     reaction: str
     action: Literal["add", "remove"]
+
+
+class NodeBulkOperation(BaseModel):
+    """Payload for bulk node admin operations."""
+
+    ids: list[UUID]
+    op: Literal[
+        "hide",
+        "show",
+        "public",
+        "private",
+        "toggle_premium",
+        "toggle_recommendable",
+    ]
