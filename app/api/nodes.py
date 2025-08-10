@@ -254,7 +254,7 @@ async def get_next_nodes(
             for t in found[: controller.max_options]
         ]
         return NextTransitions(mode="manual", transitions=transitions)
-    rnd = await get_random_node(db, exclude_node_id=node.id)
+    rnd = await get_random_node(db, user=current_user, exclude_node_id=node.id)
     if rnd:
         transitions = [
             TransitionOption(slug=rnd.slug, label=rnd.title, mode="random")
