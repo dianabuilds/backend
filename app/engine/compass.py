@@ -12,7 +12,7 @@ from app.models.echo_trace import EchoTrace
 from app.models.node import Node
 from app.models.user import User
 from app.repositories.compass_repository import CompassRepository
-from app.services.compass_cache import compass_cache
+from app.services.navcache import navcache
 from .embedding import cosine_similarity, update_node_embedding
 from .filters import has_access_async
 
@@ -26,16 +26,19 @@ async def get_compass_nodes(
     if not node.embedding_vector:
         await update_node_embedding(db, node)
 
-    user_key = str(user.id) if user else None
-    cached = await compass_cache.get(user_key, str(node.id))
-    if cached:
-        nodes: List[Node] = []
-        for node_id in cached:
-            n = await db.get(Node, uuid.UUID(node_id))
-            if not n or not await has_access_async(n, user):
-                continue
-            nodes.append(n)
-        return nodes
+    user_key = str(user.id) if user else "anon"
+    params_hash = f"{node.id}:{limit}"
+    if settings.enable_compass_cache:
+        cached = await navcache.get_compass(user_key, params_hash)
+        if cached:
+            ids = cached.get("ids", [])
+            nodes: List[Node] = []
+            for node_id in ids:
+                n = await db.get(Node, uuid.UUID(node_id))
+                if not n or not await has_access_async(n, user):
+                    continue
+                nodes.append(n)
+            return nodes
 
     repo = CompassRepository(db)
     candidates_with_dist: Optional[List[Tuple[Node, float]]] = await repo.get_similar_nodes_pgvector(
@@ -99,5 +102,10 @@ async def get_compass_nodes(
             if len(selected) > limit:
                 selected = selected[:limit]
 
-    await compass_cache.set(user_key, str(node.id), [str(n.id) for n in selected])
+    if settings.enable_compass_cache:
+        await navcache.set_compass(
+            user_key,
+            params_hash,
+            {"ids": [str(n.id) for n in selected]},
+        )
     return selected

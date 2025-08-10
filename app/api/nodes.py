@@ -22,6 +22,8 @@ from app.engine.echo import record_echo_trace
 from app.engine.traces import maybe_add_auto_trace
 from app.engine.filters import has_access_async
 from app.services.nft import user_has_nft
+from app.services.navcache import navcache
+from app.core.config import settings
 from app.models.node import Node
 from app.models.feedback import Feedback
 from app.models.transition import NodeTransition, NodeTransitionType
@@ -101,6 +103,7 @@ async def create_node(
     await db.commit()
     await db.refresh(node)
     await update_node_embedding(db, node)
+    await navcache.invalidate_compass_all()
     return {"slug": node.slug}
 
 
@@ -146,6 +149,8 @@ async def set_node_tags(
     node.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(node)
+    await navcache.invalidate_navigation_by_node(node.slug)
+    await navcache.invalidate_compass_all()
     return node
 
 
@@ -202,6 +207,7 @@ async def create_transition(
     db.add(transition)
     await db.commit()
     await db.refresh(transition)
+    await navcache.invalidate_navigation_by_node(slug)
     return {"id": str(transition.id)}
 
 
@@ -232,6 +238,12 @@ async def get_next_nodes(
     async def run_mode(m: TransitionMode) -> list[TransitionOption]:
         return await apply_mode(db, node, current_user, m, controller.max_options)
 
+    user_id = str(current_user.id)
+    if settings.enable_nav_cache:
+        cached = await navcache.get_navigation(user_id, slug, mode)
+        if cached:
+            return NextTransitions(**cached)
+
     # Determine active mode
     if mode == "auto":
         if controller.default_mode != "auto":
@@ -240,13 +252,28 @@ async def get_next_nodes(
             for m in controller.modes:
                 opts = await run_mode(m)
                 if opts:
-                    return NextTransitions(mode=m.mode, transitions=opts)
-            return NextTransitions(mode="auto", transitions=[])
+                    result_obj = NextTransitions(mode=m.mode, transitions=opts)
+                    if settings.enable_nav_cache:
+                        await navcache.set_navigation(
+                            user_id, slug, mode, result_obj.model_dump(), settings.nav_cache_ttl
+                        )
+                    return result_obj
+            result_obj = NextTransitions(mode="auto", transitions=[])
+            if settings.enable_nav_cache:
+                await navcache.set_navigation(
+                    user_id, slug, mode, result_obj.model_dump(), settings.nav_cache_ttl
+                )
+            return result_obj
 
     m = find_mode(mode)
     if m:
         opts = await run_mode(m)
-        return NextTransitions(mode=m.mode, transitions=opts)
+        result_obj = NextTransitions(mode=m.mode, transitions=opts)
+        if settings.enable_nav_cache:
+            await navcache.set_navigation(
+                user_id, slug, mode, result_obj.model_dump(), settings.nav_cache_ttl
+            )
+        return result_obj
 
     # Fallback to previous behaviour if no DSL modes defined
     transitions: list[TransitionOption] = []
@@ -256,13 +283,23 @@ async def get_next_nodes(
             TransitionOption(slug=t.to_node.slug, label=t.label, mode=t.type.value)
             for t in found[: controller.max_options]
         ]
-        return NextTransitions(mode="manual", transitions=transitions)
+        result_obj = NextTransitions(mode="manual", transitions=transitions)
+        if settings.enable_nav_cache:
+            await navcache.set_navigation(
+                user_id, slug, mode, result_obj.model_dump(), settings.nav_cache_ttl
+            )
+        return result_obj
     rnd = await get_random_node(db, user=current_user, exclude_node_id=node.id)
     if rnd:
         transitions = [
             TransitionOption(slug=rnd.slug, label=rnd.title, mode="random")
         ]
-    return NextTransitions(mode="random", transitions=transitions)
+    result_obj = NextTransitions(mode="random", transitions=transitions)
+    if settings.enable_nav_cache:
+        await navcache.set_navigation(
+            user_id, slug, mode, result_obj.model_dump(), settings.nav_cache_ttl
+        )
+    return result_obj
 
 
 @router.get("/{slug}/next_modes", response_model=NextModes)
@@ -280,8 +317,18 @@ async def get_next_modes(
         controller = TransitionController.model_validate(controller_data)
     except Exception:
         controller = TransitionController()
+    user_id = str(current_user.id)
+    if settings.enable_nav_cache:
+        cached = await navcache.get_modes(user_id, slug)
+        if cached:
+            return NextModes(**cached)
     modes = [AvailableMode(mode=m.mode, label=m.label) for m in controller.modes]
-    return NextModes(default_mode=controller.default_mode, modes=modes)
+    result_obj = NextModes(default_mode=controller.default_mode, modes=modes)
+    if settings.enable_nav_cache:
+        await navcache.set_modes(
+            user_id, slug, result_obj.model_dump(), settings.nav_cache_ttl
+        )
+    return result_obj
 
 
 @router.patch("/{slug}", response_model=NodeOut)
@@ -308,6 +355,9 @@ async def update_node(
     await db.commit()
     await db.refresh(node)
     await update_node_embedding(db, node)
+    await navcache.invalidate_navigation_by_node(slug)
+    await navcache.invalidate_modes_by_node(slug)
+    await navcache.invalidate_compass_all()
     return node
 
 
@@ -325,6 +375,9 @@ async def delete_node(
         raise HTTPException(status_code=403, detail="Not authorized to delete this node")
     await db.delete(node)
     await db.commit()
+    await navcache.invalidate_navigation_by_node(slug)
+    await navcache.invalidate_modes_by_node(slug)
+    await navcache.invalidate_compass_all()
     return {"message": "Node deleted"}
 
 
@@ -350,6 +403,7 @@ async def update_reactions(
     node.reactions = reactions
     await db.commit()
     await db.refresh(node)
+    await navcache.invalidate_compass_all()
     return {"reactions": node.reactions}
 
 

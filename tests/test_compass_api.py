@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.models.node import Node
-from app.services.compass_cache import compass_cache
+from app.services.navcache import navcache
 
 
 @pytest.mark.asyncio
@@ -37,16 +37,13 @@ async def test_compass_api_cache(client: AsyncClient, db_session: AsyncSession, 
     data1 = resp1.json()
     assert any(item["id"] == str(cand1.id) for item in data1)
 
-    cand2 = await create("cand2", ["a"])
-
-    resp2 = await client.get(
+    resp_cached = await client.get(
         f"/navigation/compass?node_id={base.id}&user_id={test_user.id}",
         headers=auth_headers,
     )
-    ids2 = {item["id"] for item in resp2.json()}
-    assert str(cand2.id) not in ids2
+    assert resp_cached.json() == data1
 
-    await compass_cache.invalidate(str(test_user.id), str(base.id))
+    cand2 = await create("cand2", ["a"])
 
     resp3 = await client.get(
         f"/navigation/compass?node_id={base.id}&user_id={test_user.id}",

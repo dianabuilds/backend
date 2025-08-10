@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import assert_owner_or_role, get_current_user
 from app.db.session import get_db
 from app.models.transition import NodeTransition
+from app.models.node import Node
+from app.services.navcache import navcache
 from app.models.user import User
 
 router = APIRouter(prefix="/transitions", tags=["transitions"])
@@ -23,4 +25,7 @@ async def delete_transition(
     assert_owner_or_role(transition.created_by, "moderator", current_user)
     await db.delete(transition)
     await db.commit()
+    from_node = await db.get(Node, transition.from_node_id)
+    if from_node:
+        await navcache.invalidate_navigation_by_node(from_node.slug)
     return {"message": "Transition deleted"}

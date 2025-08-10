@@ -5,7 +5,7 @@ from httpx import AsyncClient
 
 from app.models.node import Node
 from app.engine import navigation_engine
-from app.services.navigation_cache import navigation_cache
+from app.services.navcache import navcache
 
 
 @pytest.mark.asyncio
@@ -55,7 +55,7 @@ async def test_navigation_cached(client: AsyncClient, db_session: AsyncSession, 
     # invalidate cache and ensure new value is produced
     result = await db_session.execute(select(Node).where(Node.slug == base))
     base_node = result.scalars().first()
-    await navigation_cache.invalidate(str(test_user.id), str(base_node.id))
+    await navcache.invalidate_navigation_by_node(str(base_node.id))
 
     resp3 = await client.get(f"/navigation/{base}", headers=auth_headers)
     data3 = resp3.json()
