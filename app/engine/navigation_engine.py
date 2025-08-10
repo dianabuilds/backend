@@ -46,6 +46,8 @@ async def generate_transitions(
             }
         )
 
+    manual.sort(key=lambda x: (-x["score"], x["slug"]))
+
     # Automatic sources
     remaining = max_options
     remaining -= len(manual)
@@ -92,7 +94,7 @@ async def generate_transitions(
             }
         )
 
-    weighted.sort(key=lambda x: x["score"], reverse=True)
+    weighted.sort(key=lambda x: (-x["score"], x["slug"]))
     seen = {t["slug"] for t in manual}
     automatic = [t for t in weighted if t["slug"] not in seen][: max(0, remaining)]
     return manual + automatic
