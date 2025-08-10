@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-3xl">
+  <h1 class="text-2xl font-bold mb-4">{{ node and 'Редактирование узла' or 'Создание узла' }}</h1>
+  <form method="post" action="{{ form_action }}" class="space-y-4">
+    <label class="form-control">
+      <div class="label"><span class="label-text">Title</span></div>
+      <input type="text" name="title" value="{{ node.title if node else '' }}" class="input input-bordered" required />
+    </label>
+    <label class="form-control">
+      <div class="label"><span class="label-text">Content format</span></div>
+      <select name="content_format" class="select select-bordered">
+        {% for fmt in formats %}
+          <option value="{{ fmt }}" {% if node and node.content_format==fmt %}selected{% endif %}>{{ fmt }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="form-control">
+      <div class="label"><span class="label-text">Content</span></div>
+      <textarea name="content" class="textarea textarea-bordered h-48" required>{{ node.content if node else '' }}</textarea>
+    </label>
+    <label class="form-control">
+      <div class="label"><span class="label-text">Tags</span></div>
+      <input type="text" name="tags" value="{{ node.tags|join(', ') if node and node.tags else '' }}" class="input input-bordered" placeholder="tag1, tag2" />
+      <div class="label"><span class="label-text-alt">Через запятую</span></div>
+    </label>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <label class="label cursor-pointer">
+        <span class="label-text">Public</span>
+        <input type="checkbox" name="is_public" class="checkbox" {% if node and node.is_public %}checked{% endif %} />
+      </label>
+      <label class="label cursor-pointer">
+        <span class="label-text">Visible</span>
+        <input type="checkbox" name="is_visible" class="checkbox" {% if node and node.is_visible %}checked{% endif %} />
+      </label>
+      <label class="label cursor-pointer">
+        <span class="label-text">Allow feedback</span>
+        <input type="checkbox" name="allow_feedback" class="checkbox" {% if node and node.allow_feedback %}checked{% endif %} />
+      </label>
+      <label class="label cursor-pointer">
+        <span class="label-text">Recommendable</span>
+        <input type="checkbox" name="is_recommendable" class="checkbox" {% if node and node.is_recommendable %}checked{% endif %} />
+      </label>
+      <label class="label cursor-pointer">
+        <span class="label-text">Premium only</span>
+        <input type="checkbox" name="premium_only" class="checkbox" {% if node and node.premium_only %}checked{% endif %} />
+      </label>
+    </div>
+    <div class="flex justify-end gap-2">
+      <a href="/admin/nodes" class="btn btn-ghost">Отмена</a>
+      <button class="btn btn-primary">Сохранить</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
