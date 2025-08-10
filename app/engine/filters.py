@@ -8,27 +8,27 @@ that a user never receives a link to a node that is hidden or restricted.
 
 from __future__ import annotations
 
+import anyio
+
 from app.models.node import Node
 from app.models.user import User
+from app.services.nft import user_has_nft
 
 
-def has_access(node: Node, user: User | None) -> bool:
-    """Return True if the user may access the given node.
-
-    The rules are intentionally very small but they are shared by all engines
-    so that manual transitions, compass recommendations, echo traces and
-    random suggestions all respect the same visibility constraints.
-
-    The function can be extended in the future with additional rules such as
-    NFT checks or language restrictions.
-    """
-
+async def has_access_async(node: Node, user: User | None) -> bool:
+    """Return True if the user may access the given node."""
     if not node.is_visible or not node.is_public or not node.is_recommendable:
         return False
     if node.premium_only and (not user or not user.is_premium):
         return False
+    if node.nft_required and not await user_has_nft(user, node.nft_required):
+        return False
     return True
 
 
-__all__ = ["has_access"]
+def has_access(node: Node, user: User | None) -> bool:
+    """Synchronous wrapper kept for backward compatibility."""
+    return anyio.run(has_access_async, node, user)
 
+
+__all__ = ["has_access", "has_access_async"]

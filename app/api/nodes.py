@@ -20,6 +20,8 @@ from app.engine.transition_controller import apply_mode
 from app.engine.embedding import update_node_embedding
 from app.engine.echo import record_echo_trace
 from app.engine.traces import maybe_add_auto_trace
+from app.engine.filters import has_access_async
+from app.services.nft import user_has_nft
 from app.models.node import Node
 from app.models.feedback import Feedback
 from app.models.transition import NodeTransition, NodeTransitionType
@@ -67,7 +69,9 @@ async def list_nodes(
             else:
                 stmt = stmt.distinct()
     result = await db.execute(stmt)
-    return result.scalars().all()
+    nodes = result.scalars().all()
+    nodes = [n for n in nodes if await has_access_async(n, current_user)]
+    return nodes
 
 
 @router.post("", response_model=dict)
@@ -114,6 +118,8 @@ async def read_node(
         raise HTTPException(status_code=403, detail="Not authorized to view this node")
     if node.premium_only:
         await require_premium(current_user)
+    if node.nft_required and not await user_has_nft(current_user, node.nft_required):
+        raise HTTPException(status_code=403, detail="NFT required")
     node.views += 1
     await db.commit()
     await db.refresh(node)

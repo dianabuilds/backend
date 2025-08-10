@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.engine.compass import get_compass_nodes
 from app.engine.echo import get_echo_transitions
 from app.engine.random import get_random_node
-from app.engine.filters import has_access
+from app.engine.filters import has_access_async
 from app.engine.transitions import get_transitions
 from app.models.node import Node
 from app.models.user import User
@@ -35,7 +35,7 @@ async def generate_transitions(
     # Manual transitions always come first
     manual: List[Dict[str, object]] = []
     for t in await get_transitions(db, node, user):
-        if not has_access(t.to_node, user):
+        if not await has_access_async(t.to_node, user):
             continue
         manual.append(
             {
@@ -64,12 +64,12 @@ async def generate_transitions(
     }.items():
         norm = _normalise(nodes)
         for n in nodes:
-            if not has_access(n, user):
+            if not await has_access_async(n, user):
                 continue
             data = candidates.setdefault(n.slug, {"node": n, "scores": defaultdict(float)})
             data["scores"][source] = norm[n.slug]
 
-    if rnd and has_access(rnd, user):
+    if rnd and await has_access_async(rnd, user):
         data = candidates.setdefault(rnd.slug, {"node": rnd, "scores": defaultdict(float)})
         data["scores"]["random"] = 1.0
 

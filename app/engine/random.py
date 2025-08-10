@@ -7,7 +7,7 @@ from typing import Sequence
 
 from app.models.node import Node
 from app.models.user import User
-from .filters import has_access
+from .filters import has_access_async
 
 
 async def get_random_node(
@@ -34,7 +34,7 @@ async def get_random_node(
     if tag_whitelist:
         whitelist = set(tag_whitelist)
         nodes = [n for n in nodes if {t.slug for t in n.tags} & whitelist]
-    nodes = [n for n in nodes if has_access(n, user)]
+    nodes = [n for n in nodes if await has_access_async(n, user)]
     if not nodes:
         return None
     return random.choice(nodes)

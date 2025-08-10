@@ -13,7 +13,7 @@ from app.models.node import Node
 from app.models.echo_trace import EchoTrace
 from app.models.node_trace import NodeTrace
 from app.models.user import User
-from .filters import has_access
+from .filters import has_access_async
 
 
 async def record_echo_trace(
@@ -55,7 +55,7 @@ async def get_echo_transitions(
     ordered_nodes: List[Node] = []
     for node_id, _ in counter.most_common(20):
         n = await db.get(Node, uuid.UUID(node_id))
-        if not n or not has_access(n, user):
+        if not n or not await has_access_async(n, user):
             continue
         ordered_nodes.append(n)
         if len(ordered_nodes) >= limit:
