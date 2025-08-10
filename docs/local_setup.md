@@ -7,8 +7,9 @@
    pip install -r requirements.txt
    ```
 2. Скопируйте файл `.env.example` в `.env` и заполните переменные окружения:
-   - **База данных**: `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`.
-   - **JWT**: `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_EXPIRES_MIN`.
+   - **База данных**: `DATABASE__HOST`, `DATABASE__PORT`, `DATABASE__NAME`, `DATABASE__USERNAME`, `DATABASE__PASSWORD`.
+   - **JWT**: `JWT__SECRET`, `JWT__ALGORITHM`, `JWT__EXPIRES_MIN`.
+   - **Payments**: `PAYMENT__JWT_SECRET`, `PAYMENT__WEBHOOK_SECRET`.
    - **Cookies**: `COOKIE_DOMAIN`, `COOKIE_SECURE`, `COOKIE_SAMESITE`.
    - **SMTP**: параметры `SMTP_*` для отправки почты или `SMTP_MOCK=True`.
    - **CORS**: `CORS_ALLOWED_ORIGINS`, `CORS_ALLOW_CREDENTIALS`, `CORS_ALLOWED_METHODS`, `CORS_ALLOWED_HEADERS`.
