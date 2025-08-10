@@ -71,7 +71,7 @@ jobs:
           done
 
       - name: Alembic upgrade
-        run: alembic upgrade head
+        run: alembic upgrade heads
 
       - name: Lint (ruff)
         run: ruff check .
