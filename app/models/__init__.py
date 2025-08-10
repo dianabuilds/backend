@@ -26,6 +26,8 @@ from .node_trace import NodeTrace  # noqa: F401
 from .achievement import Achievement, UserAchievement  # noqa: F401
 from .event_counter import UserEventCounter  # noqa: F401
 from .user_token import UserToken, TokenAction  # noqa: F401
+from .idempotency import IdempotencyKey  # noqa: F401
+from .outbox import OutboxEvent  # noqa: F401
 
 # Add future models' imports above
 
