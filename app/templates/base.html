@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>{% block title %}Письмо{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { margin:0; padding:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .container { max-width: 640px; margin: 0 auto; padding: 24px; }
+      .card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; }
+      .muted { color: #6b7280; font-size: 12px; }
+      .btn { display:inline-block; padding:12px 18px; border-radius:8px; text-decoration:none; }
+      .btn-primary { background:#111827; color:#ffffff; }
+    </style>
+  </head>
+  <body style="background:#f3f4f6;">
+    <div class="container">
+      {% include "_partials/header.html" %}
+      <div class="card">
+        {% block content %}{% endblock %}
+      </div>
+      {% include "_partials/footer.html" %}
+    </div>
+  </body>
+</html>

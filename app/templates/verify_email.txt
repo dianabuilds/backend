@@ -1,4 +1,0 @@
-Hello {{ username }},
-Please verify your email using the link below:
-{{ link }}
-This link will expire in {{ expire_hours }} hours.
