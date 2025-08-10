@@ -22,13 +22,14 @@ router = APIRouter(prefix="/moderation", tags=["moderation"])
 logger = logging.getLogger(__name__)
 
 
-@router.post("/users/{user_id}/ban")
+@router.post("/users/{user_id}/ban", summary="Ban user")
 async def ban_user(
     user_id: UUID,
     payload: RestrictionCreate,
     current_user: User = Depends(require_role("moderator")),
     db: AsyncSession = Depends(get_db),
 ):
+    """Completely block a user from accessing the platform."""
     target_user = await db.get(User, user_id)
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -56,13 +57,17 @@ async def ban_user(
     return {"id": restriction.id}
 
 
-@router.post("/users/{user_id}/restrict-posting")
+@router.post(
+    "/users/{user_id}/restrict-posting",
+    summary="Restrict user posting",
+)
 async def restrict_posting(
     user_id: UUID,
     payload: RestrictionCreate,
     current_user: User = Depends(require_role("moderator")),
     db: AsyncSession = Depends(get_db),
 ):
+    """Temporarily forbid a user from creating new content."""
     target_user = await db.get(User, user_id)
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -90,12 +95,13 @@ async def restrict_posting(
     return {"id": restriction.id}
 
 
-@router.delete("/restrictions/{restriction_id}")
+@router.delete("/restrictions/{restriction_id}", summary="Remove restriction")
 async def remove_restriction(
     restriction_id: UUID,
     current_user: User = Depends(require_role("moderator")),
     db: AsyncSession = Depends(get_db),
 ):
+    """Delete an active restriction entry."""
     restriction = await db.get(UserRestriction, restriction_id)
     if not restriction:
         raise HTTPException(status_code=404, detail="Restriction not found")
@@ -104,13 +110,14 @@ async def remove_restriction(
     return {"message": "Restriction removed"}
 
 
-@router.post("/nodes/{slug}/hide")
+@router.post("/nodes/{slug}/hide", summary="Hide node")
 async def hide_node(
     slug: str,
     payload: ContentHide,
     current_user: User = Depends(require_role("moderator")),
     db: AsyncSession = Depends(get_db),
 ):
+    """Hide a node from public view for moderation reasons."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node:
@@ -139,11 +146,16 @@ async def hide_node(
     return {"message": "Node hidden"}
 
 
-@router.get("/hidden-nodes", response_model=list[HiddenNodeOut])
+@router.get(
+    "/hidden-nodes",
+    response_model=list[HiddenNodeOut],
+    summary="List hidden nodes",
+)
 async def list_hidden_nodes(
     current_user: User = Depends(require_role("moderator")),
     db: AsyncSession = Depends(get_db),
 ):
+    """Return nodes currently hidden by moderators."""
     stmt = (
         select(Node, ContentModeration)
         .join(ContentModeration, ContentModeration.node_id == Node.id)
@@ -163,12 +175,13 @@ async def list_hidden_nodes(
     ]
 
 
-@router.post("/nodes/{slug}/restore")
+@router.post("/nodes/{slug}/restore", summary="Restore node")
 async def restore_node(
     slug: str,
     current_user: User = Depends(require_role("moderator")),
     db: AsyncSession = Depends(get_db),
 ):
+    """Make a previously hidden node visible again."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node:
@@ -196,11 +209,16 @@ async def restore_node(
     return {"message": "Node restored"}
 
 
-@router.get("/restrictions", response_model=list[RestrictionOut])
+@router.get(
+    "/restrictions",
+    response_model=list[RestrictionOut],
+    summary="List restrictions",
+)
 async def list_restrictions(
     current_user: User = Depends(require_role("moderator")),
     db: AsyncSession = Depends(get_db),
 ):
+    """Get all active user restrictions."""
     now = datetime.utcnow()
     stmt = select(UserRestriction).where(
         (UserRestriction.expires_at == None) | (UserRestriction.expires_at > now)

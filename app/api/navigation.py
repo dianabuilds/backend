@@ -15,12 +15,13 @@ from app.models.user import User
 router = APIRouter(prefix="/navigation", tags=["navigation"])
 
 
-@router.get("/compass")
+@router.get("/compass", summary="Compass recommendations")
 async def compass_endpoint(
     node_id: UUID,
     user_id: UUID | None = None,
     db: AsyncSession = Depends(get_db),
 ):
+    """Return compass-based navigation recommendations for a node."""
     node = await db.get(Node, node_id)
     if not node or not node.is_visible or not node.is_public or not node.is_recommendable:
         raise HTTPException(status_code=404, detail="Node not found")
@@ -42,12 +43,13 @@ async def compass_endpoint(
     ]
 
 
-@router.get("/{slug}")
+@router.get("/{slug}", summary="Navigate from node")
 async def navigation(
     slug: str,
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
 ):
+    """Retrieve navigation options starting from the given node slug."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node or not node.is_visible:

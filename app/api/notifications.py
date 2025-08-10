@@ -19,11 +19,12 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 ws_router = APIRouter()
 
 
-@router.get("", response_model=list[NotificationOut])
+@router.get("", response_model=list[NotificationOut], summary="List notifications")
 async def list_notifications(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Return all notifications for the current user sorted by creation time."""
     result = await db.execute(
         select(Notification)
         .where(Notification.user_id == current_user.id)
@@ -32,12 +33,17 @@ async def list_notifications(
     return result.scalars().all()
 
 
-@router.post("/{notification_id}/read", response_model=dict)
+@router.post(
+    "/{notification_id}/read",
+    response_model=dict,
+    summary="Mark notification read",
+)
 async def mark_read(
     notification_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Mark a specific notification as read."""
     result = await db.execute(
         select(Notification).where(
             Notification.id == notification_id,
@@ -58,6 +64,7 @@ async def notifications_websocket(
     token: str = Query(...),
     db: AsyncSession = Depends(get_db),
 ):
+    """WebSocket endpoint that pushes notifications to the client."""
     user_id_str = verify_access_token(token)
     if not user_id_str:
         await websocket.close(code=1008)

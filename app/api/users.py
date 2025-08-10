@@ -11,17 +11,19 @@ from app.schemas.user import UserOut, UserUpdate
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/me", response_model=UserOut)
+@router.get("/me", response_model=UserOut, summary="Current user")
 async def read_me(current_user: User = Depends(get_current_user)):
+    """Return profile information for the authenticated user."""
     return current_user
 
 
-@router.patch("/me", response_model=UserOut)
+@router.patch("/me", response_model=UserOut, summary="Update profile")
 async def update_me(
     payload: UserUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     ):
+    """Update fields of the current user's profile."""
     data = payload.dict(exclude_unset=True)
     for field, value in data.items():
         setattr(current_user, field, value)
@@ -30,10 +32,11 @@ async def update_me(
     return current_user
 
 
-@router.delete("/me")
+@router.delete("/me", summary="Delete account")
 async def delete_me(
     current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ):
+    """Soft delete the current user's account."""
     current_user.is_active = False
     current_user.deleted_at = datetime.utcnow()
     current_user.email = None

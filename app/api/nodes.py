@@ -48,13 +48,14 @@ from app.core.log_events import cache_invalidate
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 
 
-@router.get("", response_model=list[NodeOut])
+@router.get("", response_model=list[NodeOut], summary="List nodes")
 async def list_nodes(
     tags: str | None = Query(None),
     match: str = Query("any", pattern="^(any|all)$"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """List visible nodes for the current user with optional tag filtering."""
     stmt = (
         select(Node)
         .options(selectinload(Node.tags))
@@ -77,12 +78,13 @@ async def list_nodes(
     return nodes
 
 
-@router.post("", response_model=dict)
+@router.post("", response_model=dict, summary="Create node")
 async def create_node(
     payload: NodeCreate,
     current_user: User = Depends(ensure_can_post),
     db: AsyncSession = Depends(get_db),
 ):
+    """Create a new node authored by the current user."""
     tag_objs = await get_or_create_tags(db, payload.tags) if payload.tags else []
     node = Node(
         title=payload.title,
@@ -109,12 +111,13 @@ async def create_node(
     return {"slug": node.slug}
 
 
-@router.get("/{slug}", response_model=NodeOut)
+@router.get("/{slug}", response_model=NodeOut, summary="Get node")
 async def read_node(
     slug: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Retrieve a node by its slug."""
     result = await db.execute(select(Node).where(Node.slug == slug, Node.is_visible == True))
     node = result.scalars().first()
     if not node:
@@ -133,13 +136,14 @@ async def read_node(
     return node
 
 
-@router.post("/{node_id}/tags", response_model=NodeOut)
+@router.post("/{node_id}/tags", response_model=NodeOut, summary="Set node tags")
 async def set_node_tags(
     node_id: UUID,
     payload: NodeTagsUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Replace the list of tags associated with a node."""
     result = await db.execute(select(Node).where(Node.id == node_id))
     node = result.scalars().first()
     if not node:
@@ -159,13 +163,18 @@ async def set_node_tags(
 
 
 
-@router.post("/{slug}/visit/{to_slug}", response_model=dict)
+@router.post(
+    "/{slug}/visit/{to_slug}",
+    response_model=dict,
+    summary="Record visit",
+)
 async def record_visit(
     slug: str,
     to_slug: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Record a manual visit from one node to another."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     from_node = result.scalars().first()
     if not from_node:
@@ -178,18 +187,28 @@ async def record_visit(
     return {"status": "ok"}
 
 
-@router.get("/{slug}/echo", dependencies=[Depends(require_premium)])
+@router.get(
+    "/{slug}/echo",
+    dependencies=[Depends(require_premium)],
+    summary="Echo transition",
+)
 async def view_echo(slug: str):
+    """Return a placeholder echo response for premium users."""
     return {"slug": slug}
 
 
-@router.post("/{slug}/transitions", response_model=dict)
+@router.post(
+    "/{slug}/transitions",
+    response_model=dict,
+    summary="Create transition",
+)
 async def create_transition(
     slug: str,
     payload: NodeTransitionCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Add a manual transition from one node to another."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     from_node = result.scalars().first()
     if not from_node:
@@ -216,13 +235,18 @@ async def create_transition(
     return {"id": str(transition.id)}
 
 
-@router.get("/{slug}/next", response_model=NextTransitions)
+@router.get(
+    "/{slug}/next",
+    response_model=NextTransitions,
+    summary="Next transitions",
+)
 async def get_next_nodes(
     slug: str,
     mode: str = Query("auto"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Compute possible next nodes from the given node."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node:
@@ -307,12 +331,17 @@ async def get_next_nodes(
     return result_obj
 
 
-@router.get("/{slug}/next_modes", response_model=NextModes)
+@router.get(
+    "/{slug}/next_modes",
+    response_model=NextModes,
+    summary="Available modes",
+)
 async def get_next_modes(
     slug: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """List navigation modes available for the node."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node:
@@ -336,13 +365,14 @@ async def get_next_modes(
     return result_obj
 
 
-@router.patch("/{slug}", response_model=NodeOut)
+@router.patch("/{slug}", response_model=NodeOut, summary="Update node")
 async def update_node(
     slug: str,
     payload: NodeUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Update attributes of an existing node."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node:
@@ -369,12 +399,13 @@ async def update_node(
     return node
 
 
-@router.delete("/{slug}")
+@router.delete("/{slug}", summary="Delete node")
 async def delete_node(
     slug: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Remove a node created by the current user."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node:
@@ -392,13 +423,18 @@ async def delete_node(
     return {"message": "Node deleted"}
 
 
-@router.post("/{slug}/reactions", response_model=dict)
+@router.post(
+    "/{slug}/reactions",
+    response_model=dict,
+    summary="Update reactions",
+)
 async def update_reactions(
     slug: str,
     payload: ReactionUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Add or remove reactions on a node."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node:
@@ -419,12 +455,17 @@ async def update_reactions(
     return {"reactions": node.reactions}
 
 
-@router.get("/{slug}/feedback", response_model=list[FeedbackOut])
+@router.get(
+    "/{slug}/feedback",
+    response_model=list[FeedbackOut],
+    summary="List feedback",
+)
 async def list_feedback(
     slug: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Return feedback entries for a node."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node:
@@ -437,13 +478,18 @@ async def list_feedback(
     return result.scalars().all()
 
 
-@router.post("/{slug}/feedback", response_model=FeedbackOut)
+@router.post(
+    "/{slug}/feedback",
+    response_model=FeedbackOut,
+    summary="Create feedback",
+)
 async def create_feedback(
     slug: str,
     payload: FeedbackCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Create a feedback entry for a node."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node:
@@ -464,13 +510,18 @@ async def create_feedback(
     return feedback
 
 
-@router.delete("/{slug}/feedback/{feedback_id}", response_model=dict)
+@router.delete(
+    "/{slug}/feedback/{feedback_id}",
+    response_model=dict,
+    summary="Delete feedback",
+)
 async def delete_feedback(
     slug: str,
     feedback_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Hide a feedback item authored by the current user or node owner."""
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node:

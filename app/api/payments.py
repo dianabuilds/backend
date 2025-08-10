@@ -14,12 +14,13 @@ from app.services.payments import payment_service
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 
-@router.post("/premium", response_model=dict)
+@router.post("/premium", response_model=dict, summary="Buy premium")
 async def buy_premium(
     payload: PremiumPurchaseIn,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Upgrade the current user to premium using a payment token."""
     amount = payload.days  # 1 token per day in this simplified example
     if not await payment_service.verify(payload.payment_token, amount):
         raise HTTPException(status_code=400, detail="Payment not confirmed")

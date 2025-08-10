@@ -41,8 +41,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@router.post("/signup")
+@router.post("/signup", summary="Register new user")
 async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
+    """Create a new user account and send a verification email."""
     logger.info(f"Signup attempt for email: {payload.email} with username: {payload.username}")
 
     # Проверка на пустые значения
@@ -139,8 +140,9 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/verify")
+@router.get("/verify", summary="Verify email")
 async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
+    """Confirm a user's email address using a verification token."""
     token_hash = hmac.new(
         settings.jwt.secret.encode(), token.encode(), hashlib.sha256
     ).hexdigest()
@@ -196,8 +198,9 @@ async def _authenticate(db: AsyncSession, login: str, password: str) -> Token:
     return Token(access_token=token)
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, summary="User login")
 async def login(request: Request, db: AsyncSession = Depends(get_db)):
+    """Authenticate a user via form or JSON body and return a JWT token."""
     if request.headers.get("content-type", "").startswith("application/json"):
         data = await request.json()
         username = data.get("username")
@@ -209,18 +212,25 @@ async def login(request: Request, db: AsyncSession = Depends(get_db)):
     return await _authenticate(db, username, password)
 
 
-@router.post("/login-json", response_model=Token, include_in_schema=True)
+@router.post(
+    "/login-json",
+    response_model=Token,
+    include_in_schema=True,
+    summary="Login with JSON",
+)
 async def login_json(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
+    """Authenticate using a JSON payload instead of form data."""
     # Поддержка ручных JSON-вызовов
     return await _authenticate(db, payload.username, payload.password)
 
 
-@router.post("/change-password")
+@router.post("/change-password", summary="Change password")
 async def change_password(
     payload: ChangePassword,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Change the current user's password after verifying the old one."""
     if not current_user.password_hash or not verify_password(
         payload.old_password, current_user.password_hash
     ):
@@ -230,15 +240,17 @@ async def change_password(
     return {"message": "Password updated"}
 
 
-@router.post("/evm/nonce")
+@router.post("/evm/nonce", summary="Request EVM nonce")
 async def evm_nonce(wallet_address: str):
+    """Generate a nonce for the given wallet address to sign."""
     nonce = str(uuid.uuid4())
     nonce_store[wallet_address.lower()] = nonce
     return {"nonce": nonce}
 
 
-@router.post("/evm/verify", response_model=Token)
+@router.post("/evm/verify", response_model=Token, summary="Verify EVM signature")
 async def evm_verify(payload: EVMVerify, db: AsyncSession = Depends(get_db)):
+    """Validate signed message from wallet and issue a JWT token."""
     stored_nonce = nonce_store.get(payload.wallet_address.lower())
     if not stored_nonce or stored_nonce not in payload.message:
         raise HTTPException(status_code=400, detail="Invalid nonce")

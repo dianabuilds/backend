@@ -13,11 +13,12 @@ from app.schemas.achievement import AchievementOut
 router = APIRouter(prefix="/achievements", tags=["achievements"])
 
 
-@router.get("", response_model=list[AchievementOut])
+@router.get("", response_model=list[AchievementOut], summary="List achievements")
 async def list_achievements(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Return all achievements and mark which ones are unlocked for the current user."""
     result = await db.execute(select(Achievement))
     achievements = result.scalars().all()
     result = await db.execute(
