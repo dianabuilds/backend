@@ -14,6 +14,7 @@ from .settings import (
     AdminSettings,
     SecuritySettings,
     LoggingSettings,
+    SMTPSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,7 @@ class Settings(ProjectSettings):
     admin: AdminSettings = AdminSettings()
     security: SecuritySettings = SecuritySettings()
     logging: LoggingSettings = LoggingSettings()
+    smtp: SMTPSettings = SMTPSettings()
 
     @property
     def is_production(self) -> bool:

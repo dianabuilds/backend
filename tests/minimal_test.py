@@ -30,16 +30,16 @@ async def test_signup_success(client: AsyncClient, db_session: AsyncSession):
     # Проверяем ответ
     assert response.status_code == 200
     data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
+    assert "verification_token" in data
 
     # Проверяем, что пользователь создан в БД, используя сырой SQL запрос
-    sql = text("SELECT * FROM users WHERE username = :username")
+    sql = text("SELECT email, is_active FROM users WHERE username = :username")
     result = await db_session.execute(sql, {"username": "newuser"})
     user = result.fetchone()
 
     assert user is not None
-    assert user.email == "newuser@example.com"
+    assert user[0] == "newuser@example.com"
+    assert not user[1]
 
 
 @pytest.mark.asyncio

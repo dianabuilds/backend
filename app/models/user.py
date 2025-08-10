@@ -19,7 +19,7 @@ class User(Base):
     wallet_address = Column(String, unique=True, nullable=True)
 
     # Meta
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=False)
     is_premium = Column(Boolean, default=False)
     premium_until = Column(DateTime, nullable=True)
     role = Column(
