@@ -36,3 +36,4 @@ httpx>=0.24
 pytest>=8.0
 pytest-asyncio>=0.21
 aiosqlite>=0.19
+sentry-sdk>=1.40.0

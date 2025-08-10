@@ -79,8 +79,8 @@ class TestAuth:
         # Проверяем ответ - должна быть ошибка
         assert response.status_code == 400
         data = response.json()
-        assert "detail" in data
-        assert "username already taken" in data["detail"].lower()
+        assert data["error"]["code"] == "BAD_REQUEST"
+        assert "username already taken" in data["error"]["message"].lower()
 
     @pytest.mark.asyncio
     async def test_signup_duplicate_email(self, client: AsyncClient, test_user: User):
@@ -98,8 +98,8 @@ class TestAuth:
         # Проверяем ответ - должна быть ошибка
         assert response.status_code == 400
         data = response.json()
-        assert "detail" in data
-        assert "email already registered" in data["detail"].lower()
+        assert data["error"]["code"] == "BAD_REQUEST"
+        assert "email already registered" in data["error"]["message"].lower()
 
     @pytest.mark.asyncio
     async def test_signup_invalid_data(self, client: AsyncClient):
@@ -117,7 +117,7 @@ class TestAuth:
         # Проверяем ответ - должна быть ошибка валидации
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
+        assert data["error"]["code"] == "VALIDATION_ERROR"
 
     @pytest.mark.asyncio
     async def test_email_verification_flow(self, client: AsyncClient, db_session: AsyncSession):
@@ -173,8 +173,8 @@ class TestAuth:
         # Проверяем ответ - должна быть ошибка
         assert response.status_code == 400
         data = response.json()
-        assert "detail" in data
-        assert "incorrect username or password" in data["detail"].lower()
+        assert data["error"]["code"] == "BAD_REQUEST"
+        assert "incorrect username or password" in data["error"]["message"].lower()
 
     @pytest.mark.asyncio
     async def test_login_wrong_password(self, client: AsyncClient, test_user: User):
@@ -191,8 +191,8 @@ class TestAuth:
         # Проверяем ответ - должна быть ошибка
         assert response.status_code == 400
         data = response.json()
-        assert "detail" in data
-        assert "incorrect username or password" in data["detail"].lower()
+        assert data["error"]["code"] == "BAD_REQUEST"
+        assert "incorrect username or password" in data["error"]["message"].lower()
 
     @pytest.mark.asyncio
     async def test_change_password(self, client: AsyncClient, auth_headers: dict):
