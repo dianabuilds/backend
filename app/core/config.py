@@ -40,6 +40,13 @@ class Settings(ProjectSettings):
     environment: str = "development"  # development, staging, production
     debug: bool = False
 
+    # Async processing and related features
+    async_enabled: bool = False
+    queue_broker_url: str = ""
+    idempotency_ttl_sec: int = 86400
+    outbox_poll_interval_ms: int = 500
+    coalesce_lock_ttl_ms: int = 2000
+
     database: DatabaseSettings = DatabaseSettings()
     cache: CacheSettings = CacheSettings()
     jwt: JwtSettings = JwtSettings()
@@ -117,6 +124,9 @@ def validate_settings(settings: Settings) -> None:
         settings.payment.webhook_secret
     ):
         missing.append("PAYMENT__WEBHOOK_SECRET")
+
+    if settings.async_enabled and _is_placeholder(settings.queue_broker_url):
+        missing.append("QUEUE_BROKER_URL")
 
     if settings.embedding.name == "aimlapi":
         if not settings.embedding.api_base:

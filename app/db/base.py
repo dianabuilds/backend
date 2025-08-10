@@ -25,5 +25,7 @@ from app.models.node import Node  # noqa
 from app.models.moderation import ContentModeration, UserRestriction  # noqa
 from app.models.echo_trace import EchoTrace  # noqa
 from app.models.transition import NodeTransition  # noqa
+from app.models.idempotency import IdempotencyKey  # noqa
+from app.models.outbox import OutboxEvent  # noqa
 
 # Add all other models here
