@@ -1,0 +1,32 @@
+{% macro table_container() -%}
+<div class="card bg-base-100 shadow">
+  <div class="overflow-x-auto">{{ caller() }}</div>
+</div>
+{%- endmacro %}
+
+{% macro searchbar(action, placeholder, value) -%}
+<form method="get" action="{{ action }}" class="flex gap-2 items-center">
+  <input type="text" name="q" value="{{ value or '' }}" placeholder="{{ placeholder }}"
+         class="input input-bordered w-full md:w-80" />
+  <button class="btn btn-primary">Search</button>
+</form>
+{%- endmacro %}
+
+{% macro pagination(page, page_count, base_url) -%}
+<div class="join">
+  <a class="join-item btn btn-sm" href="{{ base_url }}?page={{ max(page-1,1) }}"
+     {% if page==1 %}disabled{% endif %}>«</a>
+  <span class="join-item btn btn-sm pointer-events-none">Page {{ page }} / {{ page_count }}</span>
+  <a class="join-item btn btn-sm" href="{{ base_url }}?page={{ min(page+1, page_count) }}"
+     {% if page>=page_count %}disabled{% endif %}>»</a>
+</div>
+{%- endmacro %}
+
+{% macro stat_card(icon, value, label, trend=None) -%}
+<div class="stat">
+  <div class="stat-figure text-primary text-3xl">{{ icon }}</div>
+  <div class="stat-title">{{ label }}</div>
+  <div class="stat-value">{{ value }}</div>
+  {% if trend %}<div class="stat-desc">{{ trend }}</div>{% endif %}
+</div>
+{%- endmacro %}

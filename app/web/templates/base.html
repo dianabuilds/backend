@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ title or "Admin" }} · Admin</title>
+
+  <!-- Tailwind + DaisyUI (DEV via CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT:"#2563eb", 50:"#eff6ff", 100:"#dbeafe", 600:"#2563eb", 700:"#1d4ed8" }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
+  <!-- Alpine -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    /* улучшенный скролл для сайдбара */
+    .thin-scroll::-webkit-scrollbar { width: 8px; }
+    .thin-scroll::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 4px; }
+  </style>
+</head>
+<body class="min-h-screen bg-base-200 text-base-content">
+
+<div class="drawer lg:drawer-open">
+  <input id="admin-drawer" type="checkbox" class="drawer-toggle" />
+  <div class="drawer-content flex flex-col">
+
+    <!-- Topbar -->
+    <div class="navbar bg-base-100 border-b border-base-300 sticky top-0 z-30">
+      <div class="flex-none lg:hidden">
+        <label for="admin-drawer" class="btn btn-ghost btn-square">
+          <!-- burger -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
+               stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </label>
+      </div>
+      <div class="flex-1">
+        <div class="text-xl font-semibold">{{ title or "Admin" }}</div>
+        {% if breadcrumbs %}
+          <div class="ml-4 breadcrumbs text-sm hidden md:block">
+            <ul>
+              {% for name, href in breadcrumbs %}
+                <li><a href="{{ href }}">{{ name }}</a></li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      </div>
+      <div class="flex-none gap-2 pr-2">
+        <span class="badge badge-outline">DEVELOPMENT</span>
+        <form method="post" action="/admin/logout">
+          <button class="btn btn-sm btn-ghost">Logout</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <main class="p-4 md:p-6 lg:p-8">
+      {% if flash_success %}
+        <div class="alert alert-success mb-4">
+          <span>{{ flash_success }}</span>
+        </div>
+      {% endif %}
+      {% if flash_error %}
+        <div class="alert alert-error mb-4">
+          <span>{{ flash_error }}</span>
+        </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="drawer-side">
+    <label for="admin-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+    <aside class="w-72 bg-base-100 border-r border-base-300 thin-scroll overflow-y-auto">
+      <div class="px-4 py-4 border-b border-base-300">
+        <a href="/admin" class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-brand/10 grid place-items-center text-brand font-bold">A</div>
+          <div class="text-lg font-semibold">Admin</div>
+        </a>
+      </div>
+      <nav class="menu p-4">
+        <p class="menu-title">Main</p>
+        <ul>
+          <li><a href="/admin" class="{% if request.url.path== '/admin' %}active{% endif %}">
+            <span class="material-icon">🏠</span> Dashboard
+          </a></li>
+          <li><a href="/admin/nodes" class="{% if request.url.path.startswith('/admin/nodes') %}active{% endif %}">
+            🧩 Nodes
+          </a></li>
+          <li><a href="/admin/users" class="{% if request.url.path.startswith('/admin/users') %}active{% endif %}">
+            👥 Users
+          </a></li>
+          <li><a href="/admin/transitions" class="{% if request.url.path.startswith('/admin/transitions') %}active{% endif %}">
+            🔁 Transitions
+          </a></li>
+        </ul>
+
+        <p class="menu-title mt-2">Engagement</p>
+        <ul>
+          <li><a href="/admin/event-quests" class="{% if request.url.path.startswith('/admin/event-quests') %}active{% endif %}">
+            🎯 Event quests
+          </a></li>
+          <li><a href="/admin/echo-traces" class="{% if request.url.path.startswith('/admin/echo-traces') %}active{% endif %}">
+            🧭 Echo traces
+          </a></li>
+          <li><a href="/admin/node-traces" class="{% if request.url.path.startswith('/admin/node-traces') %}active{% endif %}">
+            🗺️ Node traces
+          </a></li>
+          <li><a href="/admin/achievements" class="{% if request.url.path.startswith('/admin/achievements') %}active{% endif %}">
+            🏆 Achievements
+          </a></li>
+          <li><a href="/admin/premium" class="{% if request.url.path.startswith('/admin/premium') %}active{% endif %}">
+            💎 Premium
+          </a></li>
+        </ul>
+      </nav>
+    </aside>
+  </div>
+</div>
+
+<!-- тосты -->
+<div x-data="{open:false,msg:'',type:'success'}" x-show="open"
+     x-transition.opacity
+     class="toast toast-top toast-end">
+  <div :class="{'alert-success':type==='success','alert-error':type==='error','alert-info':type==='info'}"
+       class="alert">
+    <span x-text="msg"></span>
+  </div>
+</div>
+
+</body>
+</html>
