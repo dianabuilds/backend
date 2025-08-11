@@ -6,9 +6,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // Проксируем только API-префиксы. ВАЖНО: не проксировать '/admin',
-      // чтобы SPA-роуты фронтенда (например, /admin/login) обслуживались самим Vite.
       '/auth': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/admin': {
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
