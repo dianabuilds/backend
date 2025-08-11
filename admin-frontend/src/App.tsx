@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import Echo from "./pages/Echo";
+import AuditLog from "./pages/AuditLog";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./auth/AuthContext";
@@ -43,6 +44,16 @@ export default function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Echo />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/audit"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AuditLog />
                   </Layout>
                 </ProtectedRoute>
               }
