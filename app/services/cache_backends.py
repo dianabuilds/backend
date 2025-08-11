@@ -48,6 +48,9 @@ class RedisCache:
     async def close(self) -> None:
         await self._r.aclose()
 
+    async def ttl(self, key: str) -> int:
+        return await self._r.ttl(key)
+
 
 class MemoryCache:
     def __init__(self) -> None:
@@ -105,6 +108,14 @@ class MemoryCache:
                 keys.append(key)
         return keys
 
+    async def ttl(self, key: str) -> int:
+        if self._expired(key):
+            return -2
+        _, exp = self._data.get(key, (None, None))
+        if exp is None:
+            return -1
+        return int(exp - time.time())
+
 
 class FallbackCache:
     def __init__(self, primary: RedisCache | None, fallback: MemoryCache):
@@ -141,6 +152,9 @@ class FallbackCache:
 
     async def scan(self, pattern: str) -> list[str]:
         return await self._call("scan", pattern)
+
+    async def ttl(self, key: str) -> int:
+        return await self._call("ttl", key)
 
 
 def _create_cache() -> FallbackCache | MemoryCache:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+from collections import deque
+from datetime import datetime
 
 from fastapi import Depends, Request, Response
 from fastapi.responses import JSONResponse
@@ -26,10 +28,22 @@ def _parse_rule(rule: str) -> tuple[int, int]:
     return count, seconds
 
 
+recent_429: deque[dict] = deque(maxlen=50)
+
+
 def rate_limit_dep(rule: str):
     times, seconds = _parse_rule(rule)
 
     async def _callback(request: Request, response: Response, pexpire):  # pragma: no cover
+        ip = request.client.host if request.client else None
+        recent_429.append(
+            {
+                "path": request.url.path,
+                "ip": ip,
+                "rule": rule,
+                "ts": datetime.utcnow().isoformat(),
+            }
+        )
         return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
 
     async def _dep(request: Request, response: Response):
