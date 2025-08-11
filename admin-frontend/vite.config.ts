@@ -1,61 +1,37 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
+
+const apiPrefixes = [
+  'auth',
+  'admin',
+  'users',
+  'nodes',
+  'tags',
+  'moderation',
+  'transitions',
+  'navigation',
+  'notifications',
+  'quests',
+  'traces',
+  'achievements',
+  'payments',
+  'search',
+]
+
+const proxy = apiPrefixes.reduce<Record<string, ProxyOptions>>((acc, prefix) => {
+  acc[`/${prefix}`] = {
+    target: 'http://localhost:8000',
+    changeOrigin: true,
+    ...(prefix === 'notifications' ? { ws: true } : {}),
+  }
+  return acc
+}, {})
 
 // https://vite.dev/config/
 export default defineConfig({
   base: '/admin/',
   plugins: [react()],
   server: {
-    proxy: {
-      '/auth': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/admin': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/users': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/nodes': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/moderation': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/transitions': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/navigation': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/notifications': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        ws: true,
-      },
-      '/quests': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/traces': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/achievements': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/payments': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-    },
+    proxy,
   },
 })
