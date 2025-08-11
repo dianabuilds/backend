@@ -27,10 +27,15 @@ async function fetchUsers(search: string): Promise<AdminUser[]> {
   const resp = await fetch(`/admin/users?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  const text = await resp.text();
   if (!resp.ok) {
-    throw new Error("Failed to load users");
+    throw new Error(text || "Failed to load users");
   }
-  return resp.json();
+  try {
+    return JSON.parse(text) as AdminUser[];
+  } catch {
+    throw new Error("Invalid JSON in response");
+  }
 }
 
 async function updateRole(id: string, role: string) {
@@ -44,7 +49,8 @@ async function updateRole(id: string, role: string) {
     body: JSON.stringify({ role }),
   });
   if (!resp.ok) {
-    throw new Error("Failed to update role");
+    const text = await resp.text();
+    throw new Error(text || "Failed to update role");
   }
 }
 
@@ -74,7 +80,11 @@ export default function Users() {
         />
       </div>
       {isLoading && <p>Loading...</p>}
-      {error && <p className="text-red-500">Error loading users</p>}
+      {error && (
+        <p className="text-red-500">
+          {error instanceof Error ? error.message : String(error)}
+        </p>
+      )}
       {!isLoading && !error && (
         <table className="min-w-full text-sm text-left">
           <thead>
