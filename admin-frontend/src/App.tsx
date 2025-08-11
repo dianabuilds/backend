@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
+import Cache from "./pages/Cache";
 import Echo from "./pages/Echo";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -43,6 +44,16 @@ export default function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Echo />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cache"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Cache />
                   </Layout>
                 </ProtectedRoute>
               }
