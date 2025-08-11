@@ -10,7 +10,6 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 from sqlalchemy import func
 
-from app.api.deps import require_role
 from app.db.session import get_db
 from app.models.echo_trace import EchoTrace
 from app.models.node import Node
@@ -19,8 +18,17 @@ from app.schemas.echo import AdminEchoTraceOut, PopularityRecomputeRequest
 from app.services.navcache import navcache
 from app.core.log_events import cache_invalidate
 from app.core.audit_log import log_admin_action
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(prefix="/admin/echo", tags=["admin"])
+admin_required = require_admin_role()
+admin_only = require_admin_role({"admin"})
+
+router = APIRouter(
+    prefix="/admin/echo",
+    tags=["admin"],
+    dependencies=[Depends(admin_required)],
+    responses=ADMIN_AUTH_RESPONSES,
+)
 logger = logging.getLogger(__name__)
 
 
@@ -33,7 +41,7 @@ async def list_echo_traces(
     date_to: datetime | None = None,
     page: int = 1,
     page_size: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     from_node = aliased(Node)
@@ -75,7 +83,7 @@ async def list_echo_traces(
 @router.post("/{trace_id}/anonymize", summary="Anonymize echo trace")
 async def anonymize_echo_trace(
     trace_id: UUID,
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(admin_only),
     db: AsyncSession = Depends(get_db),
 ):
     trace = await db.get(EchoTrace, trace_id)
@@ -96,7 +104,7 @@ async def anonymize_echo_trace(
 @router.delete("/{trace_id}", summary="Delete echo trace")
 async def delete_echo_trace(
     trace_id: UUID,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     trace = await db.get(EchoTrace, trace_id)
@@ -117,7 +125,7 @@ async def delete_echo_trace(
 @router.post("/recompute_popularity", summary="Recompute node popularity")
 async def recompute_popularity(
     payload: PopularityRecomputeRequest,
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(admin_only),
     db: AsyncSession = Depends(get_db),
 ):
     stmt = select(Node)
@@ -127,7 +135,9 @@ async def recompute_popularity(
     if not nodes:
         return {"updated": 0}
     node_ids = [n.id for n in nodes]
-    count_stmt = select(EchoTrace.to_node_id, func.count()).group_by(EchoTrace.to_node_id)
+    count_stmt = select(EchoTrace.to_node_id, func.count()).group_by(
+        EchoTrace.to_node_id
+    )
     if node_ids:
         count_stmt = count_stmt.where(EchoTrace.to_node_id.in_(node_ids))
     counts = {nid: cnt for nid, cnt in (await db.execute(count_stmt)).all()}

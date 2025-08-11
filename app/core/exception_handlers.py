@@ -11,6 +11,7 @@ import sentry_sdk
 
 from app.core.errors import DomainError
 from app.core.log_filters import request_id_var
+from app.security.exceptions import AuthError
 
 logger = logging.getLogger("app.errors")
 
@@ -39,6 +40,23 @@ def _json_response(status_code: int, body: dict) -> JSONResponse:
     return response
 
 
+async def auth_exception_handler(request: Request, exc: AuthError) -> JSONResponse:
+    body = _build_body(exc.code, exc.message)
+    logger.warning(
+        "access_denied path=%s method=%s reason_code=%s user_id=%s role=%s request_id=%s",
+        request.url.path,
+        request.method,
+        exc.code,
+        exc.user_id,
+        exc.role,
+        request_id_var.get(),
+    )
+    response = _json_response(exc.status_code, body)
+    if exc.status_code == 401:
+        response.headers["WWW-Authenticate"] = "Bearer"
+    return response
+
+
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     code = ERROR_CODE_MAP.get(exc.status_code, "HTTP_ERROR")
     body = _build_body(code, str(exc.detail))
@@ -48,7 +66,9 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     return _json_response(exc.status_code, body)
 
 
-async def validation_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
+async def validation_exception_handler(
+    request: Request, exc: ValidationError
+) -> JSONResponse:
     body = _build_body("VALIDATION_ERROR", "Validation error", exc.errors())
     return _json_response(422, body)
 
@@ -66,6 +86,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    app.add_exception_handler(AuthError, auth_exception_handler)
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(ValidationError, validation_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
