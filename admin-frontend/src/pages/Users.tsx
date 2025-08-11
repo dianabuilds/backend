@@ -24,18 +24,17 @@ async function fetchUsers(search: string): Promise<AdminUser[]> {
   const params = new URLSearchParams();
   if (search) params.set("q", search);
   const token = localStorage.getItem("token") || "";
-  const resp = await fetch(`/admin/users?${params.toString()}`, {
+  const url = params.toString()
+    ? `/admin/users?${params.toString()}`
+    : "/admin/users";
+  const resp = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  const text = await resp.text();
   if (!resp.ok) {
+    const text = await resp.text();
     throw new Error(text || "Failed to load users");
   }
-  try {
-    return JSON.parse(text) as AdminUser[];
-  } catch {
-    throw new Error("Invalid JSON in response");
-  }
+  return (await resp.json()) as AdminUser[];
 }
 
 async function updateRole(id: string, role: string) {
