@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -21,6 +21,7 @@ from app.models.node import Node
 from app.models.tag import Tag, NodeTag
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.moderation import UserRestriction
+from app.models.quest import Quest
 from app.schemas.user import AdminUserOut, UserPremiumUpdate, UserRoleUpdate
 from app.schemas.node import NodeOut, NodeBulkOperation
 from app.schemas.tag import (
@@ -38,11 +39,108 @@ from app.schemas.transition import (
 from app.engine.embedding import update_node_embedding
 from app.services.navcache import navcache
 from app.core.log_events import cache_invalidate
+from app.core.config import settings
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 logger = logging.getLogger(__name__)
+
+
+@router.get("/dashboard", summary="Admin dashboard data")
+async def admin_dashboard(
+    current_user: User = Depends(require_role("moderator")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return basic statistics for the admin dashboard."""
+    now = datetime.utcnow()
+    day_ago = now - timedelta(hours=24)
+
+    result = await db.execute(
+        select(func.count()).select_from(User).where(User.created_at >= day_ago)
+    )
+    new_registrations = result.scalar() or 0
+
+    result = await db.execute(
+        select(func.count()).select_from(User).where(User.is_premium == True)  # noqa: E712
+    )
+    active_premium = result.scalar() or 0
+
+    result = await db.execute(
+        select(func.count()).select_from(Node).where(Node.created_at >= day_ago)
+    )
+    nodes_created = result.scalar() or 0
+
+    result = await db.execute(
+        select(func.count()).select_from(Quest).where(Quest.created_at >= day_ago)
+    )
+    quests_created = result.scalar() or 0
+
+    result = await db.execute(
+        select(Node.id, Node.title).order_by(Node.created_at.desc()).limit(5)
+    )
+    latest_nodes = [
+        {"id": str(row.id), "title": row.title or ""} for row in result.all()
+    ]
+
+    result = await db.execute(
+        select(
+            UserRestriction.id,
+            UserRestriction.user_id,
+            UserRestriction.reason,
+        )
+        .order_by(UserRestriction.created_at.desc())
+        .limit(5)
+    )
+    latest_restrictions = [
+        {
+            "id": str(r.id),
+            "user_id": str(r.user_id),
+            "reason": r.reason or "",
+        }
+        for r in result.all()
+    ]
+
+    db_ok = True
+    try:
+        await db.execute(select(1))
+    except Exception:
+        db_ok = False
+
+    redis_ok = True
+    try:
+        await navcache._cache.get("__healthcheck__")
+    except Exception:
+        redis_ok = False
+
+    try:
+        nav_keys = len(
+            await navcache._cache.scan(f"{settings.cache.key_version}:nav*")
+        )
+        comp_keys = len(
+            await navcache._cache.scan(f"{settings.cache.key_version}:comp*")
+        )
+    except Exception:
+        nav_keys = 0
+        comp_keys = 0
+
+    return {
+        "kpi": {
+            "active_users_24h": 0,
+            "new_registrations_24h": new_registrations,
+            "active_premium": active_premium,
+            "nodes_24h": nodes_created,
+            "quests_24h": quests_created,
+        },
+        "latest_nodes": latest_nodes,
+        "latest_restrictions": latest_restrictions,
+        "system": {
+            "db_ok": db_ok,
+            "redis_ok": redis_ok,
+            "nav_keys": nav_keys,
+            "comp_keys": comp_keys,
+        },
+    }
 
 
 @router.get("/users", response_model=list[AdminUserOut], summary="List users")
