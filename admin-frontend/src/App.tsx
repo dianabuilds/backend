@@ -30,6 +30,7 @@ export default function App() {
               <Route path="users" element={<Users />} />
               <Route path="echo" element={<Echo />} />
               <Route path="audit" element={<AuditLog />} />
+              <Route path="restrictions" element={<Restrictions />} />
             </Route>
 
           </Routes>

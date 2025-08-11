@@ -1,8 +1,5 @@
-import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
-import { Home, Users, Activity } from "lucide-react";
-import { NavLink, Outlet, Link } from "react-router-dom";
-import { Home, Users, FileText, Ban  } from "lucide-react";
+import { NavLink, Outlet } from "react-router-dom";
+import { Home, Users, Activity, FileText, Ban } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
 export default function Layout() {
