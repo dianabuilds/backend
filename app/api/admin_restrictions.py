@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import require_role, assert_seniority_over
+from app.api.deps import assert_seniority_over
 from app.db.session import get_db
 from app.models.moderation import UserRestriction
 from app.models.user import User
@@ -14,8 +14,16 @@ from app.schemas.moderation import (
     RestrictionAdminCreate,
     RestrictionAdminUpdate,
 )
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(prefix="/admin/restrictions", tags=["admin"])
+admin_required = require_admin_role()
+
+router = APIRouter(
+    prefix="/admin/restrictions",
+    tags=["admin"],
+    dependencies=[Depends(admin_required)],
+    responses=ADMIN_AUTH_RESPONSES,
+)
 
 
 @router.get("", response_model=list[RestrictionOut])
@@ -23,7 +31,7 @@ async def list_restrictions(
     user_id: UUID | None = None,
     type: str | None = None,
     page: int = 1,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     stmt = select(UserRestriction).order_by(UserRestriction.created_at.desc())
@@ -40,7 +48,7 @@ async def list_restrictions(
 @router.post("", response_model=RestrictionOut)
 async def create_restriction(
     payload: RestrictionAdminCreate,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     target_user = await db.get(User, payload.user_id)
@@ -80,7 +88,7 @@ async def create_restriction(
 async def update_restriction(
     restriction_id: UUID,
     payload: RestrictionAdminUpdate,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     restriction = await db.get(UserRestriction, restriction_id)
@@ -101,7 +109,7 @@ async def update_restriction(
 @router.delete("/{restriction_id}")
 async def delete_restriction(
     restriction_id: UUID,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     restriction = await db.get(UserRestriction, restriction_id)
