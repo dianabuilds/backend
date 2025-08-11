@@ -22,7 +22,9 @@ from app.models.tag import Tag, NodeTag
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.moderation import UserRestriction
 from app.models.quest import Quest
-from app.schemas.user import AdminUserOut, UserPremiumUpdate, UserRoleUpdate
+from app.models.payment import Payment
+from app.schemas.user import AdminUserOut, UserRoleUpdate
+from app.schemas.payment import AdminPremiumGrant
 from app.schemas.node import NodeOut, NodeBulkOperation
 from app.schemas.tag import (
     AdminTagOut,
@@ -62,7 +64,9 @@ async def admin_dashboard(
     new_registrations = result.scalar() or 0
 
     result = await db.execute(
-        select(func.count()).select_from(User).where(User.is_premium == True)  # noqa: E712
+        select(func.count())
+        .select_from(User)
+        .where(User.is_premium == True)  # noqa: E712
     )
     active_premium = result.scalar() or 0
 
@@ -114,9 +118,7 @@ async def admin_dashboard(
         redis_ok = False
 
     try:
-        nav_keys = len(
-            await navcache._cache.scan(f"{settings.cache.key_version}:nav*")
-        )
+        nav_keys = len(await navcache._cache.scan(f"{settings.cache.key_version}:nav*"))
         comp_keys = len(
             await navcache._cache.scan(f"{settings.cache.key_version}:comp*")
         )
@@ -205,22 +207,43 @@ async def list_users(
     ]
 
 
-@router.post("/users/{user_id}/premium", summary="Set user premium status")
-async def set_user_premium(
+@router.post("/users/{user_id}/premium", summary="Adjust user premium")
+async def adjust_user_premium(
     user_id: UUID,
-    payload: UserPremiumUpdate,
+    payload: AdminPremiumGrant,
     current_user: User = Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Grant or revoke premium access for a specific user."""
+    """Grant additional premium days or revoke premium for a user."""
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if current_user.id == user.id:
         raise HTTPException(status_code=403, detail="Cannot modify self")
     assert_seniority_over(user, current_user)
-    user.is_premium = payload.is_premium
-    user.premium_until = payload.premium_until
+
+    now = datetime.utcnow()
+    if payload.days <= 0:
+        user.is_premium = False
+        user.premium_until = None
+        status = "cancelled"
+    else:
+        if user.premium_until and user.premium_until > now:
+            user.premium_until += timedelta(days=payload.days)
+        else:
+            user.premium_until = now + timedelta(days=payload.days)
+        user.is_premium = True
+        status = "confirmed"
+
+    payment = Payment(
+        user_id=user.id,
+        source="manual",
+        days=payload.days,
+        status=status,
+        payload={},
+    )
+    db.add(payment)
+
     await db.commit()
     await db.refresh(user)
     logger.info(
@@ -567,9 +590,8 @@ async def list_tags_admin(
     db: AsyncSession = Depends(get_db),
 ):
     """Return tags with optional search and pagination."""
-    stmt = (
-        select(Tag, func.count(NodeTag.node_id).label("count"))
-        .join(NodeTag, Tag.id == NodeTag.tag_id, isouter=True)
+    stmt = select(Tag, func.count(NodeTag.node_id).label("count")).join(
+        NodeTag, Tag.id == NodeTag.tag_id, isouter=True
     )
     if search:
         pattern = f"%{search}%"
@@ -641,7 +663,9 @@ async def update_tag_admin(
         tag.is_hidden = payload.hidden
     await db.commit()
     await db.refresh(tag)
-    res = await db.execute(select(func.count(NodeTag.node_id)).where(NodeTag.tag_id == tag.id))
+    res = await db.execute(
+        select(func.count(NodeTag.node_id)).where(NodeTag.tag_id == tag.id)
+    )
     count = res.scalar() or 0
     logger.info(
         "admin_action",
@@ -670,7 +694,9 @@ async def merge_tags_admin(
     """Merge one tag into another, reassigning all node links."""
     if payload.from_slug == payload.to_slug:
         raise HTTPException(status_code=400, detail="Cannot merge the same tag")
-    res = await db.execute(select(Tag).where(Tag.slug.in_([payload.from_slug, payload.to_slug])))
+    res = await db.execute(
+        select(Tag).where(Tag.slug.in_([payload.from_slug, payload.to_slug]))
+    )
     tags = {t.slug: t for t in res.scalars().all()}
     from_tag = tags.get(payload.from_slug)
     to_tag = tags.get(payload.to_slug)

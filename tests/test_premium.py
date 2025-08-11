@@ -1,6 +1,7 @@
 """
 Тесты для функционала премиум-подписки.
 """
+
 import logging
 import pytest
 from httpx import AsyncClient
@@ -23,8 +24,7 @@ class TestPremium:
 
         # Делаем запрос к премиум-эндпоинту
         response = await client.get(
-            "/nodes/test/echo", 
-            headers={"Authorization": f"Bearer {token}"}
+            "/nodes/test/echo", headers={"Authorization": f"Bearer {token}"}
         )
 
         # Проверяем, что доступ запрещен
@@ -46,7 +46,7 @@ class TestPremium:
         user_token = create_access_token(test_user.id)
         response = await client.post(
             f"/admin/users/{test_user.id}/premium",
-            json={"is_premium": True},
+            json={"days": 10},
             headers={"Authorization": f"Bearer {user_token}"},
         )
         assert response.status_code == 403
@@ -55,14 +55,16 @@ class TestPremium:
         with caplog.at_level(logging.INFO):
             response = await client.post(
                 f"/admin/users/{test_user.id}/premium",
-                json={"is_premium": True},
+                json={"days": 10},
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
             assert response.status_code == 200
 
         await db_session.refresh(test_user)
         assert test_user.is_premium is True
-        assert any(getattr(rec, "action", None) == "set_premium" for rec in caplog.records)
+        assert any(
+            getattr(rec, "action", None) == "set_premium" for rec in caplog.records
+        )
 
     @pytest.mark.asyncio
     async def test_premium_endpoint_allowed_with_subscription(
@@ -79,14 +81,13 @@ class TestPremium:
 
         await client.post(
             f"/admin/users/{test_user.id}/premium",
-            json={"is_premium": True},
+            json={"days": 10},
             headers={"Authorization": f"Bearer {admin_token}"},
         )
 
         # Делаем запрос к премиум-эндпоинту
         response = await client.get(
-            "/nodes/test/echo", 
-            headers={"Authorization": f"Bearer {token}"}
+            "/nodes/test/echo", headers={"Authorization": f"Bearer {token}"}
         )
 
         # Проверяем успешный ответ
@@ -102,8 +103,7 @@ class TestPremium:
 
         # Запрашиваем профиль пользователя
         response = await client.get(
-            "/users/me", 
-            headers={"Authorization": f"Bearer {token}"}
+            "/users/me", headers={"Authorization": f"Bearer {token}"}
         )
 
         # Проверяем ответ

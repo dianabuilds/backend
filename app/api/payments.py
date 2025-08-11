@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
+from app.models.payment import Payment
 from app.schemas.payment import PremiumPurchaseIn
 from app.services.payments import payment_service
 
@@ -31,5 +32,15 @@ async def buy_premium(
     else:
         current_user.premium_until = now + timedelta(days=payload.days)
     current_user.is_premium = True
+
+    payment = Payment(
+        user_id=current_user.id,
+        source="webhook",
+        days=payload.days,
+        status="confirmed",
+        payload={"payment_token": payload.payment_token},
+    )
+    db.add(payment)
+
     await db.commit()
     return {"status": "ok", "premium_until": current_user.premium_until}

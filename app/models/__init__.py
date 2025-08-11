@@ -28,6 +28,7 @@ from .event_counter import UserEventCounter  # noqa: F401
 from .user_token import UserToken, TokenAction  # noqa: F401
 from .idempotency import IdempotencyKey  # noqa: F401
 from .outbox import OutboxEvent  # noqa: F401
+from .payment import Payment  # noqa: F401
 
 # Add future models' imports above
 

@@ -12,11 +12,15 @@ from app.api.tags import router as tags_router
 from app.api.admin import router as admin_router
 from app.api.admin_navigation import router as admin_navigation_router
 from app.api.admin_echo import router as admin_echo_router
+from app.api.admin_payments import router as admin_payments_router
 from app.web.admin_spa import router as admin_spa_router
 from app.api.moderation import router as moderation_router
 from app.api.transitions import router as transitions_router
 from app.api.navigation import router as navigation_router
-from app.api.notifications import router as notifications_router, ws_router as notifications_ws_router
+from app.api.notifications import (
+    router as notifications_router,
+    ws_router as notifications_ws_router,
+)
 from app.api.quests import router as quests_router
 from app.api.traces import router as traces_router
 from app.api.achievements import router as achievements_router
@@ -71,6 +75,7 @@ app.include_router(tags_router)
 app.include_router(admin_router)
 app.include_router(admin_navigation_router)
 app.include_router(admin_echo_router)
+app.include_router(admin_payments_router)
 app.include_router(admin_spa_router)
 app.include_router(moderation_router)
 app.include_router(transitions_router)
@@ -127,4 +132,3 @@ async def shutdown_event():
     logger.info("Shutting down application")
     await close_db_connection()
     await close_rate_limiter()
-
