@@ -11,7 +11,11 @@ from app.api.nodes import router as nodes_router
 from app.api.tags import router as tags_router
 from app.api.admin import router as admin_router
 from app.api.admin_navigation import router as admin_navigation_router
+from app.api.admin_restrictions import router as admin_restrictions_router
 from app.api.admin_echo import router as admin_echo_router
+from app.api.admin_cache import router as admin_cache_router
+from app.api.admin_ratelimit import router as admin_ratelimit_router
+from app.api.admin_audit import router as admin_audit_router
 from app.web.admin_spa import router as admin_spa_router
 from app.api.moderation import router as moderation_router
 from app.api.transitions import router as transitions_router
@@ -70,7 +74,11 @@ app.include_router(nodes_router)
 app.include_router(tags_router)
 app.include_router(admin_router)
 app.include_router(admin_navigation_router)
+app.include_router(admin_restrictions_router)
 app.include_router(admin_echo_router)
+app.include_router(admin_cache_router)
+app.include_router(admin_ratelimit_router)
+app.include_router(admin_audit_router)
 app.include_router(admin_spa_router)
 app.include_router(moderation_router)
 app.include_router(transitions_router)

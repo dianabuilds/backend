@@ -9,6 +9,18 @@ class RestrictionCreate(BaseModel):
     expires_at: datetime | None = None
 
 
+class RestrictionAdminCreate(BaseModel):
+    user_id: UUID
+    type: str
+    reason: str | None = None
+    expires_at: datetime | None = None
+
+
+class RestrictionAdminUpdate(BaseModel):
+    reason: str | None = None
+    expires_at: datetime | None = None
+
+
 class ContentHide(BaseModel):
     reason: str
 

@@ -2,6 +2,7 @@ import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import AsyncGenerator, Optional
 
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Кэш для хранения экземпляра движка
 _engine: Optional[AsyncEngine] = None
+_session_ctx: ContextVar[AsyncSession | None] = ContextVar("db_session", default=None)
 
 
 def get_engine() -> AsyncEngine:
@@ -65,6 +67,10 @@ def get_session_factory():
     )
 
 
+def get_current_session() -> AsyncSession | None:
+    return _session_ctx.get()
+
+
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Зависимость FastAPI для получения сессии базы данных.
@@ -72,6 +78,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     session_factory = get_session_factory()
     async with session_factory() as session:
+        token = _session_ctx.set(session)
         try:
             yield session
             await session.commit()
@@ -80,6 +87,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             logger.error(f"Database error: {str(e)}")
             raise
         finally:
+            _session_ctx.reset(token)
             await session.close()
 
 
