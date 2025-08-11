@@ -103,3 +103,7 @@ Swagger доступен по адресу `http://localhost:8000/docs`, Redoc �
 - `POST /admin/navigation/cache/set` — установить кэш навигации для пары пользователь/узел.
 - `POST /admin/navigation/cache/invalidate` — инвалидация кэша навигации по узлу, пользователю или полностью.
 - `GET /admin/navigation/pgvector/status` — статус поддержки pgvector.
+- `GET /admin/echo` — список echo-трасс с фильтрами (`from`, `to`, `user_id`, `date_from`, `date_to`) и пагинацией (`page`, `page_size`).
+- `POST /admin/echo/{id}/anonymize` — анонимизация эхо-трассы (admin).
+- `DELETE /admin/echo/{id}` — удаление эхо-трассы.
+- `POST /admin/echo/recompute_popularity` — пересчёт популярности узлов.
