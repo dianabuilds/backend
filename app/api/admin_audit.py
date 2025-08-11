@@ -6,13 +6,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import or_
 
-from app.api.deps import require_role
 from app.db.session import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User
 from app.schemas.audit import AuditLogOut
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(prefix="/admin/audit", tags=["admin"])
+admin_only = require_admin_role({"admin"})
+
+router = APIRouter(
+    prefix="/admin/audit",
+    tags=["admin"],
+    dependencies=[Depends(admin_only)],
+    responses=ADMIN_AUTH_RESPONSES,
+)
 
 
 @router.get("", response_model=list[AuditLogOut], summary="List audit logs")
@@ -24,7 +31,7 @@ async def list_audit_logs(
     date_to: datetime | None = None,
     page: int = 1,
     page_size: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(admin_only),
     db: AsyncSession = Depends(get_db),
 ):
     stmt = select(AuditLog)

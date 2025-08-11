@@ -13,7 +13,6 @@ from app.api.deps import (
     assert_owner_or_role,
     assert_seniority_over,
     get_current_user,
-    require_role,
 )
 from app.db.session import get_db
 from app.models.user import User
@@ -40,16 +39,23 @@ from app.engine.embedding import update_node_embedding
 from app.services.navcache import navcache
 from app.core.log_events import cache_invalidate
 from app.core.config import settings
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
+admin_required = require_admin_role()
+admin_only = require_admin_role({"admin"})
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(
+    prefix="/admin",
+    tags=["admin"],
+    responses=ADMIN_AUTH_RESPONSES,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @router.get("/dashboard", summary="Admin dashboard data")
 async def admin_dashboard(
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Return basic statistics for the admin dashboard."""
@@ -62,7 +68,9 @@ async def admin_dashboard(
     new_registrations = result.scalar() or 0
 
     result = await db.execute(
-        select(func.count()).select_from(User).where(User.is_premium == True)  # noqa: E712
+        select(func.count())
+        .select_from(User)
+        .where(User.is_premium == True)  # noqa: E712
     )
     active_premium = result.scalar() or 0
 
@@ -114,9 +122,7 @@ async def admin_dashboard(
         redis_ok = False
 
     try:
-        nav_keys = len(
-            await navcache._cache.scan(f"{settings.cache.key_version}:nav*")
-        )
+        nav_keys = len(await navcache._cache.scan(f"{settings.cache.key_version}:nav*"))
         comp_keys = len(
             await navcache._cache.scan(f"{settings.cache.key_version}:comp*")
         )
@@ -151,7 +157,7 @@ async def list_users(
     premium: str | None = None,
     limit: int = 100,
     offset: int = 0,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Return a paginated list of users with optional filters."""
@@ -209,7 +215,7 @@ async def list_users(
 async def set_user_premium(
     user_id: UUID,
     payload: UserPremiumUpdate,
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(admin_only),
     db: AsyncSession = Depends(get_db),
 ):
     """Grant or revoke premium access for a specific user."""
@@ -240,7 +246,7 @@ async def set_user_premium(
 async def set_user_role(
     user_id: UUID,
     payload: UserRoleUpdate,
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(admin_only),
     db: AsyncSession = Depends(get_db),
 ):
     """Assign a new role to a user."""
@@ -333,7 +339,7 @@ async def recompute_node_embedding(
 @router.post("/nodes/bulk", summary="Bulk node operations")
 async def bulk_node_operation(
     payload: NodeBulkOperation,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Node).where(Node.id.in_(payload.ids)))
@@ -371,7 +377,7 @@ async def list_transitions_admin(
     author: UUID | None = None,
     page: int = 1,
     page_size: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Return a paginated list of manual transitions."""
@@ -418,7 +424,7 @@ async def list_transitions_admin(
 async def update_transition_admin(
     transition_id: UUID,
     payload: NodeTransitionUpdate,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Update fields of a manual transition."""
@@ -487,7 +493,7 @@ async def update_transition_admin(
 @router.delete("/transitions/{transition_id}", summary="Delete transition")
 async def delete_transition_admin(
     transition_id: UUID,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Remove a manual transition."""
@@ -521,7 +527,7 @@ async def delete_transition_admin(
 )
 async def disable_transitions_by_node(
     payload: TransitionDisableRequest,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Lock all transitions related to the given node."""
@@ -563,13 +569,12 @@ async def list_tags_admin(
     hidden: bool | None = None,
     page: int = 1,
     page_size: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Return tags with optional search and pagination."""
-    stmt = (
-        select(Tag, func.count(NodeTag.node_id).label("count"))
-        .join(NodeTag, Tag.id == NodeTag.tag_id, isouter=True)
+    stmt = select(Tag, func.count(NodeTag.node_id).label("count")).join(
+        NodeTag, Tag.id == NodeTag.tag_id, isouter=True
     )
     if search:
         pattern = f"%{search}%"
@@ -595,7 +600,7 @@ async def list_tags_admin(
 @router.post("/tags", response_model=AdminTagOut, summary="Create tag")
 async def create_tag_admin(
     payload: TagCreate,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new tag. Example: `{ "slug": "demo", "name": "Demo" }`."""
@@ -627,7 +632,7 @@ async def create_tag_admin(
 async def update_tag_admin(
     slug: str,
     payload: TagUpdate,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Rename or hide/unhide a tag."""
@@ -641,7 +646,9 @@ async def update_tag_admin(
         tag.is_hidden = payload.hidden
     await db.commit()
     await db.refresh(tag)
-    res = await db.execute(select(func.count(NodeTag.node_id)).where(NodeTag.tag_id == tag.id))
+    res = await db.execute(
+        select(func.count(NodeTag.node_id)).where(NodeTag.tag_id == tag.id)
+    )
     count = res.scalar() or 0
     logger.info(
         "admin_action",
@@ -664,13 +671,15 @@ async def update_tag_admin(
 @router.post("/tags/merge", summary="Merge tags")
 async def merge_tags_admin(
     payload: TagMerge,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Merge one tag into another, reassigning all node links."""
     if payload.from_slug == payload.to_slug:
         raise HTTPException(status_code=400, detail="Cannot merge the same tag")
-    res = await db.execute(select(Tag).where(Tag.slug.in_([payload.from_slug, payload.to_slug])))
+    res = await db.execute(
+        select(Tag).where(Tag.slug.in_([payload.from_slug, payload.to_slug]))
+    )
     tags = {t.slug: t for t in res.scalars().all()}
     from_tag = tags.get(payload.from_slug)
     to_tag = tags.get(payload.to_slug)
@@ -717,7 +726,7 @@ async def merge_tags_admin(
 async def detach_tag_admin(
     slug: str,
     payload: TagDetachRequest,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Detach a tag from specified nodes or from all if `node_ids` omitted."""

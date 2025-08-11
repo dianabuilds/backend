@@ -5,6 +5,8 @@ class JwtSettings(BaseSettings):
     secret: str = "test-secret"
     algorithm: str = "HS256"
     expires_min: int = 60
+    public_key: str | None = None
+    leeway: int = 30
 
     model_config = SettingsConfigDict(extra="ignore")
 

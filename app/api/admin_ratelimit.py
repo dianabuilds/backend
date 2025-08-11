@@ -5,18 +5,26 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from app.api.deps import require_role
 from app.core.config import settings
 from app.core.rate_limit import recent_429
 from app.db.session import get_db
 from app.models.user import User
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(prefix="/admin/ratelimit", tags=["admin"])
+admin_required = require_admin_role()
+admin_only = require_admin_role({"admin"})
+
+router = APIRouter(
+    prefix="/admin/ratelimit",
+    tags=["admin"],
+    dependencies=[Depends(admin_required)],
+    responses=ADMIN_AUTH_RESPONSES,
+)
 logger = logging.getLogger(__name__)
 
 
 @router.get("/rules", summary="List rate limit rules")
-async def list_rules(current_user: User = Depends(require_role("moderator"))):
+async def list_rules(current_user: User = Depends(admin_required)):
     return {
         "enabled": settings.rate_limit.enabled,
         "rules": {
@@ -31,7 +39,7 @@ async def list_rules(current_user: User = Depends(require_role("moderator"))):
 
 
 @router.get("/recent429", summary="Recent rate limit hits")
-async def recent_hits(current_user: User = Depends(require_role("moderator"))):
+async def recent_hits(current_user: User = Depends(admin_required)):
     return list(recent_429)
 
 
@@ -42,7 +50,7 @@ class RateLimitDisablePayload(BaseModel):
 @router.post("/disable", summary="Toggle rate limiter")
 async def disable_rate_limit(
     payload: RateLimitDisablePayload,
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(admin_only),
     db: AsyncSession = Depends(get_db),
 ):
     if settings.is_production:

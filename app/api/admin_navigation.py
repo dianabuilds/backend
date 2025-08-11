@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import require_role
 from app.db.session import get_db
 from app.models.node import Node
 from app.models.user import User
@@ -15,14 +14,22 @@ from app.schemas.navigation_admin import (
     NavigationCacheSetRequest,
     NavigationCacheInvalidateRequest,
 )
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(prefix="/admin/navigation", tags=["admin"])
+admin_required = require_admin_role()
+
+router = APIRouter(
+    prefix="/admin/navigation",
+    tags=["admin"],
+    dependencies=[Depends(admin_required)],
+    responses=ADMIN_AUTH_RESPONSES,
+)
 
 
 @router.post("/run", summary="Run navigation generation")
 async def run_navigation(
     payload: NavigationRunRequest,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     node_result = await db.execute(select(Node).where(Node.slug == payload.node_slug))
@@ -41,7 +48,7 @@ async def run_navigation(
 @router.post("/cache/set", summary="Set navigation cache")
 async def set_cache(
     payload: NavigationCacheSetRequest,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
 ):
     user_key = str(payload.user_id) if payload.user_id else "anon"
     await navcache.set_navigation(user_key, payload.node_slug, "auto", payload.payload)
@@ -51,7 +58,7 @@ async def set_cache(
 @router.post("/cache/invalidate", summary="Invalidate navigation cache")
 async def invalidate_cache(
     payload: NavigationCacheInvalidateRequest,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
 ):
     if payload.scope == "node":
         if not payload.node_slug:
@@ -68,7 +75,7 @@ async def invalidate_cache(
 
 @router.get("/pgvector/status", summary="pgvector status")
 async def pgvector_status(
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     from app.repositories.compass_repository import CompassRepository
