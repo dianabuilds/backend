@@ -136,7 +136,7 @@ export default function AuditLog() {
                   <td className="p-2">{e.ip} / {e.user_agent}</td>
                   <td className="p-2">{new Date(e.created_at).toLocaleString()}</td>
                   <td className="p-2">
-                    {(e.before || e.after) && (
+                    {(e.before != null || e.after != null) && (
                       <button
                         className="underline text-blue-600"
                         onClick={() => setSelected(e)}
