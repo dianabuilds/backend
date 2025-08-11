@@ -1,0 +1,54 @@
+from __future__ import annotations
+
+import logging
+from typing import List
+
+from fastapi import APIRouter, Depends, Request, Response
+from fastapi.responses import JSONResponse
+
+from app.models.user import User
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.services.admin_menu import get_cached_menu, count_items
+
+logger = logging.getLogger(__name__)
+
+admin_required = require_admin_role({"admin", "moderator"})
+
+router = APIRouter(
+    prefix="/admin",
+    tags=["admin"],
+    responses=ADMIN_AUTH_RESPONSES,
+)
+
+
+@router.get("/menu", summary="Get admin menu")
+async def get_admin_menu(request: Request, current_user: User = Depends(admin_required)) -> Response:
+    flags_header = request.headers.get("X-Feature-Flags", "")
+    flags: List[str] = [f.strip() for f in flags_header.split(",") if f.strip()]
+    menu, etag, cached = get_cached_menu(current_user, flags)
+    if_none = request.headers.get("if-none-match")
+    if if_none == etag:
+        logger.info(
+            "admin_menu",
+            extra={
+                "role": current_user.role,
+                "items_count": count_items(menu.items),
+                "served_from_cache": cached,
+                "etag": etag,
+            },
+        )
+        return Response(status_code=304, headers={"ETag": etag})
+
+    payload = menu.model_dump(by_alias=True, mode="json")
+    response = JSONResponse(payload)
+    response.headers["ETag"] = etag
+    logger.info(
+        "admin_menu",
+        extra={
+            "role": current_user.role,
+            "items_count": count_items(menu.items),
+            "served_from_cache": cached,
+            "etag": etag,
+        },
+    )
+    return response
