@@ -16,18 +16,34 @@ from app.security.exceptions import AuthError
 logger = logging.getLogger("app.errors")
 
 
+# Map HTTP status codes to our unified error codes.
+# Codes are intentionally whitelisted to keep the surface small and predictable.
 ERROR_CODE_MAP = {
     400: "BAD_REQUEST",
-    401: "UNAUTHORIZED",
+    401: "AUTH_REQUIRED",
     403: "FORBIDDEN",
     404: "NOT_FOUND",
+    409: "CONFLICT",
     422: "VALIDATION_ERROR",
+    429: "RATE_LIMITED",
 }
 
 
-def _build_body(code: str, message: str, details: Any = None) -> dict:
+def _build_body(
+    code: str,
+    message: str,
+    details: Any = None,
+    field_errors: Any = None,
+) -> dict:
+    """Construct the error response body in a unified format."""
+
     return {
-        "error": {"code": code, "message": message, "details": details},
+        "error": {
+            "code": code,
+            "message": message,
+            "details": details,
+            "field_errors": field_errors,
+        },
         "request_id": request_id_var.get(),
     }
 
@@ -63,13 +79,21 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     if exc.status_code >= 500:
         sentry_sdk.capture_exception(exc)
         logger.error("HTTPException %s", exc)
-    return _json_response(exc.status_code, body)
+    response = _json_response(exc.status_code, body)
+    if exc.status_code == 401:
+        response.headers["WWW-Authenticate"] = "Bearer"
+    return response
 
 
 async def validation_exception_handler(
     request: Request, exc: ValidationError
 ) -> JSONResponse:
-    body = _build_body("VALIDATION_ERROR", "Validation error", exc.errors())
+    body = _build_body(
+        "VALIDATION_ERROR",
+        "Validation error",
+        details=None,
+        field_errors=exc.errors(),
+    )
     return _json_response(422, body)
 
 
