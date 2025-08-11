@@ -55,8 +55,14 @@ app.add_middleware(
 )
 
 DIST_DIR = Path(__file__).resolve().parent.parent / "admin-frontend" / "dist"
-if DIST_DIR.exists():
-    app.mount("/admin/assets", StaticFiles(directory=DIST_DIR), name="admin-assets")
+DIST_ASSETS_DIR = DIST_DIR / "assets"
+if DIST_ASSETS_DIR.exists():
+    # serve built frontend assets (js, css, etc.) with correct MIME types
+    app.mount(
+        "/admin/assets",
+        StaticFiles(directory=DIST_ASSETS_DIR),
+        name="admin-assets",
+    )
 
 app.include_router(auth_router)
 app.include_router(users_router)
