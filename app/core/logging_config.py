@@ -26,6 +26,11 @@ def build_logging_dict() -> dict:
                 "filters": ["context"],
                 "formatter": "json" if settings.logging.json else "readable",
             },
+            "audit": {
+                "class": "app.core.audit_log.AuditLogHandler",
+                "level": "INFO",
+                "filters": ["context"],
+            },
             **(
                 {
                     "file": {
@@ -53,7 +58,7 @@ def build_logging_dict() -> dict:
         },
         "root": {
             "level": settings.logging.level,
-            "handlers": ["console"]
+            "handlers": ["console", "audit"]
             + (["file"] if settings.logging.file_enabled else []),
         },
     }
