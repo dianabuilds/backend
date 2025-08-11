@@ -21,6 +21,27 @@ function useExpandedState() {
   return { expanded, toggle, setOpen };
 }
 
+/**
+ * Приводит путь из меню к виду, совместимому с Router basename.
+ * - Из абсолютного URL берёт pathname
+ * - Удаляет префикс "/admin" или "/admin/" если он есть
+ * - Преобразует "/admin" в "/" (корень админки)
+ */
+function normalizePath(p?: string | null): string | null {
+  if (!p) return null;
+  let path = p;
+  try {
+    // Если пришёл абсолютный URL, извлечём pathname
+    const url = new URL(p, window.location.origin);
+    path = url.pathname;
+  } catch {
+    // p уже относительный путь — ок
+  }
+  if (path === "/admin") return "/";
+  if (path.startsWith("/admin/")) return path.slice("/admin".length);
+  return path;
+}
+
 function longestPrefixMatch(pathname: string, itemPath?: string | null): boolean {
   if (!itemPath) return false;
   // Ensure trailing slash consistency for matching prefixes
@@ -48,8 +69,8 @@ function MenuItem({ item, level, activePath, expanded, toggle }: { item: AdminMe
   if (item.children && item.children.length > 0) {
     const open = expanded[item.id] ?? false;
     // Auto-open if a child is active
-    const childActive = item.children.some((c) => longestPrefixMatch(activePath, c.path || undefined));
-    const isActive = longestPrefixMatch(activePath, item.path || undefined) || childActive;
+    const childActive = item.children.some((c) => longestPrefixMatch(activePath, normalizePath(c.path) || undefined));
+    const isActive = longestPrefixMatch(activePath, normalizePath(item.path) || undefined) || childActive;
 
     useEffect(() => {
       if (childActive && !open) {
@@ -98,10 +119,11 @@ function MenuItem({ item, level, activePath, expanded, toggle }: { item: AdminMe
   }
 
   if (item.path) {
-    const isActive = longestPrefixMatch(activePath, item.path);
+    const to = normalizePath(item.path) || "/";
+    const isActive = longestPrefixMatch(activePath, to);
     return (
       <NavLink
-        to={item.path}
+        to={to}
         className={({ isActive: exact }) =>
           `block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${isActive || exact ? "font-semibold" : ""}`
         }

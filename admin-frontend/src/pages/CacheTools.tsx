@@ -1,0 +1,96 @@
+import { useEffect, useState } from "react";
+import { api } from "../api/client";
+
+interface CacheStats {
+  counters: Record<string, Record<string, number>>;
+  hot_keys: { key: string; count: number; ttl: number | null }[];
+}
+
+export default function CacheTools() {
+  const [stats, setStats] = useState<CacheStats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [pattern, setPattern] = useState("");
+  const [invLoading, setInvLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get<CacheStats>("/admin/cache/stats");
+      setStats(res.data || null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const invalidate = async () => {
+    setInvLoading(true);
+    try {
+      await api.post("/admin/cache/invalidate_by_pattern", { pattern });
+      setPattern("");
+      await load();
+      alert("Cache invalidated");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e));
+    } finally {
+      setInvLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-4">Cache tools</h1>
+      <div className="mb-6 flex items-end gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-gray-600">Invalidate by pattern</label>
+          <input value={pattern} onChange={(e) => setPattern(e.target.value)} placeholder="nav:* or *slug*" className="border rounded px-2 py-1 w-80" />
+        </div>
+        <button onClick={invalidate} disabled={!pattern || invLoading} className="px-3 py-1 rounded bg-rose-600 text-white disabled:opacity-50">
+          {invLoading ? "Invalidating..." : "Invalidate"}
+        </button>
+      </div>
+
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-600">{error}</p>}
+
+      {stats && (
+        <div className="space-y-4">
+          <section>
+            <h2 className="font-semibold mb-2">Hot keys</h2>
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="p-2 text-left">Key</th>
+                  <th className="p-2 text-left">Hits</th>
+                  <th className="p-2 text-left">TTL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.hot_keys.map((k) => (
+                  <tr key={k.key} className="border-b">
+                    <td className="p-2 font-mono">{k.key}</td>
+                    <td className="p-2">{k.count}</td>
+                    <td className="p-2">{k.ttl ?? "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          <section>
+            <h2 className="font-semibold mb-2">Counters</h2>
+            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">{JSON.stringify(stats.counters, null, 2)}</pre>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}

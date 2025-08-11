@@ -21,6 +21,7 @@ interface AdminUser {
 }
 
 import { api } from "../api/client";
+import { useToast } from "../components/ToastProvider";
 
 async function fetchUsers(search: string): Promise<AdminUser[]> {
   const params = new URLSearchParams();
@@ -37,14 +38,20 @@ async function updateRole(id: string, role: string) {
 export default function Users() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { addToast } = useToast();
   const { data, isLoading, error } = useQuery({
     queryKey: ["users", search],
     queryFn: () => fetchUsers(search),
   });
 
   const handleRoleChange = async (id: string, role: string) => {
-    await updateRole(id, role);
-    queryClient.invalidateQueries({ queryKey: ["users"] });
+    try {
+      await updateRole(id, role);
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      addToast({ title: "Role updated", description: `User role set to "${role}"`, variant: "success" });
+    } catch (e) {
+      addToast({ title: "Failed to update role", description: e instanceof Error ? e.message : String(e), variant: "error" });
+    }
   };
 
   return (
