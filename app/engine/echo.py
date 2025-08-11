@@ -17,12 +17,14 @@ from .filters import has_access_async
 
 
 async def record_echo_trace(
-    db: AsyncSession, from_node: Node, to_node: Node, user: User | None
+    db: AsyncSession, from_node: Node, to_node: Node, user: User | None, source: str | None = None, channel: str | None = None
 ) -> None:
     trace = EchoTrace(
         from_node_id=from_node.id,
         to_node_id=to_node.id,
         user_id=user.id if user and user.is_premium else None,
+        source=source,
+        channel=channel,
     )
     db.add(trace)
     await db.commit()

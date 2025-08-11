@@ -176,6 +176,8 @@ async def set_node_tags(
 async def record_visit(
     slug: str,
     to_slug: str,
+    source: str | None = None,
+    channel: str | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -188,7 +190,7 @@ async def record_visit(
     to_node = result.scalars().first()
     if not to_node:
         raise HTTPException(status_code=404, detail="Target node not found")
-    await record_echo_trace(db, from_node, to_node, current_user)
+    await record_echo_trace(db, from_node, to_node, current_user, source=source, channel=channel)
     return {"status": "ok"}
 
 

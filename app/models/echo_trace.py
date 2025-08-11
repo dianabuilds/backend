@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index
+from sqlalchemy import Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import relationship
 
 from . import Base
@@ -18,6 +18,8 @@ class EchoTrace(Base):
     from_node_id = Column(UUID(), ForeignKey("nodes.id"))
     to_node_id = Column(UUID(), ForeignKey("nodes.id"))
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
+    source = Column(String, nullable=True)
+    channel = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     from_node = relationship("Node", foreign_keys=[from_node_id])
