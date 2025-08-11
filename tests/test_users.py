@@ -34,7 +34,8 @@ class TestUsers:
         # Проверяем ответ - должна быть ошибка авторизации
         assert response.status_code == 401
         data = response.json()
-        assert data["error"]["code"] == "UNAUTHORIZED"
+        # Unified error format should return AUTH_REQUIRED when auth header missing
+        assert data["error"]["code"] == "AUTH_REQUIRED"
 
     @pytest.mark.asyncio
     async def test_update_user(self, client: AsyncClient, auth_headers: dict, db_session: AsyncSession):
