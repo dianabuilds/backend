@@ -6,6 +6,7 @@ import Users from "./pages/Users";
 import Echo from "./pages/Echo";
 import AuditLog from "./pages/AuditLog";
 import Login from "./pages/Login";
+import Restrictions from "./pages/Restrictions";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./auth/AuthContext";
 
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="echo" element={<Echo />} />
               <Route path="audit" element={<AuditLog />} />
             </Route>
+
           </Routes>
         </BrowserRouter>
       </AuthProvider>

@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from "react-router-dom";
-import { Home, Users, FileText } from "lucide-react";
+import type { ReactNode } from "react";
+import { NavLink, Outlet, Link } from "react-router-dom";
+import { Home, Users, FileText, Ban  } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
 export default function Layout() {
@@ -8,6 +9,7 @@ export default function Layout() {
     { to: "/", label: "Dashboard", Icon: Home },
     { to: "/users", label: "Users", Icon: Users },
     { to: "/audit", label: "Audit log", Icon: FileText },
+    { to: "/restrictions", label: "Restrictions", Icon: Ban },
   ];
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
