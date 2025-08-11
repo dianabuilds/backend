@@ -37,17 +37,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
+    const loginText = await resp.text();
     if (!resp.ok) {
-      throw new Error("Неверный логин или пароль");
+      throw new Error(loginText || "Неверный логин или пароль");
     }
-    const { access_token } = await resp.json();
+    let access_token: string;
+    try {
+      ({ access_token } = JSON.parse(loginText));
+    } catch {
+      throw new Error("Некорректный ответ от сервера");
+    }
     const meResp = await fetch("/users/me", {
       headers: { Authorization: `Bearer ${access_token}` },
     });
+    const meText = await meResp.text();
     if (!meResp.ok) {
-      throw new Error("Не удалось получить пользователя");
+      throw new Error(meText || "Не удалось получить пользователя");
     }
-    const me: User = await meResp.json();
+    let me: User;
+    try {
+      me = JSON.parse(meText) as User;
+    } catch {
+      throw new Error("Некорректный ответ пользователя");
+    }
     if (!isAllowed(me.role)) {
       throw new Error("Недостаточно прав");
     }
@@ -58,16 +70,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
-    fetch("/users/me", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((me) => {
-        if (me && isAllowed(me.role)) {
+    const init = async () => {
+      try {
+        const resp = await fetch("/users/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const text = await resp.text();
+        if (!resp.ok) throw new Error();
+        const me: User = JSON.parse(text);
+        if (isAllowed(me.role)) {
           setUser(me);
         } else {
           logout();
         }
-      })
-      .catch(() => logout());
+      } catch {
+        logout();
+      }
+    };
+    init();
   }, []);
 
   return (

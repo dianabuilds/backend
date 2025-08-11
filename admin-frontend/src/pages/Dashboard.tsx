@@ -29,17 +29,29 @@ export default function Dashboard() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    setLoading(true);
-    fetch("/admin/dashboard", {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    })
-      .then((res) => (res.ok ? res.json() : Promise.reject(res.statusText)))
-      .then((d) => setData(d))
-      .catch((err) => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const resp = await fetch("/admin/dashboard", {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        const text = await resp.text();
+        if (!resp.ok) throw new Error(text || resp.statusText);
+        let d: DashboardData;
+        try {
+          d = JSON.parse(text) as DashboardData;
+        } catch {
+          throw new Error("Invalid JSON in response");
+        }
+        setData(d);
+      } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setError(msg);
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, [token]);
 
   const [invalidateScope, setInvalidateScope] = useState("nav");
