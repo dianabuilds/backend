@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from pathlib import Path
 import logging
 from fastapi.middleware.cors import CORSMiddleware
@@ -78,7 +79,10 @@ app.include_router(search_router)
 
 
 @app.get("/")
-async def read_root():
+async def read_root(request: Request):
+    accept_header = request.headers.get("accept", "")
+    if "text/html" in accept_header:
+        return HTMLResponse("<script>window.location.href='/admin';</script>")
     return {"message": "Hello, World!"}
 
 
