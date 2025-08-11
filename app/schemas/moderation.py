@@ -1,6 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -11,7 +13,7 @@ class RestrictionCreate(BaseModel):
 
 class RestrictionAdminCreate(BaseModel):
     user_id: UUID
-    type: str
+    type: Literal["ban", "post_restrict"]
     reason: str | None = None
     expires_at: datetime | None = None
 
