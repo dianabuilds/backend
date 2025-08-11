@@ -83,7 +83,13 @@ async def anonymize_echo_trace(
         raise HTTPException(status_code=404, detail="Echo trace not found")
     trace.user_id = None
     await db.commit()
-    await log_admin_action(db, actor_id=current_user.id, action="anonymize_echo", resource_type="echo", resource_id=str(trace_id))
+    await log_admin_action(
+        db,
+        actor_id=current_user.id,
+        action="anonymize_echo",
+        resource_type="echo",
+        resource_id=str(trace_id),
+    )
     return {"status": "ok"}
 
 
@@ -98,7 +104,13 @@ async def delete_echo_trace(
         raise HTTPException(status_code=404, detail="Echo trace not found")
     await db.delete(trace)
     await db.commit()
-    await log_admin_action(db, actor_id=current_user.id, action="delete_echo", resource_type="echo", resource_id=str(trace_id))
+    await log_admin_action(
+        db,
+        actor_id=current_user.id,
+        action="delete_echo",
+        resource_type="echo",
+        resource_id=str(trace_id),
+    )
     return {"status": "deleted"}
 
 
