@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Home, Users } from "lucide-react";
+import { Home, Users, Ban } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
 interface Props {
@@ -12,6 +12,7 @@ export default function Layout({ children }: Props) {
   const menuItems = [
     { to: "/", label: "Dashboard", Icon: Home },
     { to: "/users", label: "Users", Icon: Users },
+    { to: "/restrictions", label: "Restrictions", Icon: Ban },
   ];
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
