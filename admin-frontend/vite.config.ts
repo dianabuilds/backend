@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react'
 
 const apiPrefixes = [
   'auth',
-  'admin',
   'users',
   'nodes',
   'tags',
@@ -27,11 +26,40 @@ const proxy = apiPrefixes.reduce<Record<string, ProxyOptions>>((acc, prefix) => 
   return acc
 }, {})
 
+// Точечные админские API (не перехватываем корневой /admin, чтобы SPA работала)
+proxy['/admin/echo'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/navigation'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/users'] = { target: 'http://localhost:8000', changeOrigin: true }
+
 // https://vite.dev/config/
 export default defineConfig({
   base: '/admin/',
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Редиректим корень "/" на "/admin/" в dev, чтобы не попадать на пустую страницу
+    {
+      name: 'root-redirect-to-admin',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const request = req as unknown as { url?: string; headers?: Record<string, string | string[] | undefined> }
+          const url = request.url ?? ''
+          const acceptHeader = request.headers?.['accept']
+          const accept = (Array.isArray(acceptHeader) ? acceptHeader[0] : acceptHeader) ?? ''
+          if (url === '/' && accept.includes('text/html')) {
+            res.statusCode = 302
+            res.setHeader('Location', '/admin/')
+            res.end()
+            return
+          }
+          next()
+        })
+      },
+    },
+  ],
   server: {
+    port: 5173,
+    strictPort: false,
+    open: '/admin/',
     proxy,
   },
 })

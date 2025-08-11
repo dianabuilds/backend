@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { Home, Users, Activity } from "lucide-react";
 import { NavLink, Outlet, Link } from "react-router-dom";
 import { Home, Users, FileText, Ban  } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
@@ -8,6 +10,7 @@ export default function Layout() {
   const menuItems = [
     { to: "/", label: "Dashboard", Icon: Home },
     { to: "/users", label: "Users", Icon: Users },
+    { to: "/echo", label: "Echo", Icon: Activity },
     { to: "/audit", label: "Audit log", Icon: FileText },
     { to: "/restrictions", label: "Restrictions", Icon: Ban },
   ];
