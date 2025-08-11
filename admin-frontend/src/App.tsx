@@ -5,7 +5,9 @@ import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import Cache from "./pages/Cache";
 import Echo from "./pages/Echo";
+import AuditLog from "./pages/AuditLog";
 import Login from "./pages/Login";
+import Restrictions from "./pages/Restrictions";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./auth/AuthContext";
 
@@ -19,45 +21,18 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route
-              path="/"
               element={
                 <ProtectedRoute>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
+                  <Layout />
                 </ProtectedRoute>
               }
-            />
-            <Route
-              path="/users"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Users />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/echo"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Echo />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cache"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Cache />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="users" element={<Users />} />
+              <Route path="echo" element={<Echo />} />
+              <Route path="audit" element={<AuditLog />} />
+              <Route path="cache" element={<Cache />} />
+            </Route>
           </Routes>
         </BrowserRouter>
       </AuthProvider>

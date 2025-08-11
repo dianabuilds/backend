@@ -7,7 +7,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.core.config import settings
-from app.core.log_filters import request_id_var, user_id_var
+from app.core.log_filters import request_id_var, user_id_var, ip_var, ua_var
 
 
 logger = logging.getLogger("app.http")
@@ -18,6 +18,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         req_id = request.headers.get("X-Request-Id", str(uuid.uuid4()))
         token_req = request_id_var.set(req_id)
         token_user = user_id_var.set("-")
+        token_ip = ip_var.set(request.client.host if request.client else "-")
+        token_ua = ua_var.set(request.headers.get("user-agent", "-"))
 
         start = time.perf_counter()
         path = request.url.path
@@ -53,6 +55,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             logger.log(level, f"{method} {path} {status} {dur_ms}ms")
             request_id_var.reset(token_req)
             user_id_var.reset(token_user)
+            ip_var.reset(token_ip)
+            ua_var.reset(token_ua)
 
         response.headers["X-Request-Id"] = req_id
         return response
