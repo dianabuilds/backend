@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import assert_seniority_over, get_db, require_role
+from app.api.deps import assert_seniority_over, get_db
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.models.moderation import ContentModeration, UserRestriction
 from app.models.node import Node
 from app.models.user import User
@@ -17,7 +18,14 @@ from app.schemas.moderation import (
     RestrictionOut,
 )
 
-router = APIRouter(prefix="/moderation", tags=["moderation"])
+admin_required = require_admin_role()
+
+router = APIRouter(
+    prefix="/moderation",
+    tags=["moderation"],
+    dependencies=[Depends(admin_required)],
+    responses=ADMIN_AUTH_RESPONSES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +34,7 @@ logger = logging.getLogger(__name__)
 async def ban_user(
     user_id: UUID,
     payload: RestrictionCreate,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Completely block a user from accessing the platform."""
@@ -64,7 +72,7 @@ async def ban_user(
 async def restrict_posting(
     user_id: UUID,
     payload: RestrictionCreate,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Temporarily forbid a user from creating new content."""
@@ -98,7 +106,7 @@ async def restrict_posting(
 @router.delete("/restrictions/{restriction_id}", summary="Remove restriction")
 async def remove_restriction(
     restriction_id: UUID,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete an active restriction entry."""
@@ -114,7 +122,7 @@ async def remove_restriction(
 async def hide_node(
     slug: str,
     payload: ContentHide,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Hide a node from public view for moderation reasons."""
@@ -152,7 +160,7 @@ async def hide_node(
     summary="List hidden nodes",
 )
 async def list_hidden_nodes(
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Return nodes currently hidden by moderators."""
@@ -178,7 +186,7 @@ async def list_hidden_nodes(
 @router.post("/nodes/{slug}/restore", summary="Restore node")
 async def restore_node(
     slug: str,
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Make a previously hidden node visible again."""
@@ -215,7 +223,7 @@ async def restore_node(
     summary="List restrictions",
 )
 async def list_restrictions(
-    current_user: User = Depends(require_role("moderator")),
+    current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Get all active user restrictions."""
