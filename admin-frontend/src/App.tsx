@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import Echo from "./pages/Echo";
 import Login from "./pages/Login";
+import Restrictions from "./pages/Restrictions";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./auth/AuthContext";
 
@@ -43,6 +44,16 @@ export default function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Echo />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/restrictions"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Restrictions />
                   </Layout>
                 </ProtectedRoute>
               }
