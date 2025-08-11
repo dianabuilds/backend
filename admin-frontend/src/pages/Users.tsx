@@ -20,37 +20,18 @@ interface AdminUser {
   restrictions: Restriction[];
 }
 
+import { api } from "../api/client";
+
 async function fetchUsers(search: string): Promise<AdminUser[]> {
   const params = new URLSearchParams();
   if (search) params.set("q", search);
-  const token = localStorage.getItem("token") || "";
-  const url = params.toString()
-    ? `/admin/users?${params.toString()}`
-    : "/admin/users";
-  const resp = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(text || "Failed to load users");
-  }
-  return (await resp.json()) as AdminUser[];
+  const url = params.toString() ? `/admin/users?${params.toString()}` : "/admin/users";
+  const res = await api.get<AdminUser[]>(url);
+  return (res.data || []) as AdminUser[];
 }
 
 async function updateRole(id: string, role: string) {
-  const token = localStorage.getItem("token") || "";
-  const resp = await fetch(`/admin/users/${id}/role`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ role }),
-  });
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(text || "Failed to update role");
-  }
+  await api.post(`/admin/users/${id}/role`, { role });
 }
 
 export default function Users() {

@@ -15,17 +15,12 @@ interface AuditLogEntry {
   created_at: string;
 }
 
+import { api } from "../api/client";
+
 async function fetchAudit(params: Record<string, string>): Promise<AuditLogEntry[]> {
-  const token = localStorage.getItem("token") || "";
   const qs = new URLSearchParams(params).toString();
-  const resp = await fetch(qs ? `/admin/audit?${qs}` : "/admin/audit", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(text || "Failed to load audit log");
-  }
-  return (await resp.json()) as AuditLogEntry[];
+  const res = await api.get<AuditLogEntry[]>(qs ? `/admin/audit?${qs}` : "/admin/audit");
+  return (res.data || []) as AuditLogEntry[];
 }
 
 export default function AuditLog() {

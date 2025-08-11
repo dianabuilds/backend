@@ -1,34 +1,12 @@
-import { NavLink, Outlet } from "react-router-dom";
-import { Home, Users, Activity, FileText, Ban } from "lucide-react";
+import { Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import Sidebar from "./Sidebar";
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  const menuItems = [
-    { to: "/", label: "Dashboard", Icon: Home },
-    { to: "/users", label: "Users", Icon: Users },
-    { to: "/echo", label: "Echo", Icon: Activity },
-    { to: "/audit", label: "Audit log", Icon: FileText },
-    { to: "/restrictions", label: "Restrictions", Icon: Ban },
-  ];
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
-      <aside className="w-64 bg-white dark:bg-gray-900 p-4 shadow-sm">
-        <nav className="space-y-2">
-          {menuItems.map(({ to, label, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex items-center space-x-2 text-gray-700 dark:text-gray-200 ${isActive ? "font-semibold" : ""}`
-              }
-            >
-              <Icon className="w-4 h-4" />
-              <span>{label}</span>
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+      <Sidebar />
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="flex items-center justify-end mb-4">
           {user && (

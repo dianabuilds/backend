@@ -30,6 +30,7 @@ const proxy = apiPrefixes.reduce<Record<string, ProxyOptions>>((acc, prefix) => 
 proxy['/admin/echo'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/navigation'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/users'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/menu'] = { target: 'http://localhost:8000', changeOrigin: true }
 
 // https://vite.dev/config/
 export default defineConfig({

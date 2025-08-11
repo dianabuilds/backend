@@ -11,44 +11,23 @@ interface EchoTrace {
   created_at: string;
 }
 
+import { api } from "../api/client";
+
 async function fetchEcho(page: number): Promise<EchoTrace[]> {
-  const token = localStorage.getItem("token") || "";
-  const resp = await fetch(`/admin/echo?page=${page}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!resp.ok) throw new Error("Failed to load echoes");
-  return resp.json();
+  const res = await api.get<EchoTrace[]>(`/admin/echo?page=${page}`);
+  return (res.data || []) as EchoTrace[];
 }
 
 async function deleteEcho(id: string) {
-  const token = localStorage.getItem("token") || "";
-  const resp = await fetch(`/admin/echo/${id}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!resp.ok) throw new Error("Failed to delete");
+  await api.del(`/admin/echo/${id}`);
 }
 
 async function anonymizeEcho(id: string) {
-  const token = localStorage.getItem("token") || "";
-  const resp = await fetch(`/admin/echo/${id}/anonymize`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!resp.ok) throw new Error("Failed to anonymize");
+  await api.post(`/admin/echo/${id}/anonymize`);
 }
 
 async function recomputePopularity(slugs: string[]) {
-  const token = localStorage.getItem("token") || "";
-  const resp = await fetch(`/admin/echo/recompute_popularity`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ node_slugs: slugs.length ? slugs : undefined }),
-  });
-  if (!resp.ok) throw new Error("Failed to recompute");
+  await api.post(`/admin/echo/recompute_popularity`, { node_slugs: slugs.length ? slugs : undefined });
 }
 
 export default function Echo() {
