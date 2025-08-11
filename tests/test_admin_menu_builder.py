@@ -15,19 +15,26 @@ def test_build_menu_filters_and_sorts():
     user = DummyUser("admin")
     menu = build_menu(user, [])
     ids = [item.id for item in menu.items]
-    assert ids == ["first", "second", "group", "admin-only"]
-    group_children = [c.id for c in menu.items[2].children]
-    assert group_children == ["g1", "g2"]
+    assert ids == [
+        "overview",
+        "users",
+        "content",
+        "navigation",
+        "telemetry",
+        "tools",
+        "system",
+    ]
+    content_children = [c.id for c in menu.items[2].children]
+    assert content_children == ["nodes", "tags", "transitions", "moderation"]
 
-    menu_flag = build_menu(user, ["extra"])
-    group_children_flag = [c.id for c in menu_flag.items[2].children]
-    assert group_children_flag == ["g1", "g2", "flagged"]
+    menu_flag = build_menu(user, ["payments"])
+    ids_flag = [item.id for item in menu_flag.items]
+    assert "payments" in ids_flag
 
     mod_menu = build_menu(DummyUser("moderator"), [])
     mod_ids = [item.id for item in mod_menu.items]
-    assert "admin-only" not in mod_ids
-    group_children_mod = [c.id for c in mod_menu.items[2].children]
-    assert group_children_mod == ["g2"]
+    assert "tools" not in mod_ids
+    assert "system" not in mod_ids
 
 
 def test_menu_depth_validation():

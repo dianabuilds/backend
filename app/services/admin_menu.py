@@ -12,27 +12,202 @@ from app.schemas.admin_menu import MenuItem, MenuResponse
 
 logger = logging.getLogger(__name__)
 
-# Base menu configuration. Items here are intentionally unsorted to test sorting.
+# Base menu configuration with groups and links.
+# Order values are explicit so the sorting logic can be tested.
 BASE_MENU: List[dict] = [
-    {"id": "second", "label": "Second", "path": "/second", "order": 2},
-    {"id": "first", "label": "First", "path": "/first", "order": 1},
     {
-        "id": "group",
-        "label": "Group",
+        "id": "overview",
+        "label": "Overview",
+        "icon": "overview",
+        "order": 1,
+        "children": [
+            {
+                "id": "dashboard",
+                "label": "Dashboard",
+                "path": "/",
+                "icon": "dashboard",
+                "order": 1,
+            }
+        ],
+    },
+    {
+        "id": "users",
+        "label": "Users",
+        "icon": "users",
+        "order": 2,
+        "children": [
+            {
+                "id": "users-list",
+                "label": "Users",
+                "path": "/users",
+                "icon": "users",
+                "order": 1,
+            }
+        ],
+    },
+    {
+        "id": "content",
+        "label": "Content",
+        "icon": "content",
         "order": 3,
         "children": [
-            {"id": "g2", "label": "G2", "path": "/g2", "order": 2},
-            {"id": "g1", "label": "G1", "path": "/g1", "order": 1, "roles": ["admin"]},
             {
-                "id": "flagged",
-                "label": "Flagged",
-                "path": "/flag",
+                "id": "nodes",
+                "label": "Nodes",
+                "path": "/nodes",
+                "icon": "nodes",
+                "order": 1,
+            },
+            {
+                "id": "tags",
+                "label": "Tags",
+                "path": "/tags",
+                "icon": "tags",
+                "order": 2,
+            },
+            {
+                "id": "transitions",
+                "label": "Transitions",
+                "path": "/transitions",
+                "icon": "transitions",
                 "order": 3,
-                "featureFlag": "extra",
+            },
+            {
+                "id": "moderation",
+                "label": "Moderation",
+                "path": "/moderation",
+                "icon": "moderation",
+                "order": 4,
             },
         ],
     },
-    {"id": "admin-only", "label": "Admin", "path": "/admin", "order": 4, "roles": ["admin"]},
+    {
+        "id": "navigation",
+        "label": "Navigation",
+        "icon": "navigation",
+        "order": 4,
+        "children": [
+            {
+                "id": "navigation-main",
+                "label": "Navigation",
+                "path": "/navigation",
+                "icon": "navigation",
+                "order": 1,
+            }
+        ],
+    },
+    {
+        "id": "telemetry",
+        "label": "Data/Telemetry",
+        "icon": "telemetry",
+        "order": 5,
+        "children": [
+            {
+                "id": "echo",
+                "label": "Echo traces",
+                "path": "/echo",
+                "icon": "echo",
+                "order": 1,
+            },
+            {
+                "id": "traces",
+                "label": "Traces",
+                "path": "/traces",
+                "icon": "traces",
+                "order": 2,
+            },
+            {
+                "id": "notifications",
+                "label": "Notifications",
+                "path": "/notifications",
+                "icon": "notifications",
+                "order": 3,
+            },
+            {
+                "id": "achievements",
+                "label": "Achievements",
+                "path": "/achievements",
+                "icon": "achievements",
+                "order": 4,
+            },
+            {
+                "id": "quests",
+                "label": "Quests",
+                "path": "/quests",
+                "icon": "quests",
+                "order": 5,
+            },
+            {
+                "id": "search",
+                "label": "Search",
+                "path": "/search",
+                "icon": "search",
+                "order": 6,
+            },
+        ],
+    },
+    {
+        "id": "tools",
+        "label": "Service tools",
+        "icon": "tools",
+        "order": 6,
+        "roles": ["admin"],
+        "children": [
+            {
+                "id": "cache",
+                "label": "Cache",
+                "path": "/tools/cache",
+                "icon": "cache",
+                "order": 1,
+            },
+            {
+                "id": "rate-limit",
+                "label": "Rate limit",
+                "path": "/tools/rate-limit",
+                "icon": "rate-limit",
+                "order": 2,
+            },
+            {
+                "id": "restrictions",
+                "label": "Restrictions",
+                "path": "/tools/restrictions",
+                "icon": "restrictions",
+                "order": 3,
+            },
+            {
+                "id": "audit",
+                "label": "Audit log",
+                "path": "/tools/audit",
+                "icon": "audit",
+                "order": 4,
+            },
+        ],
+    },
+    {
+        "id": "system",
+        "label": "System",
+        "icon": "system",
+        "order": 7,
+        "roles": ["admin"],
+        "children": [
+            {
+                "id": "health",
+                "label": "Health",
+                "path": "/system/health",
+                "icon": "health",
+                "order": 1,
+            }
+        ],
+    },
+    {
+        "id": "payments",
+        "label": "Payments",
+        "path": "/payments",
+        "icon": "payments",
+        "order": 8,
+        "roles": ["admin"],
+        "featureFlag": "payments",
+    },
 ]
 
 CACHE_TTL = 45  # seconds

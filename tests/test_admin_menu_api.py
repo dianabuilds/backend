@@ -39,20 +39,26 @@ async def test_menu_roles_and_flags(client: AsyncClient, admin_user: User, moder
     token_mod = create_access_token(moderator_user.id)
     resp_admin = await client.get(
         "/admin/menu",
-        headers={"Authorization": f"Bearer {token_admin}", "X-Feature-Flags": "extra"},
+        headers={"Authorization": f"Bearer {token_admin}", "X-Feature-Flags": "payments"},
+    )
+    resp_admin_no_flag = await client.get(
+        "/admin/menu", headers={"Authorization": f"Bearer {token_admin}"}
     )
     resp_mod = await client.get(
         "/admin/menu", headers={"Authorization": f"Bearer {token_mod}"}
     )
     assert resp_admin.status_code == 200
+    assert resp_admin_no_flag.status_code == 200
     assert resp_mod.status_code == 200
     ids_admin = [i["id"] for i in resp_admin.json()["items"]]
+    ids_admin_no_flag = [i["id"] for i in resp_admin_no_flag.json()["items"]]
     ids_mod = [i["id"] for i in resp_mod.json()["items"]]
-    assert "admin-only" in ids_admin
-    assert "admin-only" not in ids_mod
-    group_admin = next(i for i in resp_admin.json()["items"] if i["id"] == "group")
-    group_mod = next(i for i in resp_mod.json()["items"] if i["id"] == "group")
-    child_admin = [c["id"] for c in group_admin["children"]]
-    child_mod = [c["id"] for c in group_mod["children"]]
-    assert "flagged" in child_admin
-    assert "flagged" not in child_mod
+    # admin-only sections
+    assert "tools" in ids_admin
+    assert "system" in ids_admin
+    assert "tools" not in ids_mod
+    assert "system" not in ids_mod
+    # feature flag
+    assert "payments" in ids_admin
+    assert "payments" not in ids_admin_no_flag
+    assert "payments" not in ids_mod
