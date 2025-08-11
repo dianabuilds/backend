@@ -18,6 +18,7 @@ from app.models.user import User
 from app.schemas.echo import AdminEchoTraceOut, PopularityRecomputeRequest
 from app.services.navcache import navcache
 from app.core.log_events import cache_invalidate
+from app.core.audit_log import log_admin_action
 
 router = APIRouter(prefix="/admin/echo", tags=["admin"])
 logger = logging.getLogger(__name__)
@@ -82,11 +83,12 @@ async def anonymize_echo_trace(
         raise HTTPException(status_code=404, detail="Echo trace not found")
     trace.user_id = None
     await db.commit()
-    logger.info(
-        "admin_action",
-        extra={
-            "action": "anonymize_echo", "actor_id": str(current_user.id), "trace_id": str(trace_id), "ts": datetime.utcnow().isoformat()
-        },
+    await log_admin_action(
+        db,
+        actor_id=current_user.id,
+        action="anonymize_echo",
+        resource_type="echo",
+        resource_id=str(trace_id),
     )
     return {"status": "ok"}
 
@@ -102,11 +104,12 @@ async def delete_echo_trace(
         raise HTTPException(status_code=404, detail="Echo trace not found")
     await db.delete(trace)
     await db.commit()
-    logger.info(
-        "admin_action",
-        extra={
-            "action": "delete_echo", "actor_id": str(current_user.id), "trace_id": str(trace_id), "ts": datetime.utcnow().isoformat()
-        },
+    await log_admin_action(
+        db,
+        actor_id=current_user.id,
+        action="delete_echo",
+        resource_type="echo",
+        resource_id=str(trace_id),
     )
     return {"status": "deleted"}
 
@@ -135,13 +138,11 @@ async def recompute_popularity(
         cache_invalidate("nav", reason="recompute_popularity", key=n.slug)
         cache_invalidate("comp", reason="recompute_popularity", key=n.slug)
     await db.commit()
-    logger.info(
-        "admin_action",
-        extra={
-            "action": "recompute_popularity",
-            "actor_id": str(current_user.id),
-            "nodes": payload.node_slugs or "all",
-            "ts": datetime.utcnow().isoformat(),
-        },
+    await log_admin_action(
+        db,
+        actor_id=current_user.id,
+        action="recompute_popularity",
+        resource_type="node",
+        resource_id=",".join(payload.node_slugs) if payload.node_slugs else "all",
     )
     return {"updated": len(nodes)}
