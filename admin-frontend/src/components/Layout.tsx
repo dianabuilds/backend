@@ -1,13 +1,8 @@
-import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { Home, Users, FileText } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
-interface Props {
-  children: ReactNode;
-}
-
-export default function Layout({ children }: Props) {
+export default function Layout() {
   const { user, logout } = useAuth();
   const menuItems = [
     { to: "/", label: "Dashboard", Icon: Home },
@@ -19,12 +14,17 @@ export default function Layout({ children }: Props) {
       <aside className="w-64 bg-white dark:bg-gray-900 p-4 shadow-sm">
         <nav className="space-y-2">
           {menuItems.map(({ to, label, Icon }) => (
-            <Link key={to} to={to} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200">
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `flex items-center space-x-2 text-gray-700 dark:text-gray-200 ${isActive ? "font-semibold" : ""}`
+              }
+            >
               <Icon className="w-4 h-4" />
               <span>{label}</span>
-            </Link>
+            </NavLink>
           ))}
-
         </nav>
       </aside>
       <main className="flex-1 p-6 overflow-y-auto">
@@ -42,7 +42,7 @@ export default function Layout({ children }: Props) {
             </div>
           )}
         </div>
-        {children}
+        <Outlet />
       </main>
     </div>
   );

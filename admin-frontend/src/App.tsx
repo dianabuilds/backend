@@ -19,45 +19,17 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route
-              path="/"
               element={
                 <ProtectedRoute>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
+                  <Layout />
                 </ProtectedRoute>
               }
-            />
-            <Route
-              path="/users"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Users />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/echo"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Echo />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/audit"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <AuditLog />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="users" element={<Users />} />
+              <Route path="echo" element={<Echo />} />
+              <Route path="audit" element={<AuditLog />} />
+            </Route>
           </Routes>
         </BrowserRouter>
       </AuthProvider>
