@@ -1,30 +1,148 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { getAdminMenu, MenuItem } from "../api/menu";
-import { useAuth } from "../auth/AuthContext";
+import { getAdminMenu, type AdminMenuItem } from "../api/client";
+import { getIconComponent } from "../icons/registry";
+
+function useExpandedState() {
+  const KEY = "adminSidebarExpanded";
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(KEY);
+      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem(KEY, JSON.stringify(expanded));
+  }, [expanded]);
+  const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
+  const setOpen = (id: string, val: boolean) => setExpanded((s) => ({ ...s, [id]: val }));
+  return { expanded, toggle, setOpen };
+}
+
+function longestPrefixMatch(pathname: string, itemPath?: string | null): boolean {
+  if (!itemPath) return false;
+  // Ensure trailing slash consistency for matching prefixes
+  const a = pathname.endsWith("/") ? pathname : pathname + "/";
+  const b = itemPath.endsWith("/") ? itemPath : itemPath + "/";
+  return a.startsWith(b);
+}
+
+function MenuItem({ item, level, activePath, expanded, toggle }: { item: AdminMenuItem; level: number; activePath: string; expanded: Record<string, boolean>; toggle: (id: string) => void; }) {
+  const Icon = getIconComponent(item.icon);
+
+  const content = (
+    <div className="flex items-center gap-2">
+      <Icon className="w-4 h-4" aria-hidden />
+      <span>{item.label}</span>
+    </div>
+  );
+
+  if (item.divider) {
+    return <div role="separator" className="my-2 border-t border-gray-200 dark:border-gray-700" />;
+  }
+
+  const padding = 8 + level * 12;
+
+  if (item.children && item.children.length > 0) {
+    const open = expanded[item.id] ?? false;
+    // Auto-open if a child is active
+    const childActive = item.children.some((c) => longestPrefixMatch(activePath, c.path || undefined));
+    const isActive = longestPrefixMatch(activePath, item.path || undefined) || childActive;
+
+    useEffect(() => {
+      if (childActive && !open) {
+        toggle(item.id);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [childActive]);
+
+    return (
+      <div>
+        <button
+          className={`w-full flex items-center justify-between text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
+            isActive ? "font-semibold" : ""
+          }`}
+          style={{ paddingLeft: padding }}
+          onClick={() => toggle(item.id)}
+          aria-expanded={open}
+          aria-controls={`group-${item.id}`}
+        >
+          {content}
+          <span aria-hidden>{open ? "▾" : "▸"}</span>
+        </button>
+        {open && (
+          <div id={`group-${item.id}`} className="mt-1 space-y-1">
+            {item.children.map((child) => (
+              <MenuItem key={child.id} item={child} level={level + 1} activePath={activePath} expanded={expanded} toggle={toggle} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (item.external && item.path) {
+    return (
+      <a
+        href={item.path}
+        target="_blank"
+        rel="noreferrer"
+        className="block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+        style={{ paddingLeft: padding }}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  if (item.path) {
+    const isActive = longestPrefixMatch(activePath, item.path);
+    return (
+      <NavLink
+        to={item.path}
+        className={({ isActive: exact }) =>
+          `block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${isActive || exact ? "font-semibold" : ""}`
+        }
+        style={{ paddingLeft: padding }}
+        aria-current={isActive ? "page" : undefined}
+      >
+        {content}
+      </NavLink>
+    );
+  }
+
+  return (
+    <div className="py-1 px-2 text-gray-500" style={{ paddingLeft: padding }}>
+      {content}
+    </div>
+  );
+}
 
 export default function Sidebar() {
-  const { logout } = useAuth();
   const location = useLocation();
-  const [items, setItems] = useState<MenuItem[] | null>(null);
-  const [etag, setEtag] = useState<string | null>(null);
+  const [items, setItems] = useState<AdminMenuItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(false);
+  const { expanded, toggle } = useExpandedState();
 
   const load = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const resp = await getAdminMenu(etag ?? undefined);
-      if (resp.status !== 304 && resp.items) {
-        setItems(resp.items);
-        setEtag(resp.etag ?? null);
-      }
-      setError(null);
-    } catch (e: any) {
-      if (e.message === "unauthorized") {
-        logout();
-      } else {
-        setError(e.message || "Failed to load menu");
-      }
+      const { items } = await getAdminMenu();
+      // sort by order if provided
+      const sortTree = (arr: AdminMenuItem[]): AdminMenuItem[] =>
+        [...arr]
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map((it) => ({ ...it, children: it.children ? sortTree(it.children) : it.children }));
+      setItems(sortTree(items));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setItems(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,136 +151,42 @@ export default function Sidebar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (items) {
-      const state: Record<string, boolean> = {};
-      items.forEach((i) => {
-        const v = localStorage.getItem(`menu-open-${i.id}`);
-        state[i.id] = v === "1";
-      });
-      setOpen((prev) => ({ ...state, ...prev }));
+  const content = useMemo(() => {
+    if (loading) {
+      // Skeleton
+      return (
+        <div className="space-y-2" aria-busy>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />)
+          )}
+        </div>
+      );
     }
-  }, [items]);
-
-  const activeId = useMemo(() => {
-    if (!items) return null;
-    let best: { id: string; path: string } | null = null;
-    const check = (list: MenuItem[]) => {
-      list.forEach((item) => {
-        if (item.path && location.pathname.startsWith(item.path)) {
-          if (!best || item.path.length > best.path.length) {
-            best = { id: item.id, path: item.path };
-          }
-        }
-        check(item.children);
-      });
-    };
-    check(items);
-    return best?.id ?? null;
-  }, [items, location.pathname]);
-
-  useEffect(() => {
-    if (!items || !activeId) return;
-    const parents: string[] = [];
-    const find = (list: MenuItem[], acc: string[]): boolean => {
-      for (const item of list) {
-        if (item.id === activeId) {
-          parents.push(...acc);
-          return true;
-        }
-        if (item.children.length && find(item.children, [...acc, item.id])) {
-          return true;
-        }
-      }
-      return false;
-    };
-    find(items, []);
-    if (parents.length) {
-      setOpen((prev) => {
-        const updated = { ...prev };
-        parents.forEach((p) => (updated[p] = true));
-        return updated;
-      });
+    if (error) {
+      // Fallback minimal menu
+      return (
+        <div>
+          <div className="mb-2 text-sm text-red-600" role="alert">{error}</div>
+          <nav className="space-y-1">
+            <NavLink to="/" className="block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
+              Dashboard
+            </NavLink>
+          </nav>
+        </div>
+      );
     }
-  }, [activeId, items]);
-
-  const toggle = (id: string) => {
-    setOpen((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
-      localStorage.setItem(`menu-open-${id}`, next[id] ? "1" : "0");
-      return next;
-    });
-  };
-
-  const renderItems = (list: MenuItem[]) => (
-    <ul>
-      {list.map((item) => {
-        if (item.children.length > 0 && !item.path) {
-          const isOpen = !!open[item.id];
-          return (
-            <li key={item.id}>
-              <button
-                onClick={() => toggle(item.id)}
-                aria-expanded={isOpen}
-                className="flex w-full justify-between p-2"
-              >
-                <span>{item.label}</span>
-              </button>
-              {isOpen && renderItems(item.children)}
-            </li>
-          );
-        }
-        const isActive = item.id === activeId;
-        const content = item.external ? (
-          <a
-            href={item.path ?? "#"}
-            target="_blank"
-            rel="noreferrer"
-            className={`block p-2 ${isActive ? "bg-gray-200 dark:bg-gray-800" : ""}`}
-          >
-            {item.label}
-          </a>
-        ) : (
-          <NavLink
-            to={item.path ?? "#"}
-            aria-current={isActive ? "page" : undefined}
-            className={`block p-2 ${isActive ? "bg-gray-200 dark:bg-gray-800" : ""}`}
-          >
-            {item.label}
-          </NavLink>
-        );
-        return <li key={item.id}>{content}</li>;
-      })}
-    </ul>
-  );
-
-  if (error) {
     return (
-      <nav role="navigation" aria-label="Admin menu" className="w-64 p-4">
-        <div className="mb-2 text-red-600">{error}</div>
-        <ul>
-          <li>
-            <NavLink to="/">Dashboard</NavLink>
-          </li>
-        </ul>
-        <button onClick={load} className="mt-2 underline">
-          Retry
-        </button>
+      <nav className="space-y-1">
+        {(items || []).map((item) => (
+          <MenuItem key={item.id} item={item} level={0} activePath={location.pathname} expanded={expanded} toggle={toggle} />
+        ))}
       </nav>
     );
-  }
-
-  if (!items) {
-    return (
-      <nav role="navigation" aria-label="Admin menu" className="w-64 p-4">
-        Loading...
-      </nav>
-    );
-  }
+  }, [loading, error, items, location.pathname]);
 
   return (
-    <nav role="navigation" aria-label="Admin menu" className="w-64 p-4 overflow-y-auto">
-      {renderItems(items)}
-    </nav>
+    <aside className="w-64 bg-white dark:bg-gray-900 p-4 shadow-sm" aria-label="Sidebar navigation">
+      {content}
+    </aside>
   );
 }
