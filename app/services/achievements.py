@@ -16,6 +16,55 @@ from app.services.notifications import create_notification
 class AchievementsService:
 
     @classmethod
+    async def grant_manual(
+        cls, db: AsyncSession, user_id: UUID, achievement_id: UUID
+    ) -> bool:
+        """Grant an achievement to a user manually.
+
+        Returns True if a new record was created, False if the user already had it.
+        """
+        result = await db.execute(
+            select(UserAchievement).where(
+                UserAchievement.user_id == user_id,
+                UserAchievement.achievement_id == achievement_id,
+            )
+        )
+        if result.scalars().first():
+            return False
+
+        ach = await db.get(Achievement, achievement_id)
+        if not ach:
+            return False
+
+        db.add(UserAchievement(user_id=user_id, achievement_id=achievement_id))
+        await create_notification(
+            db=db,
+            user_id=user_id,
+            title="Achievement unlocked",
+            message=ach.title,
+        )
+        await db.commit()
+        return True
+
+    @classmethod
+    async def revoke_manual(
+        cls, db: AsyncSession, user_id: UUID, achievement_id: UUID
+    ) -> bool:
+        """Revoke an achievement from a user."""
+        result = await db.execute(
+            select(UserAchievement).where(
+                UserAchievement.user_id == user_id,
+                UserAchievement.achievement_id == achievement_id,
+            )
+        )
+        ua = result.scalars().first()
+        if not ua:
+            return False
+        await db.delete(ua)
+        await db.commit()
+        return True
+
+    @classmethod
     async def process_event(
         cls,
         db: AsyncSession,
