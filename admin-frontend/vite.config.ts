@@ -39,6 +39,7 @@ proxy['/admin/audit'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/metrics'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/notifications'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/quests'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/achievements'] = { target: 'http://localhost:8000', changeOrigin: true }
 
 // https://vite.dev/config/
 export default defineConfig({

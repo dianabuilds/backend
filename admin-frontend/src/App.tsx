@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./auth/AuthContext";
 import ComingSoon from "./components/ComingSoon";
 import Navigation from "./pages/Navigation";
+import Achievements from "./pages/Achievements";
 import CacheTools from "./pages/CacheTools";
 import RateLimitTools from "./pages/RateLimitTools";
 import Health from "./pages/Health";
@@ -52,7 +53,7 @@ export default function App() {
                   <Route path="echo" element={<Echo />} />
                   <Route path="traces" element={<ComingSoon title="Traces" />} />
                   <Route path="notifications" element={<Notifications />} />
-                  <Route path="achievements" element={<ComingSoon title="Achievements" />} />
+                  <Route path="achievements" element={<Achievements />} />
                   <Route path="quests" element={<Quests />} />
                   <Route path="quests/editor" element={<QuestEditor />} />
                   <Route path="search" element={<ComingSoon title="Search" />} />
