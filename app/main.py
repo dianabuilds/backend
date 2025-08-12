@@ -27,9 +27,11 @@ from app.api.traces import router as traces_router
 from app.api.achievements import router as achievements_router
 from app.api.payments import router as payments_router
 from app.api.search import router as search_router
+from app.api.admin_metrics import router as admin_metrics_router
 from app.core.config import settings
 from app.core.logging_config import configure_logging
 from app.core.logging_middleware import RequestLoggingMiddleware
+from app.core.metrics_middleware import MetricsMiddleware
 from app.core.exception_handlers import register_exception_handlers
 from app.core.sentry import init_sentry
 from app.engine import configure_from_settings
@@ -48,6 +50,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(MetricsMiddleware)
 register_exception_handlers(app)
 
 # CORS: разрешаем фронту ходить на API в dev
@@ -81,6 +84,7 @@ app.include_router(admin_audit_router)
 app.include_router(admin_cache_router)
 app.include_router(admin_menu_router)
 app.include_router(admin_ratelimit_router)
+app.include_router(admin_metrics_router)
 app.include_router(admin_spa_router)
 app.include_router(moderation_router)
 app.include_router(transitions_router)
