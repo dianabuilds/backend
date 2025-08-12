@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "../api/client";
+import { api } from "../api/client";
 
 interface Restriction {
   id: string;
@@ -12,13 +12,19 @@ interface Restriction {
   created_at: string;
 }
 
-async function fetchRestrictions(): Promise<Restriction[]> {
-  const resp = await apiFetch("/admin/restrictions");
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(text || "Failed to load restrictions");
+function ensureArray<T = any>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === "object") {
+    const obj = data as any;
+    if (Array.isArray(obj.items)) return obj.items as T[];
+    if (Array.isArray(obj.data)) return obj.data as T[];
   }
-  return (await resp.json()) as Restriction[];
+  return [];
+}
+
+async function fetchRestrictions(): Promise<Restriction[]> {
+  const res = await api.get("/admin/restrictions");
+  return ensureArray<Restriction>(res.data);
 }
 
 export default function Restrictions() {
@@ -35,20 +41,12 @@ export default function Restrictions() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const resp = await apiFetch("/admin/restrictions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: userId,
-          type,
-          reason: reason || undefined,
-          expires_at: expires ? new Date(expires).toISOString() : undefined,
-        }),
+      await api.post("/admin/restrictions", {
+        user_id: userId,
+        type,
+        reason: reason || undefined,
+        expires_at: expires ? new Date(expires).toISOString() : undefined,
       });
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(text || "Failed to create restriction");
-      }
     },
     onSuccess: () => {
       setUserId("");
@@ -64,18 +62,10 @@ export default function Restrictions() {
       reason: string;
       expires_at: string | null;
     }) => {
-      const resp = await apiFetch(`/admin/restrictions/${payload.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reason: payload.reason || null,
-          expires_at: payload.expires_at,
-        }),
+      await api.patch(`/admin/restrictions/${payload.id}`, {
+        reason: payload.reason || null,
+        expires_at: payload.expires_at,
       });
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(text || "Failed to update restriction");
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restrictions"] });
@@ -84,13 +74,7 @@ export default function Restrictions() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const resp = await apiFetch(`/admin/restrictions/${id}`, {
-        method: "DELETE",
-      });
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(text || "Failed to delete restriction");
-      }
+      await api.del(`/admin/restrictions/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restrictions"] });

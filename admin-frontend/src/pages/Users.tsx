@@ -5,6 +5,7 @@ interface Restriction {
   id: string;
   type: string;
   expires_at?: string | null;
+  reason?: string | null;
 }
 
 interface AdminUser {
@@ -23,16 +24,46 @@ interface AdminUser {
 import { api } from "../api/client";
 import { useToast } from "../components/ToastProvider";
 
+function ensureArray<T = any>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === "object") {
+    const obj = data as any;
+    if (Array.isArray(obj.items)) return obj.items as T[];
+    if (Array.isArray(obj.data)) return obj.data as T[];
+  }
+  return [];
+}
+
 async function fetchUsers(search: string): Promise<AdminUser[]> {
   const params = new URLSearchParams();
   if (search) params.set("q", search);
   const url = params.toString() ? `/admin/users?${params.toString()}` : "/admin/users";
-  const res = await api.get<AdminUser[]>(url);
-  return (res.data || []) as AdminUser[];
+  const res = await api.get(url);
+  return ensureArray<AdminUser>(res.data);
 }
 
 async function updateRole(id: string, role: string) {
   await api.post(`/admin/users/${id}/role`, { role });
+}
+
+async function setPremium(id: string, is_premium: boolean, premium_until?: string | null) {
+  await api.post(`/admin/users/${id}/premium`, {
+    is_premium,
+    premium_until: premium_until ?? null,
+  });
+}
+
+async function createRestriction(user_id: string, type: string, reason?: string, expires_at?: string | null) {
+  await api.post(`/admin/restrictions`, {
+    user_id,
+    type,
+    reason: reason || undefined,
+    expires_at: expires_at ?? undefined,
+  });
+}
+
+async function deleteRestriction(id: string) {
+  await api.del(`/admin/restrictions/${id}`);
 }
 
 export default function Users() {
@@ -51,6 +82,75 @@ export default function Users() {
       addToast({ title: "Role updated", description: `User role set to "${role}"`, variant: "success" });
     } catch (e) {
       addToast({ title: "Failed to update role", description: e instanceof Error ? e.message : String(e), variant: "error" });
+    }
+  };
+
+  // Premium modal state
+  const [premiumUser, setPremiumUser] = useState<AdminUser | null>(null);
+  const [premiumFlag, setPremiumFlag] = useState<boolean>(false);
+  const [premiumUntil, setPremiumUntil] = useState<string>("");
+
+  const openPremium = (u: AdminUser) => {
+    setPremiumUser(u);
+    setPremiumFlag(!!u.is_premium);
+    setPremiumUntil(u.premium_until ? new Date(u.premium_until).toISOString().slice(0, 16) : "");
+  };
+  const applyPremium = async () => {
+    if (!premiumUser) return;
+    try {
+      await setPremium(
+        premiumUser.id,
+        premiumFlag,
+        premiumUntil ? new Date(premiumUntil).toISOString() : null
+      );
+      addToast({ title: "Premium updated", variant: "success" });
+      setPremiumUser(null);
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    } catch (e) {
+      addToast({ title: "Failed to update premium", description: e instanceof Error ? e.message : String(e), variant: "error" });
+    }
+  };
+
+  // Restriction modal state
+  const [restrictUser, setRestrictUser] = useState<AdminUser | null>(null);
+  const [restrictType, setRestrictType] = useState<string>("ban");
+  const [restrictReason, setRestrictReason] = useState<string>("");
+  const [restrictUntil, setRestrictUntil] = useState<string>("");
+
+  const openRestrict = (u: AdminUser) => {
+    setRestrictUser(u);
+    setRestrictType("ban");
+    setRestrictReason("");
+    setRestrictUntil("");
+  };
+  const applyRestriction = async () => {
+    if (!restrictUser) return;
+    try {
+      await createRestriction(
+        restrictUser.id,
+        restrictType,
+        restrictReason || undefined,
+        restrictUntil ? new Date(restrictUntil).toISOString() : undefined
+      );
+      addToast({ title: "Restriction applied", variant: "success" });
+      setRestrictUser(null);
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    } catch (e) {
+      addToast({ title: "Failed to apply restriction", description: e instanceof Error ? e.message : String(e), variant: "error" });
+    }
+  };
+
+  const firstBanRestriction = (u: AdminUser) => u.restrictions.find((r) => r.type === "ban");
+
+  const unban = async (u: AdminUser) => {
+    const r = firstBanRestriction(u);
+    if (!r) return;
+    try {
+      await deleteRestriction(r.id);
+      addToast({ title: "User unbanned", variant: "success" });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    } catch (e) {
+      addToast({ title: "Failed to unban", description: e instanceof Error ? e.message : String(e), variant: "error" });
     }
   };
 
@@ -85,6 +185,7 @@ export default function Users() {
               <th className="p-2">Created</th>
               <th className="p-2">Wallet</th>
               <th className="p-2">Restrictions</th>
+              <th className="p-2">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -113,10 +214,96 @@ export default function Users() {
                     ? u.restrictions.map((r) => r.type).join(", ")
                     : "-"}
                 </td>
+                <td className="p-2 space-x-2">
+                  <button
+                    className="px-2 py-1 rounded border"
+                    onClick={() => openPremium(u)}
+                  >
+                    Premium
+                  </button>
+                  {firstBanRestriction(u) ? (
+                    <button
+                      className="px-2 py-1 rounded border"
+                      onClick={() => unban(u)}
+                    >
+                      Unban
+                    </button>
+                  ) : (
+                    <button
+                      className="px-2 py-1 rounded border"
+                      onClick={() => openRestrict(u)}
+                    >
+                      Ban/Restrict
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* Premium modal */}
+      {premiumUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 p-4 rounded shadow max-w-md w-full">
+            <h2 className="text-lg font-bold mb-2">Update premium</h2>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={premiumFlag} onChange={(e) => setPremiumFlag(e.target.checked)} />
+                <span>is_premium</span>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-gray-600">premium_until</span>
+                <input
+                  type="datetime-local"
+                  value={premiumUntil}
+                  onChange={(e) => setPremiumUntil(e.target.value)}
+                  className="border rounded px-2 py-1"
+                />
+              </label>
+            </div>
+            <div className="mt-3 flex justify-end gap-2">
+              <button className="px-3 py-1 rounded border" onClick={() => setPremiumUser(null)}>Cancel</button>
+              <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={applyPremium}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restriction modal */}
+      {restrictUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 p-4 rounded shadow max-w-md w-full">
+            <h2 className="text-lg font-bold mb-2">Apply restriction</h2>
+            <div className="space-y-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-gray-600">type</span>
+                <select value={restrictType} onChange={(e) => setRestrictType(e.target.value)} className="border rounded px-2 py-1">
+                  <option value="ban">ban</option>
+                  <option value="post_restrict">post_restrict</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-gray-600">reason</span>
+                <input value={restrictReason} onChange={(e) => setRestrictReason(e.target.value)} className="border rounded px-2 py-1" />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-gray-600">expires_at</span>
+                <input
+                  type="datetime-local"
+                  value={restrictUntil}
+                  onChange={(e) => setRestrictUntil(e.target.value)}
+                  className="border rounded px-2 py-1"
+                />
+              </label>
+            </div>
+            <div className="mt-3 flex justify-end gap-2">
+              <button className="px-3 py-1 rounded border" onClick={() => setRestrictUser(null)}>Cancel</button>
+              <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={applyRestriction}>Apply</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

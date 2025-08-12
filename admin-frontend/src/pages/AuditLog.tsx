@@ -17,10 +17,20 @@ interface AuditLogEntry {
 
 import { api } from "../api/client";
 
+function ensureArray<T = any>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === "object") {
+    const obj = data as any;
+    if (Array.isArray(obj.items)) return obj.items as T[];
+    if (Array.isArray(obj.data)) return obj.data as T[];
+  }
+  return [];
+}
+
 async function fetchAudit(params: Record<string, string>): Promise<AuditLogEntry[]> {
   const qs = new URLSearchParams(params).toString();
-  const res = await api.get<AuditLogEntry[]>(qs ? `/admin/audit?${qs}` : "/admin/audit");
-  return (res.data || []) as AuditLogEntry[];
+  const res = await api.get(qs ? `/admin/audit?${qs}` : "/admin/audit");
+  return ensureArray<AuditLogEntry>(res.data);
 }
 
 export default function AuditLog() {

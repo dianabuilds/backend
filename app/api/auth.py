@@ -33,7 +33,7 @@ from app.schemas.auth import (
 )
 from app.core.log_events import auth_success, auth_failure
 from app.core.log_filters import user_id_var
-from app.core.rate_limit import rate_limit_dep
+from app.core.rate_limit import rate_limit_dep, rate_limit_dep_key
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -210,7 +210,7 @@ async def _authenticate(db: AsyncSession, login: str, password: str) -> tuple[To
     "/login",
     response_model=Token,
     summary="User login",
-    dependencies=[rate_limit_dep(settings.rate_limit.rules_login)],
+    dependencies=[rate_limit_dep_key("login")],
 )
 async def login(request: Request, db: AsyncSession = Depends(get_db)):
     """Authenticate a user via form or JSON body and return a JWT token."""
@@ -230,7 +230,7 @@ async def login(request: Request, db: AsyncSession = Depends(get_db)):
     "/login-json",
     include_in_schema=True,
     summary="Login with JSON",
-    dependencies=[rate_limit_dep(settings.rate_limit.rules_login_json)],
+    dependencies=[rate_limit_dep_key("login_json")],
 )
 async def login_json(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
     """Authenticate using a JSON payload instead of form data."""
@@ -319,7 +319,7 @@ async def logout():
 @router.post(
     "/change-password",
     summary="Change password",
-    dependencies=[rate_limit_dep(settings.rate_limit.rules_change_password)],
+    dependencies=[rate_limit_dep_key("change_password")],
 )
 async def change_password(
     payload: ChangePassword,
@@ -339,7 +339,7 @@ async def change_password(
 @router.post(
     "/evm/nonce",
     summary="Request EVM nonce",
-    dependencies=[rate_limit_dep(settings.rate_limit.rules_evm_nonce)],
+    dependencies=[rate_limit_dep_key("evm_nonce")],
 )
 async def evm_nonce(wallet_address: str):
     """Generate a nonce for the given wallet address to sign."""
@@ -352,7 +352,7 @@ async def evm_nonce(wallet_address: str):
     "/evm/verify",
     response_model=Token,
     summary="Verify EVM signature",
-    dependencies=[rate_limit_dep(settings.rate_limit.rules_evm_verify)],
+    dependencies=[rate_limit_dep_key("evm_verify")],
 )
 async def evm_verify(payload: EVMVerify, db: AsyncSession = Depends(get_db)):
     """Validate signed message from wallet and issue a JWT token."""

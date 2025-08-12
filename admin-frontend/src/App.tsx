@@ -19,6 +19,7 @@ import Tags from "./pages/Tags";
 import Transitions from "./pages/Transitions";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ToastProvider } from "./components/ToastProvider";
+import Monitoring from "./pages/Monitoring";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ export default function App() {
                   <Route path="search" element={<ComingSoon title="Search" />} />
                   <Route path="tools/cache" element={<CacheTools />} />
                   <Route path="tools/rate-limit" element={<RateLimitTools />} />
+                  <Route path="tools/monitoring" element={<Monitoring />} />
                   <Route path="tools/restrictions" element={<Restrictions />} />
                   <Route path="tools/audit" element={<AuditLog />} />
                   <Route path="system/health" element={<Health />} />

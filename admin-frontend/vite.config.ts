@@ -31,22 +31,39 @@ proxy['/admin/echo'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/navigation'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/users'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/menu'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/dashboard'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/cache'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/ratelimit'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/restrictions'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/audit'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/metrics'] = { target: 'http://localhost:8000', changeOrigin: true }
 
 // https://vite.dev/config/
 export default defineConfig({
   base: '/admin/',
   plugins: [
     react(),
-    // Редиректим корень "/" на "/admin/" в dev, чтобы не попадать на пустую страницу
+    // SPA fallback в dev:
+    // - любые HTML-запросы на /admin/* (кроме ассетов) отправляем на /admin/
+    // - XHR (application/json и т.п.) продолжат проксироваться на бэкенд
     {
-      name: 'root-redirect-to-admin',
+      name: 'admin-spa-fallback',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          const request = req as unknown as { url?: string; headers?: Record<string, string | string[] | undefined> }
+          const request = req as unknown as { url?: string; headers?: Record<string, string | string[] | undefined>; method?: string }
           const url = request.url ?? ''
+          const method = (request.method || 'GET').toUpperCase()
           const acceptHeader = request.headers?.['accept']
           const accept = (Array.isArray(acceptHeader) ? acceptHeader[0] : acceptHeader) ?? ''
-          if (url === '/' && accept.includes('text/html')) {
+
+          // Только для GET HTML-запросов на вложенные пути /admin/*
+          const isHtml = accept.includes('text/html')
+          const isAdminNested = url.startsWith('/admin/') // важно: со слешом после admin
+          const isAdminRoot = url === '/admin' || url === '/admin/'
+          const isAsset = url.startsWith('/admin/assets')
+
+          if (method === 'GET' && isHtml && isAdminNested && !isAsset && !isAdminRoot) {
+            // Перенаправляем только вложенные маршруты на корневой SPA
             res.statusCode = 302
             res.setHeader('Location', '/admin/')
             res.end()

@@ -67,9 +67,29 @@ function MenuItem({ item, level, activePath, expanded, toggle }: { item: AdminMe
   const padding = 8 + level * 12;
 
   if (item.children && item.children.length > 0) {
+    // Если только один дочерний элемент и у родителя нет собственного path —
+    // делаем верхний пункт ссылкой на ребенка (компактный режим).
+    if ((!item.path || item.path === null) && item.children.length === 1) {
+      const only = item.children[0] as AdminMenuItem;
+      const to = normalizePath(only.path) || "/";
+      const isActive = longestPrefixMatch(activePath, to);
+      return (
+        <NavLink
+          to={to}
+          className={({ isActive: exact }) =>
+            `block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${isActive || exact ? "font-semibold" : ""}`
+          }
+          style={{ paddingLeft: padding }}
+          aria-current={isActive ? "page" : undefined}
+        >
+          {content}
+        </NavLink>
+      );
+    }
+
     const open = expanded[item.id] ?? false;
     // Auto-open if a child is active
-    const childActive = item.children.some((c) => longestPrefixMatch(activePath, normalizePath(c.path) || undefined));
+    const childActive = item.children.some((c: AdminMenuItem) => longestPrefixMatch(activePath, normalizePath(c.path) || undefined));
     const isActive = longestPrefixMatch(activePath, normalizePath(item.path) || undefined) || childActive;
 
     useEffect(() => {
@@ -95,7 +115,7 @@ function MenuItem({ item, level, activePath, expanded, toggle }: { item: AdminMe
         </button>
         {open && (
           <div id={`group-${item.id}`} className="mt-1 space-y-1">
-            {item.children.map((child) => (
+            {item.children.map((child: AdminMenuItem) => (
               <MenuItem key={child.id} item={child} level={level + 1} activePath={activePath} expanded={expanded} toggle={toggle} />
             ))}
           </div>

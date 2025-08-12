@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
 from app.core.config import settings
-from app.core.rate_limit import recent_429
+from app.core.rate_limit import recent_429, _parse_rule  # type: ignore
 from app.db.session import get_db
 from app.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
@@ -23,10 +23,50 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 
+_ALLOWED_KEYS = {
+    "login": "rules_login",
+    "login_json": "rules_login_json",
+    "signup": "rules_signup",
+    "evm_nonce": "rules_evm_nonce",
+    "evm_verify": "rules_evm_verify",
+    "change_password": "rules_change_password",
+}
+
+
 @router.get("/rules", summary="List rate limit rules")
 async def list_rules(current_user: User = Depends(admin_required)):
     return {
         "enabled": settings.rate_limit.enabled,
+        "rules": {
+            "login": settings.rate_limit.rules_login,
+            "login_json": settings.rate_limit.rules_login_json,
+            "signup": settings.rate_limit.rules_signup,
+            "evm_nonce": settings.rate_limit.rules_evm_nonce,
+            "evm_verify": settings.rate_limit.rules_evm_verify,
+            "change_password": settings.rate_limit.rules_change_password,
+        },
+    }
+
+
+class RuleUpdatePayload(BaseModel):
+    key: str
+    rule: str
+
+
+@router.patch("/rules", summary="Update single rate limit rule")
+async def update_rule(payload: RuleUpdatePayload, current_user: User = Depends(admin_only)):
+    # в проде можно дополнительно ограничить
+    attr = _ALLOWED_KEYS.get(payload.key)
+    if not attr:
+        raise HTTPException(status_code=400, detail="Unknown rule key")
+    # валидация формата правила
+    try:
+        _parse_rule(payload.rule)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid rule format, expected like '5/min', '10/sec', '3/hour'")
+    setattr(settings.rate_limit, attr, payload.rule)
+    return {
+        "ok": True,
         "rules": {
             "login": settings.rate_limit.rules_login,
             "login_json": settings.rate_limit.rules_login_json,

@@ -32,6 +32,10 @@ recent_429: deque[dict] = deque(maxlen=50)
 
 
 def rate_limit_dep(rule: str):
+    """
+    Историческая версия: принимает строку правила и фиксирует её на момент объявления.
+    Оставляем для совместимости, но для динамических изменений используйте rate_limit_dep_key.
+    """
     times, seconds = _parse_rule(rule)
 
     async def _callback(request: Request, response: Response, pexpire):  # pragma: no cover
@@ -49,6 +53,39 @@ def rate_limit_dep(rule: str):
     async def _dep(request: Request, response: Response):
         if not settings.rate_limit.enabled:
             return
+        limiter = RateLimiter(times=times, seconds=seconds, callback=_callback)
+        return await limiter(request, response)
+
+    return Depends(_dep)
+
+
+def rate_limit_dep_key(key: str):
+    """
+    Новая версия: принимает "ключ" правила (login, login_json, signup, evm_nonce, evm_verify, change_password)
+    и читает актуальное значение из настроек на каждом запросе.
+    """
+    attr = f"rules_{key}"
+
+    async def _callback(request: Request, response: Response, pexpire):  # pragma: no cover
+        ip = request.client.host if request.client else None
+        rule_str = getattr(settings.rate_limit, attr, "")
+        recent_429.append(
+            {
+                "path": request.url.path,
+                "ip": ip,
+                "rule": rule_str,
+                "ts": datetime.utcnow().isoformat(),
+            }
+        )
+        return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
+
+    async def _dep(request: Request, response: Response):
+        if not settings.rate_limit.enabled:
+            return
+        rule_str = getattr(settings.rate_limit, attr, None)
+        if not rule_str:
+            return  # правило не настроено — пропускаем
+        times, seconds = _parse_rule(rule_str)
         limiter = RateLimiter(times=times, seconds=seconds, callback=_callback)
         return await limiter(request, response)
 

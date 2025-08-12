@@ -6,6 +6,13 @@ interface CacheStats {
   hot_keys: { key: string; count: number; ttl: number | null }[];
 }
 
+function normalizeCacheStats(raw: unknown): CacheStats {
+  const obj = (raw && typeof raw === "object") ? (raw as any) : {};
+  const counters = obj && typeof obj.counters === "object" ? obj.counters as Record<string, Record<string, number>> : {};
+  const hot_keys = Array.isArray(obj?.hot_keys) ? obj.hot_keys as CacheStats["hot_keys"] : [];
+  return { counters, hot_keys };
+}
+
 export default function CacheTools() {
   const [stats, setStats] = useState<CacheStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -17,10 +24,11 @@ export default function CacheTools() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<CacheStats>("/admin/cache/stats");
-      setStats(res.data || null);
+      const res = await api.get("/admin/cache/stats");
+      setStats(normalizeCacheStats(res.data));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setStats(null);
     } finally {
       setLoading(false);
     }
@@ -74,7 +82,7 @@ export default function CacheTools() {
                 </tr>
               </thead>
               <tbody>
-                {stats.hot_keys.map((k) => (
+                {(stats.hot_keys ?? []).map((k) => (
                   <tr key={k.key} className="border-b">
                     <td className="p-2 font-mono">{k.key}</td>
                     <td className="p-2">{k.count}</td>
@@ -87,7 +95,7 @@ export default function CacheTools() {
 
           <section>
             <h2 className="font-semibold mb-2">Counters</h2>
-            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">{JSON.stringify(stats.counters, null, 2)}</pre>
+            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">{JSON.stringify(stats.counters ?? {}, null, 2)}</pre>
           </section>
         </div>
       )}

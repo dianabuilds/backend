@@ -8,10 +8,17 @@ from app.core.metrics import metrics_storage
 
 class MetricsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        # Не считаем собственные метрики, чтобы не искажать картину
         if request.url.path.startswith("/admin/metrics"):
             return await call_next(request)
         start = time.perf_counter()
         response: Response = await call_next(request)
         duration_ms = int((time.perf_counter() - start) * 1000)
-        metrics_storage.record(duration_ms, response.status_code)
+
+        # Извлекаем шаблон маршрута, если доступен
+        route = request.scope.get("route")
+        route_path = getattr(route, "path", None) or request.url.path
+        method = request.method.upper()
+
+        metrics_storage.record(duration_ms, response.status_code, method, route_path)
         return response
