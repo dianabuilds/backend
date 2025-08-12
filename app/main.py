@@ -20,6 +20,7 @@ from app.api.admin_ratelimit import router as admin_ratelimit_router
 from app.api.admin_notifications import router as admin_notifications_router
 from app.api.admin_notifications_broadcast import router as admin_notifications_broadcast_router
 from app.api.admin_quests import router as admin_quests_router
+from app.api.admin_achievements import router as admin_achievements_router
 from app.web.admin_spa import router as admin_spa_router
 from app.api.moderation import router as moderation_router
 from app.api.transitions import router as transitions_router
@@ -92,6 +93,7 @@ app.include_router(admin_ratelimit_router)
 app.include_router(admin_notifications_router)
 app.include_router(admin_notifications_broadcast_router)
 app.include_router(admin_quests_router)
+app.include_router(admin_achievements_router)
 app.include_router(admin_metrics_router)
 app.include_router(admin_spa_router)
 app.include_router(moderation_router)
