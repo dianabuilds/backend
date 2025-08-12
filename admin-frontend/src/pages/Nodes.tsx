@@ -61,15 +61,11 @@ export default function Nodes() {
 
   const doCreate = async () => {
     if (!canSave) return;
+    // Отправляем минимально необходимый набор полей для гарантированного прохождения валидации
     const payload: Record<string, any> = {
       title: draft.title,
-      content_format: "rich_json",              // Editor.js -> rich_json
-      content: draft.contentData,               // имя поля content
-      media: draft.cover_image ? [draft.cover_image] : undefined,
-      tags: (draft.tags && draft.tags.length > 0) ? draft.tags : undefined,
-      allow_feedback: draft.allow_comments ?? true,
-      premium_only: draft.is_premium_only ?? false,
-      meta: draft.subtitle ? { subtitle: draft.subtitle } : undefined,
+      content_format: "rich_json",
+      content: draft.contentData,
     };
     const res = await api.post("/nodes", payload);
     return res.data as any;

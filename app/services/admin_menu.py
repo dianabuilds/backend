@@ -130,6 +130,7 @@ BASE_MENU: List[dict] = [
                 "path": "/achievements",
                 "icon": "achievements",
                 "order": 4,
+                "hidden": True,  # вынесено на верхний уровень
             },
             {
                 "id": "quests",
@@ -223,6 +224,13 @@ BASE_MENU: List[dict] = [
         "order": 8,
         "roles": ["admin"],
         "featureFlag": "payments",
+    },
+    {
+        "id": "achievements-top",
+        "label": "Achievements",
+        "path": "/achievements",
+        "icon": "achievements",
+        "order": 9,  # внизу, ниже контента
     },
 ]
 

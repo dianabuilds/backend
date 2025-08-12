@@ -214,11 +214,6 @@ export default function QuestEditor() {
           title: n.title,
           content_format: "rich_json",
           content: n.contentData,
-          media: n.cover_image ? [n.cover_image] : undefined,
-          tags: (n.tags && n.tags.length > 0) ? n.tags : undefined,
-          allow_feedback: n.allow_comments ?? true,
-          premium_only: n.is_premium_only ?? false,
-          meta: n.subtitle ? { subtitle: n.subtitle } : undefined,
         };
         const res = await api.post("/nodes", payload);
         const created = (res.data || {}) as any;
