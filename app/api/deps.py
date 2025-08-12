@@ -2,7 +2,6 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import load_only
@@ -13,16 +12,16 @@ from app.models.user import User
 from app.models.moderation import UserRestriction
 from app.core.log_filters import user_id_var
 
-# Обновляем URL для получения токена, указывая, что используется username+password
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
 
 async def get_current_user(
-    request: Request,
-    token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db),
+    request: Request, db: AsyncSession = Depends(get_db)
 ) -> User:
-    user_id_str = verify_access_token(token)
+    auth = request.headers.get("Authorization")
+    if auth and auth.lower().startswith("bearer "):
+        token = auth.split(" ", 1)[1]
+    else:
+        token = request.cookies.get("access_token")
+    user_id_str = verify_access_token(token) if token else None
     if not user_id_str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
@@ -71,11 +70,15 @@ async def get_current_user(
 async def get_current_user_optional(
     request: Request, db: AsyncSession = Depends(get_db)
 ) -> User | None:
-    """Return current user if Authorization header present, otherwise None."""
+    """Return current user if auth header/cookie present, otherwise None."""
     auth = request.headers.get("Authorization")
-    if not auth or not auth.lower().startswith("bearer "):
+    token = None
+    if auth and auth.lower().startswith("bearer "):
+        token = auth.split(" ", 1)[1]
+    else:
+        token = request.cookies.get("access_token")
+    if not token:
         return None
-    token = auth.split(" ", 1)[1]
     user_id_str = verify_access_token(token)
     if not user_id_str:
         return None

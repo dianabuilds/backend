@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
-
-from datetime import datetime, timedelta
+from uuid import uuid4
 
 import jwt
 from passlib.context import CryptContext
@@ -33,3 +32,36 @@ def verify_access_token(token: str):
     except jwt.PyJWTError:
         return None
     return payload.get("sub")
+
+
+# In-memory store for refresh tokens to enforce rotation
+_refresh_store: dict[str, str] = {}
+
+
+def create_refresh_token(user_id) -> str:
+    jti = uuid4().hex
+    payload = {
+        "sub": str(user_id),
+        "jti": jti,
+        "iat": datetime.utcnow(),
+        "exp": datetime.utcnow() + timedelta(seconds=settings.jwt.refresh_expiration),
+    }
+    token = jwt.encode(payload, settings.jwt.secret, algorithm=settings.jwt.algorithm)
+    _refresh_store[jti] = str(user_id)
+    return token
+
+
+def verify_refresh_token(token: str):
+    try:
+        payload = jwt.decode(
+            token, settings.jwt.secret, algorithms=[settings.jwt.algorithm]
+        )
+    except jwt.PyJWTError:
+        return None
+    jti = payload.get("jti")
+    sub = payload.get("sub")
+    if not jti or _refresh_store.get(jti) != sub:
+        return None
+    # Rotation: remove used token
+    _refresh_store.pop(jti, None)
+    return sub
