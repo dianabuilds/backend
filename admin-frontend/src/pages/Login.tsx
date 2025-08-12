@@ -14,6 +14,7 @@ export default function Login() {
     setError(null);
     try {
       await login(username, password);
+      // basename="/admin" добавится автоматически
       navigate("/");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Ошибка авторизации";

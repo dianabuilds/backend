@@ -37,6 +37,8 @@ proxy['/admin/ratelimit'] = { target: 'http://localhost:8000', changeOrigin: tru
 proxy['/admin/restrictions'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/audit'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/metrics'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/notifications'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/quests'] = { target: 'http://localhost:8000', changeOrigin: true }
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -61,6 +63,14 @@ export default defineConfig({
           const isAdminNested = url.startsWith('/admin/') // важно: со слешом после admin
           const isAdminRoot = url === '/admin' || url === '/admin/'
           const isAsset = url.startsWith('/admin/assets')
+
+          // Явно правим /admin -> /admin/, чтобы не видеть предупреждение Vite о base URL
+          if (method === 'GET' && isHtml && url === '/admin') {
+            res.statusCode = 302
+            res.setHeader('Location', '/admin/')
+            res.end()
+            return
+          }
 
           if (method === 'GET' && isHtml && isAdminNested && !isAsset && !isAdminRoot) {
             // Перенаправляем только вложенные маршруты на корневой SPA

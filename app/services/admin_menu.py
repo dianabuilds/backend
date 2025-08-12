@@ -122,6 +122,7 @@ BASE_MENU: List[dict] = [
                 "path": "/notifications",
                 "icon": "notifications",
                 "order": 3,
+                "hidden": True,  # перенесено на верхний уровень
             },
             {
                 "id": "achievements",
@@ -136,6 +137,7 @@ BASE_MENU: List[dict] = [
                 "path": "/quests",
                 "icon": "quests",
                 "order": 5,
+                "hidden": True,  # перенесено на верхний уровень
             },
             {
                 "id": "search",
@@ -198,6 +200,20 @@ BASE_MENU: List[dict] = [
                 "order": 1,
             }
         ],
+    },
+    {
+        "id": "notifications-top",
+        "label": "Notifications",
+        "path": "/notifications",
+        "icon": "notifications",
+        "order": 2,  # рядом вверху
+    },
+    {
+        "id": "quests-top",
+        "label": "Quests",
+        "path": "/quests",
+        "icon": "quests",
+        "order": 3,
     },
     {
         "id": "payments",

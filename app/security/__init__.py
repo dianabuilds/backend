@@ -73,9 +73,16 @@ def require_admin_role(allowed_roles: Set[str] | None = None):
         credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
         db: AsyncSession = Depends(get_db),
     ) -> User:
-        if credentials is None:
+        # Приоритет: Bearer из заголовка; если его нет — берём access_token из cookie.
+        token: str | None = None
+        if credentials is not None and credentials.credentials:
+            token = credentials.credentials
+        else:
+            token = request.cookies.get("access_token")
+
+        if not token:
             raise AuthRequiredError()
-        token = credentials.credentials
+
         user = await get_current_user(token, db)
         if user.role not in allowed:
             raise ForbiddenError(user_id=str(user.id), role=user.role)

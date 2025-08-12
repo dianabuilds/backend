@@ -1,12 +1,44 @@
+let csrfTokenMem: string | null =
+  typeof sessionStorage !== "undefined" ? sessionStorage.getItem("csrfToken") : null;
+
+export function setCsrfToken(token: string | null) {
+  csrfTokenMem = token || null;
+  if (typeof sessionStorage !== "undefined") {
+    if (token) sessionStorage.setItem("csrfToken", token);
+    else sessionStorage.removeItem("csrfToken");
+  }
+}
+
+// Пытаемся вытащить csrf_token из JSON-ответа и сохранить его
+export async function syncCsrfFromResponse(resp: Response): Promise<void> {
+  try {
+    const cloned = resp.clone();
+    const ct = cloned.headers.get("Content-Type") || "";
+    if (ct.includes("application/json")) {
+      const data = await cloned.json().catch(() => null) as any;
+      const token = data && (data.csrf_token || data.csrfToken || data.csrf);
+      if (typeof token === "string" && token) setCsrfToken(token);
+    }
+  } catch {
+    // игнорируем
+  }
+}
+
 function getCsrfToken(): string {
   const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : "";
+  if (match) return decodeURIComponent(match[1]);
+  return csrfTokenMem || "";
+}
+
+// Достаём access_token из cookie, чтобы подставлять в Authorization: Bearer
+function getAccessToken(): string {
+  const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : "";
 }
 
 /**
- * Низкоуровневый fetch с поддержкой Authorization (Bearer из localStorage)
- * и CSRF для небезопасных методов. НИКАКИХ автологаутов здесь — 401
- * пробрасывается выше и решается на уровне вызывающего кода.
+ * Низкоуровневый fetch с поддержкой cookie‑сессии,
+ * авторефрешем access/CSRF на 401 и синхронизацией CSRF.
  */
 export async function apiFetch(
   input: RequestInfo,
@@ -18,15 +50,14 @@ export async function apiFetch(
     ...(init.headers as Record<string, string> | undefined),
   };
 
-  // Подставляем Bearer-токен из localStorage (совместимо с текущим бэкендом)
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  if (token && !headers["Authorization"]) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  // Всегда отправляем CSRF, если он известен (некоторые админ‑GET тоже требуют его)
+  const csrf = getCsrfToken();
+  if (csrf) headers["X-CSRF-Token"] = csrf;
 
-  // Для небезопасных методов добавляем CSRF заголовок (double-submit)
-  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-    headers["X-CSRF-Token"] = getCsrfToken();
+  // Если явно не передали Authorization — берём токен из cookie
+  if (!("authorization" in Object.fromEntries(Object.entries(headers).map(([k,v]) => [k.toLowerCase(), v])))) {
+    const at = getAccessToken();
+    if (at) headers["Authorization"] = `Bearer ${at}`;
   }
 
   const resp = await fetch(input, {
@@ -35,6 +66,59 @@ export async function apiFetch(
     headers,
     credentials: "include",
   });
+
+    // Если access истёк — пробуем обновить сессию и повторить запрос один раз
+    // и не пытаемся рефрешиться, если 401 пришёл на сам /auth/refresh
+    const isRefreshCall = typeof input === "string" && input.startsWith("/auth/refresh");
+    if (resp.status === 401 && _retry && !isRefreshCall) {
+      try {
+        const refreshHeaders: Record<string, string> = {};
+        const csrfForRefresh = getCsrfToken();
+        if (csrfForRefresh) refreshHeaders["X-CSRF-Token"] = csrfForRefresh;
+
+        const refresh = await fetch("/auth/refresh", {
+          method: "POST",
+          headers: refreshHeaders,
+          credentials: "include",
+        });
+        if (refresh.ok) {
+          await syncCsrfFromResponse(refresh);
+          return apiFetch(input, init, false);
+        }
+      } catch {
+        // игнорируем — вернём исходный 401
+      }
+    }
+
+    // Синхронизируем CSRF, если бэкенд прислал новый токен в JSON
+    try {
+      await syncCsrfFromResponse(resp);
+    } catch {
+      // no-op
+    }
+
+  // Если access истёк — пробуем обновить сессию и повторить запрос один раз
+  if (resp.status === 401 && _retry) {
+    try {
+      const refresh = await fetch("/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (refresh.ok) {
+        await syncCsrfFromResponse(refresh);
+        return apiFetch(input, init, false);
+      }
+    } catch {
+      // игнорируем — вернём исходный 401
+    }
+  }
+
+  // Синхронизируем CSRF, если бэкенд прислал новый токен в JSON
+  try {
+    await syncCsrfFromResponse(resp);
+  } catch {
+    // no-op
+  }
 
   return resp;
 }

@@ -20,6 +20,9 @@ import Transitions from "./pages/Transitions";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ToastProvider } from "./components/ToastProvider";
 import Monitoring from "./pages/Monitoring";
+import Notifications from "./pages/Notifications";
+import Quests from "./pages/Quests";
+import QuestEditor from "./pages/QuestEditor";
 
 const queryClient = new QueryClient();
 
@@ -48,9 +51,10 @@ export default function App() {
                   <Route path="navigation" element={<Navigation />} />
                   <Route path="echo" element={<Echo />} />
                   <Route path="traces" element={<ComingSoon title="Traces" />} />
-                  <Route path="notifications" element={<ComingSoon title="Notifications" />} />
+                  <Route path="notifications" element={<Notifications />} />
                   <Route path="achievements" element={<ComingSoon title="Achievements" />} />
-                  <Route path="quests" element={<ComingSoon title="Quests" />} />
+                  <Route path="quests" element={<Quests />} />
+                  <Route path="quests/editor" element={<QuestEditor />} />
                   <Route path="search" element={<ComingSoon title="Search" />} />
                   <Route path="tools/cache" element={<CacheTools />} />
                   <Route path="tools/rate-limit" element={<RateLimitTools />} />

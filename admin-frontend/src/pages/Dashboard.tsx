@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import KpiCard from "../components/KpiCard";
-import { apiFetch } from "../api/client";
+import { api } from "../api/client";
 
 interface DashboardData {
   kpi: {
@@ -31,16 +31,8 @@ export default function Dashboard() {
     const load = async () => {
       setLoading(true);
       try {
-        const resp = await apiFetch("/admin/dashboard");
-        const text = await resp.text();
-        if (!resp.ok) throw new Error(text || resp.statusText);
-        let d: DashboardData;
-        try {
-          d = JSON.parse(text) as DashboardData;
-        } catch {
-          throw new Error("Invalid JSON in response");
-        }
-        setData(d);
+        const res = await api.get<DashboardData>("/admin/dashboard");
+        setData(res.data as DashboardData);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setError(msg);
@@ -59,12 +51,10 @@ export default function Dashboard() {
     e.preventDefault();
     setInvalidateMessage(null);
     try {
-      const resp = await apiFetch("/admin/cache/invalidate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope: invalidateScope, slug: invalidateSlug || undefined }),
+      await api.post("/admin/cache/invalidate", {
+        scope: invalidateScope,
+        slug: invalidateSlug || undefined,
       });
-      if (!resp.ok) throw new Error(await resp.text());
       setInvalidateMessage("Invalidated");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -79,12 +69,7 @@ export default function Dashboard() {
     e.preventDefault();
     setRecomputeMessage(null);
     try {
-      const resp = await apiFetch("/admin/embeddings/recompute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ limit: recomputeLimit }),
-      });
-      if (!resp.ok) throw new Error(await resp.text());
+      await api.post("/admin/embeddings/recompute", { limit: recomputeLimit });
       setRecomputeMessage("Started");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

@@ -16,7 +16,15 @@
     "lucide-react": "^0.284.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.23.1"
+    "react-router-dom": "^6.23.1",
+    "@editorjs/editorjs": "^2.30.7",
+    "@editorjs/header": "^2.8.1",
+    "@editorjs/list": "^1.9.0",
+    "@editorjs/checklist": "^1.6.0",
+    "@editorjs/image": "^2.9.0",
+    "@editorjs/table": "^2.4.1",
+    "@editorjs/quote": "^2.5.0",
+    "@editorjs/delimiter": "^1.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
