@@ -7,9 +7,10 @@ interface Props {
   onChange?: (data: EditorData) => void;
   className?: string;
   minHeight?: number;
+  placeholder?: string;
 }
 
-export default function EditorJSEmbed({ value, onChange, className, minHeight = 220 }: Props) {
+export default function EditorJSEmbed({ value, onChange, className, minHeight = 220, placeholder }: Props) {
   const holderId = useRef(`edjs-${Math.random().toString(36).slice(2)}`);
   const editorRef = useRef<any>(null);
   const changeTimer = useRef<number | null>(null);
@@ -32,6 +33,7 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
       const instance = new EditorJS({
         holder: holderId.current,
         minHeight,
+        placeholder: placeholder || "Напишите описание, легенду или сценарий…",
         data: value || { time: Date.now(), blocks: [{ type: "paragraph", data: { text: "" } }], version: "2.30.7" },
         tools: {
           header: Header,
@@ -86,10 +88,7 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holderId.current]);
 
-  // При смене value извне — пересоздаём редактор (ключ меняется выше)
-  useEffect(() => {
-    // no-op: пересоздаётся через ключ эффекта
-  }, [value]);
+  useEffect(() => {}, [value]);
 
-  return <div id={holderId.current} className={className} />;
+  return <div id={holderId.current} className={`edjs-wrap ${className || ""}`} />;
 }

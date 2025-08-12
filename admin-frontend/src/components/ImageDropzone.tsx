@@ -70,8 +70,9 @@ export default function ImageDropzone({ value, onChange, className = "", height 
           onClick={onClick}
         >
           <div className="text-center px-3">
-            <div className="font-medium mb-1">Drop image here</div>
-            <div className="text-xs text-gray-500">or click to choose a file</div>
+            <div className="mx-auto mb-2 text-3xl">🖼️</div>
+            <div className="font-medium mb-0.5">Перетащите изображение</div>
+            <div className="text-xs text-gray-500">или нажмите, чтобы выбрать файл</div>
           </div>
         </div>
       )}

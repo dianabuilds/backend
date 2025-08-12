@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
+import NodeEditorModal, { type NodeEditorData } from "../components/NodeEditorModal";
 
 type NodeItem = Record<string, any>;
 
@@ -13,11 +14,28 @@ function ensureArray<T = any>(data: unknown): T[] {
   return [];
 }
 
+function makeDraft(): NodeEditorData {
+  return {
+    id: `draft-${Date.now()}`,
+    title: "",
+    subtitle: "",
+    cover_image: null,
+    tags: [],
+    allow_comments: true,
+    is_premium_only: false,
+    contentData: { time: Date.now(), blocks: [{ type: "paragraph", data: { text: "" } }], version: "2.30.7" },
+  };
+}
+
 export default function Nodes() {
   const [items, setItems] = useState<NodeItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
+
+  // Создание ноды
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [draft, setDraft] = useState<NodeEditorData>(makeDraft());
 
   const load = async () => {
     setLoading(true);
@@ -39,12 +57,39 @@ export default function Nodes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const canSave = useMemo(() => !!draft.title.trim(), [draft.title]);
+
+  const doCreate = async () => {
+    if (!canSave) return;
+    const payload: Record<string, any> = {
+      title: draft.title,
+      content_format: "rich_json",              // Editor.js -> rich_json
+      content: draft.contentData,               // имя поля content
+      media: draft.cover_image ? [draft.cover_image] : undefined,
+      tags: (draft.tags && draft.tags.length > 0) ? draft.tags : undefined,
+      allow_feedback: draft.allow_comments ?? true,
+      premium_only: draft.is_premium_only ?? false,
+      meta: draft.subtitle ? { subtitle: draft.subtitle } : undefined,
+    };
+    const res = await api.post("/nodes", payload);
+    return res.data as any;
+  };
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Nodes</h1>
       <div className="mb-4 flex items-center gap-2">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by slug..." className="border rounded px-2 py-1" />
         <button onClick={load} className="px-3 py-1 rounded border">Search</button>
+        <button
+          className="ml-auto px-3 py-1 rounded bg-blue-600 text-white"
+          onClick={() => {
+            setDraft(makeDraft());
+            setEditorOpen(true);
+          }}
+        >
+          Create node
+        </button>
       </div>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">{error}</p>}
@@ -77,6 +122,29 @@ export default function Nodes() {
           </tbody>
         </table>
       )}
+
+      {/* Модалка создания ноды */}
+      <NodeEditorModal
+        open={editorOpen}
+        node={editorOpen ? draft : null}
+        onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+        onClose={() => setEditorOpen(false)}
+        onCommit={async (action) => {
+          try {
+            await doCreate();
+            if (action === "next") {
+              // остаться в модалке с пустым черновиком
+              setDraft(makeDraft());
+            } else {
+              setEditorOpen(false);
+            }
+            await load();
+          } catch (e) {
+            // Ошибка покажется в тостах на уровне api.request, если настроено. Здесь тихо закроем/оставим.
+            console.error(e);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -53,9 +53,14 @@ export default function QuestEditor() {
   // Граф
   const [nodes, setNodes] = useState<LocalNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [selected, setSelected] = useState<Id | null>(null);
+  const [selected, setSelected] = useState<Id | null>(null); // подсветка/выделение
+  const [editingId, setEditingId] = useState<Id | null>(null); // открыта модалка редактирования этой ноды
   const [connectMode, setConnectMode] = useState<boolean>(false);
   const [pendingFrom, setPendingFrom] = useState<Id | null>(null);
+
+  // Ручное связывание перетаскиванием
+  const linkingFrom = useRef<Id | null>(null);
+  const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -85,7 +90,8 @@ export default function QuestEditor() {
 
   const addNodeAndEdit = () => {
     const id = addNode();
-    setSelected(id);
+    setSelected(id);     // просто подсветить
+    setEditingId(id);    // открыть модалку редактирования
     return id;
   };
 
@@ -128,13 +134,21 @@ export default function QuestEditor() {
 
   const onMouseMove = useCallback(
     (e: MouseEvent) => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      const scrollLeft = canvasRef.current?.scrollLeft ?? 0;
+      const scrollTop = canvasRef.current?.scrollTop ?? 0;
+      // Координаты курсора в системе координат холста с учётом прокрутки
+      const cx = e.clientX - (rect?.left ?? 0) + scrollLeft;
+      const cy = e.clientY - (rect?.top ?? 0) + scrollTop;
+
+      // Всегда сохраняем позицию курсора для превью линии
+      mousePos.current = { x: cx, y: cy };
+
       const st = dragState.current;
       if (!st) return;
-      const rect = canvasRef.current?.getBoundingClientRect();
-      const cx = e.clientX - (rect?.left ?? 0);
-      const cy = e.clientY - (rect?.top ?? 0);
-      const maxX = (rect?.width ?? 0) - 40;
-      const maxY = (rect?.height ?? 0) - 40;
+
+      const maxX = (rect?.width ?? 0) - 40 + scrollLeft;
+      const maxY = (rect?.height ?? 0) - 40 + scrollTop;
       setNodes((prev) =>
         prev.map((n) =>
           n.id === st.id
@@ -152,7 +166,24 @@ export default function QuestEditor() {
 
   const onMouseUp = useCallback(() => {
     dragState.current = null;
-  }, []);
+
+    // Завершение перетаскивания связи: если отпустили над другой нодой — создаём ребро
+    const from = linkingFrom.current;
+    if (from) {
+      const target = nodes.find(
+        (n) =>
+          mousePos.current.x >= n.x &&
+          mousePos.current.x <= n.x + n.width &&
+          mousePos.current.y >= n.y &&
+          mousePos.current.y <= n.y + n.height,
+      );
+      if (target && target.id !== from) {
+        const id = `${from}->${target.id}`;
+        setEdges((prev) => (prev.some((e) => e.id === id) ? prev : [...prev, { id, from, to: target.id }]));
+      }
+      linkingFrom.current = null;
+    }
+  }, [nodes]);
 
   useEffect(() => {
     window.addEventListener("mousemove", onMouseMove);
@@ -181,13 +212,13 @@ export default function QuestEditor() {
         // Старательно отправляем несколько возможных полей контента, чтобы согласоваться с бэком
         const payload: Record<string, any> = {
           title: n.title,
-          subtitle: n.subtitle || null,
-          cover_image: n.cover_image || null,
-          tags: n.tags || [],
-          allow_comments: n.allow_comments ?? true,
-          is_premium_only: n.is_premium_only ?? false,
-          content_json: n.contentData,
-          is_draft: true,
+          content_format: "rich_json",
+          content: n.contentData,
+          media: n.cover_image ? [n.cover_image] : undefined,
+          tags: (n.tags && n.tags.length > 0) ? n.tags : undefined,
+          allow_feedback: n.allow_comments ?? true,
+          premium_only: n.is_premium_only ?? false,
+          meta: n.subtitle ? { subtitle: n.subtitle } : undefined,
         };
         const res = await api.post("/nodes", payload);
         const created = (res.data || {}) as any;
@@ -215,10 +246,21 @@ export default function QuestEditor() {
       addToast({ title: "Title is required", variant: "error" });
       return;
     }
-    const missing = nodes.filter((n) => !n.backendId);
+    // Если есть ноды без backendId — создадим их автоматически
+    let missing = nodes.filter((n) => !n.backendId);
     if (missing.length > 0) {
-      addToast({ title: "Create nodes first", description: "Some nodes are not created yet", variant: "warning" });
-      return;
+      try {
+        await createMissingNodes();
+      } catch {
+        // createMissingNodes уже показал тост с ошибкой
+        return;
+      }
+      // перепроверяем
+      missing = nodes.filter((n) => !n.backendId);
+      if (missing.length > 0) {
+        addToast({ title: "Failed to create nodes", description: "Some nodes were not created", variant: "error" });
+        return;
+      }
     }
     setBusy(true);
     try {
@@ -253,38 +295,6 @@ export default function QuestEditor() {
     } catch (e) {
       addToast({
         title: "Failed to save quest",
-        description: e instanceof Error ? e.message : String(e),
-        variant: "error",
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // Попытаться создать реальные переходы между нодами (best-effort)
-  const materializeTransitions = async () => {
-    const missing = nodes.filter((n) => !n.backendId);
-    if (missing.length > 0) {
-      addToast({ title: "Create nodes first", variant: "warning" });
-      return;
-    }
-    setBusy(true);
-    try {
-      for (const e of edges) {
-        const from = nodes.find((n) => n.id === e.from)?.backendId!;
-        const to = nodes.find((n) => n.id === e.to)?.backendId!;
-        if (!from || !to) continue;
-        // Пытаемся оба распространённых варианта пути
-        try {
-          await api.post(`/nodes/${from}/transitions`, { to_node_id: to, type: "manual" });
-        } catch {
-          await api.post(`/nodes/${from}/transitions/${to}`, { type: "manual" });
-        }
-      }
-      addToast({ title: "Transitions created", variant: "success" });
-    } catch (e) {
-      addToast({
-        title: "Failed to create transitions",
         description: e instanceof Error ? e.message : String(e),
         variant: "error",
       });
@@ -343,15 +353,7 @@ export default function QuestEditor() {
 
           <div className="flex flex-wrap gap-2 pt-2">
             <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700" onClick={addNodeAndEdit}>Add node</button>
-            <button className={`px-3 py-1 rounded ${connectMode ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700"}`} onClick={() => setConnectMode((v) => !v)}>
-              {connectMode ? "Connecting…" : "Connect"}
-            </button>
-            <button className="px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-60" onClick={createMissingNodes} disabled={busy}>
-              Create nodes
-            </button>
-            <button className="px-3 py-1 rounded bg-indigo-600 text-white disabled:opacity-60" onClick={materializeTransitions} disabled={busy}>
-              Create transitions
-            </button>
+            {/* Кнопки создания узлов/переходов скрыты: всё произойдёт автоматически при сохранении */}
             <button className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-60" onClick={saveQuest} disabled={busy}>
               Save quest
             </button>
@@ -389,6 +391,23 @@ export default function QuestEditor() {
               </g>
             );
           })}
+
+          {/* Превью линии во время перетаскивания связи */}
+          {linkingFrom.current && (() => {
+            const from = nodeCenters[linkingFrom.current!];
+            if (!from) return null;
+            return (
+              <line
+                x1={from.cx}
+                y1={from.cy}
+                x2={mousePos.current.x}
+                y2={mousePos.current.y}
+                stroke="#94a3b8"
+                strokeWidth="2"
+                strokeDasharray="4 4"
+              />
+            );
+          })()}
         </svg>
 
         {/* Ноды */}
@@ -402,9 +421,9 @@ export default function QuestEditor() {
               if (connectMode) {
                 if (pendingFrom) completeConnect(n.id);
                 else startConnect(n.id);
-              } else {
-                setSelected(n.id);
               }
+              // В обычном режиме клики по карточке не открывают модалку.
+              // Раскрытие — только по кнопке "Expand" в шапке карточки.
             }}
           >
             <div
@@ -424,8 +443,25 @@ export default function QuestEditor() {
                 }}
               />
               <div className="ml-2 flex items-center gap-1">
+                  {/* Хэндл для связывания: тянем из этой ноды на другую */}
+                  <button
+                    title="Drag to connect"
+                    className="w-4 h-4 rounded-full bg-blue-500 hover:bg-blue-600 cursor-crosshair"
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      linkingFrom.current = n.id;
+                      // стартовая точка — центр ноды
+                      const c = nodeCenters[n.id];
+                      if (c) mousePos.current = { x: c.cx, y: c.cy };
+                    }}
+                  />
                 <button
-                  className="text-xs px-2 py-0.5 rounded border"
+                    type="button"
+                    className="text-xs px-2 py-0.5 rounded border"
+                    onMouseDown={(e) => {
+                      // не даём заголовку карточки поймать mousedown и начать drag
+                      e.stopPropagation();
+                    }}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelected(n.id); // Expand
@@ -444,12 +480,29 @@ export default function QuestEditor() {
                 </button>
               </div>
             </div>
-            <div className="p-2 h-[calc(100%-32px)] text-sm text-gray-600">
+            <div className="p-2 h-[calc(100%-32px)] text-sm text-gray-600 overflow-hidden">
               {n.cover_image && (
                 <img src={n.cover_image} alt="" className="w-full h-24 object-cover rounded mb-2 border" />
               )}
-              <div className="line-clamp-3">
-                {(Array.isArray(n.contentData?.blocks) && n.contentData.blocks.find((b: any) => b?.data?.text)?.data?.text) || "No content yet. Click Expand to edit."}
+              <div
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  wordBreak: "break-word",
+                }}
+              >
+                {(() => {
+                  const blocks = Array.isArray(n.contentData?.blocks) ? n.contentData.blocks : [];
+                  const text = blocks
+                    .map((b: any) => (b?.data?.text || ""))
+                    .filter(Boolean)
+                    .join(" ")
+                    .replace(/<[^>]*>/g, "") // убрать HTML-теги
+                    .trim();
+                  return text || "No content yet. Click Expand to edit.";
+                })()}
               </div>
               {n.backendId && <div className="absolute right-2 bottom-2 text-[10px] text-gray-500">id: {n.backendId}</div>}
             </div>
@@ -458,11 +511,11 @@ export default function QuestEditor() {
 
         {/* Модалка полного редактирования выбранной ноды */}
         <NodeEditorModal
-          open={Boolean(selected)}
+          open={Boolean(editingId)}
           node={
-            selected
+            editingId
               ? (() => {
-                  const n = nodes.find((x) => x.id === selected)!;
+                  const n = nodes.find((x) => x.id === editingId)!;
                   return {
                     id: n.id,
                     title: n.title,
@@ -477,10 +530,10 @@ export default function QuestEditor() {
               : null
           }
           onChange={(patch) => {
-            if (!selected) return;
+            if (!editingId) return;
             setNodes((prev) =>
               prev.map((n) =>
-                n.id === selected
+                n.id === editingId
                   ? {
                       ...n,
                       title: patch.title ?? n.title,
@@ -495,13 +548,12 @@ export default function QuestEditor() {
               ),
             );
           }}
-          onClose={() => setSelected(null)}
+          onClose={() => setEditingId(null)}
           onCommit={(act: "save" | "next") => {
             if (act === "next") {
-              addNodeAndEdit();
-              // новая нода будет отредактирована сразу
+              addNodeAndEdit(); // открыть редактор следующей ноды
             } else {
-              setSelected(null);
+              setEditingId(null);
             }
           }}
         />

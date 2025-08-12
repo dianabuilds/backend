@@ -1,3 +1,38 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Editor.js: полноширинный контент и перенос длинных слов внутри модалки */
+.edjs-wrap .ce-block__content,
+.edjs-wrap .ce-toolbar__content {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Чуть меньше отступы внутри редактора, чтобы не было большого «коридора» слева */
+.edjs-wrap .codex-editor__redactor {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Перенос слов/символов и сохранение переводов строк */
+.edjs-wrap .cdx-block,
+.edjs-wrap .ce-paragraph,
+.edjs-wrap .ce-header,
+.edjs-wrap .ce-list,
+.edjs-wrap .ce-code,
+.edjs-wrap .ce-quote,
+.edjs-wrap .cdx-input {
+  word-break: break-word;       /* для длинных слов */
+  overflow-wrap: anywhere;      /* переносить где угодно при необходимости */
+  white-space: pre-wrap;        /* сохранять \n и переносить строки */
+}
+
+/* Медиа и изображения не выходят за пределы области */
+.edjs-wrap img,
+.edjs-wrap figure {
+  max-width: 100%;
+  height: auto;
+}
