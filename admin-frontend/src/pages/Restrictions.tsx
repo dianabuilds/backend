@@ -1,9 +1,6 @@
 import { useState } from "react";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "../api/client";
 
 interface Restriction {
   id: string;
@@ -16,10 +13,7 @@ interface Restriction {
 }
 
 async function fetchRestrictions(): Promise<Restriction[]> {
-  const token = localStorage.getItem("token") || "";
-  const resp = await fetch("/admin/restrictions", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const resp = await apiFetch("/admin/restrictions");
   if (!resp.ok) {
     const text = await resp.text();
     throw new Error(text || "Failed to load restrictions");
@@ -41,13 +35,9 @@ export default function Restrictions() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem("token") || "";
-      const resp = await fetch("/admin/restrictions", {
+      const resp = await apiFetch("/admin/restrictions", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: userId,
           type,
@@ -74,13 +64,9 @@ export default function Restrictions() {
       reason: string;
       expires_at: string | null;
     }) => {
-      const token = localStorage.getItem("token") || "";
-      const resp = await fetch(`/admin/restrictions/${payload.id}`, {
+      const resp = await apiFetch(`/admin/restrictions/${payload.id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           reason: payload.reason || null,
           expires_at: payload.expires_at,
@@ -98,10 +84,8 @@ export default function Restrictions() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const token = localStorage.getItem("token") || "";
-      const resp = await fetch(`/admin/restrictions/${id}`, {
+      const resp = await apiFetch(`/admin/restrictions/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!resp.ok) {
         const text = await resp.text();

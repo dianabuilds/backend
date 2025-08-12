@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 from eth_account.messages import encode_defunct
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from web3.auto import w3
@@ -14,8 +15,10 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.security import (
     create_access_token,
+    create_refresh_token,
     get_password_hash,
     verify_password,
+    verify_refresh_token,
 )
 from app.db.session import get_db
 from app.models.user import User
@@ -173,7 +176,7 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     return {"message": "Email verified"}
 
 
-async def _authenticate(db: AsyncSession, login: str, password: str) -> Token:
+async def _authenticate(db: AsyncSession, login: str, password: str) -> tuple[Token, uuid.UUID]:
     if not login or not password:
         raise HTTPException(status_code=422, detail="username and password are required")
 
@@ -200,7 +203,7 @@ async def _authenticate(db: AsyncSession, login: str, password: str) -> Token:
     user_id_var.set(str(user_id))
     token = create_access_token(user_id)
     auth_success(str(user_id))
-    return Token(access_token=token)
+    return Token(access_token=token), user_id
 
 
 @router.post(
@@ -219,20 +222,98 @@ async def login(request: Request, db: AsyncSession = Depends(get_db)):
         form = await request.form()
         username = form.get("username")
         password = form.get("password")
-    return await _authenticate(db, username, password)
+    token, _ = await _authenticate(db, username, password)
+    return token
 
 
 @router.post(
     "/login-json",
-    response_model=Token,
     include_in_schema=True,
     summary="Login with JSON",
     dependencies=[rate_limit_dep(settings.rate_limit.rules_login_json)],
 )
 async def login_json(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
     """Authenticate using a JSON payload instead of form data."""
-    # Поддержка ручных JSON-вызовов
-    return await _authenticate(db, payload.username, payload.password)
+    token, user_id = await _authenticate(db, payload.username, payload.password)
+    access = token.access_token
+    refresh = create_refresh_token(user_id)
+    csrf_token = secrets.token_hex(16)
+    secure_flag = settings.cookie.secure and settings.is_production
+    resp = JSONResponse({"ok": True, "csrf_token": csrf_token})
+    resp.set_cookie(
+        "access_token",
+        access,
+        httponly=True,
+        secure=secure_flag,
+        samesite=settings.cookie.samesite,
+        max_age=settings.jwt.expiration,
+        path="/",
+    )
+    resp.set_cookie(
+        "refresh_token",
+        refresh,
+        httponly=True,
+        secure=secure_flag,
+        samesite=settings.cookie.samesite,
+        max_age=settings.jwt.refresh_expiration,
+        path="/auth",
+    )
+    resp.set_cookie(
+        "XSRF-TOKEN",
+        csrf_token,
+        secure=secure_flag,
+        samesite=settings.cookie.samesite,
+        path="/",
+    )
+    return resp
+
+
+@router.post("/refresh")
+async def refresh(request: Request):
+    refresh_cookie = request.cookies.get("refresh_token")
+    user_id = verify_refresh_token(refresh_cookie) if refresh_cookie else None
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    access = create_access_token(user_id)
+    new_refresh = create_refresh_token(user_id)
+    csrf_token = secrets.token_hex(16)
+    secure_flag = settings.cookie.secure and settings.is_production
+    resp = JSONResponse({"ok": True, "csrf_token": csrf_token})
+    resp.set_cookie(
+        "access_token",
+        access,
+        httponly=True,
+        secure=secure_flag,
+        samesite=settings.cookie.samesite,
+        max_age=settings.jwt.expiration,
+        path="/",
+    )
+    resp.set_cookie(
+        "refresh_token",
+        new_refresh,
+        httponly=True,
+        secure=secure_flag,
+        samesite=settings.cookie.samesite,
+        max_age=settings.jwt.refresh_expiration,
+        path="/auth",
+    )
+    resp.set_cookie(
+        "XSRF-TOKEN",
+        csrf_token,
+        secure=secure_flag,
+        samesite=settings.cookie.samesite,
+        path="/",
+    )
+    return resp
+
+
+@router.post("/logout")
+async def logout():
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie("access_token", path="/")
+    resp.delete_cookie("refresh_token", path="/auth")
+    resp.delete_cookie("XSRF-TOKEN", path="/")
+    return resp
 
 
 @router.post(

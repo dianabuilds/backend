@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { apiFetch } from "../api/client";
 
 interface User {
   id: string;
@@ -26,8 +27,10 @@ function isAllowed(role: string): boolean {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
-  const logout = () => {
-    localStorage.removeItem("token");
+  const logout = async () => {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" });
+    } catch {}
     setUser(null);
   };
 
@@ -41,50 +44,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!resp.ok) {
       throw new Error(loginText || "Неверный логин или пароль");
     }
-    let access_token: string;
+    let loginData: { ok: boolean };
     try {
-      ({ access_token } = JSON.parse(loginText));
+      loginData = JSON.parse(loginText) as { ok: boolean };
     } catch {
       throw new Error("Некорректный ответ от сервера");
     }
-    const meResp = await fetch("/users/me", {
-      headers: { Authorization: `Bearer ${access_token}` },
-    });
-    const meText = await meResp.text();
+    if (!loginData.ok) throw new Error("Неверный логин или пароль");
+    const meResp = await apiFetch("/users/me");
     if (!meResp.ok) {
-      throw new Error(meText || "Не удалось получить пользователя");
+      throw new Error((await meResp.text()) || "Не удалось получить пользователя");
     }
-    let me: User;
-    try {
-      me = JSON.parse(meText) as User;
-    } catch {
-      throw new Error("Некорректный ответ пользователя");
-    }
+    const me: User = await meResp.json();
     if (!isAllowed(me.role)) {
       throw new Error("Недостаточно прав");
     }
-    localStorage.setItem("token", access_token);
     setUser(me);
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
     const init = async () => {
       try {
-        const resp = await fetch("/users/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const text = await resp.text();
+        const resp = await apiFetch("/users/me");
         if (!resp.ok) throw new Error();
-        const me: User = JSON.parse(text);
+        const me: User = await resp.json();
         if (isAllowed(me.role)) {
           setUser(me);
         } else {
-          logout();
+          await logout();
         }
       } catch {
-        logout();
+        await logout();
       }
     };
     init();

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import KpiCard from "../components/KpiCard";
+import { apiFetch } from "../api/client";
 
 interface DashboardData {
   kpi: {
@@ -26,15 +27,11 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const token = localStorage.getItem("token");
-
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const resp = await fetch("/admin/dashboard", {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
+        const resp = await apiFetch("/admin/dashboard");
         const text = await resp.text();
         if (!resp.ok) throw new Error(text || resp.statusText);
         let d: DashboardData;
@@ -52,7 +49,7 @@ export default function Dashboard() {
       }
     };
     load();
-  }, [token]);
+  }, []);
 
   const [invalidateScope, setInvalidateScope] = useState("nav");
   const [invalidateSlug, setInvalidateSlug] = useState("");
@@ -62,12 +59,9 @@ export default function Dashboard() {
     e.preventDefault();
     setInvalidateMessage(null);
     try {
-      const resp = await fetch("/admin/cache/invalidate", {
+      const resp = await apiFetch("/admin/cache/invalidate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope: invalidateScope, slug: invalidateSlug || undefined }),
       });
       if (!resp.ok) throw new Error(await resp.text());
@@ -85,12 +79,9 @@ export default function Dashboard() {
     e.preventDefault();
     setRecomputeMessage(null);
     try {
-      const resp = await fetch("/admin/embeddings/recompute", {
+      const resp = await apiFetch("/admin/embeddings/recompute", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ limit: recomputeLimit }),
       });
       if (!resp.ok) throw new Error(await resp.text());

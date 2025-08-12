@@ -1,3 +1,5 @@
+import { apiFetch } from "./client";
+
 export interface MenuItem {
   id: string;
   label: string;
@@ -14,11 +16,9 @@ export interface MenuResponse {
 }
 
 export async function getAdminMenu(etag?: string) {
-  const token = localStorage.getItem("token");
   const headers: Record<string, string> = {};
-  if (token) headers["Authorization"] = `Bearer ${token}`;
   if (etag) headers["If-None-Match"] = etag;
-  const resp = await fetch("/admin/menu", { headers });
+  const resp = await apiFetch("/admin/menu", { headers });
   if (resp.status === 304) {
     return { items: null, etag: etag ?? null, status: 304 };
   }
