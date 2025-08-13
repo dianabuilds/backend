@@ -87,7 +87,19 @@ def get_embedding(text: str) -> List[float]:
     if _provider_func is None:
         # Инициализация провайдера по умолчанию
         register_embedding_provider(simple_embedding, EMBEDDING_DIM)
-    return _provider_func(text)  # type: ignore[operator]
+    vec = _provider_func(text)  # type: ignore[operator]
+    # Провайдер может возвращать вектор произвольной длины. Если он не
+    # совпадает с размерностью, ожидаемой БД, приводим его к нужному
+    # размеру. Без этого попытка сохранить вектор вызовет ошибку
+    # "dimension mismatch" и приведёт к HTTP 500 при создании узла.
+    if len(vec) != EMBEDDING_DIM:
+        logger.warning(
+            "Embedding size %s doesn't match expected %s; reducing",
+            len(vec),
+            EMBEDDING_DIM,
+        )
+        vec = reduce_vector_dim(vec, EMBEDDING_DIM)
+    return vec
 
 
 async def update_node_embedding(db: AsyncSession, node: Node) -> None:
