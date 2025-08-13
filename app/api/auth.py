@@ -212,17 +212,9 @@ async def _authenticate(db: AsyncSession, login: str, password: str) -> tuple[To
     summary="User login",
     dependencies=[rate_limit_dep_key("login")],
 )
-async def login(request: Request, db: AsyncSession = Depends(get_db)):
-    """Authenticate a user via form or JSON body and return a JWT token."""
-    if request.headers.get("content-type", "").startswith("application/json"):
-        data = await request.json()
-        username = data.get("username")
-        password = data.get("password")
-    else:
-        form = await request.form()
-        username = form.get("username")
-        password = form.get("password")
-    token, _ = await _authenticate(db, username, password)
+async def login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
+    """Authenticate a user via JSON body and return a JWT token."""
+    token, _ = await _authenticate(db, payload.username, payload.password)
     return token
 
 

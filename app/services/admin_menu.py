@@ -208,6 +208,7 @@ BASE_MENU: List[dict] = [
         "path": "/notifications",
         "icon": "notifications",
         "order": 2,  # рядом вверху
+        "hidden": True,  # hidden by default, can be enabled by flags later
     },
     {
         "id": "quests-top",
@@ -215,6 +216,7 @@ BASE_MENU: List[dict] = [
         "path": "/quests",
         "icon": "quests",
         "order": 3,
+        "hidden": True,
     },
     {
         "id": "payments",
@@ -231,6 +233,7 @@ BASE_MENU: List[dict] = [
         "path": "/achievements",
         "icon": "achievements",
         "order": 9,  # внизу, ниже контента
+        "hidden": True,
     },
 ]
 

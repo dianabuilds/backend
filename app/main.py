@@ -47,6 +47,9 @@ from app.db.session import (
 )
 from app.services.bootstrap import ensure_default_admin
 from app.core.rate_limit import init_rate_limiter, close_rate_limiter
+from app.core.security_headers import SecurityHeadersMiddleware
+from app.core.cookies_security_middleware import CookiesSecurityMiddleware
+from app.core.body_limit import BodySizeLimitMiddleware
 
 # Настройка логирования
 configure_logging()
@@ -54,9 +57,17 @@ init_sentry(settings)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+# Лимит размера тела запросов
+app.add_middleware(BodySizeLimitMiddleware)
+# Базовые middlewares
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(MetricsMiddleware)
+# CSRF для мутаций
 app.add_middleware(CSRFMiddleware)
+# Заголовки безопасности и CSP
+app.add_middleware(SecurityHeadersMiddleware)
+# Усиление Set-Cookie флагов
+app.add_middleware(CookiesSecurityMiddleware)
 register_exception_handlers(app)
 
 # CORS: разрешаем фронту ходить на API в dev
@@ -67,6 +78,7 @@ app.add_middleware(
     allow_methods=settings.cors.allowed_methods,
     allow_headers=settings.cors.allowed_headers,
 )
+
 
 DIST_DIR = Path(__file__).resolve().parent.parent / "admin-frontend" / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"

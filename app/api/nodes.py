@@ -88,7 +88,6 @@ async def create_node(
     tag_objs = await get_or_create_tags(db, payload.tags) if payload.tags else []
     node = Node(
         title=payload.title,
-        content_format=payload.content_format,
         content=payload.content,
         media=payload.media or [],
         is_public=payload.is_public,

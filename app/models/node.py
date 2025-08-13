@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
 import hashlib
 from uuid import uuid4
 
@@ -9,7 +8,6 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Enum as SAEnum,
     ForeignKey,
     Integer,
     String,
@@ -24,14 +22,6 @@ from app.core.config import settings
 from . import Base
 
 
-class ContentFormat(str, Enum):
-    text = "text"
-    markdown = "markdown"
-    rich_json = "rich_json"
-    html = "html"
-    image_set = "image_set"
-
-
 def generate_slug() -> str:
     seed = f"{datetime.utcnow().isoformat()}-{uuid4()}"
     return hashlib.sha256(seed.encode()).hexdigest()[:16]
@@ -43,7 +33,6 @@ class Node(Base):
     id = Column(UUID(), primary_key=True, default=uuid4)
     slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=True)
-    content_format = Column(SAEnum(ContentFormat), nullable=False)
     content = Column(JSONB, nullable=False)
     media = Column(MutableList.as_mutable(ARRAY(String)), default=list)
     embedding_vector = Column(

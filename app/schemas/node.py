@@ -1,35 +1,59 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
 from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from pydantic.alias_generators import to_camel
+from pydantic import AliasChoices
+from pydantic import model_validator
 from typing import Literal
 
 
-class ContentFormat(str, Enum):
-    text = "text"
-    markdown = "markdown"
-    rich_json = "rich_json"
-    html = "html"
-    image_set = "image_set"
-
-
 class NodeBase(BaseModel):
+    # Названия полей, приходящие из админки, могут отличаться:
+    # - contentData -> content
+    # - allow_comments -> allow_feedback
+    # - is_premium_only -> premium_only
     title: str | None = None
-    content_format: ContentFormat
-    content: Any
+    # Контент всегда Editor.js JSON, поле формата нам не нужно
+    content: Any = Field(..., validation_alias=AliasChoices("content", "contentData"))
     media: list[str] | None = None
     tags: list[str] | None = None
     is_public: bool = False
     meta: dict = Field(default_factory=dict)
-    premium_only: bool | None = None
+    premium_only: bool | None = Field(
+        default=None, validation_alias=AliasChoices("premium_only", "is_premium_only")
+    )
     nft_required: str | None = None
     ai_generated: bool | None = None
-    allow_feedback: bool = True
+    allow_feedback: bool = Field(
+        default=True, validation_alias=AliasChoices("allow_feedback", "allow_comments")
+    )
     is_recommendable: bool = True
+
+    class Config:
+        alias_generator = to_camel
+        populate_by_name = True  # позволяем заполнять по исходным именам и алиасам
+
+    @model_validator(mode="after")
+    def _normalize_editorjs_and_validate(self) -> "NodeBase":
+        # Приводим контент к Editor.js JSON: допускаем строковый JSON
+        if isinstance(self.content, str):
+            import json
+            try:
+                self.content = json.loads(self.content)
+            except Exception:
+                raise ValueError("content must be valid JSON for Editor.js")
+        if not isinstance(self.content, (dict, list)):
+            raise ValueError("content must be an object or array for Editor.js")
+        # Нормализуем списки
+        if self.media is not None and not (isinstance(self.media, list) and all(isinstance(x, str) for x in self.media)):
+            raise ValueError("media must be an array of strings")
+        if self.tags is not None and not (isinstance(self.tags, list) and all(isinstance(x, str) for x in self.tags)):
+            raise ValueError("tags must be an array of strings")
+        return self
 
 
 class NodeCreate(NodeBase):
@@ -38,13 +62,19 @@ class NodeCreate(NodeBase):
 
 class NodeUpdate(BaseModel):
     title: str | None = None
-    content: Any | None = None
+    content: Any | None = Field(
+        default=None, validation_alias=AliasChoices("content", "contentData")
+    )
     media: list[str] | None = None
     tags: list[str] | None = None
     is_public: bool | None = None
-    allow_feedback: bool | None = None
+    allow_feedback: bool | None = Field(
+        default=None, validation_alias=AliasChoices("allow_feedback", "allow_comments")
+    )
     is_recommendable: bool | None = None
-    premium_only: bool | None = None
+    premium_only: bool | None = Field(
+        default=None, validation_alias=AliasChoices("premium_only", "is_premium_only")
+    )
     nft_required: str | None = None
     ai_generated: bool | None = None
 
