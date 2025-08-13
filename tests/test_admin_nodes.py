@@ -10,7 +10,6 @@ from app.models.node import Node
 async def _create_node(client: AsyncClient, token: str, title: str, tags: list[str] | None = None):
     payload = {
         "title": title,
-        "content_format": "text",
         "content": title,
         "is_public": True,
         "is_recommendable": True,

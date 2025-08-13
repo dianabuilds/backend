@@ -13,7 +13,6 @@ from app.models.user import User
 async def _create_node(db: AsyncSession, author: User) -> Node:
     node = Node(
         title="n",
-        content_format="markdown",
         content={},
         author_id=author.id,
         is_public=True,
@@ -157,7 +156,7 @@ async def test_post_restricted_user_cannot_post(
     user_token = create_access_token(test_user.id)
     resp = await client.post(
         "/nodes",
-        json={"title": "t", "content_format": "markdown", "content": {}},
+        json={"title": "t", "content": {}},
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert resp.status_code == 403

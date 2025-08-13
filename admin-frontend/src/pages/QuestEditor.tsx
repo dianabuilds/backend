@@ -212,7 +212,6 @@ export default function QuestEditor() {
         // Старательно отправляем несколько возможных полей контента, чтобы согласоваться с бэком
         const payload: Record<string, any> = {
           title: n.title,
-          content_format: "rich_json",
           content: n.contentData,
         };
         const res = await api.post("/nodes", payload);

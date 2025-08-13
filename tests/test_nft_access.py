@@ -51,7 +51,6 @@ async def _create_node(client: AsyncClient, headers: dict) -> str:
         "/nodes",
         json={
             "title": "NFT gated",
-            "content_format": "text",
             "content": "nft",
             "is_public": True,
             "nft_required": "TEST",

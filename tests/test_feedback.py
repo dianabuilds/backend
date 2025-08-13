@@ -8,7 +8,6 @@ async def test_feedback_flow(client: AsyncClient, auth_headers):
         "/nodes",
         json={
             "title": "test",
-            "content_format": "text",
             "content": "test",
             "is_public": True,
         },
@@ -52,7 +51,6 @@ async def test_feedback_disabled(client: AsyncClient, auth_headers):
         "/nodes",
         json={
             "title": "nfb",
-            "content_format": "text",
             "content": "nfb",
             "is_public": True,
             "allow_feedback": False,
