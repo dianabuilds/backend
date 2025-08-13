@@ -2,14 +2,13 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.node import Node, ContentFormat
+from app.models.node import Node
 
 
 @pytest.mark.asyncio
 async def test_create_and_list_traces(client: AsyncClient, db_session: AsyncSession, auth_headers, test_user):
     node = Node(
         title="n1",
-        content_format=ContentFormat.text,
         content={},
         is_public=True,
         author_id=test_user.id,

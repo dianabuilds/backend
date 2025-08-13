@@ -473,16 +473,7 @@ async def _ensure_quests_search_vector(conn) -> None:
 
 async def _drop_legacy_columns(conn) -> None:
     # Удаляем устаревшие элементы схемы, которые больше не используются приложением
-    # 1) nodes.content_format и тип enum contentformat
-    if await _column_exists(conn, "nodes", "content_format"):
-        await conn.execute(sa.text("ALTER TABLE nodes DROP COLUMN content_format"))
-    # Пробуем удалить enum-тип, если он есть и не используется
-    try:
-        await conn.execute(sa.text("DROP TYPE IF EXISTS contentformat"))
-    except Exception:
-        # Оставим, если чем-то занят
-        pass
-    # 2) Устаревшая колонка nodes.tags (если используете связь через node_tags)
+    # 1) Устаревшая колонка nodes.tags (если используете связь через node_tags)
     if await _column_exists(conn, "nodes", "tags"):
         try:
             await conn.execute(sa.text("ALTER TABLE nodes DROP COLUMN tags"))

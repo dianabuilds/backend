@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.node import Node, ContentFormat
+from app.models.node import Node
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.engine.embedding import update_node_embedding
 from app.services.tags import get_or_create_tags
@@ -30,7 +30,6 @@ async def test_next_modes_and_max_options(
     }
     base = Node(
         title="base",
-        content_format=ContentFormat.text,
         content={},
         is_public=True,
         author_id=test_user.id,
@@ -43,7 +42,6 @@ async def test_next_modes_and_max_options(
     for i, tags in enumerate(tags_list):
         n = Node(
             title=f"n{i}",
-            content_format=ContentFormat.text,
             content={},
             is_public=True,
             author_id=test_user.id,

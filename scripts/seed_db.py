@@ -24,7 +24,7 @@ from app.core.config import settings
 from app.core.security import get_password_hash
 from app.db.session import init_db, create_tables, db_session
 from app.engine.embedding import update_node_embedding
-from app.models.node import Node, ContentFormat
+from app.models.node import Node
 from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.echo_trace import EchoTrace
 from app.models.user import User
@@ -108,7 +108,6 @@ async def create_nodes(session: AsyncSession, authors: List[User], count: int, c
     for i in range(count):
         author = random.choice(authors)
         title = rand_title()
-        content_format = ContentFormat.markdown
         content = {"text": f"# {title}\n\nThis is a generated content block #{i}."}
         media = []
         tags = rand_tags()
@@ -118,7 +117,6 @@ async def create_nodes(session: AsyncSession, authors: List[User], count: int, c
 
         n = Node(
             title=title,
-            content_format=content_format,
             content=content,
             media=media,
             tags=tags,

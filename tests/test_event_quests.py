@@ -21,7 +21,6 @@ async def test_event_quest_flow(client, db_session, test_user):
         "/nodes",
         json={
             "title": "Target",
-            "content_format": "text",
             "content": "A",
             "is_public": True,
         },

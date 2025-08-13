@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 
 from app.core.security import create_access_token
 from app.models.tag import Tag
-from app.models.node import Node, ContentFormat
+from app.models.node import Node
 from app.services.tags import get_or_create_tags
 from app.services.navcache import navcache
 
@@ -13,7 +13,6 @@ from app.services.navcache import navcache
 async def _create_node(db: AsyncSession, author, title: str, tags: list[str] | None = None) -> Node:
     node = Node(
         title=title,
-        content_format=ContentFormat.text,
         content={},
         is_public=True,
         author_id=author.id,

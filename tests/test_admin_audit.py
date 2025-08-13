@@ -4,7 +4,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.node import Node, ContentFormat
+from app.models.node import Node
 from app.models.user import User
 from app.models.audit_log import AuditLog
 from sqlalchemy.future import select
@@ -18,7 +18,7 @@ async def login(client: AsyncClient, username: str, password: str = "Password123
 
 @pytest.mark.asyncio
 async def test_audit_log_records_action(client: AsyncClient, db_session: AsyncSession, admin_user: User):
-    node = Node(slug="a", title="A", content_format=ContentFormat.text, content={}, is_public=True, author_id=admin_user.id)
+    node = Node(slug="a", title="A", content={}, is_public=True, author_id=admin_user.id)
     db_session.add(node)
     await db_session.commit()
     headers = await login(client, "admin")

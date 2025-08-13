@@ -13,7 +13,7 @@ async def test_navigation_cached(client: AsyncClient, db_session: AsyncSession, 
     async def create(title: str):
         resp = await client.post(
             "/nodes",
-            json={"title": title, "content_format": "text", "content": title, "is_public": True},
+            json={"title": title, "content": title, "is_public": True},
             headers=auth_headers,
         )
         assert resp.status_code == 200

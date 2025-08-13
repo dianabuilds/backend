@@ -69,7 +69,6 @@ async def test_nodes_created_achievement(client: AsyncClient, db_session: AsyncS
     for i in range(5):
         node = Node(
             title=f"Node {i}",
-            content_format="text",
             content={},
             author_id=test_user.id,
         )

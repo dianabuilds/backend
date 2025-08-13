@@ -14,7 +14,6 @@ async def test_compass_api_cache(client: AsyncClient, db_session: AsyncSession, 
             "/nodes",
             json={
                 "title": title,
-                "content_format": "text",
                 "content": title,
                 "is_public": True,
                 "tags": tags or [],

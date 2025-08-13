@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.node import Node, ContentFormat
+from app.models.node import Node
 from app.models.echo_trace import EchoTrace
 from app.models.user import User
 
@@ -15,8 +15,8 @@ async def login(client: AsyncClient, username: str, password: str = "Password123
 
 @pytest.mark.asyncio
 async def test_anonymize_rbac(client: AsyncClient, db_session: AsyncSession, admin_user: User, moderator_user: User):
-    n1 = Node(slug="n1", title="N1", content_format=ContentFormat.text, content={}, is_public=True, author_id=admin_user.id)
-    n2 = Node(slug="n2", title="N2", content_format=ContentFormat.text, content={}, is_public=True, author_id=admin_user.id)
+    n1 = Node(slug="n1", title="N1", content={}, is_public=True, author_id=admin_user.id)
+    n2 = Node(slug="n2", title="N2", content={}, is_public=True, author_id=admin_user.id)
     db_session.add_all([n1, n2])
     await db_session.commit()
     trace = EchoTrace(from_node_id=n1.id, to_node_id=n2.id, user_id=admin_user.id)
@@ -34,8 +34,8 @@ async def test_anonymize_rbac(client: AsyncClient, db_session: AsyncSession, adm
 
 @pytest.mark.asyncio
 async def test_recompute_popularity(client: AsyncClient, db_session: AsyncSession, admin_user: User):
-    a = Node(slug="a", title="A", content_format=ContentFormat.text, content={}, is_public=True, author_id=admin_user.id)
-    b = Node(slug="b", title="B", content_format=ContentFormat.text, content={}, is_public=True, author_id=admin_user.id)
+    a = Node(slug="a", title="A", content={}, is_public=True, author_id=admin_user.id)
+    b = Node(slug="b", title="B", content={}, is_public=True, author_id=admin_user.id)
     db_session.add_all([a, b])
     await db_session.commit()
     for _ in range(3):

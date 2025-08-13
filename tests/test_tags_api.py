@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.node import Node, ContentFormat
+from app.models.node import Node
 from app.services.tags import get_or_create_tags
 
 
@@ -10,7 +10,6 @@ from app.services.tags import get_or_create_tags
 async def test_tag_creation_and_listing(client: AsyncClient, db_session: AsyncSession, auth_headers):
     payload = {
         "title": "n1",
-        "content_format": "text",
         "content": {},
         "tags": ["forest"],
         "is_public": True,
@@ -28,7 +27,6 @@ async def test_tag_creation_and_listing(client: AsyncClient, db_session: AsyncSe
 async def test_assign_tags_endpoint(client: AsyncClient, db_session: AsyncSession, auth_headers, test_user):
     node = Node(
         title="n2",
-        content_format=ContentFormat.text,
         content={},
         is_public=True,
         author_id=test_user.id,
@@ -51,7 +49,6 @@ async def test_assign_tags_endpoint(client: AsyncClient, db_session: AsyncSessio
 async def test_filter_nodes_by_tags(client: AsyncClient, db_session: AsyncSession, auth_headers, test_user):
     n1 = Node(
         title="a",
-        content_format=ContentFormat.text,
         content={},
         is_public=True,
         author_id=test_user.id,
@@ -60,7 +57,6 @@ async def test_filter_nodes_by_tags(client: AsyncClient, db_session: AsyncSessio
     db_session.add(n1)
     n2 = Node(
         title="b",
-        content_format=ContentFormat.text,
         content={},
         is_public=True,
         author_id=test_user.id,

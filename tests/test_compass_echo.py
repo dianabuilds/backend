@@ -3,14 +3,13 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models.node import Node, ContentFormat
+from app.models.node import Node
 
 
 @pytest.mark.asyncio
 async def test_embedding_saved(client: AsyncClient, db_session: AsyncSession, auth_headers):
     payload = {
         "title": "hello",
-        "content_format": "text",
         "content": "hello world",
         "is_public": True,
     }
@@ -32,7 +31,6 @@ async def test_echo_navigation(client: AsyncClient, db_session: AsyncSession, au
             "/nodes",
             json={
                 "title": title,
-                "content_format": "text",
                 "content": title,
                 "is_public": public,
             },

@@ -8,7 +8,6 @@ async def test_node_search_filters_access(client: AsyncClient, auth_headers, db_
     async def create(title: str, tags: list[str], **kwargs) -> str:
         payload = {
             "title": title,
-            "content_format": "text",
             "content": title,
             "is_public": kwargs.get("is_public", True),
             "is_recommendable": kwargs.get("is_recommendable", True),
