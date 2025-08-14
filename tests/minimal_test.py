@@ -1,6 +1,7 @@
 """
 Минимальный тест для авторизации, который не зависит от SQLAlchemy ORM.
 """
+
 import os
 import pytest
 from httpx import AsyncClient
@@ -21,7 +22,7 @@ async def test_signup_success(client: AsyncClient, db_session: AsyncSession):
     signup_data = {
         "email": "newuser@example.com",
         "username": "newuser",
-        "password": "Password123"
+        "password": "Password123",
     }
 
     # Выполняем запрос на регистрацию
@@ -46,10 +47,7 @@ async def test_signup_success(client: AsyncClient, db_session: AsyncSession):
 async def test_login_success(client: AsyncClient, test_user):
     """Проверка успешного входа в систему."""
     # Данные для входа
-    login_data = {
-        "username": "testuser",
-        "password": "Password123"
-    }
+    login_data = {"username": "testuser", "password": "Password123"}
 
     # Выполняем запрос на вход
     response = await client.post("/auth/login", json=login_data)
@@ -58,4 +56,4 @@ async def test_login_success(client: AsyncClient, test_user):
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
-    assert data["token_type"] == "bearer"
+    assert data["ok"] is True

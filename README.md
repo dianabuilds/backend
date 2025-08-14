@@ -46,6 +46,10 @@
   - Dev: `uvicorn app.main:app --reload`
   - Prod: `gunicorn app.main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000`
 - Тесты: `pytest`
+- Покрытие: `coverage run -m pytest && coverage report`
+- Лёгкий нагрузочный прогон: `python scripts/light_load_test.py`
+
+Подробнее о подходе к тестированию см. в [docs/test_plan.md](docs/test_plan.md).
 
 ## Настройка почты
 Отправка писем реализована через SMTP. Все параметры настраиваются через переменные окружения с префиксом `SMTP_`.
