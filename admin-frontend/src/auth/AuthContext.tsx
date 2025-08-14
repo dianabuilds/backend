@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { apiFetch, setCsrfToken, syncCsrfFromResponse } from "../api/client";
+import { apiFetch, setCsrfToken, syncCsrfFromResponse, setAccessToken, api } from "../api/client";
 
 interface User {
   id: string;
@@ -37,53 +37,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // игнорируем — цель только локально очистить состояние
     }
     setCsrfToken(null);
+      setAccessToken(null);
+    setAccessToken(null);
     setUser(null);
   };
 
   const login = async (username: string, password: string) => {
-    const resp = await fetch("/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ username, password }),
-    });
-
-    const loginText = await resp.text();
-    if (!resp.ok) {
-      // пробуем вытащить detail/message из ответа
-      try {
-        const err = JSON.parse(loginText) as { detail?: string; message?: string };
-        throw new Error(err.detail || err.message || loginText || "Неверный логин или пароль");
-      } catch {
-        throw new Error(loginText || "Неверный логин или пароль");
-      }
-    }
-
-    // синхронизируем CSRF и разбираем access_token
-    await syncCsrfFromResponse(new Response(loginText, { headers: { "Content-Type": "application/json" } }));
-    let loginData: { ok: boolean; csrf_token?: string; access_token?: string };
     try {
-      loginData = JSON.parse(loginText) as { ok: boolean; csrf_token?: string; access_token?: string };
-    } catch {
-      throw new Error("Некорректный ответ от сервера");
-    }
-    if (!loginData.ok) throw new Error("Неверный логин или пароль");
-    if (loginData.csrf_token) setCsrfToken(loginData.csrf_token);
+      // Единый клиент: выставит Accept: application/json и credentials: include
+      const res = await api.post<{ ok: boolean; csrf_token?: string; access_token?: string }>("/auth/login", {
+        username,
+        password,
+      });
 
-    // Делаем /users/me с Bearer из ответа, не полагаясь на моментальную установку cookie
-    const meHeaders: Record<string, string> = {};
-    if (loginData.access_token) {
-      meHeaders["Authorization"] = `Bearer ${loginData.access_token}`;
+      const data = res.data!;
+      if (!data.ok) {
+        throw new Error("Неверный логин или пароль");
+      }
+
+      // Сохраняем CSRF и access_token (для Bearer)
+      if (data.csrf_token) setCsrfToken(data.csrf_token);
+      if (data.access_token) setAccessToken(data.access_token);
+
+      // Запрашиваем профиль с Bearer из ответа, не полагаясь на моментальную установку cookie
+      const meHeaders: Record<string, string> = {};
+      if (data.access_token) {
+        meHeaders["Authorization"] = `Bearer ${data.access_token}`;
+      }
+      const meRes = await api.get<User>("/users/me", { headers: meHeaders });
+      const me = meRes.data as User;
+
+      if (!isAllowed(me.role)) {
+        throw new Error("Недостаточно прав");
+      }
+      setUser(me);
+    } catch (e) {
+      const err = e as Error;
+      // Пробуем отобразить понятное сообщение
+      const msg = err.message || "Ошибка авторизации";
+      throw new Error(msg);
     }
-    const meResp = await apiFetch("/users/me", { headers: meHeaders });
-    if (!meResp.ok) {
-      throw new Error((await meResp.text()) || "Не удалось получить пользователя");
-    }
-    const me: User = await meResp.json();
-    if (!isAllowed(me.role)) {
-      throw new Error("Недостаточно прав");
-    }
-    setUser(me);
   };
 
   useEffect(() => {

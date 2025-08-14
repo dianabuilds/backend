@@ -92,9 +92,15 @@ app.add_middleware(RealIPMiddleware)
 register_exception_handlers(app)
 
 # CORS: разрешаем фронту ходить на API в dev
+# В dev разрешаем фронт с 5173, если явно не настроено
+_allowed_origins = (
+    settings.cors.allowed_origins
+    if settings.cors.allowed_origins
+    else (["http://localhost:5173"] if not settings.is_production else [])
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors.allowed_origins,
+    allow_origins=_allowed_origins,
     allow_credentials=settings.cors.allow_credentials,
     allow_methods=settings.cors.allowed_methods,
     allow_headers=settings.cors.allowed_headers,

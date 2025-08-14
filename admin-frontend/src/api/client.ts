@@ -1,11 +1,23 @@
 let csrfTokenMem: string | null =
   typeof sessionStorage !== "undefined" ? sessionStorage.getItem("csrfToken") : null;
 
+// Храним access_token для Bearer, если cookie недоступны/не прикрепились
+let accessTokenMem: string | null =
+  typeof sessionStorage !== "undefined" ? sessionStorage.getItem("accessToken") : null;
+
 export function setCsrfToken(token: string | null) {
   csrfTokenMem = token || null;
   if (typeof sessionStorage !== "undefined") {
     if (token) sessionStorage.setItem("csrfToken", token);
     else sessionStorage.removeItem("csrfToken");
+  }
+}
+
+export function setAccessToken(token: string | null) {
+  accessTokenMem = token || null;
+  if (typeof sessionStorage !== "undefined") {
+    if (token) sessionStorage.setItem("accessToken", token);
+    else sessionStorage.removeItem("accessToken");
   }
 }
 
@@ -30,10 +42,11 @@ function getCsrfToken(): string {
   return csrfTokenMem || "";
 }
 
-// Достаём access_token из cookie, чтобы подставлять в Authorization: Bearer
+// Достаём access_token: сначала из cookie, затем из sessionStorage
 function getAccessToken(): string {
   const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : "";
+  if (m) return decodeURIComponent(m[1]);
+  return accessTokenMem || "";
 }
 
 /**
@@ -59,13 +72,30 @@ export async function apiFetch(
   const csrf = getCsrfToken();
   if (csrf) headers["X-CSRF-Token"] = csrf;
 
-  // Если явно не передали Authorization — берём токен из cookie
-  if (!("authorization" in Object.fromEntries(Object.entries(headers).map(([k,v]) => [k.toLowerCase(), v])))) {
+  // Если явно не передали Authorization — берём токен из cookie/хранилища
+  if (!("authorization" in Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v])))) {
     const at = getAccessToken();
     if (at) headers["Authorization"] = `Bearer ${at}`;
   }
 
-  const resp = await fetch(input, {
+  // В dev (порт 5173) или при VITE_API_BASE направляем запросы на стабильный backend origin
+  const toUrl = (u: RequestInfo): RequestInfo => {
+    if (typeof u !== "string") return u;
+    if (!u.startsWith("/")) return u;
+    let base = "";
+    try {
+      const envBase = (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
+      if (envBase) base = envBase;
+      else if (typeof window !== "undefined" && window.location && window.location.port === "5173") {
+        base = `${window.location.protocol}//${window.location.hostname}:8000`;
+      }
+    } catch {
+      // ignore
+    }
+    return base ? (base + u) : u;
+  };
+
+  const resp = await fetch(toUrl(input), {
     ...init,
     method,
     headers,
@@ -80,7 +110,7 @@ export async function apiFetch(
       const csrfForRefresh = getCsrfToken();
       if (csrfForRefresh) refreshHeaders["X-CSRF-Token"] = csrfForRefresh;
 
-      const refresh = await fetch("/auth/refresh", {
+      const refresh = await fetch(toUrl("/auth/refresh"), {
         method: "POST",
         headers: refreshHeaders,
         credentials: "include",

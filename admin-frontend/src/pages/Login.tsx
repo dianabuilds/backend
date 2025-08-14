@@ -8,10 +8,13 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // защита от дабл-кликов
     setError(null);
+    setLoading(true);
     try {
       await login(username, password);
       // basename="/admin" добавится автоматически
@@ -19,6 +22,8 @@ export default function Login() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Ошибка авторизации";
       setError(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -32,6 +37,7 @@ export default function Login() {
             className="mt-1 w-full rounded border px-3 py-2 text-gray-900 dark:text-gray-100 dark:bg-gray-900"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            disabled={loading}
           />
         </div>
         <div>
@@ -41,14 +47,16 @@ export default function Login() {
             className="mt-1 w-full rounded border px-3 py-2 text-gray-900 dark:text-gray-100 dark:bg-gray-900"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
           />
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
-          className="w-full rounded bg-gray-800 px-4 py-2 text-white hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600"
+          disabled={loading}
+          className="w-full rounded bg-gray-800 px-4 py-2 text-white hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Войти
+          {loading ? "Входим..." : "Войти"}
         </button>
       </form>
     </div>
