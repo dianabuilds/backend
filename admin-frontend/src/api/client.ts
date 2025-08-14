@@ -50,6 +50,11 @@ export async function apiFetch(
     ...(init.headers as Record<string, string> | undefined),
   };
 
+  // Явно запрашиваем JSON, чтобы сервер мог отличать API-запросы от HTML SPA
+  if (!Object.keys(headers).some((k) => k.toLowerCase() === "accept")) {
+    headers["Accept"] = "application/json";
+  }
+
   // Всегда отправляем CSRF, если он известен (некоторые админ‑GET тоже требуют его)
   const csrf = getCsrfToken();
   if (csrf) headers["X-CSRF-Token"] = csrf;
@@ -67,41 +72,17 @@ export async function apiFetch(
     credentials: "include",
   });
 
-    // Если access истёк — пробуем обновить сессию и повторить запрос один раз
-    // и не пытаемся рефрешиться, если 401 пришёл на сам /auth/refresh
-    const isRefreshCall = typeof input === "string" && input.startsWith("/auth/refresh");
-    if (resp.status === 401 && _retry && !isRefreshCall) {
-      try {
-        const refreshHeaders: Record<string, string> = {};
-        const csrfForRefresh = getCsrfToken();
-        if (csrfForRefresh) refreshHeaders["X-CSRF-Token"] = csrfForRefresh;
-
-        const refresh = await fetch("/auth/refresh", {
-          method: "POST",
-          headers: refreshHeaders,
-          credentials: "include",
-        });
-        if (refresh.ok) {
-          await syncCsrfFromResponse(refresh);
-          return apiFetch(input, init, false);
-        }
-      } catch {
-        // игнорируем — вернём исходный 401
-      }
-    }
-
-    // Синхронизируем CSRF, если бэкенд прислал новый токен в JSON
+  // Единственная попытка рефреша при 401 (кроме вызовов самого /auth/refresh)
+  const isRefreshCall = typeof input === "string" && input.startsWith("/auth/refresh");
+  if (resp.status === 401 && _retry && !isRefreshCall) {
     try {
-      await syncCsrfFromResponse(resp);
-    } catch {
-      // no-op
-    }
+      const refreshHeaders: Record<string, string> = {};
+      const csrfForRefresh = getCsrfToken();
+      if (csrfForRefresh) refreshHeaders["X-CSRF-Token"] = csrfForRefresh;
 
-  // Если access истёк — пробуем обновить сессию и повторить запрос один раз
-  if (resp.status === 401 && _retry) {
-    try {
       const refresh = await fetch("/auth/refresh", {
         method: "POST",
+        headers: refreshHeaders,
         credentials: "include",
       });
       if (refresh.ok) {
@@ -113,7 +94,7 @@ export async function apiFetch(
     }
   }
 
-  // Синхронизируем CSRF, если бэкенд прислал новый токен в JSON
+  // Единоразовая синхронизация CSRF из ответа (если сервер выдал новый токен)
   try {
     await syncCsrfFromResponse(resp);
   } catch {

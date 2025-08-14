@@ -14,6 +14,7 @@ from app.api.deps import (
     assert_owner_or_role,
 )
 from app.db.session import get_db
+from app.engine.embedding import update_node_embedding
 from app.engine.transitions import get_transitions
 from app.engine.random import get_random_node
 from app.engine.transition_controller import apply_mode

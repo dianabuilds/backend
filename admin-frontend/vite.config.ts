@@ -46,44 +46,6 @@ export default defineConfig({
   base: '/admin/',
   plugins: [
     react(),
-    // SPA fallback в dev:
-    // - любые HTML-запросы на /admin/* (кроме ассетов) отправляем на /admin/
-    // - XHR (application/json и т.п.) продолжат проксироваться на бэкенд
-    {
-      name: 'admin-spa-fallback',
-      configureServer(server) {
-        server.middlewares.use((req, res, next) => {
-          const request = req as unknown as { url?: string; headers?: Record<string, string | string[] | undefined>; method?: string }
-          const url = request.url ?? ''
-          const method = (request.method || 'GET').toUpperCase()
-          const acceptHeader = request.headers?.['accept']
-          const accept = (Array.isArray(acceptHeader) ? acceptHeader[0] : acceptHeader) ?? ''
-
-          // Только для GET HTML-запросов на вложенные пути /admin/*
-          const isHtml = accept.includes('text/html')
-          const isAdminNested = url.startsWith('/admin/') // важно: со слешом после admin
-          const isAdminRoot = url === '/admin' || url === '/admin/'
-          const isAsset = url.startsWith('/admin/assets')
-
-          // Явно правим /admin -> /admin/, чтобы не видеть предупреждение Vite о base URL
-          if (method === 'GET' && isHtml && url === '/admin') {
-            res.statusCode = 302
-            res.setHeader('Location', '/admin/')
-            res.end()
-            return
-          }
-
-          if (method === 'GET' && isHtml && isAdminNested && !isAsset && !isAdminRoot) {
-            // Перенаправляем только вложенные маршруты на корневой SPA
-            res.statusCode = 302
-            res.setHeader('Location', '/admin/')
-            res.end()
-            return
-          }
-          next()
-        })
-      },
-    },
   ],
   server: {
     port: 5173,

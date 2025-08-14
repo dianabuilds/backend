@@ -41,30 +41,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (username: string, password: string) => {
-    const resp = await fetch("/auth/login-json", {
+    const resp = await fetch("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ username, password }),
     });
+
     const loginText = await resp.text();
     if (!resp.ok) {
-      throw new Error(loginText || "Неверный логин или пароль");
+      // пробуем вытащить detail/message из ответа
+      try {
+        const err = JSON.parse(loginText) as { detail?: string; message?: string };
+        throw new Error(err.detail || err.message || loginText || "Неверный логин или пароль");
+      } catch {
+        throw new Error(loginText || "Неверный логин или пароль");
+      }
     }
-    let loginData: { ok: boolean; csrf_token?: string };
+
+    // синхронизируем CSRF и разбираем access_token
+    await syncCsrfFromResponse(new Response(loginText, { headers: { "Content-Type": "application/json" } }));
+    let loginData: { ok: boolean; csrf_token?: string; access_token?: string };
     try {
-      loginData = JSON.parse(loginText) as { ok: boolean; csrf_token?: string };
+      loginData = JSON.parse(loginText) as { ok: boolean; csrf_token?: string; access_token?: string };
     } catch {
       throw new Error("Некорректный ответ от сервера");
     }
     if (!loginData.ok) throw new Error("Неверный логин или пароль");
+    if (loginData.csrf_token) setCsrfToken(loginData.csrf_token);
 
-    // Сохраняем CSRF-токен, который сервер возвращает при логине
-    if (loginData.csrf_token) {
-      setCsrfToken(loginData.csrf_token);
+    // Делаем /users/me с Bearer из ответа, не полагаясь на моментальную установку cookie
+    const meHeaders: Record<string, string> = {};
+    if (loginData.access_token) {
+      meHeaders["Authorization"] = `Bearer ${loginData.access_token}`;
     }
-
-    const meResp = await apiFetch("/users/me");
+    const meResp = await apiFetch("/users/me", { headers: meHeaders });
     if (!meResp.ok) {
       throw new Error((await meResp.text()) || "Не удалось получить пользователя");
     }

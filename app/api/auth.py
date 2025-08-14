@@ -211,15 +211,37 @@ async def _authenticate(db: AsyncSession, login: str, password: str) -> tuple[To
     summary="User login",
     dependencies=[rate_limit_dep_key("login")],
 )
-async def login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
+async def login(request: Request, db: AsyncSession = Depends(get_db)):
     """
-    Логин по JSON.
+    Логин: поддерживает как JSON, так и application/x-www-form-urlencoded.
 
     Делает сразу две вещи:
     - устанавливает httpOnly cookies: access_token, refresh_token, CSRF cookie
     - возвращает JSON с { ok, csrf_token, access_token } для клиентов, которым нужен Bearer
     """
-    token, user_id = await _authenticate(db, payload.username, payload.password)
+    username: str | None = None
+    password: str | None = None
+
+    content_type = request.headers.get("content-type", "")
+    try:
+        if "application/json" in content_type:
+            body = await request.json()
+            if isinstance(body, dict):
+                username = body.get("username")
+                password = body.get("password")
+        else:
+            form = await request.form()
+            username = form.get("username")
+            password = form.get("password")
+    except Exception:
+        # На случай некорректного тела запроса
+        username = None
+        password = None
+
+    if not username or not password:
+        raise HTTPException(status_code=422, detail="username and password are required")
+
+    token, user_id = await _authenticate(db, username, password)
     access = token.access_token
     refresh = create_refresh_token(user_id)
     csrf_token = secrets.token_hex(16)
