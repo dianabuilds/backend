@@ -15,6 +15,7 @@ from .cookie import CookieSettings
 from .rate_limit import RateLimitSettings
 from .csrf import CsrfSettings
 from .real_ip import RealIPSettings
+from .observability import ObservabilitySettings
 
 __all__ = [
     "DatabaseSettings",
@@ -34,4 +35,5 @@ __all__ = [
     "RateLimitSettings",
     "CsrfSettings",
     "RealIPSettings",
+    "ObservabilitySettings",
 ]

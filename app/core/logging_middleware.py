@@ -6,14 +6,15 @@ from starlette.requests import Request
 from starlette.responses import Response
 import logging
 
-logger = logging.getLogger(__name__)
+# Dedicated logger name used in tests and production
+logger = logging.getLogger("app.http")
+logger.setLevel(logging.INFO)
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Logs incoming requests and responses."""
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
-        logger.info("Request %s %s", request.method, request.url.path)
         response: Response = await call_next(request)
-        logger.info("Response %s %s", request.method, request.url.path)
+        logger.info("%s %s %s", request.method, request.url.path, response.status_code)
         return response

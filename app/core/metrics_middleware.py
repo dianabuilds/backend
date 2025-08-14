@@ -4,12 +4,14 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.core.metrics import metrics_storage
+from app.core.config import settings
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
         # Не считаем собственные метрики, чтобы не искажать картину
-        if request.url.path.startswith("/admin/metrics"):
+        metrics_path = settings.observability.metrics_path
+        if request.url.path.startswith("/admin/metrics") or request.url.path == metrics_path:
             return await call_next(request)
         start = time.perf_counter()
         response: Response = await call_next(request)

@@ -38,8 +38,12 @@ from app.api.payments import router as payments_router
 from app.api.search import router as search_router
 from app.api.admin_metrics import router as admin_metrics_router
 from app.api.admin_embedding import router as admin_embedding_router
+from app.api.health import router as health_router
+from app.api.metrics_exporter import router as metrics_router
 from app.core.config import settings
 from app.core.metrics_middleware import MetricsMiddleware
+from app.core.request_id import RequestIDMiddleware
+from app.core.logging_middleware import RequestLoggingMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.exception_handlers import register_exception_handlers
 from app.engine import configure_from_settings
@@ -62,6 +66,9 @@ app = FastAPI()
 # Лимит размера тела запросов
 app.add_middleware(BodySizeLimitMiddleware)
 # Базовые middlewares
+# Корреляция по запросам
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(MetricsMiddleware)
 # CSRF для мутаций
 app.add_middleware(CSRFMiddleware)
@@ -120,6 +127,8 @@ app.include_router(traces_router)
 app.include_router(achievements_router)
 app.include_router(payments_router)
 app.include_router(search_router)
+app.include_router(health_router)
+app.include_router(metrics_router)
 
 
 @app.get("/")
@@ -128,14 +137,6 @@ async def read_root(request: Request):
     if "text/html" in accept_header:
         return HTMLResponse("<script>window.location.href='/admin';</script>")
     return {"message": "Hello, World!"}
-
-
-@app.get("/health")
-async def health_check():
-    """Эндпоинт для проверки работоспособности приложения"""
-
-    logger.info(f"Status OK")
-    return {"status": "ok"}
 
 
 @app.on_event("startup")
