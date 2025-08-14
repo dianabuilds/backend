@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
 from fastapi.exceptions import RequestValidationError
 import sentry_sdk
@@ -49,7 +50,7 @@ def _build_body(
 
 
 def _json_response(status_code: int, body: dict) -> JSONResponse:
-    response = JSONResponse(status_code=status_code, content=body)
+    response = JSONResponse(status_code=status_code, content=jsonable_encoder(body))
     req_id = request_id_var.get()
     if req_id:
         response.headers["X-Request-Id"] = req_id
