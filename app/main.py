@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 import logging
+import os
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
@@ -40,6 +41,7 @@ from app.api.admin_metrics import router as admin_metrics_router
 from app.core.config import settings
 from app.core.logging_config import configure_logging
 from app.core.logging_middleware import RequestLoggingMiddleware
+from app.core.console_access_log import ConsoleAccessLogMiddleware
 from app.core.metrics_middleware import MetricsMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.exception_handlers import register_exception_handlers
@@ -67,6 +69,8 @@ app.add_middleware(BodySizeLimitMiddleware)
 # Базовые middlewares
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(MetricsMiddleware)
+if os.getenv("TESTING") != "True":
+    app.add_middleware(ConsoleAccessLogMiddleware)
 # CSRF для мутаций
 app.add_middleware(CSRFMiddleware)
 # Заголовки безопасности и CSP
