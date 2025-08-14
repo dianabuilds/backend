@@ -68,9 +68,9 @@ async def test_logging_cache_events(caplog):
 
 @pytest.mark.asyncio
 async def test_json_formatter(capsys):
-    prev = settings.logging.json
+    prev = settings.logging.json_logs
     try:
-        settings.logging.json = True
+        settings.logging.json_logs = True
         configure_logging()
         request_id_var.set("rid")
         user_id_var.set("uid")
@@ -81,7 +81,7 @@ async def test_json_formatter(capsys):
         assert data["user_id"] == "uid"
         assert data["service"] == settings.logging.service_name
     finally:
-        settings.logging.json = prev
+        settings.logging.json_logs = prev
         configure_logging()
 
 
