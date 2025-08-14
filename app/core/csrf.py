@@ -27,7 +27,11 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         origin = request.headers.get("Origin")
         if origin:
             o = urlparse(origin)
-            return (o.scheme, o.hostname, o.port or (443 if o.scheme == "https" else 80)) == (
+            return (
+                o.scheme,
+                o.hostname,
+                o.port or (443 if o.scheme == "https" else 80),
+            ) == (
                 base.scheme,
                 base.hostname,
                 base.port or (443 if base.scheme == "https" else 80),
@@ -36,7 +40,11 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         referer = request.headers.get("Referer") or request.headers.get("Referrer")
         if referer:
             r = urlparse(referer)
-            return (r.scheme, r.hostname, r.port or (443 if r.scheme == "https" else 80)) == (
+            return (
+                r.scheme,
+                r.hostname,
+                r.port or (443 if r.scheme == "https" else 80),
+            ) == (
                 base.scheme,
                 base.hostname,
                 base.port or (443 if base.scheme == "https" else 80),
@@ -58,23 +66,37 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
             auth = request.headers.get("Authorization") or ""
             has_bearer = auth.lower().startswith("bearer ")
-            has_session_cookie = bool(request.cookies.get("access_token"))
+            session_cookies = {"access_token", "session"}
+            has_session_cookie = any(
+                name in request.cookies for name in session_cookies
+            )
 
-            if not has_session_cookie and not (has_bearer and settings.csrf.require_for_bearer):
+            if not has_session_cookie and not (
+                has_bearer and settings.csrf.require_for_bearer
+            ):
                 return await call_next(request)
 
             if not self._is_same_origin(request):
                 csrf_cookie = request.cookies.get(settings.csrf.cookie_name)
                 header = request.headers.get(settings.csrf.header_name)
                 if not csrf_cookie:
-                    logger.info("CSRF reject: missing cookie %s", settings.csrf.cookie_name)
-                    return JSONResponse({"detail": "CSRF token missing or invalid"}, status_code=403)
+                    logger.info(
+                        "CSRF reject: missing cookie %s", settings.csrf.cookie_name
+                    )
+                    return JSONResponse(
+                        {"detail": "CSRF token missing or invalid"}, status_code=403
+                    )
                 if not header:
-                    logger.info("CSRF reject: missing header %s", settings.csrf.header_name)
-                    return JSONResponse({"detail": "CSRF token missing or invalid"}, status_code=403)
+                    logger.info(
+                        "CSRF reject: missing header %s", settings.csrf.header_name
+                    )
+                    return JSONResponse(
+                        {"detail": "CSRF token missing or invalid"}, status_code=403
+                    )
                 if csrf_cookie != header:
                     logger.info("CSRF reject: token mismatch")
-                    return JSONResponse({"detail": "CSRF token missing or invalid"}, status_code=403)
+                    return JSONResponse(
+                        {"detail": "CSRF token missing or invalid"}, status_code=403
+                    )
 
         return await call_next(request)
-

@@ -7,7 +7,9 @@ class CsrfSettings(BaseSettings):
     enabled: bool = True
     header_name: str = "X-CSRF-Token"
     cookie_name: str = "XSRF-TOKEN"
-    exempt_paths: List[str] = Field(default_factory=list)
+    exempt_paths: List[str] = Field(
+        default_factory=lambda: ["/health", "/readyz", "/metrics", "/ws"]
+    )
     require_for_bearer: bool = False
 
     model_config = SettingsConfigDict(env_prefix="CSRF_")
