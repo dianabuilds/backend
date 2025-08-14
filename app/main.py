@@ -43,6 +43,7 @@ from app.core.metrics_middleware import MetricsMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.exception_handlers import register_exception_handlers
 from app.engine import configure_from_settings
+from app.services.events import register_handlers
 from app.db.session import (
     check_database_connection,
     close_db_connection,
@@ -144,6 +145,7 @@ async def startup_event():
 
     # Конфигурируем провайдер эмбеддингов из настроек
     configure_from_settings()
+    register_handlers()
 
     await init_rate_limiter()
 
