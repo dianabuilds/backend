@@ -110,12 +110,27 @@ class ARRAY(TypeDecorator):
     def process_result_value(self, value, dialect):
         import json
 
-        if value is not None:
-            try:
-                return json.loads(value)
-            except (TypeError, json.JSONDecodeError):
-                return value
-        return value
+        if value is None:
+            return None
+
+        # В PostgreSQL pgvector уже возвращает массив чисел
+        if dialect.name == "postgresql" and not IS_TESTING:
+            if isinstance(value, (list, tuple)):
+                return [float(x) for x in value]
+            # если по какой-то причине вернулась строка — пробуем распарсить
+            if isinstance(value, str):
+                try:
+                    arr = json.loads(value)
+                    return [float(x) for x in arr] if isinstance(arr, (list, tuple)) else arr
+                except Exception:
+                    return value
+            return value
+
+        # В SQLite/тестах читаем JSON-текст
+        try:
+            return json.loads(value)
+        except (TypeError, json.JSONDecodeError):
+            return value
 
 
 class VECTOR(TypeDecorator):
@@ -146,7 +161,24 @@ class VECTOR(TypeDecorator):
     def process_bind_param(self, value, dialect):
         import json
 
-        if value is not None and not isinstance(value, str):
+        if value is None:
+            return None
+
+        # В PostgreSQL pgvector ожидает список чисел, а не JSON-строку
+        if dialect.name == "postgresql" and not IS_TESTING:
+            try:
+                return [float(x) for x in value]  # type: ignore[iterable]
+            except Exception:
+                # если пришла строка с JSON, попробуем распарсить
+                if isinstance(value, str):
+                    try:
+                        arr = json.loads(value)
+                        return [float(x) for x in arr]
+                    except Exception:
+                        pass
+                return value
+        # В SQLite/тестах храним как JSON-текст
+        if not isinstance(value, str):
             return json.dumps(value)
         return value
 

@@ -208,30 +208,23 @@ async def _authenticate(db: AsyncSession, login: str, password: str) -> tuple[To
 
 @router.post(
     "/login",
-    response_model=Token,
     summary="User login",
     dependencies=[rate_limit_dep_key("login")],
 )
 async def login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
-    """Authenticate a user via JSON body and return a JWT token."""
-    token, _ = await _authenticate(db, payload.username, payload.password)
-    return token
+    """
+    Логин по JSON.
 
-
-@router.post(
-    "/login-json",
-    include_in_schema=True,
-    summary="Login with JSON",
-    dependencies=[rate_limit_dep_key("login_json")],
-)
-async def login_json(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
-    """Authenticate using a JSON payload instead of form data."""
+    Делает сразу две вещи:
+    - устанавливает httpOnly cookies: access_token, refresh_token, XSRF-TOKEN
+    - возвращает JSON с { ok, csrf_token, access_token } для клиентов, которым нужен Bearer
+    """
     token, user_id = await _authenticate(db, payload.username, payload.password)
     access = token.access_token
     refresh = create_refresh_token(user_id)
     csrf_token = secrets.token_hex(16)
     secure_flag = settings.cookie.secure and settings.is_production
-    resp = JSONResponse({"ok": True, "csrf_token": csrf_token})
+    resp = JSONResponse({"ok": True, "csrf_token": csrf_token, "access_token": access})
     resp.set_cookie(
         "access_token",
         access,
@@ -258,6 +251,8 @@ async def login_json(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
         path="/",
     )
     return resp
+
+
 
 
 @router.post("/refresh")

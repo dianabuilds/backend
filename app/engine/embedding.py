@@ -7,9 +7,11 @@ import logging
 from typing import Callable, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from app.core.config import settings
 from app.models.node import Node
+from app.models.tag import Tag, NodeTag
 
 logger = logging.getLogger(__name__)
 
@@ -103,11 +105,69 @@ def get_embedding(text: str) -> List[float]:
 
 
 async def update_node_embedding(db: AsyncSession, node: Node) -> None:
-    """Compute and store embedding for a node."""
-    text = _extract_text(node)
-    node.embedding_vector = get_embedding(text)
-    await db.commit()
-    await db.refresh(node)
+    """Compute and store embedding for a node.
+
+    Перед записью в БД приводим размер эмбеддинга к фактической размерности
+    колонки embedding_vector, чтобы избежать ошибок наподобие
+    "dimension mismatch" при коммите.
+    """
+    # Пытаемся определить ожидаемую БД размерность из типа столбца
+    def _db_embedding_dim() -> int:
+        try:
+            col = Node.__table__.c.embedding_vector  # type: ignore[attr-defined]
+            # В разных реализациях pgvector атрибут может называться по-разному
+            dim = (
+                getattr(col.type, "dim", None)
+                or getattr(col.type, "dims", None)
+                or getattr(col.type, "dimensions", None)
+            )
+            return int(dim) if dim else EMBEDDING_DIM
+        except Exception:
+            return EMBEDDING_DIM
+
+    # Собираем текст для эмбеддинга без ленивой загрузки отношений.
+    parts: list[str] = []
+    if getattr(node, "title", None):
+        parts.append(node.title)
+    if getattr(node, "content", None) is not None:
+        parts.append(str(node.content))
+    # Получаем слаги тегов явным запросом, чтобы не триггерить lazy-load в AsyncSession
+    try:
+        res = await db.execute(
+            select(Tag.slug).join(NodeTag, NodeTag.tag_id == Tag.id).where(NodeTag.node_id == node.id)
+        )
+        parts.extend([row[0] for row in res.all()])
+    except Exception as e:
+        logger.debug("Failed to fetch tag slugs for embedding (non-fatal): %s", e)
+
+    text = " ".join(parts)
+    vec = get_embedding(text)
+    db_dim = _db_embedding_dim()
+
+    if len(vec) != db_dim:
+        logger.warning(
+            "Embedding length %s != DB column dim %s, adjusting",
+            len(vec),
+            db_dim,
+        )
+        vec = reduce_vector_dim(vec, db_dim)
+
+    try:
+        node.embedding_vector = vec
+        await db.flush()
+        logger.info(
+            "Prepared embedding update for node %s (len=%d)",
+            getattr(node, "slug", "?"),
+            len(vec),
+        )
+    except Exception as e:
+        logger.exception(
+            "Failed to prepare embedding for node %s: len=%d, db_dim=%d",
+            getattr(node, "slug", "?"),
+            len(vec),
+            db_dim,
+        )
+        raise
 
 
 def cosine_similarity(a: List[float], b: List[float]) -> float:

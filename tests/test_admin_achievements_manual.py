@@ -25,7 +25,7 @@ async def test_admin_grant_and_revoke(
 
     # authenticate to obtain CSRF token and cookies
     login_resp = await client.post(
-        "/auth/login-json",
+        "/auth/login",
         json={"username": "admin", "password": "Password123"},
     )
     csrf = login_resp.json()["csrf_token"]

@@ -106,9 +106,10 @@ async def create_node(
     if tag_objs:
         node.tags = tag_objs
     db.add(node)
-    await db.commit()
-    await db.refresh(node)
+    await db.flush()
     await update_node_embedding(db, node)
+    await db.commit()
+    await db.refresh(node, attribute_names=["id", "slug"])
     await navcache.invalidate_compass_all()
     cache_invalidate("comp", reason="node_create")
     return {"slug": node.slug}
@@ -409,9 +410,12 @@ async def update_node(
         await db.refresh(node, attribute_names=["tags"])
         node.tags = await get_or_create_tags(db, tags)
     node.updated_at = datetime.utcnow()
+    # Обновляем данные в текущей транзакции
+    await db.flush()
+    # Пересчитываем эмбеддинг до коммита, в той же транзакции
+    await update_node_embedding(db, node)
     await db.commit()
     await db.refresh(node)
-    await update_node_embedding(db, node)
     await navcache.invalidate_navigation_by_node(slug)
     await navcache.invalidate_modes_by_node(slug)
     await navcache.invalidate_compass_all()

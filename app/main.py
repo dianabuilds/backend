@@ -1,6 +1,6 @@
 from app.core.env_loader import load_dotenv
 
-# Загружаем .env максимально рано, до любых импортов настроек и логирования
+
 load_dotenv()
 
 from fastapi import FastAPI, Request
@@ -8,7 +8,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 import logging
-import os
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
@@ -38,14 +37,11 @@ from app.api.achievements import router as achievements_router
 from app.api.payments import router as payments_router
 from app.api.search import router as search_router
 from app.api.admin_metrics import router as admin_metrics_router
+from app.api.admin_embedding import router as admin_embedding_router
 from app.core.config import settings
-from app.core.logging_config import configure_logging
-from app.core.logging_middleware import RequestLoggingMiddleware
-from app.core.console_access_log import ConsoleAccessLogMiddleware
 from app.core.metrics_middleware import MetricsMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.exception_handlers import register_exception_handlers
-from app.core.sentry import init_sentry
 from app.engine import configure_from_settings
 from app.db.session import (
     check_database_connection,
@@ -58,19 +54,14 @@ from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.cookies_security_middleware import CookiesSecurityMiddleware
 from app.core.body_limit import BodySizeLimitMiddleware
 
-# Настройка логирования
-configure_logging()
-init_sentry(settings)
+# Используем базовое логирование из uvicorn/стандартного logging
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 # Лимит размера тела запросов
 app.add_middleware(BodySizeLimitMiddleware)
 # Базовые middlewares
-app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(MetricsMiddleware)
-if os.getenv("TESTING") != "True":
-    app.add_middleware(ConsoleAccessLogMiddleware)
 # CSRF для мутаций
 app.add_middleware(CSRFMiddleware)
 # Заголовки безопасности и CSP
@@ -116,6 +107,7 @@ app.include_router(admin_notifications_broadcast_router)
 app.include_router(admin_quests_router)
 app.include_router(admin_achievements_router)
 app.include_router(admin_metrics_router)
+app.include_router(admin_embedding_router)
 app.include_router(admin_spa_router)
 app.include_router(moderation_router)
 app.include_router(transitions_router)
@@ -140,14 +132,14 @@ async def read_root(request: Request):
 @app.get("/health")
 async def health_check():
     """Эндпоинт для проверки работоспособности приложения"""
+
+    logger.info(f"Status OK")
     return {"status": "ok"}
 
 
 @app.on_event("startup")
 async def startup_event():
     """Выполняется при запуске приложения"""
-    # Повторно применяем конфиг логирования на случай переинициализации uvicorn
-    configure_logging()
     logger.info(f"Starting application in {settings.environment} environment")
 
     # Конфигурируем провайдер эмбеддингов из настроек

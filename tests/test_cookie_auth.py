@@ -4,7 +4,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_login_sets_cookies(client, test_user):
     resp = await client.post(
-        "/auth/login-json", json={"username": "testuser", "password": "Password123"}
+        "/auth/login", json={"username": "testuser", "password": "Password123"}
     )
     assert resp.status_code == 200
     body = resp.json()
@@ -25,7 +25,7 @@ async def test_login_sets_cookies(client, test_user):
 @pytest.mark.asyncio
 async def test_refresh_rotates_token(client, test_user):
     resp = await client.post(
-        "/auth/login-json", json={"username": "testuser", "password": "Password123"}
+        "/auth/login", json={"username": "testuser", "password": "Password123"}
     )
     assert resp.status_code == 200
     old_refresh = resp.cookies.get("refresh_token")

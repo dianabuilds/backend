@@ -1,12 +1,14 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import load_only
 
 from app.core.security import verify_access_token
+from app.security import bearer_scheme
 from app.db.session import get_db
 from app.models.user import User
 from app.models.moderation import UserRestriction
@@ -14,11 +16,14 @@ from app.core.log_filters import user_id_var
 
 
 async def get_current_user(
-    request: Request, db: AsyncSession = Depends(get_db)
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
-    auth = request.headers.get("Authorization")
-    if auth and auth.lower().startswith("bearer "):
-        token = auth.split(" ", 1)[1]
+    # Приоритетно берем Bearer из Security-схемы Swagger; если нет — cookie
+    token: str | None = None
+    if credentials is not None and credentials.credentials:
+        token = credentials.credentials
     else:
         token = request.cookies.get("access_token")
     user_id_str = verify_access_token(token) if token else None
@@ -68,13 +73,14 @@ async def get_current_user(
 
 
 async def get_current_user_optional(
-    request: Request, db: AsyncSession = Depends(get_db)
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
 ) -> User | None:
     """Return current user if auth header/cookie present, otherwise None."""
-    auth = request.headers.get("Authorization")
-    token = None
-    if auth and auth.lower().startswith("bearer "):
-        token = auth.split(" ", 1)[1]
+    token: str | None = None
+    if credentials is not None and credentials.credentials:
+        token = credentials.credentials
     else:
         token = request.cookies.get("access_token")
     if not token:
