@@ -157,5 +157,43 @@ class MetricsStorage:
                         break
         return out
 
+    def prometheus(self) -> str:
+        """Render collected metrics in Prometheus text format."""
+        with self._lock:
+            records = list(self._records)
+        lines: List[str] = []
+        lines.append("# HELP http_requests_total Total HTTP requests")
+        lines.append("# TYPE http_requests_total counter")
+        count_map: Dict[Tuple[str, str, int], int] = defaultdict(int)
+        duration_map: Dict[Tuple[str, str], List[int]] = defaultdict(list)
+        for r in records:
+            count_map[(r.method, r.route, r.status_code)] += 1
+            duration_map[(r.method, r.route)].append(r.duration_ms)
+        for (method, route, status), cnt in count_map.items():
+            lines.append(
+                f'http_requests_total{{method="{method}",path="{route}",status="{status}"}} {cnt}'
+            )
+
+        lines.append("# HELP http_request_duration_ms Request duration milliseconds")
+        lines.append("# TYPE http_request_duration_ms histogram")
+        buckets = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
+        for (method, route), values in duration_map.items():
+            values_sorted = sorted(values)
+            for b in buckets:
+                count = sum(1 for v in values_sorted if v <= b)
+                lines.append(
+                    f'http_request_duration_ms_bucket{{le="{b}",method="{method}",path="{route}"}} {count}'
+                )
+            lines.append(
+                f'http_request_duration_ms_bucket{{le="+Inf",method="{method}",path="{route}"}} {len(values_sorted)}'
+            )
+            lines.append(
+                f'http_request_duration_ms_count{{method="{method}",path="{route}"}} {len(values_sorted)}'
+            )
+            lines.append(
+                f'http_request_duration_ms_sum{{method="{method}",path="{route}"}} {sum(values_sorted)}'
+            )
+        return "\n".join(lines) + "\n"
+
 
 metrics_storage = MetricsStorage()

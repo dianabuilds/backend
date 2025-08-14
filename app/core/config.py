@@ -21,6 +21,7 @@ from .settings import (
     RateLimitSettings,
     CsrfSettings,
     RealIPSettings,
+    ObservabilitySettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ class Settings(ProjectSettings):
     rate_limit: RateLimitSettings = RateLimitSettings()
     csrf: CsrfSettings = CsrfSettings()
     real_ip: RealIPSettings = RealIPSettings()
+    observability: ObservabilitySettings = ObservabilitySettings()
 
     @property
     def is_production(self) -> bool:

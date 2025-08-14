@@ -1,0 +1,22 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
+
+
+class ObservabilitySettings(BaseSettings):
+    """Settings controlling observability features."""
+
+    health_enabled: bool = Field(True, alias="OBS_HEALTH_ENABLED")
+    db_check_timeout_ms: int = Field(500, alias="OBS_DB_CHECK_TIMEOUT_MS")
+    redis_check_timeout_ms: int = Field(500, alias="OBS_REDIS_CHECK_TIMEOUT_MS")
+
+    structured_logs: bool = Field(True, alias="OBS_STRUCTURED_LOGS")
+    log_level: str = Field("INFO", alias="OBS_LOG_LEVEL")
+    include_correlation_id: bool = Field(True, alias="OBS_INCLUDE_CORRELATION_ID")
+
+    metrics_enabled: bool = Field(True, alias="OBS_METRICS_ENABLED")
+    metrics_path: str = Field("/metrics", alias="OBS_METRICS_PATH")
+    metrics_auth_disabled: bool = Field(True, alias="OBS_METRICS_AUTH_DISABLED")
+
+    ws_metrics_enabled: bool = Field(True, alias="OBS_WS_METRICS_ENABLED")
+
+    model_config = SettingsConfigDict(extra="ignore")
