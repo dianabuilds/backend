@@ -1,7 +1,9 @@
 from app.core.env_loader import load_dotenv
+from app.core.logging_configuration import configure_logging
 
 
 load_dotenv()
+configure_logging()
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
