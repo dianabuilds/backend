@@ -19,6 +19,8 @@ from .settings import (
     PaymentSettings,
     CookieSettings,
     RateLimitSettings,
+    CsrfSettings,
+    RealIPSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,6 +64,8 @@ class Settings(ProjectSettings):
     payment: PaymentSettings = PaymentSettings()
     cookie: CookieSettings = CookieSettings()
     rate_limit: RateLimitSettings = RateLimitSettings()
+    csrf: CsrfSettings = CsrfSettings()
+    real_ip: RealIPSettings = RealIPSettings()
 
     @property
     def is_production(self) -> bool:

@@ -216,7 +216,7 @@ async def login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
     Логин по JSON.
 
     Делает сразу две вещи:
-    - устанавливает httpOnly cookies: access_token, refresh_token, XSRF-TOKEN
+    - устанавливает httpOnly cookies: access_token, refresh_token, CSRF cookie
     - возвращает JSON с { ok, csrf_token, access_token } для клиентов, которым нужен Bearer
     """
     token, user_id = await _authenticate(db, payload.username, payload.password)
@@ -244,7 +244,7 @@ async def login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
         path="/auth",
     )
     resp.set_cookie(
-        "XSRF-TOKEN",
+        settings.csrf.cookie_name,
         csrf_token,
         secure=secure_flag,
         samesite=settings.cookie.samesite,
@@ -285,7 +285,7 @@ async def refresh(request: Request):
         path="/auth",
     )
     resp.set_cookie(
-        "XSRF-TOKEN",
+        settings.csrf.cookie_name,
         csrf_token,
         secure=secure_flag,
         samesite=settings.cookie.samesite,
@@ -299,7 +299,7 @@ async def logout():
     resp = JSONResponse({"ok": True})
     resp.delete_cookie("access_token", path="/")
     resp.delete_cookie("refresh_token", path="/auth")
-    resp.delete_cookie("XSRF-TOKEN", path="/")
+    resp.delete_cookie(settings.csrf.cookie_name, path="/")
     return resp
 
 

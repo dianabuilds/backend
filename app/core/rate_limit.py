@@ -10,6 +10,7 @@ from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 
 from app.core.config import settings
+from app.core.real_ip import get_real_ip
 
 
 def _parse_rule(rule: str) -> tuple[int, int]:
@@ -39,7 +40,7 @@ def rate_limit_dep(rule: str):
     times, seconds = _parse_rule(rule)
 
     async def _callback(request: Request, response: Response, pexpire):  # pragma: no cover
-        ip = request.client.host if request.client else None
+        ip = get_real_ip(request)
         recent_429.append(
             {
                 "path": request.url.path,
@@ -51,8 +52,15 @@ def rate_limit_dep(rule: str):
         return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
 
     async def _dep(request: Request, response: Response):
-        if not settings.rate_limit.enabled:
+        if (
+            not settings.rate_limit.enabled
+            or request.method.upper() == "OPTIONS"
+            or request.url.path in {"/health", "/readiness"}
+        ):
             return
+        ip = get_real_ip(request)
+        if ip and request.client:
+            request.scope["client"] = (ip, request.client.port)
         limiter = RateLimiter(times=times, seconds=seconds, callback=_callback)
         return await limiter(request, response)
 
@@ -67,7 +75,7 @@ def rate_limit_dep_key(key: str):
     attr = f"rules_{key}"
 
     async def _callback(request: Request, response: Response, pexpire):  # pragma: no cover
-        ip = request.client.host if request.client else None
+        ip = get_real_ip(request)
         rule_str = getattr(settings.rate_limit, attr, "")
         recent_429.append(
             {
@@ -80,12 +88,19 @@ def rate_limit_dep_key(key: str):
         return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
 
     async def _dep(request: Request, response: Response):
-        if not settings.rate_limit.enabled:
+        if (
+            not settings.rate_limit.enabled
+            or request.method.upper() == "OPTIONS"
+            or request.url.path in {"/health", "/readiness"}
+        ):
             return
         rule_str = getattr(settings.rate_limit, attr, None)
         if not rule_str:
             return  # правило не настроено — пропускаем
         times, seconds = _parse_rule(rule_str)
+        ip = get_real_ip(request)
+        if ip and request.client:
+            request.scope["client"] = (ip, request.client.port)
         limiter = RateLimiter(times=times, seconds=seconds, callback=_callback)
         return await limiter(request, response)
 

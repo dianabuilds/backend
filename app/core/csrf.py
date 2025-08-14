@@ -1,16 +1,24 @@
+import logging
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from urllib.parse import urlparse
 
+from app.core.config import settings
+
+
+logger = logging.getLogger(__name__)
+
 
 class CSRFMiddleware(BaseHTTPMiddleware):
-    """Double-submit cookie CSRF: применяем только к cookie-сессиям (без Bearer).
+    """Double-submit cookie CSRF middleware.
 
-    Дополнительно: если запрос пришёл с того же источника (Origin/Referer совпадает
-    с базовым URL приложения), то CSRF‑заголовок не требуем. Это позволяет работать
-    со Swagger UI и другими same-origin клиентами без дополнительной настройки,
-    сохраняя защиту от межсайтовых запросов (CSRF).
+    Проверка активируется только для мутирующих методов и когда запрос
+    использует cookie-сессию. Bearer‑токены игнорируются, если не включено
+    обязательное требование CSRF для Bearer.
+
+    Если запрос пришёл с того же источника (Origin/Referer совпадает с базовым
+    URL приложения), CSRF‑заголовок не требуется.
     """
 
     @staticmethod
@@ -37,26 +45,36 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         return False
 
     async def dispatch(self, request: Request, call_next):
+        if not settings.csrf.enabled:
+            return await call_next(request)
+
         method = request.method.upper()
         if method in {"POST", "PUT", "PATCH", "DELETE"}:
             path = request.url.path or ""
-            # Исключаем auth-роуты (кроме logout)
-            if not path.startswith("/auth") or path == "/auth/logout":
-                # Если используется Bearer Authorization — CSRF не требуем
-                auth = request.headers.get("Authorization")
-                has_bearer = bool(auth and auth.lower().startswith("bearer "))
+            if (path.startswith("/auth") and path != "/auth/logout") or any(
+                path.startswith(p) for p in settings.csrf.exempt_paths
+            ):
+                return await call_next(request)
 
-                # Требуем CSRF только если есть cookie-сессия (access_token) и нет Bearer
-                has_session_cookie = bool(request.cookies.get("access_token"))
+            auth = request.headers.get("Authorization") or ""
+            has_bearer = auth.lower().startswith("bearer ")
+            has_session_cookie = bool(request.cookies.get("access_token"))
 
-                if has_session_cookie and not has_bearer:
-                    # Для same-origin запросов токен не обязателен
-                    if not self._is_same_origin(request):
-                        csrf_cookie = request.cookies.get("XSRF-TOKEN")
-                        header = request.headers.get("X-CSRF-Token") or request.headers.get("X-XSRF-TOKEN")
-                        if not csrf_cookie or not header or csrf_cookie != header:
-                            return JSONResponse(
-                                {"detail": "CSRF token missing or invalid"}, status_code=403
-                            )
+            if not has_session_cookie and not (has_bearer and settings.csrf.require_for_bearer):
+                return await call_next(request)
+
+            if not self._is_same_origin(request):
+                csrf_cookie = request.cookies.get(settings.csrf.cookie_name)
+                header = request.headers.get(settings.csrf.header_name)
+                if not csrf_cookie:
+                    logger.info("CSRF reject: missing cookie %s", settings.csrf.cookie_name)
+                    return JSONResponse({"detail": "CSRF token missing or invalid"}, status_code=403)
+                if not header:
+                    logger.info("CSRF reject: missing header %s", settings.csrf.header_name)
+                    return JSONResponse({"detail": "CSRF token missing or invalid"}, status_code=403)
+                if csrf_cookie != header:
+                    logger.info("CSRF reject: token mismatch")
+                    return JSONResponse({"detail": "CSRF token missing or invalid"}, status_code=403)
+
         return await call_next(request)
 

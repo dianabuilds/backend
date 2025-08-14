@@ -13,6 +13,8 @@ from .sentry import SentrySettings
 from .payment import PaymentSettings
 from .cookie import CookieSettings
 from .rate_limit import RateLimitSettings
+from .csrf import CsrfSettings
+from .real_ip import RealIPSettings
 
 __all__ = [
     "DatabaseSettings",
@@ -30,4 +32,6 @@ __all__ = [
     "PaymentSettings",
     "CookieSettings",
     "RateLimitSettings",
+    "CsrfSettings",
+    "RealIPSettings",
 ]
