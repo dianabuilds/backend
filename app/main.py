@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from pathlib import Path
 import logging
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
@@ -23,14 +24,19 @@ from app.api.admin_cache import router as admin_cache_router
 from app.api.admin_menu import router as admin_menu_router
 from app.api.admin_ratelimit import router as admin_ratelimit_router
 from app.api.admin_notifications import router as admin_notifications_router
-from app.api.admin_notifications_broadcast import router as admin_notifications_broadcast_router
+from app.api.admin_notifications_broadcast import (
+    router as admin_notifications_broadcast_router,
+)
 from app.api.admin_quests import router as admin_quests_router
 from app.api.admin_achievements import router as admin_achievements_router
 from app.web.admin_spa import router as admin_spa_router
 from app.api.moderation import router as moderation_router
 from app.api.transitions import router as transitions_router
 from app.api.navigation import router as navigation_router
-from app.api.notifications import router as notifications_router, ws_router as notifications_ws_router
+from app.api.notifications import (
+    router as notifications_router,
+    ws_router as notifications_ws_router,
+)
 from app.api.quests import router as quests_router
 from app.api.traces import router as traces_router
 from app.api.achievements import router as achievements_router
@@ -46,6 +52,7 @@ from app.core.request_id import RequestIDMiddleware
 from app.core.logging_middleware import RequestLoggingMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.exception_handlers import register_exception_handlers
+from app.core.real_ip import RealIPMiddleware
 from app.engine import configure_from_settings
 from app.services.events import register_handlers
 from app.db.session import (
@@ -76,6 +83,10 @@ app.add_middleware(CSRFMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 # Усиление Set-Cookie флагов
 app.add_middleware(CookiesSecurityMiddleware)
+app.add_middleware(
+    TrustedHostMiddleware, allowed_hosts=settings.security.allowed_hosts or ["*"]
+)
+app.add_middleware(RealIPMiddleware)
 register_exception_handlers(app)
 
 # CORS: разрешаем фронту ходить на API в dev
@@ -169,4 +180,3 @@ async def shutdown_event():
     logger.info("Shutting down application")
     await close_db_connection()
     await close_rate_limiter()
-

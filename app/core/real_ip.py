@@ -4,6 +4,7 @@ from ipaddress import ip_address, ip_network
 from typing import Optional
 
 from fastapi import Request
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.core.config import settings
 
@@ -69,3 +70,18 @@ def get_real_ip(request: Request) -> Optional[str]:
         if value:
             return value.strip()
     return remote
+
+
+class RealIPMiddleware:
+    """ASGI middleware to rewrite client IP based on proxy headers."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] in {"http", "websocket"} and scope.get("client"):
+            request = Request(scope)
+            real = get_real_ip(request)
+            if real:
+                scope["client"] = (real, scope["client"][1])
+        await self.app(scope, receive, send)
