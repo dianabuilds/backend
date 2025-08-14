@@ -15,12 +15,24 @@ from app.services.cache_backends import MemoryCache
 
 
 @pytest.mark.asyncio
-async def test_logging_middleware_basic(client, caplog):
-    with caplog.at_level(logging.INFO):
+async def test_logging_middleware_basic(client):
+    logger = logging.getLogger("app.http")
+    records: list[str] = []
+
+    class ListHandler(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:  # pragma: no cover - simple
+            records.append(record.getMessage())
+
+    handler = ListHandler()
+    logger.addHandler(handler)
+    try:
         resp = await client.get("/health")
+    finally:
+        logger.removeHandler(handler)
+
     assert resp.status_code == 200
     assert "X-Request-Id" in resp.headers
-    assert "GET /health 200" in caplog.text
+    assert any("GET /health 200" in r for r in records)
 
 
 @pytest.mark.asyncio
@@ -46,7 +58,7 @@ async def test_json_formatter(capsys):
         request_id_var.set("rid")
         user_id_var.set("uid")
         logging.getLogger("app").info("hello")
-        line = capsys.readouterr().err.strip().splitlines()[-1]
+        line = capsys.readouterr().out.strip().splitlines()[-1]
         data = json.loads(line)
         assert data["request_id"] == "rid"
         assert data["user_id"] == "uid"
@@ -73,9 +85,9 @@ async def test_slow_request_threshold(capsys):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             await ac.get("/slow")
-        err = capsys.readouterr().err
-        assert "GET /slow 200" in err
-        assert "WARNING" in err
+        out = capsys.readouterr().out
+        assert "GET /slow 200" in out
+        assert "WARNING" in out
     finally:
         settings.logging.slow_request_ms = prev
         configure_logging()
@@ -85,5 +97,5 @@ def test_uvicorn_integration(capsys):
     configure_logging()
     configure_logging()
     logging.getLogger("uvicorn").info("ping")
-    assert "ping" in capsys.readouterr().err
+    assert "ping" in capsys.readouterr().out
 
