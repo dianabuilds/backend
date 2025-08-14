@@ -1,58 +1,137 @@
-import os
-import yaml
-import logging.config
-from pathlib import Path
+"""Application logging configuration utilities.
 
-def configure_logging(config_path=None):
+This module exposes :func:`configure_logging` which sets up standard
+logging for the application.  The configuration is intentionally minimal
+but covers the needs of the tests and the application:
+
+* logs are written to ``stdout`` so they can be captured by tests or
+  container runtimes;
+* a :class:`RequestContextFilter` from ``app.core.log_filters`` is
+  attached so that ``request_id`` and other context variables appear in
+  every log record;
+* optional JSON formatting via :class:`JSONFormatter` when the
+  ``settings.logging.json`` flag is enabled;
+* dedicated loggers for ``uvicorn`` with different levels for
+  ``uvicorn.access`` and ``uvicorn.error``.
+
+The function is idempotent – calling it multiple times reconfigures the
+logging system without accumulating handlers.
+"""
+
+from __future__ import annotations
+
+import logging
+import logging.config
+import sys
+from typing import Any
+
+from app.core.config import settings
+
+
+def _build_config() -> dict[str, Any]:
+    """Construct a ``logging.config.dictConfig`` compatible dictionary."""
+
+    formatter: dict[str, Any]
+    if settings.logging.json:
+        formatter = {"()": "app.core.json_formatter.JSONFormatter"}
+    else:
+        formatter = {
+            "format": "%(asctime)s %(levelname)s %(name)s: %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        }
+
+    handlers: dict[str, Any] = {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": settings.logging.level,
+            "stream": sys.stdout,
+            "formatter": "default",
+            "filters": ["request_context"],
+        }
+    }
+
+    # Optional file handler – not exercised in tests but supported for
+    # completeness.
+    if settings.logging.file_enabled:
+        handlers["file"] = {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": settings.logging.level,
+            "formatter": "default",
+            "filename": settings.logging.file_path,
+            "maxBytes": settings.logging.file_rotate_bytes,
+            "backupCount": settings.logging.file_backup_count,
+            "filters": ["request_context"],
+        }
+
+    root_handlers = ["console"]
+    if settings.logging.file_enabled:
+        root_handlers.append("file")
+
+    config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "filters": {
+            "request_context": {
+                "()": "app.core.log_filters.RequestContextFilter",
+                "service": settings.logging.service_name,
+            }
+        },
+        "formatters": {"default": formatter},
+        "handlers": handlers,
+        "loggers": {
+            # Uvicorn's loggers.  Access logs are less noisy than error
+            # logs, hence different levels.
+            "uvicorn": {
+                "handlers": root_handlers,
+                "level": settings.logging.level,
+                "propagate": False,
+            },
+            "uvicorn.access": {
+                "handlers": root_handlers,
+                "level": "INFO",
+                "propagate": False,
+            },
+            "uvicorn.error": {
+                "handlers": root_handlers,
+                "level": "WARNING",
+                "propagate": False,
+            },
+            # HTTP request logs emitted from ``RequestLoggingMiddleware``.
+            "app.http": {
+                "handlers": root_handlers,
+                "level": settings.logging.request_level,
+                "propagate": False,
+            },
+        },
+        "root": {"level": settings.logging.level, "handlers": root_handlers},
+    }
+
+    return config
+
+
+def configure_logging(config: dict[str, Any] | None = None) -> None:
+    """Configure application logging.
+
+    Parameters
+    ----------
+    config:
+        Optional explicit configuration dictionary.  When omitted a
+        sensible default configuration based on ``settings.logging`` is
+        used.
     """
-    Настраивает логирование из YAML-файла.
-    
-    Args:
-        config_path: Путь к файлу конфигурации. Если None, ищет в стандартных местах.
-    """
-    if config_path is None:
-        # Сначала проверяем переменную окружения
-        config_path = os.environ.get("LOG_CONFIG")
-        
-        if not config_path:
-            # Ищем в стандартных местах
-            candidates = [
-                # Текущая директория
-                Path.cwd() / "logging.yaml",
-                # Корень проекта
-                Path(__file__).resolve().parents[2] / "logging.yaml",
-                # Рядом с этим файлом
-                Path(__file__).resolve().parent / "logging.yaml",
-            ]
-            
-            for path in candidates:
-                if path.exists():
-                    config_path = str(path)
-                    break
-    
-    if not config_path or not Path(config_path).exists():
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s %(levelname)s %(name)s: %(message)s',
-        )
-        logging.warning(f"Logging config file not found, using basic configuration")
-        return False
-    
-    # Создаем директорию для логов, если её нет
-    logs_dir = Path.cwd() / "logs"
-    logs_dir.mkdir(exist_ok=True)
-    
-    # Загружаем конфигурацию и применяем её
-    try:
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
-            logging.config.dictConfig(config)
-        logging.info(f"Logging configured from {config_path}")
-        return True
-    except Exception as e:
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s %(levelname)s %(name)s: %(message)s',
-        )
-        logging.error(f"Error configuring logging from {config_path}: {e}")
-        return False
+
+    if config is None:
+        config = _build_config()
+
+    # ``dictConfig`` replaces existing handlers for the specified
+    # loggers.  Clearing root handlers prevents duplicate logs if the
+    # function is called multiple times (tests exercise this behaviour).
+    root_logger = logging.getLogger()
+    for handler in list(root_logger.handlers):
+        root_logger.removeHandler(handler)
+
+    logging.config.dictConfig(config)
+
+
+__all__ = ["configure_logging"]
+
