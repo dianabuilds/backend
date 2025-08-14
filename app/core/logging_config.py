@@ -23,6 +23,7 @@ def build_logging_dict() -> dict:
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout",
                 "filters": ["context"],
                 "formatter": "json" if settings.logging.json else "readable",
             },
