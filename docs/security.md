@@ -3,11 +3,13 @@
 ## CSRF
 - Controlled by environment variables `CSRF_ENABLED`, `CSRF_HEADER_NAME`, `CSRF_COOKIE_NAME`, `CSRF_EXEMPT_PATHS`, `CSRF_REQUIRE_FOR_BEARER`.
 - Double submit cookie: value from cookie must match header.
-- Applied only to mutating requests with cookie-based sessions. Paths listed in `CSRF_EXEMPT_PATHS` and `/auth/*` (except `/auth/logout`) are ignored.
+- Applied only to mutating requests when a session cookie (`access_token` or `session`) is present. Paths listed in `CSRF_EXEMPT_PATHS` and `/auth/*` (except `/auth/logout`) are ignored.
+- Browser integrations with cookies must send the token from `XSRF-TOKEN` cookie in `X-CSRF-Token` header. Bearer-token calls without cookies do not require CSRF.
+- System endpoints like `/health`, `/readyz`, `/metrics` and WebSocket `/ws/notifications` are exempt by default.
 
 ## CORS
 - Configure allowed origins, headers and methods via `CORS_*` variables.
-- Production should list explicit origins when `CORS_ALLOW_CREDENTIALS=true`.
+- In production, `CORS_ALLOWED_ORIGINS` must list explicit domains; `*` is rejected.
 
 ## Real IP / trusted proxies
 - Enable parsing of client IP from proxy headers with `REAL_IP_ENABLED`.
@@ -21,12 +23,12 @@
 | CSRF_ENABLED | true |
 | CSRF_HEADER_NAME | X-CSRF-Token |
 | CSRF_COOKIE_NAME | XSRF-TOKEN |
-| CSRF_EXEMPT_PATHS | *(empty)* |
+| CSRF_EXEMPT_PATHS | /health,/readyz,/metrics,/ws |
 | CSRF_REQUIRE_FOR_BEARER | false |
 | CORS_ALLOWED_ORIGINS | https://yourdomain.com,https://app.yourdomain.com |
 | CORS_ALLOW_CREDENTIALS | True |
 | CORS_ALLOWED_METHODS | GET,POST,PUT,DELETE,OPTIONS,PATCH |
-| CORS_ALLOWED_HEADERS | Authorization,Content-Type |
+| CORS_ALLOWED_HEADERS | Authorization,Content-Type,X-CSRF-Token |
 | REAL_IP_ENABLED | false |
 | TRUSTED_PROXIES | *(empty)* |
 | REAL_IP_HEADER | X-Forwarded-For |

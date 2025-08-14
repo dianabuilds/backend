@@ -142,6 +142,11 @@ def validate_settings(settings: Settings) -> None:
         if not settings.embedding.model:
             missing.append("EMBEDDING_MODEL")
 
+    if settings.is_production and (
+        not settings.cors.allowed_origins or "*" in settings.cors.allowed_origins
+    ):
+        missing.append("CORS_ALLOWED_ORIGINS (must be explicit origins)")
+
     if missing:
         missing_vars = ", ".join(missing)
         logger.warning(f"Missing critical environment variables: {missing_vars}")
