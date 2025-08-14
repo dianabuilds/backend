@@ -17,12 +17,12 @@ from app.db.session import get_db
 from app.engine.transitions import get_transitions
 from app.engine.random import get_random_node
 from app.engine.transition_controller import apply_mode
-from app.engine.embedding import update_node_embedding
 from app.engine.echo import record_echo_trace
 from app.engine.traces import maybe_add_auto_trace
 from app.engine.filters import has_access_async
 from app.services.nft import user_has_nft
 from app.services.navcache import navcache
+from app.services.events import get_event_bus, NodeCreated, NodeUpdated
 from app.core.config import settings
 from app.models.node import Node
 from app.models.feedback import Feedback
@@ -107,11 +107,11 @@ async def create_node(
         node.tags = tag_objs
     db.add(node)
     await db.flush()
-    await update_node_embedding(db, node)
     await db.commit()
     await db.refresh(node, attribute_names=["id", "slug"])
-    await navcache.invalidate_compass_all()
-    cache_invalidate("comp", reason="node_create")
+    await get_event_bus().publish(
+        NodeCreated(node_id=node.id, slug=node.slug, author_id=current_user.id)
+    )
     return {"slug": node.slug}
 
 
@@ -161,10 +161,14 @@ async def set_node_tags(
     node.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(node)
-    await navcache.invalidate_navigation_by_node(node.slug)
-    await navcache.invalidate_compass_all()
-    cache_invalidate("nav", reason="node_edit", key=node.slug)
-    cache_invalidate("comp", reason="node_edit")
+    await get_event_bus().publish(
+        NodeUpdated(
+            node_id=node.id,
+            slug=node.slug,
+            author_id=current_user.id,
+            tags_changed=True,
+        )
+    )
     return node
 
 
