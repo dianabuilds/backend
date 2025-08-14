@@ -1,3 +1,8 @@
+from app.core.env_loader import load_dotenv
+
+# Загружаем .env максимально рано, до любых импортов настроек и логирования
+load_dotenv()
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -137,6 +142,8 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     """Выполняется при запуске приложения"""
+    # Повторно применяем конфиг логирования на случай переинициализации uvicorn
+    configure_logging()
     logger.info(f"Starting application in {settings.environment} environment")
 
     # Конфигурируем провайдер эмбеддингов из настроек

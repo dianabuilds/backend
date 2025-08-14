@@ -1,10 +1,7 @@
 from __future__ import annotations
 
+import os
 from typing import Any
-
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.starlette import StarletteIntegration
 
 from app.core.config import Settings
 
@@ -28,13 +25,32 @@ def _before_send(event: dict[str, Any], hint: Any) -> dict[str, Any] | None:
 
 
 def init_sentry(settings: Settings) -> None:
-    if not settings.sentry.dsn:
+    # Разрешаем отключать через .env SENTRY_ENABLED=false; по умолчанию включено
+    env_flag = os.getenv("SENTRY_ENABLED")
+    if env_flag is not None:
+        enabled = env_flag.strip().lower() in {"1", "true", "yes", "on"}
+    else:
+        enabled = getattr(getattr(settings, "sentry", object()), "enabled", True)
+
+    if not enabled:
+        return
+
+    dsn = getattr(getattr(settings, "sentry", object()), "dsn", None)
+    if not dsn:
+        return
+
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.starlette import StarletteIntegration
+    except ImportError:
+        # Пакет не установлен — игнорируем инициализацию
         return
 
     sentry_sdk.init(
-        dsn=settings.sentry.dsn,
+        dsn=dsn,
         integrations=[FastApiIntegration(), StarletteIntegration()],
-        traces_sample_rate=settings.sentry.traces_sample_rate,
-        environment=settings.sentry.env or settings.environment,
+        traces_sample_rate=getattr(getattr(settings, "sentry", object()), "traces_sample_rate", 0.0),
+        environment=(getattr(getattr(settings, "sentry", object()), "env", None) or getattr(settings, "environment", None)),
         before_send=_before_send,
     )

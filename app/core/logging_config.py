@@ -55,6 +55,11 @@ def build_logging_dict() -> dict:
                 "handlers": [],
                 "propagate": True,
             },
+            "app.http": {
+                "level": settings.logging.request_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
         },
         "root": {
             "level": settings.logging.level,
