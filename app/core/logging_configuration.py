@@ -10,7 +10,7 @@ but covers the needs of the tests and the application:
   attached so that ``request_id`` and other context variables appear in
   every log record;
 * optional JSON formatting via :class:`JSONFormatter` when the
-  ``settings.logging.json`` flag is enabled;
+    ``settings.logging.json_logs`` flag is enabled;
 * dedicated loggers for ``uvicorn`` with different levels for
   ``uvicorn.access`` and ``uvicorn.error``.
 
@@ -32,7 +32,7 @@ def _build_config() -> dict[str, Any]:
     """Construct a ``logging.config.dictConfig`` compatible dictionary."""
 
     formatter: dict[str, Any]
-    if settings.logging.json:
+    if settings.logging.json_logs:
         formatter = {"()": "app.core.json_formatter.JSONFormatter"}
     else:
         formatter = {

@@ -6,7 +6,6 @@ load_dotenv()
 configure_logging()
 
 from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 import logging
@@ -32,6 +31,7 @@ from app.api.admin_notifications_broadcast import (
 from app.api.admin_quests import router as admin_quests_router
 from app.api.admin_achievements import router as admin_achievements_router
 from app.web.admin_spa import router as admin_spa_router
+from app.web.immutable_static import ImmutableStaticFiles
 from app.api.moderation import router as moderation_router
 from app.api.transitions import router as transitions_router
 from app.api.navigation import router as navigation_router
@@ -107,7 +107,7 @@ if DIST_ASSETS_DIR.exists():
     # serve built frontend assets (js, css, etc.) with correct MIME types
     app.mount(
         "/admin/assets",
-        StaticFiles(directory=DIST_ASSETS_DIR),
+        ImmutableStaticFiles(directory=DIST_ASSETS_DIR),
         name="admin-assets",
     )
 

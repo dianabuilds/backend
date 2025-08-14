@@ -54,6 +54,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install ruff black mypy pytest pytest-asyncio
+      - name: Setup Node
+        uses: actions/setup-node@60f40a8c9d95b8d985d8b6a59f3691587561bdb3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: admin-frontend/package-lock.json
+      - name: Build admin frontend
+        working-directory: admin-frontend
+        run: |
+          npm ci
+          npm run build
       - name: Wait for Postgres
         run: |
           for i in {1..30}; do
