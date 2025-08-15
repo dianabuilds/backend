@@ -39,6 +39,7 @@ class NodeRepository:
             cover_url=payload.cover_url or (payload.media[0] if payload.media else None),
             media=payload.media or [],
             is_public=payload.is_public,
+            is_visible=payload.is_visible,
             allow_feedback=payload.allow_feedback,
             is_recommendable=payload.is_recommendable,
             meta=payload.meta or {},

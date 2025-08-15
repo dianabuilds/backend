@@ -350,13 +350,16 @@ async def update_node(
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(node, current_user)
+    was_public = node.is_public
+    was_visible = node.is_visible
     node = await repo.update(node, payload)
-    await navcache.invalidate_navigation_by_node(slug)
-    await navcache.invalidate_modes_by_node(slug)
-    await navcache.invalidate_compass_all()
-    cache_invalidate("nav", reason="node_update", key=slug)
-    cache_invalidate("navm", reason="node_update", key=slug)
-    cache_invalidate("comp", reason="node_update")
+    if was_public != node.is_public or was_visible != node.is_visible:
+        await navcache.invalidate_navigation_by_node(slug)
+        await navcache.invalidate_modes_by_node(slug)
+        await navcache.invalidate_compass_all()
+        cache_invalidate("nav", reason="node_update", key=slug)
+        cache_invalidate("navm", reason="node_update", key=slug)
+        cache_invalidate("comp", reason="node_update")
     return node
 
 

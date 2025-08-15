@@ -348,21 +348,41 @@ async def bulk_node_operation(
 ):
     result = await db.execute(select(Node).where(Node.id.in_(payload.ids)))
     nodes = result.scalars().all()
+    invalidate_slugs: list[str] = []
     for node in nodes:
+        changed = False
         if payload.op == "hide":
-            node.is_visible = False
+            if node.is_visible:
+                node.is_visible = False
+                changed = True
         elif payload.op == "show":
-            node.is_visible = True
+            if not node.is_visible:
+                node.is_visible = True
+                changed = True
         elif payload.op == "public":
-            node.is_public = True
+            if not node.is_public:
+                node.is_public = True
+                changed = True
         elif payload.op == "private":
-            node.is_public = False
+            if node.is_public:
+                node.is_public = False
+                changed = True
         elif payload.op == "toggle_premium":
             node.premium_only = not node.premium_only
         elif payload.op == "toggle_recommendable":
             node.is_recommendable = not node.is_recommendable
+        if changed:
+            invalidate_slugs.append(node.slug)
         node.updated_at = datetime.utcnow()
     await db.commit()
+    for slug in invalidate_slugs:
+        await navcache.invalidate_navigation_by_node(slug)
+        await navcache.invalidate_modes_by_node(slug)
+        cache_invalidate("nav", reason="node_bulk", key=slug)
+        cache_invalidate("navm", reason="node_bulk", key=slug)
+    if invalidate_slugs:
+        await navcache.invalidate_compass_all()
+        cache_invalidate("comp", reason="node_bulk")
     return {"updated": [str(n.id) for n in nodes]}
 
 
