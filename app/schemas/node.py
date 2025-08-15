@@ -23,6 +23,7 @@ class NodeBase(BaseModel):
     cover_url: str | None = None
     tags: list[str] | None = None
     is_public: bool = False
+    is_visible: bool = True
     meta: dict = Field(default_factory=dict)
     premium_only: bool | None = Field(
         default=None, validation_alias=AliasChoices("premium_only", "is_premium_only")
@@ -72,6 +73,7 @@ class NodeUpdate(BaseModel):
     cover_url: str | None = None
     tags: list[str] | None = None
     is_public: bool | None = None
+    is_visible: bool | None = None
     allow_feedback: bool | None = Field(
         default=None, validation_alias=AliasChoices("allow_feedback", "allow_comments")
     )
@@ -92,7 +94,6 @@ class NodeOut(NodeBase):
     reactions: dict[str, int]
     created_at: datetime
     updated_at: datetime
-    is_visible: bool
     popularity_score: float
 
     model_config = {"from_attributes": True}
