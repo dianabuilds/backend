@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import or_, func
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, assert_owner_or_role
 from app.db.session import get_db
 from app.models.quest import Quest, QuestPurchase, QuestProgress
 from app.models.node import Node
@@ -172,8 +172,8 @@ async def publish_quest(
     quest = result.scalars().first()
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
-    if quest.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    # Author or moderator can publish
+    assert_owner_or_role(quest.author_id, "moderator", current_user)
     quest.is_draft = False
     quest.published_at = datetime.utcnow()
     await db.commit()
