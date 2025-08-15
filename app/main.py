@@ -1,7 +1,6 @@
 from app.core.env_loader import load_dotenv
 from app.core.logging_configuration import configure_logging
 
-
 load_dotenv()
 configure_logging()
 
@@ -97,7 +96,13 @@ _allowed_origins = (
     settings.cors.allowed_origins
     if settings.cors.allowed_origins
     else (
-        ["http://localhost:5173", "http://127.0.0.1:5173"]
+        [
+            "http://localhost:5173", "http://127.0.0.1:5173",
+            "http://localhost:5174", "http://127.0.0.1:5174",
+            "http://localhost:5175", "http://127.0.0.1:5175",
+            "http://localhost:5176", "http://127.0.0.1:5176",
+
+        ]
         if not settings.is_production
         else []
     )
@@ -109,7 +114,6 @@ app.add_middleware(
     allow_methods=settings.cors.allowed_methods,
     allow_headers=settings.cors.allowed_headers,
 )
-
 
 DIST_DIR = Path(__file__).resolve().parent.parent / "admin-frontend" / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
