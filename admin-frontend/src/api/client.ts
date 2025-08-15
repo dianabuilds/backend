@@ -68,14 +68,24 @@ export async function apiFetch(
     headers["Accept"] = "application/json";
   }
 
-  // Всегда отправляем CSRF, если он известен (некоторые админ‑GET тоже требуют его)
+  // Для безопасных методов (GET/HEAD) не отправляем CSRF, чтобы не вызывать preflight.
+  const isSafeMethod = method === "GET" || method === "HEAD";
   const csrf = getCsrfToken();
-  if (csrf) headers["X-CSRF-Token"] = csrf;
+  if (csrf && !isSafeMethod) {
+    headers["X-CSRF-Token"] = csrf;
+  }
 
-  // Если явно не передали Authorization — берём токен из cookie/хранилища
-  if (!("authorization" in Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v])))) {
+  // Если явно не передали Authorization — берём токен из cookie/хранилища.
+  // Для безопасных запросов, если уже есть cookie access_token, НЕ добавляем Authorization,
+  // чтобы не триггерить CORS preflight. Для небезопасных — добавляем.
+  const lowerCaseHeaders = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
+  if (!("authorization" in lowerCaseHeaders)) {
     const at = getAccessToken();
-    if (at) headers["Authorization"] = `Bearer ${at}`;
+    const hasCookieAccess =
+      typeof document !== "undefined" && /(?:^|;\s*)access_token=/.test(document.cookie || "");
+    if (at && (!isSafeMethod || !hasCookieAccess)) {
+      headers["Authorization"] = `Bearer ${at}`;
+    }
   }
 
   // В dev (порт 5173) или при VITE_API_BASE направляем запросы на стабильный backend origin

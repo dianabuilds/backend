@@ -316,9 +316,13 @@ async def list_nodes_admin(
     page = PageRequest()
     etag = await service.compute_nodes_etag(spec, ctx, page)
     if if_none_match and if_none_match == etag:
-        return Response(status_code=304, headers={"ETag": etag})
+        # Не отдаем 304, чтобы избежать CORS-проблем с fetch; всегда возвращаем данные.
+        pass
     nodes = await service.list_nodes(spec, page, ctx)
-    response.headers["ETag"] = etag
+    try:
+        response.headers["ETag"] = etag  # type: ignore[name-defined]
+    except NameError:
+        pass
     return nodes
 
 
