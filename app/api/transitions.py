@@ -3,12 +3,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import assert_owner_or_role, get_current_user
+from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.models.transition import NodeTransition
-from app.models.node import Node
-from app.services.navcache import navcache
 from app.models.user import User
+from app.policies import TransitionPolicy
+from app.repositories import NodeRepository, TransitionRepository
+from app.services.navcache import navcache
 
 router = APIRouter(prefix="/transitions", tags=["transitions"])
 
@@ -20,13 +20,14 @@ async def delete_transition(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a specific manual transition between nodes."""
-    transition = await db.get(NodeTransition, transition_id)
+    repo = TransitionRepository(db)
+    node_repo = NodeRepository(db)
+    transition = await repo.get(transition_id)
     if not transition:
         raise HTTPException(status_code=404, detail="Transition not found")
-    assert_owner_or_role(transition.created_by, "moderator", current_user)
-    await db.delete(transition)
-    await db.commit()
-    from_node = await db.get(Node, transition.from_node_id)
+    TransitionPolicy.ensure_can_delete(transition, current_user)
+    from_node = await node_repo.get_by_id(transition.from_node_id)
+    await repo.delete(transition)
     if from_node:
         await navcache.invalidate_navigation_by_node(from_node.slug)
     return {"message": "Transition deleted"}

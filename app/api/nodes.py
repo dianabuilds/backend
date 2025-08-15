@@ -5,12 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import (
-    ensure_can_post,
-    get_current_user,
-    require_premium,
-    assert_owner_or_role,
-)
+from app.api.deps import ensure_can_post, get_current_user, require_premium
 from app.db.session import get_db
 from app.engine.embedding import update_node_embedding
 from app.engine.transitions import get_transitions
@@ -30,7 +25,6 @@ from app.services.events import get_event_bus, NodeCreated, NodeUpdated
 from app.core.config import settings
 from app.models.node import Node
 from app.models.feedback import Feedback
-from app.models.transition import NodeTransition, NodeTransitionType
 from app.models.user import User
 from app.schemas.node import NodeCreate, NodeOut, NodeUpdate, ReactionUpdate
 from app.schemas.tag import NodeTagsUpdate
@@ -45,7 +39,8 @@ from app.schemas.transition import (
     AvailableMode,
 )
 from app.services.quests import check_quest_completion
-from app.services.tags import get_or_create_tags
+from app.policies import NodePolicy
+from app.repositories import NodeRepository, TransitionRepository
 from app.core.log_events import cache_invalidate
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
@@ -74,30 +69,8 @@ async def create_node(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new node authored by the current user."""
-    tag_objs = await get_or_create_tags(db, payload.tags) if payload.tags else []
-    node = Node(
-        title=payload.title,
-        content=payload.content,
-        media=payload.media or [],
-        is_public=payload.is_public,
-        allow_feedback=payload.allow_feedback,
-        is_recommendable=payload.is_recommendable,
-        meta=payload.meta or {},
-        premium_only=(
-            payload.premium_only if payload.premium_only is not None else False
-        ),
-        nft_required=payload.nft_required,
-        ai_generated=(
-            payload.ai_generated if payload.ai_generated is not None else False
-        ),
-        author_id=current_user.id,
-    )
-    if tag_objs:
-        node.tags = tag_objs
-    db.add(node)
-    await db.flush()
-    await db.commit()
-    await db.refresh(node, attribute_names=["id", "slug"])
+    repo = NodeRepository(db)
+    node = await repo.create(payload, current_user.id)
     await get_event_bus().publish(
         NodeCreated(node_id=node.id, slug=node.slug, author_id=current_user.id)
     )
@@ -111,21 +84,16 @@ async def read_node(
     db: AsyncSession = Depends(get_db),
 ):
     """Retrieve a node by its slug."""
-    result = await db.execute(
-        select(Node).where(Node.slug == slug, Node.is_visible == True)
-    )
-    node = result.scalars().first()
+    repo = NodeRepository(db)
+    node = await repo.get_by_slug(slug)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    if not node.is_public and node.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to view this node")
+    NodePolicy.ensure_can_view(node, current_user)
     if node.premium_only:
         await require_premium(current_user)
     if node.nft_required and not await user_has_nft(current_user, node.nft_required):
         raise HTTPException(status_code=403, detail="NFT required")
-    node.views += 1
-    await db.commit()
-    await db.refresh(node)
+    node = await repo.increment_views(node)
     await check_quest_completion(db, current_user, node)
     await maybe_add_auto_trace(db, node, current_user)
     return node
@@ -139,17 +107,12 @@ async def set_node_tags(
     db: AsyncSession = Depends(get_db),
 ):
     """Replace the list of tags associated with a node."""
-    result = await db.execute(select(Node).where(Node.id == node_id))
-    node = result.scalars().first()
+    repo = NodeRepository(db)
+    node = await repo.get_by_id(node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    if node.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this node")
-    await db.refresh(node, attribute_names=["tags"])
-    node.tags = await get_or_create_tags(db, payload.tags)
-    node.updated_at = datetime.utcnow()
-    await db.commit()
-    await db.refresh(node)
+    NodePolicy.ensure_can_edit(node, current_user)
+    node = await repo.set_tags(node, payload.tags)
     await get_event_bus().publish(
         NodeUpdated(
             node_id=node.id,
@@ -175,12 +138,11 @@ async def record_visit(
     db: AsyncSession = Depends(get_db),
 ):
     """Record a manual visit from one node to another."""
-    result = await db.execute(select(Node).where(Node.slug == slug))
-    from_node = result.scalars().first()
+    repo = NodeRepository(db)
+    from_node = await repo.get_by_slug(slug)
     if not from_node:
         raise HTTPException(status_code=404, detail="Node not found")
-    result = await db.execute(select(Node).where(Node.slug == to_slug))
-    to_node = result.scalars().first()
+    to_node = await repo.get_by_slug(to_slug)
     if not to_node:
         raise HTTPException(status_code=404, detail="Target node not found")
     await record_echo_trace(db, from_node, to_node, current_user, source=source, channel=channel)
@@ -209,29 +171,16 @@ async def create_transition(
     db: AsyncSession = Depends(get_db),
 ):
     """Add a manual transition from one node to another."""
-    result = await db.execute(select(Node).where(Node.slug == slug))
-    from_node = result.scalars().first()
+    repo = NodeRepository(db)
+    from_node = await repo.get_by_slug(slug)
     if not from_node:
         raise HTTPException(status_code=404, detail="Node not found")
-    assert_owner_or_role(from_node.author_id, "moderator", current_user)
-    result = await db.execute(select(Node).where(Node.slug == payload.to_slug))
-    to_node = result.scalars().first()
+    NodePolicy.ensure_can_edit(from_node, current_user)
+    to_node = await repo.get_by_slug(payload.to_slug)
     if not to_node:
         raise HTTPException(status_code=404, detail="Target node not found")
-    transition = NodeTransition(
-        from_node_id=from_node.id,
-        to_node_id=to_node.id,
-        type=NodeTransitionType(payload.type),
-        condition=(
-            payload.condition.model_dump(exclude_none=True) if payload.condition else {}
-        ),
-        weight=payload.weight,
-        label=payload.label,
-        created_by=current_user.id,
-    )
-    db.add(transition)
-    await db.commit()
-    await db.refresh(transition)
+    t_repo = TransitionRepository(db)
+    transition = await t_repo.create(from_node.id, to_node.id, payload, current_user.id)
     await navcache.invalidate_navigation_by_node(slug)
     cache_invalidate("nav", reason="transition_create", key=slug)
     return {"id": str(transition.id)}
@@ -249,8 +198,8 @@ async def get_next_nodes(
     db: AsyncSession = Depends(get_db),
 ):
     """Compute possible next nodes from the given node."""
-    result = await db.execute(select(Node).where(Node.slug == slug))
-    node = result.scalars().first()
+    repo = NodeRepository(db)
+    node = await repo.get_by_slug(slug)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
 
@@ -358,8 +307,8 @@ async def get_next_modes(
     db: AsyncSession = Depends(get_db),
 ):
     """List navigation modes available for the node."""
-    result = await db.execute(select(Node).where(Node.slug == slug))
-    node = result.scalars().first()
+    repo = NodeRepository(db)
+    node = await repo.get_by_slug(slug)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     controller_data = node.meta.get("transition_controller") or {}
@@ -389,26 +338,12 @@ async def update_node(
     db: AsyncSession = Depends(get_db),
 ):
     """Update attributes of an existing node."""
-    result = await db.execute(select(Node).where(Node.slug == slug))
-    node = result.scalars().first()
+    repo = NodeRepository(db)
+    node = await repo.get_by_slug(slug)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    if node.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this node")
-    data = payload.dict(exclude_unset=True)
-    tags = data.pop("tags", None)
-    for field, value in data.items():
-        setattr(node, field, value)
-    if tags is not None:
-        await db.refresh(node, attribute_names=["tags"])
-        node.tags = await get_or_create_tags(db, tags)
-    node.updated_at = datetime.utcnow()
-    # Обновляем данные в текущей транзакции
-    await db.flush()
-    # Пересчитываем эмбеддинг до коммита, в той же транзакции
-    await update_node_embedding(db, node)
-    await db.commit()
-    await db.refresh(node)
+    NodePolicy.ensure_can_edit(node, current_user)
+    node = await repo.update(node, payload)
     await navcache.invalidate_navigation_by_node(slug)
     await navcache.invalidate_modes_by_node(slug)
     await navcache.invalidate_compass_all()
@@ -425,16 +360,12 @@ async def delete_node(
     db: AsyncSession = Depends(get_db),
 ):
     """Remove a node created by the current user."""
-    result = await db.execute(select(Node).where(Node.slug == slug))
-    node = result.scalars().first()
+    repo = NodeRepository(db)
+    node = await repo.get_by_slug(slug)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    if node.author_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="Not authorized to delete this node"
-        )
-    await db.delete(node)
-    await db.commit()
+    NodePolicy.ensure_can_edit(node, current_user)
+    await repo.delete(node)
     await navcache.invalidate_navigation_by_node(slug)
     await navcache.invalidate_modes_by_node(slug)
     await navcache.invalidate_compass_all()
@@ -456,21 +387,11 @@ async def update_reactions(
     db: AsyncSession = Depends(get_db),
 ):
     """Add or remove reactions on a node."""
-    result = await db.execute(select(Node).where(Node.slug == slug))
-    node = result.scalars().first()
+    repo = NodeRepository(db)
+    node = await repo.get_by_slug(slug)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    reactions = node.reactions or {}
-    current = reactions.get(payload.reaction, 0)
-    if payload.action == "add":
-        reactions[payload.reaction] = current + 1
-    elif payload.action == "remove" and current > 0:
-        reactions[payload.reaction] = current - 1
-        if reactions[payload.reaction] <= 0:
-            reactions.pop(payload.reaction)
-    node.reactions = reactions
-    await db.commit()
-    await db.refresh(node)
+    node = await repo.update_reactions(node, payload.reaction, payload.action)
     await navcache.invalidate_compass_all()
     cache_invalidate("comp", reason="reaction_update", key=slug)
     return {"reactions": node.reactions}
@@ -487,8 +408,8 @@ async def list_feedback(
     db: AsyncSession = Depends(get_db),
 ):
     """Return feedback entries for a node."""
-    result = await db.execute(select(Node).where(Node.slug == slug))
-    node = result.scalars().first()
+    repo = NodeRepository(db)
+    node = await repo.get_by_slug(slug)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     if not node.allow_feedback and node.author_id != current_user.id:
@@ -511,8 +432,8 @@ async def create_feedback(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a feedback entry for a node."""
-    result = await db.execute(select(Node).where(Node.slug == slug))
-    node = result.scalars().first()
+    repo = NodeRepository(db)
+    node = await repo.get_by_slug(slug)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     if not node.allow_feedback:
@@ -545,8 +466,8 @@ async def delete_feedback(
     db: AsyncSession = Depends(get_db),
 ):
     """Hide a feedback item authored by the current user or node owner."""
-    result = await db.execute(select(Node).where(Node.slug == slug))
-    node = result.scalars().first()
+    repo = NodeRepository(db)
+    node = await repo.get_by_slug(slug)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     result = await db.execute(
