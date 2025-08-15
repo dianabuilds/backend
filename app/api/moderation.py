@@ -21,7 +21,7 @@ from app.schemas.moderation import (
 admin_required = require_admin_role()
 
 router = APIRouter(
-    prefix="/moderation",
+    prefix="/admin/moderation",
     tags=["moderation"],
     dependencies=[Depends(admin_required)],
     responses=ADMIN_AUTH_RESPONSES,
