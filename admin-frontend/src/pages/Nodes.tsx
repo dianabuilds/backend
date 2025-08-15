@@ -35,18 +35,28 @@ export default function Nodes() {
   const { addToast } = useToast();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(0);
+  const limit = 25;
+  const [hasMore, setHasMore] = useState(false);
 
   // Создание ноды
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState<NodeEditorData>(makeDraft());
 
-  const load = async () => {
+  const load = async (pageIndex = page) => {
     setLoading(true);
     setError(null);
     try {
-      const qs = q ? `?q=${encodeURIComponent(q)}` : "";
-      const res = await api.get(`/admin/nodes${qs}`);
-      setItems(ensureArray<NodeItem>(res.data));
+      const params: Record<string, string> = {
+        limit: String(limit),
+        offset: String(pageIndex * limit),
+      };
+      if (q) params.q = q;
+      const qs = new URLSearchParams(params).toString();
+      const res = await api.get(`/admin/nodes?${qs}`);
+      const arr = ensureArray<NodeItem>(res.data);
+      setItems(arr);
+      setHasMore(arr.length === limit);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
@@ -58,9 +68,9 @@ export default function Nodes() {
   };
 
   useEffect(() => {
-    load();
+    load(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page]);
 
   const canSave = useMemo(() => !!draft.title.trim(), [draft.title]);
 
@@ -124,7 +134,15 @@ export default function Nodes() {
       <h1 className="text-2xl font-bold mb-4">Nodes</h1>
       <div className="mb-4 flex items-center gap-2">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by slug..." className="border rounded px-2 py-1" />
-        <button onClick={load} className="px-3 py-1 rounded border">Search</button>
+        <button
+          onClick={() => {
+            setPage(0);
+            load(0);
+          }}
+          className="px-3 py-1 rounded border"
+        >
+          Search
+        </button>
         <button
           className="ml-auto px-3 py-1 rounded bg-blue-600 text-white"
           onClick={() => {
@@ -150,6 +168,7 @@ export default function Nodes() {
         </div>
       )}
       {!loading && !error && (
+        <>
         <table className="min-w-full text-sm text-left">
           <thead>
             <tr className="border-b">
@@ -187,6 +206,24 @@ export default function Nodes() {
             )}
           </tbody>
         </table>
+        <div className="flex items-center gap-2 mt-2">
+          <button
+            className="px-2 py-1 border rounded"
+            disabled={page === 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+          >
+            Prev
+          </button>
+          <span className="text-sm">Page {page + 1}</span>
+          <button
+            className="px-2 py-1 border rounded"
+            disabled={!hasMore}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </button>
+        </div>
+        </>
       )}
 
       {/* Модалка создания ноды */}
@@ -206,8 +243,8 @@ export default function Nodes() {
             }
             await load();
           } catch (e) {
-            // Ошибка покажется в тостах на уровне api.request, если настроено. Здесь тихо закроем/оставим.
-            console.error(e);
+            const msg = e instanceof Error ? e.message : String(e);
+            addToast({ title: "Failed to create node", description: msg, variant: "error" });
           }
         }}
       />

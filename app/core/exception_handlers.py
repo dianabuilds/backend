@@ -106,7 +106,8 @@ async def domain_exception_handler(request: Request, exc: DomainError) -> JSONRe
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled exception: %s", exc)
     sentry_sdk.capture_exception(exc)
-    body = _build_body("INTERNAL_ERROR", "Internal server error")
+    message = str(exc) or "Internal server error"
+    body = _build_body("INTERNAL_ERROR", message)
     return _json_response(500, body)
 
 

@@ -292,6 +292,8 @@ async def list_nodes_admin(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     q: str | None = None,
+    limit: int = Query(100, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -313,7 +315,7 @@ async def list_nodes_admin(
     )
     ctx = QueryContext(user=current_user, is_admin=True)
     service = NodeQueryService(db)
-    page = PageRequest()
+    page = PageRequest(limit=limit, offset=offset)
     etag = await service.compute_nodes_etag(spec, ctx, page)
     if if_none_match and if_none_match == etag:
         # Не отдаем 304, чтобы избежать CORS-проблем с fetch; всегда возвращаем данные.
