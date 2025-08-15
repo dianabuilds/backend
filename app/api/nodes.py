@@ -7,7 +7,6 @@ from sqlalchemy.future import select
 
 from app.api.deps import ensure_can_post, get_current_user, require_premium
 from app.db.session import get_db
-from app.engine.embedding import update_node_embedding
 from app.engine.transitions import get_transitions
 from app.engine.random import get_random_node
 from app.engine.transition_controller import apply_mode
@@ -360,6 +359,15 @@ async def update_node(
         cache_invalidate("nav", reason="node_update", key=slug)
         cache_invalidate("navm", reason="node_update", key=slug)
         cache_invalidate("comp", reason="node_update")
+    tags_changed = payload.tags is not None
+    await get_event_bus().publish(
+        NodeUpdated(
+            node_id=node.id,
+            slug=node.slug,
+            author_id=current_user.id,
+            tags_changed=tags_changed,
+        )
+    )
     return node
 
 
