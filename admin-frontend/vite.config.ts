@@ -41,6 +41,7 @@ proxy['/admin/notifications'] = { target: 'http://localhost:8000', changeOrigin:
 proxy['/admin/quests'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/nodes'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/achievements'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/moderation'] = { target: 'http://localhost:8000', changeOrigin: true }
 
 // https://vite.dev/config/
 export default defineConfig({
