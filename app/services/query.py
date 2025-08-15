@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
+import hashlib
+import json
 
 from pydantic import BaseModel, Field, validator
 from sqlalchemy import func, select, or_, and_
@@ -146,6 +148,26 @@ class NodeQueryService:
             nodes = filtered
         return nodes
 
+    async def compute_nodes_etag(self, spec: NodeFilterSpec, ctx: QueryContext, page: Optional[PageRequest] = None) -> str:
+        """Compute a weak ETag based on spec/context and max(updated_at) for matching nodes.
+        Includes pagination parameters to avoid cross-page ETag collisions.
+        """
+        # Base params that affect visibility and list composition
+        params = {
+            "spec": spec.model_dump(exclude_none=True),
+            "is_admin": ctx.is_admin,
+            "user_id": str(ctx.user.id) if ctx.user else None,
+            "page": {"limit": page.limit, "offset": page.offset} if page else None,
+        }
+        # Build filtered query and convert to subquery selecting only updated_at
+        base_stmt = self.repo.build_query(spec, ctx)
+        subq = base_stmt.with_only_columns(Node.updated_at).order_by(None).subquery()
+        res = await self.repo.session.execute(select(func.max(subq.c.updated_at)))
+        max_updated = res.scalar()
+        payload = {"params": params, "max": max_updated.isoformat() if max_updated else None}
+        etag = "W/\"" + hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest() + "\""
+        return etag
+
     async def get_node(self, node_id: UUID, ctx: QueryContext) -> Optional[Node]:
         stmt = self.repo.build_query(NodeFilterSpec(), ctx).where(Node.id == node_id)
         result = await self.repo.session.execute(stmt)
@@ -153,6 +175,23 @@ class NodeQueryService:
         if node and (ctx.is_admin or await has_access_async(node, ctx.user)):
             return node
         return None
+
+    async def get_node_by_slug(self, slug: str, ctx: QueryContext) -> Optional[Node]:
+        stmt = self.repo.build_query(NodeFilterSpec(), ctx).where(Node.slug == slug)
+        result = await self.repo.session.execute(stmt)
+        node = result.scalars().first()
+        if node and (ctx.is_admin or await has_access_async(node, ctx.user)):
+            return node
+        return None
+
+    async def get_node_by_slug_for_view(self, slug: str) -> Optional[Node]:
+        """Fetch a node by slug for detail view, ignoring public filter but requiring visibility.
+        Authorization (403) is handled by policies at the controller level to preserve current contracts.
+        """
+        result = await self.repo.session.execute(
+            select(Node).options(selectinload(Node.tags)).where(Node.slug == slug, Node.is_visible == True)  # noqa: E712
+        )
+        return result.scalars().first()
 
 
 class TransitionQueryService:
@@ -165,6 +204,26 @@ class TransitionQueryService:
             stmt = stmt.offset(page.offset).limit(page.limit)
         result = await self.repo.session.execute(stmt)
         return result.all()
+
+    async def compute_transitions_etag(self, spec: TransitionFilterSpec, ctx: QueryContext, page: Optional[PageRequest] = None) -> str:
+        """Compute a weak ETag based on spec and max(created_at) for matching transitions."""
+        params = {
+            "spec": spec.model_dump(exclude_none=True),
+            "is_admin": ctx.is_admin,
+            "user_id": str(ctx.user.id) if ctx.user else None,
+            "page": {"limit": page.limit, "offset": page.offset} if page else None,
+        }
+        base_stmt = self.repo.build_query(spec)
+        subq = (
+            base_stmt.with_only_columns(NodeTransition.created_at).order_by(None).subquery()
+        )
+        res = await self.repo.session.execute(select(func.max(subq.c.created_at)))
+        max_created = res.scalar()
+        payload = {"params": params, "max": max_created.isoformat() if max_created else None}
+        etag = "W/\"" + hashlib.sha256(
+            json.dumps(payload, sort_keys=True, default=str).encode()
+        ).hexdigest() + "\""
+        return etag
 
     async def get_transition(self, transition_id: UUID) -> Optional[NodeTransition]:
         result = await self.repo.session.execute(

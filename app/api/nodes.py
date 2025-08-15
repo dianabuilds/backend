@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -48,6 +48,8 @@ router = APIRouter(prefix="/nodes", tags=["nodes"])
 
 @router.get("", response_model=list[NodeOut], summary="List nodes")
 async def list_nodes(
+    response: Response,
+    if_none_match: str | None = Header(None, alias="If-None-Match"),
     tags: str | None = Query(None),
     match: str = Query("any", pattern="^(any|all)$"),
     current_user: User = Depends(get_current_user),
@@ -58,7 +60,12 @@ async def list_nodes(
     spec = NodeFilterSpec(tags=tag_list, match=match)
     ctx = QueryContext(user=current_user, is_admin=False)
     service = NodeQueryService(db)
-    nodes = await service.list_nodes(spec, PageRequest(), ctx)
+    page = PageRequest()
+    etag = await service.compute_nodes_etag(spec, ctx, page)
+    if if_none_match and if_none_match == etag:
+        return Response(status_code=304, headers={"ETag": etag})
+    nodes = await service.list_nodes(spec, page, ctx)
+    response.headers["ETag"] = etag
     return nodes
 
 
