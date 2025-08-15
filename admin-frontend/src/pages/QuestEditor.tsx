@@ -355,7 +355,7 @@ export default function QuestEditor() {
             <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700" onClick={addNodeAndEdit}>Add node</button>
             {/* Кнопки создания узлов/переходов скрыты: всё произойдёт автоматически при сохранении */}
             <button className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-60" onClick={saveQuest} disabled={busy}>
-              Save quest
+              {busy ? "Saving..." : "Save quest"}
             </button>
             <button className="px-3 py-1 rounded border" onClick={() => navigate("/quests")}>Back</button>
           </div>
@@ -386,7 +386,9 @@ export default function QuestEditor() {
                   fill="#fff"
                   stroke="#e11d48"
                   className="cursor-pointer pointer-events-auto"
-                  onClick={() => removeEdge(e.id)}
+                  onClick={() => {
+                    if (confirm("Remove edge?")) removeEdge(e.id);
+                  }}
                 />
               </g>
             );
@@ -473,7 +475,7 @@ export default function QuestEditor() {
                   className="text-xs px-2 py-0.5 rounded border"
                   onClick={(e) => {
                     e.stopPropagation();
-                    removeNode(n.id);
+                    if (confirm("Delete node?")) removeNode(n.id);
                   }}
                 >
                   ×

@@ -48,6 +48,7 @@ export default function Quests() {
   const [q, setQ] = useState("");
   const [authorRole, setAuthorRole] = useState<string>(""); // any|admin|moderator|user
   const [status, setStatus] = useState<string>("draft"); // any|draft|published
+  const [publishing, setPublishing] = useState<string | null>(null);
 
   const queryParams = useMemo(() => {
     const p: Record<string, string> = {};
@@ -64,12 +65,15 @@ export default function Quests() {
   });
 
   const handlePublish = async (id: string) => {
+    setPublishing(id);
     try {
       const q = await publishQuest(id);
       addToast({ title: "Quest published", description: q.title, variant: "success" });
       qc.invalidateQueries({ queryKey: ["quests-admin"] });
     } catch (e) {
       addToast({ title: "Failed to publish quest", description: e instanceof Error ? e.message : String(e), variant: "error" });
+    } finally {
+      setPublishing(null);
     }
   };
 
@@ -128,8 +132,20 @@ export default function Quests() {
                 <td className="p-2 space-x-2">
                   {q.is_draft && (
                     <>
-                      <button className="px-2 py-1 rounded border" onClick={() => handlePublish(q.id)}>Publish</button>
-                      <button className="px-2 py-1 rounded border" onClick={() => handlePublish(q.id)}>Publish & notify</button>
+                      <button
+                        className="px-2 py-1 rounded border"
+                        onClick={() => handlePublish(q.id)}
+                        disabled={publishing === q.id}
+                      >
+                        {publishing === q.id ? "Publishing..." : "Publish"}
+                      </button>
+                      <button
+                        className="px-2 py-1 rounded border"
+                        onClick={() => handlePublish(q.id)}
+                        disabled={publishing === q.id}
+                      >
+                        {publishing === q.id ? "Publishing..." : "Publish & notify"}
+                      </button>
                     </>
                   )}
                 </td>
