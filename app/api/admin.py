@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import String, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import aliased, selectinload
 
 from uuid import UUID
 
@@ -34,6 +33,14 @@ from app.schemas.transition import (
     AdminTransitionOut,
     NodeTransitionUpdate,
     TransitionDisableRequest,
+)
+from app.services.query import (
+    NodeFilterSpec,
+    NodeQueryService,
+    TransitionFilterSpec,
+    TransitionQueryService,
+    PageRequest,
+    QueryContext,
 )
 from app.engine.embedding import update_node_embedding
 from app.services.navcache import navcache
@@ -286,40 +293,26 @@ async def list_nodes_admin(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Node).options(selectinload(Node.tags))
-    if current_user.role not in {"moderator", "admin"}:
-        stmt = stmt.where(Node.author_id == current_user.id)
-    if author:
-        stmt = stmt.where(Node.author_id == author)
-    if is_public is not None:
-        stmt = stmt.where(Node.is_public == is_public)
-    if premium_only is not None:
-        stmt = stmt.where(Node.premium_only == premium_only)
-    if recommendable is not None:
-        stmt = stmt.where(Node.is_recommendable == recommendable)
-    if date_from:
-        stmt = stmt.where(Node.updated_at >= date_from)
-    if date_to:
-        stmt = stmt.where(Node.updated_at <= date_to)
-    if q:
-        like = f"%{q.lower()}%"
-        stmt = stmt.where(
-            or_(
-                func.lower(Node.title).like(like),
-                func.lower(Node.slug).like(like),
-            )
-        )
-    if tags:
-        slugs = [t.strip() for t in tags.split(",") if t.strip()]
-        if slugs:
-            stmt = stmt.join(Node.tags).where(Tag.slug.in_(slugs))
-            if match == "all":
-                stmt = stmt.group_by(Node.id).having(func.count(Tag.id) == len(slugs))
-            else:
-                stmt = stmt.distinct()
-    stmt = stmt.order_by(Node.updated_at.desc())
-    result = await db.execute(stmt)
-    return result.scalars().all()
+    """List nodes for admin interface with various filters."""
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
+    # regular users can only see their own nodes
+    is_moderator = current_user.role in {"moderator", "admin"}
+    effective_author = author if is_moderator else current_user.id
+    spec = NodeFilterSpec(
+        author=effective_author,
+        tags=tag_list,
+        match=match,
+        is_public=is_public,
+        premium_only=premium_only,
+        recommendable=recommendable,
+        date_from=date_from,
+        date_to=date_to,
+        q=q,
+    )
+    ctx = QueryContext(user=current_user, is_admin=True)
+    service = NodeQueryService(db)
+    nodes = await service.list_nodes(spec, PageRequest(), ctx)
+    return nodes
 
 
 @router.post("/nodes/{node_id}/embedding/recompute", summary="Recompute node embedding")
@@ -381,26 +374,19 @@ async def list_transitions_admin(
     db: AsyncSession = Depends(get_db),
 ):
     """Return a paginated list of manual transitions."""
-    from_node = aliased(Node)
-    to_node = aliased(Node)
-    stmt = (
-        select(NodeTransition, from_node.slug, to_node.slug)
-        .join(from_node, NodeTransition.from_node_id == from_node.id)
-        .join(to_node, NodeTransition.to_node_id == to_node.id)
+    spec = TransitionFilterSpec(
+        from_slug=from_slug,
+        to_slug=to_slug,
+        type=type,
+        author=author,
     )
-    if from_slug:
-        stmt = stmt.where(from_node.slug == from_slug)
-    if to_slug:
-        stmt = stmt.where(to_node.slug == to_slug)
-    if type:
-        stmt = stmt.where(NodeTransition.type == type)
-    if author:
-        stmt = stmt.where(NodeTransition.created_by == author)
-    stmt = stmt.order_by(NodeTransition.created_at.desc())
-    offset = (page - 1) * page_size
-    stmt = stmt.offset(offset).limit(page_size)
-    result = await db.execute(stmt)
-    rows = result.all()
+    ctx = QueryContext(user=current_user, is_admin=True)
+    service = TransitionQueryService(db)
+    rows = await service.list_transitions(
+        spec,
+        PageRequest(limit=page_size, offset=(page - 1) * page_size),
+        ctx,
+    )
     return [
         AdminTransitionOut(
             id=t.id,
