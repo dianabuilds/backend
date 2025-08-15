@@ -6,6 +6,7 @@ configure_logging()
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import logging
 from fastapi.middleware.cors import CORSMiddleware
@@ -47,6 +48,7 @@ from app.api.admin_metrics import router as admin_metrics_router
 from app.api.admin_embedding import router as admin_embedding_router
 from app.api.health import router as health_router
 from app.api.metrics_exporter import router as metrics_router
+from app.api.media import router as media_router
 from app.core.config import settings
 from app.core.metrics_middleware import MetricsMiddleware
 from app.core.request_id import RequestIDMiddleware
@@ -125,10 +127,16 @@ if DIST_ASSETS_DIR.exists():
         name="admin-assets",
     )
 
+# Serve uploaded media files
+UPLOADS_DIR = Path("uploads")
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(nodes_router)
 app.include_router(tags_router)
+app.include_router(media_router)
 app.include_router(admin_router)
 app.include_router(admin_navigation_router)
 app.include_router(admin_restrictions_router)

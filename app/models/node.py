@@ -34,6 +34,7 @@ class Node(Base):
     slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=True)
     content = Column(JSONB, nullable=False)
+    cover_url = Column(String, nullable=True)
     media = Column(MutableList.as_mutable(ARRAY(String)), default=list)
     embedding_vector = Column(
         MutableList.as_mutable(VECTOR(settings.embedding.dim)), nullable=True

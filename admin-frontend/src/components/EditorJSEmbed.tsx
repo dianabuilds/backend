@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { api } from "../api/client";
 
 type EditorData = any;
 
@@ -46,13 +47,14 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
             class: ImageTool,
             config: {
               uploader: {
-                uploadByFile(file: File) {
-                  return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve({ success: 1, file: { url: String(reader.result) } });
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
+                async uploadByFile(file: File) {
+                  const form = new FormData();
+                  form.append("file", file);
+                  const res = await api.request<{ url: string }>("/media", {
+                    method: "POST",
+                    body: form,
                   });
+                  return { success: 1, file: { url: res.data?.url } } as any;
                 },
               },
             },
