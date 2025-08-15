@@ -47,15 +47,16 @@ export default function Quests() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [authorRole, setAuthorRole] = useState<string>(""); // any|admin|moderator|user
-  const [draftOnly, setDraftOnly] = useState<boolean>(true);
+  const [status, setStatus] = useState<string>("draft"); // any|draft|published
 
   const queryParams = useMemo(() => {
     const p: Record<string, string> = {};
     if (q) p.q = q;
     if (authorRole) p.author_role = authorRole;
-    if (draftOnly) p.draft = "true";
+    if (status === "draft") p.draft = "true";
+    else if (status === "published") p.draft = "false";
     return p;
-  }, [q, authorRole, draftOnly]);
+  }, [q, authorRole, status]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["quests-admin", queryParams],
@@ -88,8 +89,12 @@ export default function Quests() {
           </select>
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={draftOnly} onChange={(e) => setDraftOnly(e.target.checked)} />
-          <span>Drafts only</span>
+          <span>Status</span>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className="border rounded px-2 py-1">
+            <option value="any">any</option>
+            <option value="draft">draft</option>
+            <option value="published">published</option>
+          </select>
         </label>
         <Link className="px-3 py-1 rounded bg-blue-600 text-white" to="/quests/editor">Create quest</Link>
       </div>
@@ -104,7 +109,7 @@ export default function Quests() {
               <th className="p-2 text-left">Author</th>
               <th className="p-2 text-left">Price</th>
               <th className="p-2 text-left">Premium</th>
-              <th className="p-2 text-left">Draft</th>
+              <th className="p-2 text-left">Status</th>
               <th className="p-2 text-left">Created</th>
               <th className="p-2 text-left">Published</th>
               <th className="p-2 text-left">Actions</th>
@@ -117,11 +122,16 @@ export default function Quests() {
                 <td className="p-2 font-mono">{q.author_id}</td>
                 <td className="p-2">{q.price ?? 0}</td>
                 <td className="p-2">{q.is_premium_only ? "yes" : "no"}</td>
-                <td className="p-2">{q.is_draft ? "yes" : "no"}</td>
+                <td className="p-2">{q.is_draft ? "Draft" : "Published"}</td>
                 <td className="p-2">{new Date(q.created_at).toLocaleString()}</td>
                 <td className="p-2">{q.published_at ? new Date(q.published_at).toLocaleString() : "-"}</td>
                 <td className="p-2 space-x-2">
-                  {q.is_draft && <button className="px-2 py-1 rounded border" onClick={() => handlePublish(q.id)}>Publish</button>}
+                  {q.is_draft && (
+                    <>
+                      <button className="px-2 py-1 rounded border" onClick={() => handlePublish(q.id)}>Publish</button>
+                      <button className="px-2 py-1 rounded border" onClick={() => handlePublish(q.id)}>Publish & notify</button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

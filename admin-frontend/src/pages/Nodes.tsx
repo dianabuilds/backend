@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import NodeEditorModal, { type NodeEditorData } from "../components/NodeEditorModal";
+import { useToast } from "../components/ToastProvider";
 
 type NodeItem = Record<string, any>;
 
@@ -31,6 +32,8 @@ export default function Nodes() {
   const [items, setItems] = useState<NodeItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
 
   // Создание ноды
@@ -45,7 +48,9 @@ export default function Nodes() {
       const res = await api.get(`/admin/nodes${qs}`);
       setItems(ensureArray<NodeItem>(res.data));
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      addToast({ title: "Failed to load nodes", description: msg, variant: "error" });
       setItems([]);
     } finally {
       setLoading(false);
@@ -81,6 +86,39 @@ export default function Nodes() {
     return res.data as any;
   };
 
+  const toggleSelect = (id: string) => {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const doOp = async (ids: string[], op: string) => {
+    try {
+      await api.post("/admin/nodes/bulk", { ids, op });
+      addToast({ title: "Nodes updated", variant: "success" });
+      await load();
+    } catch (e) {
+      addToast({ title: "Operation failed", description: e instanceof Error ? e.message : String(e), variant: "error" });
+    }
+  };
+
+  const handleToggle = async (id: string, field: string, current: boolean) => {
+    const opMap: Record<string, string> = {
+      is_visible: current ? "hide" : "show",
+      is_public: current ? "private" : "public",
+      premium_only: "toggle_premium",
+      is_recommendable: "toggle_recommendable",
+    };
+    const op = opMap[field];
+    if (!op) return;
+    await doOp([id], op);
+  };
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Nodes</h1>
@@ -99,13 +137,30 @@ export default function Nodes() {
       </div>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">{error}</p>}
+      {selected.size > 0 && (
+        <div className="mb-2 flex gap-2">
+          <span className="self-center text-sm">Selected {selected.size}</span>
+          <button className="px-2 py-1 border rounded" onClick={() => doOp(Array.from(selected), "hide")}>Hide</button>
+          <button className="px-2 py-1 border rounded" onClick={() => doOp(Array.from(selected), "show")}>Show</button>
+          <button className="px-2 py-1 border rounded" onClick={() => doOp(Array.from(selected), "public")}>Public</button>
+          <button className="px-2 py-1 border rounded" onClick={() => doOp(Array.from(selected), "private")}>Private</button>
+          <button className="px-2 py-1 border rounded" onClick={() => doOp(Array.from(selected), "toggle_premium")}>Toggle premium</button>
+          <button className="px-2 py-1 border rounded" onClick={() => doOp(Array.from(selected), "toggle_recommendable")}>Toggle recommendable</button>
+          <button className="ml-auto px-2 py-1 border rounded" onClick={clearSelection}>Clear</button>
+        </div>
+      )}
       {!loading && !error && (
         <table className="min-w-full text-sm text-left">
           <thead>
             <tr className="border-b">
+              <th className="p-2"><input type="checkbox" checked={items.length>0 && selected.size===items.length} onChange={(e)=>setSelected(e.target.checked?new Set(items.map(i=>i.id)):new Set())} /></th>
               <th className="p-2">ID</th>
               <th className="p-2">Slug</th>
               <th className="p-2">Status</th>
+              <th className="p-2">Visible</th>
+              <th className="p-2">Public</th>
+              <th className="p-2">Premium</th>
+              <th className="p-2">Recommendable</th>
               <th className="p-2">Created</th>
               <th className="p-2">Updated</th>
             </tr>
@@ -113,16 +168,21 @@ export default function Nodes() {
           <tbody>
             {items.map((n, i) => (
               <tr key={n.id ?? i} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                <td className="p-2"><input type="checkbox" checked={selected.has(n.id)} onChange={()=>toggleSelect(n.id)} /></td>
                 <td className="p-2 font-mono">{n.id ?? "-"}</td>
                 <td className="p-2">{n.slug ?? n.name ?? "-"}</td>
                 <td className="p-2">{n.status ?? n.state ?? "-"}</td>
+                <td className="p-2 text-center"><input type="checkbox" checked={n.is_visible} onChange={()=>handleToggle(n.id,"is_visible",n.is_visible)} /></td>
+                <td className="p-2 text-center"><input type="checkbox" checked={n.is_public} onChange={()=>handleToggle(n.id,"is_public",n.is_public)} /></td>
+                <td className="p-2 text-center"><input type="checkbox" checked={n.premium_only} onChange={()=>handleToggle(n.id,"premium_only",n.premium_only)} /></td>
+                <td className="p-2 text-center"><input type="checkbox" checked={n.is_recommendable} onChange={()=>handleToggle(n.id,"is_recommendable",n.is_recommendable)} /></td>
                 <td className="p-2">{n.created_at ? new Date(n.created_at).toLocaleString() : "-"}</td>
                 <td className="p-2">{n.updated_at ? new Date(n.updated_at).toLocaleString() : "-"}</td>
               </tr>
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-4 text-center text-gray-500">No nodes found</td>
+                <td colSpan={10} className="p-4 text-center text-gray-500">No nodes found</td>
               </tr>
             )}
           </tbody>
