@@ -37,7 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // игнорируем — цель только локально очистить состояние
     }
     setCsrfToken(null);
-      setAccessToken(null);
     setAccessToken(null);
     setUser(null);
   };
