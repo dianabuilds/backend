@@ -2,10 +2,8 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
 
 from app.api.deps import (
     ensure_can_post,
@@ -20,7 +18,12 @@ from app.engine.random import get_random_node
 from app.engine.transition_controller import apply_mode
 from app.engine.echo import record_echo_trace
 from app.engine.traces import maybe_add_auto_trace
-from app.engine.filters import has_access_async
+from app.services.query import (
+    NodeFilterSpec,
+    NodeQueryService,
+    PageRequest,
+    QueryContext,
+)
 from app.services.nft import user_has_nft
 from app.services.navcache import navcache
 from app.services.events import get_event_bus, NodeCreated, NodeUpdated
@@ -43,7 +46,6 @@ from app.schemas.transition import (
 )
 from app.services.quests import check_quest_completion
 from app.services.tags import get_or_create_tags
-from app.models.tag import Tag
 from app.core.log_events import cache_invalidate
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
@@ -57,25 +59,11 @@ async def list_nodes(
     db: AsyncSession = Depends(get_db),
 ):
     """List visible nodes for the current user with optional tag filtering."""
-    stmt = (
-        select(Node)
-        .options(selectinload(Node.tags))
-        .where(
-            Node.is_visible == True,
-            or_(Node.is_public == True, Node.author_id == current_user.id),
-        )
-    )
-    if tags:
-        slugs = [t.strip() for t in tags.split(",") if t.strip()]
-        if slugs:
-            stmt = stmt.join(Node.tags).where(Tag.slug.in_(slugs))
-            if match == "all":
-                stmt = stmt.group_by(Node.id).having(func.count(Tag.id) == len(slugs))
-            else:
-                stmt = stmt.distinct()
-    result = await db.execute(stmt)
-    nodes = result.scalars().all()
-    nodes = [n for n in nodes if await has_access_async(n, current_user)]
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
+    spec = NodeFilterSpec(tags=tag_list, match=match)
+    ctx = QueryContext(user=current_user, is_admin=False)
+    service = NodeQueryService(db)
+    nodes = await service.list_nodes(spec, PageRequest(), ctx)
     return nodes
 
 
