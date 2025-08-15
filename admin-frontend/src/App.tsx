@@ -24,6 +24,7 @@ import Monitoring from "./pages/Monitoring";
 import Notifications from "./pages/Notifications";
 import Quests from "./pages/Quests";
 import QuestEditor from "./pages/QuestEditor";
+import Moderation from "./pages/Moderation";
 
 const queryClient = new QueryClient();
 
@@ -48,7 +49,7 @@ export default function App() {
                   <Route path="nodes" element={<Nodes />} />
                   <Route path="tags" element={<Tags />} />
                   <Route path="transitions" element={<Transitions />} />
-                  <Route path="moderation" element={<ComingSoon title="Moderation" />} />
+                    <Route path="moderation" element={<Moderation />} />
                   <Route path="navigation" element={<Navigation />} />
                   <Route path="echo" element={<Echo />} />
                   <Route path="traces" element={<ComingSoon title="Traces" />} />
