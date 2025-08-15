@@ -1,4 +1,5 @@
 """Tests for RBAC helpers and permissions."""
+
 import logging
 import pytest
 from httpx import AsyncClient
@@ -42,9 +43,7 @@ async def _create_transition(
 
 
 @pytest.mark.asyncio
-async def test_admin_cannot_change_self_role(
-    client: AsyncClient, admin_user: User
-):
+async def test_admin_cannot_change_self_role(client: AsyncClient, admin_user: User):
     token = create_access_token(admin_user.id)
     resp = await client.post(
         f"/admin/users/{admin_user.id}/role",
@@ -69,7 +68,11 @@ async def test_moderator_cannot_change_role(
 
 @pytest.mark.asyncio
 async def test_admin_changes_role_of_lower_user(
-    client: AsyncClient, db_session: AsyncSession, admin_user: User, test_user: User, caplog
+    client: AsyncClient,
+    db_session: AsyncSession,
+    admin_user: User,
+    test_user: User,
+    caplog,
 ):
     token = create_access_token(admin_user.id)
     with caplog.at_level(logging.INFO):
@@ -117,7 +120,7 @@ async def test_moderator_bans_user(
     token = create_access_token(moderator_user.id)
     with caplog.at_level(logging.INFO):
         resp = await client.post(
-            f"/moderation/users/{test_user.id}/ban",
+            f"/admin/moderation/users/{test_user.id}/ban",
             json={"reason": "spam"},
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -131,7 +134,7 @@ async def test_moderator_cannot_ban_admin(
 ):
     token = create_access_token(moderator_user.id)
     resp = await client.post(
-        f"/moderation/users/{admin_user.id}/ban",
+        f"/admin/moderation/users/{admin_user.id}/ban",
         json={"reason": "spam"},
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -147,7 +150,7 @@ async def test_post_restricted_user_cannot_post(
 ):
     mod_token = create_access_token(moderator_user.id)
     resp = await client.post(
-        f"/moderation/users/{test_user.id}/restrict-posting",
+        f"/admin/moderation/users/{test_user.id}/restrict-posting",
         json={"reason": "bad"},
         headers={"Authorization": f"Bearer {mod_token}"},
     )
@@ -175,7 +178,7 @@ async def test_moderator_hides_user_node(
     node = await _create_node(db_session, test_user)
     token = create_access_token(moderator_user.id)
     resp = await client.post(
-        f"/moderation/nodes/{node.slug}/hide",
+        f"/admin/moderation/nodes/{node.slug}/hide",
         json={"reason": "bad"},
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -192,7 +195,7 @@ async def test_moderator_cannot_hide_admin_node(
     node = await _create_node(db_session, admin_user)
     token = create_access_token(moderator_user.id)
     resp = await client.post(
-        f"/moderation/nodes/{node.slug}/hide",
+        f"/admin/moderation/nodes/{node.slug}/hide",
         json={"reason": "bad"},
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -283,4 +286,3 @@ async def test_moderator_deletes_foreign_transition(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200
-
