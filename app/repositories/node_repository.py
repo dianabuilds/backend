@@ -36,6 +36,7 @@ class NodeRepository:
         node = Node(
             title=payload.title,
             content=payload.content,
+            cover_url=payload.cover_url or (payload.media[0] if payload.media else None),
             media=payload.media or [],
             is_public=payload.is_public,
             allow_feedback=payload.allow_feedback,

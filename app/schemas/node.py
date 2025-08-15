@@ -20,6 +20,7 @@ class NodeBase(BaseModel):
     # Контент всегда Editor.js JSON, поле формата нам не нужно
     content: Any = Field(..., validation_alias=AliasChoices("content", "contentData"))
     media: list[str] | None = None
+    cover_url: str | None = None
     tags: list[str] | None = None
     is_public: bool = False
     meta: dict = Field(default_factory=dict)
@@ -51,6 +52,8 @@ class NodeBase(BaseModel):
         # Нормализуем списки
         if self.media is not None and not (isinstance(self.media, list) and all(isinstance(x, str) for x in self.media)):
             raise ValueError("media must be an array of strings")
+        if self.cover_url is not None and not isinstance(self.cover_url, str):
+            raise ValueError("cover_url must be a string")
         if self.tags is not None and not (isinstance(self.tags, list) and all(isinstance(x, str) for x in self.tags)):
             raise ValueError("tags must be an array of strings")
         return self
@@ -66,6 +69,7 @@ class NodeUpdate(BaseModel):
         default=None, validation_alias=AliasChoices("content", "contentData")
     )
     media: list[str] | None = None
+    cover_url: str | None = None
     tags: list[str] | None = None
     is_public: bool | None = None
     allow_feedback: bool | None = Field(

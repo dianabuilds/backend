@@ -7,7 +7,7 @@ export interface NodeEditorData {
   id: string;
   title: string;
   subtitle?: string;
-  cover_image?: string | null;
+  cover_url?: string | null;
   tags?: string[];
   allow_comments?: boolean;
   is_premium_only?: boolean;
@@ -96,8 +96,8 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
               <div>
                 <h4 className="font-semibold mb-2">Изображение</h4>
                 <ImageDropzone
-                  value={node.cover_image || null}
-                  onChange={(dataUrl) => onChange({ cover_image: dataUrl })}
+                  value={node.cover_url || null}
+                  onChange={(url) => onChange({ cover_url: url })}
                   height={160}
                 />
               </div>

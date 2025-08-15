@@ -19,7 +19,7 @@ function makeDraft(): NodeEditorData {
     id: `draft-${Date.now()}`,
     title: "",
     subtitle: "",
-    cover_image: null,
+    cover_url: null,
     tags: [],
     allow_comments: true,
     is_premium_only: false,
@@ -70,7 +70,13 @@ export default function Nodes() {
       allow_comments: draft.allow_comments,
       is_premium_only: draft.is_premium_only,
       tags: Array.isArray(draft.tags) ? draft.tags : [],
-    };
+    } as Record<string, any>;
+    const blocks = Array.isArray(draft.contentData?.blocks) ? draft.contentData.blocks : [];
+    const media = blocks
+      .filter((b: any) => b.type === "image" && b.data?.file?.url)
+      .map((b: any) => String(b.data.file.url));
+    if (media.length) payload.media = media;
+    if (draft.cover_url || media.length) payload.cover_url = draft.cover_url || media[0];
     const res = await api.post("/nodes", payload);
     return res.data as any;
   };

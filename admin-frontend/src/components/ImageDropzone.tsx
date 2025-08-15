@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { api } from "../api/client";
 
 interface ImageDropzoneProps {
   value?: string | null;
@@ -12,15 +13,18 @@ export default function ImageDropzone({ value, onChange, className = "", height 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFiles = useCallback(
-    (files: FileList | null) => {
+    async (files: FileList | null) => {
       if (!files || files.length === 0) return;
       const file = files[0];
       if (!file.type.startsWith("image/")) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        onChange?.(String(reader.result || ""));
-      };
-      reader.readAsDataURL(file);
+      const form = new FormData();
+      form.append("file", file);
+      try {
+        const res = await api.request<{ url: string }>("/media", { method: "POST", body: form });
+        onChange?.(res.data?.url || null);
+      } catch {
+        // ignore upload errors
+      }
     },
     [onChange],
   );
