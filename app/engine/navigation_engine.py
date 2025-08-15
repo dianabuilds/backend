@@ -115,7 +115,13 @@ async def get_navigation(
         "generated_at": datetime.utcnow().isoformat(),
     }
     if settings.cache.enable_nav_cache:
-        await navcache.set_navigation(user_key, node.slug, "auto", data)
+        await navcache.set_navigation(
+            user_key,
+            node.slug,
+            "auto",
+            data,
+            settings.cache.nav_cache_ttl,
+        )
     return data
 
 

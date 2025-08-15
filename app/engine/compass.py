@@ -107,5 +107,6 @@ async def get_compass_nodes(
             user_key,
             params_hash,
             {"ids": [str(n.id) for n in selected]},
+            settings.cache.compass_cache_ttl,
         )
     return selected

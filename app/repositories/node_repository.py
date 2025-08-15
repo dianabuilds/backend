@@ -9,7 +9,6 @@ from sqlalchemy.future import select
 
 from app.models.node import Node
 from app.schemas.node import NodeCreate, NodeUpdate
-from app.engine.embedding import update_node_embedding
 from .tag_repository import TagRepository
 
 
@@ -79,7 +78,6 @@ class NodeRepository:
             node.tags = await self.tags.get_or_create_many(tags)
         node.updated_at = datetime.utcnow()
         await self.session.flush()
-        await update_node_embedding(self.session, node)
         await self.session.commit()
         await self.session.refresh(node)
         return node
