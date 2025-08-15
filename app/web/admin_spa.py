@@ -9,7 +9,7 @@ DIST_DIR = Path(__file__).resolve().parent.parent.parent / "admin-frontend" / "d
 
 @router.get("/admin", include_in_schema=False)
 @router.get("/admin/{_:path}", include_in_schema=False)
-async def serve_admin_app(_: str = "", request: Request | None = None) -> Response:
+async def serve_admin_app(request: Request, _: str = "") -> Response:
     # In test environment, always return placeholder to keep tests deterministic
     if os.getenv("TESTING") == "True":
         return HTMLResponse("<h1>Admin SPA build not found</h1>")
@@ -18,7 +18,7 @@ async def serve_admin_app(_: str = "", request: Request | None = None) -> Respon
     # API-запросы (Accept: application/json) не должны попадать сюда.
     accept = ""
     try:
-        accept = request.headers.get("accept", "") if request is not None else ""
+        accept = request.headers.get("accept", "")
     except Exception:
         accept = ""
     if "text/html" not in accept.lower():
