@@ -36,15 +36,14 @@ export default function EditorJSViewer({ value, className }: Props) {
       } else if (typeof window !== "undefined" && window.location) {
         const port = window.location.port;
         if (port && ["5173", "5174", "5175", "5176"].includes(port)) {
-          base = `${window.location.protocol}//${window.location.hostname}:8000`;
+          // В dev всегда идём на http://:8000 (бэкенд без TLS)
+          base = `http://${window.location.hostname}:8000`;
         } else {
           base = `${window.location.protocol}//${window.location.host}`;
         }
       }
       const urlObj = new URL(u, base || (typeof window !== "undefined" ? window.location.origin : undefined));
-      if (typeof window !== "undefined" && window.location?.protocol === "https:" && urlObj.protocol === "http:") {
-        urlObj.protocol = "https:";
-      }
+      // Не меняем протокол принудительно, чтобы в dev корректно работал http-бэкенд
       return urlObj.toString();
     } catch {
       return u || "";

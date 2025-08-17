@@ -29,7 +29,8 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
       } else if (typeof window !== "undefined" && window.location) {
         const port = window.location.port;
         if (port && ["5173", "5174", "5175", "5176"].includes(port)) {
-          base = `${window.location.protocol}//${window.location.hostname}:8000`;
+          // В dev всегда идём на http://:8000 (бэкенд без TLS), иначе возможен нерабочий https://:8000
+          base = `http://${window.location.hostname}:8000`;
         } else {
           base = `${window.location.protocol}//${window.location.host}`;
         }
@@ -38,10 +39,8 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
       // Унифицировано резолвим и относительные, и абсолютные URL
       const urlObj = new URL(u, base || (typeof window !== "undefined" ? window.location.origin : undefined));
 
-      // Избегаем mixed content: если страница по HTTPS, а ссылка http — апгрейдим до https
-      if (typeof window !== "undefined" && window.location?.protocol === "https:" && urlObj.protocol === "http:") {
-        urlObj.protocol = "https:";
-      }
+      // Важно: не меняем протокол принудительно.
+      // Если backend доступен только по http, насильственная замена на https приведёт к невозможности загрузить изображение.
       return urlObj.toString();
     } catch {
       // На всякий случай возвращаем исходное значение
@@ -90,9 +89,18 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
                       method: "POST",
                       body: form,
                     });
+                    // Поддерживаем разные формы ответа:
+                    // - строка: "http://..."
+                    // - { url: "..." }
+                    // - { file: { url: "..." } }
+                    // - { data: { url: "..." } } или { data: { file: { url: "..." } } }
+                    const d: any = res?.data;
                     const rawUrl =
-                      res.data?.file?.url ||
-                      res.data?.url ||
+                      (typeof d === "string" ? d : null) ||
+                      d?.file?.url ||
+                      d?.url ||
+                      d?.data?.file?.url ||
+                      d?.data?.url ||
                       "";
                     const url = resolveUrl(rawUrl);
                     if (!url) throw new Error("Empty URL from /media");

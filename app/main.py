@@ -143,6 +143,9 @@ uploads_static = CORSMiddleware(
     allow_methods=["GET"],
     allow_headers=["*"],
 )
+# Дополнительно инжектируем CORP, чтобы изображения можно было использовать кросс-оригинально в админке
+from app.web.header_injector import HeaderInjector
+uploads_static = HeaderInjector(uploads_static, {"Cross-Origin-Resource-Policy": "cross-origin"})
 app.mount("/static/uploads", uploads_static, name="uploads")
 
 app.include_router(auth_router)

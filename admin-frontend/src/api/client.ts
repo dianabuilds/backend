@@ -100,7 +100,8 @@ export async function apiFetch(
       } else if (typeof window !== "undefined" && window.location) {
         const port = window.location.port;
         if (port && ["5173", "5174", "5175", "5176"].includes(port)) {
-          base = `${window.location.protocol}//${window.location.hostname}:8000`;
+          // В dev всегда направляем запросы на http://:8000
+          base = `http://${window.location.hostname}:8000`;
         }
       }
     } catch {
@@ -234,8 +235,9 @@ export interface AdminMenuResponse {
   version?: string | number | null;
 }
 
-const MENU_ETAG_KEY = "adminMenuEtag";
-const MENU_CACHE_KEY = "adminMenuCache";
+const MENU_CACHE_VERSION = "v2"; // bump cache to invalidate stale ordered menu
+const MENU_ETAG_KEY = `adminMenuEtag:${MENU_CACHE_VERSION}`;
+const MENU_CACHE_KEY = `adminMenuCache:${MENU_CACHE_VERSION}`;
 
 export async function getAdminMenu(): Promise<AdminMenuResponse> {
   const etag = typeof localStorage !== "undefined" ? localStorage.getItem(MENU_ETAG_KEY) : null;

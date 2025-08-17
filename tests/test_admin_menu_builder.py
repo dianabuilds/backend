@@ -24,8 +24,12 @@ def test_build_menu_filters_and_sorts():
         "tools",
         "system",
     ]
+    # В Content остались Nodes/Tags/Moderation
     content_children = [c.id for c in menu.items[2].children]
-    assert content_children == ["nodes", "tags", "transitions", "moderation"]
+    assert content_children == ["nodes", "tags", "moderation"]
+    # В Navigation собраны 4 пункта: Navigation/Transitions/Echo/Traces
+    nav_children = [c.id for c in menu.items[3].children]
+    assert nav_children == ["navigation-main", "nav-transitions", "nav-echo", "nav-traces"]
 
     menu_flag = build_menu(user, ["payments"])
     ids_flag = [item.id for item in menu_flag.items]

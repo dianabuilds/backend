@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.services.admin_menu import get_cached_menu, count_items
+from app.services.admin_menu import get_cached_menu, count_items, invalidate_menu_cache
 
 logger = logging.getLogger(__name__)
 
@@ -52,3 +52,9 @@ async def get_admin_menu(request: Request, current_user: User = Depends(admin_re
         },
     )
     return response
+
+
+@router.post("/menu/invalidate", summary="Invalidate admin menu cache")
+async def invalidate_admin_menu(current_user: User = Depends(admin_required)) -> JSONResponse:
+    invalidate_menu_cache()
+    return JSONResponse({"status": "invalidated"})

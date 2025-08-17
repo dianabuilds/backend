@@ -65,13 +65,13 @@ BASE_MENU: List[dict] = [
                 "icon": "tags",
                 "order": 2,
             },
-            {
-                "id": "moderation",
-                "label": "Moderation",
-                "path": "/moderation",
-                "icon": "moderation",
-                "order": 4,
-            },
+            # {
+            #     "id": "moderation",
+            #     "label": "Moderation",
+            #     "path": "/moderation",
+            #     "icon": "moderation",
+            #     "order": 3,
+            # },
         ],
     },
     {
@@ -96,7 +96,7 @@ BASE_MENU: List[dict] = [
             },
             {
                 "id": "nav-echo",
-                "label": "Echo traces",
+                "label": "Echo",
                 "path": "/echo",
                 "icon": "echo",
                 "order": 3,
@@ -107,45 +107,6 @@ BASE_MENU: List[dict] = [
                 "path": "/traces",
                 "icon": "traces",
                 "order": 4,
-            },
-        ],
-    },
-    {
-        "id": "telemetry",
-        "label": "Data/Telemetry",
-        "icon": "telemetry",
-        "order": 5,
-        "children": [
-            {
-                "id": "notifications",
-                "label": "Notifications",
-                "path": "/notifications",
-                "icon": "notifications",
-                "order": 3,
-                "hidden": True,  # перенесено на верхний уровень
-            },
-            {
-                "id": "achievements",
-                "label": "Achievements",
-                "path": "/achievements",
-                "icon": "achievements",
-                "order": 4,
-                "hidden": True,  # вынесено на верхний уровень
-            },
-            {
-                "id": "quests",
-                "label": "Quests",
-                "path": "/quests",
-                "icon": "quests",
-                "order": 5,
-                "hidden": True,  # перенесено на верхний уровень
-            },
-            {
-                "id": "search",
-                "label": "Search",
-                "path": "/search",
-                "icon": "search",
-                "order": 6,
             },
         ],
     },
@@ -216,7 +177,7 @@ BASE_MENU: List[dict] = [
         "path": "/quests",
         "icon": "quests",
         "order": 3,
-        "hidden": True,
+        "hidden": False,
     },
     {
         "id": "payments",
@@ -267,7 +228,7 @@ def _filter_and_convert(items: List[dict], role: str, flags: set[str]) -> List[M
             hidden=bool(raw.get("hidden", False)),
         )
         result.append(item)
-    result.sort(key=lambda x: (x.order, x.label))
+    # Не сортируем: сохраняем порядок ровно как в файле конфигурации
     return result
 
 
@@ -297,3 +258,13 @@ def count_items(items: List[MenuItem]) -> int:
         total += 1
         total += count_items(item.children)
     return total
+
+
+def invalidate_menu_cache() -> None:
+    """Очистить кеш меню, чтобы следующая загрузка отдала актуальную конфигурацию."""
+    _menu_cache.clear()
+
+
+def invalidate_menu_cache() -> None:
+    """Очистить кеш меню, чтобы следующая загрузка отдала актуальную конфигурацию."""
+    _menu_cache.clear()

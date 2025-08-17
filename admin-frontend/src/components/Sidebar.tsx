@@ -174,12 +174,8 @@ export default function Sidebar() {
     setError(null);
     try {
       const { items } = await getAdminMenu();
-      // sort by order if provided
-      const sortTree = (arr: AdminMenuItem[]): AdminMenuItem[] =>
-        [...arr]
-          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-          .map((it) => ({ ...it, children: it.children ? sortTree(it.children) : it.children }));
-      setItems(sortTree(items));
+      // Доверяем порядку сервера: не пересортировываем на клиенте
+      setItems(items);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setItems(null);
@@ -224,7 +220,7 @@ export default function Sidebar() {
         ))}
       </nav>
     );
-  }, [loading, error, items, location.pathname]);
+  }, [loading, error, items, location.pathname, expanded]);
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-900 p-4 shadow-sm" aria-label="Sidebar navigation">

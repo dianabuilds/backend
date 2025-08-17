@@ -44,15 +44,23 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                     "form-action 'self'"
                 )
             else:
+                # В продакшне сохраняем строгие правила, в dev — разрешаем http/https для cross-origin ресурсов,
+                # чтобы админка на :5173 могла грузить изображения и ходить к API на :8000.
+                if settings.is_production:
+                    img_src = "img-src 'self' data: blob:; "
+                    connect_src = "connect-src 'self' https: ws: wss:; "
+                else:
+                    img_src = "img-src 'self' data: blob: http: https:; "
+                    connect_src = "connect-src 'self' http: https: ws: wss:; "
                 csp = (
                     "default-src 'self'; "
                     "base-uri 'self'; "
                     "frame-ancestors 'none'; "
-                    "img-src 'self' data: blob:; "
+                    f"{img_src}"
                     "font-src 'self' data:; "
                     "script-src 'self'; "
                     "style-src 'self' 'unsafe-inline'; "
-                    "connect-src 'self' https: ws: wss:; "
+                    f"{connect_src}"
                     "form-action 'self'"
                 )
             headers["Content-Security-Policy"] = csp
