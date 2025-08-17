@@ -90,22 +90,15 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
                       method: "POST",
                       body: form,
                     });
-                    const data = res.data ?? {};
-                    // Если сервер уже вернул формат ImageTool -> отдаем «как есть»
-                    if (data && typeof data === "object" && data.success === 1 && data.file?.url) {
-                      const normalized = { ...data, file: { ...data.file, url: resolveUrl(data.file.url) } };
-                      if (import.meta?.env?.MODE !== "production") {
-                        console.debug("[EditorJS:image] uploadByFile response (pass-through)", normalized);
-                      }
-                      return normalized as any;
-                    }
-                    // Иначе нормализуем к ожидаемому формату
-                    const rawUrl = data.file?.url || data.url || "";
+                    const rawUrl =
+                      res.data?.file?.url ||
+                      res.data?.url ||
+                      "";
                     const url = resolveUrl(rawUrl);
                     if (!url) throw new Error("Empty URL from /media");
                     const normalized = { success: 1, file: { url } };
                     if (import.meta?.env?.MODE !== "production") {
-                      console.debug("[EditorJS:image] uploadByFile response (normalized)", normalized);
+                      console.debug("[EditorJS:image] uploadByFile", normalized);
                     }
                     return normalized as any;
                   } catch (e) {
