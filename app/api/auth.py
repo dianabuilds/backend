@@ -5,7 +5,7 @@ import hmac
 from datetime import datetime, timedelta
 
 from eth_account.messages import encode_defunct
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Body
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -29,7 +29,8 @@ from app.schemas.auth import (
     EVMVerify,
     LoginSchema,
     SignupSchema,
-    Token,
+    Token, LoginResponse,
+    LoginResponse,
 )
 from app.core.log_events import auth_success, auth_failure
 from app.core.log_filters import user_id_var
@@ -209,9 +210,14 @@ async def _authenticate(db: AsyncSession, login: str, password: str) -> tuple[To
 @router.post(
     "/login",
     summary="User login",
+    response_model=LoginResponse,
     dependencies=[rate_limit_dep_key("login")],
 )
-async def login(request: Request, db: AsyncSession = Depends(get_db)):
+async def login(
+    request: Request,
+    payload: LoginSchema | None = Body(None, description="JSON: {username, password}"),
+    db: AsyncSession = Depends(get_db),
+):
     """
     Логин: поддерживает как JSON, так и application/x-www-form-urlencoded.
 
@@ -219,24 +225,26 @@ async def login(request: Request, db: AsyncSession = Depends(get_db)):
     - устанавливает httpOnly cookies: access_token, refresh_token, CSRF cookie
     - возвращает JSON с { ok, csrf_token, access_token } для клиентов, которым нужен Bearer
     """
-    username: str | None = None
-    password: str | None = None
+    # 1) Предпочтительно берём данные из JSON payload (для Swagger)
+    username: str | None = payload.username if payload else None
+    password: str | None = payload.password if payload else None
 
-    content_type = request.headers.get("content-type", "")
-    try:
-        if "application/json" in content_type:
-            body = await request.json()
-            if isinstance(body, dict):
-                username = body.get("username")
-                password = body.get("password")
-        else:
-            form = await request.form()
-            username = form.get("username")
-            password = form.get("password")
-    except Exception:
-        # На случай некорректного тела запроса
-        username = None
-        password = None
+    # 2) Фоллбэк: читаем тело вручную (поддержка form-data и "сырого" JSON)
+    if not username or not password:
+        content_type = request.headers.get("content-type", "")
+        try:
+            if "application/json" in content_type:
+                body = await request.json()
+                if isinstance(body, dict):
+                    username = username or body.get("username")
+                    password = password or body.get("password")
+            else:
+                form = await request.form()
+                username = username or form.get("username")
+                password = password or form.get("password")
+        except Exception:
+            username = username or None
+            password = password or None
 
     if not username or not password:
         raise HTTPException(status_code=422, detail="username and password are required")
@@ -246,6 +254,7 @@ async def login(request: Request, db: AsyncSession = Depends(get_db)):
     refresh = create_refresh_token(user_id)
     csrf_token = secrets.token_hex(16)
     secure_flag = settings.cookie.secure and settings.is_production
+
     resp = JSONResponse({"ok": True, "csrf_token": csrf_token, "access_token": access})
     resp.set_cookie(
         "access_token",

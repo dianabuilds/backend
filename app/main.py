@@ -46,6 +46,7 @@ from app.api.payments import router as payments_router
 from app.api.search import router as search_router
 from app.api.admin_metrics import router as admin_metrics_router
 from app.api.admin_embedding import router as admin_embedding_router
+from app.api.admin_tags import router as admin_tags_router
 from app.api.health import router as health_router
 from app.api.metrics_exporter import router as metrics_router
 from app.api.media import router as media_router
@@ -151,7 +152,7 @@ app.include_router(admin_quests_router)
 app.include_router(admin_achievements_router)
 app.include_router(admin_metrics_router)
 app.include_router(admin_embedding_router)
-app.include_router(admin_spa_router)
+app.include_router(admin_tags_router)
 app.include_router(moderation_router)
 app.include_router(transitions_router)
 app.include_router(navigation_router)
@@ -164,6 +165,8 @@ app.include_router(payments_router)
 app.include_router(search_router)
 app.include_router(health_router)
 app.include_router(metrics_router)
+# SPA fallback должен быть самым последним, чтобы не перехватывать API под /admin/*
+app.include_router(admin_spa_router)
 
 
 @app.get("/")

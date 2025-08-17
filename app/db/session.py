@@ -126,7 +126,8 @@ async def run_migrations() -> None:
         cfg.set_main_option(
             "sqlalchemy.url", settings.database_url.replace("asyncpg", "psycopg2")
         )
-        command.upgrade(cfg, "head")
+        # Используем 'heads', чтобы применить все ветки, если они вдруг появятся
+        command.upgrade(cfg, "heads")
 
     await loop.run_in_executor(None, _upgrade)
     logger.info("Alembic migrations applied")
@@ -140,6 +141,20 @@ async def create_tables() -> None:
     logger.info("Database tables created")
 
 
+async def ensure_min_schema() -> None:
+    """
+    Минимальное выравнивание схемы на случай, если Alembic не выполнился
+    (например, из-за hot-reload). Безопасно повторяется.
+    """
+    engine = get_engine()
+    async with engine.begin() as conn:
+        try:
+            # Добавляем столбец cover_url у nodes, если его нет
+            await conn.execute(text("ALTER TABLE IF EXISTS nodes ADD COLUMN IF NOT EXISTS cover_url TEXT"))
+        except Exception as e:
+            logger.warning(f"ensure_min_schema failed: {e}")
+
+
 async def init_db() -> None:
     """Initialize database by running migrations or creating tables."""
     try:
@@ -147,6 +162,8 @@ async def init_db() -> None:
     except Exception as e:
         logger.warning(f"Migrations not applied ({e}). Falling back to create_all().")
         await create_tables()
+    # Гарантируем наличие критически важных колонок даже при сбое Alembic
+    await ensure_min_schema()
 
 
 async def check_database_connection(max_retries: int = 5) -> bool:

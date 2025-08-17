@@ -23,4 +23,5 @@ async def upload_media(
     if len(data) > 5 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File too large")
     url = storage.save(io.BytesIO(data), file.filename, file.content_type)
-    return {"url": url}
+    # Возвращаем совместимый с Editor.js ImageTool формат + поле url для обратной совместимости
+    return {"success": 1, "file": {"url": url}, "url": url}

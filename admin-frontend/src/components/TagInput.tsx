@@ -13,7 +13,7 @@ export default function TagInput({ value = [], onChange, placeholder = "Доба
 
   const commit = (raw: string) => {
     const items = raw
-      .split(/[,\n]/g)
+      .split(/[,\s\n]+/g)
       .map((s) => s.trim())
       .filter(Boolean);
     if (items.length === 0) return;
@@ -48,6 +48,9 @@ export default function TagInput({ value = [], onChange, placeholder = "Доба
             e.preventDefault();
             commit(input);
           } else if (e.key === "," && !e.shiftKey) {
+            e.preventDefault();
+            commit(input);
+          } else if (e.key === " " && !e.shiftKey) {
             e.preventDefault();
             commit(input);
           } else if (e.key === "Backspace" && input.length === 0 && tags.length > 0) {

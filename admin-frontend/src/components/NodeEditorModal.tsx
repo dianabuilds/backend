@@ -20,12 +20,27 @@ interface Props {
   onChange: (patch: Partial<NodeEditorData>) => void;
   onClose: () => void;
   onCommit: (action: "save" | "next") => void;
+  busy?: boolean;
 }
 
-function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props) {
+function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = false }: Props) {
   if (!open || !node) return null;
 
   const heading = useMemo(() => (node.title?.trim() ? "Редактировать пещеру" : "Создать пещеру"), [node.title]);
+
+  // Сохраняем актуальное содержимое редактора перед коммитом
+  const handleCommit = async (action: "save" | "next") => {
+    try {
+      const saveFn: (() => Promise<any>) | undefined = (handleCommit as any)._save;
+      if (typeof saveFn === "function") {
+        const data = await saveFn();
+        if (data) onChange({ contentData: data });
+      }
+    } catch {
+      // игнорируем — лучше сохранить с последней известной версией
+    }
+    onCommit(action);
+  };
 
   // Автосохранение черновика в localStorage
   useEffect(() => {
@@ -134,6 +149,12 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
               key={node.id}
               value={node.contentData}
               onChange={(data) => onChange({ contentData: data })}
+              onReady={({ save }) => {
+                // Сохраняем функцию save для использования при коммите
+                (window as any).__ed_save__ = save; // для отладки
+                // сохраняем на экземпляре компонента через ref
+                (handleCommit as any)._save = save;
+              }}
               className="border rounded"
               minHeight={480}
               placeholder="Напишите описание, легенду или сценарий пещеры…"
@@ -143,18 +164,23 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
 
         {/* Footer */}
         <div className="px-5 py-3 border-t flex items-center justify-end gap-3">
-          <button className="px-4 py-1.5 rounded border" onClick={onClose}>
+          <button className="px-4 py-1.5 rounded border" onClick={onClose} disabled={busy}>
             Отмена
           </button>
-          <button className="px-4 py-1.5 rounded bg-blue-600 text-white" onClick={() => onCommit("save")}>
-            Сохранить
+          <button
+            className="px-4 py-1.5 rounded bg-blue-600 text-white disabled:opacity-50"
+            onClick={() => handleCommit("save")}
+            disabled={busy}
+          >
+            {busy ? "Сохранение…" : "Сохранить"}
           </button>
           <button
-            className="px-4 py-1.5 rounded bg-blue-700 text-white"
+            className="px-4 py-1.5 rounded bg-blue-700 text-white disabled:opacity-50"
             title="Ctrl+Shift+Enter"
-            onClick={() => onCommit("next")}
+            onClick={() => handleCommit("next")}
+            disabled={busy}
           >
-            Сохранить и создать следующую
+            {busy ? "Сохранение…" : "Сохранить и создать следующую"}
           </button>
         </div>
       </div>

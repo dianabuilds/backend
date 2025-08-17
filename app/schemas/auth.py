@@ -50,6 +50,18 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+    class LoginResponse(BaseModel):
+        ok: bool = True
+        csrf_token: str | None = None
+        access_token: str
+
+
+class LoginResponse(BaseModel):
+    ok: bool = True
+    csrf_token: str | None = None
+    access_token: str
+
+
 
 class ChangePassword(BaseModel):
     old_password: str

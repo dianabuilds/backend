@@ -98,6 +98,31 @@ class NodeOut(NodeBase):
 
     model_config = {"from_attributes": True}
 
+    @model_validator(mode="after")
+    def _normalize_output(self) -> "NodeOut":
+        # Приводим popularity_score к числу (некорректные значения -> 0.0)
+        try:
+            # если пришло строкой или иным типом — пробуем привести
+            self.popularity_score = float(self.popularity_score)  # type: ignore[arg-type]
+        except Exception:
+            self.popularity_score = 0.0
+        # Приводим reactions к словарю
+        if not isinstance(self.reactions, dict):
+            try:
+                # попробуем распарсить строку/список в словарь-частоты
+                import json
+                if isinstance(self.reactions, str):
+                    parsed = json.loads(self.reactions)
+                    if isinstance(parsed, dict):
+                        self.reactions = {str(k): int(v) for k, v in parsed.items()}
+                    else:
+                        self.reactions = {}
+                else:
+                    self.reactions = {}
+            except Exception:
+                self.reactions = {}
+        return self
+
 
 class ReactionUpdate(BaseModel):
     reaction: str

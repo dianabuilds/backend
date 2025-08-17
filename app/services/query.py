@@ -40,6 +40,7 @@ class NodeFilterSpec(BaseModel):
     tags: Optional[List[str]] = None
     match: str = Field("any", pattern="^(any|all)$")
     is_public: Optional[bool] = None
+    is_visible: Optional[bool] = None
     premium_only: Optional[bool] = None
     recommendable: Optional[bool] = None
     date_from: Optional[datetime] = None
@@ -79,6 +80,8 @@ class NodeRepository:
             stmt = stmt.where(Node.author_id == spec.author)
         if spec.is_public is not None:
             stmt = stmt.where(Node.is_public == spec.is_public)
+        if spec.is_visible is not None:
+            stmt = stmt.where(Node.is_visible == spec.is_visible)
         if spec.premium_only is not None:
             stmt = stmt.where(Node.premium_only == spec.premium_only)
         if spec.recommendable is not None:

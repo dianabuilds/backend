@@ -88,16 +88,20 @@ export async function apiFetch(
     }
   }
 
-  // В dev (порт 5173) или при VITE_API_BASE направляем запросы на стабильный backend origin
+  // В dev (порт 5173–5176) или при VITE_API_BASE направляем запросы на стабильный backend origin
   const toUrl = (u: RequestInfo): RequestInfo => {
     if (typeof u !== "string") return u;
     if (!u.startsWith("/")) return u;
     let base = "";
     try {
       const envBase = (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
-      if (envBase) base = envBase;
-      else if (typeof window !== "undefined" && window.location && window.location.port === "5173") {
-        base = `${window.location.protocol}//${window.location.hostname}:8000`;
+      if (envBase) {
+        base = envBase;
+      } else if (typeof window !== "undefined" && window.location) {
+        const port = window.location.port;
+        if (port && ["5173", "5174", "5175", "5176"].includes(port)) {
+          base = `${window.location.protocol}//${window.location.hostname}:8000`;
+        }
       }
     } catch {
       // ignore

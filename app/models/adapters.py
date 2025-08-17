@@ -103,8 +103,10 @@ class ARRAY(TypeDecorator):
     def process_bind_param(self, value, dialect):
         import json
 
-        if value is not None and not isinstance(value, str):
-            return json.dumps(value)
+        # Для SQLite/тестов храним как JSON-строку, для PostgreSQL — отдаём как есть
+        if dialect.name != "postgresql" or IS_TESTING:
+            if value is not None and not isinstance(value, str):
+                return json.dumps(value)
         return value
 
     def process_result_value(self, value, dialect):
@@ -113,22 +115,50 @@ class ARRAY(TypeDecorator):
         if value is None:
             return None
 
-        # В PostgreSQL pgvector уже возвращает массив чисел
+        # Определяем, нужно ли приводить элементы к числу
+        is_numeric = False
+        try:
+            is_numeric = issubclass(self.item_type, (types.Integer, types.Float, types.Numeric))
+        except Exception:
+            is_numeric = False
+
         if dialect.name == "postgresql" and not IS_TESTING:
+            # В PostgreSQL драйвер обычно возвращает уже Python-список
             if isinstance(value, (list, tuple)):
-                return [float(x) for x in value]
-            # если по какой-то причине вернулась строка — пробуем распарсить
+                if is_numeric:
+                    try:
+                        return [float(x) for x in value]
+                    except Exception:
+                        return list(value)
+                # строковые и прочие типы возвращаем как есть
+                return list(value)
+            # На всякий случай: если пришла строка — пытаемся распарсить JSON
             if isinstance(value, str):
                 try:
                     arr = json.loads(value)
-                    return [float(x) for x in arr] if isinstance(arr, (list, tuple)) else arr
+                    if isinstance(arr, (list, tuple)):
+                        if is_numeric:
+                            try:
+                                return [float(x) for x in arr]
+                            except Exception:
+                                return list(arr)
+                        return [str(x) for x in arr]
+                    return arr
                 except Exception:
                     return value
             return value
 
         # В SQLite/тестах читаем JSON-текст
         try:
-            return json.loads(value)
+            arr = json.loads(value)
+            if isinstance(arr, (list, tuple)):
+                if is_numeric:
+                    try:
+                        return [float(x) for x in arr]
+                    except Exception:
+                        return list(arr)
+                return [str(x) for x in arr]
+            return arr
         except (TypeError, json.JSONDecodeError):
             return value
 
@@ -164,6 +194,13 @@ class VECTOR(TypeDecorator):
         if value is None:
             return None
 
+        # Нормализуем numpy.ndarray -> list
+        try:
+            if hasattr(value, "tolist"):
+                value = value.tolist()  # type: ignore[assignment]
+        except Exception:
+            pass
+
         # В PostgreSQL pgvector ожидает список чисел, а не JSON-строку
         if dialect.name == "postgresql" and not IS_TESTING:
             try:
@@ -179,17 +216,66 @@ class VECTOR(TypeDecorator):
                 return value
         # В SQLite/тестах храним как JSON-текст
         if not isinstance(value, str):
-            return json.dumps(value)
+            try:
+                return json.dumps(value)
+            except Exception:
+                # на крайний случай — конвертируем к списку строк
+                try:
+                    return json.dumps(list(value))  # type: ignore[arg-type]
+                except Exception:
+                    return json.dumps([])
         return value
 
     def process_result_value(self, value, dialect):
         import json
 
-        if value is not None:
+        if value is None:
+            return None
+
+        # Нормализуем возможный numpy.ndarray в список
+        try:
+            if hasattr(value, "tolist"):
+                value = value.tolist()  # type: ignore[assignment]
+        except Exception:
+            pass
+
+        if dialect.name == "postgresql" and not IS_TESTING:
+            # Драйвер может вернуть list/tuple (или np.ndarray, обработан выше)
+            if isinstance(value, (list, tuple)):
+                try:
+                    return [float(x) for x in value]
+                except Exception:
+                    return list(value)
+            if isinstance(value, str):
+                try:
+                    arr = json.loads(value)
+                    if isinstance(arr, (list, tuple)):
+                        try:
+                            return [float(x) for x in arr]
+                        except Exception:
+                            return list(arr)
+                    return arr
+                except Exception:
+                    return value
+            return value
+
+        # SQLite/тесты: читаем JSON‑строку, приводим к списку
+        if isinstance(value, str):
             try:
-                return json.loads(value)
+                arr = json.loads(value)
+                if isinstance(arr, (list, tuple)):
+                    try:
+                        return [float(x) for x in arr]
+                    except Exception:
+                        return list(arr)
+                return arr
             except (TypeError, json.JSONDecodeError):
                 return value
+
+        # На всякий случай — если пришёл уже список/кортеж
+        if isinstance(value, (list, tuple)):
+            return list(value)
+
         return value
 
 
