@@ -228,7 +228,8 @@ def _filter_and_convert(items: List[dict], role: str, flags: set[str]) -> List[M
             hidden=bool(raw.get("hidden", False)),
         )
         result.append(item)
-    # Не сортируем: сохраняем порядок ровно как в файле конфигурации
+    # Сортируем только по order; стабильная сортировка сохранит исходный порядок при равных order
+    result.sort(key=lambda x: x.order)
     return result
 
 

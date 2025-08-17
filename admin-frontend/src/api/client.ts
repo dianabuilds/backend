@@ -235,7 +235,7 @@ export interface AdminMenuResponse {
   version?: string | number | null;
 }
 
-const MENU_CACHE_VERSION = "v2"; // bump cache to invalidate stale ordered menu
+const MENU_CACHE_VERSION = "v3"; // bump cache to invalidate stale ordered menu
 const MENU_ETAG_KEY = `adminMenuEtag:${MENU_CACHE_VERSION}`;
 const MENU_CACHE_KEY = `adminMenuCache:${MENU_CACHE_VERSION}`;
 
