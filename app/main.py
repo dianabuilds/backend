@@ -128,10 +128,21 @@ if DIST_ASSETS_DIR.exists():
         name="admin-assets",
     )
 
-# Serve uploaded media files
+# Serve uploaded media files with CORS so that editors on other origins can access them
 UPLOADS_DIR = Path("uploads")
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/static/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
+# Static file app for uploads
+uploads_static = StaticFiles(directory=UPLOADS_DIR)
+# Wrap with CORS middleware because mounted apps bypass the main app middlewares
+uploads_static = CORSMiddleware(
+    uploads_static,
+    allow_origins=_allowed_origins,
+    allow_credentials=settings.cors.allow_credentials,
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+app.mount("/static/uploads", uploads_static, name="uploads")
 
 app.include_router(auth_router)
 app.include_router(users_router)
