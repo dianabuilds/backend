@@ -387,7 +387,7 @@ export default function Nodes() {
   return (
     <div className="flex gap-6">
       <div className="flex-1">
-        <h1 className="text-2xl font-bold mb-4">Nodes & Moderation</h1>
+        <h1 className="text-2xl font-bold mb-4">Nodes</h1>
 
         {/* Панель поиска и применения изменений */}
         <div className="mb-3 flex items-center gap-2">

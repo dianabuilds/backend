@@ -47,6 +47,7 @@ from app.api.search import router as search_router
 from app.api.admin_metrics import router as admin_metrics_router
 from app.api.admin_embedding import router as admin_embedding_router
 from app.api.admin_tags import router as admin_tags_router
+from app.api.admin_traces import router as admin_traces_router
 from app.api.health import router as health_router
 from app.api.metrics_exporter import router as metrics_router
 from app.api.media import router as media_router
@@ -153,6 +154,7 @@ app.include_router(admin_router)
 app.include_router(admin_navigation_router)
 app.include_router(admin_restrictions_router)
 app.include_router(admin_echo_router)
+app.include_router(admin_traces_router)
 app.include_router(admin_audit_router)
 app.include_router(admin_cache_router)
 app.include_router(admin_menu_router)

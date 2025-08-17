@@ -66,13 +66,6 @@ BASE_MENU: List[dict] = [
                 "order": 2,
             },
             {
-                "id": "transitions",
-                "label": "Transitions",
-                "path": "/transitions",
-                "icon": "transitions",
-                "order": 3,
-            },
-            {
                 "id": "moderation",
                 "label": "Moderation",
                 "path": "/moderation",
@@ -93,7 +86,28 @@ BASE_MENU: List[dict] = [
                 "path": "/navigation",
                 "icon": "navigation",
                 "order": 1,
-            }
+            },
+            {
+                "id": "nav-transitions",
+                "label": "Transitions",
+                "path": "/transitions",
+                "icon": "transitions",
+                "order": 2,
+            },
+            {
+                "id": "nav-echo",
+                "label": "Echo traces",
+                "path": "/echo",
+                "icon": "echo",
+                "order": 3,
+            },
+            {
+                "id": "nav-traces",
+                "label": "Traces",
+                "path": "/traces",
+                "icon": "traces",
+                "order": 4,
+            },
         ],
     },
     {
@@ -102,20 +116,6 @@ BASE_MENU: List[dict] = [
         "icon": "telemetry",
         "order": 5,
         "children": [
-            {
-                "id": "echo",
-                "label": "Echo traces",
-                "path": "/echo",
-                "icon": "echo",
-                "order": 1,
-            },
-            {
-                "id": "traces",
-                "label": "Traces",
-                "path": "/traces",
-                "icon": "traces",
-                "order": 2,
-            },
             {
                 "id": "notifications",
                 "label": "Notifications",

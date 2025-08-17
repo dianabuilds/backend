@@ -18,6 +18,7 @@ import Health from "./pages/Health";
 import Nodes from "./pages/Nodes";
 import Tags from "./pages/Tags";
 import Transitions from "./pages/Transitions";
+import Traces from "./pages/Traces";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ToastProvider } from "./components/ToastProvider";
 import Monitoring from "./pages/Monitoring";
@@ -52,7 +53,7 @@ export default function App() {
                     <Route path="moderation" element={<Moderation />} />
                   <Route path="navigation" element={<Navigation />} />
                   <Route path="echo" element={<Echo />} />
-                  <Route path="traces" element={<ComingSoon title="Traces" />} />
+                  <Route path="traces" element={<Traces />} />
                   <Route path="notifications" element={<Notifications />} />
                   <Route path="achievements" element={<Achievements />} />
                   <Route path="quests" element={<Quests />} />

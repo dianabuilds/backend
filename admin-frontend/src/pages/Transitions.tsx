@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 
 type TransitionItem = Record<string, any>;
@@ -19,6 +19,7 @@ export default function Transitions() {
   const [error, setError] = useState<string | null>(null);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [weights, setWeights] = useState<Record<string, string>>({});
 
   const load = async () => {
     setLoading(true);
@@ -29,7 +30,15 @@ export default function Transitions() {
       if (to) params.set("to_slug", to);
       const qs = params.toString() ? `?${params.toString()}` : "";
       const res = await api.get(`/admin/transitions${qs}`);
-      setItems(ensureArray<TransitionItem>(res.data));
+      const data = ensureArray<TransitionItem>(res.data);
+      setItems(data);
+      // заполняем локальные значения весов
+      const w: Record<string, string> = {};
+      for (const t of data) {
+        const id = String(t.id ?? "");
+        if (id) w[id] = String(t.weight ?? t.priority ?? "");
+      }
+      setWeights(w);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setItems([]);
@@ -43,9 +52,36 @@ export default function Transitions() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const ids = useMemo(() => items.map((it) => String(it.id ?? "")), [items]);
+
+  const setWeightValue = (id: string, v: string) => setWeights((m) => ({ ...m, [id]: v }));
+
+  const patchTransition = async (id: string, body: Record<string, any>) => {
+    await api.patch(`/admin/transitions/${id}`, body);
+  };
+
+  const toggleDisabled = async (id: string, current: boolean) => {
+    await patchTransition(id, { disabled: !current });
+    await load();
+  };
+
+  const saveWeight = async (id: string) => {
+    const v = weights[id];
+    const num = Number(v);
+    if (isNaN(num)) return;
+    // отправим оба поля на случай разных схем
+    await patchTransition(id, { weight: num, priority: num });
+    await load();
+  };
+
+  const deleteTransition = async (id: string) => {
+    await api.del(`/admin/transitions/${id}`);
+    await load();
+  };
+
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Transitions</h1>
+      <h1 className="text-2xl font-bold mb-2">Transitions</h1>
       <div className="mb-4 flex items-center gap-2">
         <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="from slug" className="border rounded px-2 py-1" />
         <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="to slug" className="border rounded px-2 py-1" />
@@ -63,22 +99,40 @@ export default function Transitions() {
               <th className="p-2">Weight</th>
               <th className="p-2">Disabled</th>
               <th className="p-2">Updated</th>
+              <th className="p-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((t, i) => (
-              <tr key={t.id ?? i} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
-                <td className="p-2 font-mono">{t.id ?? "-"}</td>
-                <td className="p-2">{t.from_slug ?? "-"}</td>
-                <td className="p-2">{t.to_slug ?? "-"}</td>
-                <td className="p-2">{t.weight ?? t.priority ?? "-"}</td>
-                <td className="p-2">{String(t.disabled ?? false)}</td>
-                <td className="p-2">{t.updated_at ? new Date(t.updated_at).toLocaleString() : "-"}</td>
-              </tr>
-            ))}
-            {items.length === 0 && (
+            {items.map((t, i) => {
+              const id = String(t.id ?? i);
+              const disabled = Boolean(t.disabled ?? false);
+              return (
+                <tr key={id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <td className="p-2 font-mono">{t.id ?? "-"}</td>
+                  <td className="p-2">{t.from_slug ?? "-"}</td>
+                  <td className="p-2">{t.to_slug ?? "-"}</td>
+                  <td className="p-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        className="border rounded px-2 py-1 w-24"
+                        value={weights[id] ?? ""}
+                        onChange={(e) => setWeightValue(id, e.target.value)}
+                      />
+                      <button onClick={() => saveWeight(id)} className="px-2 py-1 rounded border">Save</button>
+                    </div>
+                  </td>
+                  <td className="p-2">{String(disabled)}</td>
+                  <td className="p-2">{t.updated_at ? new Date(t.updated_at).toLocaleString() : "-"}</td>
+                  <td className="p-2 space-x-2">
+                    <button onClick={() => toggleDisabled(id, disabled)} className="text-blue-600">{disabled ? "Enable" : "Disable"}</button>
+                    <button onClick={() => deleteTransition(id)} className="text-red-600">Del</button>
+                  </td>
+                </tr>
+              );
+            })}
+            {ids.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-4 text-center text-gray-500">No transitions found</td>
+                <td colSpan={7} className="p-4 text-center text-gray-500">No transitions found</td>
               </tr>
             )}
           </tbody>

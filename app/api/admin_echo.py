@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from uuid import UUID
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +20,7 @@ from app.services.navcache import navcache
 from app.core.log_events import cache_invalidate
 from app.core.audit_log import log_admin_action
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from pydantic import BaseModel
 
 admin_required = require_admin_role()
 admin_only = require_admin_role({"admin"})
@@ -32,11 +34,17 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 
+class BulkIds(BaseModel):
+    ids: List[UUID]
+
+
 @router.get("", response_model=list[AdminEchoTraceOut], summary="List echo traces")
 async def list_echo_traces(
     from_slug: str | None = Query(None, alias="from"),
     to_slug: str | None = Query(None, alias="to"),
     user_id: UUID | None = None,
+    source: str | None = None,
+    channel: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     page: int = 1,
@@ -57,6 +65,10 @@ async def list_echo_traces(
         stmt = stmt.where(to_node.slug == to_slug)
     if user_id:
         stmt = stmt.where(EchoTrace.user_id == user_id)
+    if source:
+        stmt = stmt.where(EchoTrace.source == source)
+    if channel:
+        stmt = stmt.where(EchoTrace.channel == channel)
     if date_from:
         stmt = stmt.where(EchoTrace.created_at >= date_from)
     if date_to:
@@ -120,6 +132,52 @@ async def delete_echo_trace(
         resource_id=str(trace_id),
     )
     return {"status": "deleted"}
+
+
+@router.post("/bulk/anonymize", summary="Bulk anonymize echo traces")
+async def bulk_anonymize_echo(
+    payload: BulkIds,
+    current_user: User = Depends(admin_only),
+    db: AsyncSession = Depends(get_db),
+):
+    if not payload.ids:
+        return {"updated": 0}
+    result = await db.execute(select(EchoTrace).where(EchoTrace.id.in_(payload.ids)))
+    traces = result.scalars().all()
+    for t in traces:
+        t.user_id = None
+    await db.commit()
+    await log_admin_action(
+        db,
+        actor_id=current_user.id,
+        action="bulk_anonymize_echo",
+        resource_type="echo",
+        resource_id=",".join(str(i) for i in payload.ids),
+    )
+    return {"updated": len(traces)}
+
+
+@router.post("/bulk/delete", summary="Bulk delete echo traces")
+async def bulk_delete_echo(
+    payload: BulkIds,
+    current_user: User = Depends(admin_only),
+    db: AsyncSession = Depends(get_db),
+):
+    if not payload.ids:
+        return {"deleted": 0}
+    result = await db.execute(select(EchoTrace).where(EchoTrace.id.in_(payload.ids)))
+    traces = result.scalars().all()
+    for t in traces:
+        await db.delete(t)
+    await db.commit()
+    await log_admin_action(
+        db,
+        actor_id=current_user.id,
+        action="bulk_delete_echo",
+        resource_type="echo",
+        resource_id=",".join(str(i) for i in payload.ids),
+    )
+    return {"deleted": len(traces)}
 
 
 @router.post("/recompute_popularity", summary="Recompute node popularity")
