@@ -65,14 +65,27 @@ class MetricsStorage:
         recent = self._select_recent(range_seconds)
         total = len(recent)
         if total == 0:
-            return {"rps": 0.0, "error_rate": 0.0, "p95_latency": 0.0, "count_429": 0}
+            return {
+                "count": 0,
+                "error_count": 0,
+                "rps": 0.0,
+                "error_rate": 0.0,
+                "p95_latency": 0.0,
+                "p99_latency": 0.0,
+                "count_429": 0,
+            }
         errors = sum(1 for r in recent if r.status_code >= 400)
-        p95 = _percentile([r.duration_ms for r in recent], 0.95)
+        durations = [r.duration_ms for r in recent]
+        p95 = _percentile(durations, 0.95)
+        p99 = _percentile(durations, 0.99)
         count_429 = sum(1 for r in recent if r.status_code == 429)
         return {
+            "count": total,
+            "error_count": errors,
             "rps": total / range_seconds,
             "error_rate": errors / total,
             "p95_latency": p95,
+            "p99_latency": p99,
             "count_429": count_429,
         }
 

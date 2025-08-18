@@ -20,5 +20,8 @@ async def test_metrics_summary(client: AsyncClient, admin_user: User):
     resp = await client.get("/admin/metrics/summary", headers=headers)
     assert resp.status_code == 200
     data = resp.json()
+    assert data["count"] == 2
+    assert data["error_count"] == 1
     assert data["count_429"] == 0
     assert 0.4 < data["error_rate"] < 0.6
+    assert data["p99_latency"] >= data["p95_latency"]
