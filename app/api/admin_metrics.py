@@ -14,9 +14,12 @@ router = APIRouter(
 
 
 class MetricsSummary(BaseModel):
+    count: int
+    error_count: int
     rps: float
     error_rate: float
     p95_latency: float
+    p99_latency: float
     count_429: int
 
 
