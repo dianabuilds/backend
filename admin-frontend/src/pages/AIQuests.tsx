@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback, memo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { createDraft } from "../api/questEditor";
@@ -54,22 +55,61 @@ export default function AIQuests() {
   const [aiSettings, setAISettings] = useState<AISettings>({ has_api_key: false });
   const [aiSecret, setAISecret] = useState<string>("");
 
+  // Источник истины — React Query
+  const queryClient = useQueryClient();
+
+  const {
+    data: templatesData,
+    isLoading: tLoading,
+    isFetching: tFetching,
+    error: tError,
+  } = useQuery({
+    queryKey: ["ai-quests", "templates"],
+    queryFn: async () => {
+      const res = await api.get<WorldTemplate[]>("/admin/ai/quests/templates");
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
+  });
+
+  const {
+    data: jobsData,
+    isLoading: jLoading,
+    isFetching: jFetching,
+    error: jError,
+  } = useQuery({
+    queryKey: ["ai-quests", "jobs"],
+    queryFn: async () => {
+      const res = await api.get<Job[]>("/admin/ai/quests/jobs");
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    staleTime: 5_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: (_q) => (document.visibilityState === "visible" ? 5000 : false),
+    placeholderData: (prev) => prev,
+  });
+
+  // Синхронизируем локальные поля состояния, чтобы не переписывать существующую разметку
+  useEffect(() => { setTemplates(templatesData ?? []); }, [templatesData]);
+  useEffect(() => { setJobs(jobsData ?? []); }, [jobsData]);
+
+  // Показываем "большую" загрузку только на первичном фетче
+  useEffect(() => { setLoading(Boolean(tLoading || jLoading)); }, [tLoading, jLoading]);
+  const isUpdating = Boolean(tFetching || jFetching);
+
+  useEffect(() => {
+    const msg = (tError as any)?.message || (jError as any)?.message || null;
+    setError(msg);
+  }, [tError, jError]);
+
+  // Совместимость: load() теперь просто инвалидирует кэш и триггерит перезагрузку
   const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [t, j] = await Promise.all([
-        api.get<WorldTemplate[]>("/admin/ai/quests/templates"),
-        api.get<Job[]>("/admin/ai/quests/jobs"),
-      ]);
-      setTemplates(Array.isArray(t.data) ? (t.data as any) : []);
-      setJobs(Array.isArray(j.data) ? (j.data as any) : []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setTemplates([]); setJobs([]);
-    } finally {
-      setLoading(false);
-    }
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["ai-quests", "templates"] }),
+      queryClient.invalidateQueries({ queryKey: ["ai-quests", "jobs"] }),
+    ]);
   };
 
   const loadWorlds = async () => {
@@ -104,11 +144,7 @@ export default function AIQuests() {
   // начальная загрузка
   useEffect(() => { load(); }, []);
 
-  // авто‑обновление каждые 5 секунд
-  useEffect(() => {
-    const id = setInterval(() => { load().catch(() => void 0); }, 5000);
-    return () => clearInterval(id);
-  }, []);
+  // авто‑обновление выполняется через React Query (refetchInterval)
 
   useEffect(() => {
     if (mgmtOpen) {
@@ -139,23 +175,32 @@ export default function AIQuests() {
     }
   };
 
-  const simulate = async (jobId: string) => {
+  const simulate = useCallback(async (jobId: string) => {
     try {
       await api.post(`/admin/ai/quests/jobs/${encodeURIComponent(jobId)}/simulate_complete`);
       await load();
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }
-  };
+  }, [load]);
 
-  const tick = async (jobId: string, delta = 10) => {
+  const tick = useCallback(async (jobId: string, delta = 10) => {
     try {
       await api.post(`/admin/ai/quests/jobs/${encodeURIComponent(jobId)}/tick`, { delta });
       await load();
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }
-  };
+  }, [load]);
+
+  const createNewDraft = useCallback(async (questId: string) => {
+    try {
+      const ver = await createDraft(questId);
+      nav(`/quests/version/${ver}`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e));
+    }
+  }, [nav]);
 
   const createWorld = async () => {
     if (!newWorld.title.trim()) return alert("Введите название мира");
@@ -241,6 +286,63 @@ export default function AIQuests() {
       </span>
     );
   };
+
+  // Оптимизированный список: мемоизированная фильтрация
+  const filteredJobs = useMemo(() => {
+    const arr = Array.isArray(jobs) ? jobs : [];
+    const byStatus = statusFilter === "all" ? arr : arr.filter((j: any) => j.status === statusFilter);
+    return reusedOnly ? byStatus.filter((j: any) => j.reused) : byStatus;
+  }, [jobs, statusFilter, reusedOnly]);
+
+  // Мемо-компонент строки таблицы, принимает только примитивы и стабильные колбэки
+  const JobRow = memo(function JobRow(props: {
+    id: string;
+    status: string;
+    reused?: boolean;
+    progress: number;
+    created_at: string;
+    params?: any;
+    result_quest_id?: string | null;
+    cost?: number | null;
+    onTick: (id: string, delta?: number) => void;
+    onSimulate: (id: string) => void;
+    onCreateDraft: (questId: string) => void;
+  }) {
+    const { id, status, reused, progress, created_at, params, result_quest_id, cost, onTick, onSimulate, onCreateDraft } = props;
+    const createdText = useMemo(() => new Date(created_at).toLocaleString(), [created_at]);
+    const paramsText = useMemo(() => {
+      if (!params) return "-";
+      const base = `${params.structure}/${params.length}/${params.tone}/${params.genre}`;
+      return params.locale ? `${base} · ${params.locale}` : base;
+    }, [params]);
+    return (
+      <tr className="border-b">
+        <td className="p-2 font-mono">{id}</td>
+        <td className="p-2">{statusBadge(status, reused)}</td>
+        <td className="p-2">
+          <div className="w-40 bg-gray-200 dark:bg-gray-800 rounded h-3 overflow-hidden">
+            <div className="bg-blue-600 h-3" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} aria-label={`progress ${progress}%`} />
+          </div>
+          <div className="text-xs text-gray-600 mt-1">{progress}%</div>
+        </td>
+        <td className="p-2">{createdText}</td>
+        <td className="p-2">{paramsText}</td>
+        <td className="p-2">{result_quest_id ? `quest:${result_quest_id}` : "-"}</td>
+        <td className="p-2">{cost != null ? Number(cost).toFixed(4) : "-"}</td>
+        <td className="p-2 text-right space-x-2">
+          {(status === "queued" || status === "running") && (
+            <>
+              <button className="px-2 py-1 rounded border" onClick={() => onTick(id, 10)}>Tick +10%</button>
+              <button className="px-2 py-1 rounded border" onClick={() => onSimulate(id)}>Simulate</button>
+            </>
+          )}
+          {result_quest_id && (
+            <button className="px-2 py-1 rounded border" onClick={() => onCreateDraft(result_quest_id!)}>New draft</button>
+          )}
+        </td>
+      </tr>
+    );
+  });
 
   return (
     <div>
@@ -385,6 +487,7 @@ export default function AIQuests() {
               <input type="checkbox" checked={reusedOnly} onChange={(e) => setReusedOnly(e.target.checked)} />
               reused only
             </label>
+            {isUpdating && <span className="text-xs text-gray-500" aria-live="polite">Updating…</span>}
           </div>
           <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -401,54 +504,24 @@ export default function AIQuests() {
               </tr>
             </thead>
             <tbody>
-              {jobs
-                .filter((j: any) => statusFilter === "all" ? true : j.status === statusFilter)
-                .filter((j: any) => !reusedOnly || j.reused)
-                .map((j) => (
-                <tr key={j.id} className="border-b">
-                  <td className="p-2 font-mono">{j.id}</td>
-                  <td className="p-2">{statusBadge(j.status, (j as any).reused)}</td>
-                  <td className="p-2">
-                    <div className="w-40 bg-gray-200 dark:bg-gray-800 rounded h-3 overflow-hidden">
-                      <div
-                        className="bg-blue-600 h-3"
-                        style={{ width: `${Math.max(0, Math.min(100, j.progress ?? 0))}%` }}
-                        aria-label={`progress ${j.progress ?? 0}%`}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">{j.progress ?? 0}%</div>
-                  </td>
-                  <td className="p-2">{new Date(j.created_at).toLocaleString()}</td>
-                  <td className="p-2">{j.params ? `${j.params.structure}/${j.params.length}/${j.params.tone}/${j.params.genre}${j.params.locale ? " · " + j.params.locale : ""}` : "-"}</td>
-                  <td className="p-2">{j.result_quest_id ? `quest:${j.result_quest_id}` : "-"}</td>
-                  <td className="p-2">{j.cost != null ? j.cost.toFixed(4) : "-"}</td>
-                  <td className="p-2 text-right space-x-2">
-                    {(j.status === "queued" || j.status === "running") && (
-                      <>
-                        <button className="px-2 py-1 rounded border" onClick={() => tick(j.id, 10)}>Tick +10%</button>
-                        <button className="px-2 py-1 rounded border" onClick={() => simulate(j.id)}>Simulate</button>
-                      </>
-                    )}
-                    {j.result_quest_id && (
-                      <button
-                        className="px-2 py-1 rounded border"
-                        onClick={async () => {
-                          try {
-                            const ver = await createDraft(j.result_quest_id as string);
-                            nav(`/quests/version/${ver}`);
-                          } catch (e) {
-                            alert(e instanceof Error ? e.message : String(e));
-                          }
-                        }}
-                      >
-                        New draft
-                      </button>
-                    )}
-                  </td>
-                </tr>
+              {filteredJobs.map((j) => (
+                <JobRow
+                  key={j.id}
+                  id={j.id}
+                  status={j.status}
+                  reused={(j as any).reused}
+                  progress={j.progress ?? 0}
+                  created_at={j.created_at}
+                  params={j.params}
+                  result_quest_id={j.result_quest_id}
+                  cost={j.cost}
+                  onTick={tick}
+                  onSimulate={simulate}
+                  onCreateDraft={createNewDraft}
+                />
               ))}
-              {jobs.length === 0 && (
-                <tr><td colSpan={7} className="p-4 text-center text-gray-500">No jobs</td></tr>
+              {filteredJobs.length === 0 && (
+                <tr><td colSpan={8} className="p-4 text-center text-gray-500">No jobs</td></tr>
               )}
             </tbody>
           </table>

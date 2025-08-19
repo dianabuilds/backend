@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Suspense, lazy } from "react";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
@@ -31,9 +32,9 @@ import QuestsList from "./pages/QuestsList";
 import QuestVersionEditor from "./pages/QuestVersionEditor";
 import SearchRelevance from "./pages/SearchRelevance";
 import TagMerge from "./pages/TagMerge";
-import AIQuests from "./pages/AIQuests";
-import Worlds from "./pages/Worlds";
-import AISettings from "./pages/AISettings";
+const AIQuests = lazy(() => import("./pages/AIQuests"));
+const Worlds = lazy(() => import("./pages/Worlds"));
+const AISettings = lazy(() => import("./pages/AISettings"));
 
 const queryClient = new QueryClient();
 
@@ -44,46 +45,48 @@ export default function App() {
         <ToastProvider>
           <BrowserRouter basename="/admin">
             <ErrorBoundary>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <Layout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<Dashboard />} />
-                  <Route path="users" element={<Users />} />
-                  <Route path="nodes" element={<Nodes />} />
-                  <Route path="tags" element={<Tags />} />
-                  <Route path="tags/merge" element={<TagMerge />} />
-                  <Route path="transitions" element={<Transitions />} />
-                    <Route path="moderation" element={<ModerationInbox />} />
-                    <Route path="moderation/cases/:id" element={<ModerationCase />} />
-                  <Route path="navigation" element={<Navigation />} />
-                  <Route path="echo" element={<Echo />} />
-                  <Route path="traces" element={<Traces />} />
-                  <Route path="notifications" element={<Notifications />} />
-                  <Route path="ai/quests" element={<AIQuests />} />
-                  <Route path="ai/worlds" element={<Worlds />} />
-                  <Route path="ai/settings" element={<AISettings />} />
-                  <Route path="achievements" element={<Achievements />} />
-                  <Route path="quests" element={<QuestsList />} />
-                  <Route path="quests/editor" element={<QuestEditor />} />
-                  <Route path="quests/version/:id" element={<QuestVersionEditor />} />
-                  <Route path="search" element={<ComingSoon title="Search" />} />
-                  <Route path="tools/cache" element={<CacheTools />} />
-                  <Route path="tools/rate-limit" element={<RateLimitTools />} />
-                  <Route path="tools/monitoring" element={<Monitoring />} />
-                  <Route path="tools/restrictions" element={<Restrictions />} />
-                  <Route path="tools/audit" element={<AuditLog />} />
-                  <Route path="tools/flags" element={<FeatureFlagsPage />} />
-                  <Route path="tools/search-settings" element={<SearchRelevance />} />
-                  <Route path="system/health" element={<Health />} />
-                  <Route path="payments" element={<ComingSoon title="Payments" />} />
-                </Route>
-              </Routes>
+              <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading…</div>}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    element={
+                      <ProtectedRoute>
+                        <Layout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route index element={<Dashboard />} />
+                    <Route path="users" element={<Users />} />
+                    <Route path="nodes" element={<Nodes />} />
+                    <Route path="tags" element={<Tags />} />
+                    <Route path="tags/merge" element={<TagMerge />} />
+                    <Route path="transitions" element={<Transitions />} />
+                      <Route path="moderation" element={<ModerationInbox />} />
+                      <Route path="moderation/cases/:id" element={<ModerationCase />} />
+                    <Route path="navigation" element={<Navigation />} />
+                    <Route path="echo" element={<Echo />} />
+                    <Route path="traces" element={<Traces />} />
+                    <Route path="notifications" element={<Notifications />} />
+                    <Route path="ai/quests" element={<AIQuests />} />
+                    <Route path="ai/worlds" element={<Worlds />} />
+                    <Route path="ai/settings" element={<AISettings />} />
+                    <Route path="achievements" element={<Achievements />} />
+                    <Route path="quests" element={<QuestsList />} />
+                    <Route path="quests/editor" element={<QuestEditor />} />
+                    <Route path="quests/version/:id" element={<QuestVersionEditor />} />
+                    <Route path="search" element={<ComingSoon title="Search" />} />
+                    <Route path="tools/cache" element={<CacheTools />} />
+                    <Route path="tools/rate-limit" element={<RateLimitTools />} />
+                    <Route path="tools/monitoring" element={<Monitoring />} />
+                    <Route path="tools/restrictions" element={<Restrictions />} />
+                    <Route path="tools/audit" element={<AuditLog />} />
+                    <Route path="tools/flags" element={<FeatureFlagsPage />} />
+                    <Route path="tools/search-settings" element={<SearchRelevance />} />
+                    <Route path="system/health" element={<Health />} />
+                    <Route path="payments" element={<ComingSoon title="Payments" />} />
+                  </Route>
+                </Routes>
+              </Suspense>
             </ErrorBoundary>
           </BrowserRouter>
         </ToastProvider>
