@@ -225,7 +225,7 @@ BASE_MENU: List[dict] = [
         "path": "/achievements",
         "icon": "achievements",
         "order": 9,  # внизу, ниже контента
-        "hidden": True,
+        "hidden": False,
     },
 ]
 

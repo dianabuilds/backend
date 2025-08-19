@@ -14,6 +14,7 @@ import {
   Database,
   Box,
   Bell,
+  Trophy,
 } from "lucide-react";
 
 export type IconName =
@@ -48,6 +49,7 @@ export const iconRegistry: Record<string, React.ComponentType<any>> = {
   database: Database,
   box: Box,
   bell: Bell,
+    achievements: Trophy,
   notifications: Bell,
 };
 
