@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getVersion, putGraph, publishVersion, validateVersion, type VersionGraph } from "../api/questEditor";
+import { getVersion, putGraph, publishVersion, validateVersion, autofixVersion, type VersionGraph } from "../api/questEditor";
 import PageLayout from "./_shared/PageLayout";
 import NodeEditorModal, { type NodeEditorData } from "../components/NodeEditorModal";
 import ImageDropzone from "../components/ImageDropzone";
@@ -9,6 +9,7 @@ import GraphCanvas from "../components/GraphCanvas";
 import TagInput from "../components/TagInput";
 import CollapsibleSection from "../components/CollapsibleSection";
 import { useToast } from "../components/ToastProvider";
+import PlaythroughPanel from "../components/PlaythroughPanel";
 
 export default function QuestVersionEditor() {
   const { id } = useParams<{ id: string }>();
@@ -286,6 +287,22 @@ export default function QuestVersionEditor() {
       <div className="flex items-center gap-3">
         {lastSavedAt && <span className="text-xs text-gray-500">Saved {lastSavedAt}</span>}
         <button
+          className="px-3 py-1 rounded border"
+          onClick={async () => {
+            if (!id) return;
+            try {
+              await autofixVersion(id);
+              await load();
+              const res = await validateVersion(id);
+              setValidate(res);
+            } catch (e) {
+              alert(e instanceof Error ? e.message : String(e));
+            }
+          }}
+        >
+          Autofix (basic)
+        </button>
+        <button
           className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800 disabled:opacity-50"
           onClick={onSave}
           disabled={savingGraph}
@@ -296,6 +313,58 @@ export default function QuestVersionEditor() {
       </div>
     }>
       {err && <div className="text-red-600 text-sm">{err}</div>}
+      {graph && (
+        <div className="mt-4 space-y-4">
+          <CollapsibleSection title="Playthrough">
+            <PlaythroughPanel graph={graph} onOpenNode={(k) => startEditNode(k)} />
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Validation report">
+            <div className="mb-2 flex items-center gap-2">
+              <button
+                className="px-2 py-1 rounded border"
+                onClick={async () => {
+                  if (!id) return;
+                  try {
+                    const res = await validateVersion(id);
+                    setValidate(res);
+                  } catch (e) {
+                    alert(e instanceof Error ? e.message : String(e));
+                  }
+                }}
+              >
+                Validate
+              </button>
+              {validate && (
+                <>
+                  <span className="text-sm">Errors: <b>{validate.errors.length}</b></span>
+                  <span className="text-sm">Warnings: <b>{validate.warnings.length}</b></span>
+                </>
+              )}
+            </div>
+            {validate ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <div className="font-semibold mb-1">Errors</div>
+                  <ul className="list-disc pl-5 text-red-700">
+                    {validate.errors.map((e, i) => <li key={i}>{e}</li>)}
+                    {validate.errors.length === 0 && <li className="text-gray-500">None</li>}
+                  </ul>
+                </div>
+                <div>
+                  <div className="font-semibold mb-1">Warnings</div>
+                  <ul className="list-disc pl-5 text-yellow-700">
+                    {validate.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                    {validate.warnings.length === 0 && <li className="text-gray-500">None</li>}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">Run validation to see the report</div>
+            )}
+          </CollapsibleSection>
+        </div>
+      )}
       {!graph ? <div className="text-sm text-gray-500">Loading...</div> : (
         <div className="grid grid-cols-3 gap-6">
           {/* Настройки квеста */}

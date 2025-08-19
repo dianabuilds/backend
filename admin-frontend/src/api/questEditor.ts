@@ -58,6 +58,11 @@ export async function publishVersion(versionId: string): Promise<void> {
   await api.post(`/admin/quests/versions/${versionId}/publish`);
 }
 
+export async function autofixVersion(versionId: string): Promise<{ applied: { type: string; affected: number }[] }> {
+  const res = await api.post(`/admin/quests/versions/${versionId}/autofix`);
+  return res.data as any;
+}
+
 export interface QuestMeta {
   id: string;
   title: string;

@@ -55,6 +55,7 @@ from app.api.admin_moderation_cases import router as admin_moderation_cases_rout
 from app.api.health import router as health_router
 from app.api.metrics_exporter import router as metrics_router
 from app.api.media import router as media_router
+from app.api.admin_ai_quests import router as admin_ai_quests_router
 from app.core.config import settings
 from app.core.metrics_middleware import MetricsMiddleware
 from app.core.request_id import RequestIDMiddleware
@@ -177,6 +178,7 @@ app.include_router(admin_search_router)
 app.include_router(admin_metrics_router)
 app.include_router(admin_embedding_router)
 app.include_router(admin_tags_router)
+app.include_router(admin_ai_quests_router)
 app.include_router(moderation_router)
 app.include_router(transitions_router)
 app.include_router(navigation_router)

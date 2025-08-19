@@ -39,6 +39,7 @@ proxy['/admin/restrictions'] = { target: 'http://localhost:8000', changeOrigin: 
 proxy['/admin/audit'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/metrics'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/notifications'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/ai'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/quests'] = {
   target: 'http://localhost:8000',
   changeOrigin: true,

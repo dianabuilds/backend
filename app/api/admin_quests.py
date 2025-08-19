@@ -13,8 +13,10 @@ from app.db.session import get_db
 from app.models.quest import Quest
 from app.models.user import User
 from app.schemas.quest import QuestOut, QuestUpdate
+from app.schemas.quest_validation import ValidationReport, AutofixRequest, AutofixReport, PublishRequest
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.services.audit import audit_log
+from app.services.quest_validation import validate_quest
 
 admin_required = require_admin_role({"admin", "moderator"})
 
@@ -35,6 +37,9 @@ async def admin_list_quests(
     deleted: Optional[bool] = None,
     free_only: bool = False,
     premium_only: bool = False,
+    length: Optional[str] = Query(None, pattern="^(short|long)$"),
+    created_from: Optional[datetime] = None,
+    created_to: Optional[datetime] = None,
     sort_by: str = Query("new", pattern="^(new|price|title|popularity)$"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -58,6 +63,12 @@ async def admin_list_quests(
         stmt = stmt.where(or_(Quest.price == None, Quest.price == 0))  # noqa: E711
     if premium_only:
         stmt = stmt.where(Quest.is_premium_only.is_(True))
+    if length:
+        stmt = stmt.where(Quest.length == length)
+    if created_from:
+        stmt = stmt.where(Quest.created_at >= created_from)
+    if created_to:
+        stmt = stmt.where(Quest.created_at <= created_to)
     if author_id:
         stmt = stmt.where(Quest.author_id == author_id)
     elif author_role:
@@ -129,3 +140,149 @@ async def patch_quest_meta(
     await db.commit()
     await db.commit()
     return q
+
+
+@router.get("/{quest_id}/validation", response_model=ValidationReport, summary="Validate quest")
+async def get_quest_validation(
+    quest_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(admin_required),
+) -> ValidationReport:
+    q = await db.get(Quest, quest_id)
+    if not q:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    report = await validate_quest(db, q)
+    return report
+
+
+@router.post("/{quest_id}/autofix", response_model=AutofixReport, summary="Apply autofix to quest")
+async def post_quest_autofix(
+    quest_id: UUID,
+    body: AutofixRequest,
+    request: Request,
+    current: User = Depends(admin_required),
+    db: AsyncSession = Depends(get_db),
+) -> AutofixReport:
+    q = await db.get(Quest, quest_id)
+    if not q:
+        raise HTTPException(status_code=404, detail="Quest not found")
+
+    actions = set(body.actions or [])
+    if not actions:
+        # по умолчанию применяем базовые фиксы
+        actions = {"ensure_entry", "deduplicate_nodes"}
+
+    applied: list[dict] = []
+    skipped: list[dict] = []
+
+    # Исходное состояние
+    before = {
+        "entry_node_id": str(q.entry_node_id) if q.entry_node_id else None,
+        "nodes_count": len(q.nodes or []),
+    }
+
+    nodes = list(q.nodes or [])
+    changed = False
+
+    # deduplicate_nodes: убрать None и дубликаты, сохранить порядок
+    if "deduplicate_nodes" in actions:
+        new_nodes = []
+        seen = set()
+        for n in nodes:
+            if n is None:
+                continue
+            if n in seen:
+                continue
+            seen.add(n)
+            new_nodes.append(n)
+        if new_nodes != nodes:
+            q.nodes = new_nodes
+            nodes = new_nodes
+            changed = True
+            applied.append({"type": "deduplicate_nodes", "affected": len(before["nodes_count"]) if isinstance(before.get("nodes_count"), list) else 0, "note": None})
+        else:
+            skipped.append({"type": "deduplicate_nodes", "affected": 0, "note": "no duplicates"})
+
+    # ensure_entry: если entry пуст и есть nodes — назначить первый; если entry есть, но отсутствует в nodes — добавить
+    if "ensure_entry" in actions:
+        if not q.entry_node_id and nodes:
+            q.entry_node_id = nodes[0]
+            changed = True
+            applied.append({"type": "ensure_entry", "affected": 1, "note": "entry set to first node"})
+        elif q.entry_node_id and nodes and q.entry_node_id not in nodes:
+            q.nodes = [q.entry_node_id] + nodes
+            nodes = q.nodes
+            changed = True
+            applied.append({"type": "ensure_entry", "affected": 1, "note": "entry added to nodes list"})
+        else:
+            skipped.append({"type": "ensure_entry", "affected": 0, "note": "entry ok"})
+
+    if changed:
+        await db.commit()
+
+    await audit_log(
+        db,
+        actor_id=str(getattr(current, "id", "")),
+        action="quest_autofix",
+        resource_type="quest",
+        resource_id=str(quest_id),
+        before=before,
+        after={
+            "entry_node_id": str(q.entry_node_id) if q.entry_node_id else None,
+            "nodes_count": len(q.nodes or []),
+            "applied": applied,
+            "skipped": skipped,
+        },
+        request=request,
+    )
+    return AutofixReport(
+        applied=[type("X", (), x) for x in applied],  # простая конверсия к pydantic‑совместимому виду
+        skipped=[type("X", (), x) for x in skipped],
+    )
+
+
+@router.post("/{quest_id}/publish", summary="Publish quest")
+async def post_quest_publish(
+    quest_id: UUID,
+    body: PublishRequest,
+    request: Request,
+    current: User = Depends(admin_required),
+    db: AsyncSession = Depends(get_db),
+):
+    q = await db.get(Quest, quest_id)
+    if not q:
+        raise HTTPException(status_code=404, detail="Quest not found")
+
+    # Валидация перед публикацией: ошибки запрещают публикацию
+    report = await validate_quest(db, q)
+    if report.errors > 0:
+        raise HTTPException(status_code=409, detail="Validation errors prevent publishing")
+
+    before = {
+        "is_draft": q.is_draft,
+        "is_premium_only": q.is_premium_only,
+        "published_at": q.published_at.isoformat() if q.published_at else None,
+        "cover_image": q.cover_image,
+    }
+
+    # Применяем настройки доступа и публикуем
+    q.is_premium_only = body.access == "premium_only"
+    q.is_draft = False
+    q.published_at = datetime.utcnow()
+    if body.cover_url:
+        q.cover_image = body.cover_url
+
+    await db.commit()
+
+    await audit_log(
+        db,
+        actor_id=str(getattr(current, "id", "")),
+        action="quest_publish",
+        resource_type="quest",
+        resource_id=str(quest_id),
+        before=before,
+        after={"is_draft": q.is_draft, "is_premium_only": q.is_premium_only, "published_at": q.published_at.isoformat()},
+        request=request,
+        reason=f"access={body.access}",
+    )
+    return {"status": "published", "quest_id": str(quest_id)}

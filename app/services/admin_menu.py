@@ -121,6 +121,22 @@ BASE_MENU: List[dict] = [
         ],
     },
     {
+        "id": "ai-quests",
+        "label": "AI Quests",
+        "icon": "ai",
+        "order": 5,
+        "featureFlag": "ai.quests.enabled",
+        "children": [
+            {
+                "id": "ai-quests-main",
+                "label": "Generator",
+                "path": "/ai/quests",
+                "icon": "ai",
+                "order": 1
+            }
+        ]
+    },
+    {
         "id": "telemetry",
         "label": "Telemetry",
         "icon": "telemetry",

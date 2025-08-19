@@ -204,6 +204,82 @@ async def validate_version(
     return res
 
 
+@router.post("/versions/{version_id}/autofix", summary="Autofix graph (basic)")
+async def autofix_version(
+    version_id: UUID,
+    request: Request,
+    current_user: User = Depends(admin_required),
+    db: AsyncSession = Depends(get_db),
+):
+    v = await db.get(QuestVersion, version_id)
+    if not v:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    nodes = list((await db.execute(select(QuestGraphNode).where(QuestGraphNode.version_id == version_id))).scalars().all())
+    node_keys = {n.key for n in nodes}
+    edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+
+    applied = []
+
+    # 1) Удалим рёбра к несуществующим нодам
+    from sqlalchemy import delete
+    invalid_edges = [e.id for e in edges if (e.from_node_key not in node_keys or e.to_node_key not in node_keys)]
+    if invalid_edges:
+        await db.execute(delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(invalid_edges)))
+        applied.append({"type": "remove_broken_edges", "affected": len(invalid_edges)})
+
+    # 2) Дедуп рёбер (по from->to), сохраняя одно
+    edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+    seen = set()
+    dup_ids = []
+    for e in edges:
+        k = (e.from_node_key, e.to_node_key)
+        if k in seen:
+            dup_ids.append(e.id)
+        else:
+            seen.add(k)
+    if dup_ids:
+        await db.execute(delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(dup_ids)))
+        applied.append({"type": "deduplicate_edges", "affected": len(dup_ids)})
+
+    # 3) Удалить входящие рёбра в стартовую ноду
+    start_key = next((n.key for n in nodes if n.type == "start"), None)
+    if start_key:
+        edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+        incoming_to_start = [e.id for e in edges if e.to_node_key == start_key]
+        if incoming_to_start:
+            await db.execute(delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(incoming_to_start)))
+            applied.append({"type": "remove_incoming_to_start", "affected": len(incoming_to_start)})
+
+    # 4) Пометить висячие ноды как end
+    edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+    outgoing = {}
+    for e in edges:
+        outgoing.setdefault(e.from_node_key, 0)
+        outgoing[e.from_node_key] += 1
+    changed = 0
+    for n in nodes:
+        if n.type != "end" and outgoing.get(n.key, 0) == 0:
+            n.type = "end"
+            changed += 1
+    if changed:
+        applied.append({"type": "mark_dead_ends", "affected": changed})
+
+    if applied:
+        await audit_log(
+            db,
+            actor_id=str(current_user.id),
+            action="quest_version_autofix",
+            resource_type="quest_version",
+            resource_id=str(version_id),
+            after={"applied": applied},
+            request=request,
+        )
+        await db.commit()
+
+    return {"applied": applied}
+
+
 @router.post("/versions/{version_id}/publish", summary="Publish version")
 async def publish_version(
     version_id: UUID,

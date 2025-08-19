@@ -19,6 +19,13 @@ class QuestBase(BaseModel):
     nodes: list[UUID] = []
     custom_transitions: Optional[dict] = None
     allow_comments: bool = True
+    # generation meta
+    structure: Optional[str] = None
+    length: Optional[str] = None
+    tone: Optional[str] = None
+    genre: Optional[str] = None
+    locale: Optional[str] = None
+    cost_generation: Optional[int] = None
 
 
 class QuestCreate(QuestBase):

@@ -42,6 +42,14 @@ class Quest(Base):
     entry_node_id = Column(UUID(), ForeignKey("nodes.id"), nullable=True)
     nodes = Column(MutableList.as_mutable(ARRAY(UUID())), default=list)
     custom_transitions = Column(MutableDict.as_mutable(JSONB), nullable=True)
+    # Атрибуты генерации/контента
+    structure = Column(String, nullable=True)  # linear | vn_branching | epic
+    length = Column(String, nullable=True)     # short | long
+    tone = Column(String, nullable=True)       # light | dark | ironic | custom
+    genre = Column(String, nullable=True)
+    locale = Column(String, nullable=True)
+    cost_generation = Column(Integer, nullable=True)  # хранить как целые центы или сменить на Float при необходимости
+    # Статусы
     is_draft = Column(Boolean, default=True)
     published_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
 export type Condition =
   | { type: "event_count"; event: string; count: number }
