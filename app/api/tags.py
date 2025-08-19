@@ -17,6 +17,7 @@ async def list_tags(
     q: str | None = Query(None),
     popular: bool = Query(False),
     limit: int = Query(10),
+    offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
     """Retrieve available tags with optional search and popularity filter."""
@@ -33,7 +34,7 @@ async def list_tags(
         stmt = stmt.order_by(desc("count"))
     else:
         stmt = stmt.order_by(Tag.name)
-    stmt = stmt.limit(limit)
+    stmt = stmt.offset(offset).limit(limit)
     result = await db.execute(stmt)
     rows = result.all()
     return [TagOut(slug=t.slug, name=t.name, count=c) for t, c in rows]

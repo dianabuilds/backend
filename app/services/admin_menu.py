@@ -65,13 +65,23 @@ BASE_MENU: List[dict] = [
                 "icon": "tags",
                 "order": 2,
             },
-            # {
-            #     "id": "moderation",
-            #     "label": "Moderation",
-            #     "path": "/moderation",
-            #     "icon": "moderation",
-            #     "order": 3,
-            # },
+            {
+                "id": "quests",
+                "label": "Quests",
+                "path": "/quests",
+                "icon": "quests",
+                "order": 3,
+                "roles": ["admin", "moderator"],
+            },
+            {
+                "id": "moderation",
+                "label": "Moderation",
+                "path": "/moderation",
+                "icon": "moderation",
+                "order": 4,
+                "roles": ["moderator", "admin"],
+                "featureFlag": "moderation.enabled",
+            }
         ],
     },
     {
@@ -111,6 +121,13 @@ BASE_MENU: List[dict] = [
         ],
     },
     {
+        "id": "telemetry",
+        "label": "Telemetry",
+        "icon": "telemetry",
+        "order": 5,
+        "children": [],
+    },
+    {
         "id": "tools",
         "label": "Service tools",
         "icon": "tools",
@@ -145,6 +162,20 @@ BASE_MENU: List[dict] = [
                 "icon": "audit",
                 "order": 4,
             },
+            {
+                "id": "flags",
+                "label": "Feature flags",
+                "path": "/tools/flags",
+                "icon": "flags",
+                "order": 5,
+            },
+            {
+                "id": "search-settings",
+                "label": "Search settings",
+                "path": "/tools/search-settings",
+                "icon": "search",
+                "order": 6,
+            },
         ],
     },
     {
@@ -169,7 +200,7 @@ BASE_MENU: List[dict] = [
         "path": "/notifications",
         "icon": "notifications",
         "order": 2,  # рядом вверху
-        "hidden": True,  # hidden by default, can be enabled by flags later
+        "hidden": False,  # show in menu
     },
     {
         "id": "quests-top",
@@ -177,7 +208,7 @@ BASE_MENU: List[dict] = [
         "path": "/quests",
         "icon": "quests",
         "order": 3,
-        "hidden": False,
+        "hidden": True,
     },
     {
         "id": "payments",
@@ -259,11 +290,6 @@ def count_items(items: List[MenuItem]) -> int:
         total += 1
         total += count_items(item.children)
     return total
-
-
-def invalidate_menu_cache() -> None:
-    """Очистить кеш меню, чтобы следующая загрузка отдала актуальную конфигурацию."""
-    _menu_cache.clear()
 
 
 def invalidate_menu_cache() -> None:

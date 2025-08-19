@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from app.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.services.admin_menu import get_cached_menu, count_items, invalidate_menu_cache
+from app.db.session import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,17 @@ router = APIRouter(
 
 
 @router.get("/menu", summary="Get admin menu")
-async def get_admin_menu(request: Request, current_user: User = Depends(admin_required)) -> Response:
-    flags_header = request.headers.get("X-Feature-Flags", "")
-    flags: List[str] = [f.strip() for f in flags_header.split(",") if f.strip()]
+async def get_admin_menu(
+    request: Request,
+    current_user: User = Depends(admin_required),
+    db = Depends(get_db),
+) -> Response:
+    from app.services.feature_flags import get_effective_flags
+
+    preview_header = request.headers.get("X-Feature-Flags", "")
+    effective_flags = await get_effective_flags(db, preview_header)
+    flags: List[str] = sorted(list(effective_flags))
+
     menu, etag, cached = get_cached_menu(current_user, flags)
     if_none = request.headers.get("if-none-match")
     if if_none == etag:

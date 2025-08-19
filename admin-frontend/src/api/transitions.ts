@@ -1,0 +1,77 @@
+import { api } from "./client";
+
+export type Transition = {
+  id: string;
+  from_slug: string;
+  to_slug: string;
+  label?: string | null;
+  weight?: number | null;
+  priority?: number | null;
+  disabled?: boolean | null;
+  updated_at?: string | null;
+  // произвольные доп. поля, если сервер их вернёт
+  [k: string]: any;
+};
+
+export type TransitionListParams = {
+  from_slug?: string;
+  to_slug?: string;
+  limit?: number;
+  offset?: number;
+  // "any" | "enabled" | "disabled"
+  status?: "any" | "enabled" | "disabled";
+};
+
+export async function listTransitions(params: TransitionListParams = {}): Promise<Transition[]> {
+  const q = new URLSearchParams();
+  if (params.from_slug) q.set("from_slug", params.from_slug);
+  if (params.to_slug) q.set("to_slug", params.to_slug);
+  if (typeof params.limit === "number") q.set("limit", String(params.limit));
+  if (typeof params.offset === "number") q.set("offset", String(params.offset));
+  if (params.status && params.status !== "any") q.set("status", params.status);
+  const res = await api.get<Transition[]>(`/admin/transitions${q.toString() ? `?${q.toString()}` : ""}`);
+  return (res.data as any) || [];
+}
+
+export type CreateTransitionBody = {
+  from_slug: string;
+  to_slug: string;
+  label?: string;
+  weight?: number;
+  priority?: number;
+  disabled?: boolean;
+  // любые доп. поля
+  [k: string]: any;
+};
+
+export async function createTransition(body: CreateTransitionBody): Promise<Transition> {
+  const res = await api.post<Transition>("/admin/transitions", body);
+  return res.data as any;
+}
+
+export type UpdateTransitionBody = Partial<Omit<CreateTransitionBody, "from_slug" | "to_slug">> & {
+  // возможно у бекенда другие поля для обновления — оставим запас
+  [k: string]: any;
+};
+
+export async function updateTransition(id: string, body: UpdateTransitionBody): Promise<void> {
+  await api.patch(`/admin/transitions/${encodeURIComponent(id)}`, body);
+}
+
+export async function deleteTransition(id: string): Promise<void> {
+  await api.del(`/admin/transitions/${encodeURIComponent(id)}`);
+}
+
+// Клиентские bulk-хелперы поверх одиночных запросов
+
+export async function bulkUpdate(ids: string[], patch: UpdateTransitionBody): Promise<void> {
+  for (const id of ids) {
+    await updateTransition(id, patch);
+  }
+}
+
+export async function bulkDelete(ids: string[]): Promise<void> {
+  for (const id of ids) {
+    await deleteTransition(id);
+  }
+}

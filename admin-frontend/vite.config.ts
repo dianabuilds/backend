@@ -15,6 +15,7 @@ const apiPrefixes = [
   'achievements',
   'payments',
   'search',
+  'media', // upload endpoint (cover/images)
 ]
 
 const proxy = apiPrefixes.reduce<Record<string, ProxyOptions>>((acc, prefix) => {
@@ -38,7 +39,49 @@ proxy['/admin/restrictions'] = { target: 'http://localhost:8000', changeOrigin: 
 proxy['/admin/audit'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/metrics'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/notifications'] = { target: 'http://localhost:8000', changeOrigin: true }
-proxy['/admin/quests'] = { target: 'http://localhost:8000', changeOrigin: true }
+proxy['/admin/quests'] = {
+  target: 'http://localhost:8000',
+  changeOrigin: true,
+  bypass(req) {
+    const accept = req.headers['accept'] || '';
+    if (typeof accept === 'string' && accept.includes('text/html')) {
+      return '/admin/index.html';
+    }
+  },
+}
+
+proxy['/admin/tags'] = {
+  target: 'http://localhost:8000',
+  changeOrigin: true,
+  bypass(req) {
+    const accept = req.headers['accept'] || '';
+    if (typeof accept === 'string' && accept.includes('text/html')) {
+      return '/admin/index.html';
+    }
+  },
+}
+proxy['/admin/transitions'] = {
+  target: 'http://localhost:8000',
+  changeOrigin: true,
+  bypass(req) {
+    const accept = req.headers['accept'] || '';
+    // Для навигации по SPA возвращаем индекс, а для JSON-запросов проксируем на backend
+    if (typeof accept === 'string' && accept.includes('text/html')) {
+      return '/admin/index.html';
+    }
+  },
+}
+proxy['/admin/traces'] = {
+  target: 'http://localhost:8000',
+  changeOrigin: true,
+  bypass(req) {
+    const accept = req.headers['accept'] || '';
+    if (typeof accept === 'string' && accept.includes('text/html')) {
+      return '/admin/index.html';
+    }
+  },
+}
+proxy['/admin/flags'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/nodes'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/achievements'] = { target: 'http://localhost:8000', changeOrigin: true }
 proxy['/admin/moderation'] = { target: 'http://localhost:8000', changeOrigin: true }

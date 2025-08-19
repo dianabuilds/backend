@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
-from sqlalchemy import func
+from sqlalchemy import func, literal, text
 
 from app.db.session import get_db
 from app.models.echo_trace import EchoTrace
@@ -54,42 +54,81 @@ async def list_echo_traces(
 ):
     from_node = aliased(Node)
     to_node = aliased(Node)
+
+    # Определяем наличие колонок в реальной БД (а не только в модели)
+    has_source = False
+    has_channel = False
+    try:
+        res = await db.execute(
+            text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_schema = current_schema() AND table_name = :t "
+                "AND column_name IN ('source','channel')"
+            ),
+            {"t": EchoTrace.__tablename__},
+        )
+        present = set(res.scalars().all())
+        has_source = "source" in present
+        has_channel = "channel" in present
+    except Exception:
+        # если что-то пошло не так — считаем, что колонок нет
+        has_source = False
+        has_channel = False
+
+    # Явно выбираем только безопасные колонки
+    cols = [
+        EchoTrace.id.label("id"),
+        EchoTrace.user_id.label("user_id"),
+        EchoTrace.created_at.label("created_at"),
+        from_node.slug.label("from_slug"),
+        to_node.slug.label("to_slug"),
+        (EchoTrace.source if has_source else literal(None)).label("source"),
+        (EchoTrace.channel if has_channel else literal(None)).label("channel"),
+    ]
+
     stmt = (
-        select(EchoTrace, from_node.slug, to_node.slug)
+        select(*cols)
         .join(from_node, EchoTrace.from_node_id == from_node.id)
         .join(to_node, EchoTrace.to_node_id == to_node.id)
     )
+
     if from_slug:
         stmt = stmt.where(from_node.slug == from_slug)
     if to_slug:
         stmt = stmt.where(to_node.slug == to_slug)
     if user_id:
         stmt = stmt.where(EchoTrace.user_id == user_id)
-    if source:
+    if source and has_source:
         stmt = stmt.where(EchoTrace.source == source)
-    if channel:
+    if channel and has_channel:
         stmt = stmt.where(EchoTrace.channel == channel)
     if date_from:
         stmt = stmt.where(EchoTrace.created_at >= date_from)
     if date_to:
         stmt = stmt.where(EchoTrace.created_at <= date_to)
+
     stmt = stmt.order_by(EchoTrace.created_at.desc())
     offset = (page - 1) * page_size
     stmt = stmt.offset(offset).limit(page_size)
+
     result = await db.execute(stmt)
     rows = result.all()
-    return [
-        AdminEchoTraceOut(
-            id=t.id,
-            from_slug=fs,
-            to_slug=ts,
-            user_id=t.user_id,
-            source=t.source,
-            channel=t.channel,
-            created_at=t.created_at,
+
+    data: list[AdminEchoTraceOut] = []
+    for r in rows:
+        m = r._mapping
+        data.append(
+            AdminEchoTraceOut(
+                id=m["id"],
+                from_slug=m["from_slug"],
+                to_slug=m["to_slug"],
+                user_id=m.get("user_id"),
+                source=m.get("source"),
+                channel=m.get("channel"),
+                created_at=m["created_at"],
+            )
         )
-        for t, fs, ts in rows
-    ]
+    return data
 
 
 @router.post("/{trace_id}/anonymize", summary="Anonymize echo trace")

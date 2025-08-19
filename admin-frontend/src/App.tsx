@@ -23,9 +23,14 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ToastProvider } from "./components/ToastProvider";
 import Monitoring from "./pages/Monitoring";
 import Notifications from "./pages/Notifications";
-import Quests from "./pages/Quests";
 import QuestEditor from "./pages/QuestEditor";
-import Moderation from "./pages/Moderation";
+import FeatureFlagsPage from "./pages/FeatureFlags";
+import ModerationInbox from "./pages/ModerationInbox";
+import ModerationCase from "./pages/ModerationCase";
+import QuestsList from "./pages/QuestsList";
+import QuestVersionEditor from "./pages/QuestVersionEditor";
+import SearchRelevance from "./pages/SearchRelevance";
+import TagMerge from "./pages/TagMerge";
 
 const queryClient = new QueryClient();
 
@@ -49,21 +54,26 @@ export default function App() {
                   <Route path="users" element={<Users />} />
                   <Route path="nodes" element={<Nodes />} />
                   <Route path="tags" element={<Tags />} />
+                  <Route path="tags/merge" element={<TagMerge />} />
                   <Route path="transitions" element={<Transitions />} />
-                    <Route path="moderation" element={<Moderation />} />
+                    <Route path="moderation" element={<ModerationInbox />} />
+                    <Route path="moderation/cases/:id" element={<ModerationCase />} />
                   <Route path="navigation" element={<Navigation />} />
                   <Route path="echo" element={<Echo />} />
                   <Route path="traces" element={<Traces />} />
                   <Route path="notifications" element={<Notifications />} />
                   <Route path="achievements" element={<Achievements />} />
-                  <Route path="quests" element={<Quests />} />
+                  <Route path="quests" element={<QuestsList />} />
                   <Route path="quests/editor" element={<QuestEditor />} />
+                  <Route path="quests/version/:id" element={<QuestVersionEditor />} />
                   <Route path="search" element={<ComingSoon title="Search" />} />
                   <Route path="tools/cache" element={<CacheTools />} />
                   <Route path="tools/rate-limit" element={<RateLimitTools />} />
                   <Route path="tools/monitoring" element={<Monitoring />} />
                   <Route path="tools/restrictions" element={<Restrictions />} />
                   <Route path="tools/audit" element={<AuditLog />} />
+                  <Route path="tools/flags" element={<FeatureFlagsPage />} />
+                  <Route path="tools/search-settings" element={<SearchRelevance />} />
                   <Route path="system/health" element={<Health />} />
                   <Route path="payments" element={<ComingSoon title="Payments" />} />
                 </Route>

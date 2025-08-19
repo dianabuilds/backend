@@ -51,29 +51,26 @@ async def list_traces(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Возвращает список трасс с базовой информацией; формат без строгой схемы, поля зависят от модели.
+    Возвращает список трасс. В текущей схеме каждая трасса ссылается на один узел (node_id),
+    поэтому в ответе заполняем from_slug (узел), а to_slug остаётся пустым.
     """
-    from_node = aliased(Node)
-    to_node = aliased(Node)
+    node_alias = aliased(Node)
 
-    # Базовый запрос
+    # Базовый запрос: трасса + слаг узла
     stmt = (
-        select(NodeTrace, from_node.slug, to_node.slug)
-        .join(from_node, NodeTrace.from_node_id == from_node.id)
-        .join(to_node, NodeTrace.to_node_id == to_node.id)
+        select(NodeTrace, node_alias.slug)
+        .join(node_alias, NodeTrace.node_id == node_alias.id)
     )
 
-    # Фильтры по узлам
+    # Фильтр по узлу (используем alias "from")
     if from_slug:
-        stmt = stmt.where(from_node.slug == from_slug)
-    if to_slug:
-        stmt = stmt.where(to_node.slug == to_slug)
+        stmt = stmt.where(node_alias.slug == from_slug)
 
     # Фильтр по пользователю
     if user_id and hasattr(NodeTrace, "user_id"):
         stmt = stmt.where(NodeTrace.user_id == user_id)
 
-    # Прочие фильтры (условно, если поля существуют)
+    # Прочие фильтры (если поля существуют в модели)
     if type and hasattr(NodeTrace, "type"):
         stmt = stmt.where(getattr(NodeTrace, "type") == type)
     if source and hasattr(NodeTrace, "source"):
@@ -94,15 +91,14 @@ async def list_traces(
     result = await db.execute(stmt)
     rows = result.all()
 
-    # Сборка ответа в "плоский" словарь
+    # Сборка ответа
     data = []
-    for t, fs, ts in rows:
+    for t, fs in rows:
         item = {
             "id": t.id,
             "from_slug": fs,
-            "to_slug": ts,
+            "to_slug": None,  # в этой схеме отсутствует целевой узел
         }
-        # Безопасно добавляем потенциально отсутствующие поля
         for field in ("user_id", "source", "channel", "created_at", "type", "latency_ms", "request_id"):
             item[field] = getattr(t, field, None)
         data.append(item)

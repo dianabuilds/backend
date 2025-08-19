@@ -151,6 +151,197 @@ async def ensure_min_schema() -> None:
         try:
             # Добавляем столбец cover_url у nodes, если его нет
             await conn.execute(text("ALTER TABLE IF EXISTS nodes ADD COLUMN IF NOT EXISTS cover_url TEXT"))
+            # Обеспечиваем наличие столбца search_vector у quests (тип зависит от диалекта)
+            try:
+                if getattr(conn.dialect, "name", "") == "postgresql":
+                    await conn.execute(text("ALTER TABLE IF EXISTS quests ADD COLUMN IF NOT EXISTS search_vector TSVECTOR"))
+                else:
+                    await conn.execute(text("ALTER TABLE IF EXISTS quests ADD COLUMN IF NOT EXISTS search_vector TEXT"))
+            except Exception as se:
+                logger.warning(f"ensure_min_schema quests.search_vector failed: {se}")
+            # Создаём таблицу feature_flags, если её нет
+            await conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS feature_flags (
+                        key TEXT PRIMARY KEY,
+                        value BOOLEAN NOT NULL DEFAULT FALSE,
+                        description TEXT NULL,
+                        updated_at TIMESTAMP NULL,
+                        updated_by TEXT NULL
+                    )
+                    """
+                )
+            )
+            # Минимальные таблицы модерации (если нет Alembic)
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS moderation_cases (
+                    id TEXT PRIMARY KEY,
+                    created_at TIMESTAMP NOT NULL,
+                    updated_at TIMESTAMP NOT NULL,
+                    type TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    priority TEXT NOT NULL,
+                    reporter_id TEXT NULL,
+                    reporter_contact TEXT NULL,
+                    target_type TEXT NULL,
+                    target_id TEXT NULL,
+                    summary TEXT NOT NULL,
+                    details TEXT NULL,
+                    assignee_id TEXT NULL,
+                    due_at TIMESTAMP NULL,
+                    first_response_due_at TIMESTAMP NULL,
+                    last_event_at TIMESTAMP NULL,
+                    source TEXT NULL,
+                    reason_code TEXT NULL,
+                    resolution TEXT NULL
+                );
+            """))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS moderation_labels (
+                    id TEXT PRIMARY KEY,
+                    name TEXT UNIQUE NOT NULL,
+                    color TEXT NULL,
+                    protected BOOLEAN NOT NULL DEFAULT FALSE
+                );
+            """))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS case_labels (
+                    id TEXT PRIMARY KEY,
+                    case_id TEXT NOT NULL REFERENCES moderation_cases(id) ON DELETE CASCADE,
+                    label_id TEXT NOT NULL REFERENCES moderation_labels(id) ON DELETE CASCADE
+                );
+            """))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS case_notes (
+                    id TEXT PRIMARY KEY,
+                    case_id TEXT NOT NULL REFERENCES moderation_cases(id) ON DELETE CASCADE,
+                    author_id TEXT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    text TEXT NOT NULL,
+                    internal BOOLEAN NOT NULL DEFAULT TRUE
+                );
+            """))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS case_attachments (
+                    id TEXT PRIMARY KEY,
+                    case_id TEXT NOT NULL REFERENCES moderation_cases(id) ON DELETE CASCADE,
+                    author_id TEXT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    url TEXT NOT NULL,
+                    title TEXT NULL,
+                    media_type TEXT NULL
+                );
+            """))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS case_events (
+                    id TEXT PRIMARY KEY,
+                    case_id TEXT NOT NULL REFERENCES moderation_cases(id) ON DELETE CASCADE,
+                    actor_id TEXT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    kind TEXT NOT NULL,
+                    payload TEXT NULL
+                );
+            """))
+            # Таблицы конфигураций поиска (версии и активная релевантность)
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS config_versions (
+                    id TEXT PRIMARY KEY,
+                    type TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    created_by TEXT NULL,
+                    parent_id TEXT NULL,
+                    comment TEXT NULL,
+                    checksum TEXT NULL
+                );
+            """))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS search_relevance_active (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    version INTEGER NOT NULL,
+                    payload TEXT NOT NULL,
+                    updated_at TIMESTAMP NOT NULL,
+                    updated_by TEXT NULL
+                );
+            """))
+            # Таблицы управления тегами (алиасы, логи слияний)
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS tag_aliases (
+                    id TEXT PRIMARY KEY,
+                    tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+                    alias TEXT NOT NULL UNIQUE,
+                    type TEXT NOT NULL,
+                    created_at TIMESTAMP NOT NULL
+                );
+            """))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS tag_merge_logs (
+                    id TEXT PRIMARY KEY,
+                    from_tag_id TEXT NOT NULL,
+                    to_tag_id TEXT NOT NULL,
+                    merged_by TEXT NULL,
+                    merged_at TIMESTAMP NOT NULL,
+                    dry_run BOOLEAN NOT NULL DEFAULT FALSE,
+                    reason TEXT NULL,
+                    report TEXT NULL
+                );
+            """))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS tag_blacklist (
+                    slug TEXT PRIMARY KEY,
+                    reason TEXT NULL,
+                    created_at TIMESTAMP NOT NULL
+                );
+            """))
+            # Таблицы редактора квестов
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS quest_versions (
+                    id TEXT PRIMARY KEY,
+                    quest_id TEXT NOT NULL,
+                    number INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    created_by TEXT NULL,
+                    released_at TIMESTAMP NULL,
+                    released_by TEXT NULL,
+                    parent_version_id TEXT NULL,
+                    meta TEXT NULL
+                );
+            """))
+            await conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_quest_version_number ON quest_versions (quest_id, number);"))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS quest_graph_nodes (
+                    id TEXT PRIMARY KEY,
+                    version_id TEXT NOT NULL,
+                    key TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    content TEXT NULL,
+                    rewards TEXT NULL
+                );
+            """))
+            await conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_qnode_key ON quest_graph_nodes (version_id, key);"))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS quest_graph_edges (
+                    id TEXT PRIMARY KEY,
+                    version_id TEXT NOT NULL,
+                    from_node_key TEXT NOT NULL,
+                    to_node_key TEXT NOT NULL,
+                    label TEXT NULL,
+                    condition TEXT NULL
+                );
+            """))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS quest_draft_locks (
+                    id TEXT PRIMARY KEY,
+                    version_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    updated_at TIMESTAMP NOT NULL
+                );
+            """))
         except Exception as e:
             logger.warning(f"ensure_min_schema failed: {e}")
 

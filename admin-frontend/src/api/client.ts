@@ -88,26 +88,21 @@ export async function apiFetch(
     }
   }
 
-  // В dev (порт 5173–5176) или при VITE_API_BASE направляем запросы на стабильный backend origin
+  // Формируем конечный URL:
+  // - Если задан VITE_API_BASE — используем его (например, http://localhost:8000)
+  // - В противном случае оставляем относительный путь и даём Vite proxy/браузеру решить маршрут (без CORS в dev)
   const toUrl = (u: RequestInfo): RequestInfo => {
     if (typeof u !== "string") return u;
     if (!u.startsWith("/")) return u;
-    let base = "";
     try {
       const envBase = (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
       if (envBase) {
-        base = envBase;
-      } else if (typeof window !== "undefined" && window.location) {
-        const port = window.location.port;
-        if (port && ["5173", "5174", "5175", "5176"].includes(port)) {
-          // В dev всегда направляем запросы на http://:8000
-          base = `http://${window.location.hostname}:8000`;
-        }
+        return envBase + u;
       }
     } catch {
       // ignore
     }
-    return base ? (base + u) : u;
+    return u;
   };
 
   const resp = await fetch(toUrl(input), {
@@ -214,6 +209,7 @@ export const api = {
   request,
   get: <T = unknown>(url: string, opts?: RequestOptions) => request<T>(url, { ...opts, method: "GET" }),
   post: <T = unknown>(url: string, json?: unknown, opts?: RequestOptions) => request<T>(url, { ...opts, method: "POST", json }),
+  put:  <T = unknown>(url: string, json?: unknown, opts?: RequestOptions) => request<T>(url, { ...opts, method: "PUT", json }),
   patch: <T = unknown>(url: string, json?: unknown, opts?: RequestOptions) => request<T>(url, { ...opts, method: "PATCH", json }),
   del:  <T = unknown>(url: string, opts?: RequestOptions) => request<T>(url, { ...opts, method: "DELETE" }),
 };

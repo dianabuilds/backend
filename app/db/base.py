@@ -27,5 +27,21 @@ from app.models.echo_trace import EchoTrace  # noqa
 from app.models.transition import NodeTransition  # noqa
 from app.models.idempotency import IdempotencyKey  # noqa
 from app.models.outbox import OutboxEvent  # noqa
+from app.models.quest_version import (  # noqa
+    QuestVersion,
+    QuestGraphNode,
+    QuestGraphEdge,
+    DraftLock,
+)
+from app.models.moderation_case import (  # noqa
+    ModerationCase,
+    ModerationLabel,
+    CaseLabel,
+    CaseNote,
+    CaseAttachment,
+    CaseEvent,
+)
+from app.models.search_config import ConfigVersion, SearchRelevanceActive  # noqa
+from app.models.tag_extras import TagAlias, TagMergeLog  # noqa
 
 # Add all other models here
