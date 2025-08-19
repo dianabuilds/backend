@@ -31,14 +31,13 @@ async def list_world_templates(
     db: AsyncSession = Depends(get_db),
     _: Depends = Depends(admin_required),
 ) -> list[dict[str, Any]]:
-    # Заглушка: предустановленные шаблоны миров (id, title, locale).
-    # В будущем можно вынести в БД/редактор шаблонов.
-    return [
-        {"id": "00000000-0000-0000-0000-000000000001", "title": "Fantasy (RU)", "locale": "ru-RU"},
-        {"id": "00000000-0000-0000-0000-000000000002", "title": "Sci‑Fi (EN)", "locale": "en-US"},
-        {"id": "00000000-0000-0000-0000-000000000003", "title": "Noir Mystery (EN)", "locale": "en-US"},
-        {"id": "00000000-0000-0000-0000-000000000004", "title": "Slavic Myth (RU)", "locale": "ru-RU"},
-    ]
+    # Чтение миров из БД
+    from sqlalchemy import select
+    from app.models.worlds import WorldTemplate
+
+    res = await db.execute(select(WorldTemplate).order_by(WorldTemplate.title.asc()))
+    worlds = list(res.scalars().all())
+    return [{"id": str(w.id), "title": w.title, "locale": w.locale} for w in worlds]
 
 
 @router.post("/generate", response_model=GenerationEnqueued, summary="Enqueue AI quest generation")
@@ -48,6 +47,9 @@ async def generate_ai_quest(
     current = Depends(admin_required),
     reuse: bool = True,
 ) -> GenerationEnqueued:
+    from sqlalchemy import select
+    from app.models.ai_settings import AISettings
+
     params = {
         "world_template_id": str(body.world_template_id) if body.world_template_id else None,
         "structure": body.structure,
@@ -57,12 +59,19 @@ async def generate_ai_quest(
         "locale": body.locale,
         "extras": body.extras or {},
     }
+
+    # Подтягиваем настройки провайдера (если есть)
+    res = await db.execute(select(AISettings).limit(1))
+    settings = res.scalar_one_or_none()
+    provider = settings.provider if settings and settings.provider else None
+    model = settings.model if settings and settings.model else None
+
     job = await enqueue_generation_job(
         db,
         created_by=getattr(current, "id", None),
         params=params,
-        provider=None,
-        model=None,
+        provider=provider,
+        model=model,
         reuse=reuse,
     )
     await db.commit()
@@ -193,3 +202,197 @@ async def tick_job(
     await db.commit()
     await db.refresh(job)
     return GenerationJobOut.model_validate(job)
+
+
+# -------- Worlds & Characters CRUD --------
+
+from sqlalchemy import select, update, delete
+from uuid import uuid4
+from app.models.worlds import WorldTemplate as World, Character
+from app.schemas.worlds import WorldTemplateIn, WorldTemplateOut, CharacterIn, CharacterOut
+
+
+@router.get("/worlds", response_model=list[WorldTemplateOut], summary="List worlds")
+async def list_worlds(
+    db: AsyncSession = Depends(get_db),
+    _: Depends = Depends(admin_required),
+) -> list[WorldTemplateOut]:
+    res = await db.execute(select(World).order_by(World.title.asc()))
+    rows = list(res.scalars().all())
+    return [WorldTemplateOut.model_validate(r) for r in rows]
+
+
+@router.post("/worlds", response_model=WorldTemplateOut, summary="Create world")
+async def create_world(
+    body: WorldTemplateIn,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(admin_required),
+) -> WorldTemplateOut:
+    w = World(
+        id=uuid4(),
+        title=body.title,
+        locale=body.locale,
+        description=body.description,
+        meta=body.meta,
+    )
+    db.add(w)
+    await db.commit()
+    await db.refresh(w)
+    return WorldTemplateOut.model_validate(w)
+
+
+@router.put("/worlds/{world_id}", response_model=WorldTemplateOut, summary="Update world")
+async def update_world(
+    world_id: UUID,
+    body: WorldTemplateIn,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(admin_required),
+) -> WorldTemplateOut:
+    w = await db.get(World, world_id)
+    if not w:
+        raise HTTPException(status_code=404, detail="World not found")
+    if body.title is not None:
+        w.title = body.title
+    w.locale = body.locale
+    w.description = body.description
+    w.meta = body.meta
+    await db.commit()
+    await db.refresh(w)
+    return WorldTemplateOut.model_validate(w)
+
+
+@router.delete("/worlds/{world_id}", summary="Delete world")
+async def delete_world(
+    world_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(admin_required),
+) -> dict:
+    w = await db.get(World, world_id)
+    if not w:
+        raise HTTPException(status_code=404, detail="World not found")
+    await db.delete(w)
+    await db.commit()
+    return {"ok": True}
+
+
+@router.get("/worlds/{world_id}/characters", response_model=list[CharacterOut], summary="List characters for world")
+async def list_characters(
+    world_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: Depends = Depends(admin_required),
+) -> list[CharacterOut]:
+    res = await db.execute(select(Character).where(Character.world_id == world_id).order_by(Character.name.asc()))
+    rows = list(res.scalars().all())
+    return [CharacterOut.model_validate(r) for r in rows]
+
+
+@router.post("/worlds/{world_id}/characters", response_model=CharacterOut, summary="Create character")
+async def create_character(
+    world_id: UUID,
+    body: CharacterIn,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(admin_required),
+) -> CharacterOut:
+    w = await db.get(World, world_id)
+    if not w:
+        raise HTTPException(status_code=404, detail="World not found")
+    c = Character(
+        id=uuid4(),
+        world_id=world_id,
+        name=body.name,
+        role=body.role,
+        description=body.description,
+        traits=body.traits,
+    )
+    db.add(c)
+    await db.commit()
+    await db.refresh(c)
+    return CharacterOut.model_validate(c)
+
+
+@router.put("/characters/{character_id}", response_model=CharacterOut, summary="Update character")
+async def update_character(
+    character_id: UUID,
+    body: CharacterIn,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(admin_required),
+) -> CharacterOut:
+    c = await db.get(Character, character_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Character not found")
+    if body.name is not None:
+        c.name = body.name
+    c.role = body.role
+    c.description = body.description
+    c.traits = body.traits
+    await db.commit()
+    await db.refresh(c)
+    return CharacterOut.model_validate(c)
+
+
+@router.delete("/characters/{character_id}", summary="Delete character")
+async def delete_character(
+    character_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(admin_required),
+) -> dict:
+    c = await db.get(Character, character_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Character not found")
+    await db.delete(c)
+    await db.commit()
+    return {"ok": True}
+
+
+# -------- AI Settings --------
+
+from app.models.ai_settings import AISettings
+from app.schemas.ai_settings import AISettingsOut, AISettingsIn
+
+
+@router.get("/settings", response_model=AISettingsOut, summary="Get AI provider settings")
+async def get_ai_settings(
+    db: AsyncSession = Depends(get_db),
+    _: Depends = Depends(admin_required),
+) -> AISettingsOut:
+    res = await db.execute(select(AISettings).limit(1))
+    s = res.scalar_one_or_none()
+    if not s:
+        # Вернём значения по умолчанию
+        return AISettingsOut(provider=None, base_url=None, model=None, has_api_key=False)
+    return AISettingsOut(
+        provider=s.provider,
+        base_url=s.base_url,
+        model=s.model,
+        has_api_key=bool(s.api_key),
+    )
+
+
+@router.put("/settings", response_model=AISettingsOut, summary="Update AI provider settings")
+async def put_ai_settings(
+    body: AISettingsIn,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(admin_required),
+) -> AISettingsOut:
+    res = await db.execute(select(AISettings).limit(1))
+    s = res.scalar_one_or_none()
+    if not s:
+        s = AISettings()
+        db.add(s)
+    if body.provider is not None:
+        s.provider = body.provider
+    if body.base_url is not None:
+        s.base_url = body.base_url
+    if body.model is not None:
+        s.model = body.model
+    if body.api_key is not None:
+        # Пустая строка — очистить ключ
+        s.api_key = body.api_key or None
+    await db.commit()
+    await db.refresh(s)
+    return AISettingsOut(
+        provider=s.provider,
+        base_url=s.base_url,
+        model=s.model,
+        has_api_key=bool(s.api_key),
+    )

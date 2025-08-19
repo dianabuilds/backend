@@ -32,6 +32,8 @@ import QuestVersionEditor from "./pages/QuestVersionEditor";
 import SearchRelevance from "./pages/SearchRelevance";
 import TagMerge from "./pages/TagMerge";
 import AIQuests from "./pages/AIQuests";
+import Worlds from "./pages/Worlds";
+import AISettings from "./pages/AISettings";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +66,8 @@ export default function App() {
                   <Route path="traces" element={<Traces />} />
                   <Route path="notifications" element={<Notifications />} />
                   <Route path="ai/quests" element={<AIQuests />} />
+                  <Route path="ai/worlds" element={<Worlds />} />
+                  <Route path="ai/settings" element={<AISettings />} />
                   <Route path="achievements" element={<Achievements />} />
                   <Route path="quests" element={<QuestsList />} />
                   <Route path="quests/editor" element={<QuestEditor />} />

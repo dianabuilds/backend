@@ -125,7 +125,6 @@ BASE_MENU: List[dict] = [
         "label": "AI Quests",
         "icon": "ai",
         "order": 5,
-        "featureFlag": "ai.quests.enabled",
         "children": [
             {
                 "id": "ai-quests-main",
@@ -133,6 +132,20 @@ BASE_MENU: List[dict] = [
                 "path": "/ai/quests",
                 "icon": "ai",
                 "order": 1
+            },
+            {
+                "id": "ai-worlds",
+                "label": "Worlds",
+                "path": "/ai/worlds",
+                "icon": "nodes",
+                "order": 2
+            },
+            {
+                "id": "ai-settings",
+                "label": "AI Settings",
+                "path": "/ai/settings",
+                "icon": "ai",
+                "order": 3
             }
         ]
     },
