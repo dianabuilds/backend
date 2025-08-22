@@ -6,15 +6,15 @@ import PublishBar from "../components/PublishBar";
 
 const TABS = ["General", "Content", "Relations", "AI", "Validation", "History", "Publishing", "Notifications"];
 
-export default function QuestEditor() {
-  const [title, setTitle] = useState("");
+export default function CharacterEditor() {
+  const [name, setName] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [cover, setCover] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [body, setBody] = useState("");
 
   return (
     <ContentEditor
-      title="Quest Editor"
+      title="Character Editor"
       tabs={TABS}
       actions={<PublishBar />}
       renderTab={(tab) => {
@@ -23,11 +23,11 @@ export default function QuestEditor() {
             return (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium">Title</label>
+                  <label className="block text-sm font-medium">Name</label>
                   <input
                     className="mt-1 border rounded px-2 py-1 w-full"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                   />
                 </div>
                 <div>
@@ -35,8 +35,8 @@ export default function QuestEditor() {
                   <TagSelect value={tags} onChange={setTags} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium">Cover</label>
-                  <MediaPicker value={cover} onChange={setCover} />
+                  <label className="block text-sm font-medium">Avatar</label>
+                  <MediaPicker value={avatar} onChange={setAvatar} height={120} />
                 </div>
               </div>
             );
@@ -44,7 +44,7 @@ export default function QuestEditor() {
             return (
               <textarea
                 className="w-full h-40 border rounded p-2"
-                placeholder="Quest content..."
+                placeholder="Character description..."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
               />
