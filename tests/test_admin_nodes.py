@@ -3,6 +3,8 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+pytest_plugins = ("pytest_asyncio",)
+
 from app.core.security import create_access_token
 from app.domains.nodes.infrastructure.models.node import Node
 
@@ -32,7 +34,7 @@ async def test_admin_nodes_filters(client: AsyncClient, db_session: AsyncSession
     resp = await client.get(
         "/admin/nodes",
         params={"author": str(test_user.id)},
-        headers={"Authorization": f"Bearer {token_mod}"},
+        headers={"Authorization": f"Bearer {token_mod}", "Accept": "application/json"},
     )
     assert resp.status_code == 200
     slugs = {n["slug"] for n in resp.json()}
@@ -110,3 +112,29 @@ async def test_admin_recompute_embedding(client: AsyncClient, db_session: AsyncS
     await db_session.refresh(node)
     assert node.embedding_vector is not None
     assert any(v != 0 for v in node.embedding_vector)
+
+
+@pytest.mark.asyncio
+async def test_admin_nodes_meta_string(db_session: AsyncSession, test_user):
+    from app.domains.tags.infrastructure.models.tag_models import Tag, NodeTag
+    from app.domains.nodes.application.node_query_service import NodeQueryService
+    from app.domains.nodes.application.query_models import NodeFilterSpec, PageRequest, QueryContext
+    from app.schemas.node import NodeOut
+
+    # create required tables
+    await db_session.run_sync(lambda s: Node.__table__.create(s.bind, checkfirst=True))
+    await db_session.run_sync(lambda s: Tag.__table__.create(s.bind, checkfirst=True))
+    await db_session.run_sync(lambda s: NodeTag.__table__.create(s.bind, checkfirst=True))
+
+    node = Node(title="meta", content={}, is_public=True, author_id=test_user.id, meta='{"foo": 1}')
+    db_session.add(node)
+    await db_session.commit()
+    await db_session.refresh(node)
+
+    svc = NodeQueryService(db_session)
+    spec = NodeFilterSpec(author_id=test_user.id)
+    ctx = QueryContext(user=test_user, is_admin=True)
+    page = PageRequest(limit=10, offset=0)
+    nodes = await svc.list_nodes(spec, page, ctx)
+    outs = [NodeOut.model_validate(n) for n in nodes]
+    assert any(o.slug == node.slug and o.meta.get("foo") == 1 for o in outs)

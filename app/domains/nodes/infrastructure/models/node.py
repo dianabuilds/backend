@@ -55,7 +55,12 @@ class Node(Base):
     popularity_score = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    meta = Column(MutableDict.as_mutable(JSONB), default=dict)
+    # ``meta`` previously used ``MutableDict`` which rejected rows where the
+    # column contained a JSON string.  Such legacy records caused SQLAlchemy to
+    # raise "Attribute 'meta' does not accept objects of type <class 'str'>" on
+    # load.  Using the plain ``JSONB`` type allows those rows to be loaded and
+    # normalised at the schema level.
+    meta = Column(JSONB, default=dict)
 
     premium_only = Column(Boolean, default=False)
     nft_required = Column(String, nullable=True)
