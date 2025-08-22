@@ -6,7 +6,7 @@ import PublishBar from "../components/PublishBar";
 
 const TABS = ["General", "Content", "Relations", "AI", "Validation", "History", "Publishing", "Notifications"];
 
-export default function QuestEditor() {
+export default function BlogPostEditor() {
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [cover, setCover] = useState<string | null>(null);
@@ -14,7 +14,7 @@ export default function QuestEditor() {
 
   return (
     <ContentEditor
-      title="Quest Editor"
+      title="Blog Post Editor"
       tabs={TABS}
       actions={<PublishBar />}
       renderTab={(tab) => {
@@ -44,7 +44,7 @@ export default function QuestEditor() {
             return (
               <textarea
                 className="w-full h-40 border rounded p-2"
-                placeholder="Quest content..."
+                placeholder="Blog post content..."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
               />

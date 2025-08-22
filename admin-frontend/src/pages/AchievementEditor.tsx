@@ -6,15 +6,15 @@ import PublishBar from "../components/PublishBar";
 
 const TABS = ["General", "Content", "Relations", "AI", "Validation", "History", "Publishing", "Notifications"];
 
-export default function QuestEditor() {
+export default function AchievementEditor() {
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [cover, setCover] = useState<string | null>(null);
+  const [icon, setIcon] = useState<string | null>(null);
   const [body, setBody] = useState("");
 
   return (
     <ContentEditor
-      title="Quest Editor"
+      title="Achievement Editor"
       tabs={TABS}
       actions={<PublishBar />}
       renderTab={(tab) => {
@@ -35,8 +35,8 @@ export default function QuestEditor() {
                   <TagSelect value={tags} onChange={setTags} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium">Cover</label>
-                  <MediaPicker value={cover} onChange={setCover} />
+                  <label className="block text-sm font-medium">Icon</label>
+                  <MediaPicker value={icon} onChange={setIcon} height={100} />
                 </div>
               </div>
             );
@@ -44,7 +44,7 @@ export default function QuestEditor() {
             return (
               <textarea
                 className="w-full h-40 border rounded p-2"
-                placeholder="Quest content..."
+                placeholder="Achievement description..."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
               />

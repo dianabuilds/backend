@@ -35,6 +35,10 @@ import QuestsList from "./pages/QuestsList";
 import QuestVersionEditor from "./pages/QuestVersionEditor";
 import SearchRelevance from "./pages/SearchRelevance";
 import TagMerge from "./pages/TagMerge";
+import WorldEditor from "./pages/WorldEditor";
+import CharacterEditor from "./pages/CharacterEditor";
+import BlogPostEditor from "./pages/BlogPostEditor";
+import AchievementEditor from "./pages/AchievementEditor";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
 const Worlds = lazy(() => import("./pages/Worlds"));
 const AISettings = lazy(() => import("./pages/AISettings"));
@@ -90,9 +94,13 @@ export default function App() {
                     <Route path="ai/worlds" element={<Worlds />} />
                     <Route path="ai/settings" element={<AISettings />} />
                     <Route path="achievements" element={<Achievements />} />
+                    <Route path="achievements/editor" element={<AchievementEditor />} />
                     <Route path="quests" element={<QuestsList />} />
                     <Route path="quests/editor" element={<QuestEditor />} />
                     <Route path="quests/version/:id" element={<QuestVersionEditor />} />
+                    <Route path="worlds/editor" element={<WorldEditor />} />
+                    <Route path="characters/editor" element={<CharacterEditor />} />
+                    <Route path="blog/editor" element={<BlogPostEditor />} />
                     <Route path="search" element={<ComingSoon title="Search" />} />
                     <Route path="tools/cache" element={<CacheTools />} />
                     <Route path="tools/rate-limit" element={<RateLimitTools />} />
