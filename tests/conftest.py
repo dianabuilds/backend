@@ -20,6 +20,8 @@ from app.core.db.base import Base
 from app.main import app
 from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
+from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
+from app.domains.admin.infrastructure.models.feature_flag import FeatureFlag
 from app.core.security import get_password_hash
 
 # Импортируем вспомогательные функции
@@ -67,6 +69,8 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     # Создаем только необходимые таблицы для тестирования
     async with test_engine.begin() as conn:
         await conn.run_sync(User.__table__.create)
+        await conn.run_sync(UserRestriction.__table__.create)
+        await conn.run_sync(FeatureFlag.__table__.create)
 
     # Создаем сессию для теста
     async with TestingSessionLocal() as session:
@@ -74,6 +78,8 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
     # Удаляем таблицу после теста
     async with test_engine.begin() as conn:
+        await conn.run_sync(FeatureFlag.__table__.drop)
+        await conn.run_sync(UserRestriction.__table__.drop)
         await conn.run_sync(User.__table__.drop)
 
 
@@ -91,6 +97,11 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
             pass
 
     app.dependency_overrides[get_db] = override_get_db
+
+    # В тестовой конфигурации приложение не подключает доменные роутеры.
+    # Для тестов административного меню подключаем нужный роутер вручную.
+    from app.domains.admin.api.routers import router as admin_router
+    app.include_router(admin_router)
 
     # Создаем тестовый клиент
     transport = ASGITransport(app=app)
