@@ -311,57 +311,11 @@ export default function QuestVersionEditor() {
         <button className="px-3 py-1 rounded bg-green-600 text-white" onClick={onPublish}>Publish</button>
       </div>
     }>
-      {err && <div className="text-red-600 text-sm">{err}</div>}
-      {graph && (
-        <div className="mt-4 space-y-4">
-          <CollapsibleSection title="Validation report">
-            <div className="mb-2 flex items-center gap-2">
-              <button
-                className="px-2 py-1 rounded border"
-                onClick={async () => {
-                  if (!id) return;
-                  try {
-                    const res = await validateVersion(id);
-                    setValidate(res);
-                  } catch (e) {
-                    alert(e instanceof Error ? e.message : String(e));
-                  }
-                }}
-              >
-                Validate
-              </button>
-              {validate && (
-                <>
-                  <span className="text-sm">Errors: <b>{validate.errors.length}</b></span>
-                  <span className="text-sm">Warnings: <b>{validate.warnings.length}</b></span>
-                </>
-              )}
-            </div>
-            {validate ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <div className="font-semibold mb-1">Errors</div>
-                  <ul className="list-disc pl-5 text-red-700">
-                    {validate.errors.map((e, i) => <li key={i}>{e}</li>)}
-                    {validate.errors.length === 0 && <li className="text-gray-500">None</li>}
-                  </ul>
-                </div>
-                <div>
-                  <div className="font-semibold mb-1">Warnings</div>
-                  <ul className="list-disc pl-5 text-yellow-700">
-                    {validate.warnings.map((w, i) => <li key={i}>{w}</li>)}
-                    {validate.warnings.length === 0 && <li className="text-gray-500">None</li>}
-                  </ul>
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-gray-500">Run validation to see the report</div>
-            )}
-          </CollapsibleSection>
-        </div>
-      )}
-      {!graph ? <div className="text-sm text-gray-500">Loading...</div> : (
-        <div className="grid grid-cols-3 gap-6">
+        {err && <div className="text-red-600 text-sm">{err}</div>}
+        {!graph ? (
+          <div className="text-sm text-gray-500">Loading...</div>
+        ) : (
+          <div className="mt-4 grid grid-cols-3 gap-6">
           {/* Настройки квеста */}
           <div className="col-span-3">
             <CollapsibleSection title="Quest settings" defaultOpen={true}>
@@ -421,15 +375,15 @@ export default function QuestVersionEditor() {
                     </label>
                   </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Cover</h4>
-                  <ImageDropzone
-                    value={meta.cover_image || null}
-                    onChange={(url) => setMeta({ ...meta, cover_image: url || null })}
-                    height={160}
-                    className="w-[120px]"
-                  />
-                </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">Cover</h4>
+                    <ImageDropzone
+                      value={meta.cover_image || null}
+                      onChange={(url) => setMeta({ ...meta, cover_image: url || null })}
+                      height={240}
+                      className="w-[180px]"
+                    />
+                  </div>
                 <div className="md:col-span-3 flex justify-end">
                   <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={onSaveMeta} disabled={savingMeta}>
                     {savingMeta ? "Saving…" : "Save meta"}
@@ -440,7 +394,7 @@ export default function QuestVersionEditor() {
             </CollapsibleSection>
           </div>
 
-          <div className="col-span-2">
+            <div className="col-span-2 space-y-4">
             <CollapsibleSection title="Nodes" defaultOpen={true}>
               {/* Панель управления списком нод: поиск, размер страницы, пагинация, раскладка */}
               <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -664,11 +618,57 @@ export default function QuestVersionEditor() {
                   );
                 })}
               </ul>
-            </CollapsibleSection>
-          </div>
+              </CollapsibleSection>
+            </div>
+            <div className="col-span-1">
+              <CollapsibleSection title="Validation report">
+                <div className="mb-2 flex items-center gap-2">
+                  <button
+                    className="px-2 py-1 rounded border"
+                    onClick={async () => {
+                      if (!id) return;
+                      try {
+                        const res = await validateVersion(id);
+                        setValidate(res);
+                      } catch (e) {
+                        alert(e instanceof Error ? e.message : String(e));
+                      }
+                    }}
+                  >
+                    Validate
+                  </button>
+                  {validate && (
+                    <>
+                      <span className="text-sm">Errors: <b>{validate.errors.length}</b></span>
+                      <span className="text-sm">Warnings: <b>{validate.warnings.length}</b></span>
+                    </>
+                  )}
+                </div>
+                {validate ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <div className="font-semibold mb-1">Errors</div>
+                      <ul className="list-disc pl-5 text-red-700">
+                        {validate.errors.map((e, i) => <li key={i}>{e}</li>)}
+                        {validate.errors.length === 0 && <li className="text-gray-500">None</li>}
+                      </ul>
+                    </div>
+                    <div>
+                      <div className="font-semibold mb-1">Warnings</div>
+                      <ul className="list-disc pl-5 text-yellow-700">
+                        {validate.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                        {validate.warnings.length === 0 && <li className="text-gray-500">None</li>}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">Run validation to see the report</div>
+                )}
+              </CollapsibleSection>
+            </div>
 
-          {/* Холст графа */}
-          <div className="col-span-3">
+            {/* Холст графа */}
+            <div className="col-span-3">
             <div className="rounded border" style={{ maxHeight: "70vh", overflow: "auto" }}>
               <GraphCanvas
               nodes={graph.nodes.map(n => ({ key: n.key, title: n.title, type: (n as any).type || "normal" }))}
