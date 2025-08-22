@@ -40,6 +40,23 @@ class NodeBase(BaseModel):
         alias_generator = to_camel
         populate_by_name = True  # позволяем заполнять по исходным именам и алиасам
 
+    @field_validator("meta", mode="before")
+    @classmethod
+    def _parse_meta(cls, v: Any) -> dict:  # noqa: ANN001
+        if v is None:
+            return {}
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            import json
+
+            try:
+                parsed = json.loads(v)
+            except Exception:
+                return {}
+            return parsed if isinstance(parsed, dict) else {}
+        return {}
+
     @model_validator(mode="after")
     def _normalize_editorjs_and_validate(self) -> "NodeBase":
         # Приводим контент к Editor.js JSON: допускаем строковый JSON
