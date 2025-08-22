@@ -10,7 +10,7 @@ from app.core.db.session import get_db
 from app.domains.admin.infrastructure.models.feature_flag import FeatureFlag
 from app.schemas.flags import FeatureFlagOut, FeatureFlagUpdateIn
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.core.feature_flags import set_flag, invalidate_cache
+from app.core.feature_flags import set_flag, invalidate_cache, ensure_known_flags
 from app.domains.audit.application.audit_service import audit_log
 from app.domains.admin.application.menu_service import invalidate_menu_cache
 
@@ -28,6 +28,7 @@ async def list_flags(
     _: Depends = Depends(admin_only),
     db: AsyncSession = Depends(get_db),
 ) -> List[FeatureFlagOut]:
+    await ensure_known_flags(db)
     res = await db.execute(select(FeatureFlag).order_by(FeatureFlag.key.asc()))
     items = list(res.scalars().all())
     return items
@@ -38,7 +39,7 @@ async def update_flag(
     key: str,
     body: FeatureFlagUpdateIn,
     request: Request,
-    current = Depends(admin_only),
+    current=Depends(admin_only),
     db: AsyncSession = Depends(get_db),
 ) -> FeatureFlagOut:
     before = await db.get(FeatureFlag, key)
