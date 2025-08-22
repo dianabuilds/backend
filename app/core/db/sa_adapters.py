@@ -123,9 +123,35 @@ class VECTOR(TypeDecorator):
         if value is None:
             return None
         if dialect.name == "postgresql":
-            # Return raw string; parsing left to application
+            # In tests we emulate pgvector using a TSVECTOR column which
+            # stores vectors as space separated strings.  SQLAlchemy's
+            # ``MutableList`` used by models expects a Python ``list`` so
+            # we normalise the database value here.  In a real deployment
+            # the pgvector driver already returns a list of floats and this
+            # logic simply mirrors that behaviour.
             if isinstance(value, bytes):
-                return value.decode("utf-8")
+                value = value.decode("utf-8")
+            if isinstance(value, str):
+                import json
+
+                txt = value.strip()
+                # Try JSON first as legacy rows may store a JSON array
+                if txt.startswith("[") and txt.endswith("]"):
+                    try:
+                        parsed = json.loads(txt)
+                        if isinstance(parsed, list):
+                            return [float(v) for v in parsed]
+                    except Exception:
+                        pass
+                # Fallback: treat as space separated numbers
+                parts = txt.split()
+                out: list[float] = []
+                for part in parts:
+                    try:
+                        out.append(float(part))
+                    except Exception:
+                        continue
+                return out
             return value
         return value
 
