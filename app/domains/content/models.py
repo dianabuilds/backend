@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import uuid4
 
 import sqlalchemy as sa
+from sqlalchemy.orm import relationship
 
 from app.core.db.base import Base
 from app.core.db.adapters import UUID
@@ -32,3 +33,4 @@ class ContentItem(Base):
     published_at = sa.Column(sa.DateTime, nullable=True)
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
     updated_at = sa.Column(sa.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    tags = relationship("Tag", secondary="content_tags", back_populates="content_items")

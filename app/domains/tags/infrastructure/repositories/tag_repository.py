@@ -8,8 +8,8 @@ from sqlalchemy import delete, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.tags.application.ports.tag_repo_port import ITagRepository
+from app.domains.tags.models import Tag
 from app.domains.tags.infrastructure.models.tag_models import (
-    Tag,
     NodeTag,
     TagAlias,
     TagBlacklist,

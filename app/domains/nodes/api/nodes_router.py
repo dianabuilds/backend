@@ -24,7 +24,7 @@ from app.core.config import settings
 from app.core.log_events import cache_invalidate
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.infrastructure.models.feedback import Feedback
-from app.domains.tags.infrastructure.models.tag_models import Tag
+from app.domains.tags.models import Tag
 from app.domains.users.infrastructure.models.user import User
 from app.domains.nodes.policies.node_policy import NodePolicy
 from app.domains.nodes.schemas.feedback import FeedbackCreate, FeedbackOut

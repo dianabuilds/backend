@@ -66,7 +66,10 @@ else:
         SearchRelevanceActive,
     )  # noqa
     from app.domains.tags.infrastructure.models.tag_models import TagAlias  # noqa
-    from app.domains.tags.infrastructure.models.tag_models import TagMergeLog  # noqa
+    from app.domains.tags.infrastructure.models.tag_models import (
+        TagMergeLog,
+    )  # noqa
+    from app.domains.tags.models import Tag, ContentTag  # noqa
     from app.domains.content.models import ContentItem  # noqa
 
 # Add all other models here
