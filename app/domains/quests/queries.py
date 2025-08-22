@@ -8,13 +8,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.domains.quests.infrastructure.models.quest_models import Quest
+from app.domains.content.models import ContentItem
+from app.schemas.content_common import ContentStatus
 from app.domains.users.infrastructure.models.user import User
 from app.domains.quests.access import can_view
 
 
 async def list_public(db: AsyncSession) -> List[Quest]:
     res = await db.execute(
-        select(Quest).where(Quest.is_draft == False, Quest.is_deleted == False).order_by(Quest.published_at.desc())  # noqa: E712
+        select(Quest)
+        .join(ContentItem, ContentItem.id == Quest.id)
+        .where(
+            ContentItem.type == "quest",
+            ContentItem.status == ContentStatus.published,
+            Quest.is_deleted == False,
+        )
+        .order_by(ContentItem.published_at.desc())
     )
     return list(res.scalars().all())
 
@@ -31,15 +40,22 @@ async def search(
     page: int,
     per_page: int,
 ) -> List[Quest]:
-    stmt = select(Quest).where(Quest.is_draft == False, Quest.is_deleted == False)  # noqa: E712
+    stmt = (
+        select(Quest)
+        .join(ContentItem, ContentItem.id == Quest.id)
+        .where(
+            ContentItem.type == "quest",
+            ContentItem.status == ContentStatus.published,
+            Quest.is_deleted == False,
+        )
+    )
 
     if q:
         pattern = f"%{q}%"
         stmt = stmt.where(
             or_(
-                Quest.title.ilike(pattern),
-                Quest.subtitle.ilike(pattern),
-                Quest.description.ilike(pattern),
+                ContentItem.title.ilike(pattern),
+                ContentItem.summary.ilike(pattern),
             )
         )
 
@@ -59,11 +75,11 @@ async def search(
     if sort_by == "price":
         stmt = stmt.order_by(Quest.price.asc())
     elif sort_by == "title":
-        stmt = stmt.order_by(Quest.title.asc())
+        stmt = stmt.order_by(ContentItem.title.asc())
     elif sort_by == "popularity":
-        stmt = stmt.order_by(func.coalesce(Quest.published_at, datetime.min).desc())
+        stmt = stmt.order_by(func.coalesce(ContentItem.published_at, datetime.min).desc())
     else:
-        stmt = stmt.order_by(Quest.published_at.desc())
+        stmt = stmt.order_by(ContentItem.published_at.desc())
 
     offset = (page - 1) * per_page
     stmt = stmt.offset(offset).limit(per_page)
