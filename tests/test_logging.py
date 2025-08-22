@@ -11,8 +11,9 @@ from app.core.logging_config import configure_logging
 from app.core.logging_middleware import RequestLoggingMiddleware
 from app.core.console_access_log import ConsoleAccessLogMiddleware
 from app.core.log_filters import request_id_var, user_id_var
-from app.services.navcache import NavCache
-from app.services.cache_backends import MemoryCache
+from app.domains.navigation.application.cache_singleton import navcache as _navcache  # noqa: F401
+from app.core.cache import MemoryCache
+from app.domains.navigation.application.navcache_compat import NavCache
 
 
 @pytest.mark.asyncio
@@ -54,7 +55,7 @@ async def test_console_access_log_middleware(capsys):
 
 @pytest.mark.asyncio
 async def test_logging_cache_events(caplog):
-    nc = NavCache(MemoryCache())
+    nc = NavCache()
     with caplog.at_level(logging.INFO):
         assert await nc.get_navigation("u", "s", None) is None
         await nc.set_navigation("u", "s", None, {"ok": True})

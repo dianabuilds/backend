@@ -2,15 +2,15 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.node import Node
-from app.services.tags import get_or_create_tags
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.tags.application.tag_helpers import get_or_create_tags
 
 
 @pytest.mark.asyncio
 async def test_tag_creation_and_listing(client: AsyncClient, db_session: AsyncSession, auth_headers):
     payload = {
         "title": "n1",
-        "content": {},
+        "nodes": {},
         "tags": ["forest"],
         "is_public": True,
     }

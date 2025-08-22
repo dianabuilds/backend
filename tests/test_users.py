@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
-from app.models.user import User
+from app.domains.users.infrastructure.models.user import User
 
 
 class TestUsers:

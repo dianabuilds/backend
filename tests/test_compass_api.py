@@ -3,8 +3,8 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models.node import Node
-from app.services.navcache import navcache
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.navigation.application.cache_singleton import navcache
 
 
 @pytest.mark.asyncio
@@ -14,7 +14,7 @@ async def test_compass_api_cache(client: AsyncClient, db_session: AsyncSession, 
             "/nodes",
             json={
                 "title": title,
-                "content": title,
+                "nodes": title,
                 "is_public": True,
                 "tags": tags or [],
             },

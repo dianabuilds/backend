@@ -3,8 +3,8 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_password_hash
-from app.models.user import User
-from app.services import nft as nft_service
+from app.domains.users.infrastructure.models.user import User
+from app.domains.users import nft as nft_service
 
 
 @pytest.fixture(autouse=True)
@@ -16,14 +16,12 @@ def patch_nft_verifier(monkeypatch):
         return False
 
     monkeypatch.setattr(nft_service, "user_has_nft", no)
-    monkeypatch.setattr("app.api.nodes.user_has_nft", no)
-    monkeypatch.setattr("app.engine.filters.user_has_nft", no)
+    monkeypatch.setattr("app.domains.nodes.api.nodes_router.user_has_nft", no)
 
     def setter(allow: bool):
         func = yes if allow else no
         monkeypatch.setattr(nft_service, "user_has_nft", func)
-        monkeypatch.setattr("app.api.nodes.user_has_nft", func)
-        monkeypatch.setattr("app.engine.filters.user_has_nft", func)
+        monkeypatch.setattr("app.domains.nodes.api.nodes_router.user_has_nft", func)
 
     return setter
 
@@ -51,7 +49,7 @@ async def _create_node(client: AsyncClient, headers: dict) -> str:
         "/nodes",
         json={
             "title": "NFT gated",
-            "content": "nft",
+            "nodes": "nft",
             "is_public": True,
             "nft_required": "TEST",
         },

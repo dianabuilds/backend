@@ -4,7 +4,7 @@ from typing import Any
 
 from app.core.log_filters import ip_var, ua_var
 from app.db.session import db_session, get_current_session
-from app.models.audit_log import AuditLog
+from app.domains.admin.infrastructure.models.audit_log import AuditLog
 
 
 class AuditLogHandler(logging.Handler):

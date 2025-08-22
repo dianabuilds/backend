@@ -3,7 +3,7 @@ import asyncio
 import pytest
 from fastapi import HTTPException
 
-from app.services.quotas import QuotaService
+from app.domains.premium.application.quota_service import QuotaService
 
 
 @pytest.fixture()

@@ -43,11 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     try {
-      // Единый клиент: выставит Accept: application/json и credentials: include
-      const res = await api.post<{ ok: boolean; csrf_token?: string; access_token?: string }>("/auth/login", {
-        username,
-        password,
-      });
+      // 1) Логин: увеличенный таймаут (60с), чтобы исключить обрыв на медленных стендах
+      const res = await api.post<{ ok: boolean; csrf_token?: string; access_token?: string }>(
+        "/auth/login",
+        { username, password },
+        { timeoutMs: 60000 }
+      );
 
       const data = res.data!;
       if (!data.ok) {
@@ -58,22 +59,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.csrf_token) setCsrfToken(data.csrf_token);
       if (data.access_token) setAccessToken(data.access_token);
 
-      // Запрашиваем профиль с Bearer из ответа, не полагаясь на моментальную установку cookie
-      const meHeaders: Record<string, string> = {};
-      if (data.access_token) {
-        meHeaders["Authorization"] = `Bearer ${data.access_token}`;
+      // 2) Профиль: сначала пробуем без Authorization (чтобы избежать preflight), короткий таймаут
+      let me: User | null = null;
+      try {
+        const meNoAuth = await api.get<User>("/users/me", { timeoutMs: 20000 });
+        me = meNoAuth.data as User;
+      } catch (e: any) {
+        // Если 401 — пробуем повторить с Bearer и большим таймаутом
+        const isUnauthorized = e instanceof Error && /401|unauthorized/i.test(e.message);
+        if (!isUnauthorized) {
+          // Падать не спешим — попробуем с Bearer в любом случае
+        }
       }
-      const meRes = await api.get<User>("/users/me", { headers: meHeaders });
-      const me = meRes.data as User;
 
+      if (!me) {
+        const meHeaders: Record<string, string> = {};
+        if (data.access_token) {
+          meHeaders["Authorization"] = `Bearer ${data.access_token}`;
+        }
+        const meRes = await api.get<User>("/users/me", { headers: meHeaders, timeoutMs: 60000 });
+        me = meRes.data as User;
+      }
+
+      if (!me) throw new Error("Не удалось получить профиль");
       if (!isAllowed(me.role)) {
         throw new Error("Недостаточно прав");
       }
       setUser(me);
     } catch (e) {
       const err = e as Error;
-      // Пробуем отобразить понятное сообщение
-      const msg = err.message || "Ошибка авторизации";
+      // Нормализуем таймаут
+      const raw = String(err?.message || "");
+      const msg = raw === "RequestTimeout"
+        ? "Превышено время ожидания ответа сервера. Проверьте соединение и попробуйте ещё раз."
+        : raw || "Ошибка авторизации";
       throw new Error(msg);
     }
   };

@@ -503,7 +503,7 @@ export default function QuestEditor() {
                     .join(" ")
                     .replace(/<[^>]*>/g, "") // убрать HTML-теги
                     .trim();
-                  return text || "No content yet. Click Expand to edit.";
+                  return text || "No nodes yet. Click Expand to edit.";
                 })()}
               </div>
               {n.backendId && <div className="absolute right-2 bottom-2 text-[10px] text-gray-500">id: {n.backendId}</div>}

@@ -29,10 +29,10 @@ async def test_create_node_with_image_content(client: AsyncClient, auth_headers:
     url = res.json()["url"]
 
     content = {"blocks": [{"type": "image", "data": {"file": {"url": url}}}]}
-    payload = {"title": "with image", "content": content, "is_public": True}
+    payload = {"title": "with image", "nodes": content, "is_public": True}
     resp = await client.post("/nodes", json=payload, headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
-    saved = data["content"]["blocks"][0]["data"]["file"]["url"]
+    saved = data["nodes"]["blocks"][0]["data"]["file"]["url"]
     assert saved == url
     assert not saved.startswith("data:")

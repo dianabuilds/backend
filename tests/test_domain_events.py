@@ -5,11 +5,10 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from app.models.node import Node
-from app.models.user import User
-from app.services.events import NodeUpdated, get_event_bus
-from app.services.navcache import navcache
-from app.services.events import handlers as event_handlers
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.users.infrastructure.models.user import User
+from app.domains.system.events import NodeUpdated, get_event_bus, handlers as event_handlers
+from app.domains.navigation.application.cache_singleton import navcache
 from contextlib import asynccontextmanager
 
 
@@ -31,7 +30,7 @@ async def test_node_created_triggers_embedding_and_cache(client: AsyncClient, db
 
     resp = await client.post(
         "/nodes",
-        json={"title": "n1", "content": {}},
+        json={"title": "n1", "nodes": {}},
         headers=auth_headers,
     )
     assert resp.status_code == 200
@@ -94,7 +93,7 @@ async def test_handler_retries(db_session, test_user: User):
         raise RuntimeError("boom")
 
     monkey = pytest.MonkeyPatch()
-    from app.engine import embedding
+    from app.domains.ai.application import embedding_service as embedding
 
     monkey.setattr(event_handlers, "update_node_embedding", failing_update)
 

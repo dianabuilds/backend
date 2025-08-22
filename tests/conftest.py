@@ -17,8 +17,8 @@ os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
 
 from app.db.base import Base
 from app.main import app
-from app.db.session import get_db
-from app.models.user import User
+from app.core.db.session import get_db
+from app.domains.users.infrastructure.models.user import User
 from app.core.security import get_password_hash
 
 # Импортируем вспомогательные функции

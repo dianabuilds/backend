@@ -35,6 +35,13 @@ import TagMerge from "./pages/TagMerge";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
 const Worlds = lazy(() => import("./pages/Worlds"));
 const AISettings = lazy(() => import("./pages/AISettings"));
+const AIQuestJobDetails = lazy(() => import("./pages/AIQuestJobDetails"));
+const Telemetry = lazy(() => import("./pages/Telemetry"));
+const PremiumPlans = lazy(() => import("./pages/PremiumPlans"));
+const PremiumLimits = lazy(() => import("./pages/PremiumLimits"));
+const PaymentsTransactions = lazy(() => import("./pages/PaymentsTransactions"));
+const PaymentsGateways = lazy(() => import("./pages/PaymentsGateways"));
+const AIRateLimits = lazy(() => import("./pages/AIRateLimits"));
 
 const queryClient = new QueryClient();
 
@@ -67,7 +74,13 @@ export default function App() {
                     <Route path="echo" element={<Echo />} />
                     <Route path="traces" element={<Traces />} />
                     <Route path="notifications" element={<Notifications />} />
+                    <Route path="telemetry" element={<Telemetry />} />
+                    <Route path="premium/plans" element={<PremiumPlans />} />
+                    <Route path="premium/limits" element={<PremiumLimits />} />
+                    <Route path="payments/transactions" element={<PaymentsTransactions />} />
+                    <Route path="ai/rate-limits" element={<AIRateLimits />} />
                     <Route path="ai/quests" element={<AIQuests />} />
+                    <Route path="ai/quests/jobs/:id" element={<AIQuestJobDetails />} />
                     <Route path="ai/worlds" element={<Worlds />} />
                     <Route path="ai/settings" element={<AISettings />} />
                     <Route path="achievements" element={<Achievements />} />
@@ -83,7 +96,7 @@ export default function App() {
                     <Route path="tools/flags" element={<FeatureFlagsPage />} />
                     <Route path="tools/search-settings" element={<SearchRelevance />} />
                     <Route path="system/health" element={<Health />} />
-                    <Route path="payments" element={<ComingSoon title="Payments" />} />
+                    <Route path="payments" element={<PaymentsGateways />} />
                   </Route>
                 </Routes>
               </Suspense>

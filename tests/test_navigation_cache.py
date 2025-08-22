@@ -3,9 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from httpx import AsyncClient
 
-from app.models.node import Node
-from app.engine import navigation_engine
-from app.services.navcache import navcache
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.navigation.application.random_service import RandomService
+from app.domains.navigation.application.compass_service import CompassService
+from app.domains.navigation.application.echo_service import EchoService
+from app.domains.navigation.application.cache_singleton import navcache
 
 
 @pytest.mark.asyncio
@@ -13,7 +15,7 @@ async def test_navigation_cached(client: AsyncClient, db_session: AsyncSession, 
     async def create(title: str):
         resp = await client.post(
             "/nodes",
-            json={"title": title, "content": title, "is_public": True},
+            json={"title": title, "nodes": title, "is_public": True},
             headers=auth_headers,
         )
         assert resp.status_code == 200
@@ -37,9 +39,13 @@ async def test_navigation_cached(client: AsyncClient, db_session: AsyncSession, 
 
     # apply patches
     monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setattr(navigation_engine, "get_random_node", fake_random)
-    monkeypatch.setattr(navigation_engine, "get_compass_nodes", empty)
-    monkeypatch.setattr(navigation_engine, "get_echo_transitions", empty)
+
+    async def _fake_random(self, db, user=None, exclude_node_id=None, tag_whitelist=None):
+        return await fake_random(db, user=user, exclude_node_id=exclude_node_id, tag_whitelist=tag_whitelist)
+
+    monkeypatch.setattr(RandomService, "get_random_node", _fake_random)
+    monkeypatch.setattr(CompassService, "get_compass_nodes", empty)
+    monkeypatch.setattr(EchoService, "get_echo_transitions", empty)
 
     # first call generates and caches
     resp1 = await client.get(f"/navigation/{base}", headers=auth_headers)

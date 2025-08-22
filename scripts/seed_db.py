@@ -23,11 +23,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import get_password_hash
 from app.db.session import init_db, create_tables, db_session
-from app.engine.embedding import update_node_embedding
-from app.models.node import Node
-from app.models.transition import NodeTransition, NodeTransitionType
-from app.models.echo_trace import EchoTrace
-from app.models.user import User
+from app.domains.ai.application.embedding_service import update_node_embedding
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType
+from app.domains.navigation.infrastructure.models.echo_models import EchoTrace
+from app.domains.users.infrastructure.models.user import User
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

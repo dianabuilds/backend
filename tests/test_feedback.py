@@ -8,7 +8,7 @@ async def test_feedback_flow(client: AsyncClient, auth_headers):
         "/nodes",
         json={
             "title": "test",
-            "content": "test",
+            "nodes": "test",
             "is_public": True,
         },
         headers=auth_headers,
@@ -19,7 +19,7 @@ async def test_feedback_flow(client: AsyncClient, auth_headers):
     # Post feedback
     resp = await client.post(
         f"/nodes/{slug}/feedback",
-        json={"content": "hi"},
+        json={"nodes": "hi"},
         headers=auth_headers,
     )
     assert resp.status_code == 200
@@ -30,7 +30,7 @@ async def test_feedback_flow(client: AsyncClient, auth_headers):
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
-    assert data[0]["content"] == "hi"
+    assert data[0]["nodes"] == "hi"
 
     # Delete feedback
     resp = await client.delete(
@@ -51,7 +51,7 @@ async def test_feedback_disabled(client: AsyncClient, auth_headers):
         "/nodes",
         json={
             "title": "nfb",
-            "content": "nfb",
+            "nodes": "nfb",
             "is_public": True,
             "allow_feedback": False,
         },
@@ -63,7 +63,7 @@ async def test_feedback_disabled(client: AsyncClient, auth_headers):
     # Attempt to post feedback
     resp = await client.post(
         f"/nodes/{slug}/feedback",
-        json={"content": "hi"},
+        json={"nodes": "hi"},
         headers=auth_headers,
     )
     assert resp.status_code == 403

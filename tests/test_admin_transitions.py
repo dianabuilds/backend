@@ -3,9 +3,9 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token
-from app.models.node import Node
-from app.models.transition import NodeTransition, NodeTransitionType
-from app.services.navcache import navcache
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType
+from app.domains.navigation.application.cache_singleton import navcache
 
 
 async def _create_node(db: AsyncSession, author, title: str) -> Node:

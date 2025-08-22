@@ -6,7 +6,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User
+from app.domains.users.infrastructure.models.user import User
 from app.core.security import create_access_token
 
 

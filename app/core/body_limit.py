@@ -22,7 +22,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         method = request.method.upper()
         if method in {"POST", "PUT", "PATCH", "DELETE"}:
-            cl = request.headers.get("content-length")
+            cl = request.headers.get("nodes-length")
             if cl:
                 try:
                     length = int(cl)

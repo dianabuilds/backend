@@ -52,6 +52,7 @@ function getAccessToken(): string {
 /**
  * Низкоуровневый fetch с поддержкой cookie‑сессии,
  * авторефрешем access/CSRF на 401 и синхронизацией CSRF.
+ * Поддерживает таймаут через AbortController (VITE_API_TIMEOUT_MS или 15000 мс по умолчанию).
  */
 export async function apiFetch(
   input: RequestInfo,
@@ -68,18 +69,21 @@ export async function apiFetch(
     headers["Accept"] = "application/json";
   }
 
-  // Для безопасных методов (GET/HEAD) не отправляем CSRF, чтобы не вызывать preflight.
+  // Распознаём /auth/*, чтобы избежать лишних заголовков и preflight
+  const pathStr = typeof input === "string" ? input : (input as any)?.url || "";
+  const isAuthCall = typeof pathStr === "string" && pathStr.startsWith("/auth/");
   const isSafeMethod = method === "GET" || method === "HEAD";
+
+  // Для безопасных методов (GET/HEAD) не отправляем CSRF. Для /auth/* — тоже не отправляем.
   const csrf = getCsrfToken();
-  if (csrf && !isSafeMethod) {
+  if (csrf && !isSafeMethod && !isAuthCall) {
     headers["X-CSRF-Token"] = csrf;
   }
 
-  // Если явно не передали Authorization — берём токен из cookie/хранилища.
-  // Для безопасных запросов, если уже есть cookie access_token, НЕ добавляем Authorization,
-  // чтобы не триггерить CORS preflight. Для небезопасных — добавляем.
+  // Если явно не передали Authorization — берём токен из cookie/хранилища,
+  // но НИКОГДА не добавляем его автоматически для /auth/*, чтобы избежать preflight/конфликтов.
   const lowerCaseHeaders = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
-  if (!("authorization" in lowerCaseHeaders)) {
+  if (!("authorization" in lowerCaseHeaders) && !isAuthCall) {
     const at = getAccessToken();
     const hasCookieAccess =
       typeof document !== "undefined" && /(?:^|;\s*)access_token=/.test(document.cookie || "");
@@ -90,14 +94,25 @@ export async function apiFetch(
 
   // Формируем конечный URL:
   // - Если задан VITE_API_BASE — используем его (например, http://localhost:8000)
-  // - В противном случае оставляем относительный путь и даём Vite proxy/браузеру решить маршрут (без CORS в dev)
+  // - Иначе: если dev‑сервер фронта на 5173–5176, по умолчанию шлём на http://localhost:8000
+  // - В противном случае оставляем относительный путь (для прод/одного домена)
   const toUrl = (u: RequestInfo): RequestInfo => {
     if (typeof u !== "string") return u;
     if (!u.startsWith("/")) return u;
     try {
       const envBase = (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
       if (envBase) {
-        return envBase + u;
+        return envBase.replace(/\/+$/, "") + u;
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      const loc = window.location;
+      const port = String(loc.port || "");
+      const isViteDev = /^517[3-6]$/.test(port);
+      if (isViteDev) {
+        return `${loc.protocol}//localhost:8000${u}`;
       }
     } catch {
       // ignore
@@ -105,12 +120,38 @@ export async function apiFetch(
     return u;
   };
 
-  const resp = await fetch(toUrl(input), {
-    ...init,
-    method,
-    headers,
-    credentials: "include",
-  });
+  // Таймаут запроса: можно задать VITE_API_TIMEOUT_MS, иначе 15с для обычных запросов и 60с для /auth/*
+  const envTimeout = Number(((import.meta as any)?.env?.VITE_API_TIMEOUT_MS as string | undefined) || 0);
+  const defaultTimeout = envTimeout > 0 ? envTimeout : (isAuthCall ? 60000 : 15000);
+  const timeoutMs =
+    typeof (init as any).timeoutMs === "number"
+      ? Math.max(0, Number((init as any).timeoutMs))
+      : defaultTimeout;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let resp: Response;
+  try {
+    resp = await fetch(toUrl(input), {
+      ...init,
+      method,
+      headers,
+      credentials: "include",
+      signal: controller.signal,
+    });
+  } catch (e: any) {
+    clearTimeout(timer);
+    // Нормализуем AbortError в предсказуемое сообщение
+    if (e && (e.name === "AbortError" || String(e.message || "").toLowerCase().includes("aborted"))) {
+      const err = new Error("RequestTimeout");
+      (err as any).cause = e;
+      throw err;
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 
   // Единственная попытка рефреша при 401 (кроме вызовов самого /auth/refresh)
   const isRefreshCall = typeof input === "string" && input.startsWith("/auth/refresh");
@@ -120,11 +161,20 @@ export async function apiFetch(
       const csrfForRefresh = getCsrfToken();
       if (csrfForRefresh) refreshHeaders["X-CSRF-Token"] = csrfForRefresh;
 
-      const refresh = await fetch(toUrl("/auth/refresh"), {
-        method: "POST",
-        headers: refreshHeaders,
-        credentials: "include",
-      });
+      // Отдельный контроллер/таймаут для refresh, чтобы не зависеть от уже сработавшего abort
+      const refreshCtl = new AbortController();
+      const refreshTimeout = setTimeout(() => refreshCtl.abort(), 15000);
+      let refresh: Response;
+      try {
+        refresh = await fetch(toUrl("/auth/refresh"), {
+          method: "POST",
+          headers: refreshHeaders,
+          credentials: "include",
+          signal: refreshCtl.signal,
+        });
+      } finally {
+        clearTimeout(refreshTimeout);
+      }
       if (refresh.ok) {
         await syncCsrfFromResponse(refresh);
         return apiFetch(input, init, false);
@@ -151,6 +201,7 @@ export interface RequestOptions extends RequestInit {
   etag?: string | null;
   acceptNotModified?: boolean;
   json?: unknown;
+  timeoutMs?: number;
 }
 
 export interface ApiResponse<T = unknown> {
@@ -161,6 +212,19 @@ export interface ApiResponse<T = unknown> {
   response: Response;
 }
 
+export class ApiError<T = any> extends Error {
+  status: number;
+  code?: string;
+  detail?: T;
+  constructor(message: string, status: number, code?: string, detail?: T) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.detail = detail;
+  }
+}
+
 async function request<T = unknown>(url: string, opts: RequestOptions = {}): Promise<ApiResponse<T>> {
   const headers: Record<string, string> = {
     ...(opts.headers as Record<string, string> | undefined),
@@ -168,11 +232,19 @@ async function request<T = unknown>(url: string, opts: RequestOptions = {}): Pro
   if (opts.json !== undefined) headers["Content-Type"] = "application/json";
   if (opts.etag) headers["If-None-Match"] = opts.etag;
 
-  const resp = await apiFetch(url, {
-    ...opts,
-    headers,
-    body: opts.json !== undefined ? JSON.stringify(opts.json) : opts.body,
-  });
+  let resp: Response;
+  try {
+    resp = await apiFetch(url, {
+      ...opts,
+      headers,
+      body: opts.json !== undefined ? JSON.stringify(opts.json) : opts.body,
+    });
+  } catch (e: any) {
+    if (e && e.message === "RequestTimeout") {
+      throw new ApiError("Превышено время ожидания запроса. Проверьте соединение или повторите попытку позже.", 0, "REQUEST_TIMEOUT");
+    }
+    throw e;
+  }
   const etag = resp.headers.get("ETag");
 
   if (resp.status === 304 && opts.acceptNotModified) {
@@ -197,9 +269,20 @@ async function request<T = unknown>(url: string, opts: RequestOptions = {}): Pro
   }
 
   if (!resp.ok) {
-    // Прокидываем ошибку наверх, чтобы страницы могли показать тост/сообщение
-    const msg = (data && (data.message || data.error?.message)) || resp.statusText;
-    throw new Error(typeof msg === "string" ? msg : "Request failed");
+    // Пытаемся достать message/code/detail из ответа
+    const detail = (data && (data.detail ?? data.error?.detail)) || undefined;
+    const code =
+      (typeof detail === "object" && detail?.code) ||
+      data?.code ||
+      data?.error?.code ||
+      undefined;
+    const msg =
+      (typeof detail === "object" && detail?.message) ||
+      data?.message ||
+      data?.error?.message ||
+      resp.statusText ||
+      "Request failed";
+    throw new ApiError(String(msg), resp.status, typeof code === "string" ? code : undefined, detail);
   }
 
   return { ok: true, status: resp.status, etag, data: data as T, response: resp };
@@ -231,7 +314,7 @@ export interface AdminMenuResponse {
   version?: string | number | null;
 }
 
-const MENU_CACHE_VERSION = "v3"; // bump cache to invalidate stale ordered menu
+const MENU_CACHE_VERSION = "v4"; // bump cache to invalidate stale ordered menu
 const MENU_ETAG_KEY = `adminMenuEtag:${MENU_CACHE_VERSION}`;
 const MENU_CACHE_KEY = `adminMenuCache:${MENU_CACHE_VERSION}`;
 

@@ -1,0 +1,114 @@
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional, Protocol, Tuple
+
+import jwt
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from app.domains.payments.infrastructure.models.payment_models import PaymentGatewayConfig
+from app.domains.payments.application.payments_service import payment_service  # domain fallback
+
+
+class PaymentGateway(Protocol):
+    slug: str
+    type: str
+
+    async def verify(self, *, token: str, amount: int, currency: str | None = None) -> bool:
+        ...
+
+
+class CryptoJWTGateway:
+    def __init__(self, slug: str, cfg: Dict[str, Any]) -> None:
+        self.slug = slug
+        self.type = "crypto_jwt"
+        self.secret = str(cfg.get("jwt_secret", "") or cfg.get("secret", ""))
+        self.alg = str(cfg.get("jwt_algorithm", "HS256"))
+        self.expected_currency = cfg.get("currency")
+
+    async def verify(self, *, token: str, amount: int, currency: str | None = None) -> bool:
+        try:
+            data = jwt.decode(token, self.secret, algorithms=[self.alg])
+        except jwt.PyJWTError:
+            return False
+        if int(data.get("amount") or -1) != int(amount):
+            return False
+        if self.expected_currency and (data.get("currency") != self.expected_currency):
+            return False
+        if currency and data.get("currency") and data.get("currency") != currency:
+            return False
+        return True
+
+
+class StripeJWTGateway:
+    def __init__(self, slug: str, cfg: Dict[str, Any]) -> None:
+        self.slug = slug
+        self.type = "stripe_jwt"
+        self.secret = str(cfg.get("jwt_secret", "") or cfg.get("secret", ""))
+        self.alg = str(cfg.get("jwt_algorithm", "HS256"))
+
+    async def verify(self, *, token: str, amount: int, currency: str | None = None) -> bool:
+        try:
+            data = jwt.decode(token, self.secret, algorithms=[self.alg])
+        except jwt.PyJWTError:
+            return False
+        if int(data.get("amount") or -1) != int(amount):
+            return False
+        if currency and data.get("currency") and data.get("currency") != currency:
+            return False
+        return True
+
+
+def _build_gateway(pg: PaymentGatewayConfig) -> Optional[PaymentGateway]:
+    cfg = pg.config or {}
+    t = (pg.type or "").lower()
+    if t == "crypto_jwt":
+        return CryptoJWTGateway(pg.slug, cfg)
+    if t == "stripe_jwt":
+        return StripeJWTGateway(pg.slug, cfg)
+    return None
+
+
+async def load_active_gateways(db: AsyncSession) -> List[PaymentGateway]:
+    res = await db.execute(
+        select(PaymentGatewayConfig).where(PaymentGatewayConfig.enabled == True).order_by(PaymentGatewayConfig.priority.asc())  # noqa: E712
+    )
+    items = list(res.scalars().all())
+    out: List[PaymentGateway] = []
+    for it in items:
+        g = _build_gateway(it)
+        if g:
+            out.append(g)
+    return out
+
+
+async def verify_payment(
+    db: AsyncSession,
+    *,
+    amount: int,
+    currency: str | None,
+    token: str,
+    preferred_slug: str | None = None,
+) -> Tuple[bool, Optional[str]]:
+    gateways = await load_active_gateways(db)
+    if not gateways:
+        ok = await payment_service.verify(token, amount)
+        return ok, "legacy"
+
+    order: List[PaymentGateway] = gateways[:]
+    if preferred_slug:
+        order.sort(key=lambda g: (g.slug != preferred_slug, g.slug))
+    else:
+        try:
+            data = jwt.decode(token, options={"verify_signature": False, "verify_exp": False})  # type: ignore[arg-type]
+            gw = data.get("gateway")
+            if gw:
+                order.sort(key=lambda g: (g.slug != gw, g.slug))
+        except Exception:
+            pass
+
+    for gw in order:
+        ok = await gw.verify(token=token, amount=amount, currency=currency)
+        if ok:
+            return True, gw.slug
+    return False, None

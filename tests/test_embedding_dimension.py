@@ -9,7 +9,7 @@ from app.engine.embedding import (
     simple_embedding,
     EMBEDDING_DIM,
 )
-from app.models.node import Node
+from app.domains.nodes.infrastructure.models.node import Node
 
 
 @pytest.mark.asyncio
@@ -27,7 +27,7 @@ async def test_node_creation_handles_provider_dim(
 
     payload = {
         "title": "dim test",
-        "content": {"time": 0, "blocks": [], "version": "2"},
+        "nodes": {"time": 0, "blocks": [], "version": "2"},
     }
     resp = await client.post(
         "/nodes",

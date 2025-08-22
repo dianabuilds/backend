@@ -6,9 +6,9 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token
-from app.models.node import Node
-from app.models.transition import NodeTransition, NodeTransitionType
-from app.models.user import User
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType
+from app.domains.users.infrastructure.models.user import User
 
 
 async def _create_node(db: AsyncSession, author: User) -> Node:
@@ -159,13 +159,13 @@ async def test_post_restricted_user_cannot_post(
     user_token = create_access_token(test_user.id)
     resp = await client.post(
         "/nodes",
-        json={"title": "t", "content": {}},
+        json={"title": "t", "nodes": {}},
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert resp.status_code == 403
 
 
-# --- Moderation of content -------------------------------------------------
+# --- Moderation of nodes -------------------------------------------------
 
 
 @pytest.mark.asyncio

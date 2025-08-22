@@ -20,20 +20,23 @@ class Base(DeclarativeBase):
 
 # Import all models here so Base has them registered
 # This is needed for Alembic and session management
-from app.models.user import User  # noqa
-from app.models.node import Node  # noqa
-from app.models.moderation import ContentModeration, UserRestriction  # noqa
-from app.models.echo_trace import EchoTrace  # noqa
-from app.models.transition import NodeTransition  # noqa
-from app.models.idempotency import IdempotencyKey  # noqa
-from app.models.outbox import OutboxEvent  # noqa
-from app.models.quest_version import (  # noqa
+from app.domains.users.infrastructure.models.user import User  # noqa
+from app.domains.nodes.infrastructure.models.node import Node  # noqa
+from app.domains.moderation.infrastructure.models.moderation_models import ContentModeration, UserRestriction  # noqa
+from app.domains.navigation.infrastructure.models.echo_models import EchoTrace  # noqa
+from app.domains.navigation.infrastructure.models.transition_models import NodeTransition  # noqa
+from app.domains.navigation.infrastructure.models.echo_models import EchoTrace  # noqa
+from app.domains.notifications.infrastructure.models.notification_models import Notification  # noqa
+from app.domains.payments.infrastructure.models.payment_models import PaymentGatewayConfig, PaymentTransaction  # noqa
+from app.core.idempotency_models import IdempotencyKey  # noqa
+from app.core.outbox_models import OutboxEvent  # noqa
+from app.domains.quests.infrastructure.models.quest_version_models import (  # noqa
     QuestVersion,
     QuestGraphNode,
     QuestGraphEdge,
     DraftLock,
 )
-from app.models.moderation_case import (  # noqa
+from app.domains.moderation.infrastructure.models.moderation_case_models import (  # noqa
     ModerationCase,
     ModerationLabel,
     CaseLabel,
@@ -41,7 +44,8 @@ from app.models.moderation_case import (  # noqa
     CaseAttachment,
     CaseEvent,
 )
-from app.models.search_config import ConfigVersion, SearchRelevanceActive  # noqa
-from app.models.tag_extras import TagAlias, TagMergeLog  # noqa
+from app.core.search.models import ConfigVersion, SearchRelevanceActive  # noqa
+from app.domains.tags.infrastructure.models.tag_models import TagAlias  # noqa
+from app.domains.tags.infrastructure.models.tag_models import TagMergeLog  # noqa
 
 # Add all other models here

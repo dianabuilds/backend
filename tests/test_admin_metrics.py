@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.metrics import metrics_storage
-from app.models.user import User
+from app.domains.users.infrastructure.models.user import User
 
 
 async def login(client: AsyncClient, username: str, password: str = "Password123") -> dict:

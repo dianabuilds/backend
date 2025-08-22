@@ -4,8 +4,8 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models.node import Node
-from app.repositories.compass_repository import CompassRepository
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.navigation.infrastructure.repositories.compass_repository import CompassRepository
 
 
 @pytest_asyncio.fixture
@@ -27,7 +27,7 @@ async def test_next_filters_private_nodes(
     async def create(title: str, public: bool = True) -> str:
         resp = await client.post(
             "/nodes",
-            json={"title": title, "content": {}, "is_public": public},
+            json={"title": title, "nodes": {}, "is_public": public},
             headers=auth_headers,
         )
         assert resp.status_code == 200

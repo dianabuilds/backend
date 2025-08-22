@@ -12,8 +12,8 @@ from sqlalchemy.future import select
 
 from app.core.config import settings
 from app.db.session import get_db
-from app.models.user import User
-from app.models.moderation import UserRestriction
+from app.domains.users.infrastructure.models.user import User
+from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
 
 from .exceptions import (
     AuthRequiredError,
@@ -95,7 +95,7 @@ def require_admin_role(allowed_roles: Set[str] | None = None):
 ADMIN_AUTH_RESPONSES = {
     401: {
         "description": "Unauthorized",
-        "content": {
+        "nodes": {
             "application/json": {
                 "examples": {
                     "missing": {
@@ -131,7 +131,7 @@ ADMIN_AUTH_RESPONSES = {
     },
     403: {
         "description": "Forbidden",
-        "content": {
+        "nodes": {
             "application/json": {
                 "example": {"error": {"code": "FORBIDDEN", "message": "Forbidden"}}
             }

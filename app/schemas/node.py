@@ -13,12 +13,12 @@ from typing import Literal
 
 class NodeBase(BaseModel):
     # Названия полей, приходящие из админки, могут отличаться:
-    # - contentData -> content
+    # - contentData -> nodes
     # - allow_comments -> allow_feedback
     # - is_premium_only -> premium_only
     title: str | None = None
     # Контент всегда Editor.js JSON, поле формата нам не нужно
-    content: Any = Field(..., validation_alias=AliasChoices("content", "contentData"))
+    content: Any = Field(..., validation_alias=AliasChoices("nodes", "contentData"))
     media: list[str] | None = None
     cover_url: str | None = None
     tags: list[str] | None = None
@@ -47,9 +47,9 @@ class NodeBase(BaseModel):
             try:
                 self.content = json.loads(self.content)
             except Exception:
-                raise ValueError("content must be valid JSON for Editor.js")
+                raise ValueError("nodes must be valid JSON for Editor.js")
         if not isinstance(self.content, (dict, list)):
-            raise ValueError("content must be an object or array for Editor.js")
+            raise ValueError("nodes must be an object or array for Editor.js")
         # Нормализуем списки
         if self.media is not None and not (isinstance(self.media, list) and all(isinstance(x, str) for x in self.media)):
             raise ValueError("media must be an array of strings")
@@ -67,7 +67,7 @@ class NodeCreate(NodeBase):
 class NodeUpdate(BaseModel):
     title: str | None = None
     content: Any | None = Field(
-        default=None, validation_alias=AliasChoices("content", "contentData")
+        default=None, validation_alias=AliasChoices("nodes", "contentData")
     )
     media: list[str] | None = None
     cover_url: str | None = None

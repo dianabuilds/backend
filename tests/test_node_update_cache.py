@@ -5,7 +5,7 @@ import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.navcache import navcache
+from app.domains.navigation.application.cache_singleton import navcache
 
 
 @pytest_asyncio.fixture
@@ -25,7 +25,7 @@ async def test_patch_node_updates_and_invalidates_cache(
     client: AsyncClient, auth_headers: dict, db_session: AsyncSession, test_user
 ):
     # Create a node
-    payload = {"title": "N1", "content": {}, "is_public": True}
+    payload = {"title": "N1", "nodes": {}, "is_public": True}
     resp = await client.post("/nodes", json=payload, headers=auth_headers)
     assert resp.status_code == 200
     slug = resp.json()["slug"]

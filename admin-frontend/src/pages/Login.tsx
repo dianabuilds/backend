@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { sendRUM } from "../perf/rum";
 
 export default function Login() {
   const { login } = useAuth();
@@ -15,12 +16,17 @@ export default function Login() {
     if (loading) return; // защита от дабл-кликов
     setError(null);
     setLoading(true);
+    const t0 = performance.now();
     try {
       await login(username, password);
+      const dur = performance.now() - t0;
+      sendRUM("login_attempt", { ok: true, dur_ms: Math.round(dur) });
       // basename="/admin" добавится автоматически
       navigate("/");
     } catch (err) {
+      const dur = performance.now() - t0;
       const msg = err instanceof Error ? err.message : "Ошибка авторизации";
+      sendRUM("login_attempt", { ok: false, dur_ms: Math.round(dur), error: String(msg).slice(0, 200) });
       setError(msg);
     } finally {
       setLoading(false);

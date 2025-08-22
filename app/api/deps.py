@@ -9,9 +9,9 @@ from sqlalchemy.orm import load_only
 
 from app.core.security import verify_access_token
 from app.security import bearer_scheme
-from app.db.session import get_db
-from app.models.user import User
-from app.models.moderation import UserRestriction
+from app.core.db.session import get_db
+from app.domains.users.infrastructure.models.user import User
+from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
 from app.core.log_filters import user_id_var
 
 
@@ -176,3 +176,7 @@ async def ensure_can_post(
     if result.scalars().first():
         raise HTTPException(status_code=403, detail="Posting restricted")
     return user
+
+
+# Admin-only dependency for admin routes
+admin_required = require_role("admin")

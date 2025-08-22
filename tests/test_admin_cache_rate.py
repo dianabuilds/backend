@@ -1,11 +1,11 @@
 import pytest
 from httpx import AsyncClient
 
-from app.services.navcache import navcache
+from app.domains.navigation.application.cache_singleton import navcache
 from app.core.log_events import cache_counters, cache_key_hits
 from app.core.config import settings
 from app.core.rate_limit import recent_429
-from app.models.user import User
+from app.domains.users.infrastructure.models.user import User
 
 
 async def login(client: AsyncClient, username: str, password: str = "Password123") -> dict:

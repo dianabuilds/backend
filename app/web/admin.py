@@ -4,7 +4,7 @@ async def login_action(
     db: AsyncSession = Depends(get_db),
 ):
     # Поддерживаем и JSON, и form-data
-    content_type = request.headers.get("content-type", "")
+    content_type = request.headers.get("nodes-type", "")
     if content_type.startswith("application/json"):
         data = await request.json()
         username = (data or {}).get("username")

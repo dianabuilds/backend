@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from app.schemas.admin_menu import MenuItem, MenuResponse
-from app.services.admin_menu import build_menu
+from app.domains.admin.application.menu_service import build_menu
 
 
 class DummyUser:
@@ -18,7 +18,7 @@ def test_build_menu_filters_and_sorts():
     assert ids == [
         "overview",
         "users",
-        "content",
+        "nodes",
         "navigation",
         "telemetry",
         "tools",

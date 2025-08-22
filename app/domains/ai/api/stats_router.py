@@ -1,0 +1,21 @@
+from __future__ import annotations
+
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends
+
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.services.worker_metrics import worker_metrics  # временно используем сервисный сборщик
+
+router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"], responses=ADMIN_AUTH_RESPONSES)
+
+
+@router.get("/stats")
+async def get_ai_worker_stats(_=Depends(require_admin_role())) -> Dict[str, Any]:
+    """
+    Сводка по задачам/стадиям генерации: счётчики, среднее время, стоимость, токены.
+    """
+    try:
+        return worker_metrics.snapshot()
+    except Exception:
+        return {"jobs": {}, "job_avg_ms": 0.0, "cost_usd_total": 0.0, "tokens": {"prompt": 0, "completion": 0}, "stages": {}}

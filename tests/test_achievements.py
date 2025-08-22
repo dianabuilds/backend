@@ -3,10 +3,10 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models.achievement import Achievement, UserAchievement
-from app.models.node import Node
-from app.models.notification import Notification
-from app.services.achievements import AchievementsService
+from app.domains.achievements.infrastructure.models.achievement_models import Achievement, UserAchievement
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.notifications.infrastructure.models.notification_models import Notification
+from app.domains.achievements.application.achievements_service import AchievementsService
 
 
 @pytest.mark.asyncio

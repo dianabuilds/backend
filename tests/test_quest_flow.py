@@ -4,7 +4,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, get_password_hash
-from app.models.user import User
+from app.domains.users.infrastructure.models.user import User
 
 
 @pytest_asyncio.fixture
@@ -26,7 +26,7 @@ async def test_quest_creation_publish_and_progress(
     async def create_node(title: str):
         resp = await client.post(
             "/nodes",
-            json={"title": title, "content": {}, "is_public": True},
+            json={"title": title, "nodes": {}, "is_public": True},
             headers=auth_headers,
         )
         assert resp.status_code == 200
@@ -73,7 +73,7 @@ async def test_author_e2e_flow(client: AsyncClient, auth_headers: dict, db_sessi
     async def create_node(title: str):
         resp = await client.post(
             "/nodes",
-            json={"title": title, "content": {}, "is_public": True},
+            json={"title": title, "nodes": {}, "is_public": True},
             headers=auth_headers,
         )
         assert resp.status_code == 200

@@ -3,15 +3,15 @@ from datetime import datetime, timedelta
 from sqlalchemy.future import select
 
 from app.core.security import get_password_hash, create_access_token
-from app.models.user import User
-from app.models.node import Node
-from app.models.event_quest import (
+from app.domains.users.infrastructure.models.user import User
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.quests.infrastructure.models.event_quest_models import (
     EventQuest,
     EventQuestRewardType,
     EventQuestCompletion,
 )
-from app.models.notification import Notification
-from app.services.quests import check_quest_completion
+from app.domains.notifications.infrastructure.models.notification_models import Notification
+from app.domains.quests.application.helpers import check_quest_completion
 
 
 @pytest.mark.asyncio
@@ -21,7 +21,7 @@ async def test_event_quest_flow(client, db_session, test_user):
         "/nodes",
         json={
             "title": "Target",
-            "content": "A",
+            "nodes": "A",
             "is_public": True,
         },
         headers={"Authorization": f"Bearer {token}"},

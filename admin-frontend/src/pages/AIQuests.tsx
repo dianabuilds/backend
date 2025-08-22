@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo, useCallback, memo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {useQuery, useQueryClient} from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { createDraft } from "../api/questEditor";
+import CursorPager from "../components/CursorPager";
 
 type WorldTemplate = { id: string; title: string; locale?: string | null; description?: string | null };
 type Character = { id: string; world_id: string; name: string; role?: string | null; description?: string | null };
@@ -74,35 +75,66 @@ export default function AIQuests() {
     placeholderData: (prev) => prev,
   });
 
-  const {
-    data: jobsData,
-    isLoading: jLoading,
-    isFetching: jFetching,
-    error: jError,
-  } = useQuery({
-    queryKey: ["ai-quests", "jobs"],
-    queryFn: async () => {
-      const res = await api.get<Job[]>("/admin/ai/quests/jobs");
-      return Array.isArray(res.data) ? res.data : [];
-    },
-    staleTime: 5_000,
-    refetchOnWindowFocus: false,
-    refetchInterval: (_q) => (document.visibilityState === "visible" ? 5000 : false),
-    placeholderData: (prev) => prev,
-  });
+  // cursor‑пагинация для jobs
+  const [jobsCursor, setJobsCursor] = useState<string | null>(null);
+  const [jobsLoading, setJobsLoading] = useState<boolean>(false);
 
-  // Синхронизируем локальные поля состояния, чтобы не переписывать существующую разметку
+  // Синхронизируем шаблоны через React Query
   useEffect(() => { setTemplates(templatesData ?? []); }, [templatesData]);
-  useEffect(() => { setJobs(jobsData ?? []); }, [jobsData]);
+
+  // загрузка первой страницы jobs
+  const loadJobsFirst = useCallback(async () => {
+    setJobsLoading(true);
+    setError(null);
+    try {
+      const res = await api.get<any>("/admin/ai/quests/jobs_cursor?limit=50");
+      const items = Array.isArray(res.data?.items) ? (res.data.items as Job[]) : [];
+      setJobs(items);
+      setJobsCursor(res.data?.next_cursor || null);
+    } catch (e: any) {
+      setError(e?.message || "Ошибка загрузки задач");
+    } finally {
+      setJobsLoading(false);
+    }
+  }, []);
+
+  const loadJobsMore = useCallback(async () => {
+    if (!jobsCursor) return;
+    setJobsLoading(true);
+    setError(null);
+    try {
+      const res = await api.get<any>(`/admin/ai/quests/jobs_cursor?limit=50&cursor=${encodeURIComponent(jobsCursor)}`);
+      const items = Array.isArray(res.data?.items) ? (res.data.items as Job[]) : [];
+      setJobs((prev) => [...prev, ...items]);
+      setJobsCursor(res.data?.next_cursor || null);
+    } catch (e: any) {
+      setError(e?.message || "Ошибка загрузки задач");
+    } finally {
+      setJobsLoading(false);
+    }
+  }, [jobsCursor]);
 
   // Показываем "большую" загрузку только на первичном фетче
-  useEffect(() => { setLoading(Boolean(tLoading || jLoading)); }, [tLoading, jLoading]);
-  const isUpdating = Boolean(tFetching || jFetching);
+  useEffect(() => { setLoading(Boolean(tLoading || jobsLoading)); }, [tLoading, jobsLoading]);
 
+  // начальная загрузка jobs
+  useEffect(() => { loadJobsFirst(); }, [loadJobsFirst]);
+
+  // автообновление (простое): периодически обновлять первую страницу, если мы в фокусе и нет ручной догрузки
   useEffect(() => {
-    const msg = (tError as any)?.message || (jError as any)?.message || null;
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        loadJobsFirst().catch(() => void 0);
+      }
+    }, 5000);
+    return () => clearInterval(id);
+  }, [loadJobsFirst]);
+
+  // ошибки
+  useEffect(() => {
+    const msg = (tError as any)?.message || null;
     setError(msg);
-  }, [tError, jError]);
+  }, [tError]);
 
   // Совместимость: load() теперь просто инвалидирует кэш и триггерит перезагрузку
   const load = async () => {
@@ -464,6 +496,13 @@ export default function AIQuests() {
               <div className="text-xs text-gray-600">{aiSettings.has_api_key ? "Ключ сохранён" : "Ключ не задан"}</div>
               <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={saveAI}>Сохранить</button>
             </div>
+
+                <CursorPager
+                  hasMore={Boolean(jobsCursor)}
+                  loading={jobsLoading}
+                  onLoadMore={loadJobsMore}
+                  className="mt-3 flex justify-center"
+                />
           </div>
         </div>
       )}

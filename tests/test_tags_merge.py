@@ -4,8 +4,8 @@ from uuid import uuid4
 
 from app.core.security import create_access_token
 from app.db.session import db_session
-from app.models.tag import Tag
-from app.models.user import User
+from app.domains.tags.infrastructure.models.tag_models import Tag
+from app.domains.users.infrastructure.models.user import User
 
 
 @pytest.mark.asyncio

@@ -4,13 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.security import create_access_token
-from app.models.node import Node
+from app.domains.nodes.infrastructure.models.node import Node
 
 
 async def _create_node(client: AsyncClient, token: str, title: str, tags: list[str] | None = None):
     payload = {
         "title": title,
-        "content": title,
+        "nodes": title,
         "is_public": True,
         "is_recommendable": True,
         "tags": tags or [],

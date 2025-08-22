@@ -2,9 +2,9 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.node import Node
-from app.models.echo_trace import EchoTrace
-from app.models.user import User
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.navigation.infrastructure.models.echo_models import EchoTrace
+from app.domains.users.infrastructure.models.user import User
 
 
 async def login(client: AsyncClient, username: str, password: str = "Password123") -> dict:

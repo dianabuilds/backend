@@ -176,7 +176,7 @@ export default function QuestVersionEditor() {
     if (!editorNode || !graph) return;
     setSavingNode(true);
     try {
-      // Сохраняем title и content в граф
+      // Сохраняем title и nodes в граф
       const nextNodes = graph.nodes.map((n) =>
         n.key === editorNode.id
           ? { ...n, title: editorNode.title, content: editorNode.contentData }

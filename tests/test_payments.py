@@ -7,8 +7,8 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.security import create_access_token
-from app.models.quest import Quest, QuestPurchase
-from app.models.user import User
+from app.domains.quests.infrastructure.models.quest_models import Quest, QuestPurchase
+from app.domains.users.infrastructure.models.user import User
 
 
 def _make_token(amount: int) -> str:

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import create_access_token
-from app.models.moderation import UserRestriction
+from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
 
 
 @pytest.mark.asyncio

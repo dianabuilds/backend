@@ -2,10 +2,10 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.node import Node
-from app.models.transition import NodeTransition, NodeTransitionType
-from app.engine.embedding import update_node_embedding
-from app.services.tags import get_or_create_tags
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType
+from app.domains.ai.application.embedding_service import update_node_embedding
+from app.domains.tags.application.tag_helpers import get_or_create_tags
 
 
 @pytest.mark.asyncio

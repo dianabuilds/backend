@@ -3,7 +3,7 @@ from datetime import datetime
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.quest import Quest
+from app.domains.quests.infrastructure.models.quest_models import Quest
 
 
 @pytest.mark.asyncio

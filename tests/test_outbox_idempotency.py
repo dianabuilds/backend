@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from app.models.idempotency import IdempotencyKey
 from app.models.outbox import OutboxEvent, OutboxStatus
-from app.services.outbox import emit
+from app.core.outbox import emit
 
 
 @pytest.mark.asyncio

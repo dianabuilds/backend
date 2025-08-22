@@ -14,7 +14,7 @@ from app.core.pagination import (
     apply_pagination,
     fetch_page,
 )
-from app.models.user import User
+from app.domains.users.infrastructure.models.user import User
 
 
 @pytest.mark.asyncio

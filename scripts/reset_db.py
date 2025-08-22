@@ -249,7 +249,7 @@ async def _ensure_feedback(conn) -> None:
           id uuid PRIMARY KEY,
           node_id uuid NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
           author_id uuid NOT NULL REFERENCES users(id),
-          content text NOT NULL,
+          nodes text NOT NULL,
           created_at timestamp DEFAULT now(),
           is_hidden boolean NOT NULL DEFAULT false,
           is_anonymous boolean NOT NULL DEFAULT false
