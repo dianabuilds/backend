@@ -7,19 +7,27 @@ type CBConfig = {
   open_seconds?: number;
 };
 
+type StageMapEntry = {
+  provider?: string;
+  base_url?: string;
+  model?: string;
+};
+
 type AISettings = {
   provider?: string | null;
   base_url?: string | null;
   model?: string | null;
   has_api_key: boolean;
-  model_map?: Record<string, any> | null;
+  model_map?: Record<string, StageMapEntry> | null;
   cb?: CBConfig | null;
 };
+
+type StageConfig = { stage: string } & StageMapEntry;
 
 export default function AISettingsPage() {
   const [aiSettings, setAISettings] = useState<AISettings>({ has_api_key: false });
   const [aiSecret, setAISecret] = useState<string>(""); // пустая строка — не менять
-  const [stageMapJson, setStageMapJson] = useState<string>("{}"); // редактируемая JSON‑мапа
+  const [stageMap, setStageMap] = useState<StageConfig[]>([]); // карта стадий в удобном формате
   const [cb, setCb] = useState<CBConfig>({});
 
   const loadAISettings = async () => {
@@ -29,7 +37,15 @@ export default function AISettingsPage() {
       setAISettings(data);
       setAISecret("");
       // Инициализация расширенных полей
-      setStageMapJson(JSON.stringify(data.model_map ?? {}, null, 2));
+      const map: Record<string, StageMapEntry> = data.model_map ?? {};
+      setStageMap(
+        Object.entries(map).map(([stage, conf]) => ({
+          stage,
+          provider: conf.provider ?? "",
+          base_url: conf.base_url ?? "",
+          model: conf.model ?? "",
+        }))
+      );
       setCb({
         fail_rate_threshold: data.cb?.fail_rate_threshold ?? 0.5,
         min_requests: data.cb?.min_requests ?? 20,
@@ -40,21 +56,17 @@ export default function AISettingsPage() {
     }
   };
 
-  const parseStageMap = (): Record<string, any> | null => {
-    try {
-      const obj = JSON.parse(stageMapJson || "{}");
-      if (obj && typeof obj === "object") return obj;
-      return {};
-    } catch {
-      alert("Ошибка в JSON карты стадий");
-      return null;
-    }
-  };
-
   const saveAI = async () => {
     try {
-      const model_map = parseStageMap();
-      if (model_map === null) return;
+      const model_map: Record<string, StageMapEntry> = {};
+      for (const item of stageMap) {
+        if (!item.stage) continue;
+        const entry: StageMapEntry = {};
+        if (item.provider) entry.provider = item.provider;
+        if (item.base_url) entry.base_url = item.base_url;
+        if (item.model) entry.model = item.model;
+        model_map[item.stage] = entry;
+      }
       await api.put("/admin/ai/quests/settings", {
         provider: aiSettings.provider ?? null,
         base_url: aiSettings.base_url ?? null,
@@ -119,16 +131,70 @@ export default function AISettingsPage() {
 
         <div className="space-y-2">
           <div className="text-lg font-semibold">Карта моделей по стадиям</div>
-          <div className="text-sm text-gray-600">
-            Укажите JSON‑объект вида:
-            {" "}
-            {"{ \"outline\": {\"model\":\"gpt-4o-mini\"}, \"draft\": {\"model\":\"gpt-4o\"} }"}
-          </div>
-          <textarea
-            className="w-full h-48 border rounded p-2 font-mono text-sm"
-            value={stageMapJson}
-            onChange={(e) => setStageMapJson(e.target.value)}
-          />
+          {stageMap.map((item, idx) => (
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="Стадия (например: outline)"
+                value={item.stage}
+                onChange={(e) =>
+                  setStageMap((m) => {
+                    const copy = [...m];
+                    copy[idx] = { ...copy[idx], stage: e.target.value };
+                    return copy;
+                  })
+                }
+              />
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="Provider"
+                value={item.provider ?? ""}
+                onChange={(e) =>
+                  setStageMap((m) => {
+                    const copy = [...m];
+                    copy[idx] = { ...copy[idx], provider: e.target.value };
+                    return copy;
+                  })
+                }
+              />
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="Base URL"
+                value={item.base_url ?? ""}
+                onChange={(e) =>
+                  setStageMap((m) => {
+                    const copy = [...m];
+                    copy[idx] = { ...copy[idx], base_url: e.target.value };
+                    return copy;
+                  })
+                }
+              />
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="Model"
+                value={item.model ?? ""}
+                onChange={(e) =>
+                  setStageMap((m) => {
+                    const copy = [...m];
+                    copy[idx] = { ...copy[idx], model: e.target.value };
+                    return copy;
+                  })
+                }
+              />
+              <button
+                className="px-2 py-1 rounded bg-red-200 dark:bg-red-800"
+                onClick={() => setStageMap((m) => m.filter((_, i) => i !== idx))}
+              >
+                Удалить
+              </button>
+            </div>
+          ))}
+          <button
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+            onClick={() => setStageMap((m) => [...m, { stage: "" }])}
+          >
+            Добавить стадию
+          </button>
         </div>
 
         <div className="space-y-2">
