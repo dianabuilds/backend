@@ -93,8 +93,8 @@ export async function apiFetch(
   }
 
   // Формируем конечный URL:
-  // - Если задан VITE_API_BASE — используем его (например, http://localhost:8000)
-  // - Иначе: если dev‑сервер фронта на 5173–5176, по умолчанию шлём на http://localhost:8000
+  // - Если задан VITE_API_BASE — используем его (например, https://api.example.com)
+  // - Иначе: если dev‑сервер фронта на 5173–5176, по умолчанию шлём на http://<hostname>:8000
   // - В противном случае оставляем относительный путь (для прод/одного домена)
   const toUrl = (u: RequestInfo): RequestInfo => {
     if (typeof u !== "string") return u;
@@ -112,7 +112,7 @@ export async function apiFetch(
       const port = String(loc.port || "");
       const isViteDev = /^517[3-6]$/.test(port);
       if (isViteDev) {
-        return `${loc.protocol}//localhost:8000${u}`;
+          return `${loc.protocol}//${loc.hostname}:8000${u}`;
       }
     } catch {
       // ignore
