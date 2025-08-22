@@ -1,18 +1,22 @@
 from __future__ import annotations
-from __future__ import annotations
 
 from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user
 from app.core.db.session import get_db
-from app.domains.achievements.application.admin_service import AchievementsAdminService
 from app.domains.achievements.application.achievements_service import AchievementsService
-from app.domains.achievements.infrastructure.repositories.achievements_repository import AchievementsRepository
+from app.domains.achievements.application.admin_service import AchievementsAdminService
 from app.domains.achievements.infrastructure.notifications_adapter import NotificationsAdapter
+from app.domains.achievements.infrastructure.repositories.achievements_repository import (
+    AchievementsRepository,
+)
 from app.domains.users.infrastructure.models.user import User
+from app.schemas.achievement import AchievementOut
 from app.schemas.achievement_admin import (
     AchievementAdminOut,
     AchievementCreateIn,
@@ -20,7 +24,16 @@ from app.schemas.achievement_admin import (
 )
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(prefix="/admin/achievements", tags=["admin", "achievements"], responses=ADMIN_AUTH_RESPONSES)
+
+router = APIRouter()
+
+admin_router = APIRouter(
+    prefix="/admin/achievements",
+    tags=["admin", "achievements"],
+    responses=ADMIN_AUTH_RESPONSES,
+)
+user_router = APIRouter(prefix="/achievements", tags=["achievements"])
+
 admin_required = require_admin_role()
 
 
@@ -32,7 +45,29 @@ def _svc(db: AsyncSession) -> AchievementsService:
     return AchievementsService(AchievementsRepository(db), NotificationsAdapter(db))
 
 
-@router.get("", response_model=List[AchievementAdminOut], summary="List achievements (admin)")
+@user_router.get("", response_model=List[AchievementOut], summary="List achievements")
+async def list_achievements(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> List[AchievementOut]:
+    rows = await _svc(db).list(current_user.id)
+    items: List[AchievementOut] = []
+    for ach, ua in rows:
+        items.append(
+            AchievementOut(
+                id=ach.id,
+                code=ach.code,
+                title=ach.title,
+                description=ach.description,
+                icon=ach.icon,
+                unlocked=ua is not None,
+                unlocked_at=ua.unlocked_at if ua else None,
+            )
+        )
+    return items
+
+
+@admin_router.get("", response_model=List[AchievementAdminOut], summary="List achievements (admin)")
 async def list_achievements_admin(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(admin_required),
@@ -41,7 +76,7 @@ async def list_achievements_admin(
     return [AchievementAdminOut.model_validate(r) for r in rows]
 
 
-@router.post("", response_model=AchievementAdminOut, summary="Create achievement")
+@admin_router.post("", response_model=AchievementAdminOut, summary="Create achievement")
 async def create_achievement_admin(
     body: AchievementCreateIn,
     db: AsyncSession = Depends(get_db),
@@ -64,7 +99,9 @@ async def create_achievement_admin(
     return AchievementAdminOut.model_validate(item)
 
 
-@router.patch("/{achievement_id}", response_model=AchievementAdminOut, summary="Update achievement")
+@admin_router.patch(
+    "/{achievement_id}", response_model=AchievementAdminOut, summary="Update achievement"
+)
 async def update_achievement_admin(
     achievement_id: UUID,
     body: AchievementUpdateIn,
@@ -83,7 +120,7 @@ async def update_achievement_admin(
     return AchievementAdminOut.model_validate(item)
 
 
-@router.delete("/{achievement_id}", summary="Delete achievement")
+@admin_router.delete("/{achievement_id}", summary="Delete achievement")
 async def delete_achievement_admin(
     achievement_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -95,48 +132,32 @@ async def delete_achievement_admin(
     return {"ok": True}
 
 
-@router.post("/{achievement_id}/grant", summary="Grant achievement to user")
+class UserIdIn(BaseModel):
+    user_id: UUID
+
+
+@admin_router.post("/{achievement_id}/grant", summary="Grant achievement to user")
 async def grant_achievement(
     achievement_id: UUID,
-    payload: AchievementCreateIn.__class__(code="").model_rebuild(),  # placeholder type, not used
+    body: UserIdIn,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(admin_required),
+    _: User = Depends(admin_required),
 ):
-    # ожидаем тело {"user_id": "..."}
-    from pydantic import BaseModel
-
-    class GrantRequest(BaseModel):
-        user_id: UUID
-
-    req = GrantRequest.model_validate(payload)
-    granted = await _svc(db).grant_manual(db, req.user_id, achievement_id)
+    granted = await _svc(db).grant_manual(db, body.user_id, achievement_id)
     return {"granted": granted}
 
 
-@router.post("/{achievement_id}/revoke", summary="Revoke achievement from user")
+@admin_router.post("/{achievement_id}/revoke", summary="Revoke achievement from user")
 async def revoke_achievement(
     achievement_id: UUID,
+    body: UserIdIn,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(admin_required),
+    _: User = Depends(admin_required),
 ):
-    from pydantic import BaseModel
+    revoked = await _svc(db).revoke_manual(db, body.user_id, achievement_id)
+    return {"revoked": revoked}
 
-    class RevokeRequest(BaseModel):
-        user_id: UUID
 
-    # FastAPI сам распарсит тело
-    def _parse_request(req_cls):
-        return req_cls  # stub
+router.include_router(user_router)
+router.include_router(admin_router)
 
-    # Этот эндпоинт примет тело {"user_id": "..."}
-    # Для совместимости, определим внутри:
-    return {"detail": "Use domain router grant/revoke with body {'user_id': ...}"}  # pragma: no cover
-from fastapi import APIRouter
-
-router = APIRouter()
-
-from app.api.achievements import router as achievements_router  # noqa: E402
-from app.api.admin_achievements import router as admin_achievements_router  # noqa: E402
-
-router.include_router(achievements_router)
-router.include_router(admin_achievements_router)

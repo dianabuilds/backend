@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, List, Optional
 from uuid import UUID
 
-from app.domains.achievements.infrastructure.models.achievement_models import Achievement
+from app.domains.achievements.infrastructure.models.achievement_models import Achievement, UserAchievement
 
 
 class IAchievementsRepository:
@@ -18,6 +18,11 @@ class IAchievementsRepository:
         ...
 
     async def delete_user_achievement(self, user_id: UUID, achievement_id: UUID) -> bool:  # pragma: no cover
+        ...
+
+    async def list_user_achievements(
+        self, user_id: UUID
+    ) -> List[tuple[Achievement, UserAchievement | None]]:  # pragma: no cover
         ...
 
     # Counters/conditions

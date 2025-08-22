@@ -46,6 +46,20 @@ class AchievementsRepository(IAchievementsRepository):
         await self._db.delete(ua)
         return True
 
+    async def list_user_achievements(
+        self, user_id: UUID
+    ) -> List[tuple[Achievement, UserAchievement | None]]:
+        res = await self._db.execute(
+            select(Achievement, UserAchievement)
+                .outerjoin(
+                    UserAchievement,
+                    (UserAchievement.achievement_id == Achievement.id)
+                    & (UserAchievement.user_id == user_id),
+                )
+                .order_by(Achievement.title.asc())
+        )
+        return list(res.all())
+
     # Counters/conditions
     async def increment_counter(self, user_id: UUID, key: str) -> None:
         res = await self._db.execute(
