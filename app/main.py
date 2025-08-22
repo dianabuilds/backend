@@ -120,12 +120,13 @@ from app.web.header_injector import HeaderInjector
 uploads_static = HeaderInjector(uploads_static, {"Cross-Origin-Resource-Policy": "cross-origin"})
 app.mount("/static/uploads", uploads_static, name="uploads")
 
+from app.api.health import router as health_router
+app.include_router(health_router)
+
 if TESTING:
     # Minimal routers needed for tests
-    from app.api.health import router as health_router
     from app.domains.auth.api.routers import router as auth_router
 
-    app.include_router(health_router)
     app.include_router(auth_router)
 else:
     # Legacy routers (best-effort): import and include inside try-blocks to avoid startup failures
