@@ -9,7 +9,7 @@ from sqlalchemy.future import select
 from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import db_session
+from app.core.db.session import db_session
 from app.domains.notifications.infrastructure.models.notification_models import Notification, NotificationType
 from app.domains.notifications.infrastructure.models.campaign_models import NotificationCampaign, CampaignStatus
 from app.domains.users.infrastructure.models.user import User

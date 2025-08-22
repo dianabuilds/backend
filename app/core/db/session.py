@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 
 from app.core.config import settings
-from app.db.base import Base
+from app.core.db.base import Base
 
 logger = logging.getLogger(__name__)
 

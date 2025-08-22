@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.auth.application.auth_service import AuthService
 from app.domains.auth.infrastructure.token_adapter import CoreTokenAdapter
 from app.domains.auth.infrastructure.ratelimit_adapter import CoreRateLimiter

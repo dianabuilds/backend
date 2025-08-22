@@ -6,7 +6,7 @@ from uuid import uuid4
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 
-from app.db.base import Base
+from app.core.db.base import Base
 from app.models.adapters import JSONB, UUID  # используем core-адаптеры типов
 
 

@@ -8,7 +8,7 @@ from sqlalchemy import Column, DateTime, Enum as SAEnum, ForeignKey, Integer, St
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import relationship
 
-from app.db.base import Base
+from app.core.db.base import Base
 from app.core.db.adapters import JSONB, UUID, ARRAY
 
 

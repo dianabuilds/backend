@@ -5,6 +5,10 @@ import jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
+from app.core.refresh_token_store import (
+    MemoryRefreshTokenStore,
+    RefreshTokenStore,
+)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -34,8 +38,14 @@ def verify_access_token(token: str):
     return payload.get("sub")
 
 
-# In-memory store for refresh tokens to enforce rotation
-_refresh_store: dict[str, str] = {}
+# Refresh token storage – can be swapped for a distributed backend
+_refresh_store: RefreshTokenStore = MemoryRefreshTokenStore()
+
+
+def set_refresh_token_store(store: RefreshTokenStore) -> None:
+    """Allow overriding the refresh token store (e.g. in tests)."""
+    global _refresh_store
+    _refresh_store = store
 
 
 def create_refresh_token(user_id) -> str:
@@ -47,7 +57,7 @@ def create_refresh_token(user_id) -> str:
         "exp": datetime.utcnow() + timedelta(seconds=settings.jwt.refresh_expiration),
     }
     token = jwt.encode(payload, settings.jwt.secret, algorithm=settings.jwt.algorithm)
-    _refresh_store[jti] = str(user_id)
+    _refresh_store.set(jti, str(user_id))
     return token
 
 
@@ -59,9 +69,9 @@ def verify_refresh_token(token: str):
     except jwt.PyJWTError:
         return None
     jti = payload.get("jti")
-    sub = payload.get("sub")
-    if not jti or _refresh_store.get(jti) != sub:
+    if not jti:
         return None
-    # Rotation: remove used token
-    _refresh_store.pop(jti, None)
+    sub = _refresh_store.pop(jti)
+    if sub is None:
+        return None
     return sub

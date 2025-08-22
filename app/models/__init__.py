@@ -4,7 +4,7 @@ Expose the declarative Base for Alembic and import only core (non-domain) tables
 Domain models must be imported from app.domains.<domain>.infrastructure.models.
 """
 
-from app.db.base import Base  # re-export Base from the DB layer
+from app.core.db.base import Base  # re-export Base from the DB layer
 
 # Import core models to register them with SQLAlchemy metadata (no domain models here)
 # Prefer importing modules to avoid name coupling

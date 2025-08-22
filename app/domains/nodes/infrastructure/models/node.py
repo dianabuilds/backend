@@ -16,7 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import relationship
 
-from app.db.base import Base
+from app.core.db.base import Base
 from app.core.db.adapters import ARRAY, JSONB, UUID, VECTOR
 from app.core.config import settings
 

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import or_
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.api.deps import get_current_user
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.navigation.infrastructure.models.transition_models import NodeTrace, NodeTraceVisibility

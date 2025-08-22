@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
 from app.domains.navigation.policies.transition_policy import TransitionPolicy
 from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter

@@ -24,7 +24,7 @@ os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
 # Импортируем только то, что нам нужно
 from app.main import app
 from app.core.security import get_password_hash, create_access_token
-from app.db.session import get_db
+from app.core.db.session import get_db
 from tests.test_db import setup_test_db, get_db_url, TestUser
 
 # Инициализируем тестовую базу данных

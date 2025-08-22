@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.config import settings
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
 from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
 

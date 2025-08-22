@@ -11,7 +11,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.navigation.infrastructure.models.transition_models import NodeTrace
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User

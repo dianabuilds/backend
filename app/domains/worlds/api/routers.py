@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.worlds.application.worlds_service import WorldsService
 from app.domains.worlds.infrastructure.repositories.worlds_repository import WorldsRepository
 from app.schemas.worlds import WorldTemplateIn, WorldTemplateOut, CharacterIn, CharacterOut

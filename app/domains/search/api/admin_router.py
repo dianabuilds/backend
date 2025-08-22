@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.schemas.search_settings import (
     RelevanceGetOut,
     RelevancePutIn,

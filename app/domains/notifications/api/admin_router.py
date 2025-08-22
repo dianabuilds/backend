@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.notifications.infrastructure.models.notification_models import NotificationType
 from app.domains.users.infrastructure.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role

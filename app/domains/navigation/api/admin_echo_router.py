@@ -11,7 +11,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 from sqlalchemy import func, literal, text
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.navigation.infrastructure.models.echo_models import EchoTrace
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User

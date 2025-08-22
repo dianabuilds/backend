@@ -7,7 +7,7 @@ from uuid import uuid4
 from sqlalchemy import Boolean, Column, DateTime, Enum as SAEnum, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.ext.mutable import MutableList
 
-from app.db.base import Base
+from app.core.db.base import Base
 from app.models.adapters import ARRAY, UUID  # типы-адаптеры остаются в core
 
 

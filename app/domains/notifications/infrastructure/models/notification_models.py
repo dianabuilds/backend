@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, Enum as SAEnum, ForeignKey, String
 
-from app.db.base import Base
+from app.core.db.base import Base
 from app.core.db.adapters import UUID
 
 

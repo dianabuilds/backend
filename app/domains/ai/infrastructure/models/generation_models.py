@@ -14,7 +14,7 @@ from sqlalchemy import (
     Integer,
     Index,
 )
-from app.db.base import Base
+from app.core.db.base import Base
 from app.core.db.adapters import UUID, JSONB
 
 

@@ -13,7 +13,7 @@ from sqlalchemy.future import select
 from sqlalchemy import func, update, delete
 
 from app.api.deps import admin_required
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 from app.domains.ai.schemas.ai_quests import GenerateQuestIn, GenerationEnqueued, GenerationJobOut, TickIn

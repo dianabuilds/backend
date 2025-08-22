@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.tags.schemas.admin import TagListItem, AliasOut, MergeIn, MergeReport, BlacklistItem, BlacklistAdd, TagCreate
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.domains.tags.application.tag_admin_service import TagAdminService

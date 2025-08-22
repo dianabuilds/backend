@@ -1,66 +1,65 @@
-from pydantic import BaseModel, EmailStr
+from __future__ import annotations
 
-
-from pydantic import BaseModel, EmailStr, Field, validator
-import re
 import logging
+import re
+from typing import Annotated
+
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    EmailStr,
+    Field,
+    ConfigDict,
+    field_validator,
+)
 
 logger = logging.getLogger(__name__)
 
+
 class SignupSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     email: EmailStr
     password: str
-    username: str  # Теперь username обязательное поле
+    username: str
 
-    @validator('username')
-    def username_must_be_valid(cls, v):
-        if v is None or v == "":
-            return None
-
-        # Проверка на допустимые символы (буквы, цифры, подчеркивание, точка)
-        if not re.match(r'^[a-zA-Z0-9._]+$', v):
-            logger.warning(f"Invalid username format: {v}")
-            raise ValueError('Username can only contain letters, numbers, dots and underscores')
-
-        # Предупреждение о зарезервированных именах, но пропускаем их для обратной совместимости
-        if v in ['000', 'admin', 'root', 'system']:
-            logger.warning(f"Reserved username being used: {v}")
-
+    @field_validator("username")
+    @classmethod
+    def username_must_be_valid(cls, v: str) -> str:
+        if not re.match(r"^[a-zA-Z0-9._]+$", v):
+            logger.warning("Invalid username format: %s", v)
+            raise ValueError("Username can only contain letters, numbers, dots and underscores")
+        if v in {"000", "admin", "root", "system"}:
+            logger.warning("Reserved username being used: %s", v)
         return v
 
-    @validator('password')
-    def password_must_be_valid(cls, v):
-        # Базовая проверка длины пароля
-        if len(v) < 3:  # Снижено с 6 для обратной совместимости
-            raise ValueError('Password must be at least 3 characters long')
-
-        # Логирование слабых паролей без блокировки
+    @field_validator("password")
+    @classmethod
+    def password_must_be_valid(cls, v: str) -> str:
+        if len(v) < 3:
+            raise ValueError("Password must be at least 3 characters long")
         if len(v) < 8 or not any(c.isupper() for c in v) or not any(c.isdigit() for c in v):
             logger.warning("Weak password being used")
-
         return v
 
 
 class LoginSchema(BaseModel):
-    username: str
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    login: Annotated[str, Field(validation_alias=AliasChoices("login", "username", "email"))]
     password: str
 
 
 class Token(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-    class LoginResponse(BaseModel):
-        ok: bool = True
-        csrf_token: str | None = None
-        access_token: str
+    token: str | None = None
 
 
 class LoginResponse(BaseModel):
     ok: bool = True
     csrf_token: str | None = None
     access_token: str
-
+    refresh_token: str | None = None
+    token_type: str = "bearer"
 
 
 class ChangePassword(BaseModel):
@@ -72,3 +71,13 @@ class EVMVerify(BaseModel):
     message: str
     signature: str
     wallet_address: str
+
+
+__all__ = [
+    "SignupSchema",
+    "LoginSchema",
+    "Token",
+    "LoginResponse",
+    "ChangePassword",
+    "EVMVerify",
+]

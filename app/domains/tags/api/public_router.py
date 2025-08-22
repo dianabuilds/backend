@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from fastapi import APIRouter, Depends, Query
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.tags.infrastructure.models.tag_models import Tag, NodeTag
 from app.schemas.tag import TagOut
 
