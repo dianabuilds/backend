@@ -1,33 +1,22 @@
 from __future__ import annotations
 
-"""Utilities for validating quests and quest graphs.
-
-The original implementation was removed during refactoring which made
-modules importing these helpers fail to load.  As a result the admin
-router couldn't be included and requests to ``/admin/quests`` returned a
-404.  This lightweight module restores the functions expected by the
-routers so that the endpoints can be registered again.
-
-The current implementation performs only minimal validation: it simply
-returns an empty ``ValidationReport`` meaning no problems were detected.
-This is sufficient for the admin quest listing and can be extended later
-with real checks.
-"""
+"""Utilities for validating quests and quest graphs."""
 
 from typing import Any, Dict
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from app.domains.quests.infrastructure.models.quest_models import Quest
-from app.schemas.quest_validation import ValidationReport
+from app.schemas.quest_validation import ValidationItem, ValidationReport
+from app.validation.base import validator
 
 
 async def validate_version_graph(_db: AsyncSession, _version_id: UUID) -> Dict[str, Any]:
     """Validate a quest version graph.
 
-    Currently returns an empty report.  The return value is a dictionary
-    compatible with older code that expects ``dict``-like access.
+    Currently returns an empty report compatible with older code.
     """
 
     return {"errors": 0, "warnings": 0, "items": []}
@@ -39,6 +28,28 @@ async def validate_quest(_db: AsyncSession, _quest: Quest) -> ValidationReport:
     Returns an empty :class:`ValidationReport` indicating no issues.
     """
 
+    return ValidationReport(errors=0, warnings=0, items=[])
+
+
+@validator("quest")
+async def quest_graph_validator(db: AsyncSession, quest_id: UUID) -> ValidationReport:
+    """Simple quest validator registered in the global validation registry."""
+
+    res = await db.execute(select(Quest).where(Quest.id == quest_id))
+    quest = res.scalars().first()
+    if quest is None:
+        return ValidationReport(
+            errors=1,
+            warnings=0,
+            items=[
+                ValidationItem(
+                    level="error",
+                    code="quest_not_found",
+                    message="Quest not found",
+                    hint="Создайте квест перед валидацией",
+                )
+            ],
+        )
     return ValidationReport(errors=0, warnings=0, items=[])
 
 

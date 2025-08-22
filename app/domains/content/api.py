@@ -12,6 +12,8 @@ from app.schemas.content_common import ContentStatus
 from app.security import ADMIN_AUTH_RESPONSES, require_ws_editor
 from app.domains.tags.models import Tag
 from .models import ContentItem
+from app.validation.base import run_validators
+import app.domains.quests.validation  # noqa: F401
 
 router = APIRouter(
     prefix="/admin/content",
@@ -122,3 +124,15 @@ async def publish_content(
         "workspace_id": str(workspace_id),
         "status": "published",
     }
+
+
+@router.post("/{content_type}/{content_id}/validate", summary="Validate content item")
+async def validate_content_item(
+    content_type: str,
+    content_id: UUID,
+    workspace_id: UUID,
+    _: object = Depends(require_ws_editor),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    report = await run_validators(content_type, content_id, db)
+    return {"type": content_type, "id": str(content_id), "workspace_id": str(workspace_id), "report": report}

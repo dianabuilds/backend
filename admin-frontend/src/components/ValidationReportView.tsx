@@ -1,4 +1,10 @@
-type Item = { level: "error" | "warning"; code: string; message: string; node?: string | null };
+type Item = {
+  level: "error" | "warning";
+  code: string;
+  message: string;
+  node?: string | null;
+  hint?: string | null;
+};
 
 type Props = {
   report: { errors: number; warnings: number; items: Item[] } | null | undefined;
@@ -18,6 +24,7 @@ export default function ValidationReportView({ report }: Props) {
             <span className="font-mono text-xs mr-2">{it.code}</span>
             <span>{it.message}</span>
             {it.node ? <span className="ml-2 text-gray-500">node: {it.node}</span> : null}
+            {it.hint ? <div className="ml-2 text-xs text-gray-500">{it.hint}</div> : null}
           </li>
         ))}
       </ul>
