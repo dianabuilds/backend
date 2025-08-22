@@ -1,8 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 from typing import Any
+import json
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class AuditLogOut(BaseModel):
@@ -17,5 +18,15 @@ class AuditLogOut(BaseModel):
     user_agent: str | None = None
     created_at: datetime
     extra: dict[str, Any] | None = None
+
+    @field_validator("before", "after", "extra", mode="before")
+    @classmethod
+    def _load_json(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return None
+        return v
 
     model_config = {"from_attributes": True}
