@@ -21,7 +21,12 @@ async def serve_admin_app(request: Request, _: str = "") -> Response:
         accept = request.headers.get("accept", "")
     except Exception:
         accept = ""
-    if "text/html" not in accept.lower():
+    # Allow generic "*/*" accepts (e.g. from simple clients) in addition to
+    # explicit HTML requests. This mirrors the check in ``admin_spa_fallback``
+    # middleware to ensure we consistently serve the SPA for browser refreshes
+    # even when the Accept header is just "*/*".
+    accept_lower = accept.lower()
+    if "text/html" not in accept_lower and accept_lower.strip() != "*/*":
         return Response(status_code=404)
 
     index_file = DIST_DIR / "index.html"
