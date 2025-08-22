@@ -6,16 +6,28 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.db.query import TransitionFilterSpec, TransitionQueryService, PageRequest, QueryContext
+from app.core.db.transition_query import TransitionFilterSpec, TransitionQueryService
+from app.domains.nodes.application.query_models import PageRequest, QueryContext
 from app.core.db.session import get_db
-from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType
-from app.domains.navigation.schemas.transitions import AdminTransitionOut, NodeTransitionUpdate, TransitionDisableRequest
+from app.domains.navigation.infrastructure.models.transition_models import (
+    NodeTransition,
+    NodeTransitionType,
+)
+from app.domains.navigation.schemas.transitions import (
+    AdminTransitionOut,
+    NodeTransitionUpdate,
+    TransitionDisableRequest,
+)
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(prefix="/admin/transitions", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
+router = APIRouter(
+    prefix="/admin/transitions", tags=["admin"], responses=ADMIN_AUTH_RESPONSES
+)
 admin_required = require_admin_role()
 navcache = NavigationCacheService(CoreCacheAdapter())
 
@@ -31,10 +43,14 @@ async def list_transitions_admin(
     current_user=Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
-    spec = TransitionFilterSpec(from_slug=from_slug, to_slug=to_slug, type=type, author=author)
+    spec = TransitionFilterSpec(
+        from_slug=from_slug, to_slug=to_slug, type=type, author=author
+    )
     ctx = QueryContext(user=current_user, is_admin=True)
     svc = TransitionQueryService(db)
-    rows = await svc.list_transitions(spec, PageRequest(limit=page_size, offset=(page - 1) * page_size), ctx)
+    rows = await svc.list_transitions(
+        spec, PageRequest(limit=page_size, offset=(page - 1) * page_size), ctx
+    )
     return [
         AdminTransitionOut(
             id=t.id,
@@ -50,7 +66,9 @@ async def list_transitions_admin(
     ]
 
 
-@router.patch("/{transition_id}", response_model=AdminTransitionOut, summary="Update transition")
+@router.patch(
+    "/{transition_id}", response_model=AdminTransitionOut, summary="Update transition"
+)
 async def update_transition_admin(
     transition_id: UUID,
     payload: NodeTransitionUpdate,
@@ -137,7 +155,8 @@ async def disable_transitions_by_node(
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     stmt = select(NodeTransition).where(
-        (NodeTransition.from_node_id == node.id) | (NodeTransition.to_node_id == node.id)
+        (NodeTransition.from_node_id == node.id)
+        | (NodeTransition.to_node_id == node.id)
     )
     res = await db.execute(stmt)
     transitions = res.scalars().all()
