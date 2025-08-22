@@ -12,6 +12,7 @@ from sqlalchemy import (
     Integer,
     String,
     Float,
+    Enum as SAEnum,
 )
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import relationship
@@ -19,6 +20,7 @@ from sqlalchemy.orm import relationship
 from app.core.db.base import Base
 from app.core.db.adapters import ARRAY, JSONB, UUID, VECTOR
 from app.core.config import settings
+from app.schemas.content_common import ContentStatus, ContentVisibility
 
 
 def generate_slug() -> str:
@@ -30,6 +32,7 @@ class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False)
     slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=True)
     content = Column(JSONB, nullable=False)
@@ -65,6 +68,20 @@ class Node(Base):
     premium_only = Column(Boolean, default=False)
     nft_required = Column(String, nullable=True)
     ai_generated = Column(Boolean, default=False)
+
+    status = Column(
+        SAEnum(ContentStatus, name="content_status"),
+        nullable=False,
+        server_default=ContentStatus.draft.value,
+    )
+    version = Column(Integer, nullable=False, server_default="1")
+    visibility = Column(
+        SAEnum(ContentVisibility, name="content_visibility"),
+        nullable=False,
+        server_default=ContentVisibility.private.value,
+    )
+    created_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
+    updated_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
 
     tags = relationship("Tag", secondary="node_tags", back_populates="nodes", lazy="selectin")
 

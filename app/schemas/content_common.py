@@ -1,18 +1,42 @@
 from __future__ import annotations
 
-from typing import Literal
+from enum import Enum
 from uuid import UUID
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, Field
 
 
-ContentStatus = Literal["draft", "in_review", "published", "archived"]
-ContentVisibility = Literal["private", "unlisted", "public"]
+class ContentStatus(str, Enum):
+    draft = "draft"
+    in_review = "in_review"
+    published = "published"
+    archived = "archived"
 
 
-class ContentMeta(BaseModel):
+class ContentVisibility(str, Enum):
+    private = "private"
+    unlisted = "unlisted"
+    public = "public"
+
+
+class ContentBase(BaseModel):
+    title: str
+    slug: str | None = None
+    summary: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    status: ContentStatus = ContentStatus.draft
+    visibility: ContentVisibility = ContentVisibility.private
+
+
+class ContentItem(ContentBase):
+    id: UUID
+    type: str
     workspace_id: UUID
-    status: ContentStatus = "draft"
-    version: int = 1
-    visibility: ContentVisibility = "private"
-    created_by_user_id: UUID | None = None
-    updated_by_user_id: UUID | None = None
+    version: int
+    cover_media_id: UUID | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    class Config:
+        orm_mode = True

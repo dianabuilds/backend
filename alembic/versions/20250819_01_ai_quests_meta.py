@@ -1,7 +1,7 @@
 """AI quests: quest generation metadata and ai_generation_jobs
 
 Revision ID: 20250819_01_ai_quests_meta
-Revises:
+Revises: 20250905_add_cover_url
 Create Date: 2025-08-19 00:00:00
 
 """
