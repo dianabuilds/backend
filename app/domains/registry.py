@@ -230,6 +230,12 @@ def register_domain_routers(app: FastAPI) -> None:
         app.include_router(admin_echo_router)
     except Exception:
         pass
+    # Admin traces (navigation)
+    try:
+        from app.domains.navigation.api.admin_traces_router import router as admin_traces_router
+        app.include_router(admin_traces_router)
+    except Exception:
+        pass
     # Admin navigation tools
     try:
         from app.domains.navigation.api.admin_navigation_router import router as admin_navigation_router
