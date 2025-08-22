@@ -2,6 +2,7 @@
 Конфигурация для тестов.
 Предоставляет фикстуры для тестирования API.
 """
+
 import asyncio
 import os
 import pytest
@@ -29,13 +30,17 @@ TEST_DB_URL = create_test_db_file()
 
 # Создаем тестовый движок и сессию
 test_engine = create_async_engine(
-    TEST_DB_URL, 
+    TEST_DB_URL,
     echo=False,
     # Эти параметры помогают избежать проблем с SQLite в тестах
-    connect_args={
-        "check_same_thread": False,
-        "timeout": 30  # Увеличиваем таймаут для операций SQLite
-    } if TEST_DB_URL.startswith("sqlite") else {}
+    connect_args=(
+        {
+            "check_same_thread": False,
+            "timeout": 30,  # Увеличиваем таймаут для операций SQLite
+        }
+        if TEST_DB_URL.startswith("sqlite")
+        else {}
+    ),
 )
 
 TestingSessionLocal = sessionmaker(
@@ -59,17 +64,17 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     Создает сессию базы данных для тестов.
     Создает схему базы данных перед каждым тестом и удаляет ее после.
     """
-    # Создаем таблицы для тестирования
+    # Создаем только необходимые таблицы для тестирования
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(User.__table__.create)
 
     # Создаем сессию для теста
     async with TestingSessionLocal() as session:
         yield session
 
-    # Удаляем таблицы после теста
+    # Удаляем таблицу после теста
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(User.__table__.drop)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -77,6 +82,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """
     Создает тестовый клиент с переопределенной зависимостью базы данных.
     """
+
     # Переопределяем зависимость get_db для использования тестовой сессии
     async def override_get_db():
         try:
@@ -104,7 +110,7 @@ async def test_user(db_session: AsyncSession) -> User:
         email="test@example.com",
         username="testuser",
         password_hash=get_password_hash("Password123"),
-        is_active=True
+        is_active=True,
     )
     db_session.add(user)
     await db_session.commit()
@@ -151,8 +157,7 @@ async def auth_headers(client: AsyncClient, test_user: User) -> dict:
     """
     # Логинимся для получения токена
     response = await client.post(
-        "/auth/login",
-        json={"username": "testuser", "password": "Password123"}
+        "/auth/login", json={"username": "testuser", "password": "Password123"}
     )
     token = response.json()["access_token"]
 
