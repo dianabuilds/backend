@@ -17,6 +17,7 @@ class UUID(TypeDecorator):
     """
 
     impl = CHAR
+    cache_ok = True
 
     def load_dialect_impl(self, dialect):
         if dialect.name == "postgresql":
@@ -43,6 +44,7 @@ class JSONB(TypeDecorator):
     """
 
     impl = JSON
+    cache_ok = True
 
     def load_dialect_impl(self, dialect):
         if dialect.name == "postgresql":
@@ -63,6 +65,7 @@ class ARRAY(TypeDecorator):
     """
 
     impl = JSON
+    cache_ok = True
 
     def __init__(self, item_type, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -94,6 +97,7 @@ class VECTOR(TypeDecorator):
     """Vector type adapter. For PostgreSQL uses TSVECTOR or vector extension; otherwise stores as JSON."""
 
     impl = JSON
+    cache_ok = True
 
     def __init__(self, dim: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -160,6 +164,7 @@ class TSVector(TypeDecorator):
     """Text search vector stub for compatibility in tests."""
 
     impl = JSON
+    cache_ok = True
 
     def load_dialect_impl(self, dialect):
         if dialect.name == "postgresql":
