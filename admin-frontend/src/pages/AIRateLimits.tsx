@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import ErrorBanner from "../components/ErrorBanner";
-import ValidationReportView from "../components/ValidationReportView";
 
 type Limits = {
   providers: Record<string, number>;
