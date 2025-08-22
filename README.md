@@ -90,6 +90,12 @@ EMBEDDING_DIM=384
 ## API документация
 Swagger доступен по адресу `http://localhost:8000/docs`, Redoc — `http://localhost:8000/redoc`.
 
+## Workspaces and content
+
+See [docs/workspaces_and_content.md](docs/workspaces_and_content.md) for
+workspace roles, status lifecycle, tag taxonomy and the publication
+checklist.
+
 ## Admin API
 
 Доступные только модераторам и выше административные эндпойнты:
