@@ -116,7 +116,8 @@ async def test_admin_recompute_embedding(client: AsyncClient, db_session: AsyncS
 
 @pytest.mark.asyncio
 async def test_admin_nodes_meta_string(db_session: AsyncSession, test_user):
-    from app.domains.tags.infrastructure.models.tag_models import Tag, NodeTag
+    from app.domains.tags.models import Tag
+    from app.domains.tags.infrastructure.models.tag_models import NodeTag
     from app.domains.nodes.application.node_query_service import NodeQueryService
     from app.domains.nodes.application.query_models import NodeFilterSpec, PageRequest, QueryContext
     from app.schemas.node import NodeOut

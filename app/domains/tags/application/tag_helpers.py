@@ -5,7 +5,7 @@ from typing import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.domains.tags.infrastructure.models.tag_models import Tag
+from app.domains.tags.models import Tag
 
 
 async def get_or_create_tags(db: AsyncSession, slugs: Sequence[str]) -> list[Tag]:
