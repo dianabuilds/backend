@@ -1,6 +1,16 @@
+"""Helpers for logging admin actions.
+
+This module was previously incomplete which resulted in import errors during
+application start-up.  The admin routers depend on :func:`log_admin_action`,
+therefore the missing imports caused those routers to be skipped and the
+frontend received 404 responses when requesting admin data.  Restoring the
+required imports ensures the module loads correctly and admin endpoints are
+registered.
+"""
+
+from typing import Any
 import asyncio
 import logging
-from typing import Any
 
 from app.core.log_filters import ip_var, ua_var
 from app.core.db.session import db_session, get_current_session

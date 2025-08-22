@@ -1,8 +1,8 @@
 from __future__ import annotations
-from __future__ import annotations
 
-# Тонкая доменная обёртка над legacy-роутером до полного переноса реализации
-from app.api.admin_ai_quests import router  # re-export
+# Этот модуль ранее пытался переимпортировать несуществующий legacy-роутер,
+# из-за чего импорт падал и все админские эндпоинты для AI-квестов возвращали
+# 404.  Удаляем лишний импорт и используем собственный роутер ниже.
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 from datetime import datetime
