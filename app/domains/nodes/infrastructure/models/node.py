@@ -40,7 +40,14 @@ class Node(Base):
     )
     author_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
     views = Column(Integer, default=0)
-    reactions = Column(MutableDict.as_mutable(JSONB), default=dict)
+    # ``reactions`` used to rely on ``MutableDict`` for change tracking which
+    # enforces that the underlying value is always a mapping.  In production some
+    # records ended up storing reactions as plain JSON strings which caused
+    # SQLAlchemy to raise "Attribute 'reactions' does not accept objects of type
+    # <class 'str'>" when loading rows.  Using the plain ``JSONB`` type allows us
+    # to gracefully handle such legacy values; the application level schema
+    # already normalises strings to dictionaries.
+    reactions = Column(JSONB, default=dict)
     is_public = Column(Boolean, default=False, index=True)
     is_visible = Column(Boolean, default=True, index=True)
     allow_feedback = Column(Boolean, default=True, index=True)
