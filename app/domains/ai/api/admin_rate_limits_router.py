@@ -24,7 +24,7 @@ async def set_rate_limits(payload: Dict[str, Any], _=Depends(admin_required)) ->
     Установить рантайм-лимиты RPM.
     Формат:
     {
-      "providers": { "openai": 60, "anthropic": 30 },
+      "providers": { "openai": 60, "anthropic": 30, "openai_compatible": 45 },
       "models": { "gpt-4o-mini": 120, "claude-3-haiku": 100 }
     }
     Значения null/0/"" — удаляют оверрайд.

@@ -13,7 +13,11 @@ from sqlalchemy.future import select
 from app.domains.ai.infrastructure.models.generation_models import GenerationJob  # type: ignore
 from app.domains.ai.infrastructure.models.ai_settings import AISettings  # type: ignore
 from app.domains.ai.infrastructure.models.world_models import WorldTemplate, Character  # type: ignore
-from app.domains.ai.providers import OpenAIProvider, AnthropicProvider
+from app.domains.ai.providers import (
+    OpenAIProvider,
+    OpenAICompatibleProvider,
+    AnthropicProvider,
+)
 from app.domains.ai.logs import save_stage_log
 from app.domains.ai.application.pricing_service import estimate_cost_usd
 from app.domains.telemetry.application.metrics_registry import llm_metrics
@@ -36,20 +40,33 @@ class StageLog:
 
 
 def _build_fallback_chain(preferred: Optional[str] = None, ai: Optional[AISettings] = None):
-    primary = (preferred or os.getenv("AI_PROVIDER") or "openai").lower().strip()
+    primary = (preferred or os.getenv("AI_PROVIDER") or "openai").lower().strip().replace("-", "_")
+
+    def _make(name: str):
+        if name == "openai":
+            return OpenAIProvider(
+                api_key=(ai.api_key if ai and (ai.provider or "").lower() == "openai" else None),
+                base_url=(ai.base_url if ai and (ai.provider or "").lower() == "openai" else None),
+            )
+        if name == "openai_compatible":
+            prov_name = (ai.provider or "").lower().replace("-", "_") if ai else ""
+            return OpenAICompatibleProvider(
+                api_key=(ai.api_key if prov_name == "openai_compatible" else None),
+                base_url=(ai.base_url if prov_name == "openai_compatible" else None),
+            )
+        if name == "anthropic":
+            return AnthropicProvider(
+                api_key=(ai.api_key if ai and (ai.provider or "").lower() == "anthropic" else None),
+                base_url=(ai.base_url if ai and (ai.provider or "").lower() == "anthropic" else None),
+            )
+        return None
+
+    order = ["openai", "openai_compatible", "anthropic"]
     providers = []
-    if primary == "openai":
-        providers.append(OpenAIProvider(
-            api_key=(ai.api_key if ai and (ai.provider or "").lower() == "openai" else None),
-            base_url=(ai.base_url if ai and (ai.provider or "").lower() == "openai" else None),
-        ))
-        providers.append(AnthropicProvider())
-    else:
-        providers.append(AnthropicProvider(
-            api_key=(ai.api_key if ai and (ai.provider or "").lower() == "anthropic" else None),
-            base_url=(ai.base_url if ai and (ai.provider or "").lower() == "anthropic" else None),
-        ))
-        providers.append(OpenAIProvider())
+    for name in [primary] + [p for p in order if p != primary]:
+        prov = _make(name)
+        if prov:
+            providers.append(prov)
     return providers
 
 
