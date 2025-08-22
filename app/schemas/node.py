@@ -5,6 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from pydantic import field_validator
 from pydantic.alias_generators import to_camel
 from pydantic import AliasChoices
 from pydantic import model_validator
@@ -91,12 +92,37 @@ class NodeOut(NodeBase):
     slug: str
     author_id: UUID
     views: int
-    reactions: dict[str, int]
+    reactions: dict[str, int] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
     popularity_score: float
 
     model_config = {"from_attributes": True}
+
+    @field_validator("reactions", mode="before")
+    @classmethod
+    def _parse_reactions(cls, v: Any) -> dict[str, int]:  # noqa: ANN001
+        if v is None:
+            return {}
+        if isinstance(v, dict):
+            try:
+                return {str(k): int(vv) for k, vv in v.items()}
+            except Exception:
+                return {}
+        if isinstance(v, str):
+            import json
+
+            try:
+                parsed = json.loads(v)
+            except Exception:
+                return {}
+            if isinstance(parsed, dict):
+                try:
+                    return {str(k): int(vv) for k, vv in parsed.items()}
+                except Exception:
+                    return {}
+            return {}
+        return {}
 
     @model_validator(mode="after")
     def _normalize_output(self) -> "NodeOut":
@@ -106,21 +132,6 @@ class NodeOut(NodeBase):
             self.popularity_score = float(self.popularity_score)  # type: ignore[arg-type]
         except Exception:
             self.popularity_score = 0.0
-        # Приводим reactions к словарю
-        if not isinstance(self.reactions, dict):
-            try:
-                # попробуем распарсить строку/список в словарь-частоты
-                import json
-                if isinstance(self.reactions, str):
-                    parsed = json.loads(self.reactions)
-                    if isinstance(parsed, dict):
-                        self.reactions = {str(k): int(v) for k, v in parsed.items()}
-                    else:
-                        self.reactions = {}
-                else:
-                    self.reactions = {}
-            except Exception:
-                self.reactions = {}
         return self
 
 
