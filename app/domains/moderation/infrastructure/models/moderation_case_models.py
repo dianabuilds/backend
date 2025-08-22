@@ -103,15 +103,4 @@ class CaseEvent(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     kind = Column(String, nullable=False)  # assign | change_priority | add_label | remove_label | add_note | add_attachment | status_change | decision_* | escalate_overdue | reopen
     payload = Column(JSONB, nullable=True)
-
-    import logging
-
-    logger = logging.getLogger(__name__)
-
     case = relationship("ModerationCase", back_populates="events")
-    logger.debug("CaseEvent relationship 'case' with 'events' established.")
-
-    # Duplicate relationship
-    case = relationship("ModerationCase", back_populates="labels")
-    logger.warning("Duplicate relationship 'case' with 'labels' detected in CaseEvent.")
-    label = relationship("ModerationLabel")
