@@ -118,7 +118,9 @@ async def require_ws_editor(
 ):
     from app.domains.workspaces.infrastructure.dao import WorkspaceMemberDAO
 
-    m = await WorkspaceMemberDAO.get(db, workspace_id, user.id)
+    m = await WorkspaceMemberDAO.get(
+        db, workspace_id=workspace_id, user_id=user.id
+    )
     if not (
         user.role == "admin" or (m and m.role in ("owner", "editor"))
     ):
