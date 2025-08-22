@@ -78,6 +78,7 @@ export default function AIQuests() {
   // cursor‑пагинация для jobs
   const [jobsCursor, setJobsCursor] = useState<string | null>(null);
   const [jobsLoading, setJobsLoading] = useState<boolean>(false);
+  const isUpdating = tFetching || jobsLoading;
 
   // Синхронизируем шаблоны через React Query
   useEffect(() => { setTemplates(templatesData ?? []); }, [templatesData]);
