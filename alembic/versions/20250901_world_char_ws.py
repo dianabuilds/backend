@@ -1,7 +1,7 @@
 """add workspace and status fields to world and character tables
 
-Revision ID: 20250901_01_world_character_workspace
-Revises: 20250822_02_content_workspace_and_status
+Revision ID: 20250901_world_char_ws
+Revises: 20250822_content_ws_status
 Create Date: 2025-09-01
 """
 
@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = "20250901_01_world_character_workspace"
-down_revision = "20250822_02_content_workspace_and_status"
+revision = "20250901_world_char_ws"
+down_revision = "20250822_content_ws_status"
 branch_labels = None
 depends_on = None
 

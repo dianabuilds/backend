@@ -1,7 +1,7 @@
 """create core domain tables: payments, premium, ai logs
 
 Revision ID: 20250820_domains_core_tables
-Revises: 20250820_add_ai_generation_indexes
+Revises: 20250820_ai_generation_idx
 Create Date: 2025-08-20
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "20250820_domains_core_tables"
-down_revision = "20250820_add_ai_generation_indexes"
+down_revision = "20250820_ai_generation_idx"
 branch_labels = None
 depends_on = None
 

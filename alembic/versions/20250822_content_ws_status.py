@@ -1,7 +1,7 @@
 """add workspace and status fields to content tables
 
-Revision ID: 20250822_02_content_workspace_and_status
-Revises: 20250822_01_workspaces_and_members
+Revision ID: 20250822_content_ws_status
+Revises: 20250822_ws_members
 Create Date: 2025-08-22
 """
 
@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = "20250822_02_content_workspace_and_status"
-down_revision = "20250822_01_workspaces_and_members"
+revision = "20250822_content_ws_status"
+down_revision = "20250822_ws_members"
 branch_labels = None
 depends_on = None
 
