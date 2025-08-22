@@ -19,10 +19,15 @@ class ContentItemDAO:
         return item
 
     @staticmethod
-    async def list_by_type(db: AsyncSession, content_type: str) -> List[ContentItem]:
+    async def list_by_type(
+        db: AsyncSession, *, workspace_id: UUID, content_type: str
+    ) -> List[ContentItem]:
         stmt = (
             select(ContentItem)
-            .where(ContentItem.type == content_type)
+            .where(
+                ContentItem.workspace_id == workspace_id,
+                ContentItem.type == content_type,
+            )
             .order_by(func.coalesce(ContentItem.published_at, func.now()).desc())
         )
         result = await db.execute(stmt)
@@ -51,12 +56,16 @@ class ContentItemDAO:
     async def search(
         db: AsyncSession,
         *,
+        workspace_id: UUID,
         content_type: str,
         q: Optional[str] = None,
         page: int = 1,
         per_page: int = 10,
     ) -> List[ContentItem]:
-        stmt = select(ContentItem).where(ContentItem.type == content_type)
+        stmt = select(ContentItem).where(
+            ContentItem.workspace_id == workspace_id,
+            ContentItem.type == content_type,
+        )
         if q:
             pattern = f"%{q}%"
             stmt = stmt.where(
