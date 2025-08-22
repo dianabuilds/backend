@@ -27,6 +27,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ToastProvider } from "./components/ToastProvider";
 import Monitoring from "./pages/Monitoring";
 import Notifications from "./pages/Notifications";
+import NotificationCampaignEditor from "./pages/NotificationCampaignEditor";
 import QuestEditor from "./pages/QuestEditor";
 import FeatureFlagsPage from "./pages/FeatureFlags";
 import ModerationInbox from "./pages/ModerationInbox";
@@ -82,6 +83,7 @@ export default function App() {
                     <Route path="echo" element={<Echo />} />
                     <Route path="traces" element={<Traces />} />
                     <Route path="notifications" element={<Notifications />} />
+                    <Route path="notifications/campaigns/:id" element={<NotificationCampaignEditor />} />
                       <Route path="content" element={<ContentDashboard />} />
                       <Route path="content/all" element={<ContentAll />} />
                     <Route path="telemetry" element={<Telemetry />} />

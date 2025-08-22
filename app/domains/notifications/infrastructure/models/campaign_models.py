@@ -10,6 +10,7 @@ from app.core.db.adapters import UUID
 
 
 class CampaignStatus(str):
+    draft = "draft"
     queued = "queued"
     running = "running"
     done = "done"
@@ -25,7 +26,7 @@ class NotificationCampaign(Base):
     message = Column(Text, nullable=False)
     type = Column(String, nullable=False, default="system")
     filters = Column(JSON, nullable=True)
-    status = Column(String, nullable=False, default=CampaignStatus.queued)
+    status = Column(String, nullable=False, default=CampaignStatus.draft)
     total = Column(Integer, nullable=False, default=0)
     sent = Column(Integer, nullable=False, default=0)
     failed = Column(Integer, nullable=False, default=0)
