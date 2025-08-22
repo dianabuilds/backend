@@ -138,7 +138,16 @@ class NodeRepositoryAdapter(INodeRepository):
     async def update_reactions(self, node: Node, reaction: str, action: str) -> Node:
         if self._repo:
             return await self._repo.update_reactions(node, reaction, action)
-        reactions = dict(node.reactions or {})
+        import json
+
+        raw = node.reactions or {}
+        if isinstance(raw, str):
+            try:
+                parsed = json.loads(raw)
+                raw = parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                raw = {}
+        reactions = dict(raw)
         current = int(reactions.get(reaction, 0))
         if action == "add":
             reactions[reaction] = current + 1
