@@ -12,7 +12,6 @@ from app.core.db.session import get_db
 from app.domains.nodes.application.node_query_service import NodeQueryService
 from app.domains.nodes.application.query_models import NodeFilterSpec, PageRequest, QueryContext
 from app.domains.nodes.application.services.nodes_admin_service import NodesAdminService
-from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
 from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.core.log_events import cache_invalidate
