@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.db.session import init_db, create_tables, db_session
+from app.core.db.session import init_db, create_tables, db_session
 from app.domains.ai.application.embedding_service import update_node_embedding
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType

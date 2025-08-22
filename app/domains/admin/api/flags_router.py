@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.admin.infrastructure.models.feature_flag import FeatureFlag
 from app.schemas.flags import FeatureFlagOut, FeatureFlagUpdateIn
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role

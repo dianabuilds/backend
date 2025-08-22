@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import or_
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.admin.infrastructure.models.audit_log import AuditLog
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.audit import AuditLogOut

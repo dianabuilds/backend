@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, String
 
-from app.db.base import Base
+from app.core.db.base import Base
 from app.core.db.adapters import JSONB, UUID
 
 

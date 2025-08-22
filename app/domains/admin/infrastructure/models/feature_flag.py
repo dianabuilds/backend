@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import Column, DateTime, String, Boolean, Text
 
-from app.db.base import Base
+from app.core.db.base import Base
 
 
 class FeatureFlag(Base):

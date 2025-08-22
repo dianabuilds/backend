@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.achievements.application.admin_service import AchievementsAdminService
 from app.domains.achievements.application.achievements_service import AchievementsService
 from app.domains.achievements.infrastructure.repositories.achievements_repository import AchievementsRepository

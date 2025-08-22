@@ -6,7 +6,7 @@ from sqlalchemy import Column, String, Text, JSON, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
 
-from app.db.base import Base
+from app.core.db.base import Base
 
 
 class WorldTemplate(Base):

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import assert_seniority_over
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.moderation import (

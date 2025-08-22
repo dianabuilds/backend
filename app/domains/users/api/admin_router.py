@@ -9,7 +9,7 @@ from sqlalchemy import String, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.user import AdminUserOut, UserPremiumUpdate, UserRoleUpdate

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import get_current_user_optional
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.navigation.application.compass_service import CompassService
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.nodes.infrastructure.models.node import Node

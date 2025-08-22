@@ -14,7 +14,7 @@ from app.domains.nodes.application.query_models import (
     QueryContext,
 )
 from app.domains.nodes.infrastructure.queries.node_query_adapter import NodeQueryAdapter
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.system.events import get_event_bus, NodeCreated, NodeUpdated
 from app.domains.users.nft import user_has_nft
 from app.domains.navigation.application.traces_service import TracesService

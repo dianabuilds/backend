@@ -9,7 +9,7 @@ from sqlalchemy.future import select
 from sqlalchemy import or_, func
 
 from app.api.deps import get_current_user, assert_owner_or_role
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.quests.infrastructure.models.quest_models import Quest, QuestPurchase, QuestProgress
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User

@@ -8,7 +8,7 @@ from sqlalchemy.future import select
 from sqlalchemy import func
 
 from app.api.deps import admin_required
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.ai.infrastructure.models.generation_models import GenerationJob
 from app.domains.common.schemas.paginated import Paginated
 

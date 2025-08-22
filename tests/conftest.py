@@ -15,7 +15,7 @@ from typing import AsyncGenerator, Generator
 os.environ["TESTING"] = "True"
 os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
 
-from app.db.base import Base
+from app.core.db.base import Base
 from app.main import app
 from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User

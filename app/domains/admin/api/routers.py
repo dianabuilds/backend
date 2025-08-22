@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.feature_flags import get_effective_flags
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.admin.application.menu_service import (
     get_cached_menu,
     count_items,

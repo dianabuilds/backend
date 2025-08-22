@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
 
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.quest_models import Quest

@@ -10,7 +10,7 @@ from sqlalchemy.future import select
 
 from app.api.deps import get_current_user
 from app.core.security import verify_access_token
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.notifications.infrastructure.models.notification_models import Notification
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.notification import NotificationOut

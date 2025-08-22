@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.rate_limit import recent_429, _parse_rule  # type: ignore
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 

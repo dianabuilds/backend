@@ -6,7 +6,7 @@ from sqlalchemy.future import select
 from sqlalchemy import func
 
 from app.api.deps import get_current_user_optional
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.ai.application.embedding_service import get_embedding, cosine_similarity
 from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.navigation.infrastructure.repositories.compass_repository import CompassRepository

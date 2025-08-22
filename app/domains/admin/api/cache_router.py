@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
 from app.core.log_events import cache_counters, cache_key_hits
 from app.domains.navigation.application.navigation_cache_service import NavigationCacheService

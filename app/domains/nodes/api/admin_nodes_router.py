@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import get_current_user
-from app.db.session import get_db
+from app.core.db.session import get_db
 from app.domains.nodes.application.node_query_service import NodeQueryService
 from app.domains.nodes.application.query_models import NodeFilterSpec, PageRequest, QueryContext
 from app.domains.nodes.application.services.nodes_admin_service import NodesAdminService
