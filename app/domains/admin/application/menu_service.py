@@ -31,7 +31,7 @@ BASE_MENU: List[dict] = [
         "children": [{"id": "users-list", "label": "Users", "path": "/users", "icon": "users", "order": 1}],
     },
     {
-        "id": "nodes",
+        "id": "content",
         "label": "Content",
         "icon": "nodes",
         "order": 3,

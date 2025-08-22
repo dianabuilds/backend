@@ -18,25 +18,29 @@ def test_build_menu_filters_and_sorts():
     assert ids == [
         "overview",
         "users",
-        "nodes",
+        "notifications-top",
+        "content",
         "navigation",
+        "ai-quests",
         "telemetry",
+        "premium",
         "tools",
         "system",
+        "achievements-top",
     ]
     # В Content по умолчанию (без флагов) остались только Nodes/Tags
-    content_children = [c.id for c in menu.items[2].children]
-    assert content_children == ["nodes", "tags"]
+    content_children = [c.id for c in menu.items[3].children]
+    assert content_children == ["nodes", "tags", "quests"]
 
     # С включённым фичефлагом moderation.enabled появляется Moderation
     menu_with_flags = build_menu(user, ["payments", "moderation.enabled"])
     ids_flag = [item.id for item in menu_with_flags.items]
     assert "payments" in ids_flag
-    content_children_flag = [c.id for c in menu_with_flags.items[2].children]
-    assert content_children_flag == ["nodes", "tags", "moderation"]
+    content_children_flag = [c.id for c in menu_with_flags.items[3].children]
+    assert content_children_flag == ["nodes", "tags", "quests", "moderation"]
 
     # В Navigation собраны 4 пункта: Navigation/Transitions/Echo/Traces
-    nav_children = [c.id for c in menu.items[3].children]
+    nav_children = [c.id for c in menu.items[4].children]
     assert nav_children == ["navigation-main", "nav-transitions", "nav-echo", "nav-traces"]
 
     menu_flag = build_menu(user, ["payments"])
