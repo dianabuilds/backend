@@ -5,7 +5,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends
 
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.services.worker_metrics import worker_metrics  # временно используем сервисный сборщик
+from app.domains.telemetry.application.worker_metrics_facade import worker_metrics
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"], responses=ADMIN_AUTH_RESPONSES)
 

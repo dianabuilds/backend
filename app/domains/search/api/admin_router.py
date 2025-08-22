@@ -14,7 +14,7 @@ from app.schemas.search_settings import (
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.domains.search.application.config_service import ConfigService
 from app.domains.search.infrastructure.repositories.search_config_repository import SearchConfigRepository
-from app.services.audit import audit_log  # временно используем сервис аудитлога
+from app.domains.audit.application.audit_service import audit_log
 
 admin_required = require_admin_role({"admin"})  # в MVP только admin применяет
 

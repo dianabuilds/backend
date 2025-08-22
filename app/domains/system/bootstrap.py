@@ -4,11 +4,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Временная прокладка: не теряем поведение, переводим точку импорта на домен.
-# После подтверждения поведения можно перенести реализацию сюда и удалить legacy.
 async def ensure_default_admin() -> None:
+    """Create default admin user if necessary (no-op stub)."""
     try:
-        from app.services.bootstrap import ensure_default_admin as _legacy_ensure_default_admin
-        await _legacy_ensure_default_admin()
-    except Exception as e:
-        logger.warning("ensure_default_admin legacy call failed: %s", e)
+        from app.domains.auth.application.services.bootstrap import ensure_default_admin as _impl  # type: ignore
+    except Exception:
+        logger.warning("ensure_default_admin implementation missing")
+        return
+    await _impl()

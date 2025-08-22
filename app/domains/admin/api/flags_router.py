@@ -10,8 +10,8 @@ from app.core.db.session import get_db
 from app.domains.admin.infrastructure.models.feature_flag import FeatureFlag
 from app.schemas.flags import FeatureFlagOut, FeatureFlagUpdateIn
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.services.feature_flags import set_flag, invalidate_cache  # временно через services
-from app.services.audit import audit_log  # временно через services
+from app.core.feature_flags import set_flag, invalidate_cache
+from app.domains.audit.application.audit_service import audit_log
 from app.domains.admin.application.menu_service import invalidate_menu_cache
 
 admin_only = require_admin_role({"admin"})

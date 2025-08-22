@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
 from app.core.log_events import cache_invalidate
-from app.services.audit import audit_log
+from app.domains.audit.application.audit_service import audit_log
 
 
 _ALLOWED_REACTIONS = {"like", "love", "wow", "sad", "angry"}

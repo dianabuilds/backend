@@ -12,7 +12,7 @@ from app.domains.notifications.application.notify_service import NotifyService
 from app.domains.notifications.infrastructure.repositories.notification_repository import NotificationRepository
 from app.domains.notifications.infrastructure.transports.websocket import WebsocketPusher, manager as ws_manager
 from app.domains.nodes.infrastructure.models.feedback import Feedback
-from app.services.audit import audit_log
+from app.domains.audit.application.audit_service import audit_log
 
 
 class FeedbackService:

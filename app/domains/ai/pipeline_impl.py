@@ -214,7 +214,7 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         llm_metrics.observe_tokens(stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens)
         llm_metrics.observe_cost(stage_labels, cost)
         try:
-            from app.services.worker_metrics import worker_metrics
+            from app.domains.telemetry.application.worker_metrics_facade import worker_metrics
             worker_metrics.observe_stage("chapters", ms)
         except Exception:
             pass
@@ -258,7 +258,7 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         llm_metrics.observe_tokens(stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens)
         llm_metrics.observe_cost(stage_labels, cost)
         try:
-            from app.services.worker_metrics import worker_metrics
+            from app.domains.telemetry.application.worker_metrics_facade import worker_metrics
             worker_metrics.observe_stage("nodes", ms)
         except Exception:
             pass
