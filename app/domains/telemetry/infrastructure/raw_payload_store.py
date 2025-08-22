@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from app.domains.telemetry.application.ports.raw_payloads_port import IRawPayloadStore
-from app.services.blob_store import put_text
+from app.domains.media.infrastructure.storage.blob_store import put_text
 
 
 class RawPayloadStore(IRawPayloadStore):

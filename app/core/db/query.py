@@ -5,7 +5,7 @@ Compatibility layer for query services.
 
 Note: The long-term plan is to split this into domain-specific repositories.
 For now, we re-export domain services and a compatible transition query module
-to enable imports from core.db.query without legacy app.services.*.
+to enable imports from core.db.query without relying on legacy service paths.
 """
 
 from app.domains.nodes.application.node_query_service import (  # noqa: F401
