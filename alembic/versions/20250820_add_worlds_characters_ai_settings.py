@@ -3,7 +3,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "20250820_worlds_chars_ai"
-down_revision = "20250819_01_ai_quests_meta"
+down_revision = "20250820_pg_types_upgrade"
 branch_labels = None
 depends_on = None
 
