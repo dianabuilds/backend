@@ -10,6 +10,9 @@ import Login from "./pages/Login";
 import Restrictions from "./pages/Restrictions";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./auth/AuthContext";
+import { WorkspaceProvider } from "./workspace/WorkspaceContext";
+import ContentDashboard from "./pages/ContentDashboard";
+import ContentAll from "./pages/ContentAll";
 import ComingSoon from "./components/ComingSoon";
 import Navigation from "./pages/Navigation";
 import Achievements from "./pages/Achievements";
@@ -49,21 +52,22 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ToastProvider>
-          <BrowserRouter basename="/admin">
-            <ErrorBoundary>
-              <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading…</div>}>
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route
-                    element={
-                      <ProtectedRoute>
-                        <Layout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route index element={<Dashboard />} />
-                    <Route path="users" element={<Users />} />
+        <WorkspaceProvider>
+          <ToastProvider>
+            <BrowserRouter basename="/admin">
+              <ErrorBoundary>
+                <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading…</div>}>
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route
+                      element={
+                        <ProtectedRoute>
+                          <Layout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route index element={<Dashboard />} />
+                      <Route path="users" element={<Users />} />
                     <Route path="nodes" element={<Nodes />} />
                     <Route path="tags" element={<Tags />} />
                     <Route path="tags/merge" element={<TagMerge />} />
@@ -74,6 +78,8 @@ export default function App() {
                     <Route path="echo" element={<Echo />} />
                     <Route path="traces" element={<Traces />} />
                     <Route path="notifications" element={<Notifications />} />
+                      <Route path="content" element={<ContentDashboard />} />
+                      <Route path="content/all" element={<ContentAll />} />
                     <Route path="telemetry" element={<Telemetry />} />
                     <Route path="premium/plans" element={<PremiumPlans />} />
                     <Route path="premium/limits" element={<PremiumLimits />} />
@@ -103,6 +109,7 @@ export default function App() {
             </ErrorBoundary>
           </BrowserRouter>
         </ToastProvider>
+        </WorkspaceProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
