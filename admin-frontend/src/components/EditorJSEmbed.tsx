@@ -85,9 +85,9 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
                   try {
                     const form = new FormData();
                     form.append("file", file);
-                    const res = await api.request<any>("/media", {
-                      method: "POST",
-                      body: form,
+                    const res = await api.request<any>("/admin/media", {
+                        method: "POST",
+                        body: form,
                     });
                     // Поддерживаем разные формы ответа:
                     // - строка: "http://..."
