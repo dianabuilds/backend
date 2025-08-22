@@ -1,6 +1,6 @@
 """add composite index for ai_generation_jobs (status, created_at)
 
-Revision ID: 20250820_add_ai_generation_indexes
+Revision ID: 20250820_ai_generation_idx
 Revises: 20250819_01_ai_quests_meta
 Create Date: 2025-08-20
 
@@ -12,7 +12,7 @@ from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision = "20250820_add_ai_generation_indexes"
+revision = "20250820_ai_generation_idx"
 down_revision = "20250819_01_ai_quests_meta"
 branch_labels = None
 depends_on = None

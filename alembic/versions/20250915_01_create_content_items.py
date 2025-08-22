@@ -1,7 +1,7 @@
 """create content_items table
 
 Revision ID: 20250915_01_create_content_items
-Revises: 20250901_01_world_character_workspace
+Revises: 20250901_world_char_ws
 Create Date: 2025-09-15
 """
 
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 
 revision = "20250915_01_create_content_items"
-down_revision = "20250901_01_world_character_workspace"
+down_revision = "20250901_world_char_ws"
 branch_labels = None
 depends_on = None
 
