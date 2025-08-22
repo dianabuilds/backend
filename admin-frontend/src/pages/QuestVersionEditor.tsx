@@ -9,7 +9,6 @@ import GraphCanvas from "../components/GraphCanvas";
 import TagInput from "../components/TagInput";
 import CollapsibleSection from "../components/CollapsibleSection";
 import { useToast } from "../components/ToastProvider";
-import PlaythroughPanel from "../components/PlaythroughPanel";
 
 export default function QuestVersionEditor() {
   const { id } = useParams<{ id: string }>();
@@ -315,10 +314,6 @@ export default function QuestVersionEditor() {
       {err && <div className="text-red-600 text-sm">{err}</div>}
       {graph && (
         <div className="mt-4 space-y-4">
-          <CollapsibleSection title="Playthrough">
-            <PlaythroughPanel graph={graph} onOpenNode={(k) => startEditNode(k)} />
-          </CollapsibleSection>
-
           <CollapsibleSection title="Validation report">
             <div className="mb-2 flex items-center gap-2">
               <button
@@ -428,7 +423,12 @@ export default function QuestVersionEditor() {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2">Cover</h4>
-                  <ImageDropzone value={meta.cover_image || null} onChange={(url) => setMeta({ ...meta, cover_image: url || null })} height={160} />
+                  <ImageDropzone
+                    value={meta.cover_image || null}
+                    onChange={(url) => setMeta({ ...meta, cover_image: url || null })}
+                    height={160}
+                    className="w-[120px]"
+                  />
                 </div>
                 <div className="md:col-span-3 flex justify-end">
                   <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={onSaveMeta} disabled={savingMeta}>
@@ -665,22 +665,6 @@ export default function QuestVersionEditor() {
                 })}
               </ul>
             </CollapsibleSection>
-          </div>
-          <div>
-            <div className="rounded border p-3">
-              <h2 className="font-semibold mb-2">Validation</h2>
-              {!validate ? <div className="text-sm text-gray-500">No results yet</div> : (
-                <div className="text-sm">
-                  <div>ok: {String(validate.ok)}</div>
-                  {validate.errors.length > 0 && <div className="text-red-600 mt-2">Errors:
-                    <ul className="list-disc ml-4">{validate.errors.map((e, i) => <li key={i}>{e}</li>)}</ul>
-                  </div>}
-                  {validate.warnings.length > 0 && <div className="text-yellow-600 mt-2">Warnings:
-                    <ul className="list-disc ml-4">{validate.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
-                  </div>}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Холст графа */}

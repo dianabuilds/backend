@@ -114,6 +114,7 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
                   value={node.cover_url || null}
                   onChange={(url) => onChange({ cover_url: url })}
                   height={160}
+                  className="w-[120px]"
                 />
               </div>
             </div>
