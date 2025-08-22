@@ -11,6 +11,7 @@ from app.core.db.session import get_db
 from app.domains.tags.models import Tag, ContentTag
 from app.domains.tags.dao import TagDAO
 from app.schemas.tag import TagOut, TagCreate, TagUpdate
+from app.security import require_ws_editor
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -46,7 +47,10 @@ async def list_tags(
 
 @router.post("/", response_model=TagOut, summary="Create tag")
 async def create_tag(
-    workspace_id: UUID, body: TagCreate, db: AsyncSession = Depends(get_db)
+    workspace_id: UUID,
+    body: TagCreate,
+    _: object = Depends(require_ws_editor),
+    db: AsyncSession = Depends(get_db),
 ) -> TagOut:
     tag = await TagDAO.create(
         db, workspace_id=workspace_id, slug=body.slug, name=body.name
@@ -70,6 +74,7 @@ async def update_tag(
     workspace_id: UUID,
     slug: str,
     body: TagUpdate,
+    _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
 ) -> TagOut:
     tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
@@ -87,7 +92,10 @@ async def update_tag(
 
 @router.delete("/{slug}", summary="Delete tag")
 async def delete_tag(
-    workspace_id: UUID, slug: str, db: AsyncSession = Depends(get_db)
+    workspace_id: UUID,
+    slug: str,
+    _: object = Depends(require_ws_editor),
+    db: AsyncSession = Depends(get_db),
 ):
     tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
     if not tag:

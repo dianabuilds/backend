@@ -5,7 +5,7 @@ from typing import Any, Set
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, Request, Security
+from fastapi import Depends, Request, Security, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -124,7 +124,7 @@ async def require_ws_editor(
     if not (
         user.role == "admin" or (m and m.role in ("owner", "editor"))
     ):
-        raise ForbiddenError(user_id=str(user.id), role=user.role)
+        raise HTTPException(status_code=403, detail="Forbidden")
     return m
 
 
