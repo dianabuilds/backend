@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo } from "react";
 import EditorJSEmbed from "./EditorJSEmbed";
-import ImageDropzone from "./ImageDropzone";
+import MediaPicker from "./MediaPicker";
 import TagInput from "./TagInput";
 
 export interface NodeEditorData {
@@ -110,7 +110,7 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
               {/* Медиа */}
               <div>
                 <h4 className="font-semibold mb-2">Изображение</h4>
-                <ImageDropzone
+                <MediaPicker
                   value={node.cover_url || null}
                   onChange={(url) => onChange({ cover_url: url })}
                   height={160}

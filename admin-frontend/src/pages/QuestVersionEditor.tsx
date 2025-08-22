@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { getVersion, putGraph, publishVersion, validateVersion, autofixVersion, type VersionGraph } from "../api/questEditor";
 import PageLayout from "./_shared/PageLayout";
 import NodeEditorModal, { type NodeEditorData } from "../components/NodeEditorModal";
-import ImageDropzone from "../components/ImageDropzone";
+import MediaPicker from "../components/MediaPicker";
 import { getQuestMeta, updateQuestMeta } from "../api/questEditor";
 import GraphCanvas from "../components/GraphCanvas";
 import TagInput from "../components/TagInput";
@@ -377,7 +377,7 @@ export default function QuestVersionEditor() {
                 </div>
                   <div>
                     <h4 className="font-semibold mb-2">Cover</h4>
-                    <ImageDropzone
+                    <MediaPicker
                       value={meta.cover_image || null}
                       onChange={(url) => setMeta({ ...meta, cover_image: url || null })}
                       height={240}

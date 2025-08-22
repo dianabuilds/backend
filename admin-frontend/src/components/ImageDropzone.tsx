@@ -51,7 +51,7 @@ export default function ImageDropzone({ value, onChange, className = "", height 
       form.append("file", file);
       setError(null);
       try {
-        const res = await api.request("/media", { method: "POST", body: form });
+        const res = await api.request("/admin/media", { method: "POST", body: form });
         const url = resolveUrl(res.data, res.response.headers);
         if (!url) {
           setError("Сервер не вернул URL загруженного файла");
