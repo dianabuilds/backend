@@ -12,7 +12,7 @@ from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.navigation.infrastructure.repositories.compass_repository import CompassRepository
 from app.core.config import settings
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.tags.infrastructure.models.tag_models import Tag
+from app.domains.tags.models import Tag
 from app.domains.users.infrastructure.models.user import User
 
 router = APIRouter(tags=["search"])

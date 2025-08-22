@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Protocol, List, Dict, Any
 from uuid import UUID
 
-from app.domains.tags.infrastructure.models.tag_models import Tag, TagAlias, TagBlacklist
+from app.domains.tags.models import Tag
+from app.domains.tags.infrastructure.models.tag_models import TagAlias, TagBlacklist
 
 
 class ITagRepository(Protocol):

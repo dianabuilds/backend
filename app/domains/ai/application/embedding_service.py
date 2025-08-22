@@ -10,7 +10,8 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.domains.ai.application.ports.embedding_port import IEmbeddingProvider
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.tags.infrastructure.models.tag_models import Tag, NodeTag
+from app.domains.tags.models import Tag
+from app.domains.tags.infrastructure.models.tag_models import NodeTag
 
 logger = logging.getLogger(__name__)
 

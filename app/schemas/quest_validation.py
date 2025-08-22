@@ -12,6 +12,7 @@ class ValidationItem(BaseModel):
     code: str
     message: str
     node_id: UUID | None = None
+    hint: str | None = None
 
 
 class ValidationReport(BaseModel):

@@ -72,6 +72,12 @@ def register_domain_routers(app: FastAPI) -> None:
         app.include_router(admin_notifications_broadcast_router)
     except Exception:
         pass
+    # Admin Notifications Campaigns
+    try:
+        from app.domains.notifications.api.campaigns_router import router as admin_notifications_campaigns_router
+        app.include_router(admin_notifications_campaigns_router)
+    except Exception:
+        pass
 
     # Payments
     try:
@@ -186,6 +192,18 @@ def register_domain_routers(app: FastAPI) -> None:
     try:
         from app.domains.users.api.admin_router import router as admin_users_router
         app.include_router(admin_users_router)
+    except Exception:
+        pass
+    # Admin workspaces
+    try:
+        from app.domains.workspaces.api import router as admin_workspaces_router
+        app.include_router(admin_workspaces_router)
+    except Exception:
+        pass
+    # Admin content
+    try:
+        from app.domains.content.api import router as admin_content_router
+        app.include_router(admin_content_router)
     except Exception:
         pass
     # Admin nodes (nodes)

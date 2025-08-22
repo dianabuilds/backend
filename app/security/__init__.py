@@ -5,7 +5,7 @@ from typing import Any, Set
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, Request, Security
+from fastapi import Depends, Request, Security, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -118,11 +118,13 @@ async def require_ws_editor(
 ):
     from app.domains.workspaces.infrastructure.dao import WorkspaceMemberDAO
 
-    m = await WorkspaceMemberDAO.get(db, workspace_id, user.id)
+    m = await WorkspaceMemberDAO.get(
+        db, workspace_id=workspace_id, user_id=user.id
+    )
     if not (
         user.role == "admin" or (m and m.role in ("owner", "editor"))
     ):
-        raise ForbiddenError(user_id=str(user.id), role=user.role)
+        raise HTTPException(status_code=403, detail="Forbidden")
     return m
 
 

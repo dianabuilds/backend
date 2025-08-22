@@ -1,31 +1,16 @@
 import { Outlet } from "react-router-dom";
-import { useState } from "react";
-import { setWorkspaceId } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import Sidebar from "./Sidebar";
+import WorkspaceSelector from "./WorkspaceSelector";
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  const [workspace, setWorkspace] = useState(
-    () => sessionStorage.getItem("workspaceId") || ""
-  );
-
-  function handleWsChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value;
-    setWorkspace(val);
-    setWorkspaceId(val || null);
-  }
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
       <Sidebar />
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <input
-            value={workspace}
-            onChange={handleWsChange}
-            placeholder="workspace id"
-            className="px-2 py-1 border rounded mr-4 text-sm"
-          />
+          <WorkspaceSelector />
           {user && (
             <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200">
               <span>{user.username ?? user.email ?? user.id}</span>

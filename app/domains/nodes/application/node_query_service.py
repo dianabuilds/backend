@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.nodes.application.query_models import NodeFilterSpec, PageRequest, QueryContext
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.tags.infrastructure.models.tag_models import Tag
+from app.domains.tags.models import Tag
 
 
 class NodeQueryService:

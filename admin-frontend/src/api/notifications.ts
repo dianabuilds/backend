@@ -29,6 +29,14 @@ export interface Campaign {
   finished_at?: string | null;
 }
 
+export interface DraftCampaign {
+  id: string;
+  title: string;
+  message: string;
+  status: string;
+  created_at?: string | null;
+}
+
 export async function createBroadcast(payload: BroadcastCreate) {
   const res = await api.post("/admin/notifications/broadcast", payload);
   return res.data as any;
@@ -48,5 +56,25 @@ export async function getCampaign(id: string): Promise<Campaign> {
 
 export async function cancelCampaign(id: string) {
   const res = await api.post(`/admin/notifications/broadcast/${id}/cancel`, {});
+  return res.data as any;
+}
+
+export async function listCampaigns(): Promise<DraftCampaign[]> {
+  const res = await api.get<DraftCampaign[]>("/admin/notifications/campaigns");
+  return res.data as DraftCampaign[];
+}
+
+export async function getDraftCampaign(id: string): Promise<DraftCampaign> {
+  const res = await api.get<DraftCampaign>(`/admin/notifications/campaigns/${id}`);
+  return res.data as DraftCampaign;
+}
+
+export async function updateDraftCampaign(id: string, payload: { title: string; message: string }) {
+  const res = await api.patch(`/admin/notifications/campaigns/${id}`, payload);
+  return res.data as any;
+}
+
+export async function sendDraftCampaign(id: string) {
+  const res = await api.post(`/admin/notifications/campaigns/${id}/send`, {});
   return res.data as any;
 }
