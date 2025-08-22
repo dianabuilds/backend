@@ -72,6 +72,12 @@ def register_domain_routers(app: FastAPI) -> None:
         app.include_router(admin_notifications_broadcast_router)
     except Exception:
         pass
+    # Admin Notifications Campaigns
+    try:
+        from app.domains.notifications.api.campaigns_router import router as admin_notifications_campaigns_router
+        app.include_router(admin_notifications_campaigns_router)
+    except Exception:
+        pass
 
     # Payments
     try:

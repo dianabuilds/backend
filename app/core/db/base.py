@@ -25,6 +25,9 @@ class Base(DeclarativeBase):
 # unrelated relationships which may depend on missing tables.
 if os.environ.get("TESTING") == "True":
     from app.domains.users.infrastructure.models.user import User  # noqa
+    from app.domains.notifications.infrastructure.models.campaign_models import (
+        NotificationCampaign,
+    )  # noqa
 else:
     from app.domains.users.infrastructure.models.user import User  # noqa
     from app.domains.nodes.infrastructure.models.node import Node  # noqa
@@ -40,6 +43,9 @@ else:
     )  # noqa
     from app.domains.notifications.infrastructure.models.notification_models import (
         Notification,
+    )  # noqa
+    from app.domains.notifications.infrastructure.models.campaign_models import (
+        NotificationCampaign,
     )  # noqa
     from app.domains.payments.infrastructure.models.payment_models import (
         PaymentGatewayConfig,

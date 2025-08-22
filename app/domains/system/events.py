@@ -9,6 +9,30 @@ from app.domains.navigation.application.cache_singleton import navcache
 
 
 @dataclass(frozen=True)
+class ContentPublished:
+    content_id: UUID
+    slug: str
+    author_id: UUID
+    id: str = field(default_factory=lambda: uuid4().hex)
+
+
+@dataclass(frozen=True)
+class ContentUpdated:
+    content_id: UUID
+    slug: str
+    author_id: UUID
+    id: str = field(default_factory=lambda: uuid4().hex)
+
+
+@dataclass(frozen=True)
+class ContentArchived:
+    content_id: UUID
+    slug: str
+    author_id: UUID
+    id: str = field(default_factory=lambda: uuid4().hex)
+
+
+@dataclass(frozen=True)
 class NodeCreated:
     node_id: UUID
     slug: str
@@ -107,6 +131,9 @@ def get_event_bus() -> EventBus:
 __all__ = [
     "NodeCreated",
     "NodeUpdated",
+    "ContentPublished",
+    "ContentUpdated",
+    "ContentArchived",
     "get_event_bus",
     "register_handlers",
     "handlers",
