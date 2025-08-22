@@ -1,5 +1,4 @@
 from __future__ import annotations
-from __future__ import annotations
 
 from datetime import datetime
 from uuid import UUID
@@ -83,20 +82,3 @@ async def notifications_websocket(
             await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(user.id, websocket)
-from fastapi import APIRouter
-
-router = APIRouter()
-
-from app.api.notifications import (  # noqa: E402
-    router as notifications_router,
-    ws_router as notifications_ws_router,
-)
-from app.api.admin_notifications import router as admin_notifications_router  # noqa: E402
-from app.api.admin_notifications_broadcast import (  # noqa: E402
-    router as admin_notifications_broadcast_router,
-)
-
-router.include_router(notifications_router)
-router.include_router(notifications_ws_router)
-router.include_router(admin_notifications_router)
-router.include_router(admin_notifications_broadcast_router)
