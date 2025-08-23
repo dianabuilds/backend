@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 let csrfTokenMem: string | null =
   typeof sessionStorage !== "undefined" ? sessionStorage.getItem("csrfToken") : null;
 
@@ -7,7 +9,7 @@ let accessTokenMem: string | null =
 
 // Храним текущий workspace_id для админских запросов
 let workspaceIdMem: string | null =
-  typeof sessionStorage !== "undefined" ? sessionStorage.getItem("workspaceId") : null;
+  typeof localStorage !== "undefined" ? localStorage.getItem("workspaceId") : null;
 
 export function setCsrfToken(token: string | null) {
   csrfTokenMem = token || null;
@@ -27,9 +29,9 @@ export function setAccessToken(token: string | null) {
 
 export function setWorkspaceId(id: string | null) {
   workspaceIdMem = id || null;
-  if (typeof sessionStorage !== "undefined") {
-    if (id) sessionStorage.setItem("workspaceId", id);
-    else sessionStorage.removeItem("workspaceId");
+  if (typeof localStorage !== "undefined") {
+    if (id) localStorage.setItem("workspaceId", id);
+    else localStorage.removeItem("workspaceId");
   }
 }
 
