@@ -1,0 +1,41 @@
+name: Docs
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+  pull_request:
+    paths:
+      - 'docs/**'
+
+jobs:
+  generate-openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Generate OpenAPI schema
+        run: |
+          python - <<'PYTHON'
+          from fastapi.openapi.utils import get_openapi
+          from apps.backend.app.main import app
+          import json, pathlib
+
+          schema = get_openapi(
+              title="API",
+              version="1.0.0",
+              description="",
+              routes=app.routes,
+          )
+          out = pathlib.Path("docs/openapi")
+          out.mkdir(parents=True, exist_ok=True)
+          out.joinpath("openapi.json").write_text(json.dumps(schema))
+          PYTHON
+
