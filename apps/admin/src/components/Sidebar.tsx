@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { getAdminMenu, type AdminMenuItem } from "../api/client";
 import { getIconComponent } from "../icons/registry";
@@ -16,8 +16,12 @@ function useExpandedState() {
   useEffect(() => {
     localStorage.setItem(KEY, JSON.stringify(expanded));
   }, [expanded]);
-  const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
-  const setOpen = (id: string, val: boolean) => setExpanded((s) => ({ ...s, [id]: val }));
+  const toggle = useCallback((id: string) => {
+    setExpanded((s) => ({ ...s, [id]: !s[id] }));
+  }, []);
+  const setOpen = useCallback((id: string, val: boolean) => {
+    setExpanded((s) => ({ ...s, [id]: val }));
+  }, []);
   return { expanded, toggle, setOpen };
 }
 
@@ -96,8 +100,7 @@ function MenuItem({ item, level, activePath, expanded, toggle }: { item: AdminMe
       if (childActive && !open) {
         toggle(item.id);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [childActive]);
+    }, [childActive, open, toggle, item.id]);
 
     return (
       <div>
@@ -169,7 +172,7 @@ export default function Sidebar() {
   const [loading, setLoading] = useState(false);
   const { expanded, toggle } = useExpandedState();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -182,12 +185,11 @@ export default function Sidebar() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [load]);
 
   const content = useMemo(() => {
     if (loading) {
@@ -220,7 +222,7 @@ export default function Sidebar() {
         ))}
       </nav>
     );
-  }, [loading, error, items, location.pathname, expanded]);
+  }, [loading, error, items, location.pathname, expanded, toggle]);
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-900 p-4 shadow-sm" aria-label="Sidebar navigation">
