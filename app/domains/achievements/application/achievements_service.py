@@ -43,12 +43,12 @@ class AchievementsService:
         user_id: UUID,
         achievement_id: UUID,
     ) -> bool:
-        if await self._repo.user_has_achievement(user_id, achievement_id):
+        if await self._repo.user_has_achievement(user_id, achievement_id, workspace_id):
             return False
         ach = await self._repo.get_achievement(achievement_id, workspace_id)
         if not ach:
             return False
-        await self._repo.add_user_achievement(user_id, achievement_id)
+        await self._repo.add_user_achievement(user_id, achievement_id, workspace_id)
         await self._notifier.notify(
             user_id, title="Achievement unlocked", message=ach.title
         )
@@ -65,7 +65,7 @@ class AchievementsService:
         ach = await self._repo.get_achievement(achievement_id, workspace_id)
         if not ach:
             return False
-        ok = await self._repo.delete_user_achievement(user_id, achievement_id)
+        ok = await self._repo.delete_user_achievement(user_id, achievement_id, workspace_id)
         if ok:
             await db.commit()
         return ok
@@ -115,12 +115,16 @@ class AchievementsService:
                 select(UserAchievement).where(
                     UserAchievement.user_id == user_id,
                     UserAchievement.achievement_id == ach.id,
+                    UserAchievement.workspace_id == ach.workspace_id,
                 )
             )
             if exists.scalars().first():
                 continue
             ua = UserAchievement(
-                user_id=user_id, achievement_id=ach.id, unlocked_at=datetime.utcnow()
+                user_id=user_id,
+                achievement_id=ach.id,
+                workspace_id=ach.workspace_id,
+                unlocked_at=datetime.utcnow(),
             )
             db.add(ua)
             note = Notification(
