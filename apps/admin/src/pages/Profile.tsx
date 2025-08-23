@@ -4,15 +4,11 @@ import PageLayout from "./_shared/PageLayout";
 import { api } from "../api/client";
 import { useToast } from "../components/ToastProvider";
 import { useWorkspace } from "../workspace/WorkspaceContext";
-
-interface Workspace {
-  id: string;
-  name: string;
-}
+import type { Workspace } from "../api/types";
 
 export default function Profile() {
   const { addToast } = useToast();
-  const { setWorkspaceId } = useWorkspace();
+  const { setWorkspace } = useWorkspace();
   const [defaultWs, setDefaultWs] = useState<string>(
     () => (typeof localStorage !== "undefined" && localStorage.getItem("defaultWorkspaceId")) || ""
   );
@@ -21,9 +17,9 @@ export default function Profile() {
     queryKey: ["workspaces"],
     queryFn: async () => {
       const res = await api.get<Workspace[] | { workspaces: Workspace[] }>("/admin/workspaces");
-      const payload = res.data as any;
-      if (Array.isArray(payload)) return payload as Workspace[];
-      return (payload?.workspaces as Workspace[] | undefined) || [];
+      const payload = res.data;
+      if (Array.isArray(payload)) return payload;
+      return payload?.workspaces ?? [];
     },
   });
 
@@ -31,7 +27,7 @@ export default function Profile() {
     if (typeof localStorage !== "undefined") {
       localStorage.setItem("defaultWorkspaceId", defaultWs);
     }
-    setWorkspaceId(defaultWs);
+    setWorkspace(data?.find((ws) => ws.id === defaultWs));
     addToast({ title: "Default workspace saved", variant: "success" });
   };
 
