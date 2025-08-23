@@ -13,12 +13,19 @@ from app.core.db.session import get_db
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.quest import QuestOut, QuestUpdate
-from app.schemas.quest_validation import ValidationReport, AutofixRequest, AutofixReport, PublishRequest
+from app.schemas.quest_validation import (
+    ValidationReport,
+    AutofixRequest,
+    AutofixReport,
+    PublishRequest,
+)
 from app.schemas.content_common import ContentStatus
 from app.security import ADMIN_AUTH_RESPONSES, require_ws_editor, auth_user
 from app.domains.workspaces.application.service import scope_by_workspace
 from app.domains.audit.application.audit_service import audit_log
 from app.domains.quests.validation import validate_quest
+from app.domains.content import service as content_service
+from app.domains.content.service import validate_transition
 
 router = APIRouter(
     prefix="/admin/quests",
@@ -271,6 +278,11 @@ async def post_quest_publish(
     if report.errors > 0:
         raise HTTPException(status_code=409, detail="Validation errors prevent publishing")
 
+    # Требуем статус in_review перед публикацией
+    if q.status != ContentStatus.in_review:
+        raise HTTPException(status_code=400, detail="Quest must be in review")
+    validate_transition(q.status, ContentStatus.published)
+
     before = {
         "status": q.status,
         "visibility": q.visibility,
@@ -286,6 +298,8 @@ async def post_quest_publish(
         q.cover_image = body.cover_url
 
     await db.commit()
+
+    await content_service.publish_content(q.id, q.slug, current.id)
 
     await audit_log(
         db,

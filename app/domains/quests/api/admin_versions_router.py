@@ -10,7 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
 from app.domains.quests.infrastructure.models.quest_models import Quest
-from app.domains.quests.infrastructure.models.quest_version_models import QuestVersion, QuestGraphNode, QuestGraphEdge
+from app.domains.quests.infrastructure.models.quest_version_models import (
+    QuestVersion,
+    QuestGraphNode,
+    QuestGraphEdge,
+)
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.quest_editor import (
     QuestCreateIn,
@@ -26,6 +30,9 @@ from app.schemas.quest_editor import (
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.domains.quests.application.editor_service import EditorService
 from app.domains.audit.application.audit_service import audit_log
+from app.domains.content import service as content_service
+from app.schemas.content_common import ContentStatus
+from app.domains.content.service import validate_transition
 
 admin_required = require_admin_role({"admin", "moderator", "editor"})
 
@@ -306,7 +313,10 @@ async def publish_version(
 
     q = await db.get(Quest, v.quest_id)
     if q:
-        q.is_draft = False
+        if q.status != ContentStatus.in_review:
+            raise HTTPException(status_code=400, detail="Quest must be in review")
+        validate_transition(q.status, ContentStatus.published)
+        q.status = ContentStatus.published
         q.published_at = datetime.utcnow()
 
     await audit_log(
@@ -319,6 +329,8 @@ async def publish_version(
         request=request,
     )
     await db.commit()
+    if q:
+        await content_service.publish_content(q.id, q.slug, current_user.id)
     return {"ok": True}
 
 
