@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship
 
 from app.core.db.base import Base
 from app.core.db.adapters import UUID
-from app.schemas.content_common import ContentStatus
+from app.schemas.content_common import ContentStatus, ContentVisibility
 
 
 class ContentItem(Base):
@@ -21,6 +21,11 @@ class ContentItem(Base):
         sa.Enum(ContentStatus, name="content_status"),
         nullable=False,
         server_default=ContentStatus.draft.value,
+    )
+    visibility = sa.Column(
+        sa.Enum(ContentVisibility, name="content_visibility"),
+        nullable=False,
+        server_default=ContentVisibility.private.value,
     )
     version = sa.Column(sa.Integer, nullable=False, server_default="1")
     slug = sa.Column(sa.String, unique=True, index=True, nullable=False)

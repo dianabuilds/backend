@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
 from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
+from app.schemas.workspaces import WorkspaceRole
 
 from .exceptions import (
     AuthRequiredError,
@@ -122,7 +123,7 @@ async def require_ws_editor(
         db, workspace_id=workspace_id, user_id=user.id
     )
     if not (
-        user.role == "admin" or (m and m.role in ("owner", "editor"))
+        user.role == "admin" or (m and m.role in (WorkspaceRole.owner, WorkspaceRole.editor))
     ):
         raise HTTPException(status_code=403, detail="Forbidden")
     return m
