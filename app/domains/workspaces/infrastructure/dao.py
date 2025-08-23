@@ -6,7 +6,7 @@ from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.schemas.workspaces import WorkspaceRole
+from app.schemas.workspaces import WorkspaceRole, WorkspaceSettings
 
 from .models import Workspace, WorkspaceMember
 
@@ -21,13 +21,13 @@ class WorkspaceDAO:
         name: str,
         slug: str,
         owner_user_id: UUID,
-        settings: dict[str, object] | None = None,
+        settings: WorkspaceSettings | None = None,
     ) -> Workspace:
         workspace = Workspace(
             name=name,
             slug=slug,
             owner_user_id=owner_user_id,
-            settings_json=settings or {},
+            settings_json=settings.model_dump() if settings else {},
         )
         db.add(workspace)
         await db.flush()
@@ -55,14 +55,14 @@ class WorkspaceDAO:
         *,
         name: str | None = None,
         slug: str | None = None,
-        settings: dict[str, object] | None = None,
+        settings: WorkspaceSettings | None = None,
     ) -> Workspace:
         if name is not None:
             workspace.name = name
         if slug is not None:
             workspace.slug = slug
         if settings is not None:
-            workspace.settings_json = settings
+            workspace.settings_json = settings.model_dump()
         await db.flush()
         return workspace
 
