@@ -14,8 +14,10 @@ export default function ValidationCenter({ type, id }: Props) {
   const run = async () => {
     setLoading(true);
     try {
-      const res = await api.post(`/content/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`);
-      setReport(res.data?.report || null);
+      const res = await api.post<{ report?: unknown }>(
+        `/content/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
+      );
+      setReport(res.data?.report ?? null);
     } finally {
       setLoading(false);
     }
