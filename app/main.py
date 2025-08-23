@@ -33,7 +33,7 @@ from app.core.db.session import (
     close_db_connection,
     init_db,
 )
-from app.domains.system.bootstrap import ensure_default_admin
+from app.domains.system.bootstrap import ensure_default_admin, ensure_global_workspace
 from app.core.rate_limit import init_rate_limiter, close_rate_limiter
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.cookies_security_middleware import CookiesSecurityMiddleware
@@ -216,6 +216,11 @@ async def startup_event():
             await ensure_default_admin()
         except Exception as e:
             logger.warning(f"Admin bootstrap failed: {e}")
+        # Глобальное рабочее пространство для доверенной группы
+        try:
+            await ensure_global_workspace()
+        except Exception as e:
+            logger.warning(f"Global workspace bootstrap failed: {e}")
     else:
         logger.error("Failed to connect to database during startup")
 
