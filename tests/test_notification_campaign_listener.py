@@ -13,7 +13,7 @@ from app.domains.notifications.infrastructure.models.campaign_models import (
 
 
 @pytest.mark.asyncio
-async def test_content_published_creates_campaign(db_session):
+async def test_node_published_creates_campaign(db_session):
     @asynccontextmanager
     async def _cm():
         yield db_session

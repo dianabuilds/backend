@@ -8,10 +8,10 @@ from app.domains.system import events
 
 
 @pytest.mark.asyncio
-async def test_content_published_triggers_index_and_cache(monkeypatch):
+async def test_node_published_triggers_index_and_cache(monkeypatch):
     called = {"index": 0, "cache": 0}
 
-    async def fake_index(content_id):
+    async def fake_index(node_id):
         called["index"] += 1
 
     async def fake_cache_all():
