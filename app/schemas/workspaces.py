@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -31,15 +32,21 @@ class WorkspaceUpdate(BaseModel):
     settings: dict[str, object] | None = None
 
 
+class WorkspaceRole(str, Enum):
+    owner = "owner"
+    editor = "editor"
+    viewer = "viewer"
+
+
 class WorkspaceMemberIn(BaseModel):
     user_id: UUID
-    role: str
+    role: WorkspaceRole
 
 
 class WorkspaceMemberOut(BaseModel):
     workspace_id: UUID
     user_id: UUID
-    role: str
+    role: WorkspaceRole
 
     class Config:
         orm_mode = True

@@ -9,6 +9,7 @@ from app.schemas.workspaces import (
     WorkspaceIn,
     WorkspaceUpdate,
     WorkspaceMemberIn,
+    WorkspaceRole,
 )
 from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 from app.domains.workspaces.infrastructure.dao import WorkspaceMemberDAO
@@ -27,7 +28,7 @@ class WorkspaceService:
         db.add(workspace)
         db.add(
             WorkspaceMember(
-                workspace=workspace, user_id=owner.id, role="owner"
+                workspace=workspace, user_id=owner.id, role=WorkspaceRole.owner
             )
         )
         await db.commit()
@@ -77,7 +78,7 @@ class WorkspaceService:
     @staticmethod
     def ensure_owner(user: User, member: WorkspaceMember | None) -> None:
         if user.role != "admin" and (
-            member is None or member.role != "owner"
+            member is None or member.role != WorkspaceRole.owner
         ):
             raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -102,7 +103,7 @@ class WorkspaceService:
 
     @staticmethod
     async def update_member(
-        db: AsyncSession, workspace_id: UUID, user_id: UUID, role: str
+        db: AsyncSession, workspace_id: UUID, user_id: UUID, role: WorkspaceRole
     ) -> WorkspaceMember:
         member = await WorkspaceMemberDAO.get(
             db, workspace_id=workspace_id, user_id=user_id
