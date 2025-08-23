@@ -21,7 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.tags.infrastructure.models.tag_models import NodeTag, Tag
+from app.domains.tags.infrastructure.models.tag_models import NodeTag
+from app.domains.tags.models import Tag
 from app.schemas.node import NodeCreate, NodeUpdate
 
 try:  # pragma: no cover - optional legacy dependency

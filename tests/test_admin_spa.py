@@ -4,7 +4,7 @@ from pathlib import Path
 
 @pytest.mark.asyncio
 async def test_admin_spa_placeholder(client):
-    resp = await client.get("/admin")
+    resp = await client.get("/admin", headers={"accept": "text/html"})
     assert resp.status_code == 200
     assert "Admin SPA build not found" in resp.text
 
@@ -18,11 +18,11 @@ async def test_admin_spa_serves_index_and_fallback(client, monkeypatch):
 
     monkeypatch.setenv("TESTING", "False")
 
-    resp = await client.get("/admin")
+    resp = await client.get("/admin", headers={"accept": "text/html"})
     assert resp.status_code == 200
     assert "Admin SPA" in resp.text
 
-    resp = await client.get("/admin/some/route")
+    resp = await client.get("/admin/some/route", headers={"accept": "text/html"})
     assert resp.status_code == 200
     assert "Admin SPA" in resp.text
 
@@ -39,7 +39,11 @@ async def test_admin_assets_cache_headers(client, monkeypatch):
     from app.main import app
     from app.web.immutable_static import ImmutableStaticFiles
 
-    app.mount("/admin/assets", ImmutableStaticFiles(directory=assets_dir), name="admin-assets-test")
+    app.mount(
+        "/admin/assets",
+        ImmutableStaticFiles(directory=assets_dir),
+        name="admin-assets-test",
+    )
 
     monkeypatch.setenv("TESTING", "False")
 
