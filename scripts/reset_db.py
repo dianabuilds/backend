@@ -3,10 +3,16 @@ import importlib
 import os
 import pkgutil
 import sys
+from pathlib import Path
 from typing import Iterable, Set
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+
+# Добавляем корневую директорию проекта в PYTHONPATH
+current_file = Path(__file__).resolve()
+project_root = current_file.parent.parent
+sys.path.insert(0, str(project_root))
 
 
 def _log(msg: str) -> None:
@@ -16,7 +22,7 @@ def _log(msg: str) -> None:
 def _is_production() -> bool:
     # Пытаемся взять окружение из настроек, если есть; иначе используем переменные окружения
     try:
-        from app.core.config import settings  # type: ignore
+        from apps.backend.app.core.config import settings  # type: ignore
         env = getattr(settings, "environment", None) or os.getenv("APP_ENV") or os.getenv("ENV")
     except Exception:
         env = os.getenv("APP_ENV") or os.getenv("ENV")
@@ -63,12 +69,12 @@ def _detect_is_postgres(engine: AsyncEngine) -> bool:
 
 def _import_all_models() -> None:
     """
-    Импортирует все модули внутри app.models, чтобы зарегистрировать все ORM-классы в MetaData.
+    Импортирует все модули внутри apps.backend.app.models, чтобы зарегистрировать все ORM-классы в MetaData.
     """
     try:
-        pkg = importlib.import_module("app.models")
+        pkg = importlib.import_module("apps.backend.app.models")
     except Exception as e:
-        _log(f"Не удалось импортировать пакет app.models: {e}")
+        _log(f"Не удалось импортировать пакет apps.backend.app.models: {e}")
         return
 
     if not hasattr(pkg, "__path__"):
@@ -548,7 +554,7 @@ async def reset_database() -> None:
             _import_all_models()
             metadatas = _collect_all_metadatas()
             if not metadatas:
-                _log("Внимание: не найдено MetaData у моделей. Проверьте, что все модели в app.models импортируются.")
+                _log("Внимание: не найдено MetaData у моделей. Проверьте, что все модели в apps.backend.app.models импортируются.")
             else:
                 _log(f"Найдено {len(metadatas)} наборов MetaData.")
 
