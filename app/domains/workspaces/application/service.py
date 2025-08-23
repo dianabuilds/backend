@@ -91,6 +91,8 @@ class WorkspaceService:
             slug=slug,
             owner_user_id=owner.id,
             settings_json=data.settings,
+            type=data.type,
+            is_system=data.is_system,
         )
         db.add(workspace)
         db.add(
@@ -148,6 +150,10 @@ class WorkspaceService:
             workspace.slug = data.slug
         if data.settings is not None:
             workspace.settings_json = data.settings
+        if data.type is not None:
+            workspace.type = data.type
+        if data.is_system is not None:
+            workspace.is_system = data.is_system
         await db.commit()
         await db.refresh(workspace)
         return workspace

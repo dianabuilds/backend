@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship
 
 from app.core.db.base import Base
 from app.core.db.adapters import UUID, JSONB
-from app.schemas.workspaces import WorkspaceRole
+from app.schemas.workspaces import WorkspaceRole, WorkspaceType
 
 
 class Workspace(Base):
@@ -19,6 +19,18 @@ class Workspace(Base):
     slug = sa.Column(sa.String, nullable=False, unique=True, index=True)
     owner_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=False)
     settings_json = sa.Column(JSONB, nullable=False, server_default=sa.text("'{}'"))
+    type = sa.Column(
+        sa.Enum(WorkspaceType, name="workspace_type"),
+        nullable=False,
+        server_default="team",
+        default=WorkspaceType.team,
+    )
+    is_system = sa.Column(
+        sa.Boolean,
+        nullable=False,
+        server_default=sa.false(),
+        default=False,
+    )
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
     updated_at = sa.Column(sa.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
