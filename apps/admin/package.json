@@ -3,13 +3,14 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "scripts": {
-    "build && start": "tsc -b && vite build && vite",
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc -b && vite build",
+      "start": "vite",
+      "build:start": "npm run build && npm run start",
+      "lint": "eslint .",
+      "preview": "vite preview"
+    },
   "dependencies": {
     "@tanstack/react-query": "^5.59.7",
     "@tanstack/react-table": "^8.15.1",
