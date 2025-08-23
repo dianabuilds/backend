@@ -1,125 +1,50 @@
 # Backend сервис
 
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+Асинхронный backend на FastAPI и SQLAlchemy 2.0. Сервис предоставляет REST и WebSocket API для работы с пользователями, контентными узлами и AI‑подсистемой.
 
-Современный асинхронный бэкенд на FastAPI и SQLAlchemy 2.0 с поддержкой:
-- Аутентификации по логину/паролю (JWT) и EVM‑подписей
-- Пользовательских профилей, ролей и премиум‑статусов
-- Контентных узлов с тегами, переходами, метриками и эмбеддингами
-- Модерации, уведомлений, квестов/достижений и платежей
+## Возможности
+- Аутентификация по паролю и EVM‑подписей
+- Профили пользователей, роли и премиум‑статусы
+- Узлы контента с тегами, переходами и эмбеддингами
+- Модерация, уведомления и платёжный модуль
 
-## CI
+## Быстрый старт
+1. Установить зависимости:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Создать файл `.env` на основе `.env.example` и заполнить переменные окружения.
+3. Инициализировать базу данных:
+   ```bash
+   python scripts/init_db.py
+   ```
+4. Запустить сервер разработки:
+   ```bash
+   ./scripts/run.sh --dev
+   ```
+5. Для запуска в продакшене используйте:
+   ```bash
+   ./scripts/run.sh --prod --workers 4
+   ```
+6. Фоновый AI‑воркер:
+   ```bash
+   python scripts/run_ai_worker.py
+   ```
+7. Заполнить базу тестовыми данными:
+   ```bash
+   python scripts/seed_db.py --users 5 --nodes 30
+   ```
 
-- PR в ветки `main` и `develop` запускают линтеры (`ruff`), проверку форматирования (`black --check`), типизацию (`mypy`), миграции `alembic upgrade head` и тесты `pytest`.
-- Push в `main` дополнительно собирает и публикует Docker‑образ в GHCR.
-
-## Архитектура
-Краткое описание основных компонент приведено ниже. Детали см. в [docs/architecture.md](docs/architecture.md).
-
-- FastAPI в качестве веб‑фреймворка
-- SQLAlchemy (async) + PostgreSQL/pgvector
-- Слои моделей, репозиториев и сервисов
-- Движок навигации (compass/echo/random) и кеш Redis
-- WebSocket‑уведомления и SMTP‑почта
-- Подсистема квестов и достижений
-- Платежный модуль для покупки премиума
-
-## Локальная установка
-Пошаговая инструкция находится в [docs/local_setup.md](docs/local_setup.md). Кратко:
-1. Создайте виртуальное окружение и установите зависимости `pip install -r requirements.txt`.
-2. Скопируйте `.env.example` в `.env` и заполните переменные окружения (БД, JWT, SMTP, CORS, Redis, Sentry, Embeddings).
-3. Запустите PostgreSQL с расширением pgvector и примените миграции `alembic upgrade head`.
-4. Запустите сервер разработки `uvicorn apps.backend.app.main:app --reload` и откройте Swagger на `/docs`.
-
-## Деплой в production
-Рекомендации по продакшн‑запуску описаны в [docs/deployment.md](docs/deployment.md). Основной чек‑лист:
-1. Сгенерируйте уникальные `JWT__SECRET` и `PAYMENT__JWT_SECRET`.
-2. Установите реальные параметры БД и удалите значения `change_me`.
-3. Ограничьте `CORS_ALLOWED_ORIGINS` доверенными доменами и настройте защищённые cookie. Для запросов из браузера передавайте CSRF‑токен в заголовке `X-CSRF-Token` (значение берётся из cookie `XSRF-TOKEN`); при Bearer‑авторизации без cookies CSRF не требуется.
-4. Выполните Alembic‑миграции и настройте расширение `pgvector`.
-5. Укажите `SENTRY_DSN`, уровни логирования и подключите мониторинг.
-
-## Зависимости и запуск
-- Python 3.13+, FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, Passlib, PyJWT, Jinja2
-- Конфигурационные файлы: `.env`, `.env.example`, `alembic.ini`, `requirements.txt`
-- Запуск:
-  - Dev: `uvicorn apps.backend.app.main:app --reload`
-  - Prod: `gunicorn apps.backend.app.main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000`
-- Тесты: `pytest`
-- Покрытие: `coverage run -m pytest && coverage report`
-- Лёгкий нагрузочный прогон: `python scripts/light_load_test.py`
-
-Подробнее о подходе к тестированию см. в [docs/test_plan.md](docs/test_plan.md).
-
-## Настройка почты
-Отправка писем реализована через SMTP. Все параметры настраиваются через переменные окружения с префиксом `SMTP_`.
-
-- `SMTP_MOCK` — если `True`, письма не отправляются, а только логируются (используйте в dev/staging)
-- `SMTP_HOST` — адрес SMTP‑сервера
-- `SMTP_PORT` — порт сервера
-- `SMTP_USERNAME` — логин или имя пользователя
-- `SMTP_PASSWORD` — пароль или API‑ключ
-- `SMTP_TLS` — включить TLS при подключении
-- `SMTP_MAIL_FROM` — адрес отправителя
-- `SMTP_MAIL_FROM_NAME` — имя отправителя
-
-В разработке оставляйте `SMTP_MOCK=True`. Для боевого окружения установите `SMTP_MOCK=False` и заполните остальные поля.
-
-Пример конфигурации для SendGrid:
-```
-SMTP_HOST=smtp.sendgrid.net
-SMTP_PORT=587
-SMTP_USERNAME=apikey
-SMTP_PASSWORD=<SG_API_KEY>
-SMTP_TLS=True
-SMTP_MAIL_FROM=noreply@example.com
-SMTP_MAIL_FROM_NAME=Наш новый сайт
+## Тесты
+```bash
+pytest
 ```
 
-## Настройка эмбеддингов
-Для использования внешних провайдеров эмбеддингов задайте переменные окружения. Пример для AIML API:
-```
-EMBEDDING_PROVIDER=aimlapi
-EMBEDDING_API_BASE=https://api.aimlapi.com/v1/embeddings
-EMBEDDING_MODEL=text-embedding-3-small
-EMBEDDING_API_KEY=<ваш ключ>
-EMBEDDING_DIM=384
-```
-Реальный ключ храните только в локальном `.env` (файл игнорируется git).
+## Структура проекта
+- `apps/backend/app` – код приложения и доменные модули
+- `apps/backend/alembic` – миграции базы данных
+- `scripts` – вспомогательные скрипты
+- `docs` – документация и руководства
 
-## API документация
-Swagger доступен по адресу `http://localhost:8000/docs`, Redoc — `http://localhost:8000/redoc`.
-
-## Workspaces and content
-
-See [docs/workspaces_and_content.md](docs/workspaces_and_content.md) for
-workspace roles, status lifecycle, tag taxonomy and the publication
-checklist.
-
-## Admin API
-
-Доступные только модераторам и выше административные эндпойнты:
-
-- `GET /admin/transitions` — список переходов с фильтрами (`from`, `to`, `type`, `author`) и пагинацией (`page`, `page_size`).
-- `PATCH /admin/transitions/{id}` — обновление параметров перехода.
-- `DELETE /admin/transitions/{id}` — удаление перехода.
-- `POST /admin/transitions/disable_by_node` — блокировка всех переходов, связанных с узлом.
-- `GET /admin/tags` — список тегов с фильтрами (`search`, `hidden`) и пагинацией (`page`, `page_size`).
-- `POST /admin/tags` — создание тега.
-- `PATCH /admin/tags/{slug}` — переименование или скрытие/показ тега.
-- `POST /admin/tags/merge` — объединение тегов (`from_slug` → `to_slug`).
-- `POST /admin/tags/{slug}/detach` — отвязка тега от узлов (всех или выбранных).
-- `POST /admin/navigation/run` — выполнить генерацию навигации для узла и пользователя/анонима.
-- `POST /admin/navigation/cache/set` — установить кэш навигации для пары пользователь/узел.
-- `POST /admin/navigation/cache/invalidate` — инвалидация кэша навигации по узлу, пользователю или полностью.
-- `GET /admin/navigation/pgvector/status` — статус поддержки pgvector.
-- `GET /admin/echo` — список echo-трасс с фильтрами (`from`, `to`, `user_id`, `date_from`, `date_to`) и пагинацией (`page`, `page_size`).
-- `POST /admin/echo/{id}/anonymize` — анонимизация эхо-трассы (admin).
-- `DELETE /admin/echo/{id}` — удаление эхо-трассы.
-- `POST /admin/echo/recompute_popularity` — пересчёт популярности узлов.
-- `GET /admin/cache/stats` — статистика кеша (хиты/промахи, горячие ключи, TTL).
-- `POST /admin/cache/invalidate_by_pattern` — инвалидация кеша по паттерну (admin).
-- `GET /admin/ratelimit/rules` — список правил лимитирования.
-- `GET /admin/ratelimit/recent429` — последние срабатывания лимитов (429).
-- `POST /admin/ratelimit/disable` — временно отключить лимитатор (admin, dev).
-- `GET /admin/audit` — просмотр журнала аудита действий.
+## Лицензия
+Проект распространяется под лицензией MIT.
