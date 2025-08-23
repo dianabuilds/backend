@@ -1,3 +1,4 @@
+/* eslint react-refresh/only-export-components: off */
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { setWorkspaceId as persistWorkspaceId } from "../api/client";
 
@@ -12,9 +13,12 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
 });
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const [workspaceId, setWorkspaceIdState] = useState<string>(
-    () => sessionStorage.getItem("workspaceId") || "",
-  );
+  const [workspaceId, setWorkspaceIdState] = useState<string>(() => {
+    const stored =
+      (typeof localStorage !== "undefined" && localStorage.getItem("workspaceId")) || "";
+    persistWorkspaceId(stored || null);
+    return stored;
+  });
 
   const setWorkspaceId = (id: string) => {
     setWorkspaceIdState(id);
