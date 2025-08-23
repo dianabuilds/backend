@@ -24,7 +24,9 @@ class WorldTemplate(Base):
     __tablename__ = "world_templates"
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    workspace_id = Column(PGUUID(as_uuid=True), ForeignKey("workspaces.id"), nullable=False)
+    workspace_id = Column(
+        PGUUID(as_uuid=True), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
     title = Column(String, nullable=False)
     locale = Column(String, nullable=True)
     description = Column(Text, nullable=True)
@@ -41,8 +43,12 @@ class WorldTemplate(Base):
         nullable=False,
         server_default=ContentVisibility.private.value,
     )
-    created_by_user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    updated_by_user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_by_user_id = Column(
+        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    updated_by_user_id = Column(
+        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
@@ -58,7 +64,9 @@ class Character(Base):
     __tablename__ = "characters"
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    workspace_id = Column(PGUUID(as_uuid=True), ForeignKey("workspaces.id"), nullable=False)
+    workspace_id = Column(
+        PGUUID(as_uuid=True), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
     world_id = Column(
         PGUUID(as_uuid=True),
         ForeignKey("world_templates.id", ondelete="CASCADE"),
@@ -80,8 +88,12 @@ class Character(Base):
         nullable=False,
         server_default=ContentVisibility.private.value,
     )
-    created_by_user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    updated_by_user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_by_user_id = Column(
+        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    updated_by_user_id = Column(
+        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
