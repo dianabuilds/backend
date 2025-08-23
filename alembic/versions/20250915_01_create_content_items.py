@@ -15,7 +15,7 @@ down_revision = "20250901_world_char_ws"
 branch_labels = None
 depends_on = None
 
-content_status = sa.Enum(
+content_status = postgresql.ENUM(
     "draft",
     "in_review",
     "published",
@@ -27,7 +27,11 @@ content_status = sa.Enum(
 
 def upgrade() -> None:
     bind = op.get_bind()
-    content_status.create(bind, checkfirst=True)
+    existing = bind.execute(
+        sa.text("SELECT 1 FROM pg_type WHERE typname = 'content_status'")
+    ).scalar()
+    if not existing:
+        content_status.create(bind)
 
     op.create_table(
         "content_items",
