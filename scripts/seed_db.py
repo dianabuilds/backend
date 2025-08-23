@@ -13,6 +13,8 @@ import asyncio
 import logging
 import random
 import string
+import sys
+from pathlib import Path
 from datetime import datetime, timedelta
 from typing import List
 from uuid import UUID
@@ -20,14 +22,19 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.core.security import get_password_hash
-from app.core.db.session import init_db, create_tables, db_session
-from app.domains.ai.application.embedding_service import update_node_embedding
-from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType
-from app.domains.navigation.infrastructure.models.echo_models import EchoTrace
-from app.domains.users.infrastructure.models.user import User
+# Добавляем корневую директорию проекта в PYTHONPATH
+current_file = Path(__file__).resolve()
+project_root = current_file.parent.parent
+sys.path.insert(0, str(project_root))
+
+from apps.backend.app.core.config import settings
+from apps.backend.app.core.security import get_password_hash
+from apps.backend.app.core.db.session import init_db, create_tables, db_session
+from apps.backend.app.domains.ai.application.embedding_service import update_node_embedding
+from apps.backend.app.domains.nodes.infrastructure.models.node import Node
+from apps.backend.app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType
+from apps.backend.app.domains.navigation.infrastructure.models.echo_models import EchoTrace
+from apps.backend.app.domains.users.infrastructure.models.user import User
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
