@@ -230,6 +230,7 @@ export interface RequestOptions extends RequestInit {
   acceptNotModified?: boolean;
   json?: unknown;
   timeoutMs?: number;
+  retry?: number;
 }
 
 export interface ApiResponse<T = unknown> {
@@ -260,18 +261,30 @@ async function request<T = unknown>(url: string, opts: RequestOptions = {}): Pro
   if (opts.json !== undefined) headers["Content-Type"] = "application/json";
   if (opts.etag) headers["If-None-Match"] = opts.etag;
 
+  let attempts = 0;
   let resp: Response;
-  try {
-    resp = await apiFetch(url, {
-      ...opts,
-      headers,
-      body: opts.json !== undefined ? JSON.stringify(opts.json) : opts.body,
-    });
-  } catch (e: any) {
-    if (e && e.message === "RequestTimeout") {
-      throw new ApiError("Превышено время ожидания запроса. Проверьте соединение или повторите попытку позже.", 0, "REQUEST_TIMEOUT");
+  while (true) {
+    try {
+      resp = await apiFetch(url, {
+        ...opts,
+        headers,
+        body: opts.json !== undefined ? JSON.stringify(opts.json) : opts.body,
+      });
+      break;
+    } catch (e: any) {
+      attempts += 1;
+      if (attempts <= (opts.retry || 0)) {
+        continue;
+      }
+      if (e && e.message === "RequestTimeout") {
+        throw new ApiError(
+          "Превышено время ожидания запроса. Проверьте соединение или повторите попытку позже.",
+          0,
+          "REQUEST_TIMEOUT",
+        );
+      }
+      throw e;
     }
-    throw e;
   }
   const etag = resp.headers.get("ETag");
 

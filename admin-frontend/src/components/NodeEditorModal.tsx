@@ -1,7 +1,8 @@
-import { memo, useEffect, useMemo } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import EditorJSEmbed from "./EditorJSEmbed";
 import MediaPicker from "./MediaPicker";
 import TagInput from "./TagInput";
+import { useUnsavedChanges } from "../utils/useUnsavedChanges";
 
 export interface NodeEditorData {
   id: string;
@@ -27,6 +28,52 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
   if (!open || !node) return null;
 
   const heading = useMemo(() => (node.title?.trim() ? "Редактировать пещеру" : "Создать пещеру"), [node.title]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const initialJson = useRef<string>(JSON.stringify(node));
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    initialJson.current = JSON.stringify(node);
+    setDirty(false);
+  }, [node.id]);
+
+  useEffect(() => {
+    setDirty(JSON.stringify(node) !== initialJson.current);
+  }, [node]);
+
+  const handleClose = useCallback(() => {
+    if (dirty && !window.confirm('Есть несохранённые изменения. Закрыть?')) return;
+    onClose();
+  }, [dirty, onClose]);
+
+  useUnsavedChanges(dirty);
+
+  // Trap focus inside modal
+  useEffect(() => {
+    if (!open) return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'a[href],button,textarea,input,select,[tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.[0]?.focus();
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClose();
+      }
+      if (e.key !== 'Tab' || !focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open, handleClose]);
 
   // Сохраняем актуальное содержимое редактора перед коммитом
   const handleCommit = async (action: "save" | "next") => {
@@ -72,11 +119,19 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-[95vw] md:max-w-7xl max-h-[92vh] flex flex-col">
+      <div
+        ref={dialogRef}
+        className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-[95vw] md:max-w-7xl max-h-[92vh] flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="node-editor-heading"
+      >
         {/* Header */}
         <div className="px-5 py-3 border-b flex items-center justify-between">
-          <h2 className="text-xl font-semibold">{heading}</h2>
-          <button className="px-2 py-1 text-sm rounded border" onClick={onClose}>
+          <h2 id="node-editor-heading" className="text-xl font-semibold">
+            {heading}
+          </h2>
+          <button className="px-2 py-1 text-sm rounded border" onClick={handleClose} aria-label="Закрыть модалку">
             Закрыть
           </button>
         </div>
@@ -165,7 +220,7 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
 
         {/* Footer */}
         <div className="px-5 py-3 border-t flex items-center justify-end gap-3">
-          <button className="px-4 py-1.5 rounded border" onClick={onClose} disabled={busy}>
+          <button className="px-4 py-1.5 rounded border" onClick={handleClose} disabled={busy}>
             Отмена
           </button>
           <button

@@ -3,6 +3,7 @@ import { api } from "../api/client";
 import CursorPager from "../components/CursorPager";
 import ErrorBanner from "../components/ErrorBanner";
 import DataTable, { type Column } from "../components/DataTable";
+import { useToast } from "../components/ToastProvider";
 
 type Tx = {
   id: string;
@@ -34,6 +35,7 @@ export default function PaymentsTransactions() {
   const [next, setNext] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   const buildQuery = useCallback((cursor?: string | null) => {
     const qs = new URLSearchParams();
@@ -49,33 +51,35 @@ export default function PaymentsTransactions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>(`/admin/payments/transactions_cursor?${buildQuery(null)}`);
+      const res = await api.get<any>(`/admin/payments/transactions_cursor?${buildQuery(null)}`, { retry: 1 });
       const data: CursorResp = res.data || { items: [], next_cursor: null };
       setRows(Array.isArray(data.items) ? data.items : []);
       setNext((data as any).next_cursor || null);
     } catch (e: any) {
       setError(e?.message || "Ошибка загрузки");
+      addToast({ title: "Ошибка загрузки", description: e?.message, variant: "error" });
     } finally {
       setLoading(false);
     }
-  }, [buildQuery]);
+  }, [buildQuery, addToast]);
 
   const loadMore = useCallback(async () => {
     if (!next) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>(`/admin/payments/transactions_cursor?${buildQuery(next)}`);
+      const res = await api.get<any>(`/admin/payments/transactions_cursor?${buildQuery(next)}`, { retry: 1 });
       const data: CursorResp = res.data || { items: [], next_cursor: null };
       const newItems = Array.isArray(data.items) ? data.items : [];
       setRows((prev) => [...prev, ...newItems]);
       setNext((data as any).next_cursor || null);
     } catch (e: any) {
       setError(e?.message || "Ошибка загрузки");
+      addToast({ title: "Ошибка загрузки", description: e?.message, variant: "error" });
     } finally {
       setLoading(false);
     }
-  }, [buildQuery, next]);
+  }, [buildQuery, next, addToast]);
 
   useEffect(() => {
     loadFirst();
@@ -96,7 +100,6 @@ export default function PaymentsTransactions() {
       </div>
 
       <div className="rounded border p-3">
-        {loading && rows.length === 0 ? <div className="text-sm text-gray-500">Загрузка…</div> : null}
         {error ? <ErrorBanner message={error} /> : null}
         {(() => {
           const cols: Column<Tx>[] = [
@@ -137,7 +140,15 @@ export default function PaymentsTransactions() {
               ),
             },
           ];
-          return <DataTable<Tx> columns={cols} data={rows} rowKey={(r) => r.id} emptyText={loading ? "Загрузка…" : "Нет транзакций"} />;
+          return (
+            <DataTable<Tx>
+              columns={cols}
+              data={rows}
+              rowKey={(r) => r.id}
+              emptyText="Нет транзакций"
+              loading={loading && rows.length === 0}
+            />
+          );
         })()}
 
         <CursorPager hasMore={Boolean(next)} loading={loading} onLoadMore={loadMore} className="mt-3 flex justify-center" />
