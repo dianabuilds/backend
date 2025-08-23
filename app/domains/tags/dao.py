@@ -11,25 +11,32 @@ from .models import Tag, ContentTag
 
 class TagDAO:
     @staticmethod
-    async def create(db: AsyncSession, *, workspace_id: UUID, slug: str, name: str) -> Tag:
-        tag = Tag(workspace_id=workspace_id, slug=slug, name=name)
+    async def create(
+        db: AsyncSession, *, slug: str, name: str, workspace_id: UUID | None = None
+    ) -> Tag:
+        """Create a new tag.
+
+        The ``workspace_id`` argument is accepted for backwards compatibility but
+        is ignored because tags are global in the current schema.
+        """
+        tag = Tag(slug=slug, name=name)
         db.add(tag)
         await db.flush()
         return tag
 
     @staticmethod
     async def get_by_slug(
-        db: AsyncSession, *, workspace_id: UUID, slug: str
+        db: AsyncSession, *, slug: str, workspace_id: UUID | None = None
     ) -> Tag | None:
-        stmt = select(Tag).where(Tag.workspace_id == workspace_id, Tag.slug == slug)
+        stmt = select(Tag).where(Tag.slug == slug)
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
 
     @staticmethod
     async def list(
-        db: AsyncSession, *, workspace_id: UUID, q: Optional[str] = None
+        db: AsyncSession, *, q: Optional[str] = None, workspace_id: UUID | None = None
     ) -> List[Tag]:
-        stmt = select(Tag).where(Tag.workspace_id == workspace_id)
+        stmt = select(Tag)
         if q:
             pattern = f"%{q}%"
             stmt = stmt.where((Tag.slug.ilike(pattern)) | (Tag.name.ilike(pattern)))
@@ -58,11 +65,13 @@ class TagDAO:
 class ContentTagDAO:
     @staticmethod
     async def attach(
-        db: AsyncSession, *, content_id: UUID, tag_id: UUID, workspace_id: UUID
+        db: AsyncSession, *, content_id: UUID, tag_id: UUID, workspace_id: UUID | None = None
     ) -> ContentTag:
-        item = ContentTag(
-            content_id=content_id, tag_id=tag_id, workspace_id=workspace_id
-        )
+        """Attach a tag to a content item.
+
+        ``workspace_id`` is ignored for compatibility with old call sites.
+        """
+        item = ContentTag(content_id=content_id, tag_id=tag_id)
         db.add(item)
         await db.flush()
         return item

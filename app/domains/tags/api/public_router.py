@@ -29,7 +29,7 @@ async def list_tags(
     stmt = (
         select(Tag, func.count(ContentTag.content_id).label("count"))
         .join(ContentTag, Tag.id == ContentTag.tag_id, isouter=True)
-        .where(Tag.workspace_id == workspace_id, Tag.is_hidden.is_(False))
+        .where(Tag.is_hidden.is_(False))
     )
     if q:
         pattern = f"%{q}%"
