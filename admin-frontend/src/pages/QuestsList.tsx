@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { createQuest, createDraft } from "../api/questEditor";
 import PageLayout from "./_shared/PageLayout";
 import { listAdminQuests, validateQuest, publishQuest, autofixQuest, type ValidationReport } from "../api/questsAdmin";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 
 interface QuestItem {
   id: string;
@@ -18,6 +19,7 @@ interface QuestItem {
 
 export default function QuestsList() {
   const nav = useNavigate();
+  const { workspaceId } = useWorkspace();
   const [items, setItems] = useState<QuestItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +39,11 @@ export default function QuestsList() {
   const [publishCover, setPublishCover] = useState<string>("");
 
   const load = async () => {
+    if (!workspaceId) {
+      setItems([]);
+      setError("Select workspace");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -59,7 +66,7 @@ export default function QuestsList() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [workspaceId]);
 
   const onApplyFilters = async () => {
     setActiveQuestId(null);
