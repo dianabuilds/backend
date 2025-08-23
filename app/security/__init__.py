@@ -92,6 +92,40 @@ def require_admin_role(allowed_roles: Set[str] | None = None):
     return dependency
 
 
+async def auth_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    token: str | None = None
+    if credentials is not None and credentials.credentials:
+        token = credentials.credentials
+    else:
+        token = request.cookies.get("access_token")
+
+    if not token:
+        raise AuthRequiredError()
+
+    user = await get_current_user(token, db)
+    request.state.user_id = str(user.id)
+    return user
+
+
+async def require_ws_editor(
+    workspace_id: UUID,
+    user: User = Depends(auth_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.domains.workspaces.infrastructure.dao import WorkspaceMemberDAO
+
+    m = await WorkspaceMemberDAO.get(db, workspace_id, user.id)
+    if not (
+        user.role == "admin" or (m and m.role in ("owner", "editor"))
+    ):
+        raise ForbiddenError(user_id=str(user.id), role=user.role)
+    return m
+
+
 ADMIN_AUTH_RESPONSES = {
     401: {
         "description": "Unauthorized",
@@ -143,6 +177,8 @@ __all__ = [
     "verify_jwt",
     "get_current_user",
     "require_admin_role",
+    "auth_user",
+    "require_ws_editor",
     "bearer_scheme",
     "ADMIN_AUTH_RESPONSES",
     "AuthRequiredError",

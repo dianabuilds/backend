@@ -14,22 +14,21 @@ from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.quest import QuestOut, QuestUpdate
 from app.schemas.quest_validation import ValidationReport, AutofixRequest, AutofixReport, PublishRequest
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.schemas.content_common import ContentStatus
+from app.security import ADMIN_AUTH_RESPONSES, require_ws_editor, auth_user
 from app.domains.audit.application.audit_service import audit_log
 from app.domains.quests.validation import validate_quest
-
-admin_required = require_admin_role({"admin", "moderator"})
 
 router = APIRouter(
     prefix="/admin/quests",
     tags=["admin"],
-    dependencies=[Depends(admin_required)],
     responses=ADMIN_AUTH_RESPONSES,
 )
 
 
 @router.get("", response_model=list[QuestOut], summary="Admin list quests with filters")
 async def admin_list_quests(
+    workspace_id: UUID,
     q: Optional[str] = None,
     author_role: Optional[str] = Query(None, pattern="^(admin|moderator|user)$"),
     author_id: Optional[UUID] = None,
@@ -43,11 +42,15 @@ async def admin_list_quests(
     sort_by: str = Query("new", pattern="^(new|price|title|popularity)$"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
+    _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Quest)
+    stmt = select(Quest).where(Quest.workspace_id == workspace_id)
     if draft is not None:
-        stmt = stmt.where(Quest.is_draft.is_(draft))
+        if draft:
+            stmt = stmt.where(Quest.status == ContentStatus.draft)
+        else:
+            stmt = stmt.where(Quest.status != ContentStatus.draft)
     if deleted is not None:
         stmt = stmt.where(Quest.is_deleted.is_(deleted))
     if q:
@@ -93,11 +96,12 @@ async def admin_list_quests(
 @router.get("/{quest_id}/meta", response_model=QuestOut, summary="Get quest metadata")
 async def get_quest_meta(
     quest_id: UUID,
-    _: User = Depends(admin_required),
+    workspace_id: UUID,
+    _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
 ) -> QuestOut:
     q = await db.get(Quest, quest_id)
-    if not q:
+    if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Quest not found")
     return q
 
@@ -105,13 +109,15 @@ async def get_quest_meta(
 @router.patch("/{quest_id}/meta", response_model=QuestOut, summary="Update quest metadata")
 async def patch_quest_meta(
     quest_id: UUID,
+    workspace_id: UUID,
     body: QuestUpdate,
     request: Request,
-    current: User = Depends(admin_required),
+    current: User = Depends(auth_user),
+    _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
 ) -> QuestOut:
     q = await db.get(Quest, quest_id)
-    if not q:
+    if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Quest not found")
     before = {
         "title": q.title,
@@ -144,11 +150,12 @@ async def patch_quest_meta(
 @router.get("/{quest_id}/validation", response_model=ValidationReport, summary="Validate quest")
 async def get_quest_validation(
     quest_id: UUID,
+    workspace_id: UUID,
+    _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(admin_required),
 ) -> ValidationReport:
     q = await db.get(Quest, quest_id)
-    if not q:
+    if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Quest not found")
     report = await validate_quest(db, q)
     return report
@@ -157,13 +164,15 @@ async def get_quest_validation(
 @router.post("/{quest_id}/autofix", response_model=AutofixReport, summary="Apply autofix to quest")
 async def post_quest_autofix(
     quest_id: UUID,
+    workspace_id: UUID,
     body: AutofixRequest,
     request: Request,
-    current: User = Depends(admin_required),
+    current: User = Depends(auth_user),
+    _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
 ) -> AutofixReport:
     q = await db.get(Quest, quest_id)
-    if not q:
+    if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Quest not found")
 
     actions = set(body.actions or [])
@@ -243,13 +252,15 @@ async def post_quest_autofix(
 @router.post("/{quest_id}/publish", summary="Publish quest")
 async def post_quest_publish(
     quest_id: UUID,
+    workspace_id: UUID,
     body: PublishRequest,
     request: Request,
-    current: User = Depends(admin_required),
+    current: User = Depends(auth_user),
+    _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
 ):
     q = await db.get(Quest, quest_id)
-    if not q:
+    if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Quest not found")
 
     # Валидация перед публикацией: ошибки запрещают публикацию
@@ -258,15 +269,15 @@ async def post_quest_publish(
         raise HTTPException(status_code=409, detail="Validation errors prevent publishing")
 
     before = {
-        "is_draft": q.is_draft,
-        "is_premium_only": q.is_premium_only,
+        "status": q.status,
+        "visibility": q.visibility,
         "published_at": q.published_at.isoformat() if q.published_at else None,
         "cover_image": q.cover_image,
     }
 
     # Применяем настройки доступа и публикуем
     q.is_premium_only = body.access == "premium_only"
-    q.is_draft = False
+    q.status = ContentStatus.published
     q.published_at = datetime.utcnow()
     if body.cover_url:
         q.cover_image = body.cover_url
@@ -280,7 +291,7 @@ async def post_quest_publish(
         resource_type="quest",
         resource_id=str(quest_id),
         before=before,
-        after={"is_draft": q.is_draft, "is_premium_only": q.is_premium_only, "published_at": q.published_at.isoformat()},
+        after={"status": q.status, "is_premium_only": q.is_premium_only, "published_at": q.published_at.isoformat()},
         request=request,
         reason=f"access={body.access}",
     )

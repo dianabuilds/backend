@@ -5,6 +5,10 @@ let csrfTokenMem: string | null =
 let accessTokenMem: string | null =
   typeof sessionStorage !== "undefined" ? sessionStorage.getItem("accessToken") : null;
 
+// Храним текущий workspace_id для админских запросов
+let workspaceIdMem: string | null =
+  typeof sessionStorage !== "undefined" ? sessionStorage.getItem("workspaceId") : null;
+
 export function setCsrfToken(token: string | null) {
   csrfTokenMem = token || null;
   if (typeof sessionStorage !== "undefined") {
@@ -18,6 +22,27 @@ export function setAccessToken(token: string | null) {
   if (typeof sessionStorage !== "undefined") {
     if (token) sessionStorage.setItem("accessToken", token);
     else sessionStorage.removeItem("accessToken");
+  }
+}
+
+export function setWorkspaceId(id: string | null) {
+  workspaceIdMem = id || null;
+  if (typeof sessionStorage !== "undefined") {
+    if (id) sessionStorage.setItem("workspaceId", id);
+    else sessionStorage.removeItem("workspaceId");
+  }
+}
+
+function applyWorkspace(u: string): string {
+  if (!workspaceIdMem || !u.startsWith("/")) return u;
+  try {
+    const url = new URL(u, "http://d");
+    if (!url.searchParams.get("workspace_id")) {
+      url.searchParams.set("workspace_id", workspaceIdMem);
+    }
+    return url.pathname + url.search;
+  } catch {
+    return u;
   }
 }
 
@@ -99,6 +124,7 @@ export async function apiFetch(
   const toUrl = (u: RequestInfo): RequestInfo => {
     if (typeof u !== "string") return u;
     if (!u.startsWith("/")) return u;
+    u = applyWorkspace(u);
     try {
       const envBase = (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
       if (envBase) {

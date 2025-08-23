@@ -10,11 +10,18 @@ depends_on = None
 
 TRUNCATE_LEN = 16384  # должен соответствовать RAW_LOG_MAX_DB по умолчанию
 
+def _column_exists(table: str, column: str) -> bool:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    cols = [c["name"] for c in inspector.get_columns(table)]
+    return column in cols
 
 def upgrade():
-    # Добавляем новые колонки
-    op.add_column("generation_job_logs", sa.Column("raw_url", sa.Text(), nullable=True))
-    op.add_column("generation_job_logs", sa.Column("raw_preview", sa.Text(), nullable=True))
+    # Добавляем новые колонки если их ещё нет
+    if not _column_exists("generation_job_logs", "raw_url"):
+        op.add_column("generation_job_logs", sa.Column("raw_url", sa.Text(), nullable=True))
+    if not _column_exists("generation_job_logs", "raw_preview"):
+        op.add_column("generation_job_logs", sa.Column("raw_preview", sa.Text(), nullable=True))
 
     # Заполняем raw_preview усечённой копией raw_response для уже существующих записей
     bind = op.get_bind()
@@ -40,7 +47,8 @@ def upgrade():
         # Если что-то пошло не так на экзотическом диалекте — просто оставим пустым
         pass
 
-
 def downgrade():
-    op.drop_column("generation_job_logs", "raw_preview")
-    op.drop_column("generation_job_logs", "raw_url")
+    if _column_exists("generation_job_logs", "raw_preview"):
+        op.drop_column("generation_job_logs", "raw_preview")
+    if _column_exists("generation_job_logs", "raw_url"):
+        op.drop_column("generation_job_logs", "raw_url")
