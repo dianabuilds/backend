@@ -10,20 +10,25 @@ from app.domains.quests.infrastructure.models.event_quest_models import (
     EventQuestRewardType,
     EventQuestCompletion,
 )
-from app.domains.notifications.infrastructure.models.notification_models import Notification
+from app.domains.notifications.infrastructure.models.notification_models import (
+    Notification,
+)
 from app.domains.quests.application.helpers import check_quest_completion
+from app.domains.workspaces.infrastructure.models import Workspace
 
 
 @pytest.mark.asyncio
 async def test_event_quest_flow(client, db_session, test_user):
     token = create_access_token(test_user.id)
+    ws = Workspace(name="ws", slug="ws", owner_user_id=test_user.id)
+    db_session.add(ws)
+    await db_session.commit()
+    await db_session.refresh(ws)
+
     resp = await client.post(
         "/nodes",
-        json={
-            "title": "Target",
-            "nodes": "A",
-            "is_public": True,
-        },
+        params={"workspace_id": str(ws.id)},
+        json={"title": "Target", "nodes": "A", "is_public": True},
         headers={"Authorization": f"Bearer {token}"},
     )
     slug = resp.json()["slug"]
@@ -44,6 +49,7 @@ async def test_event_quest_flow(client, db_session, test_user):
         max_rewards=1,
         reward_type=EventQuestRewardType.premium,
         is_active=True,
+        workspace_id=ws.id,
     )
     db_session.add(quest)
     await db_session.commit()
@@ -70,14 +76,14 @@ async def test_event_quest_flow(client, db_session, test_user):
     db_session.add_all([user1, user2, user3])
     await db_session.commit()
 
-    await check_quest_completion(db_session, user1, node)
+    await check_quest_completion(db_session, user1, node, ws.id)
     await db_session.refresh(user1)
     assert user1.is_premium
     nres = await db_session.execute(select(Notification).where(Notification.user_id == user1.id))
     note1 = nres.scalars().first()
     assert note1 and "among the first" in note1.message
 
-    await check_quest_completion(db_session, user2, node)
+    await check_quest_completion(db_session, user2, node, ws.id)
     await db_session.refresh(user2)
     assert not user2.is_premium
     nres = await db_session.execute(select(Notification).where(Notification.user_id == user2.id))
@@ -89,11 +95,14 @@ async def test_event_quest_flow(client, db_session, test_user):
     await db_session.refresh(quest)
     assert not quest.is_active
 
-    await check_quest_completion(db_session, user3, node)
+    await check_quest_completion(db_session, user3, node, ws.id)
     await db_session.refresh(user3)
     assert not user3.is_premium
     res = await db_session.execute(
-        select(EventQuestCompletion).where(EventQuestCompletion.quest_id == quest.id)
+        select(EventQuestCompletion).where(
+            EventQuestCompletion.quest_id == quest.id,
+            EventQuestCompletion.workspace_id == ws.id,
+        )
     )
     completions = res.scalars().all()
     assert len(completions) == 2

@@ -8,6 +8,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.domains.quests.infrastructure.models.quest_models import Quest, QuestPurchase
+from app.domains.workspaces.infrastructure.models import Workspace
 from app.domains.users.infrastructure.models.user import User
 
 
@@ -17,8 +18,25 @@ def _make_token(amount: int) -> str:
 
 @pytest.mark.asyncio
 async def test_buy_paid_and_free_quests(client: AsyncClient, db_session: AsyncSession, test_user: User):
-    paid = Quest(title="Paid", author_id=test_user.id, price=10, is_draft=False)
-    free = Quest(title="Free", author_id=test_user.id, price=0, is_draft=False)
+    ws = Workspace(name="ws", slug="ws", owner_user_id=test_user.id)
+    db_session.add(ws)
+    await db_session.commit()
+    await db_session.refresh(ws)
+
+    paid = Quest(
+        title="Paid",
+        author_id=test_user.id,
+        price=10,
+        is_draft=False,
+        workspace_id=ws.id,
+    )
+    free = Quest(
+        title="Free",
+        author_id=test_user.id,
+        price=0,
+        is_draft=False,
+        workspace_id=ws.id,
+    )
     db_session.add_all([paid, free])
     await db_session.commit()
     await db_session.refresh(paid)
@@ -51,7 +69,10 @@ async def test_buy_paid_and_free_quests(client: AsyncClient, db_session: AsyncSe
     assert resp.json()["status"] == "already"
 
     result = await db_session.execute(
-        select(QuestPurchase).where(QuestPurchase.quest_id == paid.id)
+        select(QuestPurchase).where(
+            QuestPurchase.quest_id == paid.id,
+            QuestPurchase.workspace_id == ws.id,
+        )
     )
     assert len(result.scalars().all()) == 1
 
