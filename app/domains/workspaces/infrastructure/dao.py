@@ -1,11 +1,75 @@
 from __future__ import annotations
 
 from uuid import UUID
+from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from .models import WorkspaceMember
+from app.schemas.workspaces import WorkspaceRole
+
+from .models import Workspace, WorkspaceMember
+
+
+class WorkspaceDAO:
+    """Data access helpers for :class:`Workspace` objects."""
+
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        *,
+        name: str,
+        slug: str,
+        owner_user_id: UUID,
+        settings: dict[str, object] | None = None,
+    ) -> Workspace:
+        workspace = Workspace(
+            name=name,
+            slug=slug,
+            owner_user_id=owner_user_id,
+            settings_json=settings or {},
+        )
+        db.add(workspace)
+        await db.flush()
+        return workspace
+
+    @staticmethod
+    async def get(db: AsyncSession, workspace_id: UUID) -> Workspace | None:
+        return await db.get(Workspace, workspace_id)
+
+    @staticmethod
+    async def list_for_user(db: AsyncSession, user_id: UUID) -> List[Workspace]:
+        stmt = (
+            select(Workspace)
+            .join(WorkspaceMember)
+            .where(WorkspaceMember.user_id == user_id)
+            .order_by(Workspace.name)
+        )
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def update(
+        db: AsyncSession,
+        workspace: Workspace,
+        *,
+        name: str | None = None,
+        slug: str | None = None,
+        settings: dict[str, object] | None = None,
+    ) -> Workspace:
+        if name is not None:
+            workspace.name = name
+        if slug is not None:
+            workspace.slug = slug
+        if settings is not None:
+            workspace.settings_json = settings
+        await db.flush()
+        return workspace
+
+    @staticmethod
+    async def delete(db: AsyncSession, workspace: Workspace) -> None:
+        await db.delete(workspace)
+        await db.flush()
 
 
 class WorkspaceMemberDAO:
@@ -19,3 +83,51 @@ class WorkspaceMemberDAO:
         )
         result = await db.execute(stmt)
         return result.scalars().first()
+
+    @staticmethod
+    async def add(
+        db: AsyncSession, *, workspace_id: UUID, user_id: UUID, role: WorkspaceRole
+    ) -> WorkspaceMember:
+        member = WorkspaceMember(
+            workspace_id=workspace_id, user_id=user_id, role=role
+        )
+        db.add(member)
+        await db.flush()
+        return member
+
+    @staticmethod
+    async def update_role(
+        db: AsyncSession,
+        *,
+        workspace_id: UUID,
+        user_id: UUID,
+        role: WorkspaceRole,
+    ) -> WorkspaceMember | None:
+        member = await WorkspaceMemberDAO.get(
+            db, workspace_id=workspace_id, user_id=user_id
+        )
+        if member:
+            member.role = role
+            await db.flush()
+        return member
+
+    @staticmethod
+    async def remove(
+        db: AsyncSession, *, workspace_id: UUID, user_id: UUID
+    ) -> None:
+        member = await WorkspaceMemberDAO.get(
+            db, workspace_id=workspace_id, user_id=user_id
+        )
+        if member:
+            await db.delete(member)
+            await db.flush()
+
+    @staticmethod
+    async def list(
+        db: AsyncSession, *, workspace_id: UUID
+    ) -> List[WorkspaceMember]:
+        stmt = select(WorkspaceMember).where(
+            WorkspaceMember.workspace_id == workspace_id
+        )
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
