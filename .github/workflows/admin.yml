@@ -1,0 +1,30 @@
+name: Admin CI
+
+on:
+  push:
+    paths:
+      - 'apps/admin/**'
+  pull_request:
+    paths:
+      - 'apps/admin/**'
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: apps/admin
+        run: npm ci
+      - name: Lint
+        working-directory: apps/admin
+        run: npm run lint --if-present
+      - name: Test
+        working-directory: apps/admin
+        run: npm test --if-present
+      - name: Build Docker image
+        run: docker build -f apps/admin/Dockerfile apps/admin
