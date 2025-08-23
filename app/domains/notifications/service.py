@@ -12,10 +12,11 @@ from app.domains.notifications.infrastructure.models.campaign_models import (
     CampaignStatus,
     NotificationCampaign,
 )
-from app.core.db.session import db_session
 
 
 async def _create_campaign(title: str, message: str, author_id: UUID) -> None:
+    from app.core.db.session import db_session
+
     async with db_session() as session:
         camp = NotificationCampaign(
             title=title,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Set
 from uuid import UUID, uuid4
@@ -81,11 +82,21 @@ class EventBus:
 
 class _Handlers:
     def __init__(self) -> None:
-        from app.core.db.session import db_session  # lazy to avoid cycles
-        from app.domains.ai.application.embedding_service import update_node_embedding
+        from app.domains.ai.application.embedding_service import (
+            update_node_embedding,
+        )
 
-        self.db_session = db_session
         self.update_node_embedding = update_node_embedding
+
+        @asynccontextmanager
+        async def _db_session():
+            """Lazily import the real db_session to avoid circular imports."""
+            from app.core.db.session import db_session as real_db_session
+
+            async with real_db_session() as session:
+                yield session
+
+        self.db_session = _db_session
 
     async def handle_node_created(self, event: NodeCreated) -> None:
         async with self.db_session() as session:
