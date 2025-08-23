@@ -83,7 +83,7 @@ async def create_achievement_admin(
     body: AchievementCreateIn,
     workspace_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(admin_required),
+    current: User = Depends(admin_required),
 ) -> AchievementAdminOut:
     data = {
         "code": body.code.strip(),
@@ -94,7 +94,7 @@ async def create_achievement_admin(
         "condition": body.condition or {},
     }
     try:
-        item = await _admin_svc(db).create(db, workspace_id, data)
+        item = await _admin_svc(db).create(db, workspace_id, data, current.id)
     except ValueError as e:
         if str(e) == "code_conflict":
             raise HTTPException(status_code=409, detail="Code already exists")
@@ -110,11 +110,11 @@ async def update_achievement_admin(
     body: AchievementUpdateIn,
     workspace_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(admin_required),
+    current: User = Depends(admin_required),
 ) -> AchievementAdminOut:
     data = body.model_dump(exclude_unset=True)
     try:
-        item = await _admin_svc(db).update(db, workspace_id, achievement_id, data)
+        item = await _admin_svc(db).update(db, workspace_id, achievement_id, data, current.id)
     except ValueError as e:
         if str(e) == "code_conflict":
             raise HTTPException(status_code=409, detail="Code already exists")

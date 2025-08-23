@@ -17,14 +17,14 @@ class AchievementsAdminService:
         return await self._repo.list_achievements(workspace_id)
 
     async def create(
-        self, db: AsyncSession, workspace_id: UUID, data: dict[str, Any]
+        self, db: AsyncSession, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
     ) -> Achievement:
         code = (data.get("code") or "").strip()
         if not code:
             raise ValueError("code_required")
         if await self._repo.exists_code(code, workspace_id):
             raise ValueError("code_conflict")
-        item = await self._repo.create_achievement(workspace_id, data)
+        item = await self._repo.create_achievement(workspace_id, data, actor_id)
         await db.commit()
         return item
 
@@ -34,6 +34,7 @@ class AchievementsAdminService:
         workspace_id: UUID,
         achievement_id: UUID,
         data: dict[str, Any],
+        actor_id: UUID,
     ) -> Optional[Achievement]:
         item = await self._repo.get_achievement(achievement_id, workspace_id)
         if not item:
@@ -44,7 +45,7 @@ class AchievementsAdminService:
             if code != item.code and await self._repo.exists_code(code, workspace_id):
                 raise ValueError("code_conflict")
             data["code"] = code
-        item = await self._repo.update_achievement_fields(item, data, workspace_id)
+        item = await self._repo.update_achievement_fields(item, data, workspace_id, actor_id)
         await db.commit()
         return item
 

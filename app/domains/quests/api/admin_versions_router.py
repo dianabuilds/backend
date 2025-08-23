@@ -43,7 +43,14 @@ async def create_quest(
     current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
-    q = Quest(title=body.title, subtitle=None, description=None, author_id=current_user.id, is_draft=True)
+    q = Quest(
+        title=body.title,
+        subtitle=None,
+        description=None,
+        author_id=current_user.id,
+        is_draft=True,
+        created_by_user_id=current_user.id,
+    )
     db.add(q)
     await db.flush()
     await audit_log(

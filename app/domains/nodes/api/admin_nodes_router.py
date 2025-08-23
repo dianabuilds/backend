@@ -108,6 +108,7 @@ async def bulk_node_operation(
         if changed:
             invalidate_slugs.append(node.slug)
         node.updated_at = datetime.utcnow()
+        node.updated_by_user_id = current_user.id
     await db.commit()
     for slug in invalidate_slugs:
         await navcache.invalidate_navigation_by_node(slug)

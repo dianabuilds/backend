@@ -33,21 +33,24 @@ class WorldsRepository(IWorldsRepository):
         return res.scalar_one_or_none()
 
     async def create_world(
-        self, workspace_id: UUID, data: dict[str, Any]
+        self, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
     ) -> WorldTemplate:
-        world = WorldTemplate(workspace_id=workspace_id, **data)
+        world = WorldTemplate(
+            workspace_id=workspace_id, created_by_user_id=actor_id, **data
+        )
         self._db.add(world)
         await self._db.flush()
         await self._db.refresh(world)
         return world
 
     async def update_world(
-        self, world: WorldTemplate, data: dict[str, Any], workspace_id: UUID
+        self, world: WorldTemplate, data: dict[str, Any], workspace_id: UUID, actor_id: UUID
     ) -> WorldTemplate:
         if world.workspace_id != workspace_id:
             return world
         for k, v in (data or {}).items():
             setattr(world, k, v)
+        world.updated_by_user_id = actor_id
         await self._db.flush()
         await self._db.refresh(world)
         return world
@@ -72,21 +75,27 @@ class WorldsRepository(IWorldsRepository):
         return list(res.scalars().all())
 
     async def create_character(
-        self, world_id: UUID, workspace_id: UUID, data: dict[str, Any]
+        self, world_id: UUID, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
     ) -> Character:
-        ch = Character(world_id=world_id, workspace_id=workspace_id, **data)
+        ch = Character(
+            world_id=world_id,
+            workspace_id=workspace_id,
+            created_by_user_id=actor_id,
+            **data,
+        )
         self._db.add(ch)
         await self._db.flush()
         await self._db.refresh(ch)
         return ch
 
     async def update_character(
-        self, character: Character, data: dict[str, Any], workspace_id: UUID
+        self, character: Character, data: dict[str, Any], workspace_id: UUID, actor_id: UUID
     ) -> Character:
         if character.workspace_id != workspace_id:
             return character
         for k, v in (data or {}).items():
             setattr(character, k, v)
+        character.updated_by_user_id = actor_id
         await self._db.flush()
         await self._db.refresh(character)
         return character

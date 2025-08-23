@@ -47,7 +47,7 @@ async def create_world(
     db: AsyncSession = Depends(get_db),
 ):
     return await _svc(db).create_world(
-        db, workspace_id, payload.model_dump(exclude_none=True)
+        db, workspace_id, payload.model_dump(exclude_none=True), current_user.id
     )
 
 
@@ -62,7 +62,11 @@ async def update_world(
     db: AsyncSession = Depends(get_db),
 ):
     out = await _svc(db).update_world(
-        db, workspace_id, world_id, payload.model_dump(exclude_none=True)
+        db,
+        workspace_id,
+        world_id,
+        payload.model_dump(exclude_none=True),
+        current_user.id,
     )
     if not out:
         raise HTTPException(status_code=404, detail="World not found")
@@ -107,7 +111,11 @@ async def create_character(
     db: AsyncSession = Depends(get_db),
 ):
     ch = await _svc(db).create_character(
-        db, world_id, workspace_id, payload.model_dump(exclude_none=True)
+        db,
+        world_id,
+        workspace_id,
+        payload.model_dump(exclude_none=True),
+        current_user.id,
     )
     if not ch:
         raise HTTPException(status_code=404, detail="World not found")
@@ -125,7 +133,11 @@ async def update_character(
     db: AsyncSession = Depends(get_db),
 ):
     ch = await _svc(db).update_character(
-        db, char_id, workspace_id, payload.model_dump(exclude_none=True)
+        db,
+        char_id,
+        workspace_id,
+        payload.model_dump(exclude_none=True),
+        current_user.id,
     )
     if not ch:
         raise HTTPException(status_code=404, detail="Character not found")

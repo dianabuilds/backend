@@ -80,25 +80,27 @@ class NodeRepositoryAdapter(INodeRepository):
             ai_generated=payload.ai_generated or False,
             allow_feedback=payload.allow_feedback,
             is_recommendable=payload.is_recommendable,
+            created_by_user_id=author_id,
         )
         self._db.add(node)
         await self._db.flush()
         if payload.tags:
-            await self.set_tags(node, payload.tags)
+            await self.set_tags(node, payload.tags, author_id)
         await self._db.commit()
         await self._db.refresh(node)
         return node
 
-    async def update(self, node: Node, payload: NodeUpdate) -> Node:
+    async def update(self, node: Node, payload: NodeUpdate, actor_id: UUID) -> Node:
         if self._repo:
-            return await self._repo.update(node, payload)
+            return await self._repo.update(node, payload, actor_id)
         for field, value in payload.model_dump(exclude_unset=True).items():
             if field == "tags" or value is None:
                 continue
             setattr(node, field, value)
         node.updated_at = datetime.utcnow()
+        node.updated_by_user_id = actor_id
         if payload.tags is not None:
-            await self.set_tags(node, payload.tags)
+            await self.set_tags(node, payload.tags, actor_id)
         await self._db.commit()
         await self._db.refresh(node)
         return node
@@ -110,9 +112,9 @@ class NodeRepositoryAdapter(INodeRepository):
         await self._db.delete(node)
         await self._db.commit()
 
-    async def set_tags(self, node: Node, tags: list[str]) -> Node:
+    async def set_tags(self, node: Node, tags: list[str], actor_id: UUID) -> Node:
         if self._repo:
-            return await self._repo.set_tags(node, tags)
+            return await self._repo.set_tags(node, tags, actor_id)
         from app.domains.tags.models import Tag
         tag_ids: list[UUID] = []
         for slug in tags:
@@ -130,6 +132,7 @@ class NodeRepositoryAdapter(INodeRepository):
         await self._db.execute(delete(NodeTag).where(NodeTag.node_id == node.id))
         for tid in tag_ids:
             self._db.add(NodeTag(node_id=node.id, tag_id=tid))
+        node.updated_by_user_id = actor_id
         await self._db.commit()
         await self._db.refresh(node)
         return node
@@ -142,9 +145,11 @@ class NodeRepositoryAdapter(INodeRepository):
         await self._db.refresh(node)
         return node
 
-    async def update_reactions(self, node: Node, reaction: str, action: str) -> Node:
+    async def update_reactions(
+        self, node: Node, reaction: str, action: str, actor_id: UUID | None = None
+    ) -> Node:
         if self._repo:
-            return await self._repo.update_reactions(node, reaction, action)
+            return await self._repo.update_reactions(node, reaction, action, actor_id)
         import json
 
         raw = node.reactions or {}
@@ -161,6 +166,8 @@ class NodeRepositoryAdapter(INodeRepository):
         elif action == "remove":
             reactions[reaction] = max(0, current - 1)
         node.reactions = reactions
+        if actor_id:
+            node.updated_by_user_id = actor_id
         await self._db.commit()
         await self._db.refresh(node)
         return node
