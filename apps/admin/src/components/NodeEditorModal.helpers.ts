@@ -1,9 +1,11 @@
+import type { TagOut } from "./tags/TagPicker";
+
 export interface NodeEditorData {
   id: string;
   title: string;
   subtitle?: string;
   cover_url?: string | null;
-  tags?: string[];
+  tags?: TagOut[];
   allow_comments?: boolean;
   is_premium_only?: boolean;
   contentData: any;
