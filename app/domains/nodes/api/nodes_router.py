@@ -110,7 +110,7 @@ async def set_node_tags(
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(node, current_user)
-    node = await repo.set_tags(node, payload.tags)
+    node = await repo.set_tags(node, payload.tags, current_user.id)
     await get_event_bus().publish(
         NodeUpdated(
             node_id=node.id,
@@ -137,7 +137,7 @@ async def update_node(
     NodePolicy.ensure_can_edit(node, current_user)
     was_public = node.is_public
     was_visible = node.is_visible
-    node = await repo.update(node, payload)
+    node = await repo.update(node, payload, current_user.id)
     if was_public != node.is_public or was_visible != node.is_visible:
         await navcache.invalidate_navigation_by_node(slug)
         await navcache.invalidate_modes_by_node(slug)

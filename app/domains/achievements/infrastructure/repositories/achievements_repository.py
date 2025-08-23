@@ -133,20 +133,23 @@ class AchievementsRepository(IAchievementsRepository):
         )
         return res.scalars().first() is not None
 
-    async def create_achievement(self, workspace_id: UUID, data: dict[str, Any]) -> Achievement:
-        item = Achievement(workspace_id=workspace_id, **data)
+    async def create_achievement(
+        self, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
+    ) -> Achievement:
+        item = Achievement(workspace_id=workspace_id, created_by_user_id=actor_id, **data)
         self._db.add(item)
         await self._db.flush()
         await self._db.refresh(item)
         return item
 
     async def update_achievement_fields(
-        self, item: Achievement, data: dict[str, Any], workspace_id: UUID
+        self, item: Achievement, data: dict[str, Any], workspace_id: UUID, actor_id: UUID
     ) -> Achievement:
         if item.workspace_id != workspace_id:
             raise ValueError("workspace_mismatch")
         for k, v in (data or {}).items():
             setattr(item, k, v)
+        item.updated_by_user_id = actor_id
         await self._db.flush()
         await self._db.refresh(item)
         return item

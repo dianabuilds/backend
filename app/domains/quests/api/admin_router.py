@@ -134,6 +134,7 @@ async def patch_quest_meta(
     for k, v in upd.items():
         if hasattr(q, k):
             setattr(q, k, v)
+    q.updated_by_user_id = current.id
     await audit_log(
         db,
         actor_id=str(getattr(current, "id", "")),
@@ -227,6 +228,7 @@ async def post_quest_autofix(
             skipped.append({"type": "ensure_entry", "affected": 0, "note": "entry ok"})
 
     if changed:
+        q.updated_by_user_id = current.id
         await db.commit()
 
     await audit_log(

@@ -17,19 +17,21 @@ class INodeRepository(Protocol):
     async def create(self, payload: NodeCreate, author_id: UUID, workspace_id: UUID) -> Node:  # pragma: no cover
         ...
 
-    async def update(self, node: Node, payload: NodeUpdate) -> Node:  # pragma: no cover
+    async def update(self, node: Node, payload: NodeUpdate, actor_id: UUID) -> Node:  # pragma: no cover
         ...
 
     async def delete(self, node: Node) -> None:  # pragma: no cover
         ...
 
-    async def set_tags(self, node: Node, tags: list[str]) -> Node:  # pragma: no cover
+    async def set_tags(self, node: Node, tags: list[str], actor_id: UUID) -> Node:  # pragma: no cover
         ...
 
     async def increment_views(self, node: Node) -> Node:  # pragma: no cover
         ...
 
-    async def update_reactions(self, node: Node, reaction: str, action: str) -> Node:  # pragma: no cover
+    async def update_reactions(
+        self, node: Node, reaction: str, action: str, actor_id: UUID | None = None
+    ) -> Node:  # pragma: no cover
         ...
 
     # Дополнительные кейсы

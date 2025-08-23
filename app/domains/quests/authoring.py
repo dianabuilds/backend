@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Tuple
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,8 +16,15 @@ from app.domains.users.infrastructure.models.user import User
 from app.domains.quests.versions import release_latest, ValidationFailed
 
 
-async def create_quest(db: AsyncSession, *, payload: QuestCreate, author: User) -> Quest:
+async def create_quest(
+    db: AsyncSession,
+    *,
+    payload: QuestCreate,
+    author: User,
+    workspace_id: UUID | None = None,
+) -> Quest:
     quest = Quest(
+        workspace_id=workspace_id or uuid4(),
         title=payload.title,
         subtitle=payload.subtitle,
         description=payload.description,
@@ -30,6 +37,7 @@ async def create_quest(db: AsyncSession, *, payload: QuestCreate, author: User) 
         custom_transitions=payload.custom_transitions,
         allow_comments=payload.allow_comments,
         author_id=author.id,
+        created_by_user_id=author.id,
     )
     db.add(quest)
     await db.commit()
@@ -47,6 +55,7 @@ async def update_quest(db: AsyncSession, *, quest_id: UUID, payload: QuestUpdate
     data = payload.dict(exclude_unset=True)
     for field, value in data.items():
         setattr(quest, field, value)
+    quest.updated_by_user_id = actor.id
     await db.commit()
     await db.refresh(quest)
     return quest

@@ -18,12 +18,12 @@ class IWorldsRepository:
         ...
 
     async def create_world(
-        self, workspace_id: UUID, data: dict[str, Any]
+        self, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
     ) -> WorldTemplate:  # pragma: no cover
         ...
 
     async def update_world(
-        self, world: WorldTemplate, data: dict[str, Any], workspace_id: UUID
+        self, world: WorldTemplate, data: dict[str, Any], workspace_id: UUID, actor_id: UUID
     ) -> WorldTemplate:  # pragma: no cover
         ...
 
@@ -38,12 +38,12 @@ class IWorldsRepository:
         ...
 
     async def create_character(
-        self, world_id: UUID, workspace_id: UUID, data: dict[str, Any]
+        self, world_id: UUID, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
     ) -> Character:  # pragma: no cover
         ...
 
     async def update_character(
-        self, character: Character, data: dict[str, Any], workspace_id: UUID
+        self, character: Character, data: dict[str, Any], workspace_id: UUID, actor_id: UUID
     ) -> Character:  # pragma: no cover
         ...
 

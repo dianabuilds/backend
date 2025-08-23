@@ -58,12 +58,12 @@ class IAchievementsRepository:
         ...
 
     async def create_achievement(
-        self, workspace_id: UUID, data: dict[str, Any]
+        self, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
     ) -> Achievement:  # pragma: no cover
         ...
 
     async def update_achievement_fields(
-        self, item: Achievement, data: dict[str, Any], workspace_id: UUID
+        self, item: Achievement, data: dict[str, Any], workspace_id: UUID, actor_id: UUID
     ) -> Achievement:  # pragma: no cover
         ...
 

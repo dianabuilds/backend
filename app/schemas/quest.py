@@ -43,6 +43,8 @@ class QuestOut(QuestBase):
     is_draft: bool
     published_at: Optional[datetime]
     created_at: datetime
+    created_by_user_id: UUID | None = None
+    updated_by_user_id: UUID | None = None
 
     class Config:
         orm_mode = True

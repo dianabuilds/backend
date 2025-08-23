@@ -21,6 +21,8 @@ class WorldTemplateOut(BaseModel):
     meta: Optional[dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
+    created_by_user_id: UUID | None = None
+    updated_by_user_id: UUID | None = None
 
     model_config = {"from_attributes": True}
 
@@ -41,5 +43,7 @@ class CharacterOut(BaseModel):
     traits: Optional[dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
+     created_by_user_id: UUID | None = None
+     updated_by_user_id: UUID | None = None
 
     model_config = {"from_attributes": True}

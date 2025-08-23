@@ -38,7 +38,7 @@ class ReactionService:
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
 
-        node = await self._repo.update_reactions(node, reaction, action)
+        node = await self._repo.update_reactions(node, reaction, action, actor_id)
 
         # Инвалидация компаса (влияние на рекомендации)
         await self._navcache.invalidate_compass_all()
