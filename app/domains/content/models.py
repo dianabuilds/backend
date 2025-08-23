@@ -39,3 +39,16 @@ class ContentItem(Base):
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
     updated_at = sa.Column(sa.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tags = relationship("Tag", secondary="content_tags", back_populates="content_items")
+
+
+class ContentPatch(Base):
+    __tablename__ = "content_patches"
+
+    id = sa.Column(UUID(), primary_key=True, default=uuid4)
+    content_id = sa.Column(
+        UUID(), sa.ForeignKey("content_items.id"), nullable=False
+    )
+    data = sa.Column(sa.JSON, nullable=False)
+    created_by_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=True)
+    created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
+    reverted_at = sa.Column(sa.DateTime, nullable=True)

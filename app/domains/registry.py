@@ -181,6 +181,14 @@ def register_domain_routers(app: FastAPI) -> None:
         app.include_router(admin_dashboard_router)
     except Exception:
         pass
+    # Admin hotfix patches
+    try:
+        from app.domains.admin.api.hotfix_patches_router import (
+            router as admin_hotfix_patches_router,
+        )
+        app.include_router(admin_hotfix_patches_router)
+    except Exception:
+        pass
     # AI Admin routers are included via app.domains.ai.api.routers aggregator
     # Quests admin validation
     try:
