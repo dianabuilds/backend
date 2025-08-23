@@ -62,6 +62,47 @@ Administrative endpoints exposed by the backend:
 - `PATCH /admin/workspaces/{workspace_id}` – update workspace fields.
 - `DELETE /admin/workspaces/{workspace_id}` – remove a workspace.
 
+Example:
+
+```bash
+GET /admin/workspaces
+```
+
+```json
+[
+  {
+    "id": "8b112b04-1769-44ef-abc6-3c7ce7c8de4e",
+    "name": "Main workspace",
+    "slug": "main",
+    "owner_user_id": "720e76fa-1111-2222-3333-444455556666",
+    "settings": {},
+    "created_at": "2024-05-01T12:00:00Z",
+    "updated_at": "2024-05-01T12:00:00Z"
+  }
+]
+```
+
+Creating a workspace:
+
+```bash
+POST /admin/workspaces/123e4567-e89b-12d3-a456-426614174000
+Content-Type: application/json
+
+{ "name": "Demo", "slug": "demo" }
+```
+
+```json
+{
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "name": "Demo",
+  "slug": "demo",
+  "owner_user_id": "720e76fa-1111-2222-3333-444455556666",
+  "settings": {},
+  "created_at": "2024-05-02T09:00:00Z",
+  "updated_at": "2024-05-02T09:00:00Z"
+}
+```
+
 ### Content
 
 All content routes expect `workspace_id` as a query parameter.
@@ -76,6 +117,54 @@ All content routes expect `workspace_id` as a query parameter.
 - `POST /admin/content/{type}/{id}/publish` – mark the item as published.
 - `POST /admin/content/{type}/{id}/validate` – run validators and return a
   report.
+
+Example listing and creation:
+
+```bash
+GET /admin/content/all?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e&content_type=article
+```
+
+```json
+{
+  "items": [
+    {
+      "id": "42",
+      "content_type": "article",
+      "title": "Hello world",
+      "status": "draft",
+      "tags": []
+    }
+  ],
+  "total": 1
+}
+```
+
+```bash
+POST /admin/content/article?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e
+Content-Type: application/json
+
+{ "title": "Hello world", "slug": "hello-world" }
+```
+
+```json
+{
+  "id": "42",
+  "content_type": "article",
+  "title": "Hello world",
+  "status": "draft",
+  "workspace_id": "8b112b04-1769-44ef-abc6-3c7ce7c8de4e"
+}
+```
+
+Publishing:
+
+```bash
+POST /admin/content/article/42/publish?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e
+```
+
+```json
+{ "status": "published" }
+```
 
 ## Front‑end flows
 
