@@ -1,29 +1,29 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
-from sqlalchemy import or_, func
+from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.domains.quests.infrastructure.models.quest_models import Quest
-from app.domains.content.models import ContentItem
-from app.schemas.content_common import ContentStatus
-from app.domains.users.infrastructure.models.user import User
+from app.domains.nodes.models import NodeItem
 from app.domains.quests.access import can_view
+from app.domains.quests.infrastructure.models.quest_models import Quest
+from app.domains.users.infrastructure.models.user import User
+from app.schemas.node_common import ContentStatus
 
 
 async def list_public(db: AsyncSession) -> List[Quest]:
     res = await db.execute(
         select(Quest)
-        .join(ContentItem, ContentItem.id == Quest.id)
+        .join(NodeItem, NodeItem.id == Quest.id)
         .where(
-            ContentItem.type == "quest",
-            ContentItem.status == ContentStatus.published,
+            NodeItem.type == "quest",
+            NodeItem.status == ContentStatus.published,
             Quest.is_deleted == False,
         )
-        .order_by(ContentItem.published_at.desc())
+        .order_by(NodeItem.published_at.desc())
     )
     return list(res.scalars().all())
 
@@ -42,10 +42,10 @@ async def search(
 ) -> List[Quest]:
     stmt = (
         select(Quest)
-        .join(ContentItem, ContentItem.id == Quest.id)
+        .join(NodeItem, NodeItem.id == Quest.id)
         .where(
-            ContentItem.type == "quest",
-            ContentItem.status == ContentStatus.published,
+            NodeItem.type == "quest",
+            NodeItem.status == ContentStatus.published,
             Quest.is_deleted == False,
         )
     )
@@ -54,8 +54,8 @@ async def search(
         pattern = f"%{q}%"
         stmt = stmt.where(
             or_(
-                ContentItem.title.ilike(pattern),
-                ContentItem.summary.ilike(pattern),
+                NodeItem.title.ilike(pattern),
+                NodeItem.summary.ilike(pattern),
             )
         )
 
@@ -75,11 +75,11 @@ async def search(
     if sort_by == "price":
         stmt = stmt.order_by(Quest.price.asc())
     elif sort_by == "title":
-        stmt = stmt.order_by(ContentItem.title.asc())
+        stmt = stmt.order_by(NodeItem.title.asc())
     elif sort_by == "popularity":
-        stmt = stmt.order_by(func.coalesce(ContentItem.published_at, datetime.min).desc())
+        stmt = stmt.order_by(func.coalesce(NodeItem.published_at, datetime.min).desc())
     else:
-        stmt = stmt.order_by(ContentItem.published_at.desc())
+        stmt = stmt.order_by(NodeItem.published_at.desc())
 
     offset = (page - 1) * per_page
     stmt = stmt.offset(offset).limit(per_page)
@@ -89,7 +89,9 @@ async def search(
 
 
 async def get_for_view(db: AsyncSession, *, slug: str, user: User) -> Quest:
-    res = await db.execute(select(Quest).where(Quest.slug == slug, Quest.is_deleted == False))  # noqa: E712
+    res = await db.execute(
+        select(Quest).where(Quest.slug == slug, Quest.is_deleted == False)
+    )  # noqa: E712
     quest = res.scalars().first()
     if not quest or (quest.is_draft and quest.author_id != user.id):
         raise ValueError("Quest not found")

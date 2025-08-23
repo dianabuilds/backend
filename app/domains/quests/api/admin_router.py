@@ -4,28 +4,28 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_, func
 
 from app.core.db.session import get_db
+from app.domains.audit.application.audit_service import audit_log
+from app.domains.nodes import service as node_service
+from app.domains.nodes.service import validate_transition
 from app.domains.quests.infrastructure.models.quest_models import Quest
+from app.domains.quests.validation import validate_quest
 from app.domains.users.infrastructure.models.user import User
+from app.domains.workspaces.application.service import scope_by_workspace
+from app.schemas.node_common import ContentStatus
 from app.schemas.quest import QuestOut, QuestUpdate
 from app.schemas.quest_validation import (
-    ValidationReport,
-    AutofixRequest,
     AutofixReport,
+    AutofixRequest,
     PublishRequest,
+    ValidationReport,
 )
-from app.schemas.content_common import ContentStatus
-from app.security import ADMIN_AUTH_RESPONSES, require_ws_editor, auth_user
-from app.domains.workspaces.application.service import scope_by_workspace
-from app.domains.audit.application.audit_service import audit_log
-from app.domains.quests.validation import validate_quest
-from app.domains.content import service as content_service
-from app.domains.content.service import validate_transition
+from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
 
 router = APIRouter(
     prefix="/admin/quests",
@@ -83,7 +83,9 @@ async def admin_list_quests(
     if author_id:
         stmt = stmt.where(Quest.author_id == author_id)
     elif author_role:
-        stmt = stmt.join(User, User.id == Quest.author_id).where(User.role == author_role)
+        stmt = stmt.join(User, User.id == Quest.author_id).where(
+            User.role == author_role
+        )
 
     if sort_by == "price":
         stmt = stmt.order_by(Quest.price.asc().nullsLast())
@@ -114,7 +116,9 @@ async def get_quest_meta(
     return q
 
 
-@router.patch("/{quest_id}/meta", response_model=QuestOut, summary="Update quest metadata")
+@router.patch(
+    "/{quest_id}/meta", response_model=QuestOut, summary="Update quest metadata"
+)
 async def patch_quest_meta(
     quest_id: UUID,
     workspace_id: UUID,
@@ -152,13 +156,15 @@ async def patch_quest_meta(
         after=upd,
         request=request,
         workspace_id=str(workspace_id),
-        content_type="quest",
+        node_type="quest",
     )
     await db.commit()
     return q
 
 
-@router.get("/{quest_id}/validation", response_model=ValidationReport, summary="Validate quest")
+@router.get(
+    "/{quest_id}/validation", response_model=ValidationReport, summary="Validate quest"
+)
 async def get_quest_validation(
     quest_id: UUID,
     workspace_id: UUID,
@@ -178,12 +184,16 @@ async def get_quest_validation(
         resource_id=str(quest_id),
         after=report.model_dump(),
         workspace_id=str(workspace_id),
-        content_type="quest",
+        node_type="quest",
     )
     return report
 
 
-@router.post("/{quest_id}/autofix", response_model=AutofixReport, summary="Apply autofix to quest")
+@router.post(
+    "/{quest_id}/autofix",
+    response_model=AutofixReport,
+    summary="Apply autofix to quest",
+)
 async def post_quest_autofix(
     quest_id: UUID,
     workspace_id: UUID,
@@ -229,21 +239,45 @@ async def post_quest_autofix(
             q.nodes = new_nodes
             nodes = new_nodes
             changed = True
-            applied.append({"type": "deduplicate_nodes", "affected": len(before["nodes_count"]) if isinstance(before.get("nodes_count"), list) else 0, "note": None})
+            applied.append(
+                {
+                    "type": "deduplicate_nodes",
+                    "affected": (
+                        len(before["nodes_count"])
+                        if isinstance(before.get("nodes_count"), list)
+                        else 0
+                    ),
+                    "note": None,
+                }
+            )
         else:
-            skipped.append({"type": "deduplicate_nodes", "affected": 0, "note": "no duplicates"})
+            skipped.append(
+                {"type": "deduplicate_nodes", "affected": 0, "note": "no duplicates"}
+            )
 
     # ensure_entry: если entry пуст и есть nodes — назначить первый; если entry есть, но отсутствует в nodes — добавить
     if "ensure_entry" in actions:
         if not q.entry_node_id and nodes:
             q.entry_node_id = nodes[0]
             changed = True
-            applied.append({"type": "ensure_entry", "affected": 1, "note": "entry set to first node"})
+            applied.append(
+                {
+                    "type": "ensure_entry",
+                    "affected": 1,
+                    "note": "entry set to first node",
+                }
+            )
         elif q.entry_node_id and nodes and q.entry_node_id not in nodes:
             q.nodes = [q.entry_node_id] + nodes
             nodes = q.nodes
             changed = True
-            applied.append({"type": "ensure_entry", "affected": 1, "note": "entry added to nodes list"})
+            applied.append(
+                {
+                    "type": "ensure_entry",
+                    "affected": 1,
+                    "note": "entry added to nodes list",
+                }
+            )
         else:
             skipped.append({"type": "ensure_entry", "affected": 0, "note": "entry ok"})
 
@@ -266,7 +300,7 @@ async def post_quest_autofix(
         },
         request=request,
         workspace_id=str(workspace_id),
-        content_type="quest",
+        node_type="quest",
     )
     return AutofixReport(
         applied=[type("X", (), x) for x in applied],
@@ -291,7 +325,9 @@ async def post_quest_publish(
     # Валидация перед публикацией: ошибки запрещают публикацию
     report = await validate_quest(db, q)
     if report.errors > 0:
-        raise HTTPException(status_code=409, detail="Validation errors prevent publishing")
+        raise HTTPException(
+            status_code=409, detail="Validation errors prevent publishing"
+        )
 
     # Требуем статус in_review перед публикацией
     if q.status != ContentStatus.in_review:
@@ -314,7 +350,7 @@ async def post_quest_publish(
 
     await db.commit()
 
-    await content_service.publish_content(q.id, q.slug, current.id)
+    await node_service.publish_content(q.id, q.slug, current.id)
 
     await audit_log(
         db,
@@ -323,10 +359,14 @@ async def post_quest_publish(
         resource_type="quest",
         resource_id=str(quest_id),
         before=before,
-        after={"status": q.status, "is_premium_only": q.is_premium_only, "published_at": q.published_at.isoformat()},
+        after={
+            "status": q.status,
+            "is_premium_only": q.is_premium_only,
+            "published_at": q.published_at.isoformat(),
+        },
         request=request,
         reason=f"access={body.access}",
         workspace_id=str(workspace_id),
-        content_type="quest",
+        node_type="quest",
     )
     return {"status": "published", "quest_id": str(quest_id)}

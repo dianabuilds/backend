@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Optional
 import logging
+from typing import Any, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,7 @@ async def audit_log(
     reason: Optional[str] = None,
     extra: Optional[dict[str, Any]] = None,
     workspace_id: str | None = None,
-    content_type: str | None = None,
+    node_type: str | None = None,
 ) -> None:
     payload: dict[str, Any] = extra.copy() if extra else {}
     if reason:
@@ -38,7 +38,7 @@ async def audit_log(
         **payload,
     )
 
-    if workspace_id and content_type:
+    if workspace_id and node_type:
         event = None
         act = action.lower()
         if act.endswith("_create"):
@@ -56,6 +56,6 @@ async def audit_log(
                 {
                     "event": event,
                     "ws_id": workspace_id,
-                    "content_type": content_type,
+                    "node_type": node_type,
                 },
             )

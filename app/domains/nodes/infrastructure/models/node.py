@@ -1,26 +1,19 @@
 from __future__ import annotations
 
-from datetime import datetime
 import hashlib
+from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    Float,
-    Enum as SAEnum,
-)
-from sqlalchemy.ext.mutable import MutableDict, MutableList
+from sqlalchemy import Boolean, Column, DateTime
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import relationship
 
-from app.core.db.base import Base
-from app.core.db.adapters import ARRAY, JSONB, UUID, VECTOR
 from app.core.config import settings
-from app.schemas.content_common import ContentStatus, ContentVisibility
+from app.core.db.adapters import ARRAY, JSONB, UUID, VECTOR
+from app.core.db.base import Base
+from app.schemas.node_common import ContentStatus, ContentVisibility
 
 
 def generate_slug() -> str:
@@ -32,8 +25,12 @@ class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
-    slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
+    workspace_id = Column(
+        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
+    slug = Column(
+        String, unique=True, index=True, nullable=False, default=generate_slug
+    )
     title = Column(String, nullable=True)
     content = Column(JSONB, nullable=False)
     cover_url = Column(String, nullable=True)
@@ -83,7 +80,9 @@ class Node(Base):
     created_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
     updated_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
 
-    tags = relationship("Tag", secondary="node_tags", back_populates="nodes", lazy="selectin")
+    tags = relationship(
+        "Tag", secondary="node_tags", back_populates="nodes", lazy="selectin"
+    )
 
     @property
     def tag_slugs(self) -> list[str]:

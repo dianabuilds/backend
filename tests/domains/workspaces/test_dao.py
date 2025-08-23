@@ -1,14 +1,11 @@
 import pytest
 import pytest_asyncio
-from uuid import uuid4
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.conftest import test_engine
-from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
-from app.domains.content.models import ContentItem  # ensure mapper registration
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO
+from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 from app.schemas.workspaces import WorkspaceRole
+from tests.conftest import test_engine
 
 
 @pytest_asyncio.fixture
@@ -57,7 +54,9 @@ async def test_workspace_crud(db_session: AsyncSession, workspace_tables, test_u
 
 
 @pytest.mark.asyncio
-async def test_list_for_user_permissions(db_session: AsyncSession, workspace_tables, test_user, admin_user):
+async def test_list_for_user_permissions(
+    db_session: AsyncSession, workspace_tables, test_user, admin_user
+):
     ws1 = await WorkspaceDAO.create(
         db_session, name="A", slug="a", owner_user_id=test_user.id
     )
@@ -83,7 +82,9 @@ async def test_list_for_user_permissions(db_session: AsyncSession, workspace_tab
 
 
 @pytest.mark.asyncio
-async def test_workspace_member_crud(db_session: AsyncSession, workspace_tables, test_user, admin_user):
+async def test_workspace_member_crud(
+    db_session: AsyncSession, workspace_tables, test_user, admin_user
+):
     ws = await WorkspaceDAO.create(
         db_session, name="C", slug="c", owner_user_id=admin_user.id
     )

@@ -1,35 +1,49 @@
-import pytest
+from uuid import uuid4
+
 import pytest
 import pytest_asyncio
-from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.workspaces.infrastructure.models import Workspace
-from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
 from app.domains.nodes.application.node_query_service import NodeQueryService
-from app.domains.nodes.application.query_models import NodeFilterSpec, PageRequest, QueryContext
-from app.schemas.node import NodeCreate
-from app.domains.content.models import ContentItem  # noqa: F401
-from app.domains.tags.models import Tag  # noqa: F401
+from app.domains.nodes.application.query_models import (
+    NodeFilterSpec,
+    PageRequest,
+    QueryContext,
+)
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.nodes.infrastructure.repositories.node_repository import (
+    NodeRepositoryAdapter,
+)
+from app.domains.nodes.models import NodeItem  # noqa: F401
 from app.domains.tags.infrastructure.models.tag_models import NodeTag
+from app.domains.tags.models import Tag  # noqa: F401
+from app.domains.workspaces.infrastructure.models import Workspace
+from app.schemas.node import NodeCreate
 
 
 @pytest_asyncio.fixture()
 async def node_tables(db_session: AsyncSession):
-    await db_session.run_sync(lambda s: Workspace.__table__.create(s.bind, checkfirst=True))
+    await db_session.run_sync(
+        lambda s: Workspace.__table__.create(s.bind, checkfirst=True)
+    )
     await db_session.run_sync(lambda s: Tag.__table__.create(s.bind, checkfirst=True))
     await db_session.run_sync(lambda s: Node.__table__.create(s.bind, checkfirst=True))
-    await db_session.run_sync(lambda s: NodeTag.__table__.create(s.bind, checkfirst=True))
+    await db_session.run_sync(
+        lambda s: NodeTag.__table__.create(s.bind, checkfirst=True)
+    )
     yield
     await db_session.run_sync(lambda s: NodeTag.__table__.drop(s.bind, checkfirst=True))
     await db_session.run_sync(lambda s: Node.__table__.drop(s.bind, checkfirst=True))
     await db_session.run_sync(lambda s: Tag.__table__.drop(s.bind, checkfirst=True))
-    await db_session.run_sync(lambda s: Workspace.__table__.drop(s.bind, checkfirst=True))
+    await db_session.run_sync(
+        lambda s: Workspace.__table__.drop(s.bind, checkfirst=True)
+    )
 
 
 @pytest.mark.asyncio
-async def test_repository_scopes_by_workspace(db_session: AsyncSession, test_user, node_tables):
+async def test_repository_scopes_by_workspace(
+    db_session: AsyncSession, test_user, node_tables
+):
     ws1 = Workspace(id=uuid4(), name="WS1", slug="ws1", owner_user_id=test_user.id)
     ws2 = Workspace(id=uuid4(), name="WS2", slug="ws2", owner_user_id=test_user.id)
     db_session.add_all([ws1, ws2])
@@ -46,7 +60,9 @@ async def test_repository_scopes_by_workspace(db_session: AsyncSession, test_use
 
 
 @pytest.mark.asyncio
-async def test_query_service_scopes_by_workspace(db_session: AsyncSession, test_user, node_tables):
+async def test_query_service_scopes_by_workspace(
+    db_session: AsyncSession, test_user, node_tables
+):
     ws1 = Workspace(id=uuid4(), name="WS1", slug="ws1", owner_user_id=test_user.id)
     ws2 = Workspace(id=uuid4(), name="WS2", slug="ws2", owner_user_id=test_user.id)
     db_session.add_all([ws1, ws2])

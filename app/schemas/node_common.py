@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import Enum
 from uuid import UUID
-from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -29,7 +29,7 @@ class ContentBase(BaseModel):
     visibility: ContentVisibility = ContentVisibility.private
 
 
-class ContentItem(ContentBase):
+class NodeItem(ContentBase):
     id: UUID
     type: str
     workspace_id: UUID

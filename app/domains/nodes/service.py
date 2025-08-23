@@ -8,8 +8,7 @@ from app.domains.system.events import (
     ContentUpdated,
     get_event_bus,
 )
-from app.schemas.content_common import ContentStatus
-
+from app.schemas.node_common import ContentStatus
 
 ALLOWED_TRANSITIONS: dict[ContentStatus, set[ContentStatus]] = {
     ContentStatus.draft: {ContentStatus.in_review},
@@ -31,16 +30,22 @@ def validate_transition(current: ContentStatus, new: ContentStatus) -> None:
 async def publish_content(content_id: UUID, slug: str, author_id: UUID) -> None:
     """Publish content and emit domain event."""
     bus = get_event_bus()
-    await bus.publish(ContentPublished(content_id=content_id, slug=slug, author_id=author_id))
+    await bus.publish(
+        ContentPublished(content_id=content_id, slug=slug, author_id=author_id)
+    )
 
 
 async def update_content(content_id: UUID, slug: str, author_id: UUID) -> None:
     """Update content and emit domain event."""
     bus = get_event_bus()
-    await bus.publish(ContentUpdated(content_id=content_id, slug=slug, author_id=author_id))
+    await bus.publish(
+        ContentUpdated(content_id=content_id, slug=slug, author_id=author_id)
+    )
 
 
 async def archive_content(content_id: UUID, slug: str, author_id: UUID) -> None:
     """Archive content and emit domain event."""
     bus = get_event_bus()
-    await bus.publish(ContentArchived(content_id=content_id, slug=slug, author_id=author_id))
+    await bus.publish(
+        ContentArchived(content_id=content_id, slug=slug, author_id=author_id)
+    )

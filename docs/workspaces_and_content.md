@@ -107,21 +107,21 @@ Content-Type: application/json
 
 All content routes expect `workspace_id` as a query parameter.
 
-- `GET /admin/content` – dashboard with counts of drafts, reviews and published
+- `GET /admin/nodes` – dashboard with counts of drafts, reviews and published
   items.
-- `GET /admin/content/all` – list content items with optional filters
-  (`content_type`, `status`, `tag`).
-- `POST /admin/content/{type}` – create a new item of a given `type`.
-- `GET /admin/content/{type}/{id}` – fetch a single content item.
-- `PATCH /admin/content/{type}/{id}` – update an item.
-- `POST /admin/content/{type}/{id}/publish` – mark the item as published.
-- `POST /admin/content/{type}/{id}/validate` – run validators and return a
+- `GET /admin/nodes/all` – list nodes with optional filters
+  (`node_type`, `status`, `tag`).
+- `POST /admin/nodes/{type}` – create a new item of a given `type`.
+- `GET /admin/nodes/{type}/{id}` – fetch a single node item.
+- `PATCH /admin/nodes/{type}/{id}` – update an item.
+- `POST /admin/nodes/{type}/{id}/publish` – mark the item as published.
+- `POST /admin/nodes/{type}/{id}/validate` – run validators and return a
   report.
 
 Example listing and creation:
 
 ```bash
-GET /admin/content/all?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e&content_type=article
+GET /admin/nodes/all?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e&node_type=article
 ```
 
 ```json
@@ -129,7 +129,7 @@ GET /admin/content/all?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e&content
   "items": [
     {
       "id": "42",
-      "content_type": "article",
+      "node_type": "article",
       "title": "Hello world",
       "status": "draft",
       "tags": []
