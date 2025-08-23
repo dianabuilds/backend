@@ -6405,7 +6405,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "Create content patch",
+        "summary": "Create node patch",
         "operationId": "create_patch_admin_hotfix_patches_post",
         "requestBody": {
           "content": {

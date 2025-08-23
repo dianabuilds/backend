@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import delete, func, or_, select
@@ -24,7 +23,7 @@ class NodeItemDAO:
     @staticmethod
     async def list_by_type(
         db: AsyncSession, *, workspace_id: UUID, node_type: str
-    ) -> List[NodeItem]:
+    ) -> list[NodeItem]:
         stmt = (
             select(NodeItem)
             .where(
@@ -61,10 +60,10 @@ class NodeItemDAO:
         *,
         workspace_id: UUID,
         node_type: str,
-        q: Optional[str] = None,
+        q: str | None = None,
         page: int = 1,
         per_page: int = 10,
-    ) -> List[NodeItem]:
+    ) -> list[NodeItem]:
         stmt = select(NodeItem).where(
             NodeItem.workspace_id == workspace_id,
             NodeItem.type == node_type,
@@ -92,7 +91,7 @@ class NodePatchDAO:
         created_by_user_id: UUID | None = None,
     ) -> NodePatch:
         patch = NodePatch(
-            content_id=node_id,
+            node_id=node_id,
             data=data,
             created_by_user_id=created_by_user_id,
         )
@@ -116,11 +115,11 @@ class NodePatchDAO:
         for item in items:
             await db.refresh(item)
         stmt = select(NodePatch).where(
-            NodePatch.content_id.in_(ids),
+            NodePatch.node_id.in_(ids),
             NodePatch.reverted_at.is_(None),
         )
         res = await db.execute(stmt)
-        patches = {p.content_id: p for p in res.scalars().all()}
+        patches = {p.node_id: p for p in res.scalars().all()}
         for item in items:
             patch = patches.get(item.id)
             if patch:

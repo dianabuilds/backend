@@ -44,10 +44,10 @@ class NodeItem(Base):
 
 
 class NodePatch(Base):
-    __tablename__ = "content_patches"
+    __tablename__ = "node_patches"
 
     id = sa.Column(UUID(), primary_key=True, default=uuid4)
-    content_id = sa.Column(UUID(), sa.ForeignKey("content_items.id"), nullable=False)
+    node_id = sa.Column(UUID(), sa.ForeignKey("content_items.id"), nullable=False)
     data = sa.Column(sa.JSON, nullable=False)
     created_by_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=True)
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
