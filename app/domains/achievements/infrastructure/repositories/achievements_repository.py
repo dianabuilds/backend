@@ -27,8 +27,14 @@ class AchievementsRepository(IAchievementsRepository):
         )
         return res.scalars().first() is not None
 
-    async def get_achievement(self, achievement_id: UUID) -> Optional[Achievement]:
-        return await self._db.get(Achievement, achievement_id)
+    async def get_achievement(self, achievement_id: UUID, workspace_id: UUID) -> Optional[Achievement]:
+        res = await self._db.execute(
+            select(Achievement).where(
+                Achievement.id == achievement_id,
+                Achievement.workspace_id == workspace_id,
+            )
+        )
+        return res.scalars().first()
 
     async def add_user_achievement(self, user_id: UUID, achievement_id: UUID) -> None:
         self._db.add(UserAchievement(user_id=user_id, achievement_id=achievement_id))
@@ -47,7 +53,7 @@ class AchievementsRepository(IAchievementsRepository):
         return True
 
     async def list_user_achievements(
-        self, user_id: UUID
+        self, user_id: UUID, workspace_id: UUID
     ) -> List[tuple[Achievement, UserAchievement | None]]:
         res = await self._db.execute(
             select(Achievement, UserAchievement)
@@ -56,6 +62,7 @@ class AchievementsRepository(IAchievementsRepository):
                     (UserAchievement.achievement_id == Achievement.id)
                     & (UserAchievement.user_id == user_id),
                 )
+                .where(Achievement.workspace_id == workspace_id)
                 .order_by(Achievement.title.asc())
         )
         return list(res.all())
@@ -83,12 +90,13 @@ class AchievementsRepository(IAchievementsRepository):
         )
         return int(res.scalar() or 0)
 
-    async def list_locked_achievements(self, user_id: UUID) -> List[Achievement]:
+    async def list_locked_achievements(self, user_id: UUID, workspace_id: UUID) -> List[Achievement]:
         res = await self._db.execute(
             select(Achievement).where(
+                Achievement.workspace_id == workspace_id,
                 ~Achievement.id.in_(
                     select(UserAchievement.achievement_id).where(UserAchievement.user_id == user_id)
-                )
+                ),
             )
         )
         return list(res.scalars().all())
@@ -108,28 +116,43 @@ class AchievementsRepository(IAchievementsRepository):
         return int(res.scalar() or 0)
 
     # CRUD (admin)
-    async def list_achievements(self) -> List[Achievement]:
-        res = await self._db.execute(select(Achievement).order_by(Achievement.title.asc()))
+    async def list_achievements(self, workspace_id: UUID) -> List[Achievement]:
+        res = await self._db.execute(
+            select(Achievement)
+            .where(Achievement.workspace_id == workspace_id)
+            .order_by(Achievement.title.asc())
+        )
         return list(res.scalars().all())
 
-    async def exists_code(self, code: str) -> bool:
-        res = await self._db.execute(select(Achievement).where(Achievement.code == code))
+    async def exists_code(self, code: str, workspace_id: UUID) -> bool:
+        res = await self._db.execute(
+            select(Achievement).where(
+                Achievement.code == code,
+                Achievement.workspace_id == workspace_id,
+            )
+        )
         return res.scalars().first() is not None
 
-    async def create_achievement(self, data: dict[str, Any]) -> Achievement:
-        item = Achievement(**data)
+    async def create_achievement(self, workspace_id: UUID, data: dict[str, Any]) -> Achievement:
+        item = Achievement(workspace_id=workspace_id, **data)
         self._db.add(item)
         await self._db.flush()
         await self._db.refresh(item)
         return item
 
-    async def update_achievement_fields(self, item: Achievement, data: dict[str, Any]) -> Achievement:
+    async def update_achievement_fields(
+        self, item: Achievement, data: dict[str, Any], workspace_id: UUID
+    ) -> Achievement:
+        if item.workspace_id != workspace_id:
+            raise ValueError("workspace_mismatch")
         for k, v in (data or {}).items():
             setattr(item, k, v)
         await self._db.flush()
         await self._db.refresh(item)
         return item
 
-    async def delete_achievement(self, item: Achievement) -> None:
+    async def delete_achievement(self, item: Achievement, workspace_id: UUID) -> None:
+        if item.workspace_id != workspace_id:
+            raise ValueError("workspace_mismatch")
         await self._db.delete(item)
         await self._db.flush()
