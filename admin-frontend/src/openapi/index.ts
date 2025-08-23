@@ -29,7 +29,7 @@ export type { CampaignUpdate } from './models/CampaignUpdate';
 export type { ChangePasswordIn } from './models/ChangePasswordIn';
 export type { CharacterIn } from './models/CharacterIn';
 export type { CharacterOut } from './models/CharacterOut';
-export type { ContentStatus } from './models/ContentStatus';
+export type { Status } from './models/Status';
 export type { EVMVerify } from './models/EVMVerify';
 export type { FeatureFlagOut } from './models/FeatureFlagOut';
 export type { FeatureFlagUpdateIn } from './models/FeatureFlagUpdateIn';

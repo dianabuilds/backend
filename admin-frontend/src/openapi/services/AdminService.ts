@@ -14,7 +14,7 @@ import type { BulkIds } from '../models/BulkIds';
 import type { CampaignUpdate } from '../models/CampaignUpdate';
 import type { CharacterIn } from '../models/CharacterIn';
 import type { CharacterOut } from '../models/CharacterOut';
-import type { ContentStatus } from '../models/ContentStatus';
+import type { Status } from '../models/Status';
 import type { FeatureFlagOut } from '../models/FeatureFlagOut';
 import type { FeatureFlagUpdateIn } from '../models/FeatureFlagUpdateIn';
 import type { GenerateQuestIn } from '../models/GenerateQuestIn';
@@ -1578,7 +1578,7 @@ export class AdminService {
     public static listContentAdminContentAllGet(
         workspaceId: string,
         contentType?: (string | null),
-        status?: (ContentStatus | null),
+        status?: (Status | null),
         tag?: (string | null),
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {

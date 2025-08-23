@@ -12,7 +12,7 @@ from sqlalchemy.orm import relationship
 
 from app.core.db.adapters import ARRAY, JSONB, UUID
 from app.core.db.base import Base
-from app.schemas.node_common import ContentStatus, ContentVisibility
+from app.schemas.nodes_common import Status, Visibility
 
 
 def generate_slug() -> str:
@@ -48,15 +48,15 @@ class Quest(Base):
     locale = Column(String, nullable=True)
     cost_generation = Column(Integer, nullable=True)
     status = Column(
-        SAEnum(ContentStatus, name="content_status"),
+        SAEnum(Status, name="content_status"),
         nullable=False,
-        server_default=ContentStatus.draft.value,
+        server_default=Status.draft.value,
     )
     version = Column(Integer, nullable=False, server_default="1")
     visibility = Column(
-        SAEnum(ContentVisibility, name="content_visibility"),
+        SAEnum(Visibility, name="content_visibility"),
         nullable=False,
-        server_default=ContentVisibility.private.value,
+        server_default=Visibility.private.value,
     )
     created_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
     updated_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)

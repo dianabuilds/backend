@@ -2,4 +2,4 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ContentStatus = 'draft' | 'in_review' | 'published' | 'archived';
+export type Status = 'draft' | 'in_review' | 'published' | 'archived';

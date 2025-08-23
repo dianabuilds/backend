@@ -13,7 +13,7 @@ from app.domains.notifications.infrastructure.models.campaign_models import (
 from app.domains.quests.authoring import create_quest
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.workspaces.infrastructure.models import Workspace
-from app.schemas.node_common import ContentStatus
+from app.schemas.nodes_common import Status
 from app.schemas.quest import QuestCreate
 
 
@@ -42,15 +42,15 @@ async def test_workspace_quest_publish_flow(
         db_session, payload=payload, author=test_user, workspace_id=ws.id
     )
     assert quest.workspace_id == ws.id
-    assert quest.status == ContentStatus.draft
+    assert quest.status == Status.draft
 
     # attempt to publish without review should fail
     with pytest.raises(ValueError):
-        validate_transition(quest.status, ContentStatus.published)
+        validate_transition(quest.status, Status.published)
 
     # move quest to review
-    validate_transition(quest.status, ContentStatus.in_review)
-    quest.status = ContentStatus.in_review
+    validate_transition(quest.status, Status.in_review)
+    quest.status = Status.in_review
     await db_session.commit()
 
     @asynccontextmanager
@@ -61,8 +61,8 @@ async def test_workspace_quest_publish_flow(
     monkey.setattr(core_session, "db_session", _cm)
 
     # publish quest
-    validate_transition(quest.status, ContentStatus.published)
-    quest.status = ContentStatus.published
+    validate_transition(quest.status, Status.published)
+    quest.status = Status.published
     await db_session.commit()
     await publish_content(quest.id, quest.slug, quest.author_id)
 
