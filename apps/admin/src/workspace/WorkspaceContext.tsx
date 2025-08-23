@@ -1,15 +1,16 @@
 /* eslint react-refresh/only-export-components: off */
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { setWorkspaceId as persistWorkspaceId } from "../api/client";
+import type { Workspace } from "../api/types";
 
 interface WorkspaceContextType {
   workspaceId: string;
-  setWorkspaceId: (id: string) => void;
+  setWorkspace: (workspace: Workspace | undefined) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType>({
   workspaceId: "",
-  setWorkspaceId: () => {},
+  setWorkspace: () => {},
 });
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
@@ -22,13 +23,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return initial;
   });
 
-  const setWorkspaceId = (id: string) => {
+  const setWorkspace = (ws: Workspace | undefined) => {
+    const id = ws?.id ?? "";
     setWorkspaceIdState(id);
     persistWorkspaceId(id || null);
   };
 
   return (
-    <WorkspaceContext.Provider value={{ workspaceId, setWorkspaceId }}>
+    <WorkspaceContext.Provider value={{ workspaceId, setWorkspace }}>
       {children}
     </WorkspaceContext.Provider>
   );

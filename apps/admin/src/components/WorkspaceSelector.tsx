@@ -4,57 +4,39 @@ import { Link } from "react-router-dom";
 import { Settings } from "lucide-react";
 import { api } from "../api/client";
 import { useWorkspace } from "../workspace/WorkspaceContext";
-
-interface Workspace {
-  id: string;
-  name: string;
-  role?: string;
-  type: "personal" | "team" | "global";
-}
+import SelectBase from "./ui/SelectBase";
+import type { Workspace } from "../api/types";
 
 export default function WorkspaceSelector() {
-  const { workspaceId, setWorkspaceId } = useWorkspace();
+  const { workspaceId, setWorkspace } = useWorkspace();
 
   const { data } = useQuery({
     queryKey: ["workspaces"],
     queryFn: async () => {
       const res = await api.get<Workspace[] | { workspaces: Workspace[] }>("/admin/workspaces");
-      const payload = res.data as any;
-      if (Array.isArray(payload)) return payload as Workspace[];
-      return (payload?.workspaces as Workspace[] | undefined) || [];
+      const payload = res.data;
+      if (Array.isArray(payload)) return payload;
+      return payload?.workspaces ?? [];
     },
   });
 
   useEffect(() => {
     if (!workspaceId && data && data.length > 0) {
-      setWorkspaceId(data[0].id);
+      setWorkspace(data[0]);
     }
-  }, [workspaceId, data, setWorkspaceId]);
+  }, [workspaceId, data, setWorkspace]);
+
+  const selected = data?.find((ws) => ws.id === workspaceId);
 
   return (
     <div className="flex items-center gap-2 mr-4">
-      <select
-        value={workspaceId}
-        onChange={(e) => setWorkspaceId(e.target.value)}
-        className="px-2 py-1 border rounded text-sm"
-      >
-        <option value="">Select workspace</option>
-        {(["personal", "team", "global"] as const).map((type) => {
-          const items = data?.filter((ws) => ws.type === type) || [];
-          if (items.length === 0) return null;
-          const label =
-            type === "personal" ? "My" : type === "team" ? "Team" : "Global";
-          return (
-            <optgroup key={type} label={label}>
-              {items.map((ws) => (
-                <option key={ws.id} value={ws.id}>
-                  {ws.name}
-                </option>
-              ))}
-            </optgroup>
-          );
-        })}
-      </select>
+      <SelectBase<Workspace>
+        items={data ?? []}
+        value={selected}
+        onChange={setWorkspace}
+        getKey={(ws) => ws.id}
+        getLabel={(ws) => ws.name}
+      />
       {workspaceId && (
         <Link
           to={`/workspaces/${workspaceId}`}
