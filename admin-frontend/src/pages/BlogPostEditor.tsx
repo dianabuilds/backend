@@ -1,13 +1,10 @@
 import { useState } from "react";
 import ContentEditor from "../components/content/ContentEditor";
-import MediaPicker from "../components/MediaPicker";
-import TagSelect from "../components/TagSelect";
 import PublishBar from "../components/PublishBar";
-
-const TABS = ["General", "Content", "Relations", "AI", "Validation", "History", "Publishing", "Notifications"];
 
 export default function BlogPostEditor() {
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [cover, setCover] = useState<string | null>(null);
   const [body, setBody] = useState("");
@@ -15,44 +12,27 @@ export default function BlogPostEditor() {
   return (
     <ContentEditor
       title="Blog Post Editor"
-      tabs={TABS}
+      status="draft"
+      version={1}
       actions={<PublishBar />}
-      renderTab={(tab) => {
-        switch (tab) {
-          case "General":
-            return (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium">Title</label>
-                  <input
-                    className="mt-1 border rounded px-2 py-1 w-full"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Tags</label>
-                  <TagSelect value={tags} onChange={setTags} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Cover</label>
-                  <MediaPicker value={cover} onChange={setCover} />
-                </div>
-              </div>
-            );
-          case "Content":
-            return (
-              <textarea
-                className="w-full h-40 border rounded p-2"
-                placeholder="Blog post content..."
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-              />
-            );
-          default:
-            return <div className="text-sm text-gray-500">No content for {tab} yet.</div>;
-        }
+      general={{
+        title,
+        slug,
+        tags,
+        cover,
+        onTitleChange: setTitle,
+        onSlugChange: setSlug,
+        onTagsChange: setTags,
+        onCoverChange: setCover,
       }}
+      renderContent={() => (
+        <textarea
+          className="w-full h-40 border rounded p-2"
+          placeholder="Blog post content..."
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+        />
+      )}
     />
   );
 }
