@@ -33,6 +33,10 @@ class WorkspaceOut(BaseModel):
         orm_mode = True
 
 
+class WorkspaceWithRoleOut(WorkspaceOut):
+    role: WorkspaceRole
+
+
 class WorkspaceUpdate(BaseModel):
     name: str | None = None
     slug: str | None = None
