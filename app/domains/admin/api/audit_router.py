@@ -27,6 +27,7 @@ async def list_audit_logs(
     actor_id: UUID | None = None,
     action: str | None = None,
     resource: str | None = None,
+    workspace_id: UUID | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     page: int = 1,
@@ -43,6 +44,8 @@ async def list_audit_logs(
         stmt = stmt.where(
             or_(AuditLog.resource_type == resource, AuditLog.resource_id == resource)
         )
+    if workspace_id:
+        stmt = stmt.where(AuditLog.workspace_id == workspace_id)
     if date_from:
         stmt = stmt.where(AuditLog.created_at >= date_from)
     if date_to:

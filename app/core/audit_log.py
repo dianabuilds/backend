@@ -29,6 +29,7 @@ class AuditLogHandler(logging.Handler):
                 "action": getattr(record, "action", None),
                 "resource_type": getattr(record, "resource_type", None),
                 "resource_id": getattr(record, "resource_id", None),
+                "workspace_id": getattr(record, "workspace_id", None),
                 "before": getattr(record, "before", None),
                 "after": getattr(record, "after", None),
                 "ip": ip_var.get(),
@@ -90,6 +91,7 @@ async def log_admin_action(
     resource_id=None,
     before=None,
     after=None,
+    workspace_id=None,
     **extra,
 ) -> None:
     log = AuditLog(
@@ -97,6 +99,7 @@ async def log_admin_action(
         action=action,
         resource_type=resource_type,
         resource_id=resource_id,
+        workspace_id=workspace_id,
         before=before,
         after=after,
         ip=ip_var.get(),
