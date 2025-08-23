@@ -17,6 +17,7 @@ class AuditLog(Base):
     action = Column(String, nullable=False)
     resource_type = Column(String, nullable=True)
     resource_id = Column(String, nullable=True)
+    workspace_id = Column(UUID(), nullable=True, index=True)
     before = Column(JSONB, nullable=True)
     after = Column(JSONB, nullable=True)
     ip = Column(String, nullable=True)
