@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 from typing import List
+import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -9,6 +11,9 @@ from sqlalchemy.future import select
 from app.schemas.workspaces import WorkspaceRole, WorkspaceSettings
 
 from .models import Workspace, WorkspaceMember
+
+
+logger = logging.getLogger("app.audit.workspace_member")
 
 
 class WorkspaceDAO:
@@ -93,6 +98,15 @@ class WorkspaceMemberDAO:
         )
         db.add(member)
         await db.flush()
+        logger.info(
+            "workspace_member.add",
+            extra={
+                "workspace_id": str(workspace_id),
+                "user_id": str(user_id),
+                "role": role.value if hasattr(role, "value") else str(role),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
         return member
 
     @staticmethod
@@ -107,8 +121,19 @@ class WorkspaceMemberDAO:
             db, workspace_id=workspace_id, user_id=user_id
         )
         if member:
+            old_role = member.role
             member.role = role
             await db.flush()
+            logger.info(
+                "workspace_member.update_role",
+                extra={
+                    "workspace_id": str(workspace_id),
+                    "user_id": str(user_id),
+                    "old_role": old_role.value if hasattr(old_role, "value") else str(old_role),
+                    "new_role": role.value if hasattr(role, "value") else str(role),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
         return member
 
     @staticmethod
@@ -119,8 +144,18 @@ class WorkspaceMemberDAO:
             db, workspace_id=workspace_id, user_id=user_id
         )
         if member:
+            role = member.role
             await db.delete(member)
             await db.flush()
+            logger.info(
+                "workspace_member.remove",
+                extra={
+                    "workspace_id": str(workspace_id),
+                    "user_id": str(user_id),
+                    "role": role.value if hasattr(role, "value") else str(role),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
 
     @staticmethod
     async def list(
