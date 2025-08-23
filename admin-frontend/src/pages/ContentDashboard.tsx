@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../api/client";
+import { listNodes, createNode } from "../api/client";
 import KpiCard from "../components/KpiCard";
 
 interface DashboardData {
@@ -14,13 +14,22 @@ export default function ContentDashboard() {
   const { data, refetch, isLoading } = useQuery({
     queryKey: ["content", "dashboard"],
     queryFn: async () => {
-      const res = await api.get<DashboardData>("/admin/content");
-      return res.data;
+      const items = await listNodes();
+      const drafts = items.filter((i: any) => i.status === "draft").length;
+      const reviews = items.filter((i: any) => i.status === "review").length;
+      const published = items.filter((i: any) => i.status === "published").length;
+      return {
+        drafts,
+        reviews,
+        published,
+        latest: items.slice(0, 5).map((i: any) => ({ id: i.id, type: i.type, status: i.status })),
+        validation_errors: [],
+      } as DashboardData;
     },
   });
 
   const createItem = async (type: string) => {
-    await api.post(`/admin/content/${type}`);
+    await createNode(type);
     refetch();
   };
 
