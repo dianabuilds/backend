@@ -1,3 +1,5 @@
+import type { AutofixReport, ValidationReport } from "../openapi";
+import type { Page } from "./types";
 import { api } from "./client";
 
 export type AdminQuest = {
@@ -10,22 +12,16 @@ export type AdminQuest = {
   // расширяем по мере необходимости
 };
 
-export type ValidationItem = {
-  level: "error" | "warning" | "info";
-  code: string;
-  message: string;
-  node_id?: string | null;
-};
-
-export type ValidationReport = {
-  errors: number;
-  warnings: number;
-  items: ValidationItem[];
-};
-
 export type PublishAccess = "premium_only" | "everyone" | "early_access";
-
-export async function listAdminQuests(params?: { q?: string; draft?: boolean; length?: "short" | "long"; created_from?: string; created_to?: string; page?: number; per_page?: number }) {
+export async function listAdminQuests(params?: {
+  q?: string;
+  draft?: boolean;
+  length?: "short" | "long";
+  created_from?: string;
+  created_to?: string;
+  page?: number;
+  per_page?: number;
+}): Promise<Page<AdminQuest>> {
   const q = new URLSearchParams();
   if (params?.q) q.set("q", params.q);
   if (typeof params?.draft === "boolean") q.set("draft", String(params.draft));
@@ -34,25 +30,33 @@ export async function listAdminQuests(params?: { q?: string; draft?: boolean; le
   if (params?.created_to) q.set("created_to", params.created_to);
   if (typeof params?.page === "number") q.set("page", String(params.page));
   if (typeof params?.per_page === "number") q.set("per_page", String(params.per_page));
-  const res = await api.get<AdminQuest[]>(`/admin/quests${q.toString() ? `?${q.toString()}` : ""}`);
-  return (res.data || []) as AdminQuest[];
+  const res = await api.get<Page<AdminQuest>>(
+    `/admin/quests${q.toString() ? `?${q.toString()}` : ""}`,
+  );
+  return res.data!;
 }
 
 export async function validateQuest(questId: string): Promise<ValidationReport> {
   const res = await api.get<ValidationReport>(`/admin/quests/${encodeURIComponent(questId)}/validation`);
-  return res.data as any;
+  return res.data!;
 }
 
 export async function publishQuest(questId: string, opts: { access: PublishAccess; cover_url?: string | null; style_preset?: string | null }) {
-  const res = await api.post(`/admin/quests/${encodeURIComponent(questId)}/publish`, {
-    access: opts.access,
-    cover_url: opts.cover_url || null,
-    style_preset: opts.style_preset || null,
-  });
-  return res.data as any;
+  const res = await api.post<unknown>(
+    `/admin/quests/${encodeURIComponent(questId)}/publish`,
+    {
+      access: opts.access,
+      cover_url: opts.cover_url || null,
+      style_preset: opts.style_preset || null,
+    },
+  );
+  return res.data;
 }
 
 export async function autofixQuest(questId: string, actions: string[]) {
-  const res = await api.post(`/admin/quests/${encodeURIComponent(questId)}/autofix`, { actions });
-  return res.data as any;
+  const res = await api.post<AutofixReport>(
+    `/admin/quests/${encodeURIComponent(questId)}/autofix`,
+    { actions },
+  );
+  return res.data;
 }

@@ -1,39 +1,41 @@
+import type { BlacklistItem, MergeReport, TagListItem } from "../openapi";
 import { api } from "./client";
 
-export interface MergeReport {
-  from: { id: string; name: string; slug: string };
-  to: { id: string; name: string; slug: string };
-  content_touched: number;
-  aliases_moved: number;
-  warnings: string[];
-  errors: string[];
+export async function dryRunMerge(
+  from_id: string,
+  to_id: string,
+): Promise<MergeReport> {
+  const res = await api.post<MergeReport>("/admin/tags/merge", {
+    from_id,
+    to_id,
+    dryRun: true,
+  });
+  return res.data!;
 }
 
-export async function dryRunMerge(from_id: string, to_id: string): Promise<MergeReport> {
-  const res = await api.post<MergeReport>("/admin/tags/merge", { from_id, to_id, dryRun: true });
-  return res.data as MergeReport;
-}
-
-export async function applyMerge(from_id: string, to_id: string, reason?: string): Promise<MergeReport> {
-  const res = await api.post<MergeReport>("/admin/tags/merge", { from_id, to_id, dryRun: false, reason });
-  return res.data as MergeReport;
-}
-
-export interface BlacklistItem {
-  slug: string;
-  reason?: string | null;
-  created_at: string;
+export async function applyMerge(
+  from_id: string,
+  to_id: string,
+  reason?: string,
+): Promise<MergeReport> {
+  const res = await api.post<MergeReport>("/admin/tags/merge", {
+    from_id,
+    to_id,
+    dryRun: false,
+    reason,
+  });
+  return res.data!;
 }
 
 export async function getBlacklist(q?: string): Promise<BlacklistItem[]> {
   const qs = q ? `?q=${encodeURIComponent(q)}` : "";
   const res = await api.get<BlacklistItem[]>(`/admin/tags/blacklist${qs}`);
-  return res.data as any;
+  return res.data ?? [];
 }
 
 export async function addToBlacklist(slug: string, reason?: string): Promise<BlacklistItem> {
   const res = await api.post<BlacklistItem>("/admin/tags/blacklist", { slug, reason });
-  return res.data as any;
+  return res.data!;
 }
 
 export async function removeFromBlacklist(slug: string): Promise<void> {
@@ -41,17 +43,9 @@ export async function removeFromBlacklist(slug: string): Promise<void> {
 }
 
 /** Admin list item returned by /admin/tags/list */
-export type AdminTagListItem = {
-  id: string;
-  slug: string;
-  name: string;
-  created_at: string;
-  usage_count: number;
-  aliases_count: number;
-  is_hidden: boolean;
-};
-
-export async function listAdminTags(params: { q?: string; limit?: number; offset?: number }): Promise<AdminTagListItem[]> {
+export async function listAdminTags(
+  params: { q?: string; limit?: number; offset?: number },
+): Promise<TagListItem[]> {
   const { q, limit, offset } = params ?? {};
   const qs = [
     q ? `q=${encodeURIComponent(q)}` : "",
@@ -60,13 +54,18 @@ export async function listAdminTags(params: { q?: string; limit?: number; offset
   ]
     .filter(Boolean)
     .join("&");
-  const res = await api.get<AdminTagListItem[]>(`/admin/tags/list${qs ? `?${qs}` : ""}`);
-  return res.data as any;
+  const res = await api.get<TagListItem[]>(
+    `/admin/tags/list${qs ? `?${qs}` : ""}`,
+  );
+  return res.data ?? [];
 }
 
-export async function createAdminTag(slug: string, name: string): Promise<AdminTagListItem> {
-  const res = await api.post<AdminTagListItem>("/admin/tags", { slug, name });
-  return res.data as any;
+export async function createAdminTag(
+  slug: string,
+  name: string,
+): Promise<TagListItem> {
+  const res = await api.post<TagListItem>("/admin/tags", { slug, name });
+  return res.data!;
 }
 
 export async function deleteAdminTag(id: string): Promise<void> {

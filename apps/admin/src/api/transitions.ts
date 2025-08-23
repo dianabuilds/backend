@@ -1,16 +1,11 @@
+import type { AdminTransitionOut } from "../openapi";
 import { api } from "./client";
 
-export type Transition = {
-  id: string;
-  from_slug: string;
-  to_slug: string;
-  label?: string | null;
-  weight?: number | null;
+export type Transition = AdminTransitionOut & {
   priority?: number | null;
   disabled?: boolean | null;
   updated_at?: string | null;
-  // произвольные доп. поля, если сервер их вернёт
-  [k: string]: any;
+  [k: string]: unknown;
 };
 
 export type TransitionListParams = {
@@ -22,15 +17,19 @@ export type TransitionListParams = {
   status?: "any" | "enabled" | "disabled";
 };
 
-export async function listTransitions(params: TransitionListParams = {}): Promise<Transition[]> {
+export async function listTransitions(
+  params: TransitionListParams = {},
+): Promise<Transition[]> {
   const q = new URLSearchParams();
   if (params.from_slug) q.set("from_slug", params.from_slug);
   if (params.to_slug) q.set("to_slug", params.to_slug);
   if (typeof params.limit === "number") q.set("limit", String(params.limit));
   if (typeof params.offset === "number") q.set("offset", String(params.offset));
   if (params.status && params.status !== "any") q.set("status", params.status);
-  const res = await api.get<Transition[]>(`/admin/transitions${q.toString() ? `?${q.toString()}` : ""}`);
-  return (res.data as any) || [];
+  const res = await api.get<Transition[]>(
+    `/admin/transitions${q.toString() ? `?${q.toString()}` : ""}`,
+  );
+  return res.data ?? [];
 }
 
 export type CreateTransitionBody = {
@@ -46,7 +45,7 @@ export type CreateTransitionBody = {
 
 export async function createTransition(body: CreateTransitionBody): Promise<Transition> {
   const res = await api.post<Transition>("/admin/transitions", body);
-  return res.data as any;
+  return res.data!;
 }
 
 export type UpdateTransitionBody = Partial<Omit<CreateTransitionBody, "from_slug" | "to_slug">> & {
