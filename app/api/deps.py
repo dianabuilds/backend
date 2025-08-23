@@ -180,3 +180,17 @@ async def ensure_can_post(
 
 # Admin-only dependency for admin routes
 admin_required = require_role("admin")
+
+
+async def current_workspace(
+    workspace_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resolve workspace by id ensuring the user is a member.
+
+    Raises 404 if workspace is not found or the user lacks access.
+    """
+    from app.domains.workspaces.application.service import WorkspaceService
+
+    return await WorkspaceService.get_for_user(db, workspace_id, user)
