@@ -27,9 +27,9 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 async def record_visit(
     slug: str,
     to_slug: str,
+    workspace_id: UUID,
     source: str | None = None,
     channel: str | None = None,
-    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
