@@ -4,41 +4,37 @@ from app.core.logging_configuration import configure_logging
 load_dotenv()
 configure_logging()
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 import logging
 import os
+from pathlib import Path
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 
 TESTING = os.environ.get("TESTING") == "True"
 
 if not TESTING:
-    from app.web.immutable_static import ImmutableStaticFiles
-from app.core.config import settings
-from app.core.config import settings
-from app.core.metrics_middleware import MetricsMiddleware
-from app.core.request_id import RequestIDMiddleware
-from app.core.logging_middleware import RequestLoggingMiddleware
-from app.core.csrf import CSRFMiddleware
-from app.core.exception_handlers import register_exception_handlers
-from app.core.real_ip import RealIPMiddleware
-from app.domains.ai.embedding_config import configure_from_settings
-from app.domains.system.events import register_handlers
-from app.core.db.session import (
-    check_database_connection,
-    close_db_connection,
-    init_db,
-)
-from app.domains.system.bootstrap import ensure_default_admin, ensure_global_workspace
-from app.core.rate_limit import init_rate_limiter, close_rate_limiter
-from app.core.security_headers import SecurityHeadersMiddleware
-from app.core.cookies_security_middleware import CookiesSecurityMiddleware
+    pass
 from app.core.body_limit import BodySizeLimitMiddleware
+from app.core.config import settings
+from app.core.cookies_security_middleware import CookiesSecurityMiddleware
+from app.core.csrf import CSRFMiddleware
+from app.core.db.session import check_database_connection, close_db_connection, init_db
+from app.core.exception_handlers import register_exception_handlers
+from app.core.logging_middleware import RequestLoggingMiddleware
+from app.core.metrics_middleware import MetricsMiddleware
+from app.core.rate_limit import close_rate_limiter, init_rate_limiter
+from app.core.real_ip import RealIPMiddleware
+from app.core.request_id import RequestIDMiddleware
+from app.core.security_headers import SecurityHeadersMiddleware
+from app.domains.ai.embedding_config import configure_from_settings
 from app.domains.registry import register_domain_routers
+from app.domains.system.bootstrap import ensure_default_admin, ensure_global_workspace
+from app.domains.system.events import register_handlers
 
 # Используем базовое логирование из uvicorn/стандартного logging
 logger = logging.getLogger(__name__)
@@ -115,7 +111,7 @@ async def admin_spa_fallback(request: Request, call_next):
     return await call_next(request)
 
 
-DIST_DIR = Path(__file__).resolve().parent.parent / "admin-frontend" / "dist"
+DIST_DIR = Path(__file__).resolve().parent.parent.parent / "admin" / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
 if not TESTING and DIST_ASSETS_DIR.exists():
     # serve built frontend assets (js, css, etc.) with correct MIME types
@@ -164,10 +160,8 @@ else:
         # from app.api.tags import router as tags_router  # removed: served by domain router
         # from app.api.quests import router as quests_router  # removed: served by domain router
         from app.api.metrics_exporter import router as metrics_router
-        from app.api.rum_metrics import (
-            router as rum_metrics_router,
-            admin_router as rum_admin_router,
-        )
+        from app.api.rum_metrics import admin_router as rum_admin_router
+        from app.api.rum_metrics import router as rum_metrics_router
 
         # app.include_router(tags_router)  # removed: served by domain router
         # app.include_router(quests_router)  # removed: served by domain router

@@ -1,11 +1,12 @@
-from pathlib import Path
 import os
+from pathlib import Path
+
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, FileResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, Response
 
 router = APIRouter(tags=["admin-spa"])
 
-DIST_DIR = Path(__file__).resolve().parent.parent.parent / "admin-frontend" / "dist"
+DIST_DIR = Path(__file__).resolve().parent.parent.parent.parent / "admin" / "dist"
 
 
 @router.get("/admin", include_in_schema=False)
