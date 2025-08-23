@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from uuid import uuid4
 
 from app.domains.achievements.infrastructure.models.achievement_models import Achievement, UserAchievement
 from app.domains.nodes.infrastructure.models.node import Node
@@ -108,3 +109,24 @@ async def test_nodes_created_achievement(client: AsyncClient, db_session: AsyncS
     data = resp.json()
     created = next(a for a in data if a["code"] == "five_nodes")
     assert created["unlocked"]
+
+
+@pytest.mark.asyncio
+async def test_achievements_foreign_workspace_forbidden(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    auth_headers,
+    test_user,
+):
+    """User cannot access achievements of a workspace they don't belong to."""
+    ws1 = Workspace(name="ws1", slug="ws1", owner_user_id=test_user.id)
+    ws2 = Workspace(name="ws2", slug="ws2", owner_user_id=uuid4())
+    db_session.add_all([ws1, ws2])
+    await db_session.commit()
+
+    resp = await client.get(
+        "/achievements",
+        headers=auth_headers,
+        params={"workspace_id": str(ws2.id)},
+    )
+    assert resp.status_code == 404
