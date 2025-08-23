@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { api } from "../api/client";
 import CursorPager from "../components/CursorPager";
 import ErrorBanner from "../components/ErrorBanner";
-import DataTable, { type Column } from "../components/DataTable";
+import DataTable from "../components/DataTable";
+import type { Column } from "../components/DataTable.helpers";
 import { useToast } from "../components/ToastProvider";
 
 type Tx = {
