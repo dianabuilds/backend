@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select
+
+from app.security import auth_user
+from app.core.db.session import get_db
 
 from app.schemas.workspaces import (
     WorkspaceIn,
@@ -14,6 +18,45 @@ from app.schemas.workspaces import (
 from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 from app.domains.workspaces.infrastructure.dao import WorkspaceMemberDAO
 from app.domains.users.infrastructure.models.user import User
+
+
+async def require_ws_editor(
+    workspace_id: UUID,
+    user: User = Depends(auth_user),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceMember | None:
+    """Ensure the current user has editor or owner rights in the workspace."""
+    m = await WorkspaceMemberDAO.get(
+        db, workspace_id=workspace_id, user_id=user.id
+    )
+    if not (
+        user.role == "admin"
+        or (m and m.role in (WorkspaceRole.owner, WorkspaceRole.editor))
+    ):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return m
+
+
+async def require_ws_owner(
+    workspace_id: UUID,
+    user: User = Depends(auth_user),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceMember | None:
+    """Ensure the current user is an owner of the workspace."""
+    m = await WorkspaceMemberDAO.get(
+        db, workspace_id=workspace_id, user_id=user.id
+    )
+    if not (user.role == "admin" or (m and m.role == WorkspaceRole.owner)):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return m
+
+
+def scope_by_workspace(query: Select, workspace_id: UUID) -> Select:
+    """Filter a SQLAlchemy query by workspace identifier if possible."""
+    entity = query.column_descriptions[0]["entity"]
+    if hasattr(entity, "workspace_id"):
+        query = query.where(entity.workspace_id == workspace_id)
+    return query
 
 
 class WorkspaceService:
@@ -74,13 +117,6 @@ class WorkspaceService:
             raise HTTPException(status_code=404, detail="Workspace not found")
         await db.delete(workspace)
         await db.commit()
-
-    @staticmethod
-    def ensure_owner(user: User, member: WorkspaceMember | None) -> None:
-        if user.role != "admin" and (
-            member is None or member.role != WorkspaceRole.owner
-        ):
-            raise HTTPException(status_code=403, detail="Forbidden")
 
     @staticmethod
     async def add_member(

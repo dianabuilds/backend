@@ -14,7 +14,12 @@ from app.schemas.workspaces import (
     WorkspaceMemberIn,
     WorkspaceMemberOut,
 )
-from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
+from app.security import (
+    ADMIN_AUTH_RESPONSES,
+    auth_user,
+    require_ws_editor,
+    require_ws_owner,
+)
 from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 from app.domains.workspaces.application.service import WorkspaceService
 from app.domains.users.infrastructure.models.user import User
@@ -72,11 +77,9 @@ async def update_workspace(
 @router.delete("/{workspace_id}", status_code=204, summary="Delete workspace")
 async def delete_workspace(
     workspace_id: UUID,
-    user: User = Depends(auth_user),
-    member: WorkspaceMember | None = Depends(require_ws_editor),
+    _: WorkspaceMember | None = Depends(require_ws_owner),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    WorkspaceService.ensure_owner(user, member)
     await WorkspaceService.delete(db, workspace_id)
     return Response(status_code=204)
 
@@ -90,11 +93,9 @@ async def delete_workspace(
 async def add_member(
     workspace_id: UUID,
     data: WorkspaceMemberIn,
-    user: User = Depends(auth_user),
-    member: WorkspaceMember | None = Depends(require_ws_editor),
+    _: WorkspaceMember | None = Depends(require_ws_owner),
     db: AsyncSession = Depends(get_db),
 ) -> WorkspaceMemberOut:
-    WorkspaceService.ensure_owner(user, member)
     return await WorkspaceService.add_member(db, workspace_id, data)
 
 
@@ -107,13 +108,11 @@ async def update_member(
     workspace_id: UUID,
     user_id: UUID,
     data: WorkspaceMemberIn,
-    user: User = Depends(auth_user),
-    member: WorkspaceMember | None = Depends(require_ws_editor),
+    _: WorkspaceMember | None = Depends(require_ws_owner),
     db: AsyncSession = Depends(get_db),
 ) -> WorkspaceMemberOut:
     if data.user_id != user_id:
         raise HTTPException(status_code=400, detail="User ID mismatch")
-    WorkspaceService.ensure_owner(user, member)
     return await WorkspaceService.update_member(db, workspace_id, user_id, data.role)
 
 
@@ -125,10 +124,8 @@ async def update_member(
 async def remove_member(
     workspace_id: UUID,
     user_id: UUID,
-    user: User = Depends(auth_user),
-    member: WorkspaceMember | None = Depends(require_ws_editor),
+    _: WorkspaceMember | None = Depends(require_ws_owner),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    WorkspaceService.ensure_owner(user, member)
     await WorkspaceService.remove_member(db, workspace_id, user_id)
     return Response(status_code=204)
