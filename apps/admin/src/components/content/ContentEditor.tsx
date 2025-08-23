@@ -1,18 +1,9 @@
 import { useState, type ReactNode } from "react";
-import GeneralTab, { type GeneralTabProps } from "./GeneralTab";
+import GeneralTab from "./GeneralTab";
+import type { GeneralTabProps } from "./GeneralTab.helpers";
 import StatusBadge from "../StatusBadge";
 import VersionBadge from "../VersionBadge";
-
-export const EDITOR_TABS = [
-  "General",
-  "Content",
-  "Relations",
-  "AI",
-  "Validation",
-  "History",
-  "Publishing",
-  "Notifications",
-];
+import { EDITOR_TABS } from "./ContentEditor.helpers";
 
 interface ContentEditorProps {
   title: string;

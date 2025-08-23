@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
-import NodeEditorModal, { type NodeEditorData } from "../components/NodeEditorModal";
+import NodeEditorModal from "../components/NodeEditorModal";
+import type { NodeEditorData } from "../components/NodeEditorModal.helpers";
 import EditorJSViewer from "../components/EditorJSViewer";
 import { useToast } from "../components/ToastProvider";
 
