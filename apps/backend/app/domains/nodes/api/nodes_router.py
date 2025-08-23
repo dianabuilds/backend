@@ -39,10 +39,10 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 @router.get("", response_model=List[NodeOut], summary="List nodes")
 async def list_nodes(
     response: Response,
+    workspace_id: UUID,
     if_none_match: str | None = Header(None, alias="If-None-Match"),
     tags: str | None = Query(None),
     match: str = Query("any", pattern="^(any|all)$"),
-    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[NodeOut]:
