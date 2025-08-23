@@ -10,6 +10,7 @@ from app.core.db.session import get_db
 from app.schemas.workspaces import (
     WorkspaceIn,
     WorkspaceOut,
+    WorkspaceWithRoleOut,
     WorkspaceUpdate,
     WorkspaceMemberIn,
     WorkspaceMemberOut,
@@ -41,22 +42,23 @@ async def create_workspace(
     return workspace
 
 
-@router.get("", response_model=list[WorkspaceOut], summary="List workspaces")
+@router.get("", response_model=list[WorkspaceWithRoleOut], summary="List workspaces")
 async def list_workspaces(
     user: User = Depends(auth_user),
     db: AsyncSession = Depends(get_db),
-) -> list[WorkspaceOut]:
+) -> list[WorkspaceWithRoleOut]:
     stmt = (
         select(Workspace, WorkspaceMember.role)
         .join(WorkspaceMember)
         .where(WorkspaceMember.user_id == user.id)
     )
     result = await db.execute(stmt)
-    workspaces: list[WorkspaceOut] = []
+    workspaces: list[WorkspaceWithRoleOut] = []
     for ws, role in result.all():
-        data = WorkspaceOut.from_orm(ws)
-        data.role = role  # type: ignore[attr-defined]
-        workspaces.append(data)
+        data = WorkspaceOut.model_validate(ws, from_attributes=True)
+        workspaces.append(
+            WorkspaceWithRoleOut(**data.model_dump(), role=role)
+        )
     return workspaces
 
 
