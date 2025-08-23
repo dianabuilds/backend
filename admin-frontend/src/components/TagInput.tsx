@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { mergeTags, getSuggestions } from "../utils/tagManager";
 
 interface TagInputProps {
   value?: string[];
@@ -7,7 +8,7 @@ interface TagInputProps {
 }
 
 export default function TagInput({ value = [], onChange, placeholder = "Добавьте теги и нажмите Enter" }: TagInputProps) {
-  const [tags, setTags] = useState<string[]>(value);
+  const [tags, setTags] = useState<string[]>(mergeTags(value));
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -17,7 +18,7 @@ export default function TagInput({ value = [], onChange, placeholder = "Доба
       .map((s) => s.trim())
       .filter(Boolean);
     if (items.length === 0) return;
-    const next = Array.from(new Set([...tags, ...items]));
+    const next = mergeTags([...tags, ...items]);
     setTags(next);
     onChange?.(next);
     setInput("");
@@ -41,6 +42,7 @@ export default function TagInput({ value = [], onChange, placeholder = "Доба
         ref={inputRef}
         className="flex-1 min-w-[140px] py-1 outline-none"
         placeholder={placeholder}
+        list="tag-suggestions"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {
@@ -58,6 +60,11 @@ export default function TagInput({ value = [], onChange, placeholder = "Доба
           }
         }}
       />
+      <datalist id="tag-suggestions">
+        {getSuggestions(input).map((s) => (
+          <option value={s} key={s} />
+        ))}
+      </datalist>
     </div>
   );
 }
