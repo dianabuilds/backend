@@ -17,7 +17,7 @@ from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.quests.validation import validate_quest
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.application.service import scope_by_workspace
-from app.schemas.node_common import ContentStatus
+from app.schemas.nodes_common import Status
 from app.schemas.quest import QuestOut, QuestUpdate
 from app.schemas.quest_validation import (
     AutofixReport,
@@ -56,9 +56,9 @@ async def admin_list_quests(
     stmt = scope_by_workspace(select(Quest), workspace_id)
     if draft is not None:
         if draft:
-            stmt = stmt.where(Quest.status == ContentStatus.draft)
+            stmt = stmt.where(Quest.status == Status.draft)
         else:
-            stmt = stmt.where(Quest.status != ContentStatus.draft)
+            stmt = stmt.where(Quest.status != Status.draft)
     if deleted is not None:
         stmt = stmt.where(Quest.is_deleted.is_(deleted))
     if q:
@@ -330,9 +330,9 @@ async def post_quest_publish(
         )
 
     # Требуем статус in_review перед публикацией
-    if q.status != ContentStatus.in_review:
+    if q.status != Status.in_review:
         raise HTTPException(status_code=400, detail="Quest must be in review")
-    validate_transition(q.status, ContentStatus.published)
+    validate_transition(q.status, Status.published)
 
     before = {
         "status": q.status,
@@ -343,7 +343,7 @@ async def post_quest_publish(
 
     # Применяем настройки доступа и публикуем
     q.is_premium_only = body.access == "premium_only"
-    q.status = ContentStatus.published
+    q.status = Status.published
     q.published_at = datetime.utcnow()
     if body.cover_url:
         q.cover_image = body.cover_url

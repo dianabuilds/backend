@@ -11,7 +11,7 @@ from app.domains.nodes.models import NodeItem
 from app.domains.quests.access import can_view
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.users.infrastructure.models.user import User
-from app.schemas.node_common import ContentStatus
+from app.schemas.nodes_common import Status
 
 
 async def list_public(db: AsyncSession) -> List[Quest]:
@@ -20,7 +20,7 @@ async def list_public(db: AsyncSession) -> List[Quest]:
         .join(NodeItem, NodeItem.id == Quest.id)
         .where(
             NodeItem.type == "quest",
-            NodeItem.status == ContentStatus.published,
+            NodeItem.status == Status.published,
             Quest.is_deleted == False,
         )
         .order_by(NodeItem.published_at.desc())
@@ -45,7 +45,7 @@ async def search(
         .join(NodeItem, NodeItem.id == Quest.id)
         .where(
             NodeItem.type == "quest",
-            NodeItem.status == ContentStatus.published,
+            NodeItem.status == Status.published,
             Quest.is_deleted == False,
         )
     )

@@ -3,22 +3,22 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.domains.system.events import (
-    ContentArchived,
-    ContentPublished,
-    ContentUpdated,
+    NodeArchived,
+    NodePublished,
+    NodeUpdated,
     get_event_bus,
 )
-from app.schemas.node_common import ContentStatus
+from app.schemas.nodes_common import Status
 
-ALLOWED_TRANSITIONS: dict[ContentStatus, set[ContentStatus]] = {
-    ContentStatus.draft: {ContentStatus.in_review},
-    ContentStatus.in_review: {ContentStatus.published},
-    ContentStatus.published: set(),
-    ContentStatus.archived: set(),
+ALLOWED_TRANSITIONS: dict[Status, set[Status]] = {
+    Status.draft: {Status.in_review},
+    Status.in_review: {Status.published},
+    Status.published: set(),
+    Status.archived: set(),
 }
 
 
-def validate_transition(current: ContentStatus, new: ContentStatus) -> None:
+def validate_transition(current: Status, new: Status) -> None:
     """Validate that status transition is allowed."""
     if new == current:
         return
@@ -27,25 +27,25 @@ def validate_transition(current: ContentStatus, new: ContentStatus) -> None:
         raise ValueError(f"Invalid transition {current} -> {new}")
 
 
-async def publish_content(content_id: UUID, slug: str, author_id: UUID) -> None:
-    """Publish content and emit domain event."""
+async def publish_content(node_id: UUID, slug: str, author_id: UUID) -> None:
+    """Publish node and emit domain event."""
     bus = get_event_bus()
     await bus.publish(
-        ContentPublished(content_id=content_id, slug=slug, author_id=author_id)
+        NodePublished(node_id=node_id, slug=slug, author_id=author_id)
     )
 
 
-async def update_content(content_id: UUID, slug: str, author_id: UUID) -> None:
-    """Update content and emit domain event."""
+async def update_content(node_id: UUID, slug: str, author_id: UUID) -> None:
+    """Update node and emit domain event."""
     bus = get_event_bus()
     await bus.publish(
-        ContentUpdated(content_id=content_id, slug=slug, author_id=author_id)
+        NodeUpdated(node_id=node_id, slug=slug, author_id=author_id)
     )
 
 
-async def archive_content(content_id: UUID, slug: str, author_id: UUID) -> None:
-    """Archive content and emit domain event."""
+async def archive_content(node_id: UUID, slug: str, author_id: UUID) -> None:
+    """Archive node and emit domain event."""
     bus = get_event_bus()
     await bus.publish(
-        ContentArchived(content_id=content_id, slug=slug, author_id=author_id)
+        NodeArchived(node_id=node_id, slug=slug, author_id=author_id)
     )

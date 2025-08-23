@@ -10,24 +10,16 @@ from app.domains.navigation.application.cache_singleton import navcache
 
 
 @dataclass(frozen=True)
-class ContentPublished:
-    content_id: UUID
+class NodePublished:
+    node_id: UUID
     slug: str
     author_id: UUID
     id: str = field(default_factory=lambda: uuid4().hex)
 
 
 @dataclass(frozen=True)
-class ContentUpdated:
-    content_id: UUID
-    slug: str
-    author_id: UUID
-    id: str = field(default_factory=lambda: uuid4().hex)
-
-
-@dataclass(frozen=True)
-class ContentArchived:
-    content_id: UUID
+class NodeArchived:
+    node_id: UUID
     slug: str
     author_id: UUID
     id: str = field(default_factory=lambda: uuid4().hex)
@@ -121,10 +113,10 @@ class _Handlers:
         except Exception:
             pass
 
-    async def handle_content_published(self, event: ContentPublished) -> None:
-        """Index published content and invalidate caches."""
+    async def handle_node_published(self, event: NodePublished) -> None:
+        """Index published node and invalidate caches."""
         try:
-            await self.index_content(event.content_id)
+            await self.index_content(event.node_id)
         except Exception:
             pass
         try:
@@ -144,7 +136,7 @@ def register_handlers() -> None:
         return
     _bus.subscribe(NodeCreated, handlers.handle_node_created)
     _bus.subscribe(NodeUpdated, handlers.handle_node_updated)
-    _bus.subscribe(ContentPublished, handlers.handle_content_published)
+    _bus.subscribe(NodePublished, handlers.handle_node_published)
     _registered = True
 
 
@@ -156,9 +148,8 @@ def get_event_bus() -> EventBus:
 __all__ = [
     "NodeCreated",
     "NodeUpdated",
-    "ContentPublished",
-    "ContentUpdated",
-    "ContentArchived",
+    "NodePublished",
+    "NodeArchived",
     "get_event_bus",
     "register_handlers",
     "handlers",

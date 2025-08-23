@@ -1,20 +1,15 @@
-from __future__ import annotations
+from uuid import UUID
 
-from uuid import UUID, uuid4
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
-import app.domains.quests.validation  # noqa: F401
 from app.core.db.session import get_db
-from app.domains.tags.models import Tag
-from app.schemas.node_common import ContentStatus
-from app.security import ADMIN_AUTH_RESPONSES, require_ws_editor
-from app.validation.base import run_validators
-
-from .dao import NodeItemDAO
-from .models import NodeItem
+from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.nodes.application.node_service import NodeService
+from app.domains.nodes.models import NodeItem
+from app.security import ADMIN_AUTH_RESPONSES, require_ws_editor, auth_user
+from app.domains.users.infrastructure.models.user import User
 
 router = APIRouter(
     prefix="/admin/nodes",
@@ -22,86 +17,37 @@ router = APIRouter(
     responses=ADMIN_AUTH_RESPONSES,
 )
 
+navcache = NavigationCacheService(CoreCacheAdapter())
 
-@router.get("/", summary="Content dashboard")
-async def content_dashboard(
-    workspace_id: UUID,
-    _: object = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    result = await db.execute(
-        select(NodeItem).where(NodeItem.workspace_id == workspace_id)
-    )
-    items = result.scalars().all()
 
-    counts: dict[str, int] = {
-        ContentStatus.draft.value: 0,
-        ContentStatus.in_review.value: 0,
-        ContentStatus.published.value: 0,
-    }
-    for item in items:
-        counts[item.status.value] = counts.get(item.status.value, 0) + 1
-
-    latest_items = sorted(items, key=lambda x: x.updated_at, reverse=True)[:5]
-
-    validation_errors = []
-    for item in items:
-        report = await run_validators(item.type, item.id, db)
-        if report.errors:
-            validation_errors.append(
-                {
-                    "id": str(item.id),
-                    "type": item.type,
-                    "errors": report.errors,
-                }
-            )
-
+def _serialize(item: NodeItem) -> dict:
     return {
-        "workspace_id": str(workspace_id),
-        "drafts": counts.get(ContentStatus.draft.value, 0),
-        "reviews": counts.get(ContentStatus.in_review.value, 0),
-        "published": counts.get(ContentStatus.published.value, 0),
-        "latest": [
-            {
-                "id": str(item.id),
-                "type": item.type,
-                "status": item.status.value,
-            }
-            for item in latest_items
-        ],
-        "validation_errors": validation_errors,
+        "id": str(item.id),
+        "workspace_id": str(item.workspace_id),
+        "type": item.type,
+        "slug": item.slug,
+        "title": item.title,
+        "summary": item.summary,
+        "status": item.status.value,
     }
 
 
-@router.get("/all", summary="List nodes")
+@router.get("", summary="List nodes")
 async def list_nodes(
     workspace_id: UUID,
-    node_type: str | None = None,
-    status: ContentStatus | None = None,
-    tag: UUID | None = None,
+    type: str,
+    page: int = 1,
+    per_page: int = 10,
+    q: str | None = None,
     _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
-) -> dict:
-    stmt = select(NodeItem).where(NodeItem.workspace_id == workspace_id)
-    if node_type:
-        stmt = stmt.where(NodeItem.type == node_type)
-    if status:
-        stmt = stmt.where(NodeItem.status == status)
-    if tag:
-        stmt = stmt.join(NodeItem.tags).where(Tag.id == tag)
-    result = await db.execute(stmt)
-    items = result.scalars().all()
-    return {
-        "workspace_id": str(workspace_id),
-        "items": [
-            {
-                "id": str(item.id),
-                "type": item.type,
-                "status": item.status.value,
-            }
-            for item in items
-        ],
-    }
+):
+    svc = NodeService(db, navcache)
+    if q:
+        items = await svc.search(workspace_id, type, q, page=page, per_page=per_page)
+    else:
+        items = await svc.list(workspace_id, type, page=page, per_page=per_page)
+    return {"items": [_serialize(i) for i in items]}
 
 
 @router.post("/{node_type}", summary="Create node item")
@@ -109,21 +55,12 @@ async def create_node(
     node_type: str,
     workspace_id: UUID,
     _: object = Depends(require_ws_editor),
+    current_user: User = Depends(auth_user),
     db: AsyncSession = Depends(get_db),
-) -> dict:
-    item = await NodeItemDAO.create(
-        db,
-        workspace_id=workspace_id,
-        type=node_type,
-        slug=f"{node_type}-{uuid4().hex[:8]}",
-        title=f"New {node_type}",
-    )
-    await db.commit()
-    return {
-        "workspace_id": str(workspace_id),
-        "type": item.type,
-        "id": str(item.id),
-    }
+):
+    svc = NodeService(db, navcache)
+    item = await svc.create(workspace_id, node_type, actor_id=current_user.id)
+    return _serialize(item)
 
 
 @router.get("/{node_type}/{node_id}", summary="Get node item")
@@ -132,12 +69,11 @@ async def get_node(
     node_id: UUID,
     workspace_id: UUID,
     _: object = Depends(require_ws_editor),
-) -> dict:
-    return {
-        "type": node_type,
-        "id": str(node_id),
-        "workspace_id": str(workspace_id),
-    }
+    db: AsyncSession = Depends(get_db),
+):
+    svc = NodeService(db, navcache)
+    item = await svc.get(workspace_id, node_type, node_id)
+    return _serialize(item)
 
 
 @router.patch("/{node_type}/{node_id}", summary="Update node item")
@@ -145,14 +81,22 @@ async def update_node(
     node_type: str,
     node_id: UUID,
     workspace_id: UUID,
+    request: Request,
+    payload: dict,
     _: object = Depends(require_ws_editor),
-) -> dict:
-    return {
-        "type": node_type,
-        "id": str(node_id),
-        "workspace_id": str(workspace_id),
-        "action": "update",
-    }
+    current_user: User = Depends(auth_user),
+    db: AsyncSession = Depends(get_db),
+):
+    svc = NodeService(db, navcache)
+    item = await svc.update(
+        workspace_id,
+        node_type,
+        node_id,
+        payload,
+        actor_id=current_user.id,
+        request=request,
+    )
+    return _serialize(item)
 
 
 @router.post("/{node_type}/{node_id}/publish", summary="Publish node item")
@@ -160,14 +104,20 @@ async def publish_node(
     node_type: str,
     node_id: UUID,
     workspace_id: UUID,
+    request: Request,
     _: object = Depends(require_ws_editor),
-) -> dict:
-    return {
-        "type": node_type,
-        "id": str(node_id),
-        "workspace_id": str(workspace_id),
-        "status": "published",
-    }
+    current_user: User = Depends(auth_user),
+    db: AsyncSession = Depends(get_db),
+):
+    svc = NodeService(db, navcache)
+    item = await svc.publish(
+        workspace_id,
+        node_type,
+        node_id,
+        actor_id=current_user.id,
+        request=request,
+    )
+    return _serialize(item)
 
 
 @router.post("/{node_type}/{node_id}/validate", summary="Validate node item")
@@ -177,11 +127,7 @@ async def validate_node_item(
     workspace_id: UUID,
     _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
-) -> dict:
-    report = await run_validators(node_type, node_id, db)
-    return {
-        "type": node_type,
-        "id": str(node_id),
-        "workspace_id": str(workspace_id),
-        "report": report,
-    }
+):
+    svc = NodeService(db, navcache)
+    report = await svc.validate(node_type, node_id)
+    return {"report": report}
