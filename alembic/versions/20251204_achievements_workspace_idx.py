@@ -1,7 +1,7 @@
 """add index for achievements workspace_id
 
 Revision ID: 20251204_achievements_workspace_idx
-Revises: 20251203_quests_workspace_idx
+Revises: 20251203_alembic_version_len
 Create Date: 2025-12-04
 """
 
@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "20251204_achievements_workspace_idx"
-down_revision = "20251203_quests_workspace_idx"
+down_revision = "20251203_alembic_version_len"
 branch_labels = None
 depends_on = None
 
