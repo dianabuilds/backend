@@ -11,7 +11,7 @@
           "metrics"
         ],
         "summary": "Rum Metrics",
-        "description": "\u041f\u0440\u0438\u0451\u043c\u043d\u0438\u043a \u043f\u0440\u043e\u0441\u0442\u044b\u0445 RUM-\u0441\u043e\u0431\u044b\u0442\u0438\u0439 \u0441 \u0444\u0440\u043e\u043d\u0442\u0435\u043d\u0434\u0430.\n\u0422\u0435\u043b\u043e: { event: str, ts: int, url: str, data: any }",
+        "description": "Приёмник простых RUM-событий с фронтенда.\nТело: { event: str, ts: int, url: str, data: any }",
         "operationId": "rum_metrics_metrics_rum_post",
         "responses": {
           "200": {
@@ -34,7 +34,7 @@
           "admin-telemetry"
         ],
         "summary": "List Rum Events",
-        "description": "\u0410\u0434\u043c\u0438\u043d: \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 RUM-\u0441\u043e\u0431\u044b\u0442\u0438\u044f (\u043f\u043e \u0443\u0431\u044b\u0432\u0430\u043d\u0438\u044e \u0432\u0440\u0435\u043c\u0435\u043d\u0438).",
+        "description": "Админ: последние RUM-события (по убыванию времени).",
         "operationId": "list_rum_events_admin_telemetry_rum_get",
         "security": [
           {
@@ -89,7 +89,7 @@
           "admin-telemetry"
         ],
         "summary": "Rum Summary",
-        "description": "\u0410\u0434\u043c\u0438\u043d: \u0441\u0432\u043e\u0434\u043a\u0430 \u043f\u043e \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u043c \u0441\u043e\u0431\u044b\u0442\u0438\u044f\u043c.\n- counts \u043f\u043e event\n- \u0441\u0440\u0435\u0434\u043d\u044f\u044f \u0434\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c login_attempt.dur_ms\n- \u043d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u043e\u043d\u043d\u044b\u0435 \u0442\u0430\u0439\u043c\u0438\u043d\u0433\u0438 (\u0441\u0440\u0435\u0434\u043d\u0438\u0435 \u043f\u043e \u043e\u043a\u043d\u0443): ttfb, domContentLoaded, loadEvent",
+        "description": "Админ: сводка по последним событиям.\n- counts по event\n- средняя длительность login_attempt.dur_ms\n- навигационные тайминги (средние по окну): ttfb, domContentLoaded, loadEvent",
         "operationId": "rum_summary_admin_telemetry_rum_summary_get",
         "security": [
           {
@@ -1121,11 +1121,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "\u041f\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0442\u0447\u0451\u0442 \u043f\u0440\u0438\u043d\u0443\u0434\u0438\u0442\u0435\u043b\u044c\u043d\u043e",
+              "description": "Пересчитать отчёт принудительно",
               "default": false,
               "title": "Recalc"
             },
-            "description": "\u041f\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0442\u0447\u0451\u0442 \u043f\u0440\u0438\u043d\u0443\u0434\u0438\u0442\u0435\u043b\u044c\u043d\u043e"
+            "description": "Пересчитать отчёт принудительно"
           }
         ],
         "responses": {
@@ -7860,6 +7860,409 @@
         }
       }
     },
+    "/admin/nodes": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List nodes (admin)",
+        "operationId": "list_nodes_admin_admin_nodes_get",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Author"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tags"
+            }
+          },
+          {
+            "name": "match",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(any|all)$",
+              "default": "any",
+              "title": "Match"
+            }
+          },
+          {
+            "name": "is_public",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Public"
+            }
+          },
+          {
+            "name": "visible",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Visible"
+            }
+          },
+          {
+            "name": "premium_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Premium Only"
+            }
+          },
+          {
+            "name": "recommendable",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Recommendable"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NodeOut"
+                  },
+                  "title": "Response List Nodes Admin Admin Nodes Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/nodes/bulk": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Bulk node operations",
+        "operationId": "bulk_node_operation_admin_nodes_bulk_post",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodeBulkOperation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/transitions": {
       "get": {
         "tags": [
@@ -8977,7 +9380,7 @@
           "admin"
         ],
         "summary": "Metrics Timeseries",
-        "description": "\u0422\u0430\u0439\u043c\u0441\u0435\u0440\u0438\u0438: counts per status class (2xx/4xx/5xx) \u0438 p95 latency \u043f\u043e \u0431\u0430\u043a\u0435\u0442\u0430\u043c.",
+        "description": "Таймсерии: counts per status class (2xx/4xx/5xx) и p95 latency по бакетам.",
         "operationId": "metrics_timeseries_admin_metrics_timeseries_get",
         "security": [
           {
@@ -9085,7 +9488,7 @@
           "admin"
         ],
         "summary": "Metrics Top Endpoints",
-        "description": "\u0422\u043e\u043f \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u043e\u0432 \u043f\u043e p95 | error_rate | rps.",
+        "description": "Топ маршрутов по p95 | error_rate | rps.",
         "operationId": "metrics_top_endpoints_admin_metrics_endpoints_top_get",
         "security": [
           {
@@ -9204,7 +9607,7 @@
           "admin"
         ],
         "summary": "Metrics Errors Recent",
-        "description": "\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 \u043e\u0448\u0438\u0431\u043a\u0438 (4xx/5xx).",
+        "description": "Последние ошибки (4xx/5xx).",
         "operationId": "metrics_errors_recent_admin_metrics_errors_recent_get",
         "security": [
           {
@@ -14013,6 +14416,37 @@
           "count_429"
         ],
         "title": "MetricsSummary"
+      },
+      "NodeBulkOperation": {
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Ids"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "hide",
+              "show",
+              "public",
+              "private",
+              "toggle_premium",
+              "toggle_recommendable"
+            ],
+            "title": "Op"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ids",
+          "op"
+        ],
+        "title": "NodeBulkOperation",
+        "description": "Payload for bulk node admin operations."
       },
       "NodeOut": {
         "properties": {

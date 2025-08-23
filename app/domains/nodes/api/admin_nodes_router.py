@@ -28,8 +28,8 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin)")
 async def list_nodes_admin(
     response: Response,
-    if_none_match: str | None = Header(None, alias="If-None-Match"),
     workspace_id: UUID,
+    if_none_match: str | None = Header(None, alias="If-None-Match"),
     author: UUID | None = None,
     tags: str | None = Query(None),
     match: str = Query("any", pattern="^(any|all)$"),
