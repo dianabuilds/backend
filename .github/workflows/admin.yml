@@ -22,7 +22,7 @@ jobs:
         run: npm ci
       - name: Lint
         working-directory: apps/admin
-        run: npm run lint --if-present
+        run: npm run lint --if-present -- --max-warnings=0
       - name: Test
         working-directory: apps/admin
         run: npm test --if-present
