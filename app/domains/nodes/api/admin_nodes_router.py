@@ -29,6 +29,7 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 async def list_nodes_admin(
     response: Response,
     if_none_match: str | None = Header(None, alias="If-None-Match"),
+    workspace_id: UUID,
     author: UUID | None = None,
     tags: str | None = Query(None),
     match: str = Query("any", pattern="^(any|all)$"),
@@ -46,6 +47,7 @@ async def list_nodes_admin(
 ):
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
     spec = NodeFilterSpec(
+        workspace_id=workspace_id,
         author_id=author,
         tags=tag_list,
         match=match,
@@ -72,10 +74,13 @@ async def list_nodes_admin(
 @router.post("/bulk", summary="Bulk node operations")
 async def bulk_node_operation(
     payload: NodeBulkOperation,
+    workspace_id: UUID,
     current_user=Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Node).where(Node.id.in_(payload.ids)))
+    result = await db.execute(
+        select(Node).where(Node.id.in_(payload.ids), Node.workspace_id == workspace_id)
+    )
     nodes = result.scalars().all()
     invalidate_slugs: list[str] = []
     for node in nodes:

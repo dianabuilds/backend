@@ -11,6 +11,7 @@ class NodeFilterSpec:
     tags: Optional[List[str]] = None
     match: str = "any"
     author_id: Optional[UUID] = None
+    workspace_id: Optional[UUID] = None
     is_public: Optional[bool] = None
     is_visible: Optional[bool] = True
     premium_only: Optional[bool] = None

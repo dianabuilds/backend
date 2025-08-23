@@ -32,7 +32,7 @@ class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False)
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=True)
     content = Column(JSONB, nullable=False)

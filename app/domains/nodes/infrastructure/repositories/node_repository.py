@@ -22,7 +22,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.tags.infrastructure.models.tag_models import NodeTag
-from app.domains.tags.models import Tag
 from app.schemas.node import NodeCreate, NodeUpdate
 
 try:  # pragma: no cover - optional legacy dependency
@@ -45,28 +44,34 @@ class NodeRepositoryAdapter(INodeRepository):
 
     # ------------------------------------------------------------------
     # Basic getters
-    async def get_by_slug(self, slug: str) -> Node | None:
+    async def get_by_slug(self, slug: str, workspace_id: UUID) -> Node | None:
         if self._repo:
-            return await self._repo.get_by_slug(slug)
-        res = await self._db.execute(select(Node).where(Node.slug == slug))
+            return await self._repo.get_by_slug(slug, workspace_id=workspace_id)
+        res = await self._db.execute(
+            select(Node).where(Node.slug == slug, Node.workspace_id == workspace_id)
+        )
         return res.scalar_one_or_none()
 
-    async def get_by_id(self, node_id: UUID) -> Node | None:
+    async def get_by_id(self, node_id: UUID, workspace_id: UUID) -> Node | None:
         if self._repo:
-            return await self._repo.get_by_id(node_id)
-        return await self._db.get(Node, node_id)
+            return await self._repo.get_by_id(node_id, workspace_id=workspace_id)
+        res = await self._db.execute(
+            select(Node).where(Node.id == node_id, Node.workspace_id == workspace_id)
+        )
+        return res.scalar_one_or_none()
 
     # ------------------------------------------------------------------
     # Mutating operations
-    async def create(self, payload: NodeCreate, author_id: UUID) -> Node:
+    async def create(self, payload: NodeCreate, author_id: UUID, workspace_id: UUID) -> Node:
         if self._repo:
-            return await self._repo.create(payload, author_id)
+            return await self._repo.create(payload, author_id, workspace_id)
         node = Node(
             title=payload.title,
             content=payload.content,
             media=payload.media or [],
             cover_url=payload.cover_url,
             author_id=author_id,
+            workspace_id=workspace_id,
             is_public=payload.is_public,
             is_visible=payload.is_visible,
             meta=payload.meta or {},
@@ -108,6 +113,7 @@ class NodeRepositoryAdapter(INodeRepository):
     async def set_tags(self, node: Node, tags: list[str]) -> Node:
         if self._repo:
             return await self._repo.set_tags(node, tags)
+        from app.domains.tags.models import Tag
         tag_ids: list[UUID] = []
         for slug in tags:
             slug_norm = (slug or "").strip().lower()
@@ -161,45 +167,53 @@ class NodeRepositoryAdapter(INodeRepository):
 
     # ------------------------------------------------------------------
     # Bulk operations used by admin services
-    async def list_by_author(self, author_id: UUID, limit: int = 50, offset: int = 0) -> List[Node]:
+    async def list_by_author(self, author_id: UUID, workspace_id: UUID, limit: int = 50, offset: int = 0) -> List[Node]:
         res = await self._db.execute(
             select(Node)
-            .where(Node.author_id == author_id)
+            .where(Node.author_id == author_id, Node.workspace_id == workspace_id)
             .order_by(Node.created_at.desc())
             .offset(offset)
             .limit(limit)
         )
         return list(res.scalars().all())
 
-    async def bulk_set_visibility(self, node_ids: List[UUID], is_visible: bool) -> int:
+    async def bulk_set_visibility(self, node_ids: List[UUID], is_visible: bool, workspace_id: UUID) -> int:
         if not node_ids:
             return 0
         count = 0
         for nid in node_ids:
             n = await self._db.get(Node, nid)
-            if n is None:
+            if n is None or n.workspace_id != workspace_id:
                 continue
             n.is_visible = bool(is_visible)
             count += 1
         await self._db.flush()
         return count
 
-    async def bulk_set_public(self, node_ids: List[UUID], is_public: bool) -> int:
+    async def bulk_set_public(self, node_ids: List[UUID], is_public: bool, workspace_id: UUID) -> int:
         if not node_ids:
             return 0
         count = 0
         for nid in node_ids:
             n = await self._db.get(Node, nid)
-            if n is None:
+            if n is None or n.workspace_id != workspace_id:
                 continue
             n.is_public = bool(is_public)
             count += 1
         await self._db.flush()
         return count
 
-    async def bulk_set_tags(self, node_ids: List[UUID], tags: list[str]) -> int:
+    async def bulk_set_tags(self, node_ids: List[UUID], tags: list[str], workspace_id: UUID) -> int:
         if not node_ids:
             return 0
+        valid_ids: list[UUID] = []
+        for nid in node_ids:
+            n = await self._db.get(Node, nid)
+            if n and n.workspace_id == workspace_id:
+                valid_ids.append(nid)
+        if not valid_ids:
+            return 0
+        from app.domains.tags.models import Tag
         tag_ids: list[UUID] = []
         for slug in tags:
             slug_norm = (slug or "").strip().lower()
@@ -213,16 +227,24 @@ class NodeRepositoryAdapter(INodeRepository):
                 await self._db.flush()
                 await self._db.refresh(tag)
             tag_ids.append(tag.id)
-        await self._db.execute(delete(NodeTag).where(NodeTag.node_id.in_(node_ids)))
-        for nid in node_ids:
+        await self._db.execute(delete(NodeTag).where(NodeTag.node_id.in_(valid_ids)))
+        for nid in valid_ids:
             for tid in tag_ids:
                 self._db.add(NodeTag(node_id=nid, tag_id=tid))
         await self._db.flush()
-        return len(node_ids)
+        return len(valid_ids)
 
-    async def bulk_set_tags_diff(self, node_ids: List[UUID], add: list[str], remove: list[str]) -> int:
+    async def bulk_set_tags_diff(self, node_ids: List[UUID], add: list[str], remove: list[str], workspace_id: UUID) -> int:
         if not node_ids:
             return 0
+        valid_ids: list[UUID] = []
+        for nid in node_ids:
+            n = await self._db.get(Node, nid)
+            if n and n.workspace_id == workspace_id:
+                valid_ids.append(nid)
+        if not valid_ids:
+            return 0
+        from app.domains.tags.models import Tag
         add_ids: list[UUID] = []
         for slug in add:
             slug_norm = (slug or "").strip().lower()
@@ -244,11 +266,11 @@ class NodeRepositoryAdapter(INodeRepository):
             if rem_ids:
                 await self._db.execute(
                     delete(NodeTag).where(
-                        NodeTag.node_id.in_(node_ids), NodeTag.tag_id.in_(rem_ids)
+                        NodeTag.node_id.in_(valid_ids), NodeTag.tag_id.in_(rem_ids)
                     )
                 )
-        for nid in node_ids:
+        for nid in valid_ids:
             for tid in add_ids:
                 self._db.add(NodeTag(node_id=nid, tag_id=tid))
         await self._db.flush()
-        return len(node_ids)
+        return len(valid_ids)
