@@ -14,7 +14,7 @@ from tests.conftest import test_engine
 
 
 @pytest_asyncio.fixture
-async def content_tables():
+async def node_item_tables():
     async with test_engine.begin() as conn:
         await conn.run_sync(Workspace.__table__.create)
         await conn.run_sync(WorkspaceMember.__table__.create)
@@ -31,7 +31,7 @@ async def content_tables():
 
 
 @pytest.mark.asyncio
-async def test_content_item_crud(db_session: AsyncSession, content_tables, test_user):
+async def test_node_item_crud(db_session: AsyncSession, node_item_tables, test_user):
     ws = Workspace(id=uuid4(), name="WS", slug="ws", owner_user_id=test_user.id)
     db_session.add(ws)
     db_session.add(

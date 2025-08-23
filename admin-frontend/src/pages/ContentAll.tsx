@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listNodes } from "../api/client";
 
-interface ContentItem {
+interface NodeItem {
   id: string;
   type: string;
   status: string;
@@ -14,14 +14,14 @@ export default function ContentAll() {
   const [tag, setTag] = useState("");
 
   const { data } = useQuery({
-    queryKey: ["content", "all", type, status, tag],
+    queryKey: ["nodes", "all", type, status, tag],
     queryFn: async () => {
       const items = await listNodes({
         content_type: type || undefined,
         status: status || undefined,
         tag: tag || undefined,
       });
-      return items as ContentItem[];
+      return items as NodeItem[];
     },
   });
 
