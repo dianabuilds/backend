@@ -29,7 +29,7 @@ async def patch_tables():
 
 
 @pytest.mark.asyncio
-async def test_admin_content_patch_flow(
+async def test_admin_node_patch_flow(
     client: AsyncClient,
     db_session: AsyncSession,
     admin_user,
