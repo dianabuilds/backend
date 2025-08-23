@@ -85,8 +85,10 @@ class _Handlers:
         from app.domains.ai.application.embedding_service import (
             update_node_embedding,
         )
+        from app.domains.search.service import index_content
 
         self.update_node_embedding = update_node_embedding
+        self.index_content = index_content
 
         @asynccontextmanager
         async def _db_session():
@@ -119,6 +121,17 @@ class _Handlers:
         except Exception:
             pass
 
+    async def handle_content_published(self, event: ContentPublished) -> None:
+        """Index published content and invalidate caches."""
+        try:
+            await self.index_content(event.content_id)
+        except Exception:
+            pass
+        try:
+            await navcache.invalidate_compass_all()
+        except Exception:
+            pass
+
 
 handlers = _Handlers()
 _bus = EventBus()
@@ -131,6 +144,7 @@ def register_handlers() -> None:
         return
     _bus.subscribe(NodeCreated, handlers.handle_node_created)
     _bus.subscribe(NodeUpdated, handlers.handle_node_updated)
+    _bus.subscribe(ContentPublished, handlers.handle_content_published)
     _registered = True
 
 
