@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../api/client";
+import { listNodes } from "../api/client";
 
-interface ContentItem {
+interface NodeItem {
   id: string;
   type: string;
   status: string;
@@ -14,16 +14,14 @@ export default function ContentAll() {
   const [tag, setTag] = useState("");
 
   const { data } = useQuery({
-    queryKey: ["content", "all", type, status, tag],
+    queryKey: ["nodes", "all", type, status, tag],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (type) params.set("content_type", type);
-      if (status) params.set("status", status);
-      if (tag) params.set("tag", tag);
-      const res = await api.get<{ items: ContentItem[] }>(
-        `/admin/content/all?${params.toString()}`,
-      );
-      return res.data?.items || [];
+      const items = await listNodes({
+        content_type: type || undefined,
+        status: status || undefined,
+        tag: tag || undefined,
+      });
+      return items as NodeItem[];
     },
   });
 

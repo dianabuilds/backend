@@ -1,4 +1,3 @@
-import asyncio
 import types
 from datetime import datetime, timedelta
 from uuid import uuid4
@@ -6,7 +5,11 @@ from uuid import uuid4
 import pytest
 
 from app.domains.nodes.application.node_query_service import NodeQueryService
-from app.domains.nodes.application.query_models import NodeFilterSpec, PageRequest, QueryContext
+from app.domains.nodes.application.query_models import (
+    NodeFilterSpec,
+    PageRequest,
+    QueryContext,
+)
 
 
 class FakeResult:
@@ -36,6 +39,7 @@ async def test_compute_nodes_etag_basic():
     etag = await svc.compute_nodes_etag(spec, ctx, page)
     assert isinstance(etag, str)
     assert len(etag) == 64
+
 
 @pytest.mark.asyncio
 async def test_compute_nodes_etag_with_author_and_dates():

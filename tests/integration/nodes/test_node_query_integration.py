@@ -1,33 +1,56 @@
-import pytest
-from datetime import datetime, timedelta
-from uuid import uuid4
+from datetime import datetime
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.nodes.application.node_query_service import NodeQueryService
-from app.domains.nodes.application.query_models import NodeFilterSpec, PageRequest, QueryContext
+from app.domains.nodes.application.query_models import (
+    NodeFilterSpec,
+    PageRequest,
+    QueryContext,
+)
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.tags.models import Tag
 from app.domains.tags.infrastructure.models.tag_models import NodeTag
+from app.domains.tags.models import Tag
 
 
 @pytest.mark.asyncio
 async def test_query_filters_and_etag(db_session: AsyncSession, test_user):
     # Arrange: create nodes and tags
-    n1 = Node(title="Alpha", content={"text": "alpha nodes"}, author_id=test_user.id, is_public=True, is_visible=True)
-    n2 = Node(title="Beta", content={"text": "beta nodes"}, author_id=test_user.id, is_public=False, is_visible=True)
-    n3 = Node(title="Gamma", content={"text": "beta gamma"}, author_id=test_user.id, is_public=True, is_visible=False)
+    n1 = Node(
+        title="Alpha",
+        content={"text": "alpha nodes"},
+        author_id=test_user.id,
+        is_public=True,
+        is_visible=True,
+    )
+    n2 = Node(
+        title="Beta",
+        content={"text": "beta nodes"},
+        author_id=test_user.id,
+        is_public=False,
+        is_visible=True,
+    )
+    n3 = Node(
+        title="Gamma",
+        content={"text": "beta gamma"},
+        author_id=test_user.id,
+        is_public=True,
+        is_visible=False,
+    )
     n1.views, n2.views = 5, 20
     n1.reactions, n2.reactions = 1, 7
     tag_a = Tag(slug="a", name="a")
     tag_b = Tag(slug="b", name="b")
     db_session.add_all([n1, n2, n3, tag_a, tag_b])
     await db_session.flush()
-    db_session.add_all([
-        NodeTag(node_id=n1.id, tag_id=tag_a.id),
-        NodeTag(node_id=n1.id, tag_id=tag_b.id),
-        NodeTag(node_id=n2.id, tag_id=tag_a.id),
-    ])
+    db_session.add_all(
+        [
+            NodeTag(node_id=n1.id, tag_id=tag_a.id),
+            NodeTag(node_id=n1.id, tag_id=tag_b.id),
+            NodeTag(node_id=n2.id, tag_id=tag_a.id),
+        ]
+    )
     await db_session.commit()
 
     svc = NodeQueryService(db_session)

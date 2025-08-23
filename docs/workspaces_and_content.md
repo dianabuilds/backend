@@ -44,10 +44,10 @@ Before promoting a draft to `published`:
 
 - Title and slug are unique within the workspace.
 - Required tags are assigned and follow the taxonomy rules.
-- `POST /admin/content/{type}/{id}/validate` returns no blocking issues.
+- `POST /admin/nodes/{type}/{id}/validate` returns no blocking issues.
 - Cover media and other mandatory fields are set.
 - Peer review is completed (`in_review`).
-- Publish via `POST /admin/content/{type}/{id}/publish` and verify in the
+- Publish via `POST /admin/nodes/{type}/{id}/publish` and verify in the
   dashboard.
 
 ## API routes
@@ -103,9 +103,9 @@ Content-Type: application/json
 }
 ```
 
-### Content
+### Nodes
 
-All content routes expect `workspace_id` as a query parameter.
+All node routes expect `workspace_id` as a query parameter.
 
 - `GET /admin/nodes` – dashboard with counts of drafts, reviews and published
   items.
@@ -140,7 +140,7 @@ GET /admin/nodes/all?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e&node_type
 ```
 
 ```bash
-POST /admin/content/article?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e
+POST /admin/nodes/article?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e
 Content-Type: application/json
 
 { "title": "Hello world", "slug": "hello-world" }
@@ -149,7 +149,7 @@ Content-Type: application/json
 ```json
 {
   "id": "42",
-  "content_type": "article",
+  "node_type": "article",
   "title": "Hello world",
   "status": "draft",
   "workspace_id": "8b112b04-1769-44ef-abc6-3c7ce7c8de4e"
@@ -159,7 +159,7 @@ Content-Type: application/json
 Publishing:
 
 ```bash
-POST /admin/content/article/42/publish?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e
+POST /admin/nodes/article/42/publish?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e
 ```
 
 ```json
@@ -173,9 +173,9 @@ The admin UI communicates with these routes:
 - **Workspace selection** – `WorkspaceSelector` fetches `/admin/workspaces` and
   stores the chosen ID in session storage. The API client automatically appends
   `workspace_id` to subsequent calls.
-- **Dashboard** – `ContentDashboard` calls `/admin/content` to show counts of
+- **Dashboard** – `ContentDashboard` calls `/admin/nodes` to show counts of
   drafts, reviews and published items.
-- **Content list** – `ContentAll` uses `/admin/content/all` with filters for type,
+- **Content list** – `ContentAll` uses `/admin/nodes/all` with filters for type,
   status and tag.
 - **Tag management** – `TagMerge` and other components operate on tags using the
   standard admin tag endpoints.
