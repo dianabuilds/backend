@@ -1,14 +1,15 @@
-import pytest
-from uuid import uuid4
 from contextlib import asynccontextmanager
+from uuid import uuid4
+
+import pytest
 from sqlalchemy import select
 
-from app.domains.notifications.infrastructure.models.campaign_models import (
-    NotificationCampaign,
-    CampaignStatus,
-)
-from app.domains.content import service as content_service
+from app.domains.nodes import service as node_service
 from app.domains.notifications import service as notif_service
+from app.domains.notifications.infrastructure.models.campaign_models import (
+    CampaignStatus,
+    NotificationCampaign,
+)
 
 
 @pytest.mark.asyncio
@@ -28,7 +29,7 @@ async def test_content_published_creates_campaign(db_session):
         )
     )
 
-    await content_service.publish_content(uuid4(), "slug-1", uuid4())
+    await node_service.publish_content(uuid4(), "slug-1", uuid4())
 
     res = await db_session.execute(select(NotificationCampaign))
     camp = res.scalars().first()

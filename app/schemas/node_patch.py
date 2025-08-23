@@ -6,14 +6,14 @@ from uuid import UUID
 from pydantic import BaseModel
 
 
-class ContentPatchCreate(BaseModel):
-    content_id: UUID
+class NodePatchCreate(BaseModel):
+    node_id: UUID
     data: dict[str, object]
 
 
-class ContentPatchOut(BaseModel):
+class NodePatchOut(BaseModel):
     id: UUID
-    content_id: UUID
+    node_id: UUID
     data: dict[str, object]
     created_at: datetime
     reverted_at: datetime | None = None

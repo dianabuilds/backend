@@ -1,16 +1,16 @@
+from uuid import uuid4
+
 import pytest
 import pytest_asyncio
-from uuid import uuid4
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.conftest import test_engine
-from app.domains.workspaces.infrastructure.models import Workspace
-from app.domains.workspaces.infrastructure.models import WorkspaceMember
-from app.domains.content.models import ContentItem
-from app.domains.tags.models import Tag, ContentTag
-from app.domains.content.dao import ContentItemDAO
+from app.domains.nodes.dao import NodeItemDAO
+from app.domains.nodes.models import NodeItem
+from app.domains.tags.models import ContentTag, Tag
+from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 from app.schemas.workspaces import WorkspaceRole
+from tests.conftest import test_engine
 
 
 @pytest_asyncio.fixture
@@ -19,12 +19,12 @@ async def content_tables():
         await conn.run_sync(Workspace.__table__.create)
         await conn.run_sync(WorkspaceMember.__table__.create)
         await conn.run_sync(Tag.__table__.create)
-        await conn.run_sync(ContentItem.__table__.create)
+        await conn.run_sync(NodeItem.__table__.create)
         await conn.run_sync(ContentTag.__table__.create)
     yield
     async with test_engine.begin() as conn:
         await conn.run_sync(ContentTag.__table__.drop)
-        await conn.run_sync(ContentItem.__table__.drop)
+        await conn.run_sync(NodeItem.__table__.drop)
         await conn.run_sync(Tag.__table__.drop)
         await conn.run_sync(WorkspaceMember.__table__.drop)
         await conn.run_sync(Workspace.__table__.drop)
@@ -41,7 +41,7 @@ async def test_content_item_crud(db_session: AsyncSession, content_tables, test_
     )
     await db_session.commit()
 
-    item = await ContentItemDAO.create(
+    item = await NodeItemDAO.create(
         db_session,
         workspace_id=ws.id,
         type="article",
@@ -51,15 +51,15 @@ async def test_content_item_crud(db_session: AsyncSession, content_tables, test_
     await db_session.commit()
     assert item.id is not None
 
-    items = await ContentItemDAO.list_by_type(
-        db_session, workspace_id=ws.id, content_type="article"
+    items = await NodeItemDAO.list_by_type(
+        db_session, workspace_id=ws.id, node_type="article"
     )
     assert len(items) == 1 and items[0].id == item.id
 
-    search_items = await ContentItemDAO.search(
+    search_items = await NodeItemDAO.search(
         db_session,
         workspace_id=ws.id,
-        content_type="article",
+        node_type="article",
         q="Article",
     )
     assert search_items and search_items[0].id == item.id
@@ -68,15 +68,13 @@ async def test_content_item_crud(db_session: AsyncSession, content_tables, test_
     db_session.add(tag)
     await db_session.commit()
 
-    ct = await ContentItemDAO.attach_tag(
-        db_session, content_id=item.id, tag_id=tag.id, workspace_id=ws.id
+    ct = await NodeItemDAO.attach_tag(
+        db_session, node_id=item.id, tag_id=tag.id, workspace_id=ws.id
     )
     await db_session.commit()
     assert ct.tag_id == tag.id
 
-    await ContentItemDAO.detach_tag(
-        db_session, content_id=item.id, tag_id=tag.id
-    )
+    await NodeItemDAO.detach_tag(db_session, node_id=item.id, tag_id=tag.id)
     await db_session.commit()
 
     res = await db_session.execute(

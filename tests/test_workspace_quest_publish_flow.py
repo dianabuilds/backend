@@ -1,23 +1,26 @@
-import pytest
 from contextlib import asynccontextmanager
+
+import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.workspaces.infrastructure.models import Workspace
-from app.domains.quests.infrastructure.models.quest_models import Quest
+from app.core.db import session as core_session
+from app.domains.nodes.service import publish_content, validate_transition
 from app.domains.notifications.infrastructure.models.campaign_models import (
-    NotificationCampaign,
     CampaignStatus,
+    NotificationCampaign,
 )
 from app.domains.quests.authoring import create_quest
+from app.domains.quests.infrastructure.models.quest_models import Quest
+from app.domains.workspaces.infrastructure.models import Workspace
+from app.schemas.node_common import ContentStatus
 from app.schemas.quest import QuestCreate
-from app.schemas.content_common import ContentStatus
-from app.domains.content.service import validate_transition, publish_content
-from app.core.db import session as core_session
 
 
 @pytest.mark.asyncio
-async def test_workspace_quest_publish_flow(db_session: AsyncSession, test_user) -> None:
+async def test_workspace_quest_publish_flow(
+    db_session: AsyncSession, test_user
+) -> None:
     # create required tables
     await db_session.run_sync(
         lambda s: Workspace.__table__.create(s.get_bind(), checkfirst=True)
@@ -35,7 +38,9 @@ async def test_workspace_quest_publish_flow(db_session: AsyncSession, test_user)
     await db_session.refresh(ws)
 
     payload = QuestCreate(title="Q1", nodes=[], custom_transitions={})
-    quest = await create_quest(db_session, payload=payload, author=test_user, workspace_id=ws.id)
+    quest = await create_quest(
+        db_session, payload=payload, author=test_user, workspace_id=ws.id
+    )
     assert quest.workspace_id == ws.id
     assert quest.status == ContentStatus.draft
 
