@@ -1,0 +1,34 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
+    hooks:
+      - id: ruff
+        args: [--fix]
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        args: ["app"]
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd admin-frontend && npx --no-install eslint . --max-warnings=0'
+        language: system
+        files: ^admin-frontend/
+        pass_filenames: false
+      - id: tsc
+        name: tsc
+        entry: bash -c 'cd admin-frontend && npx --no-install tsc --noEmit'
+        language: system
+        files: ^admin-frontend/
+        pass_filenames: false
