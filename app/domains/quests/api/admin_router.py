@@ -151,6 +151,8 @@ async def patch_quest_meta(
         before=before,
         after=upd,
         request=request,
+        workspace_id=str(workspace_id),
+        content_type="quest",
     )
     await db.commit()
     return q
@@ -160,6 +162,7 @@ async def patch_quest_meta(
 async def get_quest_validation(
     quest_id: UUID,
     workspace_id: UUID,
+    current: User = Depends(auth_user),
     _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
 ) -> ValidationReport:
@@ -167,6 +170,16 @@ async def get_quest_validation(
     if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Quest not found")
     report = await validate_quest(db, q)
+    await audit_log(
+        db,
+        actor_id=str(getattr(current, "id", "")),
+        action="quest_validate",
+        resource_type="quest",
+        resource_id=str(quest_id),
+        after=report.model_dump(),
+        workspace_id=str(workspace_id),
+        content_type="quest",
+    )
     return report
 
 
@@ -252,6 +265,8 @@ async def post_quest_autofix(
             "skipped": skipped,
         },
         request=request,
+        workspace_id=str(workspace_id),
+        content_type="quest",
     )
     return AutofixReport(
         applied=[type("X", (), x) for x in applied],
@@ -311,5 +326,7 @@ async def post_quest_publish(
         after={"status": q.status, "is_premium_only": q.is_premium_only, "published_at": q.published_at.isoformat()},
         request=request,
         reason=f"access={body.access}",
+        workspace_id=str(workspace_id),
+        content_type="quest",
     )
     return {"status": "published", "quest_id": str(quest_id)}

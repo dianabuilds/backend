@@ -12,6 +12,7 @@ class AuditLogOut(BaseModel):
     action: str
     resource_type: str | None = None
     resource_id: str | None = None
+    workspace_id: UUID | None = None
     before: dict[str, Any] | None = None
     after: dict[str, Any] | None = None
     ip: str | None = None
