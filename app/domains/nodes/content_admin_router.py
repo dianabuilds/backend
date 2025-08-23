@@ -9,7 +9,7 @@ from sqlalchemy.future import select
 import app.domains.quests.validation  # noqa: F401
 from app.core.db.session import get_db
 from app.domains.tags.models import Tag
-from app.schemas.node_common import ContentStatus
+from app.schemas.nodes_common import Status
 from app.security import ADMIN_AUTH_RESPONSES, require_ws_editor
 from app.validation.base import run_validators
 
@@ -35,9 +35,9 @@ async def content_dashboard(
     items = result.scalars().all()
 
     counts: dict[str, int] = {
-        ContentStatus.draft.value: 0,
-        ContentStatus.in_review.value: 0,
-        ContentStatus.published.value: 0,
+        Status.draft.value: 0,
+        Status.in_review.value: 0,
+        Status.published.value: 0,
     }
     for item in items:
         counts[item.status.value] = counts.get(item.status.value, 0) + 1
@@ -58,9 +58,9 @@ async def content_dashboard(
 
     return {
         "workspace_id": str(workspace_id),
-        "drafts": counts.get(ContentStatus.draft.value, 0),
-        "reviews": counts.get(ContentStatus.in_review.value, 0),
-        "published": counts.get(ContentStatus.published.value, 0),
+        "drafts": counts.get(Status.draft.value, 0),
+        "reviews": counts.get(Status.in_review.value, 0),
+        "published": counts.get(Status.published.value, 0),
         "latest": [
             {
                 "id": str(item.id),
@@ -77,7 +77,7 @@ async def content_dashboard(
 async def list_nodes(
     workspace_id: UUID,
     node_type: str | None = None,
-    status: ContentStatus | None = None,
+    status: Status | None = None,
     tag: UUID | None = None,
     _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),

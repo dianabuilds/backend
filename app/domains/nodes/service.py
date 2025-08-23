@@ -8,17 +8,17 @@ from app.domains.system.events import (
     ContentUpdated,
     get_event_bus,
 )
-from app.schemas.node_common import ContentStatus
+from app.schemas.nodes_common import Status
 
-ALLOWED_TRANSITIONS: dict[ContentStatus, set[ContentStatus]] = {
-    ContentStatus.draft: {ContentStatus.in_review},
-    ContentStatus.in_review: {ContentStatus.published},
-    ContentStatus.published: set(),
-    ContentStatus.archived: set(),
+ALLOWED_TRANSITIONS: dict[Status, set[Status]] = {
+    Status.draft: {Status.in_review},
+    Status.in_review: {Status.published},
+    Status.published: set(),
+    Status.archived: set(),
 }
 
 
-def validate_transition(current: ContentStatus, new: ContentStatus) -> None:
+def validate_transition(current: Status, new: Status) -> None:
     """Validate that status transition is allowed."""
     if new == current:
         return

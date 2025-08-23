@@ -19,7 +19,7 @@ from app.domains.quests.infrastructure.models.quest_version_models import (
     QuestVersion,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.schemas.node_common import ContentStatus
+from app.schemas.nodes_common import Status
 from app.schemas.quest_editor import (
     GraphEdge,
     GraphNode,
@@ -490,10 +490,10 @@ async def publish_version(
 
     q = await db.get(Quest, v.quest_id)
     if q:
-        if q.status != ContentStatus.in_review:
+        if q.status != Status.in_review:
             raise HTTPException(status_code=400, detail="Quest must be in review")
-        validate_transition(q.status, ContentStatus.published)
-        q.status = ContentStatus.published
+        validate_transition(q.status, Status.published)
+        q.status = Status.published
         q.published_at = datetime.utcnow()
 
     await audit_log(
