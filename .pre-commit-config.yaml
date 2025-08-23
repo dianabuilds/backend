@@ -17,7 +17,7 @@ repos:
     rev: v1.11.2
     hooks:
       - id: mypy
-        args: ["app"]
+        args: ["apps/backend/app"]
   - repo: local
     hooks:
       - id: eslint
