@@ -2,7 +2,8 @@ import importlib
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 
 def test_refresh_token_rotation(monkeypatch):
@@ -16,9 +17,9 @@ def test_refresh_token_rotation(monkeypatch):
     ]:
         monkeypatch.setenv(key, "1")
 
-    sys.modules.pop("app.core.config", None)
-    sys.modules.pop("app.core.security", None)
-    security = importlib.import_module("app.core.security")
+    sys.modules.pop("apps.backend.app.core.config", None)
+    sys.modules.pop("apps.backend.app.core.security", None)
+    security = importlib.import_module("apps.backend.app.core.security")
 
     token = security.create_refresh_token("user")
     assert security.verify_refresh_token(token) == "user"

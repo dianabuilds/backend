@@ -11,10 +11,6 @@ from sqlalchemy import text
 # Устанавливаем флаг для использования минимальной конфигурации
 os.environ["USE_MINIMAL_CONFIG"] = "True"
 
-# Импортируем минимальную конфигурацию
-from tests.conftest_minimal import client, db_session, test_user
-
-
 @pytest.mark.asyncio
 async def test_signup_success(client: AsyncClient, db_session: AsyncSession):
     """Проверка успешной регистрации."""
