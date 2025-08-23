@@ -6,8 +6,10 @@ from uuid import UUID
 from sqlalchemy import or_, func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import ContentItem
+from .models import ContentItem, ContentPatch
 from app.domains.tags.models import ContentTag
+from datetime import datetime
+from sqlalchemy.orm.attributes import set_committed_value
 
 
 class ContentItemDAO:
@@ -31,7 +33,9 @@ class ContentItemDAO:
             .order_by(func.coalesce(ContentItem.published_at, func.now()).desc())
         )
         result = await db.execute(stmt)
-        return list(result.scalars().all())
+        items = list(result.scalars().all())
+        await ContentPatchDAO.overlay(db, items)
+        return items
 
     @staticmethod
     async def attach_tag(
@@ -74,4 +78,53 @@ class ContentItemDAO:
         stmt = stmt.order_by(func.coalesce(ContentItem.published_at, func.now()).desc())
         stmt = stmt.offset((page - 1) * per_page).limit(per_page)
         result = await db.execute(stmt)
-        return list(result.scalars().all())
+        items = list(result.scalars().all())
+        await ContentPatchDAO.overlay(db, items)
+        return items
+
+
+class ContentPatchDAO:
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        *,
+        content_id: UUID,
+        data: dict,
+        created_by_user_id: UUID | None = None,
+    ) -> ContentPatch:
+        patch = ContentPatch(
+            content_id=content_id,
+            data=data,
+            created_by_user_id=created_by_user_id,
+        )
+        db.add(patch)
+        await db.flush()
+        return patch
+
+    @staticmethod
+    async def revert(db: AsyncSession, *, patch_id: UUID) -> ContentPatch | None:
+        patch = await db.get(ContentPatch, patch_id)
+        if patch and patch.reverted_at is None:
+            patch.reverted_at = datetime.utcnow()
+            await db.flush()
+        return patch
+
+    @staticmethod
+    async def overlay(db: AsyncSession, items: list[ContentItem]) -> None:
+        if not items:
+            return
+        ids = [i.id for i in items]
+        for item in items:
+            await db.refresh(item)
+        stmt = select(ContentPatch).where(
+            ContentPatch.content_id.in_(ids),
+            ContentPatch.reverted_at.is_(None),
+        )
+        res = await db.execute(stmt)
+        patches = {p.content_id: p for p in res.scalars().all()}
+        for item in items:
+            patch = patches.get(item.id)
+            if patch:
+                for key, value in patch.data.items():
+                    if hasattr(item, key):
+                        set_committed_value(item, key, value)
