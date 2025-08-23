@@ -14,3 +14,6 @@ extend-exclude = ["apps/admin"]
 
 [tool.ruff.lint]
 select = ["E", "F", "B", "I", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"apps/backend/alembic/versions/*.py" = ["ALL"]
