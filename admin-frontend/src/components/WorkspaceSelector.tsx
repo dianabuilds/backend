@@ -9,6 +9,7 @@ interface Workspace {
   id: string;
   name: string;
   role?: string;
+  type: "personal" | "team" | "global";
 }
 
 export default function WorkspaceSelector() {
@@ -38,11 +39,21 @@ export default function WorkspaceSelector() {
         className="px-2 py-1 border rounded text-sm"
       >
         <option value="">Select workspace</option>
-        {data?.map((ws) => (
-          <option key={ws.id} value={ws.id}>
-            {ws.name}
-          </option>
-        ))}
+        {(["personal", "team", "global"] as const).map((type) => {
+          const items = data?.filter((ws) => ws.type === type) || [];
+          if (items.length === 0) return null;
+          const label =
+            type === "personal" ? "My" : type === "team" ? "Team" : "Global";
+          return (
+            <optgroup key={type} label={label}>
+              {items.map((ws) => (
+                <option key={ws.id} value={ws.id}>
+                  {ws.name}
+                </option>
+              ))}
+            </optgroup>
+          );
+        })}
       </select>
       {workspaceId && (
         <Link

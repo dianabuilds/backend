@@ -112,9 +112,13 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     # Для тестов административного меню подключаем нужный роутер вручную.
     from app.domains.admin.api.routers import router as admin_router
     from app.domains.premium.api_admin import router as premium_admin_router
+    from app.domains.admin.api.hotfix_patches_router import (
+        router as hotfix_patches_router,
+    )
 
     app.include_router(admin_router)
     app.include_router(premium_admin_router)
+    app.include_router(hotfix_patches_router)
 
     # Создаем тестовый клиент
     transport = ASGITransport(app=app)

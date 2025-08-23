@@ -5,6 +5,7 @@ import PageLayout from "./_shared/PageLayout";
 import { api } from "../api/client";
 import type { WorkspaceOut } from "../openapi";
 import { useToast } from "../components/ToastProvider";
+import RoleBadge from "../components/RoleBadge";
 
 function ensureArray(data: unknown): WorkspaceOut[] {
   if (Array.isArray(data)) return data as WorkspaceOut[];
@@ -51,7 +52,7 @@ export default function Workspaces() {
                 <td className="p-2">
                   <Link to={`/workspaces/${ws.id}`}>{ws.name}</Link>
                 </td>
-                <td className="p-2 capitalize">{ws.role ?? ""}</td>
+                <td className="p-2">{ws.role ? <RoleBadge role={ws.role} /> : null}</td>
               </tr>
             ))}
           </tbody>

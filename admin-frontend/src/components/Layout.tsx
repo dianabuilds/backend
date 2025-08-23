@@ -1,7 +1,8 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import Sidebar from "./Sidebar";
 import WorkspaceSelector from "./WorkspaceSelector";
+import HotfixBanner from "./HotfixBanner";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -13,7 +14,9 @@ export default function Layout() {
           <WorkspaceSelector />
           {user && (
             <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200">
-              <span>{user.username ?? user.email ?? user.id}</span>
+              <Link to="/profile" className="hover:underline">
+                {user.username ?? user.email ?? user.id}
+              </Link>
               <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800">{user.role}</span>
               <button
                 onClick={logout}
@@ -24,6 +27,7 @@ export default function Layout() {
             </div>
           )}
         </div>
+        <HotfixBanner />
         <Outlet />
       </main>
     </div>

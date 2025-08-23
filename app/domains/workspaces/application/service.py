@@ -175,12 +175,12 @@ class WorkspaceService:
         )
         if existing:
             raise HTTPException(status_code=400, detail="Member already exists")
-        member = WorkspaceMember(
+        member = await WorkspaceMemberDAO.add(
+            db,
             workspace_id=workspace_id,
             user_id=data.user_id,
             role=data.role,
         )
-        db.add(member)
         await db.commit()
         await db.refresh(member)
         return member
@@ -189,12 +189,11 @@ class WorkspaceService:
     async def update_member(
         db: AsyncSession, workspace_id: UUID, user_id: UUID, role: WorkspaceRole
     ) -> WorkspaceMember:
-        member = await WorkspaceMemberDAO.get(
-            db, workspace_id=workspace_id, user_id=user_id
+        member = await WorkspaceMemberDAO.update_role(
+            db, workspace_id=workspace_id, user_id=user_id, role=role
         )
         if not member:
             raise HTTPException(status_code=404, detail="Member not found")
-        member.role = role
         await db.commit()
         await db.refresh(member)
         return member
@@ -208,7 +207,9 @@ class WorkspaceService:
         )
         if not member:
             raise HTTPException(status_code=404, detail="Member not found")
-        await db.delete(member)
+        await WorkspaceMemberDAO.remove(
+            db, workspace_id=workspace_id, user_id=user_id
+        )
         await db.commit()
 
     @staticmethod
