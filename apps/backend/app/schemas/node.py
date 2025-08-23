@@ -1,15 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
-from pydantic import field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
-from pydantic import AliasChoices
-from pydantic import model_validator
-from typing import Literal
 
 
 class NodeBase(BaseModel):
@@ -58,22 +54,27 @@ class NodeBase(BaseModel):
         return {}
 
     @model_validator(mode="after")
-    def _normalize_editorjs_and_validate(self) -> "NodeBase":
+    def _normalize_editorjs_and_validate(self) -> NodeBase:
         # Приводим контент к Editor.js JSON: допускаем строковый JSON
         if isinstance(self.content, str):
             import json
+
             try:
                 self.content = json.loads(self.content)
-            except Exception:
-                raise ValueError("nodes must be valid JSON for Editor.js")
+            except Exception as err:
+                raise ValueError("nodes must be valid JSON for Editor.js") from err
         if not isinstance(self.content, (dict, list)):
             raise ValueError("nodes must be an object or array for Editor.js")
         # Нормализуем списки
-        if self.media is not None and not (isinstance(self.media, list) and all(isinstance(x, str) for x in self.media)):
+        if self.media is not None and not (
+            isinstance(self.media, list) and all(isinstance(x, str) for x in self.media)
+        ):
             raise ValueError("media must be an array of strings")
         if self.cover_url is not None and not isinstance(self.cover_url, str):
             raise ValueError("cover_url must be a string")
-        if self.tags is not None and not (isinstance(self.tags, list) and all(isinstance(x, str) for x in self.tags)):
+        if self.tags is not None and not (
+            isinstance(self.tags, list) and all(isinstance(x, str) for x in self.tags)
+        ):
             raise ValueError("tags must be an array of strings")
         return self
 
@@ -144,7 +145,7 @@ class NodeOut(NodeBase):
         return {}
 
     @model_validator(mode="after")
-    def _normalize_output(self) -> "NodeOut":
+    def _normalize_output(self) -> NodeOut:
         # Приводим popularity_score к числу (некорректные значения -> 0.0)
         try:
             # если пришло строкой или иным типом — пробуем привести
