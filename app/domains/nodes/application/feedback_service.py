@@ -20,8 +20,8 @@ class FeedbackService:
         self._repo = repo
         self._notifier = notifier
 
-    async def list_feedback(self, db: AsyncSession, slug: str, current_user) -> List[Feedback]:
-        node = await self._repo.get_by_slug(slug)
+    async def list_feedback(self, db: AsyncSession, slug: str, current_user, workspace_id: UUID) -> List[Feedback]:
+        node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         if not node.allow_feedback and node.author_id != current_user.id:
@@ -31,10 +31,10 @@ class FeedbackService:
         )
         return result.scalars().all()
 
-    async def create_feedback(self, db: AsyncSession, slug: str, content: dict, is_anonymous: bool, current_user) -> Feedback:
+    async def create_feedback(self, db: AsyncSession, slug: str, content: dict, is_anonymous: bool, current_user, workspace_id: UUID) -> Feedback:
         if not isinstance(content, dict) or "text" not in content or not str(content["text"]).strip():
             raise HTTPException(status_code=400, detail="Empty feedback")
-        node = await self._repo.get_by_slug(slug)
+        node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         if not node.allow_feedback:
@@ -78,8 +78,8 @@ class FeedbackService:
 
         return feedback
 
-    async def delete_feedback(self, db: AsyncSession, slug: str, feedback_id: UUID, current_user) -> dict:
-        node = await self._repo.get_by_slug(slug)
+    async def delete_feedback(self, db: AsyncSession, slug: str, feedback_id: UUID, current_user, workspace_id: UUID) -> dict:
+        node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         result = await db.execute(

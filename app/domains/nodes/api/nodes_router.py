@@ -42,11 +42,12 @@ async def list_nodes(
     if_none_match: str | None = Header(None, alias="If-None-Match"),
     tags: str | None = Query(None),
     match: str = Query("any", pattern="^(any|all)$"),
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[NodeOut]:
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
-    spec = NodeFilterSpec(tags=tag_list, match=match)
+    spec = NodeFilterSpec(tags=tag_list, match=match, workspace_id=workspace_id)
     ctx = QueryContext(user=current_user, is_admin=False)
     service = NodeQueryAdapter(db)
     page = PageRequest()
@@ -63,11 +64,12 @@ async def list_nodes(
 @router.post("", response_model=dict, summary="Create node")
 async def create_node(
     payload: NodeCreate,
+    workspace_id: UUID,
     current_user: User = Depends(ensure_can_post),
     db: AsyncSession = Depends(get_db),
 ):
     repo = NodeRepository(db)
-    node = await repo.create(payload, current_user.id)
+    node = await repo.create(payload, current_user.id, workspace_id)
     await get_event_bus().publish(
         NodeCreated(node_id=node.id, slug=node.slug, author_id=current_user.id)
     )
@@ -77,11 +79,12 @@ async def create_node(
 @router.get("/{slug}", response_model=NodeOut, summary="Get node")
 async def read_node(
     slug: str,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug)
+    node = await repo.get_by_slug(slug, workspace_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_view(node, current_user)
@@ -98,11 +101,12 @@ async def read_node(
 async def set_node_tags(
     node_id: UUID,
     payload: NodeTagsUpdate,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     repo = NodeRepository(db)
-    node = await repo.get_by_id(node_id)
+    node = await repo.get_by_id(node_id, workspace_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(node, current_user)
@@ -122,11 +126,12 @@ async def set_node_tags(
 async def update_node(
     slug: str,
     payload: NodeUpdate,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug)
+    node = await repo.get_by_slug(slug, workspace_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(node, current_user)
@@ -155,11 +160,12 @@ async def update_node(
 @router.delete("/{slug}", summary="Delete node")
 async def delete_node(
     slug: str,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug)
+    node = await repo.get_by_slug(slug, workspace_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(node, current_user)
@@ -177,31 +183,41 @@ async def delete_node(
 async def update_reactions(
     slug: str,
     payload: ReactionUpdate,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     from app.domains.nodes.application.reaction_service import ReactionService
     from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
     service = ReactionService(NodeRepositoryAdapter(db), navcache)
-    return await service.update_reactions_by_slug(db, slug, payload.reaction, payload.action, actor_id=str(current_user.id))
+    return await service.update_reactions_by_slug(
+        db,
+        slug,
+        payload.reaction,
+        payload.action,
+        workspace_id=workspace_id,
+        actor_id=str(current_user.id),
+    )
 
 
 @router.get("/{slug}/feedback", response_model=List[FeedbackOut], summary="List feedback")
 async def list_feedback(
     slug: str,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
     service = FeedbackService(NodeRepositoryAdapter(db))
-    return await service.list_feedback(db, slug, current_user)
+    return await service.list_feedback(db, slug, current_user, workspace_id)
 
 
 @router.post("/{slug}/feedback", response_model=FeedbackOut, summary="Create feedback")
 async def create_feedback(
     slug: str,
     payload: FeedbackCreate,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -213,17 +229,18 @@ async def create_feedback(
 
     notifier = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
     service = FeedbackService(NodeRepositoryAdapter(db), notifier)
-    return await service.create_feedback(db, slug, payload.content, payload.is_anonymous, current_user)
+    return await service.create_feedback(db, slug, payload.content, payload.is_anonymous, current_user, workspace_id)
 
 
 @router.delete("/{slug}/feedback/{feedback_id}", response_model=dict, summary="Delete feedback")
 async def delete_feedback(
     slug: str,
     feedback_id: UUID,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
     service = FeedbackService(NodeRepositoryAdapter(db))
-    return await service.delete_feedback(db, slug, feedback_id, current_user)
+    return await service.delete_feedback(db, slug, feedback_id, current_user, workspace_id)

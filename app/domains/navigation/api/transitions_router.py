@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from app.api.deps import get_current_user
 from app.core.db.session import get_db
@@ -19,6 +20,7 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 @router.delete("/{transition_id}", summary="Delete transition")
 async def delete_transition(
     transition_id: str,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -29,7 +31,7 @@ async def delete_transition(
     if not transition:
         raise HTTPException(status_code=404, detail="Transition not found")
     TransitionPolicy.ensure_can_delete(transition, current_user)
-    from_node = await node_repo.get_by_id(transition.from_node_id)
+    from_node = await node_repo.get_by_id(transition.from_node_id, workspace_id)
     await repo.delete(transition)
     if from_node:
         await navcache.invalidate_navigation_by_node(from_node.slug)
