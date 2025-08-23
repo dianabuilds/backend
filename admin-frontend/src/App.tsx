@@ -42,6 +42,7 @@ import BlogPostEditor from "./pages/BlogPostEditor";
 import AchievementEditor from "./pages/AchievementEditor";
 import WorkspaceSettings from "./pages/WorkspaceSettings";
 import Workspaces from "./pages/Workspaces";
+import Profile from "./pages/Profile";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
 const Worlds = lazy(() => import("./pages/Worlds"));
 const AISettings = lazy(() => import("./pages/AISettings"));
@@ -101,6 +102,7 @@ export default function App() {
                     <Route path="achievements/editor" element={<AchievementEditor />} />
                     <Route path="workspaces" element={<Workspaces />} />
                     <Route path="workspaces/:id" element={<WorkspaceSettings />} />
+                    <Route path="profile" element={<Profile />} />
                     <Route path="quests" element={<QuestsList />} />
                     <Route path="quests/editor" element={<QuestEditor />} />
                     <Route path="quests/version/:id" element={<QuestVersionEditor />} />
