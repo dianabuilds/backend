@@ -1,12 +1,16 @@
 [tool.black]
 line-length = 88
+extend-exclude = "apps/admin"
 
 [tool.isort]
 profile = "black"
 line_length = 88
+src_paths = ["apps/backend"]
 
 [tool.ruff]
 line-length = 88
+src = ["apps/backend"]
+extend-exclude = ["apps/admin"]
 
 [tool.ruff.lint]
 select = ["E", "F", "B", "I", "UP"]

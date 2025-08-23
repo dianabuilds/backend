@@ -29,7 +29,7 @@
 1. Создайте виртуальное окружение и установите зависимости `pip install -r requirements.txt`.
 2. Скопируйте `.env.example` в `.env` и заполните переменные окружения (БД, JWT, SMTP, CORS, Redis, Sentry, Embeddings).
 3. Запустите PostgreSQL с расширением pgvector и примените миграции `alembic upgrade head`.
-4. Запустите сервер разработки `uvicorn app.main:app --reload` и откройте Swagger на `/docs`.
+4. Запустите сервер разработки `uvicorn apps.backend.app.main:app --reload` и откройте Swagger на `/docs`.
 
 ## Деплой в production
 Рекомендации по продакшн‑запуску описаны в [docs/deployment.md](docs/deployment.md). Основной чек‑лист:
@@ -43,8 +43,8 @@
 - Python 3.13+, FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, Passlib, PyJWT, Jinja2
 - Конфигурационные файлы: `.env`, `.env.example`, `alembic.ini`, `requirements.txt`
 - Запуск:
-  - Dev: `uvicorn app.main:app --reload`
-  - Prod: `gunicorn app.main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000`
+  - Dev: `uvicorn apps.backend.app.main:app --reload`
+  - Prod: `gunicorn apps.backend.app.main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000`
 - Тесты: `pytest`
 - Покрытие: `coverage run -m pytest && coverage report`
 - Лёгкий нагрузочный прогон: `python scripts/light_load_test.py`

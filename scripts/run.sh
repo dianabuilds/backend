@@ -81,8 +81,8 @@ python scripts/init_db.py
 # Запуск приложения в соответствующем режиме
 if [ "$MODE" = "dev" ]; then
     echo "Starting development server at $HOST:$PORT with auto-reload"
-    uvicorn app.main:app --host "$HOST" --port "$PORT" --reload
+    uvicorn apps.backend.app.main:app --host "$HOST" --port "$PORT" --reload
 else
     echo "Starting production server at $HOST:$PORT with $WORKERS workers"
-    gunicorn app.main:app -w "$WORKERS" -k uvicorn.workers.UvicornWorker --bind "$HOST:$PORT"
+    gunicorn apps.backend.app.main:app -w "$WORKERS" -k uvicorn.workers.UvicornWorker --bind "$HOST:$PORT"
 fi
