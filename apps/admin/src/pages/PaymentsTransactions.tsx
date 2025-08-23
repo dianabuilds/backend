@@ -144,7 +144,7 @@ export default function PaymentsTransactions() {
           return (
             <DataTable<Tx>
               columns={cols}
-              data={rows}
+              rows={rows}
               rowKey={(r) => r.id}
               emptyText="Нет транзакций"
               loading={loading && rows.length === 0}
