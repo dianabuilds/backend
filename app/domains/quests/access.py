@@ -19,6 +19,7 @@ async def can_view(db: AsyncSession, *, quest: Quest, user: User) -> bool:
         select(QuestPurchase).where(
             QuestPurchase.quest_id == quest.id,
             QuestPurchase.user_id == user.id,
+            QuestPurchase.workspace_id == quest.workspace_id,
         )
     )
     return res.scalars().first() is not None

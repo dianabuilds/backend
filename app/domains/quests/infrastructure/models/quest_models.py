@@ -32,7 +32,7 @@ class Quest(Base):
     __tablename__ = "quests"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False)
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=False)
     subtitle = Column(String, nullable=True)
@@ -79,6 +79,7 @@ class QuestPurchase(Base):
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("quests.id"), nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     paid_at = Column(DateTime, default=datetime.utcnow)
 
     quest = relationship("Quest", back_populates="purchases")
@@ -93,6 +94,7 @@ class QuestProgress(Base):
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("quests.id"), nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     current_node_id = Column(UUID(), ForeignKey("nodes.id"), nullable=False)
     started_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
