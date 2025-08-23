@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { api } from "../api/client";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
@@ -17,6 +18,12 @@ export default function WorkspaceSelector() {
       return res.data?.workspaces || [];
     },
   });
+
+  useEffect(() => {
+    if (!workspaceId && data && data.length > 0) {
+      setWorkspaceId(data[0].id);
+    }
+  }, [workspaceId, data, setWorkspaceId]);
 
   return (
     <select
