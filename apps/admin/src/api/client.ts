@@ -329,14 +329,45 @@ async function request<T = unknown>(url: string, opts: RequestOptions = {}): Pro
   return { ok: true, status: resp.status, etag, data: data as T, response: resp };
 }
 
+export const get = <T = unknown>(
+  url: string,
+  opts?: RequestOptions,
+): Promise<ApiResponse<T>> => request<T>(url, { ...opts, method: "GET" });
+
+export const post = <TReq = unknown, TRes = unknown>(
+  url: string,
+  json?: TReq,
+  opts?: RequestOptions,
+): Promise<ApiResponse<TRes>> => request<TRes>(url, { ...opts, method: "POST", json });
+
+export const put = <TReq = unknown, TRes = unknown>(
+  url: string,
+  json?: TReq,
+  opts?: RequestOptions,
+): Promise<ApiResponse<TRes>> => request<TRes>(url, { ...opts, method: "PUT", json });
+
+export const patch = <TReq = unknown, TRes = unknown>(
+  url: string,
+  json?: TReq,
+  opts?: RequestOptions,
+): Promise<ApiResponse<TRes>> => request<TRes>(url, { ...opts, method: "PATCH", json });
+
+export const del = <T = unknown>(
+  url: string,
+  opts?: RequestOptions,
+): Promise<ApiResponse<T>> => request<T>(url, { ...opts, method: "DELETE" });
+
 export const api = {
   request,
-  get: <T = unknown>(url: string, opts?: RequestOptions) => request<T>(url, { ...opts, method: "GET" }),
-  post: <T = unknown>(url: string, json?: unknown, opts?: RequestOptions) => request<T>(url, { ...opts, method: "POST", json }),
-  put:  <T = unknown>(url: string, json?: unknown, opts?: RequestOptions) => request<T>(url, { ...opts, method: "PUT", json }),
-  patch: <T = unknown>(url: string, json?: unknown, opts?: RequestOptions) => request<T>(url, { ...opts, method: "PATCH", json }),
-  del:  <T = unknown>(url: string, opts?: RequestOptions) => request<T>(url, { ...opts, method: "DELETE" }),
+  get,
+  post,
+  put,
+  patch,
+  del,
+  delete: del,
 };
+
+export { del as delete };
 
 // Типы и API для сервер‑драйв меню админки (с ETag кэшем)
 export interface AdminMenuItem {
