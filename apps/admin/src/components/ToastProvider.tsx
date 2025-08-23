@@ -1,14 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import type { Toast } from "./ToastProvider.helpers";
 
 type ToastVariant = "success" | "error" | "info" | "warning";
-
-export interface Toast {
-  id: string;
-  title: string;
-  description?: string;
-  variant?: ToastVariant;
-  duration?: number; // ms
-}
 
 interface ToastContextType {
   addToast: (t: Omit<Toast, "id">) => string;

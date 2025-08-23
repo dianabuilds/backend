@@ -1,14 +1,5 @@
 import React from "react";
-
-export type Column<T> = {
-  key: string;
-  title: string;
-  width?: string | number;
-  render?: (row: T) => React.ReactNode;
-  accessor?: (row: T) => React.ReactNode;
-  className?: string;
-};
-
+import type { Column } from "./DataTable.helpers";
 import Skeleton from "./Skeleton";
 
 type Props<T> = {

@@ -3,17 +3,7 @@ import EditorJSEmbed from "./EditorJSEmbed";
 import MediaPicker from "./MediaPicker";
 import TagInput from "./TagInput";
 import { useUnsavedChanges } from "../utils/useUnsavedChanges";
-
-export interface NodeEditorData {
-  id: string;
-  title: string;
-  subtitle?: string;
-  cover_url?: string | null;
-  tags?: string[];
-  allow_comments?: boolean;
-  is_premium_only?: boolean;
-  contentData: any;
-}
+import type { NodeEditorData } from "./NodeEditorModal.helpers";
 
 interface Props {
   open: boolean;
