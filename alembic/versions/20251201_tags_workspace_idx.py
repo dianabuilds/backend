@@ -1,7 +1,7 @@
 """make tags.workspace_id not null and indexed
 
 Revision ID: 20251201_tags_workspace_idx
-Revises: 20251101_workspace_role_visibility
+Revises: 20251101_ws_role_visibility
 Create Date: 2025-12-01
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy import inspect
 
 revision = "20251201_tags_workspace_idx"
-down_revision = "20251101_workspace_role_visibility"
+down_revision = "20251101_ws_role_visibility"
 branch_labels = None
 depends_on = None
 
