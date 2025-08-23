@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class WorkspaceRole(str, Enum):
@@ -19,10 +19,18 @@ class WorkspaceType(str, Enum):
     global_ = "global"
 
 
+class WorkspaceSettings(BaseModel):
+    ai_presets: dict[str, object] = Field(default_factory=dict)
+    notifications: dict[str, object] = Field(default_factory=dict)
+    limits: dict[str, int] = Field(default_factory=dict)
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class WorkspaceIn(BaseModel):
     name: str
     slug: str | None = None
-    settings: dict[str, object] = Field(default_factory=dict)
+    settings: WorkspaceSettings = Field(default_factory=WorkspaceSettings)
     type: WorkspaceType = WorkspaceType.team
     is_system: bool = False
 
@@ -32,7 +40,9 @@ class WorkspaceOut(BaseModel):
     name: str
     slug: str
     owner_user_id: UUID
-    settings: dict[str, object] = Field(default_factory=dict)
+    settings: WorkspaceSettings = Field(
+        default_factory=WorkspaceSettings, alias="settings_json"
+    )
     type: WorkspaceType
     is_system: bool
     created_at: datetime
@@ -50,7 +60,7 @@ class WorkspaceWithRoleOut(WorkspaceOut):
 class WorkspaceUpdate(BaseModel):
     name: str | None = None
     slug: str | None = None
-    settings: dict[str, object] | None = None
+    settings: WorkspaceSettings | None = None
     type: WorkspaceType | None = None
     is_system: bool | None = None
 

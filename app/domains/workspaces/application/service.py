@@ -90,7 +90,7 @@ class WorkspaceService:
             name=data.name,
             slug=slug,
             owner_user_id=owner.id,
-            settings_json=data.settings,
+            settings_json=data.settings.model_dump(),
             type=data.type,
             is_system=data.is_system,
         )
@@ -149,7 +149,7 @@ class WorkspaceService:
                 raise HTTPException(status_code=400, detail="Slug already exists")
             workspace.slug = data.slug
         if data.settings is not None:
-            workspace.settings_json = data.settings
+            workspace.settings_json = data.settings.model_dump()
         if data.type is not None:
             workspace.type = data.type
         if data.is_system is not None:
