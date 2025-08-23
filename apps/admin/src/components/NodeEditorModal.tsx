@@ -1,7 +1,7 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import EditorJSEmbed from "./EditorJSEmbed";
 import MediaPicker from "./MediaPicker";
-import TagInput from "./TagInput";
+import TagPicker from "./tags/TagPicker";
 import { useUnsavedChanges } from "../utils/useUnsavedChanges";
 import type { NodeEditorData } from "./NodeEditorModal.helpers";
 
@@ -145,10 +145,9 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
                   value={node.subtitle || ""}
                   onChange={(e) => onChange({ subtitle: e.target.value })}
                 />
-                <TagInput
+                <TagPicker
                   value={node.tags || []}
                   onChange={(tags) => onChange({ tags })}
-                  placeholder="Добавьте теги и нажмите Enter"
                 />
               </div>
 

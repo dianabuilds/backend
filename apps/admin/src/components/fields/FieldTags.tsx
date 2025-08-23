@@ -1,15 +1,15 @@
-import TagSelect from "../TagSelect";
+import TagPicker, { type TagOut } from "../tags/TagPicker";
 
 interface Props {
-  value: string[];
-  onChange: (tags: string[]) => void;
+  value: TagOut[];
+  onChange: (tags: TagOut[]) => void;
 }
 
 export default function FieldTags({ value, onChange }: Props) {
   return (
     <div>
       <label className="block text-sm font-medium">Tags</label>
-      <TagSelect value={value} onChange={onChange} />
+      <TagPicker value={value} onChange={onChange} />
     </div>
   );
 }

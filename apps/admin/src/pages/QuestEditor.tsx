@@ -1,11 +1,12 @@
 import { useState } from "react";
 import ContentEditor from "../components/content/ContentEditor";
 import PublishBar from "../components/PublishBar";
+import type { TagOut } from "../components/tags/TagPicker";
 
 export default function QuestEditor() {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<TagOut[]>([]);
   const [cover, setCover] = useState<string | null>(null);
   const [body, setBody] = useState("");
 

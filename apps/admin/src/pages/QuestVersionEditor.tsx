@@ -7,7 +7,7 @@ import type { NodeEditorData } from "../components/NodeEditorModal.helpers";
 import MediaPicker from "../components/MediaPicker";
 import { getQuestMeta, updateQuestMeta } from "../api/questEditor";
 import GraphCanvas from "../components/GraphCanvas";
-import TagInput from "../components/TagInput";
+import TagPicker, { type TagOut } from "../components/tags/TagPicker";
 import CollapsibleSection from "../components/CollapsibleSection";
 import { useToast } from "../components/ToastProvider";
 
@@ -36,7 +36,19 @@ export default function QuestVersionEditor() {
   const [edgesPageSize, setEdgesPageSize] = useState(30);
 
   // Quest meta
-  const [meta, setMeta] = useState<{ title: string; subtitle?: string | null; description?: string | null; cover_image?: string | null; price?: number | null; is_premium_only?: boolean; allow_comments?: boolean; tags?: string[] } | null>(null);
+  const [meta, setMeta] = useState<
+    | {
+        title: string;
+        subtitle?: string | null;
+        description?: string | null;
+        cover_image?: string | null;
+        price?: number | null;
+        is_premium_only?: boolean;
+        allow_comments?: boolean;
+        tags?: TagOut[];
+      }
+    | null
+  >(null);
   const [savingMeta, setSavingMeta] = useState(false);
 
   // Modal editor state
@@ -63,7 +75,9 @@ export default function QuestVersionEditor() {
             price: m.price ?? null,
             is_premium_only: !!m.is_premium_only,
             allow_comments: !!m.allow_comments,
-            tags: Array.isArray(m.tags) ? m.tags : [],
+            tags: Array.isArray(m.tags)
+              ? m.tags.map((t) => ({ id: t, slug: t, name: t, count: 0 }))
+              : [],
           });
         } catch (e) {
           console.warn("Failed to load quest meta:", e);
@@ -213,7 +227,7 @@ export default function QuestVersionEditor() {
             price: meta.price ?? null,
             is_premium_only: meta.is_premium_only,
             allow_comments: meta.allow_comments,
-            tags: meta.tags || [],
+            tags: meta.tags ? meta.tags.map((t) => t.slug) : [],
           });
         } catch (e) {
           // не валим общий флоу, покажем сообщение и продолжим
@@ -272,7 +286,7 @@ export default function QuestVersionEditor() {
         price: meta.price ?? null,
         is_premium_only: meta.is_premium_only,
         allow_comments: meta.allow_comments,
-        tags: meta.tags || [],
+        tags: meta.tags ? meta.tags.map((t) => t.slug) : [],
       });
       alert("Quest meta saved");
     } catch (e) {
@@ -342,10 +356,9 @@ export default function QuestVersionEditor() {
                     value={meta.description || ""}
                     onChange={(e) => setMeta({ ...meta, description: e.target.value })}
                   />
-                  <TagInput
+                  <TagPicker
                     value={meta.tags || []}
                     onChange={(tags) => setMeta({ ...meta, tags })}
-                    placeholder="Add tags and press Enter"
                   />
                   <div className="flex items-center gap-6">
                     <label className="flex items-center gap-2 text-sm">

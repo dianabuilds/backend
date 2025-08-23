@@ -3,7 +3,7 @@ import type { TagOut as TagOutBase } from "../../openapi";
 import { api } from "../../api/client";
 import MultiSelectBase from "../ui/MultiSelectBase";
 
-type TagOut = TagOutBase & { id: string };
+export type TagOut = TagOutBase & { id: string };
 
 interface TagPickerProps {
   value: TagOut[];
@@ -24,7 +24,7 @@ export default function TagPicker({ value, onChange }: TagPickerProps) {
       items={tags}
       values={value}
       onChange={onChange}
-      getKey={(t) => t.id}
+      getKey={(t) => t.slug}
       getLabel={(t) => t.name}
     />
   );
