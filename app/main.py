@@ -108,7 +108,7 @@ async def admin_spa_fallback(request: Request, call_next):
         path = request.url.path
         if path.startswith("/admin") and not path.startswith("/admin/assets"):
             accept = request.headers.get("accept", "")
-            if "text/html" in accept.lower() or accept.strip() == "*/*":
+            if "text/html" in accept.lower():
                 from app.web.admin_spa import serve_admin_app
 
                 return await serve_admin_app(request)
@@ -150,6 +150,7 @@ uploads_static = HeaderInjector(
 app.mount("/static/uploads", uploads_static, name="uploads")
 
 from app.api.health import router as health_router
+
 app.include_router(health_router)
 
 if TESTING:
