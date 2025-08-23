@@ -1,3 +1,4 @@
+import type { ListResponse } from "./types";
 import { api } from "./client";
 
 export interface MenuItem {
@@ -11,17 +12,16 @@ export interface MenuItem {
   divider?: boolean;
 }
 
-export interface MenuResponse {
-  items: MenuItem[];
-}
-
 export async function getAdminMenu(etag?: string) {
-  const res = await api.get<MenuResponse>("/admin/menu", { etag, acceptNotModified: true });
+  const res = await api.get<ListResponse<MenuItem>>(
+    "/admin/menu",
+    { etag, acceptNotModified: true },
+  );
   if (res.status === 304) {
-    return { items: null, etag: etag ?? null, status: 304 };
+    return { items: null, etag: etag ?? null, status: 304 } as const;
   }
   return {
-    items: (res.data?.items || []) as MenuItem[],
+    items: res.data?.items ?? [],
     etag: res.etag ?? null,
     status: res.status,
   };

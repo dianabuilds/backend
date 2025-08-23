@@ -1,11 +1,6 @@
+import type { MetricsSummary } from "../openapi";
+import type { ListResponse } from "./types";
 import { api } from "./client";
-
-export interface MetricsSummary {
-  rps: number;
-  error_rate: number;
-  p95_latency: number;
-  count_429: number;
-}
 
 export interface TimeseriesPoint {
   ts: number;
@@ -31,17 +26,30 @@ export interface TopEndpointItem {
   count: number;
 }
 
-export async function getMetricsSummary(range: "1h" | "24h" = "1h") {
-  const res = await api.get<MetricsSummary>(`/admin/metrics/summary?range=${encodeURIComponent(range)}`);
-  return res.data as MetricsSummary;
+export async function getMetricsSummary(range: "1h" | "24h" = "1h"): Promise<MetricsSummary> {
+  const res = await api.get<MetricsSummary>(
+    `/admin/metrics/summary?range=${encodeURIComponent(range)}`,
+  );
+  return res.data!;
 }
 
-export async function getTimeseries(range: "1h" | "24h" = "1h", step: 60 | 300 = 60) {
-  const res = await api.get<TimeseriesResponse>(`/admin/metrics/timeseries?range=${encodeURIComponent(range)}&step=${step}`);
-  return res.data as TimeseriesResponse;
+export async function getTimeseries(
+  range: "1h" | "24h" = "1h",
+  step: 60 | 300 = 60,
+): Promise<TimeseriesResponse> {
+  const res = await api.get<TimeseriesResponse>(
+    `/admin/metrics/timeseries?range=${encodeURIComponent(range)}&step=${step}`,
+  );
+  return res.data!;
 }
 
-export async function getTopEndpoints(range: "1h" | "24h" = "1h", by: "p95" | "error_rate" | "rps" = "p95", limit = 20) {
-  const res = await api.get<{ items: TopEndpointItem[] }>(`/admin/metrics/endpoints/top?range=${encodeURIComponent(range)}&by=${by}&limit=${limit}`);
-  return (res.data?.items || []) as TopEndpointItem[];
+export async function getTopEndpoints(
+  range: "1h" | "24h" = "1h",
+  by: "p95" | "error_rate" | "rps" = "p95",
+  limit = 20,
+): Promise<TopEndpointItem[]> {
+  const res = await api.get<ListResponse<TopEndpointItem>>(
+    `/admin/metrics/endpoints/top?range=${encodeURIComponent(range)}&by=${by}&limit=${limit}`,
+  );
+  return res.data?.items ?? [];
 }
