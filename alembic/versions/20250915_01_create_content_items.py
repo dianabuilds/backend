@@ -15,10 +15,20 @@ down_revision = "20250901_world_char_ws"
 branch_labels = None
 depends_on = None
 
-content_status = sa.Enum("draft", "in_review", "published", "archived", name="content_status")
+content_status = sa.Enum(
+    "draft",
+    "in_review",
+    "published",
+    "archived",
+    name="content_status",
+    create_type=False,
+)
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    content_status.create(bind, checkfirst=True)
+
     op.create_table(
         "content_items",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
