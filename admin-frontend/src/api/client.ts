@@ -381,3 +381,38 @@ export async function getAdminMenu(): Promise<AdminMenuResponse> {
   }
 }
 
+// API helpers for admin nodes
+export async function listNodes(params: Record<string, unknown> = {}): Promise<any[]> {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) qs.set(key, String(value));
+  }
+  const res = await api.get<any[]>(`/admin/nodes${qs.toString() ? `?${qs.toString()}` : ""}`);
+  return (res.data as any) ?? [];
+}
+
+export async function getNode(id: string): Promise<any> {
+  const res = await api.get(`/admin/nodes/${encodeURIComponent(id)}`);
+  return res.data as any;
+}
+
+export async function createNode(type: string): Promise<any> {
+  const res = await api.post(`/admin/nodes/${encodeURIComponent(type)}`);
+  return res.data as any;
+}
+
+export async function updateNode(id: string, patch: any): Promise<any> {
+  const res = await api.patch(`/admin/nodes/${encodeURIComponent(id)}`, patch);
+  return res.data as any;
+}
+
+export async function publishNode(id: string): Promise<any> {
+  const res = await api.post(`/admin/nodes/${encodeURIComponent(id)}/publish`);
+  return res.data as any;
+}
+
+export async function validateNode(id: string): Promise<any> {
+  const res = await api.post(`/admin/nodes/${encodeURIComponent(id)}/validate`);
+  return res.data as any;
+}
+
