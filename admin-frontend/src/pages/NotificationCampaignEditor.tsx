@@ -13,7 +13,7 @@ export default function NotificationCampaignEditor() {
   const { id } = useParams();
   const { addToast } = useToast();
   const qc = useQueryClient();
-  const { data: campaign } = useQuery({
+  const { data: campaign } = useQuery<DraftCampaign>({
     queryKey: ["draftCampaign", id],
     queryFn: () => getDraftCampaign(id!),
     enabled: !!id,
