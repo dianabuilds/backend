@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { WorkspaceRole } from './WorkspaceRole';
 export type WorkspaceOut = {
     id: string;
     name: string;
@@ -10,5 +11,6 @@ export type WorkspaceOut = {
     settings: Record<string, any>;
     created_at: string;
     updated_at: string;
+    role?: WorkspaceRole;
 };
 

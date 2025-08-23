@@ -47,12 +47,17 @@ async def list_workspaces(
     db: AsyncSession = Depends(get_db),
 ) -> list[WorkspaceOut]:
     stmt = (
-        select(Workspace)
+        select(Workspace, WorkspaceMember.role)
         .join(WorkspaceMember)
         .where(WorkspaceMember.user_id == user.id)
     )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    workspaces: list[WorkspaceOut] = []
+    for ws, role in result.all():
+        data = WorkspaceOut.from_orm(ws)
+        data.role = role  # type: ignore[attr-defined]
+        workspaces.append(data)
+    return workspaces
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceOut, summary="Get workspace")
@@ -129,3 +134,16 @@ async def remove_member(
 ) -> Response:
     await WorkspaceService.remove_member(db, workspace_id, user_id)
     return Response(status_code=204)
+
+
+@router.get(
+    "/{workspace_id}/members",
+    response_model=list[WorkspaceMemberOut],
+    summary="List workspace members",
+)
+async def list_members(
+    workspace_id: UUID,
+    _: WorkspaceMember | None = Depends(require_ws_owner),
+    db: AsyncSession = Depends(get_db),
+) -> list[WorkspaceMemberOut]:
+    return await WorkspaceService.list_members(db, workspace_id)

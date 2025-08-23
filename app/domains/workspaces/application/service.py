@@ -204,3 +204,10 @@ class WorkspaceService:
             raise HTTPException(status_code=404, detail="Member not found")
         await db.delete(member)
         await db.commit()
+
+    @staticmethod
+    async def list_members(db: AsyncSession, workspace_id: UUID) -> list[WorkspaceMember]:
+        res = await db.execute(
+            select(WorkspaceMember).where(WorkspaceMember.workspace_id == workspace_id)
+        )
+        return res.scalars().all()

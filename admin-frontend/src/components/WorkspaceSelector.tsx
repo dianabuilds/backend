@@ -8,6 +8,7 @@ import { useWorkspace } from "../workspace/WorkspaceContext";
 interface Workspace {
   id: string;
   name: string;
+  role?: string;
 }
 
 export default function WorkspaceSelector() {
@@ -16,8 +17,10 @@ export default function WorkspaceSelector() {
   const { data } = useQuery({
     queryKey: ["workspaces"],
     queryFn: async () => {
-      const res = await api.get<{ workspaces: Workspace[] }>("/admin/workspaces");
-      return res.data?.workspaces || [];
+      const res = await api.get<Workspace[] | { workspaces: Workspace[] }>("/admin/workspaces");
+      const payload = res.data as any;
+      if (Array.isArray(payload)) return payload as Workspace[];
+      return (payload?.workspaces as Workspace[] | undefined) || [];
     },
   });
 

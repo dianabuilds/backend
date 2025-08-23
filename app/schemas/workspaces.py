@@ -7,6 +7,12 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 
+class WorkspaceRole(str, Enum):
+    owner = "owner"
+    editor = "editor"
+    viewer = "viewer"
+
+
 class WorkspaceIn(BaseModel):
     name: str
     slug: str | None = None
@@ -21,6 +27,7 @@ class WorkspaceOut(BaseModel):
     settings: dict[str, object] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
+    role: WorkspaceRole | None = None
 
     class Config:
         orm_mode = True
@@ -30,12 +37,6 @@ class WorkspaceUpdate(BaseModel):
     name: str | None = None
     slug: str | None = None
     settings: dict[str, object] | None = None
-
-
-class WorkspaceRole(str, Enum):
-    owner = "owner"
-    editor = "editor"
-    viewer = "viewer"
 
 
 class WorkspaceMemberIn(BaseModel):
