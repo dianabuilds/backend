@@ -1,6 +1,6 @@
 """add workspace role enum and content visibility
 
-Revision ID: 20251101_workspace_role_visibility
+Revision ID: 20251101_ws_role_visibility
 Revises: 20251010_add_media_assets_table
 Create Date: 2025-11-01
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "20251101_workspace_role_visibility"
+revision = "20251101_ws_role_visibility"
 down_revision = "20251010_add_media_assets_table"
 branch_labels = None
 depends_on = None
