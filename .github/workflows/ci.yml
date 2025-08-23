@@ -1,41 +1,5 @@
 name: CI
-name: CI
 
-on:
-  push:
-  pull_request:
-
-jobs:
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          # Если нет requirements.txt, установим базовые зависимости проекта
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          else
-            pip install pytest sqlalchemy requests redis alembic click coverage jinja2 numpy pyyaml
-          fi
-
-      - name: Legacy imports check
-        run: |
-          python scripts/check_no_legacy_imports.py
-
-      - name: Run tests
-        env:
-          PYTHONPATH: .
-        run: |
-          pytest -q
 on:
   pull_request:
     branches: [main, develop]
@@ -89,18 +53,21 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff black mypy pytest pytest-asyncio
+          pip install pre-commit
       - name: Setup Node
         uses: actions/setup-node@60f40a8c9d95b8d985d8b6a59f3691587561bdb3
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: admin-frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: admin-frontend
+        run: npm ci
+      - name: Pre-commit
+        run: pre-commit run --all-files
       - name: Build admin frontend
         working-directory: admin-frontend
-        run: |
-          npm ci
-          npm run build
+        run: npm run build
       - name: Wait for Postgres
         run: |
           for i in {1..30}; do
@@ -121,13 +88,6 @@ jobs:
           EOT
       - name: Run migrations
         run: alembic upgrade head
-      - name: Ruff
-        run: ruff check .
-      - name: Black
-        run: black --check .
-      - name: Mypy
-        run: mypy app
-        continue-on-error: true
       - name: Pytest
         run: pytest -q --junitxml=pytest.xml
       - name: Upload pytest report
