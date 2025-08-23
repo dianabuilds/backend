@@ -33,7 +33,7 @@
   - [ ] Дочистить реэкспорты в app/models: user, node, feedback, transition, node_trace, echo_trace, moderation, moderation_case, quest, quest_version, event_quest, ai_generation/log, premium.
   - [ ] Прогнать codemod на замены импортов, проверить `scripts/check_no_legacy_imports.py` (зелёный).
 - Контракты/OpenAPI/Frontend
-  - [ ] Обновить OpenAPI под доменные роутеры (AI/Quests/Tags/Navigation) и синхронизировать admin-frontend (пути/типы).
+  - [ ] Обновить OpenAPI под доменные роутеры (AI/Quests/Tags/Navigation) и синхронизировать админский SPA (пути/типы).
   - [ ] Smoke: admin секции (AI jobs/logs/paging/cursor, rate limits, settings, stats; tags admin; navigation admin), публичные страницы (nodes/quests/tags).
 - Миграции и качество
   - [ ] Alembic: прогон миграций «с нуля» и из текущего состояния (без конфликтов), индексы для горячих запросов (по плану P2 можно частично сделать уже сейчас).
@@ -43,7 +43,7 @@
 - Все используемые фронтендом ручки подключены через доменные роутеры (прямых legacy-проксей нет).
 - Legacy-реэкспорты моделей в app/models удалены; импорты только доменные/core.
 - `scripts/check_no_legacy_imports.py` — зелёный, дублей роутов нет.
-- OpenAPI соответствует фактическим доменным ручкам; admin-frontend работает на доменных путях.
+- OpenAPI соответствует фактическим доменным ручкам; админский SPA работает на доменных путях.
 - Миграции применяются чисто; тесты зелёные; базовый smoke пройден.
 
 Доменные слои (целевой стиль папок на домен):
