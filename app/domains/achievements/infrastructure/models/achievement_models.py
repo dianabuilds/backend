@@ -3,7 +3,17 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, JSON, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    JSON,
+    String,
+    Text,
+    Integer,
+    Index,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
 
@@ -14,6 +24,7 @@ from app.schemas.content_common import ContentStatus, ContentVisibility
 
 class Achievement(Base):
     __tablename__ = "achievements"
+    __table_args__ = (Index("ix_achievements_workspace_id", "workspace_id"),)
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False)
