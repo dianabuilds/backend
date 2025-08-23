@@ -14,10 +14,12 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaceId, setWorkspaceIdState] = useState<string>(() => {
-    const stored =
-      (typeof localStorage !== "undefined" && localStorage.getItem("workspaceId")) || "";
-    persistWorkspaceId(stored || null);
-    return stored;
+    if (typeof localStorage === "undefined") return "";
+    const stored = localStorage.getItem("workspaceId") || "";
+    const fallback = localStorage.getItem("defaultWorkspaceId") || "";
+    const initial = stored || fallback;
+    persistWorkspaceId(initial || null);
+    return initial;
   });
 
   const setWorkspaceId = (id: string) => {
