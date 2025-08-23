@@ -8790,6 +8790,62 @@
       }
     },
     "/admin/workspaces/{workspace_id}/members": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List workspace members",
+        "operationId": "list_members_admin_workspaces__workspace_id__members_get",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceMemberOut"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "admin"
@@ -20280,6 +20336,13 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "role": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/WorkspaceRole" },
+              { "type": "null" }
+            ],
+            "title": "Role"
           }
         },
         "type": "object",
