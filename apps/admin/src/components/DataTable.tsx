@@ -4,22 +4,24 @@ import Skeleton from "./Skeleton";
 
 type Props<T> = {
   columns: Column<T>[];
-  data: T[];
+  rows: T[];
   emptyText?: string;
   rowKey: (row: T) => string;
   className?: string;
   loading?: boolean;
   skeletonRows?: number;
+  onRowClick?: (row: T) => void;
 };
 
 export default function DataTable<T>({
   columns,
-  data,
+  rows,
   emptyText,
   rowKey,
   className,
   loading = false,
   skeletonRows = 3,
+  onRowClick,
 }: Props<T>) {
   return (
     <div className={className || ""}>
@@ -50,8 +52,13 @@ export default function DataTable<T>({
                     ))}
                   </tr>
                 ))
-              : (data || []).map((row) => (
-                  <tr key={rowKey(row)} className="border-t" role="row">
+              : (rows || []).map((row) => (
+                  <tr
+                    key={rowKey(row)}
+                    className="border-t"
+                    role="row"
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  >
                     {columns.map((c) => (
                       <td key={c.key} className={`px-2 py-1 ${c.className || ""}`}>
                         {c.render ? c.render(row) : c.accessor ? c.accessor(row) : (row as any)[c.key]}
@@ -59,7 +66,7 @@ export default function DataTable<T>({
                     ))}
                   </tr>
                 ))}
-            {!loading && (data || []).length === 0 ? (
+            {!loading && (rows || []).length === 0 ? (
               <tr>
                 <td className="px-2 py-3 text-gray-500" colSpan={columns.length}>
                   {emptyText || "Нет данных"}
