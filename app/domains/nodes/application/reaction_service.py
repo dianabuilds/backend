@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
@@ -25,6 +26,7 @@ class ReactionService:
         reaction: str,
         action: str,
         *,
+        workspace_id: UUID,
         actor_id: str | None = None,
     ) -> dict:
         if reaction not in _ALLOWED_REACTIONS:
@@ -32,11 +34,11 @@ class ReactionService:
         if action not in _ALLOWED_ACTIONS:
             raise HTTPException(status_code=400, detail="Invalid action")
 
-        node = await self._repo.get_by_slug(slug)
+        node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
 
-        node = await self._repo.update_reactions(node, reaction, action)
+        node = await self._repo.update_reactions(node, reaction, action, actor_id)
 
         # Инвалидация компаса (влияние на рекомендации)
         await self._navcache.invalidate_compass_all()

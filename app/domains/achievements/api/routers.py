@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, current_workspace
 from app.core.db.session import get_db
 from app.domains.achievements.application.achievements_service import AchievementsService
 from app.domains.achievements.application.admin_service import AchievementsAdminService
@@ -16,6 +16,7 @@ from app.domains.achievements.infrastructure.repositories.achievements_repositor
     AchievementsRepository,
 )
 from app.domains.users.infrastructure.models.user import User
+from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.achievement import AchievementOut
 from app.schemas.achievement_admin import (
     AchievementAdminOut,
@@ -47,10 +48,11 @@ def _svc(db: AsyncSession) -> AchievementsService:
 
 @user_router.get("", response_model=List[AchievementOut], summary="List achievements")
 async def list_achievements(
+    workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[AchievementOut]:
-    rows = await _svc(db).list(current_user.id)
+    rows = await _svc(db).list(workspace.id, current_user.id)
     items: List[AchievementOut] = []
     for ach, ua in rows:
         items.append(
@@ -69,18 +71,20 @@ async def list_achievements(
 
 @admin_router.get("", response_model=List[AchievementAdminOut], summary="List achievements (admin)")
 async def list_achievements_admin(
+    workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(admin_required),
 ) -> List[AchievementAdminOut]:
-    rows = await _admin_svc(db).list()
+    rows = await _admin_svc(db).list(workspace.id)
     return [AchievementAdminOut.model_validate(r) for r in rows]
 
 
 @admin_router.post("", response_model=AchievementAdminOut, summary="Create achievement")
 async def create_achievement_admin(
     body: AchievementCreateIn,
+    workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(admin_required),
+    current: User = Depends(admin_required),
 ) -> AchievementAdminOut:
     data = {
         "code": body.code.strip(),
@@ -91,7 +95,7 @@ async def create_achievement_admin(
         "condition": body.condition or {},
     }
     try:
-        item = await _admin_svc(db).create(db, data)
+        item = await _admin_svc(db).create(db, workspace.id, data, current.id)
     except ValueError as e:
         if str(e) == "code_conflict":
             raise HTTPException(status_code=409, detail="Code already exists")
@@ -105,12 +109,13 @@ async def create_achievement_admin(
 async def update_achievement_admin(
     achievement_id: UUID,
     body: AchievementUpdateIn,
+    workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(admin_required),
+    current: User = Depends(admin_required),
 ) -> AchievementAdminOut:
     data = body.model_dump(exclude_unset=True)
     try:
-        item = await _admin_svc(db).update(db, achievement_id, data)
+        item = await _admin_svc(db).update(db, workspace.id, achievement_id, data, current.id)
     except ValueError as e:
         if str(e) == "code_conflict":
             raise HTTPException(status_code=409, detail="Code already exists")
@@ -123,10 +128,11 @@ async def update_achievement_admin(
 @admin_router.delete("/{achievement_id}", summary="Delete achievement")
 async def delete_achievement_admin(
     achievement_id: UUID,
+    workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(admin_required),
 ):
-    ok = await _admin_svc(db).delete(db, achievement_id)
+    ok = await _admin_svc(db).delete(db, workspace.id, achievement_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Not found")
     return {"ok": True}
@@ -140,10 +146,13 @@ class UserIdIn(BaseModel):
 async def grant_achievement(
     achievement_id: UUID,
     body: UserIdIn,
+    workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(admin_required),
 ):
-    granted = await _svc(db).grant_manual(db, body.user_id, achievement_id)
+    granted = await _svc(db).grant_manual(
+        db, workspace.id, body.user_id, achievement_id
+    )
     return {"granted": granted}
 
 
@@ -151,10 +160,13 @@ async def grant_achievement(
 async def revoke_achievement(
     achievement_id: UUID,
     body: UserIdIn,
+    workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(admin_required),
 ):
-    revoked = await _svc(db).revoke_manual(db, body.user_id, achievement_id)
+    revoked = await _svc(db).revoke_manual(
+        db, workspace.id, body.user_id, achievement_id
+    )
     return {"revoked": revoked}
 
 

@@ -108,6 +108,8 @@ class NodeOut(NodeBase):
     id: UUID
     slug: str
     author_id: UUID
+    created_by_user_id: UUID | None = None
+    updated_by_user_id: UUID | None = None
     views: int
     reactions: dict[str, int] = Field(default_factory=dict)
     created_at: datetime

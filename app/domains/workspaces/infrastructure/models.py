@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 
 from app.core.db.base import Base
 from app.core.db.adapters import UUID, JSONB
+from app.schemas.workspaces import WorkspaceRole
 
 
 class Workspace(Base):
@@ -29,7 +30,9 @@ class WorkspaceMember(Base):
 
     workspace_id = sa.Column(UUID(), sa.ForeignKey("workspaces.id"), primary_key=True)
     user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), primary_key=True)
-    role = sa.Column(sa.String, nullable=False)
+    role = sa.Column(
+        sa.Enum(WorkspaceRole, name="workspace_role"), nullable=False
+    )
     permissions_json = sa.Column(JSONB, nullable=False, server_default=sa.text("'{}'"))
 
     workspace = relationship("Workspace", back_populates="members")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from app.api.deps import get_current_user, get_db
 from app.domains.navigation.application.echo_service import EchoService
@@ -28,14 +29,15 @@ async def record_visit(
     to_slug: str,
     source: str | None = None,
     channel: str | None = None,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     repo = NodeRepositoryAdapter(db)
-    from_node = await repo.get_by_slug(slug)
+    from_node = await repo.get_by_slug(slug, workspace_id)
     if not from_node:
         raise HTTPException(status_code=404, detail="Node not found")
-    to_node = await repo.get_by_slug(to_slug)
+    to_node = await repo.get_by_slug(to_slug, workspace_id)
     if not to_node:
         raise HTTPException(status_code=404, detail="Target node not found")
     await EchoService().record_echo_trace(db, from_node, to_node, current_user, source=source, channel=channel)
@@ -50,15 +52,16 @@ async def record_visit(
 async def create_transition(
     slug: str,
     payload: NodeTransitionCreate,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     repo = NodeRepositoryAdapter(db)
-    from_node = await repo.get_by_slug(slug)
+    from_node = await repo.get_by_slug(slug, workspace_id)
     if not from_node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(from_node, current_user)
-    to_node = await repo.get_by_slug(payload.to_slug)
+    to_node = await repo.get_by_slug(payload.to_slug, workspace_id)
     if not to_node:
         raise HTTPException(status_code=404, detail="Target node not found")
     t_repo = TransitionRepository(db)

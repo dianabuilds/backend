@@ -245,6 +245,7 @@ async def buy_quest(
         select(QuestPurchase).where(
             QuestPurchase.quest_id == quest.id,
             QuestPurchase.user_id == current_user.id,
+            QuestPurchase.workspace_id == quest.workspace_id,
         )
     )
     purchase = res.scalars().first()
@@ -272,7 +273,11 @@ async def buy_quest(
         extra_meta={"quest_slug": quest.slug},
     )
 
-    purchase = QuestPurchase(quest_id=quest.id, user_id=current_user.id)
+    purchase = QuestPurchase(
+        quest_id=quest.id,
+        user_id=current_user.id,
+        workspace_id=quest.workspace_id,
+    )
     db.add(purchase)
     await db.commit()
     return {"status": "ok", **breakdown}

@@ -223,6 +223,7 @@ async def create_world(
         locale=body.locale,
         description=body.description,
         meta=body.meta,
+        created_by_user_id=current.id,
     )
     db.add(w)
     await db.commit()
@@ -245,6 +246,7 @@ async def update_world(
     w.locale = body.locale
     w.description = body.description
     w.meta = body.meta
+    w.updated_by_user_id = current.id
     await db.commit()
     await db.refresh(w)
     return WorldTemplateOut.model_validate(w)
@@ -292,6 +294,7 @@ async def create_character(
         role=body.role,
         description=body.description,
         traits=body.traits,
+        created_by_user_id=current.id,
     )
     db.add(c)
     await db.commit()
@@ -314,6 +317,7 @@ async def update_character(
     c.role = body.role
     c.description = body.description
     c.traits = body.traits
+    c.updated_by_user_id = current.id
     await db.commit()
     await db.refresh(c)
     return CharacterOut.model_validate(c)

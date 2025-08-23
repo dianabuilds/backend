@@ -16,6 +16,7 @@ from app.schemas.quest import QuestOut, QuestUpdate
 from app.schemas.quest_validation import ValidationReport, AutofixRequest, AutofixReport, PublishRequest
 from app.schemas.content_common import ContentStatus
 from app.security import ADMIN_AUTH_RESPONSES, require_ws_editor, auth_user
+from app.domains.workspaces.application.service import scope_by_workspace
 from app.domains.audit.application.audit_service import audit_log
 from app.domains.quests.validation import validate_quest
 
@@ -45,7 +46,7 @@ async def admin_list_quests(
     _: object = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Quest).where(Quest.workspace_id == workspace_id)
+    stmt = scope_by_workspace(select(Quest), workspace_id)
     if draft is not None:
         if draft:
             stmt = stmt.where(Quest.status == ContentStatus.draft)
@@ -133,6 +134,7 @@ async def patch_quest_meta(
     for k, v in upd.items():
         if hasattr(q, k):
             setattr(q, k, v)
+    q.updated_by_user_id = current.id
     await audit_log(
         db,
         actor_id=str(getattr(current, "id", "")),
@@ -226,6 +228,7 @@ async def post_quest_autofix(
             skipped.append({"type": "ensure_entry", "affected": 0, "note": "entry ok"})
 
     if changed:
+        q.updated_by_user_id = current.id
         await db.commit()
 
     await audit_log(

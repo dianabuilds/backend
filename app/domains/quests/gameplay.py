@@ -25,6 +25,7 @@ async def start_quest(db: AsyncSession, *, quest_id: UUID, user: User) -> QuestP
         select(QuestProgress).where(
             QuestProgress.quest_id == quest.id,
             QuestProgress.user_id == user.id,
+            QuestProgress.workspace_id == quest.workspace_id,
         )
     )
     progress = res.scalars().first()
@@ -35,6 +36,7 @@ async def start_quest(db: AsyncSession, *, quest_id: UUID, user: User) -> QuestP
         progress = QuestProgress(
             quest_id=quest.id,
             user_id=user.id,
+            workspace_id=quest.workspace_id,
             current_node_id=quest.entry_node_id,
         )
         db.add(progress)
@@ -44,10 +46,15 @@ async def start_quest(db: AsyncSession, *, quest_id: UUID, user: User) -> QuestP
 
 
 async def get_progress(db: AsyncSession, *, quest_id: UUID, user: User) -> QuestProgress:
+    qres = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
+    quest = qres.scalars().first()
+    if not quest or quest.is_draft:
+        raise ValueError("Quest not found")
     res = await db.execute(
         select(QuestProgress).where(
             QuestProgress.quest_id == quest_id,
             QuestProgress.user_id == user.id,
+            QuestProgress.workspace_id == quest.workspace_id,
         )
     )
     progress = res.scalars().first()
@@ -74,6 +81,7 @@ async def get_node(db: AsyncSession, *, quest_id: UUID, node_id: UUID, user: Use
         select(QuestProgress).where(
             QuestProgress.quest_id == quest.id,
             QuestProgress.user_id == user.id,
+            QuestProgress.workspace_id == quest.workspace_id,
         )
     )
     progress = res.scalars().first()

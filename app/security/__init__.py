@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
 from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
+from app.schemas.workspaces import WorkspaceRole
 
 from .exceptions import (
     AuthRequiredError,
@@ -111,22 +112,11 @@ async def auth_user(
     return user
 
 
-async def require_ws_editor(
-    workspace_id: UUID,
-    user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
-):
-    from app.domains.workspaces.infrastructure.dao import WorkspaceMemberDAO
-
-    m = await WorkspaceMemberDAO.get(
-        db, workspace_id=workspace_id, user_id=user.id
-    )
-    if not (
-        user.role == "admin" or (m and m.role in ("owner", "editor"))
-    ):
-        raise HTTPException(status_code=403, detail="Forbidden")
-    return m
-
+# Late import to avoid circular dependency with workspace service
+from app.domains.workspaces.application.service import (
+    require_ws_editor,
+    require_ws_owner,
+)
 
 ADMIN_AUTH_RESPONSES = {
     401: {
@@ -181,6 +171,7 @@ __all__ = [
     "require_admin_role",
     "auth_user",
     "require_ws_editor",
+    "require_ws_owner",
     "bearer_scheme",
     "ADMIN_AUTH_RESPONSES",
     "AuthRequiredError",

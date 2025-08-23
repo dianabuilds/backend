@@ -3,7 +3,16 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, JSON, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    JSON,
+    String,
+    Text,
+    Integer,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
 
@@ -16,7 +25,9 @@ class Achievement(Base):
     __tablename__ = "achievements"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False)
+    workspace_id = Column(
+        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
     code = Column(String, unique=True, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
@@ -45,6 +56,7 @@ class UserAchievement(Base):
 
     user_id = Column(UUID(), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     achievement_id = Column(UUID(), ForeignKey("achievements.id", ondelete="CASCADE"), primary_key=True)
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     unlocked_at = Column(DateTime, default=datetime.utcnow)
 
     achievement = relationship("Achievement", back_populates="users")

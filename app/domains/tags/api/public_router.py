@@ -29,7 +29,11 @@ async def list_tags(
     stmt = (
         select(Tag, func.count(ContentTag.content_id).label("count"))
         .join(ContentTag, Tag.id == ContentTag.tag_id, isouter=True)
-        .where(Tag.is_hidden.is_(False))
+        .where(
+            Tag.is_hidden.is_(False),
+            Tag.workspace_id == workspace_id,
+            (ContentTag.workspace_id == workspace_id) | (ContentTag.tag_id.is_(None)),
+        )
     )
     if q:
         pattern = f"%{q}%"
@@ -65,7 +69,7 @@ async def get_tag(
     tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
-    count = await TagDAO.usage_count(db, tag.id)
+    count = await TagDAO.usage_count(db, tag.id, workspace_id)
     return TagOut(slug=tag.slug, name=tag.name, count=count)
 
 
@@ -86,7 +90,7 @@ async def update_tag(
         tag.is_hidden = body.hidden
     db.add(tag)
     await db.flush()
-    count = await TagDAO.usage_count(db, tag.id)
+    count = await TagDAO.usage_count(db, tag.id, workspace_id)
     return TagOut(slug=tag.slug, name=tag.name, count=count)
 
 
@@ -100,6 +104,6 @@ async def delete_tag(
     tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
-    await TagDAO.detach_all(db, tag.id)
+    await TagDAO.detach_all(db, tag.id, workspace_id)
     await TagDAO.delete(db, tag)
     return {"ok": True}

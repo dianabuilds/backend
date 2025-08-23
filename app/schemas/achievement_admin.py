@@ -14,6 +14,8 @@ class AchievementAdminOut(BaseModel):
     icon: str | None = None
     visible: bool
     condition: dict[str, Any]
+    created_by_user_id: UUID | None = None
+    updated_by_user_id: UUID | None = None
 
     model_config = {"from_attributes": True}
 
