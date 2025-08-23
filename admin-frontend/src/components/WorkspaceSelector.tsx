@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Settings } from "lucide-react";
 import { api } from "../api/client";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
@@ -26,17 +28,28 @@ export default function WorkspaceSelector() {
   }, [workspaceId, data, setWorkspaceId]);
 
   return (
-    <select
-      value={workspaceId}
-      onChange={(e) => setWorkspaceId(e.target.value)}
-      className="px-2 py-1 border rounded mr-4 text-sm"
-    >
-      <option value="">Select workspace</option>
-      {data?.map((ws) => (
-        <option key={ws.id} value={ws.id}>
-          {ws.name}
-        </option>
-      ))}
-    </select>
+    <div className="flex items-center gap-2 mr-4">
+      <select
+        value={workspaceId}
+        onChange={(e) => setWorkspaceId(e.target.value)}
+        className="px-2 py-1 border rounded text-sm"
+      >
+        <option value="">Select workspace</option>
+        {data?.map((ws) => (
+          <option key={ws.id} value={ws.id}>
+            {ws.name}
+          </option>
+        ))}
+      </select>
+      {workspaceId && (
+        <Link
+          to={`/workspaces/${workspaceId}`}
+          className="text-gray-600 hover:text-gray-900"
+          title="Workspace settings"
+        >
+          <Settings className="w-4 h-4" />
+        </Link>
+      )}
+    </div>
   );
 }
