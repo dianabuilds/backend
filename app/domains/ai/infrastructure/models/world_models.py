@@ -3,21 +3,14 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import (
-    Column,
-    DateTime,
-    Enum as SAEnum,
-    ForeignKey,
-    Integer,
-    JSON,
-    String,
-    Text,
-)
+from sqlalchemy import JSON, Column, DateTime
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
 
 from app.core.db.base import Base
-from app.schemas.content_common import ContentStatus, ContentVisibility
+from app.schemas.node_common import ContentStatus, ContentVisibility
 
 
 class WorldTemplate(Base):

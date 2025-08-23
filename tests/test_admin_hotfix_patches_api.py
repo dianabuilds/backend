@@ -1,15 +1,15 @@
+from uuid import uuid4
+
 import pytest
 import pytest_asyncio
-from uuid import uuid4
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token
+from app.domains.nodes.dao import NodeItemDAO
+from app.domains.nodes.models import NodeItem, NodePatch
 from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
-from app.domains.content.models import ContentItem, ContentPatch
-from app.domains.content.dao import ContentItemDAO
 from app.schemas.workspaces import WorkspaceRole
-
 from tests.conftest import test_engine
 
 
@@ -18,12 +18,12 @@ async def patch_tables():
     async with test_engine.begin() as conn:
         await conn.run_sync(Workspace.__table__.create)
         await conn.run_sync(WorkspaceMember.__table__.create)
-        await conn.run_sync(ContentItem.__table__.create)
-        await conn.run_sync(ContentPatch.__table__.create)
+        await conn.run_sync(NodeItem.__table__.create)
+        await conn.run_sync(NodePatch.__table__.create)
     yield
     async with test_engine.begin() as conn:
-        await conn.run_sync(ContentPatch.__table__.drop)
-        await conn.run_sync(ContentItem.__table__.drop)
+        await conn.run_sync(NodePatch.__table__.drop)
+        await conn.run_sync(NodeItem.__table__.drop)
         await conn.run_sync(WorkspaceMember.__table__.drop)
         await conn.run_sync(Workspace.__table__.drop)
 
@@ -42,7 +42,7 @@ async def test_admin_content_patch_flow(
             workspace_id=ws.id, user_id=admin_user.id, role=WorkspaceRole.owner
         )
     )
-    item = ContentItem(
+    item = NodeItem(
         workspace_id=ws.id,
         type="article",
         slug="art1",
@@ -54,14 +54,14 @@ async def test_admin_content_patch_flow(
     token = create_access_token(admin_user.id)
     resp = await client.post(
         "/admin/hotfix/patches",
-        json={"content_id": str(item.id), "data": {"title": "Patched"}},
+        json={"node_id": str(item.id), "data": {"title": "Patched"}},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200
     patch_id = resp.json()["id"]
 
-    items = await ContentItemDAO.list_by_type(
-        db_session, workspace_id=ws.id, content_type="article"
+    items = await NodeItemDAO.list_by_type(
+        db_session, workspace_id=ws.id, node_type="article"
     )
     assert items[0].title == "Patched"
 
@@ -71,7 +71,7 @@ async def test_admin_content_patch_flow(
     )
     assert resp.status_code == 200
 
-    items = await ContentItemDAO.list_by_type(
-        db_session, workspace_id=ws.id, content_type="article"
+    items = await NodeItemDAO.list_by_type(
+        db_session, workspace_id=ws.id, node_type="article"
     )
     assert items[0].title == "Original"

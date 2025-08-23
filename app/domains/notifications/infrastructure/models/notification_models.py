@@ -4,11 +4,13 @@ from datetime import datetime
 from enum import Enum
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, Enum as SAEnum, ForeignKey, String, Integer
+from sqlalchemy import Column, DateTime
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, Integer, String
 
-from app.core.db.base import Base
 from app.core.db.adapters import UUID
-from app.schemas.content_common import ContentStatus, ContentVisibility
+from app.core.db.base import Base
+from app.schemas.node_common import ContentStatus, ContentVisibility
 
 
 class NotificationType(str, Enum):
@@ -27,7 +29,9 @@ class Notification(Base):
     message = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     read_at = Column(DateTime, nullable=True)
-    type = Column(SAEnum(NotificationType), nullable=False, default=NotificationType.system)
+    type = Column(
+        SAEnum(NotificationType), nullable=False, default=NotificationType.system
+    )
     status = Column(
         SAEnum(ContentStatus, name="content_status"),
         nullable=False,

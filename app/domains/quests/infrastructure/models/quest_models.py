@@ -1,26 +1,18 @@
 from __future__ import annotations
 
-from datetime import datetime
 import hashlib
+from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-    Enum as SAEnum,
-)
+from sqlalchemy import Boolean, Column, DateTime
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import relationship
 
-from app.core.db.base import Base
 from app.core.db.adapters import ARRAY, JSONB, UUID
-from app.schemas.content_common import ContentStatus, ContentVisibility
+from app.core.db.base import Base
+from app.schemas.node_common import ContentStatus, ContentVisibility
 
 
 def generate_slug() -> str:
@@ -32,8 +24,12 @@ class Quest(Base):
     __tablename__ = "quests"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
-    slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
+    workspace_id = Column(
+        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
+    slug = Column(
+        String, unique=True, index=True, nullable=False, default=generate_slug
+    )
     title = Column(String, nullable=False)
     subtitle = Column(String, nullable=True)
     description = Column(Text, nullable=True)
@@ -69,8 +65,12 @@ class Quest(Base):
     allow_comments = Column(Boolean, default=True)
     is_deleted = Column(Boolean, default=False)
 
-    purchases = relationship("QuestPurchase", back_populates="quest", cascade="all, delete-orphan")
-    progresses = relationship("QuestProgress", back_populates="quest", cascade="all, delete-orphan")
+    purchases = relationship(
+        "QuestPurchase", back_populates="quest", cascade="all, delete-orphan"
+    )
+    progresses = relationship(
+        "QuestProgress", back_populates="quest", cascade="all, delete-orphan"
+    )
 
 
 class QuestPurchase(Base):
@@ -79,7 +79,9 @@ class QuestPurchase(Base):
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("quests.id"), nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    workspace_id = Column(
+        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
     paid_at = Column(DateTime, default=datetime.utcnow)
 
     quest = relationship("Quest", back_populates="purchases")
@@ -94,7 +96,9 @@ class QuestProgress(Base):
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("quests.id"), nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    workspace_id = Column(
+        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
     current_node_id = Column(UUID(), ForeignKey("nodes.id"), nullable=False)
     started_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

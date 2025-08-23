@@ -1,7 +1,7 @@
 import pytest
 
-from app.domains.content.service import validate_transition
-from app.schemas.content_common import ContentStatus
+from app.domains.nodes.service import validate_transition
+from app.schemas.node_common import ContentStatus
 
 
 def test_valid_transitions():

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -9,30 +8,30 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
+from app.domains.audit.application.audit_service import audit_log
+from app.domains.nodes import service as node_service
+from app.domains.nodes.service import validate_transition
+from app.domains.quests.application.editor_service import EditorService
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.quests.infrastructure.models.quest_version_models import (
-    QuestVersion,
-    QuestGraphNode,
     QuestGraphEdge,
+    QuestGraphNode,
+    QuestVersion,
 )
 from app.domains.users.infrastructure.models.user import User
+from app.schemas.node_common import ContentStatus
 from app.schemas.quest_editor import (
+    GraphEdge,
+    GraphNode,
     QuestCreateIn,
     QuestSummary,
-    VersionSummary,
-    VersionGraph,
-    GraphNode,
-    GraphEdge,
-    ValidateResult,
     SimulateIn,
     SimulateResult,
+    ValidateResult,
+    VersionGraph,
+    VersionSummary,
 )
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.domains.quests.application.editor_service import EditorService
-from app.domains.audit.application.audit_service import audit_log
-from app.domains.content import service as content_service
-from app.schemas.content_common import ContentStatus
-from app.domains.content.service import validate_transition
 
 admin_required = require_admin_role({"admin", "moderator", "editor"})
 
@@ -82,7 +81,11 @@ async def get_quest(
     quest = await db.get(Quest, quest_id)
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
-    res = await db.execute(select(QuestVersion).where(QuestVersion.quest_id == quest_id).order_by(QuestVersion.number.desc()))
+    res = await db.execute(
+        select(QuestVersion)
+        .where(QuestVersion.quest_id == quest_id)
+        .order_by(QuestVersion.number.desc())
+    )
     versions = list(res.scalars().all())
     return QuestSummary(
         id=quest.id,
@@ -103,8 +106,20 @@ async def create_draft(
     quest = await db.get(Quest, quest_id)
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
-    max_num = (await db.execute(select(func.max(QuestVersion.number)).where(QuestVersion.quest_id == quest_id))).scalar() or 0
-    v = QuestVersion(quest_id=quest_id, number=int(max_num) + 1, status="draft", created_by=current_user.id, created_at=datetime.utcnow())
+    max_num = (
+        await db.execute(
+            select(func.max(QuestVersion.number)).where(
+                QuestVersion.quest_id == quest_id
+            )
+        )
+    ).scalar() or 0
+    v = QuestVersion(
+        quest_id=quest_id,
+        number=int(max_num) + 1,
+        status="draft",
+        created_by=current_user.id,
+        created_at=datetime.utcnow(),
+    )
     db.add(v)
     await db.flush()
     await audit_log(
@@ -120,7 +135,9 @@ async def create_draft(
     return {"versionId": str(v.id)}
 
 
-@router.get("/versions/{version_id}", response_model=VersionGraph, summary="Get version graph")
+@router.get(
+    "/versions/{version_id}", response_model=VersionGraph, summary="Get version graph"
+)
 async def get_version(
     version_id: UUID,
     _: User = Depends(admin_required),
@@ -129,8 +146,24 @@ async def get_version(
     v = await db.get(QuestVersion, version_id)
     if not v:
         raise HTTPException(status_code=404, detail="Version not found")
-    nodes = list((await db.execute(select(QuestGraphNode).where(QuestGraphNode.version_id == version_id))).scalars().all())
-    edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+    nodes = list(
+        (
+            await db.execute(
+                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    edges = list(
+        (
+            await db.execute(
+                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
     return VersionGraph(
         version=VersionSummary(
             id=v.id,
@@ -140,8 +173,25 @@ async def get_version(
             created_at=v.created_at,
             released_at=v.released_at,
         ),
-        nodes=[GraphNode(key=n.key, title=n.title, type=n.type, content=n.content, rewards=n.rewards) for n in nodes],
-        edges=[GraphEdge(from_node_key=e.from_node_key, to_node_key=e.to_node_key, label=e.label, condition=e.condition) for e in edges],
+        nodes=[
+            GraphNode(
+                key=n.key,
+                title=n.title,
+                type=n.type,
+                content=n.content,
+                rewards=n.rewards,
+            )
+            for n in nodes
+        ],
+        edges=[
+            GraphEdge(
+                from_node_key=e.from_node_key,
+                to_node_key=e.to_node_key,
+                label=e.label,
+                condition=e.condition,
+            )
+            for e in edges
+        ],
     )
 
 
@@ -159,8 +209,12 @@ async def put_graph(
 
     from sqlalchemy import delete
 
-    await db.execute(delete(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))
-    await db.execute(delete(QuestGraphNode).where(QuestGraphNode.version_id == version_id))
+    await db.execute(
+        delete(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+    )
+    await db.execute(
+        delete(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
+    )
     await db.flush()
 
     for n in payload.nodes:
@@ -198,17 +252,54 @@ async def put_graph(
     return {"ok": True}
 
 
-@router.post("/versions/{version_id}/validate", response_model=ValidateResult, summary="Validate graph")
+@router.post(
+    "/versions/{version_id}/validate",
+    response_model=ValidateResult,
+    summary="Validate graph",
+)
 async def validate_version(
     version_id: UUID,
     _: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
-    nodes = list((await db.execute(select(QuestGraphNode).where(QuestGraphNode.version_id == version_id))).scalars().all())
-    edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+    nodes = list(
+        (
+            await db.execute(
+                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    edges = list(
+        (
+            await db.execute(
+                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
     res = validate_graph(
-        [GraphNode(key=n.key, title=n.title, type=n.type, content=n.content, rewards=n.rewards) for n in nodes],
-        [GraphEdge(from_node_key=e.from_node_key, to_node_key=e.to_node_key, label=e.label, condition=e.condition) for e in edges],
+        [
+            GraphNode(
+                key=n.key,
+                title=n.title,
+                type=n.type,
+                content=n.content,
+                rewards=n.rewards,
+            )
+            for n in nodes
+        ],
+        [
+            GraphEdge(
+                from_node_key=e.from_node_key,
+                to_node_key=e.to_node_key,
+                label=e.label,
+                condition=e.condition,
+            )
+            for e in edges
+        ],
     )
     return res
 
@@ -224,19 +315,50 @@ async def autofix_version(
     if not v:
         raise HTTPException(status_code=404, detail="Version not found")
 
-    nodes = list((await db.execute(select(QuestGraphNode).where(QuestGraphNode.version_id == version_id))).scalars().all())
+    nodes = list(
+        (
+            await db.execute(
+                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
     node_keys = {n.key for n in nodes}
-    edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+    edges = list(
+        (
+            await db.execute(
+                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     applied = []
 
     from sqlalchemy import delete
-    invalid_edges = [e.id for e in edges if (e.from_node_key not in node_keys or e.to_node_key not in node_keys)]
+
+    invalid_edges = [
+        e.id
+        for e in edges
+        if (e.from_node_key not in node_keys or e.to_node_key not in node_keys)
+    ]
     if invalid_edges:
-        await db.execute(delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(invalid_edges)))
+        await db.execute(
+            delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(invalid_edges))
+        )
         applied.append({"type": "remove_broken_edges", "affected": len(invalid_edges)})
 
-    edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+    edges = list(
+        (
+            await db.execute(
+                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
     seen = set()
     dup_ids = []
     for e in edges:
@@ -251,13 +373,35 @@ async def autofix_version(
 
     start_key = next((n.key for n in nodes if n.type == "start"), None)
     if start_key:
-        edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+        edges = list(
+            (
+                await db.execute(
+                    select(QuestGraphEdge).where(
+                        QuestGraphEdge.version_id == version_id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
         incoming_to_start = [e.id for e in edges if e.to_node_key == start_key]
         if incoming_to_start:
-            await db.execute(delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(incoming_to_start)))
-            applied.append({"type": "remove_incoming_to_start", "affected": len(incoming_to_start)})
+            await db.execute(
+                delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(incoming_to_start))
+            )
+            applied.append(
+                {"type": "remove_incoming_to_start", "affected": len(incoming_to_start)}
+            )
 
-    edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+    edges = list(
+        (
+            await db.execute(
+                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
     outgoing = {}
     for e in edges:
         outgoing.setdefault(e.from_node_key, 0)
@@ -298,11 +442,44 @@ async def publish_version(
     if v.status != "draft":
         raise HTTPException(status_code=400, detail="Only draft can be published")
 
-    nodes = list((await db.execute(select(QuestGraphNode).where(QuestGraphNode.version_id == version_id))).scalars().all())
-    edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+    nodes = list(
+        (
+            await db.execute(
+                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    edges = list(
+        (
+            await db.execute(
+                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
     res = EditorService().validate_graph(
-        [GraphNode(key=n.key, title=n.title, type=n.type, content=n.content, rewards=n.rewards) for n in nodes],
-        [GraphEdge(from_node_key=e.from_node_key, to_node_key=e.to_node_key, label=e.label, condition=e.condition) for e in edges],
+        [
+            GraphNode(
+                key=n.key,
+                title=n.title,
+                type=n.type,
+                content=n.content,
+                rewards=n.rewards,
+            )
+            for n in nodes
+        ],
+        [
+            GraphEdge(
+                from_node_key=e.from_node_key,
+                to_node_key=e.to_node_key,
+                label=e.label,
+                condition=e.condition,
+            )
+            for e in edges
+        ],
     )
     if not res.ok:
         raise HTTPException(status_code=400, detail="Validation failed")
@@ -330,7 +507,7 @@ async def publish_version(
     )
     await db.commit()
     if q:
-        await content_service.publish_content(q.id, q.slug, current_user.id)
+        await node_service.publish_content(q.id, q.slug, current_user.id)
     return {"ok": True}
 
 
@@ -357,18 +534,55 @@ async def rollback_version(
     return {"ok": True}
 
 
-@router.post("/versions/{version_id}/simulate", response_model=SimulateResult, summary="Simulate run")
+@router.post(
+    "/versions/{version_id}/simulate",
+    response_model=SimulateResult,
+    summary="Simulate run",
+)
 async def simulate_version(
     version_id: UUID,
     payload: SimulateIn,
     _: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
-    nodes = list((await db.execute(select(QuestGraphNode).where(QuestGraphNode.version_id == version_id))).scalars().all())
-    edges = list((await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))).scalars().all())
+    nodes = list(
+        (
+            await db.execute(
+                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    edges = list(
+        (
+            await db.execute(
+                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
     return EditorService().simulate_graph(
-        [GraphNode(key=n.key, title=n.title, type=n.type, content=n.content, rewards=n.rewards) for n in nodes],
-        [GraphEdge(from_node_key=e.from_node_key, to_node_key=e.to_node_key, label=e.label, condition=e.condition) for e in edges],
+        [
+            GraphNode(
+                key=n.key,
+                title=n.title,
+                type=n.type,
+                content=n.content,
+                rewards=n.rewards,
+            )
+            for n in nodes
+        ],
+        [
+            GraphEdge(
+                from_node_key=e.from_node_key,
+                to_node_key=e.to_node_key,
+                label=e.label,
+                condition=e.condition,
+            )
+            for e in edges
+        ],
         payload,
     )
 
