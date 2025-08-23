@@ -18,11 +18,14 @@ class AchievementsRepository(IAchievementsRepository):
         self._db = db
 
     # User achievements
-    async def user_has_achievement(self, user_id: UUID, achievement_id: UUID) -> bool:
+    async def user_has_achievement(
+        self, user_id: UUID, achievement_id: UUID, workspace_id: UUID
+    ) -> bool:
         res = await self._db.execute(
             select(UserAchievement).where(
                 UserAchievement.user_id == user_id,
                 UserAchievement.achievement_id == achievement_id,
+                UserAchievement.workspace_id == workspace_id,
             )
         )
         return res.scalars().first() is not None
@@ -36,14 +39,25 @@ class AchievementsRepository(IAchievementsRepository):
         )
         return res.scalars().first()
 
-    async def add_user_achievement(self, user_id: UUID, achievement_id: UUID) -> None:
-        self._db.add(UserAchievement(user_id=user_id, achievement_id=achievement_id))
+    async def add_user_achievement(
+        self, user_id: UUID, achievement_id: UUID, workspace_id: UUID
+    ) -> None:
+        self._db.add(
+            UserAchievement(
+                user_id=user_id,
+                achievement_id=achievement_id,
+                workspace_id=workspace_id,
+            )
+        )
 
-    async def delete_user_achievement(self, user_id: UUID, achievement_id: UUID) -> bool:
+    async def delete_user_achievement(
+        self, user_id: UUID, achievement_id: UUID, workspace_id: UUID
+    ) -> bool:
         res = await self._db.execute(
             select(UserAchievement).where(
                 UserAchievement.user_id == user_id,
                 UserAchievement.achievement_id == achievement_id,
+                UserAchievement.workspace_id == workspace_id,
             )
         )
         ua = res.scalars().first()

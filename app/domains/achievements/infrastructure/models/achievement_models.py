@@ -12,7 +12,6 @@ from sqlalchemy import (
     String,
     Text,
     Integer,
-    Index,
 )
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
@@ -24,10 +23,11 @@ from app.schemas.content_common import ContentStatus, ContentVisibility
 
 class Achievement(Base):
     __tablename__ = "achievements"
-    __table_args__ = (Index("ix_achievements_workspace_id", "workspace_id"),)
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False)
+    workspace_id = Column(
+        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
     code = Column(String, unique=True, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
@@ -56,6 +56,7 @@ class UserAchievement(Base):
 
     user_id = Column(UUID(), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     achievement_id = Column(UUID(), ForeignKey("achievements.id", ondelete="CASCADE"), primary_key=True)
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     unlocked_at = Column(DateTime, default=datetime.utcnow)
 
     achievement = relationship("Achievement", back_populates="users")

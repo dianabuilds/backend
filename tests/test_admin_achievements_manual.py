@@ -55,6 +55,7 @@ async def test_admin_grant_and_revoke(
         select(UserAchievement).where(
             UserAchievement.user_id == test_user.id,
             UserAchievement.achievement_id == ach.id,
+            UserAchievement.workspace_id == ws.id,
         )
     )
     assert result.scalars().first() is not None
@@ -72,6 +73,7 @@ async def test_admin_grant_and_revoke(
         select(UserAchievement).where(
             UserAchievement.user_id == test_user.id,
             UserAchievement.achievement_id == ach.id,
+            UserAchievement.workspace_id == ws.id,
         )
     )
     assert result.scalars().first() is None

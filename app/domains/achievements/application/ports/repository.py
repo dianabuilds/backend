@@ -8,7 +8,9 @@ from app.domains.achievements.infrastructure.models.achievement_models import Ac
 
 class IAchievementsRepository:
     # User achievements
-    async def user_has_achievement(self, user_id: UUID, achievement_id: UUID) -> bool:  # pragma: no cover
+    async def user_has_achievement(
+        self, user_id: UUID, achievement_id: UUID, workspace_id: UUID
+    ) -> bool:  # pragma: no cover
         ...
 
     async def get_achievement(
@@ -16,10 +18,14 @@ class IAchievementsRepository:
     ) -> Optional[Achievement]:  # pragma: no cover
         ...
 
-    async def add_user_achievement(self, user_id: UUID, achievement_id: UUID) -> None:  # pragma: no cover
+    async def add_user_achievement(
+        self, user_id: UUID, achievement_id: UUID, workspace_id: UUID
+    ) -> None:  # pragma: no cover
         ...
 
-    async def delete_user_achievement(self, user_id: UUID, achievement_id: UUID) -> bool:  # pragma: no cover
+    async def delete_user_achievement(
+        self, user_id: UUID, achievement_id: UUID, workspace_id: UUID
+    ) -> bool:  # pragma: no cover
         ...
 
     async def list_user_achievements(
