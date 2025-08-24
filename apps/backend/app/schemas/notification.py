@@ -20,5 +20,6 @@ class NotificationOut(BaseModel):
     created_at: datetime
     read_at: datetime | None
     type: NotificationType
+    is_preview: bool
 
     model_config = {"from_attributes": True}

@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, String, DateTime, Integer, Enum as SAEnum, ForeignKey
+from sqlalchemy import Column, String, DateTime, Integer, Enum as SAEnum, ForeignKey, Boolean
 
 from .adapters import UUID as GUID, JSONB
 from . import Base
@@ -28,3 +28,4 @@ class OutboxEvent(Base):
     next_retry_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     workspace_id = Column(GUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    is_preview = Column(Boolean, nullable=False, default=False, server_default="false", index=True)

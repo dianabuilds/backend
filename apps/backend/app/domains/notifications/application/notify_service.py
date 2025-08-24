@@ -29,17 +29,18 @@ class NotifyService:
         type: Any,
         preview: PreviewContext | None = None,
     ) -> dict[str, Any]:
-        # Репозиторий создаёт запись и коммитит (сохранено поведение старой реализации)
+        is_shadow = bool(preview and preview.mode == "shadow")
         dto = await self._repo.create_and_commit(
             workspace_id=workspace_id,
             user_id=user_id,
             title=title,
             message=message,
             type=type,
+            is_preview=is_shadow,
         )
-        # Пушим клиенту; сбои доставки не прерывают создание
-        try:
-            await self._pusher.send(user_id, dto)
-        except Exception:
-            pass
+        if not is_shadow:
+            try:
+                await self._pusher.send(user_id, dto)
+            except Exception:
+                pass
         return dto

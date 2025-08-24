@@ -10,6 +10,7 @@ from app.domains.notifications.application.ports.notifications import (
     INotificationPort,
 )
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
+from app.core.preview import PreviewContext
 
 from .dao import NodePatchDAO
 
@@ -37,6 +38,7 @@ async def publish_content(
     *,
     workspace_id: UUID,
     notifier: INotificationPort | None = None,
+    preview: PreviewContext | None = None,
 ) -> None:
     """Publish node and emit domain event."""
     from app.domains.system.events import NodePublished, get_event_bus
@@ -54,6 +56,7 @@ async def publish_content(
                 workspace_id=workspace_id,
                 title="Content published",
                 message=slug,
+                preview=preview,
             )
         except Exception:
             pass

@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.outbox_models import OutboxEvent, OutboxStatus
+from app.core.preview import PreviewContext
 
 
 async def emit(
@@ -15,6 +16,7 @@ async def emit(
     payload: Dict[str, Any],
     workspace_id: UUID,
     dedup_key: Optional[str] = None,
+    preview: PreviewContext | None = None,
 ) -> OutboxEvent:
     """Insert an event into the transactional outbox.
 
@@ -30,6 +32,7 @@ async def emit(
         attempts=0,
         next_retry_at=datetime.utcnow(),
         workspace_id=workspace_id,
+        is_preview=bool(preview and preview.mode == "shadow"),
     )
     db.add(event)
     await db.flush()

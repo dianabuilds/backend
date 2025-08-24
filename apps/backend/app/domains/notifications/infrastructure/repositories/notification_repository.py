@@ -22,6 +22,7 @@ class NotificationRepository(INotificationRepository):
         title: str,
         message: str,
         type: Any,
+        is_preview: bool = False,
     ) -> Dict[str, Any]:
         notif = Notification(
             workspace_id=workspace_id,
@@ -29,6 +30,7 @@ class NotificationRepository(INotificationRepository):
             title=title,
             message=message,
             type=type,
+            is_preview=is_preview,
         )
         self._db.add(notif)
         await self._db.commit()

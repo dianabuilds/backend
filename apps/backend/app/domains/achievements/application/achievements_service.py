@@ -94,6 +94,7 @@ class AchievementsService:
         payload = payload or {}
 
         dry_run = preview and preview.mode == "dry_run"
+        shadow = preview and preview.mode == "shadow"
 
         counter = await db.get(
             UserEventCounter,
@@ -161,6 +162,7 @@ class AchievementsService:
                 workspace_id=workspace_id,
                 title=ach.title or ach.code,
                 message=ach.title or ach.code,
+                is_preview=bool(shadow),
             )
             db.add(note)
             unlocked.append(ach)
