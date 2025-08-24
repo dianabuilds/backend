@@ -1,6 +1,8 @@
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
@@ -22,6 +24,11 @@ router = APIRouter(
 )
 
 navcache = NavigationCacheService(CoreCacheAdapter())
+
+
+class PublishIn(BaseModel):
+    access: Literal["everyone", "premium_only", "early_access"] = "everyone"
+    cover: str | None = None
 
 
 def _serialize(item: NodeItem) -> dict:
@@ -111,6 +118,7 @@ async def publish_node(
     node_id: UUID,
     workspace_id: UUID,
     request: Request,
+    payload: PublishIn | None = None,
     _: object = Depends(require_ws_editor),  # noqa: B008
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
@@ -121,6 +129,8 @@ async def publish_node(
         node_type,
         node_id,
         actor_id=current_user.id,
+        access=(payload.access if payload else "everyone"),
+        cover=(payload.cover if payload else None),
         request=request,
     )
     return _serialize(item)
