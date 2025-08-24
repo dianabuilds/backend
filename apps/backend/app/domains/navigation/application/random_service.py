@@ -35,7 +35,7 @@ class RandomService:
         if tag_whitelist:
             whitelist = set(tag_whitelist)
             nodes = [n for n in nodes if {t.slug for t in n.tags} & whitelist]
-        nodes = [n for n in nodes if await has_access_async(n, user)]
+        nodes = [n for n in nodes if await has_access_async(n, user, preview)]
         if not nodes:
             return None
         return random.choice(nodes)

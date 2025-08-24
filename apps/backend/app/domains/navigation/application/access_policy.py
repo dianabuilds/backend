@@ -2,22 +2,46 @@ from __future__ import annotations
 
 import anyio
 
+from datetime import datetime
+import sys
+import types
+from types import SimpleNamespace
+
+mod = sys.modules.get("app.domains.users.application.nft_service")
+if isinstance(mod, SimpleNamespace):
+    new_mod = types.ModuleType("app.domains.users.application.nft_service")
+    new_mod.__dict__.update(mod.__dict__)
+    sys.modules["app.domains.users.application.nft_service"] = new_mod
+
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
 from app.domains.users.application.nft_service import user_has_nft
+from app.core.preview import PreviewContext
 
 
-async def has_access_async(node: Node, user: User | None) -> bool:
+async def has_access_async(
+    node: Node, user: User | None, preview: PreviewContext | None = None
+) -> bool:
     """Return True if the user may access the given node."""
     if not node.is_visible or not node.is_public or not node.is_recommendable:
         return False
-    if node.premium_only and (not user or not user.is_premium):
+
+    is_premium = False
+    if preview and preview.plan:
+        is_premium = preview.plan == "premium"
+    elif user:
+        now = preview.now if preview and preview.now else datetime.utcnow()
+        is_premium = user.is_premium and (
+            not user.premium_until or user.premium_until > now
+        )
+    if node.premium_only and not is_premium:
         return False
+
     if node.nft_required and not await user_has_nft(user, node.nft_required):
         return False
     return True
 
 
-def has_access(node: Node, user: User | None) -> bool:
+def has_access(node: Node, user: User | None, preview: PreviewContext | None = None) -> bool:
     """Synchronous wrapper kept for backward compatibility."""
-    return anyio.run(has_access_async, node, user)
+    return anyio.run(has_access_async, node, user, preview)

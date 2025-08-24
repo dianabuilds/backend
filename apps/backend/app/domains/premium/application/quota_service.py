@@ -61,6 +61,8 @@ class QuotaService:
         idempotency_token: str | None = None,
         workspace_id: str | None = None,
     ) -> dict[str, Any]:
+        if preview and preview.plan:
+            plan = preview.plan
         plan = plan or "free"
         plan_conf = self.plans.get(plan, {})
         grace = float(plan_conf.get("__grace__", 0))
@@ -77,7 +79,7 @@ class QuotaService:
                 "overage": False,
             }
 
-        now = datetime.now(tz=UTC)
+        now = preview.now.astimezone(UTC) if preview and preview.now else datetime.now(tz=UTC)
         if scope == "day":
             period = now.strftime("%Y%m%d")
             reset_at = now.replace(

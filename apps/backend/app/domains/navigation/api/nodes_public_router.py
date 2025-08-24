@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import get_current_user_optional
+from app.api.deps import get_current_user_optional, get_preview_context
 from app.core.db.session import get_db
+from app.core.preview import PreviewContext
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
 from app.domains.navigation.application.navigation_service import NavigationService
@@ -20,12 +21,13 @@ async def get_next_nodes(
     slug: str,
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
+    preview: PreviewContext = Depends(get_preview_context),
 ):
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
     if not node or not node.is_visible:
         raise HTTPException(status_code=404, detail="Node not found")
-    return await NavigationService().get_navigation(db, node, user)
+    return await NavigationService().get_navigation(db, node, user, preview)
 
 
 @router.get("/{slug}/next_modes", summary="Get next modes options")

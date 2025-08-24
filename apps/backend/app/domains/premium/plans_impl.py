@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.domains.premium.infrastructure.models.premium_models import SubscriptionPlan, UserSubscription
+from app.core.preview import PreviewContext
 
 
 async def get_active_plans(db: AsyncSession) -> List[SubscriptionPlan]:
@@ -21,10 +22,16 @@ async def get_plan_by_slug(db: AsyncSession, slug: str) -> Optional[Subscription
     return res.scalars().first()
 
 
-async def get_effective_plan_slug(db: AsyncSession, user_id: str | None) -> str:
+async def get_effective_plan_slug(
+    db: AsyncSession, user_id: str | None, *, preview: PreviewContext | None = None
+) -> str:
     if not user_id:
         return "free"
-    now = datetime.now(tz=timezone.utc)
+    now = (
+        preview.now.astimezone(timezone.utc)
+        if preview and preview.now
+        else datetime.now(tz=timezone.utc)
+    )
     res = await db.execute(
         select(UserSubscription, SubscriptionPlan)
         .join(SubscriptionPlan, UserSubscription.plan_id == SubscriptionPlan.id)

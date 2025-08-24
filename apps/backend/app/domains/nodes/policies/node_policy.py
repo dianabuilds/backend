@@ -3,19 +3,23 @@ from __future__ import annotations
 from fastapi import HTTPException, status
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
+from app.core.preview import PreviewContext
 
 
 class NodePolicy:
     """Authorization rules for Node operations."""
 
     @staticmethod
-    def ensure_can_view(node: Node, user: User) -> None:
+    def ensure_can_view(
+        node: Node, user: User, preview: PreviewContext | None = None
+    ) -> None:
         """Allow viewing if node is public or user is owner/mod/admin."""
+        role = preview.role if preview and preview.role else user.role
         if node.is_public and node.is_visible:
             return
         if node.author_id == user.id:
             return
-        if user.role in {"moderator", "admin"}:
+        if role in {"moderator", "admin"}:
             return
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -23,9 +27,12 @@ class NodePolicy:
         )
 
     @staticmethod
-    def ensure_can_edit(node: Node, user: User) -> None:
+    def ensure_can_edit(
+        node: Node, user: User, preview: PreviewContext | None = None
+    ) -> None:
         """Allow editing for owner or moderator/admin."""
-        if node.author_id == user.id or user.role in {"moderator", "admin"}:
+        role = preview.role if preview and preview.role else user.role
+        if node.author_id == user.id or role in {"moderator", "admin"}:
             return
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

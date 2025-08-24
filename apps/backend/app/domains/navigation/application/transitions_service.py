@@ -7,8 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.deps.guards import check_transition
+from app.core.preview import PreviewContext
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType
+from app.domains.navigation.infrastructure.models.transition_models import (
+    NodeTransition,
+    NodeTransitionType,
+)
 from app.domains.users.infrastructure.models.user import User
 
 
@@ -20,6 +24,7 @@ class TransitionsService:
         user: User,
         workspace_id: UUID,
         transition_type: Optional[NodeTransitionType] = None,
+        preview: PreviewContext | None = None,
     ) -> List[NodeTransition]:
         query = (
             select(NodeTransition)
@@ -35,6 +40,6 @@ class TransitionsService:
         transitions: Iterable[NodeTransition] = result.scalars().all()
         allowed: List[NodeTransition] = []
         for t in transitions:
-            if check_transition(t, user):
+            if check_transition(t, user, preview):
                 allowed.append(t)
         return allowed
