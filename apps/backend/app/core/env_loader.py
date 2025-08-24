@@ -93,20 +93,22 @@ def load_dotenv(path: Optional[str | Path] = None, override: bool = False) -> Op
         if p.exists():
             candidates.append(p)
     else:
-        # Текущая директория выполнения
-        candidates.append(Path.cwd() / ".env")
-        # Корень проекта (на 2 уровня выше этого файла — app/core/ -> /)
-        try:
-            candidates.append(Path(__file__).resolve().parents[2] / ".env")
-        except IndexError:
-            pass
-        # Папка приложения
-        candidates.append(Path(__file__).resolve().parents[1] / ".env")
+        # Текущая директория выполнения и локальный файл
+        cwd = Path.cwd()
+        candidates.append(cwd / ".env")
+        candidates.append(cwd / ".env.local")
 
-        # Локальные варианты, если есть
-        candidates.append(Path.cwd() / ".env.local")
+        # Ищем .env в родительских директориях текущего файла
+        file_path = Path(__file__).resolve()
+        for parent in file_path.parents:
+            candidates.append(parent / ".env")
+            candidates.append(parent / ".env.local")
 
+    seen: set[Path] = set()
     for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
         if candidate.exists() and _load_file(candidate, override=override):
             # После успешной загрузки нормализуем значения, которые должны быть JSON
             _normalize_env_for_pydantic_json()
