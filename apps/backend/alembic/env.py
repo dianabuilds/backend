@@ -1,21 +1,34 @@
+import sys
 from logging.config import fileConfig
 from pathlib import Path
-import sys
+
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
 
 config = context.config
 
 # Ensure backend package is on sys.path so we can import application modules
-sys.path.insert(0, str(Path(config.config_file_name).resolve().parent / config.get_main_option("prepend_sys_path")))
+sys.path.insert(
+    0,
+    str(
+        Path(config.config_file_name).resolve().parent
+        / config.get_main_option("prepend_sys_path")
+    ),
+)
 
 fileConfig(config.config_file_name)
 
-from app.core.config import settings
-from app.core.db.base import Base
+from app.core.env_loader import load_dotenv  # noqa: E402
+
+# Load environment variables from .env before importing settings
+load_dotenv()
+
+from app.core.config import settings  # noqa: E402
+from app.core.db.base import Base  # noqa: E402
 
 target_metadata = Base.metadata
+
 
 def run_migrations_offline():
     url = settings.database_url.replace("+asyncpg", "")
