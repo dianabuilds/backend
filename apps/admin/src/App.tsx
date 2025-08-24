@@ -39,6 +39,7 @@ import Transitions from "./pages/Transitions";
 import Users from "./pages/Users";
 import Workspaces from "./pages/Workspaces";
 import WorkspaceSettings from "./pages/WorkspaceSettings";
+import ValidationReport from "./pages/ValidationReport";
 import { WorkspaceProvider } from "./workspace/WorkspaceContext";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
 const Worlds = lazy(() => import("./pages/Worlds"));
@@ -129,6 +130,10 @@ export default function App() {
                       <Route
                         path="quests/version/:id"
                         element={<QuestVersionEditor />}
+                      />
+                      <Route
+                        path="nodes/:type/:id/validate"
+                        element={<ValidationReport />}
                       />
                       <Route path="nodes/:id" element={<NodeEditor />} />
                       <Route

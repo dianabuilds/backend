@@ -18,6 +18,16 @@ export async function saveAIPresets(
   return res.data ?? {};
 }
 
+export async function validateAIPresets(
+  workspaceId: string,
+  presets: Record<string, any>,
+): Promise<void> {
+  await api.post(
+    `/admin/workspaces/${workspaceId}/settings/ai-presets/validate`,
+    presets,
+  );
+}
+
 export async function getNotificationRules(
   workspaceId: string,
 ): Promise<Record<string, any>> {
@@ -38,6 +48,16 @@ export async function saveNotificationRules(
   return res.data ?? {};
 }
 
+export async function validateNotificationRules(
+  workspaceId: string,
+  rules: Record<string, any>,
+): Promise<void> {
+  await api.post(
+    `/admin/workspaces/${workspaceId}/settings/notifications/validate`,
+    rules,
+  );
+}
+
 export async function getLimits(
   workspaceId: string,
 ): Promise<Record<string, number>> {
@@ -56,5 +76,15 @@ export async function saveLimits(
     limits,
   );
   return res.data ?? {};
+}
+
+export async function validateLimits(
+  workspaceId: string,
+  limits: Record<string, number>,
+): Promise<void> {
+  await api.post(
+    `/admin/workspaces/${workspaceId}/settings/limits/validate`,
+    limits,
+  );
 }
 
