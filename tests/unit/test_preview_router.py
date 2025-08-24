@@ -9,6 +9,7 @@ from typing import Optional
 import random
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -149,5 +150,33 @@ def test_read_only_renders_route_without_transition(monkeypatch):
             svc = DummyNavigationService.last_instance
             assert svc is not None
             assert svc._router.history == []
+
+    asyncio.run(_run())
+
+
+def test_preview_token_workspace_validation(monkeypatch):
+    async def _run():
+        monkeypatch.setattr(preview_router, "NavigationService", DummyNavigationService)
+
+        engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+        async with async_session() as session:
+            user = User(id=uuid.uuid4())
+            ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
+            node = Node(workspace_id=ws.id, slug="start", content={}, author_id=user.id)
+            session.add_all([user, ws, node])
+            await session.commit()
+
+            payload = SimulateRequest(workspace_id=ws.id, start="start")
+            req = SimpleNamespace(state=SimpleNamespace(preview_token={"workspace_id": str(ws.id)}))
+            res = await simulate_transitions(payload, session, req)
+            assert res["next"] in {"n1", "n2"}
+
+            bad_req = SimpleNamespace(state=SimpleNamespace(preview_token={"workspace_id": str(uuid.uuid4())}))
+            with pytest.raises(HTTPException):
+                await simulate_transitions(payload, session, bad_req)
 
     asyncio.run(_run())

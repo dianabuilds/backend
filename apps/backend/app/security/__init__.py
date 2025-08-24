@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Set
 from uuid import UUID
 
@@ -66,6 +66,37 @@ async def get_current_user(token: str, db: AsyncSession) -> User:
     return user
 
 
+def create_preview_token(
+    preview_session_id: str,
+    workspace_id: str,
+    ttl: int | None = None,
+) -> str:
+    payload = {
+        "preview_session_id": preview_session_id,
+        "workspace_id": workspace_id,
+        "iat": datetime.utcnow(),
+        "exp": datetime.utcnow() + timedelta(seconds=ttl or settings.jwt.expiration),
+    }
+    return jwt.encode(payload, settings.jwt.secret, algorithm=settings.jwt.algorithm)
+
+
+def verify_preview_token(token: str) -> dict[str, Any]:
+    try:
+        data = jwt.decode(
+            token,
+            settings.jwt.secret,
+            algorithms=[settings.jwt.algorithm],
+            leeway=settings.jwt.leeway,
+        )
+    except jwt.ExpiredSignatureError as exc:
+        raise TokenExpiredError() from exc
+    except jwt.PyJWTError as exc:
+        raise InvalidTokenError() from exc
+    if "preview_session_id" not in data or "workspace_id" not in data:
+        raise InvalidTokenError()
+    return data
+
+
 def require_admin_role(allowed_roles: Set[str] | None = None):
     allowed = allowed_roles or set(settings.security.admin_roles)
 
@@ -89,6 +120,24 @@ def require_admin_role(allowed_roles: Set[str] | None = None):
             raise ForbiddenError(user_id=str(user.id), role=user.role)
         request.state.user_id = str(user.id)
         return user
+
+    return dependency
+
+
+def require_admin_or_preview_token(allowed_roles: Set[str] | None = None):
+    admin_dep = require_admin_role(allowed_roles)
+
+    async def dependency(
+        request: Request,
+        credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+        db: AsyncSession = Depends(get_db),
+    ):
+        token = request.query_params.get("token") or request.headers.get("X-Preview-Token")
+        if token:
+            data = verify_preview_token(token)
+            request.state.preview_token = data
+            return None
+        return await admin_dep(request, credentials, db)
 
     return dependency
 
@@ -171,6 +220,9 @@ __all__ = [
     "verify_jwt",
     "get_current_user",
     "require_admin_role",
+    "create_preview_token",
+    "verify_preview_token",
+    "require_admin_or_preview_token",
     "auth_user",
     "require_ws_editor",
     "require_ws_owner",

@@ -11,6 +11,10 @@ let accessTokenMem: string | null =
 let workspaceIdMem: string | null =
   typeof localStorage !== "undefined" ? localStorage.getItem("workspaceId") : null;
 
+// Токен превью-сессии для доступа без авторизации
+let previewTokenMem: string | null =
+  typeof sessionStorage !== "undefined" ? sessionStorage.getItem("previewToken") : null;
+
 export function setCsrfToken(token: string | null) {
   csrfTokenMem = token || null;
   if (typeof sessionStorage !== "undefined") {
@@ -32,6 +36,14 @@ export function setWorkspaceId(id: string | null) {
   if (typeof localStorage !== "undefined") {
     if (id) localStorage.setItem("workspaceId", id);
     else localStorage.removeItem("workspaceId");
+  }
+}
+
+export function setPreviewToken(token: string | null) {
+  previewTokenMem = token || null;
+  if (typeof sessionStorage !== "undefined") {
+    if (token) sessionStorage.setItem("previewToken", token);
+    else sessionStorage.removeItem("previewToken");
   }
 }
 
@@ -120,6 +132,10 @@ export async function apiFetch(
     if (at && (!isSafeMethod || !hasCookieAccess)) {
       headers["Authorization"] = `Bearer ${at}`;
     }
+  }
+
+  if (previewTokenMem) {
+    headers["X-Preview-Token"] = previewTokenMem;
   }
 
   // Формируем конечный URL:
