@@ -306,9 +306,13 @@ class NodeService:
         return item
 
     async def validate(
-        self, node_type: str | NodeType, node_id: UUID
+        self,
+        workspace_id: UUID,
+        node_type: str | NodeType,
+        node_id: UUID,
     ) -> Any:  # pragma: no cover - thin wrapper
         node_type = self._normalize_type(node_type)
+        await self.get(workspace_id, node_type, node_id)
         report = await run_validators(node_type, node_id, self._db)
         await NodePatchService.record(
             self._db,
