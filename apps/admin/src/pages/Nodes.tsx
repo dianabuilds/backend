@@ -17,6 +17,7 @@ type NodeItem = {
   is_recommendable: boolean;
   created_at?: string;
   updated_at?: string;
+  type?: string;
   [k: string]: any;
 };
 
@@ -53,6 +54,7 @@ function normalizeNode(raw: any): NodeItem {
           : true,
     created_at: n.created_at ?? n.createdAt ?? undefined,
     updated_at: n.updated_at ?? n.updatedAt ?? undefined,
+    type: n.type ?? n.node_type ?? undefined,
   };
 }
 
@@ -93,7 +95,11 @@ type ChangeSet = Partial<
   >
 >;
 
-export default function Nodes() {
+interface NodesProps {
+  initialType?: string;
+}
+
+export default function Nodes({ initialType = "" }: NodesProps = {}) {
   const { addToast } = useToast();
 
   // Пагинация/поиск
@@ -101,6 +107,7 @@ export default function Nodes() {
   const [visibility, setVisibility] = useState<"all" | "visible" | "hidden">(
     "all",
   );
+  const [nodeType, setNodeType] = useState(initialType);
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(20);
 
@@ -267,6 +274,7 @@ export default function Nodes() {
         offset: String(pageIndex * limit),
       };
       if (q) params.q = q;
+      if (nodeType) params.node_type = nodeType;
       if (visibility !== "all")
         params.visible = visibility === "visible" ? "true" : "false";
       const qs = new URLSearchParams(params).toString();
@@ -518,6 +526,16 @@ export default function Nodes() {
             placeholder="Search by slug..."
             className="border rounded px-2 py-1"
           />
+          <input
+            value={nodeType}
+            onChange={(e) => {
+              setNodeType(e.target.value);
+              setPage(0);
+              setTimeout(() => load(0));
+            }}
+            placeholder="node type"
+            className="border rounded px-2 py-1"
+          />
           <select
             className="border rounded px-2 py-1"
             value={visibility}
@@ -698,25 +716,43 @@ export default function Nodes() {
               onClick={() => {
                 setItems(
                   items.map((n) =>
-                    selected.has(n.id)
-                      ? { ...n, premium_only: !n.premium_only }
-                      : n,
+                    selected.has(n.id) ? { ...n, premium_only: true } : n,
                   ),
                 );
                 setPending((p) => {
                   const m = new Map(p);
                   Array.from(selected).forEach((id) => {
                     const cs = { ...(m.get(id) || {}) };
-                    cs.premium_only = !(
-                      baseline.get(id)?.premium_only ?? false
-                    );
+                    cs.premium_only = true;
                     m.set(id, cs);
                   });
                   return m;
                 });
               }}
             >
-              Toggle premium
+              Premium
+            </button>
+            <button
+              type="button"
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                setItems(
+                  items.map((n) =>
+                    selected.has(n.id) ? { ...n, premium_only: false } : n,
+                  ),
+                );
+                setPending((p) => {
+                  const m = new Map(p);
+                  Array.from(selected).forEach((id) => {
+                    const cs = { ...(m.get(id) || {}) };
+                    cs.premium_only = false;
+                    m.set(id, cs);
+                  });
+                  return m;
+                });
+              }}
+            >
+              Free
             </button>
             <button
               type="button"
