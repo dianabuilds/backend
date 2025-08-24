@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.config import settings
+from app.core.preview import PreviewContext
 from app.domains.ai.application.embedding_service import (
     cosine_similarity,
     update_node_embedding,
@@ -31,7 +32,12 @@ class CompassService:
 
     @workspace_limit("compass_calls", scope="day", amount=1)
     async def get_compass_nodes(
-        self, db: AsyncSession, node: Node, user: User | None, limit: int = 5
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: User | None,
+        limit: int = 5,
+        preview: PreviewContext | None = None,
     ) -> list[Node]:
         if not node.is_recommendable:
             return []

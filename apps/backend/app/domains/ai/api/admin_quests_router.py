@@ -1,32 +1,44 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 # Этот модуль ранее пытался переимпортировать несуществующий legacy-роутер,
 # из-за чего импорт падал и все админские эндпоинты для AI-квестов возвращали
 # 404.  Удаляем лишний импорт и используем собственный роутер ниже.
-from typing import Any, Dict, List, Optional
+from typing import Any, List
 from uuid import UUID, uuid4
-from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func, update, delete
 
-from app.api.deps import admin_required
+from app.api.deps import admin_required, get_preview_context
 from app.core.db.session import get_db
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-
-from app.domains.ai.schemas.ai_quests import GenerateQuestIn, GenerationEnqueued, GenerationJobOut, TickIn
-from app.domains.ai.schemas.worlds import WorldTemplateIn, WorldTemplateOut, CharacterIn, CharacterOut
-from app.domains.ai.schemas.ai_settings import AISettingsOut, AISettingsIn
-
+from app.core.preview import PreviewContext
+from app.domains.ai.infrastructure.models.ai_settings import AISettings
+from app.domains.ai.infrastructure.models.generation_models import (
+    GenerationJob,
+    JobStatus,
+)
+from app.domains.ai.infrastructure.models.world_models import Character
+from app.domains.ai.infrastructure.models.world_models import WorldTemplate as World
+from app.domains.ai.schemas.ai_quests import (
+    GenerateQuestIn,
+    GenerationEnqueued,
+    GenerationJobOut,
+    TickIn,
+)
+from app.domains.ai.schemas.ai_settings import AISettingsIn, AISettingsOut
+from app.domains.ai.schemas.worlds import (
+    CharacterIn,
+    CharacterOut,
+    WorldTemplateIn,
+    WorldTemplateOut,
+)
 from app.domains.ai.services.generation import enqueue_generation_job
-
-from app.domains.ai.infrastructure.models.generation_models import GenerationJob, JobStatus
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.users.infrastructure.models.user import User
-from app.domains.ai.infrastructure.models.world_models import WorldTemplate as World, Character
-from app.domains.ai.infrastructure.models.ai_settings import AISettings
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required_dep = require_admin_role({"admin", "moderator"})
 
@@ -48,15 +60,22 @@ async def list_world_templates(
     return [{"id": str(w.id), "title": w.title, "locale": w.locale} for w in worlds]
 
 
-@router.post("/generate", response_model=GenerationEnqueued, summary="Enqueue AI quest generation")
+@router.post(
+    "/generate",
+    response_model=GenerationEnqueued,
+    summary="Enqueue AI quest generation",
+)
 async def generate_ai_quest(
     body: GenerateQuestIn,
     db: AsyncSession = Depends(get_db),
-    current = Depends(admin_required),
+    current=Depends(admin_required),
     reuse: bool = True,
+    preview: PreviewContext = Depends(get_preview_context),
 ) -> GenerationEnqueued:
     params = {
-        "world_template_id": str(body.world_template_id) if body.world_template_id else None,
+        "world_template_id": (
+            str(body.world_template_id) if body.world_template_id else None
+        ),
         "structure": body.structure,
         "length": body.length,
         "tone": body.tone,
@@ -77,17 +96,22 @@ async def generate_ai_quest(
         provider=provider,
         model=model,
         reuse=reuse,
+        preview=preview,
     )
     await db.commit()
     return GenerationEnqueued(job_id=job.id)
 
 
-@router.get("/jobs", response_model=List[GenerationJobOut], summary="List AI generation jobs")
+@router.get(
+    "/jobs", response_model=List[GenerationJobOut], summary="List AI generation jobs"
+)
 async def list_jobs(
     db: AsyncSession = Depends(get_db),
     _: Depends = Depends(admin_required),
 ) -> List[GenerationJobOut]:
-    res = await db.execute(select(GenerationJob).order_by(GenerationJob.created_at.desc()))
+    res = await db.execute(
+        select(GenerationJob).order_by(GenerationJob.created_at.desc())
+    )
     rows = list(res.scalars().all())
     return [GenerationJobOut.model_validate(r) for r in rows]
 
@@ -104,7 +128,11 @@ async def get_job(
     return GenerationJobOut.model_validate(job)
 
 
-@router.post("/jobs/{job_id}/simulate_complete", response_model=GenerationJobOut, summary="Simulate job completion (DEV)")
+@router.post(
+    "/jobs/{job_id}/simulate_complete",
+    response_model=GenerationJobOut,
+    summary="Simulate job completion (DEV)",
+)
 async def simulate_complete(
     job_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -140,7 +168,10 @@ async def simulate_complete(
 
     # Стоимость/токены (заглушка)
     job.cost = job.cost or 0.0123
-    job.token_usage = job.token_usage or {"prompt_tokens": 1024, "completion_tokens": 4096}
+    job.token_usage = job.token_usage or {
+        "prompt_tokens": 1024,
+        "completion_tokens": 4096,
+    }
     # Сохраним стоимость в квест
     q = await db.get(Quest, job.result_quest_id) if job.result_quest_id else None
     if q:
@@ -168,7 +199,11 @@ async def simulate_complete(
     return GenerationJobOut.model_validate(job)
 
 
-@router.post("/jobs/{job_id}/tick", response_model=GenerationJobOut, summary="Advance job progress (DEV)")
+@router.post(
+    "/jobs/{job_id}/tick",
+    response_model=GenerationJobOut,
+    summary="Advance job progress (DEV)",
+)
 async def tick_job(
     job_id: UUID,
     body: dict | None = None,
@@ -191,7 +226,9 @@ async def tick_job(
             job.finished_at = datetime.utcnow()
 
     logs = list(job.logs or [])
-    logs.append(f"[{datetime.utcnow().isoformat()}] Tick {payload.delta}%{(' - ' + payload.message) if payload.message else ''}")
+    logs.append(
+        f"[{datetime.utcnow().isoformat()}] Tick {payload.delta}%{(' - ' + payload.message) if payload.message else ''}"
+    )
     job.logs = logs
 
     await db.commit()
@@ -200,6 +237,7 @@ async def tick_job(
 
 
 # -------- Worlds & Characters CRUD --------
+
 
 @router.get("/worlds", response_model=List[WorldTemplateOut], summary="List worlds")
 async def list_worlds(
@@ -231,7 +269,9 @@ async def create_world(
     return WorldTemplateOut.model_validate(w)
 
 
-@router.put("/worlds/{world_id}", response_model=WorldTemplateOut, summary="Update world")
+@router.put(
+    "/worlds/{world_id}", response_model=WorldTemplateOut, summary="Update world"
+)
 async def update_world(
     world_id: UUID,
     body: WorldTemplateIn,
@@ -266,18 +306,30 @@ async def delete_world(
     return {"ok": True}
 
 
-@router.get("/worlds/{world_id}/characters", response_model=List[CharacterOut], summary="List characters for world")
+@router.get(
+    "/worlds/{world_id}/characters",
+    response_model=List[CharacterOut],
+    summary="List characters for world",
+)
 async def list_characters(
     world_id: UUID,
     db: AsyncSession = Depends(get_db),
     _: Depends = Depends(admin_required),
 ) -> List[CharacterOut]:
-    res = await db.execute(select(Character).where(Character.world_id == world_id).order_by(Character.name.asc()))
+    res = await db.execute(
+        select(Character)
+        .where(Character.world_id == world_id)
+        .order_by(Character.name.asc())
+    )
     rows = list(res.scalars().all())
     return [CharacterOut.model_validate(r) for r in rows]
 
 
-@router.post("/worlds/{world_id}/characters", response_model=CharacterOut, summary="Create character")
+@router.post(
+    "/worlds/{world_id}/characters",
+    response_model=CharacterOut,
+    summary="Create character",
+)
 async def create_character(
     world_id: UUID,
     body: CharacterIn,
@@ -302,7 +354,11 @@ async def create_character(
     return CharacterOut.model_validate(c)
 
 
-@router.put("/characters/{character_id}", response_model=CharacterOut, summary="Update character")
+@router.put(
+    "/characters/{character_id}",
+    response_model=CharacterOut,
+    summary="Update character",
+)
 async def update_character(
     character_id: UUID,
     body: CharacterIn,
@@ -339,7 +395,10 @@ async def delete_character(
 
 # -------- AI Settings --------
 
-@router.get("/settings", response_model=AISettingsOut, summary="Get AI provider settings")
+
+@router.get(
+    "/settings", response_model=AISettingsOut, summary="Get AI provider settings"
+)
 async def get_ai_settings(
     db: AsyncSession = Depends(get_db),
     _: Depends = Depends(admin_required),
@@ -347,7 +406,9 @@ async def get_ai_settings(
     res = await db.execute(select(AISettings).limit(1))
     s = res.scalar_one_or_none()
     if not s:
-        return AISettingsOut(provider=None, base_url=None, model=None, has_api_key=False)
+        return AISettingsOut(
+            provider=None, base_url=None, model=None, has_api_key=False
+        )
     return AISettingsOut(
         provider=s.provider,
         base_url=s.base_url,
@@ -356,7 +417,9 @@ async def get_ai_settings(
     )
 
 
-@router.put("/settings", response_model=AISettingsOut, summary="Update AI provider settings")
+@router.put(
+    "/settings", response_model=AISettingsOut, summary="Update AI provider settings"
+)
 async def put_ai_settings(
     body: AISettingsIn,
     db: AsyncSession = Depends(get_db),

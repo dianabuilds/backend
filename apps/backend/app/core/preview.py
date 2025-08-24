@@ -1,0 +1,46 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Literal, Optional
+
+from fastapi import Request
+
+PreviewMode = Literal["read_only", "dry_run", "shadow"]
+
+
+@dataclass
+class PreviewContext:
+    mode: PreviewMode = "read_only"
+    preview_user: Optional[str] = None
+    seed: Optional[int] = None
+    time: Optional[datetime] = None
+    locale: Optional[str] = None
+    role: Optional[str] = None
+    plan: Optional[str] = None
+
+
+async def get_preview_context(request: Request) -> PreviewContext:
+    q = request.query_params
+    h = request.headers
+    mode = q.get("preview_mode") or h.get("X-Preview-Mode") or "read_only"
+    preview_user = q.get("preview_user") or h.get("X-Preview-User")
+    seed = q.get("preview_seed") or h.get("X-Preview-Seed")
+    seed_val = int(seed) if seed is not None else None
+    time_str = q.get("preview_time") or h.get("X-Preview-Time")
+    time_val = datetime.fromisoformat(time_str) if time_str else None
+    locale = q.get("preview_locale") or h.get("X-Preview-Locale")
+    role = q.get("preview_role") or h.get("X-Preview-Role")
+    plan = q.get("preview_plan") or h.get("X-Preview-Plan")
+    return PreviewContext(
+        mode=mode,
+        preview_user=preview_user,
+        seed=seed_val,
+        time=time_val,
+        locale=locale,
+        role=role,
+        plan=plan,
+    )
+
+
+__all__ = ["PreviewContext", "PreviewMode", "get_preview_context"]

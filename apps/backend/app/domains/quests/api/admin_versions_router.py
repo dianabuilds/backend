@@ -12,6 +12,8 @@ from app.domains.audit.application.audit_service import audit_log
 from app.domains.nodes import service as node_service
 from app.domains.nodes.service import validate_transition
 from app.domains.quests.application.editor_service import EditorService
+from app.api.deps import get_preview_context
+from app.core.preview import PreviewContext
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.quests.infrastructure.models.quest_version_models import (
     QuestGraphEdge,
@@ -564,6 +566,7 @@ async def simulate_version(
     workspace_id: UUID,
     _: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
+    preview: PreviewContext = Depends(get_preview_context),
 ):
     ver = await db.get(QuestVersion, version_id)
     if not ver:
@@ -610,6 +613,7 @@ async def simulate_version(
             for e in edges
         ],
         payload,
+        preview,
     )
 
 

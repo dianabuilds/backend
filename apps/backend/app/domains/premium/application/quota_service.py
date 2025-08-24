@@ -11,6 +11,7 @@ from fastapi import HTTPException
 
 from app.core.cache import Cache
 from app.core.cache import cache as shared_cache
+from app.core.preview import PreviewContext
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +55,8 @@ class QuotaService:
         quota_key: str,
         amount: int = 1,
         scope: str = "day",
-        dry_run: bool = False,
         *,
+        preview: PreviewContext | None = None,
         plan: str | None = None,
         idempotency_token: str | None = None,
         workspace_id: str | None = None,
@@ -99,7 +100,7 @@ class QuotaService:
             stored = await self.cache.get(token_key)
             if stored is not None:
                 return json.loads(stored)
-
+        dry_run = preview and preview.mode == "dry_run"
         if dry_run:
             current = int(await self.cache.get(counter_key) or 0)
             new_value = current + amount

@@ -5,14 +5,16 @@ from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_preview_context
 from app.core.db.session import get_db
+from app.core.preview import PreviewContext
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.application.node_service import NodeService
-from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.nodes.models import NodeItem
+from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.nodes_common import NodeType
 from app.schemas.quest_editor import SimulateIn
@@ -160,7 +162,10 @@ async def simulate_node(
     payload: SimulateIn,
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
+    preview: PreviewContext = Depends(get_preview_context),
 ):
     svc = NodeService(db, navcache, InAppNotificationPort(db))
-    report, result = await svc.simulate(workspace_id, node_type, node_id, payload)
+    report, result = await svc.simulate(
+        workspace_id, node_type, node_id, payload, preview
+    )
     return {"report": report, "result": result}
