@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "../api/client";
+import ContentEditor from "../components/content/ContentEditor";
 import EditorJSViewer from "../components/EditorJSViewer";
-import NodeEditorModal from "../components/NodeEditorModal";
-import type { NodeEditorData } from "../components/NodeEditorModal.helpers";
-import type { TagOut } from "../components/tags/TagPicker";
 import { useToast } from "../components/ToastProvider";
+import type { TagOut } from "../components/tags/TagPicker";
+import type { OutputData } from "../types/editorjs";
 
 type NodeItem = {
   id: string;
@@ -56,10 +56,23 @@ function normalizeNode(raw: any): NodeItem {
   };
 }
 
+interface NodeEditorData {
+  id: string;
+  title: string;
+  slug: string;
+  subtitle: string;
+  cover_url: string | null;
+  tags: TagOut[];
+  allow_comments: boolean;
+  is_premium_only: boolean;
+  contentData: OutputData;
+}
+
 function makeDraft(): NodeEditorData {
   return {
     id: `draft-${Date.now()}`,
     title: "",
+    slug: "",
     subtitle: "",
     cover_url: null,
     tags: [] as TagOut[],
@@ -458,6 +471,36 @@ export default function Nodes() {
     }
 
     return created as any;
+  };
+
+  const handleCommit = async (action: "save" | "next") => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
+    try {
+      const created = await doCreate();
+      if (action === "next") {
+        setDraft(makeDraft());
+      } else {
+        setEditorOpen(false);
+      }
+      await load(page);
+      if (created?.slug) {
+        addToast({
+          title: "Node created",
+          description: `Slug: ${created.slug}`,
+          variant: "success",
+        });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      addToast({
+        title: "Failed to create node",
+        description: msg,
+        variant: "error",
+      });
+    } finally {
+      creatingRef.current = false;
+    }
   };
 
   // Moderation actions by slug (hide/restore) удалены вместе с боковой панелью.
@@ -865,43 +908,76 @@ export default function Nodes() {
           </>
         )}
 
-        {/* Модалка создания ноды */}
-        <NodeEditorModal
-          open={editorOpen}
-          node={editorOpen ? draft : null}
-          onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
-          onClose={() => setEditorOpen(false)}
-          busy={creatingRef.current}
-          onCommit={async (action) => {
-            if (creatingRef.current) return;
-            creatingRef.current = true;
-            try {
-              const created = await doCreate();
-              if (action === "next") {
-                setDraft(makeDraft());
-              } else {
-                setEditorOpen(false);
-              }
-              await load(page);
-              if (created?.slug) {
-                addToast({
-                  title: "Node created",
-                  description: `Slug: ${created.slug}`,
-                  variant: "success",
-                });
-              }
-            } catch (e) {
-              const msg = e instanceof Error ? e.message : String(e);
-              addToast({
-                title: "Failed to create node",
-                description: msg,
-                variant: "error",
-              });
-            } finally {
-              creatingRef.current = false;
-            }
-          }}
-        />
+        {editorOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white w-full max-w-[95vw] md:max-w-7xl max-h-[92vh] flex flex-col">
+              <ContentEditor
+                nodeId={draft.id}
+                node_type="node"
+                title={draft.title || "New node"}
+                statuses={["draft"]}
+                versions={[1]}
+                toolbar={
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="px-2 py-1 border rounded"
+                      disabled={!canSave || creatingRef.current}
+                      onClick={() => handleCommit("save")}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="px-2 py-1 border rounded"
+                      disabled={!canSave || creatingRef.current}
+                      onClick={() => handleCommit("next")}
+                    >
+                      Save & Next
+                    </button>
+                    <button
+                      type="button"
+                      className="px-2 py-1 border rounded"
+                      onClick={() => setEditorOpen(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                }
+                general={{
+                  title: draft.title,
+                  slug: draft.slug,
+                  tags: draft.tags,
+                  cover: draft.cover_url,
+                  onTitleChange: (v) => setDraft((d) => ({ ...d, title: v })),
+                  onSlugChange: (v) => setDraft((d) => ({ ...d, slug: v })),
+                  onTagsChange: (t) => setDraft((d) => ({ ...d, tags: t })),
+                  onCoverChange: (url) => setDraft((d) => ({ ...d, cover_url: url })),
+                }}
+                renderContent={() => (
+                  <textarea
+                    className="w-full h-40 border rounded p-2"
+                    placeholder="Node content..."
+                    value={
+                      draft.contentData?.blocks?.[0]?.data?.text ?? ""
+                    }
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        contentData: {
+                          ...d.contentData,
+                          blocks: [
+                            { type: "paragraph", data: { text: e.target.value } },
+                          ],
+                        },
+                      }))
+                    }
+                  />
+                )}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Moderation modal: hide with reason */}
         {modOpen && (

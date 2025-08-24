@@ -26,7 +26,6 @@ import Nodes from "./pages/Nodes";
 import NotificationCampaignEditor from "./pages/NotificationCampaignEditor";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
-import QuestEditor from "./pages/QuestEditor";
 import QuestsList from "./pages/QuestsList";
 import QuestVersionEditor from "./pages/QuestVersionEditor";
 import RateLimitTools from "./pages/RateLimitTools";
@@ -122,7 +121,6 @@ export default function App() {
                       />
                       <Route path="profile" element={<Profile />} />
                       <Route path="quests" element={<QuestsList />} />
-                      <Route path="quests/editor" element={<QuestEditor />} />
                       <Route
                         path="quests/version/:id"
                         element={<QuestVersionEditor />}
