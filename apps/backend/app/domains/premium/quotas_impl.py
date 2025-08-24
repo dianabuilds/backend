@@ -4,9 +4,14 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.premium.application.quota_service import QuotaService  # общий сервис квот
 from app.core.cache import cache as shared_cache
-from app.domains.premium.plans_impl import build_quota_plans_map, get_effective_plan_slug
+from app.domains.premium.application.quota_service import (
+    QuotaService,
+)  # общий сервис квот
+from app.domains.premium.plans_impl import (
+    build_quota_plans_map,
+    get_effective_plan_slug,
+)
 
 _quota_service: QuotaService | None = None
 
@@ -26,9 +31,12 @@ async def check_and_consume_quota(
     amount: int = 1,
     scope: str = "month",
     dry_run: bool = False,
+    workspace_id: Any | None = None,
 ) -> dict:
     plans_map = await build_quota_plans_map(db)
-    plan_slug = await get_effective_plan_slug(db, str(user_id) if user_id is not None else None)
+    plan_slug = await get_effective_plan_slug(
+        db, str(user_id) if user_id is not None else None
+    )
     qs = _get_qs()
     qs.set_plans_map(plans_map)
     return await qs.check_and_consume(
@@ -39,6 +47,7 @@ async def check_and_consume_quota(
         dry_run=dry_run,
         plan=plan_slug,
         idempotency_token=None,
+        workspace_id=str(workspace_id) if workspace_id is not None else None,
     )
 
 

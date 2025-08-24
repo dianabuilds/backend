@@ -1,17 +1,23 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 from uuid import UUID
 
-from app.domains.notifications.application.ports.notification_repo import INotificationRepository
+from app.domains.notifications.application.ports.notification_repo import (
+    INotificationRepository,
+)
 from app.domains.notifications.application.ports.pusher import INotificationPusher
+from app.domains.workspaces.limits import workspace_limit
 
 
 class NotifyService:
-    def __init__(self, repo: INotificationRepository, pusher: INotificationPusher) -> None:
+    def __init__(
+        self, repo: INotificationRepository, pusher: INotificationPusher
+    ) -> None:
         self._repo = repo
         self._pusher = pusher
 
+    @workspace_limit("notif_per_day", scope="day", amount=1, degrade=True)
     async def create_notification(
         self,
         *,
@@ -20,7 +26,7 @@ class NotifyService:
         title: str,
         message: str,
         type: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         # Репозиторий создаёт запись и коммитит (сохранено поведение старой реализации)
         dto = await self._repo.create_and_commit(
             workspace_id=workspace_id,

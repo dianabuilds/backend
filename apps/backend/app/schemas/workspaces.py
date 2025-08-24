@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class WorkspaceRole(str, Enum):
@@ -22,9 +22,23 @@ class WorkspaceType(str, Enum):
 class WorkspaceSettings(BaseModel):
     ai_presets: dict[str, object] = Field(default_factory=dict)
     notifications: dict[str, object] = Field(default_factory=dict)
-    limits: dict[str, int] = Field(default_factory=dict)
+    limits: dict[str, int] = Field(
+        default_factory=lambda: {
+            "ai_tokens": 0,
+            "notif_per_day": 0,
+            "compass_calls": 0,
+        }
+    )
 
     model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="after")
+    def _ensure_limit_keys(self) -> WorkspaceSettings:
+        """Ensure new limit keys always exist."""
+        self.limits.setdefault("ai_tokens", 0)
+        self.limits.setdefault("notif_per_day", 0)
+        self.limits.setdefault("compass_calls", 0)
+        return self
 
 
 class WorkspaceIn(BaseModel):
