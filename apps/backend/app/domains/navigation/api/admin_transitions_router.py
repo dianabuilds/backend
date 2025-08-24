@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from uuid import UUID
+from dataclasses import dataclass, asdict
+from types import SimpleNamespace
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -11,6 +14,11 @@ from app.domains.nodes.application.query_models import PageRequest, QueryContext
 from app.core.db.session import get_db
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
+)
+from app.domains.navigation.application.transition_router import (
+    RandomPolicy,
+    TransitionProvider,
+    TransitionRouter,
 )
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.infrastructure.models.node import Node
@@ -166,3 +174,46 @@ async def disable_transitions_by_node(
     await navcache.invalidate_navigation_by_node(node.slug)
     await navcache.invalidate_compass_by_node(node.slug)
     return {"disabled": len(transitions)}
+
+
+class SimulateRequest(BaseModel):
+    start: str
+    graph: dict[str, list[str]]
+    steps: int = 1
+    seed: int | None = None
+
+
+@dataclass
+class _DummyNode:
+    slug: str
+    workspace_id: str = "sim"
+
+
+class _DictProvider(TransitionProvider):
+    def __init__(self, mapping: dict[str, list[str]]):
+        self.mapping = mapping
+
+    async def get_transitions(self, db, node, user, workspace_id):
+        return [_DummyNode(s) for s in self.mapping.get(node.slug, [])]
+
+
+@router.post("/simulate", summary="Simulate transitions")
+async def simulate_transitions(
+    payload: SimulateRequest, current_user=Depends(admin_required)
+):
+    provider = _DictProvider(payload.graph)
+    policies = [RandomPolicy(provider)]
+    router = TransitionRouter(policies, not_repeat_last=5)
+    start = _DummyNode(payload.start)
+    budget = SimpleNamespace(time_ms=1000, db_queries=1000, fallback_chain=[])
+    current = start
+    traces: list[dict] = []
+    route: list[str] = [start.slug]
+    for _ in range(payload.steps):
+        res = await router.route(None, current, None, budget, seed=payload.seed)
+        traces.extend(asdict(t) for t in res.trace)
+        if res.next is None:
+            break
+        current = res.next
+        route.append(current.slug)
+    return {"route": route, "trace": traces}

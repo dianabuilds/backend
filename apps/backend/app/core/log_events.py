@@ -10,6 +10,10 @@ CACHE_HIT = "CACHE_HIT"
 CACHE_MISS = "CACHE_MISS"
 CACHE_INVALIDATE = "CACHE_INVALIDATE"
 DB_SLOW = "DB_SLOW"
+TRANSITION_START = "transition.start"
+TRANSITION_FINISH = "transition.finish"
+NO_ROUTE = "no_route"
+FALLBACK_HIT = "fallback.hit"
 
 # in-memory metrics for admin cache stats
 cache_counters: Dict[str, Dict[str, int]] = defaultdict(lambda: {"hit": 0, "miss": 0})
@@ -37,3 +41,19 @@ def auth_success(user_id: str | None) -> None:
 
 def auth_failure(reason: str, user: str | None = None) -> None:
     logger.warning(f"{AUTH_FAILURE} reason={reason} user={user or '-'}")
+
+
+def transition_start(node: str) -> None:
+    logger.info(f"{TRANSITION_START} node={node}")
+
+
+def transition_finish(node: str | None) -> None:
+    logger.info(f"{TRANSITION_FINISH} node={node or '-'}")
+
+
+def no_route(node: str) -> None:
+    logger.warning(f"{NO_ROUTE} node={node}")
+
+
+def fallback_hit(component: str) -> None:
+    logger.warning(f"{FALLBACK_HIT} component={component}")
