@@ -1,0 +1,35 @@
+groups:
+  - name: backend
+    rules:
+      - alert: AdminAPIHighErrorRate
+        expr: |
+          sum(rate(admin_api_request_errors_total[5m]))
+            /
+          sum(rate(admin_api_request_total[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: High admin API error rate
+          description: >-
+            More than 5% of admin API requests are failing.
+
+      - alert: TransitionNoRouteSpike
+        expr: delta(transition_no_route_percent[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Sudden increase in no-route transitions
+          description: >-
+            transition_no_route_percent increased by more than 10 points in 5m.
+
+      - alert: QuotaHitSpike
+        expr: increase(quota_hit_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Spike in quota hits
+          description: >-
+            Over 100 quota hits recorded in the last 5 minutes.
