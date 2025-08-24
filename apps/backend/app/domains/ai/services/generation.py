@@ -28,12 +28,32 @@ async def enqueue_generation_job(
     params: dict[str, Any],
     provider: str | None = None,
     model: str | None = None,
+    workspace_id: UUID | None = None,
     reuse: bool = True,
 ) -> GenerationJob:
     """Создать задание на генерацию ИИ‑квеста и поставить в очередь.
     Если reuse=True и уже есть завершённая задача с идентичными параметрами — создаём
     мгновенно завершённую job, переиспользуя result_quest_id/cost/token_usage.
     """
+    params = dict(params)
+    if workspace_id is not None:
+        try:
+            from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
+            from app.schemas.workspaces import WorkspaceSettings
+
+            ws = await WorkspaceDAO.get(db, workspace_id)
+            if ws:
+                settings = WorkspaceSettings.model_validate(ws.settings_json)
+                presets = settings.ai_presets or {}
+                params.setdefault("workspace_id", str(workspace_id))
+                if model is None and isinstance(presets.get("model"), str):
+                    model = presets["model"]
+                for key in ("temperature", "system_prompt", "forbidden"):
+                    if key in presets and key not in params:
+                        params[key] = presets[key]
+        except Exception:
+            pass
+
     if reuse:
         # Ищем последнюю завершённую задачу с такими же параметрами
         res = await db.execute(
@@ -116,12 +136,35 @@ async def process_next_generation_job(db: AsyncSession) -> Optional[UUID]:
     _job_t0 = datetime.utcnow()
 
     try:
-        # 3) Запускаем пайплайн
+        # 3) Загружаем пресеты рабочей области при необходимости
+        params = job.params or {}
+        workspace_id = params.get("workspace_id")
+        if workspace_id:
+            try:
+                from uuid import UUID
+                from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
+                from app.schemas.workspaces import WorkspaceSettings
+
+                ws = await WorkspaceDAO.get(db, UUID(workspace_id))
+                if ws:
+                    settings = WorkspaceSettings.model_validate(ws.settings_json)
+                    presets = settings.ai_presets or {}
+                    if job.model is None and isinstance(presets.get("model"), str):
+                        job.model = presets["model"]
+                    for key in ("temperature", "system_prompt", "forbidden"):
+                        if key in presets and key not in params:
+                            params[key] = presets[key]
+                    job.params = params
+                    await db.flush()
+            except Exception:
+                pass
+
+        # 4) Запускаем пайплайн
         from app.domains.ai.pipeline import run_full_generation
 
         result = await run_full_generation(db, job)
         # Ожидаем, что result содержит: result_quest_id, result_version_id, cost, token_usage, logs, last_provider, last_model
-        # 4) Финализируем completed
+        # Финализируем completed
         job.status = JobStatus.completed
         job.finished_at = datetime.utcnow()
         job.result_quest_id = result.get("result_quest_id")
