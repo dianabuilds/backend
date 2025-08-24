@@ -39,6 +39,8 @@ class CompassService:
         limit: int = 5,
         preview: PreviewContext | None = None,
     ) -> list[Node]:
+        if preview and preview.seed is not None:
+            random.seed(preview.seed)
         if not node.is_recommendable:
             return []
         if not node.embedding_vector:

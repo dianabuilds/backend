@@ -58,7 +58,11 @@ class NavigationService:
         )
 
     async def generate_transitions(
-        self, db: AsyncSession, node: Node, user: Optional[User]
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: Optional[User],
+        preview: PreviewContext | None = None,
     ) -> List[Dict[str, object]]:
         max_options = settings.navigation.max_options
 
@@ -83,13 +87,17 @@ class NavigationService:
         if remaining <= 0:
             return manual
 
-        compass_nodes = await self._compass.get_compass_nodes(db, node, user, remaining)
+        compass_nodes = await self._compass.get_compass_nodes(
+            db, node, user, remaining, preview=preview
+        )
         echo_nodes = await self._echo.get_echo_transitions(
             db, node, remaining, user=user
         )
-        rnd = await RandomService().get_random_node(
-            db, user=user, exclude_node_id=str(node.id)
-        )
+        rnd = None
+        if not (preview and preview.mode == "dry_run"):
+            rnd = await RandomService().get_random_node(
+                db, user=user, exclude_node_id=str(node.id), preview=preview
+            )
 
         candidates: dict[str, dict[str, object]] = {}
 
@@ -153,7 +161,7 @@ class NavigationService:
         )
         for _ in range(steps):
             result = await self._router.route(
-                db, current, user, budget, seed=0, preview=preview
+                db, current, user, budget, preview=preview
             )
             logger.debug("trace: %s", result.trace)
             if result.next is None:

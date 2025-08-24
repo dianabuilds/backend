@@ -350,18 +350,21 @@ class TransitionRouter:
         start: Node,
         user: Optional[User],
         budget,
-        seed: int | None = None,
         preview: PreviewContext | None = None,
-    ) -> TransitionResult:
+    ) -> TransitionResult | TransitionTrace:
         transition_start(start.slug)
         start_time = time.monotonic()
         self.trace.clear()
+        seed = preview.seed if preview else None
         if seed is not None:
             for policy in self.policies:
                 if hasattr(policy, "set_seed"):
                     policy.set_seed(seed)
                 if hasattr(policy.provider, "set_seed"):
                     policy.provider.set_seed(seed)
+
+        if preview and preview.mode != "off":
+            return TransitionTrace([], [], {}, None)
 
         self.history.append(start.slug)
         self.repeat_filter.update(start)
@@ -428,7 +431,8 @@ class TransitionRouter:
         else:
             record_route_length(len(self.history), ws_id)
             if nxt is not None:
-                ent = _compute_entropy([t.slug for t in getattr(nxt, "tags", [])])
+                tags = getattr(nxt, "tags", []) or []
+                ent = _compute_entropy([getattr(t, "slug", t) for t in tags])
                 record_tag_entropy(ent, ws_id)
         if fallback_used:
             from app.core.log_events import fallback_used as log_fallback_used
