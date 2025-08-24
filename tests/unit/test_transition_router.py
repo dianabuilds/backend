@@ -1,10 +1,10 @@
 from pathlib import Path
-
 import asyncio
 import importlib
 import sys
 from dataclasses import dataclass
 from types import SimpleNamespace
+from typing import List, Optional
 
 import pytest
 
@@ -24,6 +24,8 @@ from apps.backend.app.domains.navigation.application.transition_router import (
 class DummyNode:
     slug: str
     workspace_id: str = "ws"
+    tags: Optional[List[str]] = None
+    source: Optional[str] = None
 
 
 class StaticProvider(TransitionProvider):
@@ -81,3 +83,39 @@ def test_no_loops():
     route = asyncio.run(_build_route(router, start, 5))
     slugs = [n.slug for n in route]
     assert len(slugs) == len(set(slugs))
+
+
+def test_local_resonance_stops():
+    provider = StaticProvider(
+        {
+            "a": [DummyNode("b", tags=["t"])],
+            "b": [DummyNode("a", tags=["t"])],
+        }
+    )
+    router = TransitionRouter(
+        [ManualPolicy(provider)],
+        not_repeat_last=0,
+        no_repeat_window=5,
+        repeat_threshold=0.3,
+        repeat_decay=0.5,
+        max_visits=10,
+    )
+    start = DummyNode("a", tags=["t"])
+    route = asyncio.run(_build_route(router, start, 5))
+    assert [n.slug for n in route] == ["a", "b"]
+
+
+def test_threshold_respected():
+    provider = StaticProvider({"a": [DummyNode("b", tags=["t"])]})
+    router = TransitionRouter(
+        [ManualPolicy(provider)],
+        not_repeat_last=0,
+        no_repeat_window=5,
+        repeat_threshold=0.6,
+        repeat_decay=0.5,
+        max_visits=10,
+    )
+    start = DummyNode("a", tags=["t"])
+    route = asyncio.run(_build_route(router, start, 5))
+    # Second node filtered immediately due to high threshold
+    assert [n.slug for n in route] == ["a"]

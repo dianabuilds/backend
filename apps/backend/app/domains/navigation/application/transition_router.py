@@ -4,7 +4,7 @@ import logging
 import random
 import time
 from abc import ABC, abstractmethod
-from collections import deque
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Deque, List, Optional, Sequence, Tuple
@@ -52,6 +52,7 @@ class Policy(ABC):
         node: Node,
         user: Optional[User],
         history: Deque[str],
+        repeat_filter: "RepeatFilter",
     ) -> Tuple[Optional["Node"], "TransitionTrace"]:
         """Return next node and trace info or ``None`` if not applicable."""
 
@@ -134,6 +135,70 @@ class RandomProvider(TransitionProvider):
         return [self._rnd.choice(nodes)]
 
 
+class RepeatFilter:
+    """Filter penalizing repeated tags and sources and limiting node visits."""
+
+    def __init__(
+        self,
+        window: int,
+        threshold: float,
+        decay: float,
+        max_visits: int,
+    ) -> None:
+        self.window = window
+        self.threshold = threshold
+        self.decay = decay
+        self.max_visits = max_visits
+        self.tag_history: Deque[str] = deque()
+        self.source_history: Deque[str] = deque()
+        self.tag_counts: dict[str, int] = defaultdict(int)
+        self.source_counts: dict[str, int] = defaultdict(int)
+        self.visit_counts: dict[str, int] = defaultdict(int)
+
+    def _add(self, history: Deque[str], counts: dict[str, int], value: str) -> None:
+        history.append(value)
+        counts[value] += 1
+        if self.window and len(history) > self.window:
+            old = history.popleft()
+            counts[old] -= 1
+            if counts[old] <= 0:
+                del counts[old]
+
+    def update(self, node: "Node") -> None:
+        self.visit_counts[node.slug] += 1
+        for tag in getattr(node, "tags", []) or []:
+            self._add(self.tag_history, self.tag_counts, tag)
+        source = getattr(node, "source", None)
+        if source:
+            self._add(self.source_history, self.source_counts, source)
+
+    def _score(self, node: "Node") -> float:
+        scores: List[float] = []
+        for tag in getattr(node, "tags", []) or []:
+            count = self.tag_counts.get(tag, 0)
+            scores.append(self.decay ** count)
+        source = getattr(node, "source", None)
+        if source:
+            count = self.source_counts.get(source, 0)
+            scores.append(self.decay ** count)
+        return min(scores) if scores else 1.0
+
+    def filter(self, nodes: Sequence["Node"]) -> Tuple[List["Node"], List[str]]:
+        allowed: List["Node"] = []
+        filtered: List[str] = []
+        for n in nodes:
+            if self.max_visits and self.visit_counts.get(n.slug, 0) >= self.max_visits:
+                filtered.append(n.slug)
+                continue
+            if self.window > 0:
+                score = self._score(n)
+                if score < self.threshold:
+                    filtered.append(n.slug)
+                    continue
+            allowed.append(n)
+        return allowed, filtered
+
+
 class ManualPolicy(Policy):
     name = "manual"
 
@@ -143,15 +208,18 @@ class ManualPolicy(Policy):
         node: Node,
         user: Optional[User],
         history: Deque[str],
+        repeat_filter: RepeatFilter,
     ) -> Tuple[Optional[Node], "TransitionTrace"]:
         candidates = await self.provider.get_transitions(
             db, node, user, node.workspace_id
         )
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
+        candidates = [n for n in candidates if n.slug not in history]
+        candidates, filt2 = repeat_filter.filter(candidates)
+        filtered.extend(filt2)
         for n in candidates:
-            if n.slug not in history:
-                return n, TransitionTrace(candidate_slugs, filtered, {}, n.slug)
+            return n, TransitionTrace(candidate_slugs, filtered, {}, n.slug)
         return None, TransitionTrace(candidate_slugs, filtered, {}, None)
 
 
@@ -164,15 +232,18 @@ class CompassPolicy(Policy):
         node: Node,
         user: Optional[User],
         history: Deque[str],
+        repeat_filter: RepeatFilter,
     ) -> Tuple[Optional[Node], "TransitionTrace"]:
         candidates = await self.provider.get_transitions(
             db, node, user, node.workspace_id
         )
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
+        candidates = [n for n in candidates if n.slug not in history]
+        candidates, filt2 = repeat_filter.filter(candidates)
+        filtered.extend(filt2)
         for n in candidates:
-            if n.slug not in history:
-                return n, TransitionTrace(candidate_slugs, filtered, {}, n.slug)
+            return n, TransitionTrace(candidate_slugs, filtered, {}, n.slug)
         return None, TransitionTrace(candidate_slugs, filtered, {}, None)
 
 
@@ -194,6 +265,7 @@ class RandomPolicy(Policy):
         node: Node,
         user: Optional[User],
         history: Deque[str],
+        repeat_filter: RepeatFilter,
     ) -> Tuple[Optional[Node], "TransitionTrace"]:
         candidates = await self.provider.get_transitions(
             db, node, user, node.workspace_id
@@ -201,6 +273,8 @@ class RandomPolicy(Policy):
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
+        candidates, filt2 = repeat_filter.filter(candidates)
+        filtered.extend(filt2)
         if not candidates:
             return None, TransitionTrace(candidate_slugs, filtered, {}, None)
         chosen = self._rnd.choice(candidates)
@@ -232,19 +306,33 @@ class TransitionResult:
 class TransitionRouter:
     """Routes transitions according to provided policies."""
 
-    def __init__(self, policies: Sequence[Policy], not_repeat_last: int = 0) -> None:
+    def __init__(
+        self,
+        policies: Sequence[Policy],
+        not_repeat_last: int = 0,
+        no_repeat_window: int = 0,
+        repeat_threshold: float = 0.0,
+        repeat_decay: float = 1.0,
+        max_visits: int = 0,
+    ) -> None:
         self.policies = list(policies)
         self.history: Deque[str] = deque(maxlen=not_repeat_last)
         self.trace: List[TransitionTrace] = []
+        self.repeat_filter = RepeatFilter(
+            no_repeat_window, repeat_threshold, repeat_decay, max_visits
+        )
 
     async def _next(
         self, db: AsyncSession, node: Node, user: Optional[User]
     ) -> Optional[Node]:
         for policy in self.policies:
-            candidate, trace = await policy.choose(db, node, user, self.history)
+            candidate, trace = await policy.choose(
+                db, node, user, self.history, self.repeat_filter
+            )
             self.trace.append(trace)
             if candidate and candidate.slug not in self.history:
                 self.history.append(candidate.slug)
+                self.repeat_filter.update(candidate)
                 logger.debug("%s -> %s", policy.name, candidate.slug)
                 return candidate
         return None
@@ -268,6 +356,7 @@ class TransitionRouter:
                     policy.provider.set_seed(seed)
 
         self.history.append(start.slug)
+        self.repeat_filter.update(start)
         nxt = await self._next(db, start, user)
 
         elapsed_ms = (time.monotonic() - start_time) * 1000
