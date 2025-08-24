@@ -4,12 +4,13 @@ import json
 import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 from fastapi import HTTPException
 
-from app.core.cache import Cache, cache as shared_cache
+from app.core.cache import Cache
+from app.core.cache import cache as shared_cache
 
 logger = logging.getLogger(__name__)
 
@@ -18,23 +19,28 @@ class QuotaService:
     """Simple quota service backed by :class:`Cache`.
 
     The service keeps counters in the cache with keys of the form
-    ``q:{plan}:{quota_key}:{scope}:{period}:{user_id}`` where ``period`` is
+    ``q:{quota_key}:{period}:{user_id}:{workspace_id}`` where ``period`` is
     ``YYYYMMDD`` for day scope and ``YYYYMM`` for month scope.
     """
 
-    def __init__(self, cache: Optional[Cache] = None, plans_file: str | None = None) -> None:
-        # используем общий кэш (Redis при наличии), чтобы квоты были согласованы во всех инстансах
+    def __init__(
+        self, cache: Cache | None = None, plans_file: str | None = None
+    ) -> None:
+        # используем общий кэш (Redis при наличии),
+        # чтобы квоты были согласованы во всех инстансах
         self.cache = cache or shared_cache
         if plans_file is None:
-            plans_file = str(Path(__file__).resolve().parents[3] / "settings" / "plans.yaml")
+            plans_file = str(
+                Path(__file__).resolve().parents[3] / "settings" / "plans.yaml"
+            )
         try:
-            with open(plans_file, "r", encoding="utf-8") as f:
-                self.plans: Dict[str, Any] = yaml.safe_load(f) or {}
+            with open(plans_file, encoding="utf-8") as f:
+                self.plans: dict[str, Any] = yaml.safe_load(f) or {}
         except FileNotFoundError:  # pragma: no cover - config missing
             logger.warning("plans configuration not found: %s", plans_file)
             self.plans = {}
 
-    def set_plans_map(self, plans: Dict[str, Any]) -> None:
+    def set_plans_map(self, plans: dict[str, Any]) -> None:
         """Override plans configuration at runtime."""
         try:
             self.plans = dict(plans or {})
@@ -50,9 +56,10 @@ class QuotaService:
         scope: str = "day",
         dry_run: bool = False,
         *,
-        plan: Optional[str] = None,
-        idempotency_token: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        plan: str | None = None,
+        idempotency_token: str | None = None,
+        workspace_id: str | None = None,
+    ) -> dict[str, Any]:
         plan = plan or "free"
         plan_conf = self.plans.get(plan, {})
         grace = float(plan_conf.get("__grace__", 0))
@@ -72,7 +79,9 @@ class QuotaService:
         now = datetime.now(tz=UTC)
         if scope == "day":
             period = now.strftime("%Y%m%d")
-            reset_at = (now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1))
+            reset_at = now.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ) + timedelta(days=1)
         elif scope == "month":
             period = now.strftime("%Y%m")
             first_day = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -81,7 +90,8 @@ class QuotaService:
             raise ValueError(f"unknown scope: {scope}")
         ttl = int((reset_at - now).total_seconds())
 
-        counter_key = f"q:{plan}:{quota_key}:{scope}:{period}:{user_id}"
+        workspace_part = workspace_id or "-"
+        counter_key = f"q:{quota_key}:{period}:{user_id}:{workspace_part}"
 
         # idempotency: if token exists, return stored result without modification
         if idempotency_token:

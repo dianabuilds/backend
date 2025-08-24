@@ -2,29 +2,37 @@ from __future__ import annotations
 
 import random
 import uuid
-from typing import List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.config import settings
+from app.domains.ai.application.embedding_service import (
+    cosine_similarity,
+    update_node_embedding,
+)
+from app.domains.navigation.application.access_policy import has_access_async
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.navigation.infrastructure.models.echo_models import EchoTrace
+from app.domains.navigation.infrastructure.repositories.compass_repository import (
+    CompassRepository,
+)
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
-from app.domains.navigation.infrastructure.repositories.compass_repository import CompassRepository
-from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
-from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
-from app.domains.ai.application.embedding_service import cosine_similarity, update_node_embedding
-from app.domains.navigation.application.access_policy import has_access_async
+from app.domains.workspaces.limits import workspace_limit
 
 
 class CompassService:
     def __init__(self) -> None:
         self._navcache = NavigationCacheService(CoreCacheAdapter())
 
+    @workspace_limit("compass_calls", scope="day", amount=1)
     async def get_compass_nodes(
-        self, db: AsyncSession, node: Node, user: Optional[User], limit: int = 5
-    ) -> List[Node]:
+        self, db: AsyncSession, node: Node, user: User | None, limit: int = 5
+    ) -> list[Node]:
         if not node.is_recommendable:
             return []
         if not node.embedding_vector:
@@ -36,7 +44,7 @@ class CompassService:
             cached = await self._navcache.get_compass(user_key, params_hash)
             if cached:
                 ids = cached.get("ids", [])
-                nodes: List[Node] = []
+                nodes: list[Node] = []
                 for node_id in ids:
                     n = await db.get(Node, uuid.UUID(node_id))
                     if not n or not await has_access_async(n, user):
@@ -45,18 +53,20 @@ class CompassService:
                 return nodes
 
         repo = CompassRepository(db)
-        candidates_with_dist: Optional[List[Tuple[Node, float]]] = await repo.get_similar_nodes_pgvector(
-            node,
-            settings.compass.top_k_db,
-            settings.compass.pgv_probes,
+        candidates_with_dist: list[tuple[Node, float]] | None = (
+            await repo.get_similar_nodes_pgvector(
+                node,
+                settings.compass.top_k_db,
+                settings.compass.pgv_probes,
+            )
         )
 
         if candidates_with_dist is None:
             query = select(Node).where(
                 Node.id != node.id,
-                Node.is_visible == True,
-                Node.is_public == True,
-                Node.is_recommendable == True,
+                Node.is_visible.is_(True),
+                Node.is_public.is_(True),
+                Node.is_recommendable.is_(True),
                 Node.embedding_vector.isnot(None),
             )
             result = await db.execute(query)
@@ -65,7 +75,9 @@ class CompassService:
             for cand in nodes:
                 if not cand.embedding_vector:
                     continue
-                dist = 1 - cosine_similarity(node.embedding_vector, cand.embedding_vector)
+                dist = 1 - cosine_similarity(
+                    node.embedding_vector, cand.embedding_vector
+                )
                 candidates_with_dist.append((cand, dist))
 
         visited: set[uuid.UUID] = set()
