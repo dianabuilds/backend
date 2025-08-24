@@ -46,6 +46,7 @@ import ValidationReport from "./pages/ValidationReport";
 import { WorkspaceProvider } from "./workspace/WorkspaceContext";
 import WorkspaceMetrics from "./pages/WorkspaceMetrics";
 import Limits from "./pages/Limits";
+import Alerts from "./pages/Alerts";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
 const Worlds = lazy(() => import("./pages/Worlds"));
 const AISettings = lazy(() => import("./pages/AISettings"));
@@ -175,6 +176,7 @@ export default function App() {
                         path="ops/reliability"
                         element={<ReliabilityDashboard />}
                       />
+                      <Route path="ops/alerts" element={<Alerts />} />
                       <Route path="system/health" element={<Health />} />
                       <Route path="payments" element={<PaymentsGateways />} />
                     </Route>
