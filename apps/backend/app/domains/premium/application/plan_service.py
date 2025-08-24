@@ -18,6 +18,7 @@ from app.domains.premium.plans_impl import (
 from app.domains.premium.plans_impl import (
     get_plan_by_slug as _get_plan_by_slug,
 )
+from app.core.preview import PreviewContext
 
 
 async def get_active_plans(db: AsyncSession) -> list[SubscriptionPlan]:
@@ -28,8 +29,10 @@ async def get_plan_by_slug(db: AsyncSession, slug: str) -> SubscriptionPlan | No
     return await _get_plan_by_slug(db, slug)
 
 
-async def get_effective_plan_slug(db: AsyncSession, user_id: str | None) -> str:
-    return await _get_effective_plan_slug(db, user_id)
+async def get_effective_plan_slug(
+    db: AsyncSession, user_id: str | None, *, preview: PreviewContext | None = None
+) -> str:
+    return await _get_effective_plan_slug(db, user_id, preview=preview)
 
 
 async def build_quota_plans_map(db: AsyncSession) -> dict[str, Any]:

@@ -69,9 +69,9 @@ class NavigationService:
 
         manual: List[Dict[str, object]] = []
         for t in await TransitionsService().get_transitions(
-            db, node, user, node.workspace_id
+            db, node, user, node.workspace_id, preview=preview
         ):
-            if not await has_access_async(t.to_node, user):
+            if not await has_access_async(t.to_node, user, preview):
                 continue
             manual.append(
                 {
@@ -92,7 +92,7 @@ class NavigationService:
             db, node, user, remaining, preview=preview
         )
         echo_nodes = await self._echo.get_echo_transitions(
-            db, node, remaining, user=user
+            db, node, remaining, user=user, preview=preview
         )
         rnd = None
         if not (preview and preview.mode == "dry_run"):
@@ -108,14 +108,14 @@ class NavigationService:
         }.items():
             norm = _normalise(nodes)
             for n in nodes:
-                if not await has_access_async(n, user):
+                if not await has_access_async(n, user, preview):
                     continue
                 data = candidates.setdefault(
                     n.slug, {"node": n, "scores": defaultdict(float)}
                 )
                 data["scores"][source] = norm[n.slug]
 
-        if rnd and await has_access_async(rnd, user):
+        if rnd and await has_access_async(rnd, user, preview):
             data = candidates.setdefault(
                 rnd.slug, {"node": rnd, "scores": defaultdict(float)}
             )
@@ -162,18 +162,24 @@ class NavigationService:
         return result
 
     async def get_navigation(
-        self, db: AsyncSession, node: Node, user: Optional[User]
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: Optional[User],
+        preview: PreviewContext | None = None,
     ) -> Dict[str, object]:
         user_key = str(user.id) if user else "anon"
         if settings.cache.enable_nav_cache:
             cached = await self._navcache.get_navigation(user_key, node.slug, "auto")
             if cached:
                 return cached
-        transitions = await self.generate_transitions(db, node, user)
+        transitions = await self.generate_transitions(db, node, user, preview)
         data = {
             "mode": "auto",
             "transitions": transitions,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": (
+                preview.now if preview and preview.now else datetime.utcnow()
+            ).isoformat(),
         }
         if settings.cache.enable_nav_cache:
             await self._navcache.set_navigation(

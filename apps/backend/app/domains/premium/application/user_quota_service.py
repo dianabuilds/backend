@@ -32,8 +32,12 @@ async def check_and_consume_quota(
     workspace_id: Any | None = None,
 ) -> dict:
     plans_map = await build_quota_plans_map(db)
-    plan_slug = await get_effective_plan_slug(
-        db, str(user_id) if user_id is not None else None
+    plan_slug = (
+        preview.plan
+        if preview and preview.plan
+        else await get_effective_plan_slug(
+            db, str(user_id) if user_id is not None else None, preview=preview
+        )
     )
     qs = _get_qs()
     qs.set_plans_map(plans_map)
@@ -73,12 +77,14 @@ async def get_quota_status(
     *,
     quota_key: str = "stories",
     scope: str = "month",
+    preview: PreviewContext | None = None,
 ) -> dict:
+    preview = preview or PreviewContext(mode="dry_run")
     return await check_and_consume_quota(
         db,
         user_id,
         quota_key=quota_key,
         amount=0,
         scope=scope,
-        preview=PreviewContext(mode="dry_run"),
+        preview=preview,
     )

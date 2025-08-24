@@ -5,12 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
 
-from app.api.deps import get_current_user_optional
+from app.api.deps import get_current_user_optional, get_preview_context
 from app.core.db.session import get_db
-from app.domains.ai.application.embedding_service import get_embedding, cosine_similarity
+from app.domains.ai.application.embedding_service import (
+    get_embedding,
+    cosine_similarity,
+)
 from app.domains.navigation.application.access_policy import has_access_async
-from app.domains.navigation.infrastructure.repositories.compass_repository import CompassRepository
+from app.domains.navigation.infrastructure.repositories.compass_repository import (
+    CompassRepository,
+)
 from app.core.config import settings
+from app.core.preview import PreviewContext
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.tags.models import Tag
 from app.domains.users.infrastructure.models.user import User
@@ -27,6 +33,7 @@ async def search_nodes(
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
+    preview: PreviewContext = Depends(get_preview_context),
 ):
     stmt = select(Node).where(Node.is_visible == True)  # noqa: E712
     if q:
@@ -43,7 +50,7 @@ async def search_nodes(
     stmt = stmt.offset(offset).limit(limit)
     result = await db.execute(stmt)
     nodes = result.scalars().all()
-    filtered = [n for n in nodes if await has_access_async(n, user)]
+    filtered = [n for n in nodes if await has_access_async(n, user, preview)]
     return [
         {"slug": n.slug, "title": n.title, "tags": n.tag_slugs, "score": 1.0}
         for n in filtered
@@ -56,6 +63,7 @@ async def semantic_search(
     limit: int = 20,
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
+    preview: PreviewContext = Depends(get_preview_context),
 ):
     query_vec = get_embedding(q)
     repo = CompassRepository(db)
@@ -72,14 +80,14 @@ async def semantic_search(
         )
         nodes = (await db.execute(stmt)).scalars().all()
         for n in nodes:
-            if not await has_access_async(n, user):
+            if not await has_access_async(n, user, preview):
                 continue
             score = cosine_similarity(query_vec, n.embedding_vector)
             results.append((n, score))
         results.sort(key=lambda x: x[1], reverse=True)
     else:
         for n, dist in candidates:
-            if not await has_access_async(n, user):
+            if not await has_access_async(n, user, preview):
                 continue
             results.append((n, 1 - dist))
 

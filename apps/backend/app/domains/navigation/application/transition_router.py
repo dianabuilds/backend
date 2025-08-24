@@ -53,6 +53,7 @@ class TransitionProvider(ABC):
         node: Node,
         user: Optional[User],
         workspace_id: UUID,
+        preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         """Return candidate nodes for transition."""
 
@@ -73,6 +74,7 @@ class Policy(ABC):
         user: Optional[User],
         history: Deque[str],
         repeat_filter: RepeatFilter,
+        preview: PreviewContext | None = None,
     ) -> Tuple[Optional[Node], TransitionTrace]:
         """Return next node and trace info or ``None`` if not applicable."""
 
@@ -93,8 +95,11 @@ class ManualTransitionsProvider(TransitionProvider):
         node: Node,
         user: Optional[User],
         workspace_id: UUID,
+        preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
-        transitions = await self._service.get_transitions(db, node, user, workspace_id)
+        transitions = await self._service.get_transitions(
+            db, node, user, workspace_id, preview=preview
+        )
         return [t.to_node for t in transitions]
 
 
@@ -115,8 +120,11 @@ class CompassProvider(TransitionProvider):
         node: Node,
         user: Optional[User],
         workspace_id: UUID,
+        preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
-        nodes = await self._service.get_compass_nodes(db, node, user, self._limit)
+        nodes = await self._service.get_compass_nodes(
+            db, node, user, self._limit, preview=preview
+        )
         return [n for n in nodes if n.workspace_id == workspace_id]
 
 
@@ -135,6 +143,7 @@ class RandomProvider(TransitionProvider):
         node: Node,
         user: Optional[User],
         workspace_id: UUID,
+        preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         from app.core.pagination import scope_by_workspace
         from app.domains.navigation.application.access_policy import has_access_async
@@ -150,7 +159,7 @@ class RandomProvider(TransitionProvider):
         query = scope_by_workspace(query, workspace_id)
         result = await db.execute(query)
         nodes: List[Node] = result.scalars().all()
-        nodes = [n for n in nodes if await has_access_async(n, user)]
+        nodes = [n for n in nodes if await has_access_async(n, user, preview)]
         if not nodes:
             return []
         return [self._rnd.choice(nodes)]
@@ -230,10 +239,16 @@ class ManualPolicy(Policy):
         user: Optional[User],
         history: Deque[str],
         repeat_filter: RepeatFilter,
+        preview: PreviewContext | None = None,
     ) -> Tuple[Optional[Node], TransitionTrace]:
-        candidates = await self.provider.get_transitions(
-            db, node, user, node.workspace_id
-        )
+        try:
+            candidates = await self.provider.get_transitions(
+                db, node, user, node.workspace_id, preview=preview
+            )
+        except TypeError:
+            candidates = await self.provider.get_transitions(
+                db, node, user, node.workspace_id
+            )
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
@@ -254,10 +269,16 @@ class CompassPolicy(Policy):
         user: Optional[User],
         history: Deque[str],
         repeat_filter: RepeatFilter,
+        preview: PreviewContext | None = None,
     ) -> Tuple[Optional[Node], TransitionTrace]:
-        candidates = await self.provider.get_transitions(
-            db, node, user, node.workspace_id
-        )
+        try:
+            candidates = await self.provider.get_transitions(
+                db, node, user, node.workspace_id, preview=preview
+            )
+        except TypeError:
+            candidates = await self.provider.get_transitions(
+                db, node, user, node.workspace_id
+            )
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
@@ -287,10 +308,16 @@ class RandomPolicy(Policy):
         user: Optional[User],
         history: Deque[str],
         repeat_filter: RepeatFilter,
+        preview: PreviewContext | None = None,
     ) -> Tuple[Optional[Node], TransitionTrace]:
-        candidates = await self.provider.get_transitions(
-            db, node, user, node.workspace_id
-        )
+        try:
+            candidates = await self.provider.get_transitions(
+                db, node, user, node.workspace_id, preview=preview
+            )
+        except TypeError:
+            candidates = await self.provider.get_transitions(
+                db, node, user, node.workspace_id
+            )
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
@@ -386,7 +413,7 @@ class TransitionRouter:
 
         for idx, policy in enumerate(policy_order):
             candidate, trace = await policy.choose(
-                db, start, user, self.history, self.repeat_filter
+                db, start, user, self.history, self.repeat_filter, preview
             )
             self.trace.append(trace)
             queries += 1

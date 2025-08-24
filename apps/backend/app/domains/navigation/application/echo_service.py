@@ -13,6 +13,7 @@ from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.navigation.infrastructure.models.transition_models import NodeTrace
 from app.domains.users.infrastructure.models.user import User
 from app.domains.navigation.application.access_policy import has_access_async
+from app.core.preview import PreviewContext
 
 
 class EchoService:
@@ -43,8 +44,10 @@ class EchoService:
         limit: int = 3,
         *,
         user: Optional[User] = None,
+        preview: PreviewContext | None = None,
     ) -> List[Node]:
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        base_now = preview.now if preview and preview.now else datetime.utcnow()
+        cutoff = base_now - timedelta(days=30)
         result = await db.execute(
             select(EchoTrace).where(
                 EchoTrace.from_node_id == node.id,
@@ -68,7 +71,7 @@ class EchoService:
         ordered_nodes: List[Node] = []
         for node_id, _ in counter.most_common(20):
             n = await db.get(Node, uuid.UUID(node_id))
-            if not n or not await has_access_async(n, user):
+            if not n or not await has_access_async(n, user, preview):
                 continue
             ordered_nodes.append(n)
             if len(ordered_nodes) >= limit:

@@ -55,7 +55,7 @@ class CompassService:
                 nodes: list[Node] = []
                 for node_id in ids:
                     n = await db.get(Node, uuid.UUID(node_id))
-                    if not n or not await has_access_async(n, user):
+                    if not n or not await has_access_async(n, user, preview):
                         continue
                     nodes.append(n)
                 return nodes
@@ -101,7 +101,7 @@ class CompassService:
         for cand, dist in candidates_with_dist:
             if cand.id in visited:
                 continue
-            if not await has_access_async(cand, user):
+            if not await has_access_async(cand, user, preview):
                 continue
             if not cand.embedding_vector:
                 continue

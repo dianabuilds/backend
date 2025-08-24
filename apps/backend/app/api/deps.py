@@ -15,12 +15,14 @@ from app.domains.moderation.infrastructure.models.moderation_models import (
 )
 from app.domains.users.infrastructure.models.user import User
 from app.security import bearer_scheme
+from app.core.preview import PreviewContext, get_preview_context
 
 
 async def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
     db: AsyncSession = Depends(get_db),
+    preview: PreviewContext = Depends(get_preview_context),
 ) -> User:
     # Приоритетно берем Bearer из Security-схемы Swagger; если нет — cookie
     token: str | None = None
@@ -62,12 +64,13 @@ async def get_current_user(
     user = result.scalars().first()
     if not user or not user.is_active or user.deleted_at is not None:
         raise HTTPException(status_code=404, detail="User not found")
+    now = preview.now if preview and preview.now else datetime.utcnow()
     result = await db.execute(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
             (UserRestriction.expires_at == None)
-            | (UserRestriction.expires_at > datetime.utcnow()),
+            | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
@@ -81,6 +84,7 @@ async def get_current_user_optional(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
     db: AsyncSession = Depends(get_db),
+    preview: PreviewContext = Depends(get_preview_context),
 ) -> User | None:
     """Return current user if auth header/cookie present, otherwise None."""
     token: str | None = None
@@ -100,12 +104,13 @@ async def get_current_user_optional(
     user = await db.get(User, user_id)
     if not user or not user.is_active or user.deleted_at is not None:
         return None
+    now = preview.now if preview and preview.now else datetime.utcnow()
     result = await db.execute(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
             (UserRestriction.expires_at == None)
-            | (UserRestriction.expires_at > datetime.utcnow()),
+            | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
@@ -115,10 +120,14 @@ async def get_current_user_optional(
     return user
 
 
-async def require_premium(user: User = Depends(get_current_user)) -> User:
-    if not user.is_premium or (
-        user.premium_until and user.premium_until < datetime.utcnow()
-    ):
+async def require_premium(
+    user: User = Depends(get_current_user),
+    preview: PreviewContext = Depends(get_preview_context),
+) -> User:
+    if preview and preview.plan == "premium":
+        return user
+    now = preview.now if preview and preview.now else datetime.utcnow()
+    if not user.is_premium or (user.premium_until and user.premium_until < now):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Premium subscription required",
@@ -171,13 +180,15 @@ def assert_seniority_over(target_user: User, current_user: User) -> None:
 async def ensure_can_post(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    preview: PreviewContext = Depends(get_preview_context),
 ) -> User:
+    now = preview.now if preview and preview.now else datetime.utcnow()
     result = await db.execute(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "post_restrict",
             (UserRestriction.expires_at == None)
-            | (UserRestriction.expires_at > datetime.utcnow()),
+            | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
