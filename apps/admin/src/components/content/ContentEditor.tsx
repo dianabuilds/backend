@@ -8,6 +8,7 @@ import type { GeneralTabProps } from "./GeneralTab.helpers";
 import ContentTab from "./ContentTab";
 import ValidationTab from "./ValidationTab";
 import PublishingTab from "./PublishingTab";
+import RelationsTab from "./relations/RelationsTab";
 import type { OutputData } from "../../types/editorjs";
 
 interface ContentTabProps {
@@ -43,6 +44,12 @@ export default function ContentEditor({
   const plugins: TabPlugin[] = [
     { name: "General", render: () => <GeneralTab {...general} /> },
     { name: "Content", render: () => <ContentTab {...content} /> },
+    {
+      name: "Relations",
+      render: () => (
+        <RelationsTab nodeId={nodeId} slug={general.slug} nodeType={node_type} />
+      ),
+    },
     { name: "Validation", render: () => <ValidationTab /> },
     { name: "Publishing", render: () => <PublishingTab /> },
   ];
