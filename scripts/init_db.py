@@ -13,7 +13,7 @@ current_file = Path(__file__).resolve()
 project_root = current_file.parent.parent
 sys.path.insert(0, str(project_root))
 
-ALEMBIC_CONFIG = project_root / "apps" / "backend" / "alembic.ini"
+ALEMBIC_CONFIG = project_root / "alembic.ini"
 
 # Импортируем настройки приложения
 from apps.backend.app.core.config import settings
