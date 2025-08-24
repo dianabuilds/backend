@@ -74,3 +74,36 @@ export async function bulkDelete(ids: string[]): Promise<void> {
     await deleteTransition(id);
   }
 }
+
+export interface SimulateTransitionsBody {
+  start: string;
+  mode?: string;
+  seed?: number;
+  history?: string[];
+  preview_mode?: string;
+}
+
+export interface TransitionTraceItem {
+  policy?: string | null;
+  candidates: string[];
+  filters: string[];
+  scores: Record<string, any>;
+  chosen?: string | null;
+}
+
+export interface SimulateTransitionsResponse {
+  next?: string | null;
+  reason?: string | null;
+  trace?: TransitionTraceItem[];
+  metrics?: Record<string, any>;
+}
+
+export async function simulateTransitions(
+  body: SimulateTransitionsBody,
+): Promise<SimulateTransitionsResponse> {
+  const res = await api.post<SimulateTransitionsResponse>(
+    `/admin/transitions/simulate`,
+    body,
+  );
+  return res.data || {};
+}

@@ -239,6 +239,12 @@ export default function Sidebar() {
           icon: "activity",
         },
         {
+          id: "ops-transitions-trace",
+          label: "Transitions Trace",
+          path: "/transitions/trace",
+          icon: "activity",
+        },
+        {
           id: "ops-trace",
           label: "Trace",
           path: "/traces",

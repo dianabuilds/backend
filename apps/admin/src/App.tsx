@@ -37,6 +37,7 @@ import TagMerge from "./pages/TagMerge";
 import Tags from "./pages/Tags";
 import Traces from "./pages/Traces";
 import Transitions from "./pages/Transitions";
+import TransitionsTrace from "./pages/TransitionsTrace";
 import Users from "./pages/Users";
 import Workspaces from "./pages/Workspaces";
 import WorkspaceSettings from "./pages/WorkspaceSettings";
@@ -85,6 +86,7 @@ export default function App() {
                       <Route path="tags" element={<Tags />} />
                       <Route path="tags/merge" element={<TagMerge />} />
                       <Route path="transitions" element={<Transitions />} />
+                      <Route path="transitions/trace" element={<TransitionsTrace />} />
                       <Route path="moderation" element={<ModerationInbox />} />
                       <Route
                         path="moderation/cases/:id"
