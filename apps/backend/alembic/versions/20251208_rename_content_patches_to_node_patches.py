@@ -5,7 +5,11 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 revision = "20251208_rename_content_patches_to_node_patches"
-down_revision = "20251207_add_workspace_indexes"
+# Merge together migrations that added "content_patches" and subsequent index changes.
+down_revision = (
+    "20251207_add_workspace_indexes",
+    "20251205_content_patches",
+)
 branch_labels = None
 depends_on = None
 
