@@ -1,4 +1,5 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import StatusBadge from "../StatusBadge";
 import VersionBadge from "../VersionBadge";
@@ -7,23 +8,57 @@ import GeneralTab from "./GeneralTab";
 import type { GeneralTabProps } from "./GeneralTab.helpers";
 
 interface ContentEditorProps {
+  /** Identifier of the node being edited */
+  nodeId?: string;
+  /** Type of the node (quest, world, etc) */
+  node_type?: string;
+  /** Editor title */
   title: string;
+  /** Current status */
   status?: string;
+  /** Available statuses */
+  statuses?: string[];
+  /** Current version */
   version?: number;
+  /** Available versions */
+  versions?: number[];
+  /** Data for the "General" tab */
   general: GeneralTabProps;
+  /** Renderer for the main content tab */
   renderContent: () => ReactNode;
-  actions?: ReactNode;
+  /** Toolbar displayed on the right side of the header */
+  toolbar?: ReactNode;
 }
 
 export default function ContentEditor({
+  nodeId,
+  node_type,
   title,
   status,
+  statuses,
   version,
+  versions,
   general,
   renderContent,
-  actions,
+  toolbar,
 }: ContentEditorProps) {
-  const [active, setActive] = useState<string>(EDITOR_TABS[0]);
+  const [params, setParams] = useSearchParams();
+  const initialTab = params.get("tab") || EDITOR_TABS[0];
+  const [active, setActive] = useState<string>(initialTab);
+
+  useEffect(() => {
+    const tab = params.get("tab");
+    if (tab && EDITOR_TABS.includes(tab) && tab !== active) setActive(tab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
+  useEffect(() => {
+    setParams((p) => {
+      const next = new URLSearchParams(p);
+      next.set("tab", active);
+      return next;
+    });
+  }, [active, setParams]);
 
   const renderTab = (tab: string) => {
     switch (tab) {
@@ -39,14 +74,24 @@ export default function ContentEditor({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      data-node-id={nodeId}
+      data-node-type={node_type}
+      className="flex flex-col h-full"
+    >
       <div className="flex items-center justify-between border-b p-4">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-semibold">{title}</h1>
-          {status ? <StatusBadge status={status} /> : null}
-          {version ? <VersionBadge version={version} /> : null}
+          {statuses?.map((s) => (
+            <StatusBadge key={s} status={s} />
+          ))}
+          {!statuses && status ? <StatusBadge status={status} /> : null}
+          {versions?.map((v) => (
+            <VersionBadge key={v} version={v} />
+          ))}
+          {!versions && version ? <VersionBadge version={version} /> : null}
         </div>
-        {actions}
+        {toolbar}
       </div>
       <div className="flex flex-col flex-1">
         <div className="border-b px-4 flex gap-4">

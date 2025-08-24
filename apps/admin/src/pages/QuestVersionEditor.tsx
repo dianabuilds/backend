@@ -11,13 +11,25 @@ import {
 } from "../api/questEditor";
 import { getQuestMeta, updateQuestMeta } from "../api/questEditor";
 import CollapsibleSection from "../components/CollapsibleSection";
+import ContentEditor from "../components/content/ContentEditor";
 import GraphCanvas from "../components/GraphCanvas";
 import MediaPicker from "../components/MediaPicker";
-import NodeEditorModal from "../components/NodeEditorModal";
-import type { NodeEditorData } from "../components/NodeEditorModal.helpers";
-import TagPicker, { type TagOut } from "../components/tags/TagPicker";
 import { useToast } from "../components/ToastProvider";
+import TagPicker, { type TagOut } from "../components/tags/TagPicker";
+import type { OutputData } from "../types/editorjs";
 import PageLayout from "./_shared/PageLayout";
+
+interface NodeEditorData {
+  id: string;
+  title: string;
+  slug: string;
+  subtitle: string;
+  cover_url: string | null;
+  tags: TagOut[];
+  allow_comments: boolean;
+  is_premium_only: boolean;
+  contentData: OutputData;
+}
 
 export default function QuestVersionEditor() {
   const { id } = useParams<{ id: string }>();
@@ -162,6 +174,7 @@ export default function QuestVersionEditor() {
     const data: NodeEditorData = {
       id: n.key,
       title: n.title,
+      slug: "",
       subtitle: "",
       cover_url: null,
       tags: [],
@@ -901,16 +914,79 @@ export default function QuestVersionEditor() {
           </div>
         </div>
       )}
-      <NodeEditorModal
-        open={editorOpen}
-        node={editorNode}
-        onChange={(patch) =>
-          setEditorNode((prev) => (prev ? { ...prev, ...patch } : prev))
-        }
-        onClose={() => setEditorOpen(false)}
-        onCommit={commitEditor}
-        busy={savingNode}
-      />
+      {editorOpen && editorNode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white w-full max-w-[95vw] md:max-w-7xl max-h-[92vh] flex flex-col">
+            <ContentEditor
+              nodeId={editorNode.id}
+              node_type="node"
+              title={editorNode.title || "Node"}
+              statuses={["draft"]}
+              versions={[1]}
+              toolbar={
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="px-2 py-1 border rounded"
+                    disabled={savingNode}
+                    onClick={() => commitEditor("save")}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-1 border rounded"
+                    onClick={() => setEditorOpen(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+              }
+              general={{
+                title: editorNode.title,
+                slug: editorNode.slug,
+                tags: editorNode.tags,
+                cover: editorNode.cover_url,
+                onTitleChange: (v) =>
+                  setEditorNode((p) => (p ? { ...p, title: v } : p)),
+                onSlugChange: (v) =>
+                  setEditorNode((p) => (p ? { ...p, slug: v } : p)),
+                onTagsChange: (t) =>
+                  setEditorNode((p) => (p ? { ...p, tags: t } : p)),
+                onCoverChange: (url) =>
+                  setEditorNode((p) => (p ? { ...p, cover_url: url } : p)),
+              }}
+              renderContent={() => (
+                <textarea
+                  className="w-full h-40 border rounded p-2"
+                  placeholder="Node content..."
+                  value={
+                    editorNode.contentData?.blocks?.[0]?.data?.text ?? ""
+                  }
+                  onChange={(e) =>
+                    setEditorNode((p) =>
+                      p
+                        ? {
+                            ...p,
+                            contentData: {
+                              ...p.contentData,
+                              blocks: [
+                                {
+                                  type: "paragraph",
+                                  data: { text: e.target.value },
+                                },
+                              ],
+                            },
+                          }
+                        : p,
+                    )
+                  }
+                />
+              )}
+            />
+          </div>
+        </div>
+      )}
     </PageLayout>
   );
 }
