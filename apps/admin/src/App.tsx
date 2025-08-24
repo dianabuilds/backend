@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AuthProvider } from "./auth/AuthContext";
 import ComingSoon from "./components/ComingSoon";
@@ -27,6 +27,7 @@ import NotificationCampaignEditor from "./pages/NotificationCampaignEditor";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import QuestsList from "./pages/QuestsList";
+import NodeEditor from "./pages/NodeEditor";
 import QuestVersionEditor from "./pages/QuestVersionEditor";
 import RateLimitTools from "./pages/RateLimitTools";
 import Restrictions from "./pages/Restrictions";
@@ -122,9 +123,14 @@ export default function App() {
                       <Route path="profile" element={<Profile />} />
                       <Route path="quests" element={<QuestsList />} />
                       <Route
+                        path="quests/editor"
+                        element={<Navigate to="/nodes/new" replace />}
+                      />
+                      <Route
                         path="quests/version/:id"
                         element={<QuestVersionEditor />}
                       />
+                      <Route path="nodes/:id" element={<NodeEditor />} />
                       <Route
                         path="search"
                         element={<ComingSoon title="Search" />}
