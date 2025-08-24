@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from "react";
-import GeneralTab from "./GeneralTab";
-import type { GeneralTabProps } from "./GeneralTab.helpers";
+import { type ReactNode, useState } from "react";
+
 import StatusBadge from "../StatusBadge";
 import VersionBadge from "../VersionBadge";
 import { EDITOR_TABS } from "./ContentEditor.helpers";
+import GeneralTab from "./GeneralTab";
+import type { GeneralTabProps } from "./GeneralTab.helpers";
 
 interface ContentEditorProps {
   title: string;
@@ -31,7 +32,9 @@ export default function ContentEditor({
       case "Content":
         return renderContent();
       default:
-        return <div className="text-sm text-gray-500">No content for {tab} yet.</div>;
+        return (
+          <div className="text-sm text-gray-500">No content for {tab} yet.</div>
+        );
     }
   };
 
@@ -51,7 +54,9 @@ export default function ContentEditor({
             <button
               key={t}
               className={`py-2 text-sm ${
-                active === t ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-600"
+                active === t
+                  ? "border-b-2 border-blue-500 text-blue-600"
+                  : "text-gray-600"
               }`}
               onClick={() => setActive(t)}
             >

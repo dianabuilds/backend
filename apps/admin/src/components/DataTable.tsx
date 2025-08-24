@@ -1,4 +1,5 @@
 import React from "react";
+
 import type { Column } from "./DataTable.helpers";
 import Skeleton from "./Skeleton";
 
@@ -60,15 +61,25 @@ export default function DataTable<T>({
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                   >
                     {columns.map((c) => (
-                      <td key={c.key} className={`px-2 py-1 ${c.className || ""}`}>
-                        {c.render ? c.render(row) : c.accessor ? c.accessor(row) : (row as any)[c.key]}
+                      <td
+                        key={c.key}
+                        className={`px-2 py-1 ${c.className || ""}`}
+                      >
+                        {c.render
+                          ? c.render(row)
+                          : c.accessor
+                            ? c.accessor(row)
+                            : (row as any)[c.key]}
                       </td>
                     ))}
                   </tr>
                 ))}
             {!loading && (rows || []).length === 0 ? (
               <tr>
-                <td className="px-2 py-3 text-gray-500" colSpan={columns.length}>
+                <td
+                  className="px-2 py-3 text-gray-500"
+                  colSpan={columns.length}
+                >
                   {emptyText || "Нет данных"}
                 </td>
               </tr>

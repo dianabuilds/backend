@@ -1,15 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getVersion, putGraph, publishVersion, validateVersion, autofixVersion, type VersionGraph } from "../api/questEditor";
-import PageLayout from "./_shared/PageLayout";
+
+import {
+  autofixVersion,
+  getVersion,
+  publishVersion,
+  putGraph,
+  validateVersion,
+  type VersionGraph,
+} from "../api/questEditor";
+import { getQuestMeta, updateQuestMeta } from "../api/questEditor";
+import CollapsibleSection from "../components/CollapsibleSection";
+import GraphCanvas from "../components/GraphCanvas";
+import MediaPicker from "../components/MediaPicker";
 import NodeEditorModal from "../components/NodeEditorModal";
 import type { NodeEditorData } from "../components/NodeEditorModal.helpers";
-import MediaPicker from "../components/MediaPicker";
-import { getQuestMeta, updateQuestMeta } from "../api/questEditor";
-import GraphCanvas from "../components/GraphCanvas";
 import TagPicker, { type TagOut } from "../components/tags/TagPicker";
-import CollapsibleSection from "../components/CollapsibleSection";
 import { useToast } from "../components/ToastProvider";
+import PageLayout from "./_shared/PageLayout";
 
 export default function QuestVersionEditor() {
   const { id } = useParams<{ id: string }>();
@@ -17,10 +25,16 @@ export default function QuestVersionEditor() {
   const [err, setErr] = useState<string | null>(null);
   const [nodeKey, setNodeKey] = useState("");
   const [nodeTitle, setNodeTitle] = useState("");
-  const [nodeType, setNodeType] = useState<"start" | "normal" | "end">("normal");
+  const [nodeType, setNodeType] = useState<"start" | "normal" | "end">(
+    "normal",
+  );
   const [edgeFrom, setEdgeFrom] = useState("");
   const [edgeTo, setEdgeTo] = useState("");
-  const [validate, setValidate] = useState<{ ok: boolean; errors: string[]; warnings: string[] } | null>(null);
+  const [validate, setValidate] = useState<{
+    ok: boolean;
+    errors: string[];
+    warnings: string[];
+  } | null>(null);
   const [savingGraph, setSavingGraph] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
@@ -36,19 +50,16 @@ export default function QuestVersionEditor() {
   const [edgesPageSize, setEdgesPageSize] = useState(30);
 
   // Quest meta
-  const [meta, setMeta] = useState<
-    | {
-        title: string;
-        subtitle?: string | null;
-        description?: string | null;
-        cover_image?: string | null;
-        price?: number | null;
-        is_premium_only?: boolean;
-        allow_comments?: boolean;
-        tags?: TagOut[];
-      }
-    | null
-  >(null);
+  const [meta, setMeta] = useState<{
+    title: string;
+    subtitle?: string | null;
+    description?: string | null;
+    cover_image?: string | null;
+    price?: number | null;
+    is_premium_only?: boolean;
+    allow_comments?: boolean;
+    tags?: TagOut[];
+  } | null>(null);
   const [savingMeta, setSavingMeta] = useState(false);
 
   // Modal editor state
@@ -88,7 +99,9 @@ export default function QuestVersionEditor() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => {
+    load();
+  }, [id]);
 
   const slugify = (s: string) =>
     s
@@ -108,10 +121,15 @@ export default function QuestVersionEditor() {
       return;
     }
     // первая нода всегда стартовая
-    const typeToUse: "start" | "normal" | "end" = graph.nodes.length === 0 ? "start" : nodeType;
+    const typeToUse: "start" | "normal" | "end" =
+      graph.nodes.length === 0 ? "start" : nodeType;
     // Разрешаем пустой title как черновик
-    setGraph({ ...graph, nodes: [...graph.nodes, { key, title: nodeTitle || "", type: typeToUse }] });
-    setNodeKey(""); setNodeTitle("");
+    setGraph({
+      ...graph,
+      nodes: [...graph.nodes, { key, title: nodeTitle || "", type: typeToUse }],
+    });
+    setNodeKey("");
+    setNodeTitle("");
     setNodeType("normal");
   };
 
@@ -121,12 +139,20 @@ export default function QuestVersionEditor() {
       alert("Нельзя создавать петлю (из узла в самого себя)");
       return;
     }
-    if (graph.edges.some((e) => e.from_node_key === edgeFrom && e.to_node_key === edgeTo)) {
+    if (
+      graph.edges.some(
+        (e) => e.from_node_key === edgeFrom && e.to_node_key === edgeTo,
+      )
+    ) {
       alert("Такое ребро уже есть");
       return;
     }
-    setGraph({ ...graph, edges: [...graph.edges, { from_node_key: edgeFrom, to_node_key: edgeTo }] });
-    setEdgeFrom(""); setEdgeTo("");
+    setGraph({
+      ...graph,
+      edges: [...graph.edges, { from_node_key: edgeFrom, to_node_key: edgeTo }],
+    });
+    setEdgeFrom("");
+    setEdgeTo("");
   };
 
   const startEditNode = (k: string) => {
@@ -141,7 +167,11 @@ export default function QuestVersionEditor() {
       tags: [],
       allow_comments: true,
       is_premium_only: false,
-      contentData: (n as any).content ?? { time: Date.now(), blocks: [], version: "2.30.7" },
+      contentData: (n as any).content ?? {
+        time: Date.now(),
+        blocks: [],
+        version: "2.30.7",
+      },
     };
     setEditorNode(data);
     setEditorOpen(true);
@@ -153,7 +183,8 @@ export default function QuestVersionEditor() {
     if (!graph) return [];
     if (!q) return graph.nodes;
     return graph.nodes.filter(
-      (n) => n.key.toLowerCase().includes(q) || n.title.toLowerCase().includes(q),
+      (n) =>
+        n.key.toLowerCase().includes(q) || n.title.toLowerCase().includes(q),
     );
   }, [graph, nodesQuery]);
 
@@ -162,7 +193,11 @@ export default function QuestVersionEditor() {
     [filteredNodes.length, nodesPageSize],
   );
   const pagedNodes = useMemo(
-    () => filteredNodes.slice((nodesPage - 1) * nodesPageSize, nodesPage * nodesPageSize),
+    () =>
+      filteredNodes.slice(
+        (nodesPage - 1) * nodesPageSize,
+        nodesPage * nodesPageSize,
+      ),
     [filteredNodes, nodesPage, nodesPageSize],
   );
 
@@ -182,7 +217,11 @@ export default function QuestVersionEditor() {
     [filteredEdges.length, edgesPageSize],
   );
   const pagedEdges = useMemo(
-    () => filteredEdges.slice((edgesPage - 1) * edgesPageSize, edgesPage * edgesPageSize),
+    () =>
+      filteredEdges.slice(
+        (edgesPage - 1) * edgesPageSize,
+        edgesPage * edgesPageSize,
+      ),
     [filteredEdges, edgesPage, edgesPageSize],
   );
 
@@ -194,7 +233,7 @@ export default function QuestVersionEditor() {
       const nextNodes = graph.nodes.map((n) =>
         n.key === editorNode.id
           ? { ...n, title: editorNode.title, content: editorNode.contentData }
-          : n
+          : n,
       );
       setGraph({ ...graph, nodes: nextNodes });
       setEditorOpen(false);
@@ -205,10 +244,14 @@ export default function QuestVersionEditor() {
 
   const deleteNode = (key: string) => {
     if (!graph) return;
-    const ok = confirm(`Delete node "${key}"? All connected edges will be removed.`);
+    const ok = confirm(
+      `Delete node "${key}"? All connected edges will be removed.`,
+    );
     if (!ok) return;
     const nextNodes = graph.nodes.filter((n) => n.key !== key);
-    const nextEdges = graph.edges.filter((e) => e.from_node_key !== key && e.to_node_key !== key);
+    const nextEdges = graph.edges.filter(
+      (e) => e.from_node_key !== key && e.to_node_key !== key,
+    );
     setGraph({ ...graph, nodes: nextNodes, edges: nextEdges });
   };
 
@@ -290,125 +333,164 @@ export default function QuestVersionEditor() {
       });
       alert("Quest meta saved");
     } catch (e) {
-      alert(`Failed to save meta: ${e instanceof Error ? e.message : String(e)}`);
+      alert(
+        `Failed to save meta: ${e instanceof Error ? e.message : String(e)}`,
+      );
     } finally {
       setSavingMeta(false);
     }
   };
 
   return (
-    <PageLayout title="Quest Version Editor" subtitle={id || ""} actions={
-      <div className="flex items-center gap-3">
-        {lastSavedAt && <span className="text-xs text-gray-500">Saved {lastSavedAt}</span>}
-        <button
-          className="px-3 py-1 rounded border"
-          onClick={async () => {
-            if (!id) return;
-            try {
-              await autofixVersion(id);
-              await load();
-              const res = await validateVersion(id);
-              setValidate(res);
-            } catch (e) {
-              alert(e instanceof Error ? e.message : String(e));
-            }
-          }}
-        >
-          Autofix (basic)
-        </button>
-        <button
-          className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800 disabled:opacity-50"
-          onClick={onSave}
-          disabled={savingGraph}
-        >
-          {savingGraph ? "Saving…" : "Save & Validate"}
-        </button>
-        <button className="px-3 py-1 rounded bg-green-600 text-white" onClick={onPublish}>Publish</button>
-      </div>
-    }>
-        {err && <div className="text-red-600 text-sm">{err}</div>}
-        {!graph ? (
-          <div className="text-sm text-gray-500">Loading...</div>
-        ) : (
-          <div className="mt-4 grid grid-cols-3 gap-6">
+    <PageLayout
+      title="Quest Version Editor"
+      subtitle={id || ""}
+      actions={
+        <div className="flex items-center gap-3">
+          {lastSavedAt && (
+            <span className="text-xs text-gray-500">Saved {lastSavedAt}</span>
+          )}
+          <button
+            className="px-3 py-1 rounded border"
+            onClick={async () => {
+              if (!id) return;
+              try {
+                await autofixVersion(id);
+                await load();
+                const res = await validateVersion(id);
+                setValidate(res);
+              } catch (e) {
+                alert(e instanceof Error ? e.message : String(e));
+              }
+            }}
+          >
+            Autofix (basic)
+          </button>
+          <button
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800 disabled:opacity-50"
+            onClick={onSave}
+            disabled={savingGraph}
+          >
+            {savingGraph ? "Saving…" : "Save & Validate"}
+          </button>
+          <button
+            className="px-3 py-1 rounded bg-green-600 text-white"
+            onClick={onPublish}
+          >
+            Publish
+          </button>
+        </div>
+      }
+    >
+      {err && <div className="text-red-600 text-sm">{err}</div>}
+      {!graph ? (
+        <div className="text-sm text-gray-500">Loading...</div>
+      ) : (
+        <div className="mt-4 grid grid-cols-3 gap-6">
           {/* Настройки квеста */}
           <div className="col-span-3">
             <CollapsibleSection title="Quest settings" defaultOpen={true}>
-              {!meta ? <div className="text-sm text-gray-500">Loading meta…</div> : (
+              {!meta ? (
+                <div className="text-sm text-gray-500">Loading meta…</div>
+              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="md:col-span-2 space-y-2">
-                  <input
-                    className="w-full text-2xl font-bold mb-2 outline-none border-b pb-2 bg-transparent"
-                    placeholder="Title"
-                    value={meta.title}
-                    onChange={(e) => setMeta({ ...meta, title: e.target.value })}
-                  />
-                  <input
-                    className="w-full text-base mb-2 outline-none border-b pb-2 bg-transparent"
-                    placeholder="Subtitle (optional)"
-                    value={meta.subtitle || ""}
-                    onChange={(e) => setMeta({ ...meta, subtitle: e.target.value })}
-                  />
-                  <textarea
-                    className="w-full border rounded px-2 py-1"
-                    placeholder="Description / Annotation"
-                    rows={4}
-                    value={meta.description || ""}
-                    onChange={(e) => setMeta({ ...meta, description: e.target.value })}
-                  />
-                  <TagPicker
-                    value={meta.tags || []}
-                    onChange={(tags) => setMeta({ ...meta, tags })}
-                  />
-                  <div className="flex items-center gap-6">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={!!meta.allow_comments}
-                        onChange={(e) => setMeta({ ...meta, allow_comments: e.target.checked })}
-                      />
-                      <span>💬 Allow comments</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={!!meta.is_premium_only}
-                        onChange={(e) => setMeta({ ...meta, is_premium_only: e.target.checked })}
-                      />
-                      <span>⭐ Premium only</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <span>💰 Price</span>
-                      <input
-                        type="number"
-                        min={0}
-                        className="border rounded px-2 py-1 w-32"
-                        value={meta.price ?? 0}
-                        onChange={(e) => setMeta({ ...meta, price: Number(e.target.value) })}
-                      />
-                    </label>
+                  <div className="md:col-span-2 space-y-2">
+                    <input
+                      className="w-full text-2xl font-bold mb-2 outline-none border-b pb-2 bg-transparent"
+                      placeholder="Title"
+                      value={meta.title}
+                      onChange={(e) =>
+                        setMeta({ ...meta, title: e.target.value })
+                      }
+                    />
+                    <input
+                      className="w-full text-base mb-2 outline-none border-b pb-2 bg-transparent"
+                      placeholder="Subtitle (optional)"
+                      value={meta.subtitle || ""}
+                      onChange={(e) =>
+                        setMeta({ ...meta, subtitle: e.target.value })
+                      }
+                    />
+                    <textarea
+                      className="w-full border rounded px-2 py-1"
+                      placeholder="Description / Annotation"
+                      rows={4}
+                      value={meta.description || ""}
+                      onChange={(e) =>
+                        setMeta({ ...meta, description: e.target.value })
+                      }
+                    />
+                    <TagPicker
+                      value={meta.tags || []}
+                      onChange={(tags) => setMeta({ ...meta, tags })}
+                    />
+                    <div className="flex items-center gap-6">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={!!meta.allow_comments}
+                          onChange={(e) =>
+                            setMeta({
+                              ...meta,
+                              allow_comments: e.target.checked,
+                            })
+                          }
+                        />
+                        <span>💬 Allow comments</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={!!meta.is_premium_only}
+                          onChange={(e) =>
+                            setMeta({
+                              ...meta,
+                              is_premium_only: e.target.checked,
+                            })
+                          }
+                        />
+                        <span>⭐ Premium only</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <span>💰 Price</span>
+                        <input
+                          type="number"
+                          min={0}
+                          className="border rounded px-2 py-1 w-32"
+                          value={meta.price ?? 0}
+                          onChange={(e) =>
+                            setMeta({ ...meta, price: Number(e.target.value) })
+                          }
+                        />
+                      </label>
+                    </div>
                   </div>
-                </div>
                   <div>
                     <h4 className="font-semibold mb-2">Cover</h4>
                     <MediaPicker
                       value={meta.cover_image || null}
-                      onChange={(url) => setMeta({ ...meta, cover_image: url || null })}
+                      onChange={(url) =>
+                        setMeta({ ...meta, cover_image: url || null })
+                      }
                       height={240}
                       className="w-[180px]"
                     />
                   </div>
-                <div className="md:col-span-3 flex justify-end">
-                  <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={onSaveMeta} disabled={savingMeta}>
-                    {savingMeta ? "Saving…" : "Save meta"}
-                  </button>
+                  <div className="md:col-span-3 flex justify-end">
+                    <button
+                      className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+                      onClick={onSaveMeta}
+                      disabled={savingMeta}
+                    >
+                      {savingMeta ? "Saving…" : "Save meta"}
+                    </button>
+                  </div>
                 </div>
-              </div>
               )}
             </CollapsibleSection>
           </div>
 
-            <div className="col-span-2 space-y-4">
+          <div className="col-span-2 space-y-4">
             <CollapsibleSection title="Nodes" defaultOpen={true}>
               {/* Панель управления списком нод: поиск, размер страницы, пагинация, раскладка */}
               <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -449,7 +531,9 @@ export default function QuestVersionEditor() {
                   </span>
                   <button
                     className="px-2 py-1 rounded border disabled:opacity-50"
-                    onClick={() => setNodesPage((p) => Math.min(nodesPageCount, p + 1))}
+                    onClick={() =>
+                      setNodesPage((p) => Math.min(nodesPageCount, p + 1))
+                    }
                     disabled={nodesPage >= nodesPageCount}
                   >
                     Next
@@ -465,20 +549,35 @@ export default function QuestVersionEditor() {
                 </div>
               </div>
 
-              <div className={nodesMultiColumn ? "grid md:grid-cols-2 lg:grid-cols-3 gap-2" : ""}>
+              <div
+                className={
+                  nodesMultiColumn
+                    ? "grid md:grid-cols-2 lg:grid-cols-3 gap-2"
+                    : ""
+                }
+              >
                 <input
                   className="border rounded px-2 py-1"
                   placeholder="key (lowercase, a-z0-9_-)"
                   value={nodeKey}
                   onChange={(e) => setNodeKey(slugify(e.target.value))}
                 />
-                <input className="border rounded px-2 py-1" placeholder="title" value={nodeTitle} onChange={(e) => setNodeTitle(e.target.value)} />
+                <input
+                  className="border rounded px-2 py-1"
+                  placeholder="title"
+                  value={nodeTitle}
+                  onChange={(e) => setNodeTitle(e.target.value)}
+                />
                 <select
                   className="border rounded px-2 py-1"
                   value={graph && graph.nodes.length === 0 ? "start" : nodeType}
                   disabled={!!graph && graph.nodes.length === 0}
                   onChange={(e) => setNodeType(e.target.value as any)}
-                  title={graph && graph.nodes.length === 0 ? "The first node is always start" : undefined}
+                  title={
+                    graph && graph.nodes.length === 0
+                      ? "The first node is always start"
+                      : undefined
+                  }
                 >
                   <option value="normal">normal</option>
                   <option value="start">start</option>
@@ -487,26 +586,47 @@ export default function QuestVersionEditor() {
                 <button
                   className="px-3 py-1 rounded bg-blue-600 text-white"
                   onClick={addNode}
-                  disabled={!nodeKey || (!!graph.nodes.find((n) => n.key === slugify(nodeKey)))}
-                  title={graph.nodes.find((n) => n.key === slugify(nodeKey)) ? "Duplicate key" : ""}
+                  disabled={
+                    !nodeKey ||
+                    !!graph.nodes.find((n) => n.key === slugify(nodeKey))
+                  }
+                  title={
+                    graph.nodes.find((n) => n.key === slugify(nodeKey))
+                      ? "Duplicate key"
+                      : ""
+                  }
                 >
                   Add
                 </button>
               </div>
-              <ul className={nodesMultiColumn ? "text-sm contents" : "text-sm space-y-1"}>
+              <ul
+                className={
+                  nodesMultiColumn ? "text-sm contents" : "text-sm space-y-1"
+                }
+              >
                 {pagedNodes.map((n) => (
-                  <li key={n.key} className="border rounded px-2 py-1 flex items-center justify-between">
-                    <span><b>{n.key}</b> — {n.title}</span>
+                  <li
+                    key={n.key}
+                    className="border rounded px-2 py-1 flex items-center justify-between"
+                  >
+                    <span>
+                      <b>{n.key}</b> — {n.title}
+                    </span>
                     <div className="flex items-center gap-2">
                       <label className="text-xs text-gray-500">Type:</label>
                       <select
                         className="border rounded px-1 py-0.5 text-xs"
                         value={(n as any).type || "normal"}
                         onChange={(e) => {
-                          const t = e.target.value as "start" | "normal" | "end";
+                          const t = e.target.value as
+                            | "start"
+                            | "normal"
+                            | "end";
                           setGraph({
                             ...graph,
-                            nodes: graph.nodes.map((x) => (x.key === n.key ? { ...x, type: t } : x)),
+                            nodes: graph.nodes.map((x) =>
+                              x.key === n.key ? { ...x, type: t } : x,
+                            ),
                           });
                         }}
                       >
@@ -514,7 +634,12 @@ export default function QuestVersionEditor() {
                         <option value="start">start</option>
                         <option value="end">end</option>
                       </select>
-                      <button className="px-2 py-0.5 rounded border" onClick={() => startEditNode(n.key)}>Edit</button>
+                      <button
+                        className="px-2 py-0.5 rounded border"
+                        onClick={() => startEditNode(n.key)}
+                      >
+                        Edit
+                      </button>
                       <button
                         className="px-2 py-0.5 rounded border text-red-600 border-red-300"
                         onClick={() => deleteNode(n.key)}
@@ -567,7 +692,9 @@ export default function QuestVersionEditor() {
                   </span>
                   <button
                     className="px-2 py-1 rounded border disabled:opacity-50"
-                    onClick={() => setEdgesPage((p) => Math.min(edgesPageCount, p + 1))}
+                    onClick={() =>
+                      setEdgesPage((p) => Math.min(edgesPageCount, p + 1))
+                    }
                     disabled={edgesPage >= edgesPageCount}
                   >
                     Next
@@ -576,22 +703,47 @@ export default function QuestVersionEditor() {
               </div>
 
               <div className="flex gap-2 mb-2">
-                <select className="border rounded px-2 py-1" value={edgeFrom} onChange={(e) => setEdgeFrom(e.target.value)}>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={edgeFrom}
+                  onChange={(e) => setEdgeFrom(e.target.value)}
+                >
                   <option value="">from…</option>
-                  {graph.nodes.map((n) => <option key={`f-${n.key}`} value={n.key}>{n.key}</option>)}
+                  {graph.nodes.map((n) => (
+                    <option key={`f-${n.key}`} value={n.key}>
+                      {n.key}
+                    </option>
+                  ))}
                 </select>
-                <select className="border rounded px-2 py-1" value={edgeTo} onChange={(e) => setEdgeTo(e.target.value)}>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={edgeTo}
+                  onChange={(e) => setEdgeTo(e.target.value)}
+                >
                   <option value="">to…</option>
-                  {graph.nodes.map((n) => <option key={`t-${n.key}`} value={n.key}>{n.key}</option>)}
+                  {graph.nodes.map((n) => (
+                    <option key={`t-${n.key}`} value={n.key}>
+                      {n.key}
+                    </option>
+                  ))}
                 </select>
-                <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={addEdge} disabled={!edgeFrom || !edgeTo || edgeFrom === edgeTo}>Add</button>
+                <button
+                  className="px-3 py-1 rounded bg-blue-600 text-white"
+                  onClick={addEdge}
+                  disabled={!edgeFrom || !edgeTo || edgeFrom === edgeTo}
+                >
+                  Add
+                </button>
               </div>
               <ul className="text-sm space-y-1">
                 {pagedEdges.map((e, i) => {
                   // Индекс в исходном массиве нужен для редактирования/удаления
                   const idx = filteredEdges.indexOf(e);
                   return (
-                    <li key={`${e.from_node_key}->${e.to_node_key}-${i}`} className="border rounded px-2 py-1 flex items-center gap-2">
+                    <li
+                      key={`${e.from_node_key}->${e.to_node_key}-${i}`}
+                      className="border rounded px-2 py-1 flex items-center gap-2"
+                    >
                       <select
                         className="border rounded px-1 py-0.5 text-xs"
                         value={e.from_node_key}
@@ -599,11 +751,17 @@ export default function QuestVersionEditor() {
                           const val = ev.target.value;
                           setGraph({
                             ...graph,
-                            edges: graph.edges.map((x, j) => (j === idx ? { ...x, from_node_key: val } : x)),
+                            edges: graph.edges.map((x, j) =>
+                              j === idx ? { ...x, from_node_key: val } : x,
+                            ),
                           });
                         }}
                       >
-                        {graph.nodes.map((n) => <option key={`ef-${n.key}`} value={n.key}>{n.key}</option>)}
+                        {graph.nodes.map((n) => (
+                          <option key={`ef-${n.key}`} value={n.key}>
+                            {n.key}
+                          </option>
+                        ))}
                       </select>
                       <span>→</span>
                       <select
@@ -613,16 +771,25 @@ export default function QuestVersionEditor() {
                           const val = ev.target.value;
                           setGraph({
                             ...graph,
-                            edges: graph.edges.map((x, j) => (j === idx ? { ...x, to_node_key: val } : x)),
+                            edges: graph.edges.map((x, j) =>
+                              j === idx ? { ...x, to_node_key: val } : x,
+                            ),
                           });
                         }}
                       >
-                        {graph.nodes.map((n) => <option key={`et-${n.key}`} value={n.key}>{n.key}</option>)}
+                        {graph.nodes.map((n) => (
+                          <option key={`et-${n.key}`} value={n.key}>
+                            {n.key}
+                          </option>
+                        ))}
                       </select>
                       <button
                         className="ml-auto px-2 py-0.5 rounded border text-red-600 border-red-300"
                         onClick={() => {
-                          setGraph({ ...graph, edges: graph.edges.filter((_, j) => j !== idx) });
+                          setGraph({
+                            ...graph,
+                            edges: graph.edges.filter((_, j) => j !== idx),
+                          });
                         }}
                         title="Delete edge"
                       >
@@ -632,72 +799,104 @@ export default function QuestVersionEditor() {
                   );
                 })}
               </ul>
-              </CollapsibleSection>
-            </div>
-            <div className="col-span-1">
-              <CollapsibleSection title="Validation report">
-                <div className="mb-2 flex items-center gap-2">
-                  <button
-                    className="px-2 py-1 rounded border"
-                    onClick={async () => {
-                      if (!id) return;
-                      try {
-                        const res = await validateVersion(id);
-                        setValidate(res);
-                      } catch (e) {
-                        alert(e instanceof Error ? e.message : String(e));
-                      }
-                    }}
-                  >
-                    Validate
-                  </button>
-                  {validate && (
-                    <>
-                      <span className="text-sm">Errors: <b>{validate.errors.length}</b></span>
-                      <span className="text-sm">Warnings: <b>{validate.warnings.length}</b></span>
-                    </>
-                  )}
-                </div>
-                {validate ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <div className="font-semibold mb-1">Errors</div>
-                      <ul className="list-disc pl-5 text-red-700">
-                        {validate.errors.map((e, i) => <li key={i}>{e}</li>)}
-                        {validate.errors.length === 0 && <li className="text-gray-500">None</li>}
-                      </ul>
-                    </div>
-                    <div>
-                      <div className="font-semibold mb-1">Warnings</div>
-                      <ul className="list-disc pl-5 text-yellow-700">
-                        {validate.warnings.map((w, i) => <li key={i}>{w}</li>)}
-                        {validate.warnings.length === 0 && <li className="text-gray-500">None</li>}
-                      </ul>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500">Run validation to see the report</div>
+            </CollapsibleSection>
+          </div>
+          <div className="col-span-1">
+            <CollapsibleSection title="Validation report">
+              <div className="mb-2 flex items-center gap-2">
+                <button
+                  className="px-2 py-1 rounded border"
+                  onClick={async () => {
+                    if (!id) return;
+                    try {
+                      const res = await validateVersion(id);
+                      setValidate(res);
+                    } catch (e) {
+                      alert(e instanceof Error ? e.message : String(e));
+                    }
+                  }}
+                >
+                  Validate
+                </button>
+                {validate && (
+                  <>
+                    <span className="text-sm">
+                      Errors: <b>{validate.errors.length}</b>
+                    </span>
+                    <span className="text-sm">
+                      Warnings: <b>{validate.warnings.length}</b>
+                    </span>
+                  </>
                 )}
-              </CollapsibleSection>
-            </div>
+              </div>
+              {validate ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <div className="font-semibold mb-1">Errors</div>
+                    <ul className="list-disc pl-5 text-red-700">
+                      {validate.errors.map((e, i) => (
+                        <li key={i}>{e}</li>
+                      ))}
+                      {validate.errors.length === 0 && (
+                        <li className="text-gray-500">None</li>
+                      )}
+                    </ul>
+                  </div>
+                  <div>
+                    <div className="font-semibold mb-1">Warnings</div>
+                    <ul className="list-disc pl-5 text-yellow-700">
+                      {validate.warnings.map((w, i) => (
+                        <li key={i}>{w}</li>
+                      ))}
+                      {validate.warnings.length === 0 && (
+                        <li className="text-gray-500">None</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  Run validation to see the report
+                </div>
+              )}
+            </CollapsibleSection>
+          </div>
 
-            {/* Холст графа */}
-            <div className="col-span-3">
-            <div className="rounded border" style={{ maxHeight: "70vh", overflow: "auto" }}>
+          {/* Холст графа */}
+          <div className="col-span-3">
+            <div
+              className="rounded border"
+              style={{ maxHeight: "70vh", overflow: "auto" }}
+            >
               <GraphCanvas
-              nodes={graph.nodes.map(n => ({ key: n.key, title: n.title, type: (n as any).type || "normal" }))}
-              edges={graph.edges}
-              onNodeDoubleClick={(k) => startEditNode(k)}
-              onCreateEdge={(from, to) => {
-                setGraph((g) => {
-                  if (!g) return g;
-                  if (from === to) return g;
-                  if (g.edges.some((e) => e.from_node_key === from && e.to_node_key === to)) return g;
-                  return { ...g, edges: [...g.edges, { from_node_key: from, to_node_key: to }] };
-                });
-              }}
-              height={520}
-            />
+                nodes={graph.nodes.map((n) => ({
+                  key: n.key,
+                  title: n.title,
+                  type: (n as any).type || "normal",
+                }))}
+                edges={graph.edges}
+                onNodeDoubleClick={(k) => startEditNode(k)}
+                onCreateEdge={(from, to) => {
+                  setGraph((g) => {
+                    if (!g) return g;
+                    if (from === to) return g;
+                    if (
+                      g.edges.some(
+                        (e) => e.from_node_key === from && e.to_node_key === to,
+                      )
+                    )
+                      return g;
+                    return {
+                      ...g,
+                      edges: [
+                        ...g.edges,
+                        { from_node_key: from, to_node_key: to },
+                      ],
+                    };
+                  });
+                }}
+                height={520}
+              />
             </div>
           </div>
         </div>
@@ -705,7 +904,9 @@ export default function QuestVersionEditor() {
       <NodeEditorModal
         open={editorOpen}
         node={editorNode}
-        onChange={(patch) => setEditorNode((prev) => (prev ? { ...prev, ...patch } : prev))}
+        onChange={(patch) =>
+          setEditorNode((prev) => (prev ? { ...prev, ...patch } : prev))
+        }
         onClose={() => setEditorOpen(false)}
         onCommit={commitEditor}
         busy={savingNode}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import { api } from "../api/client";
 
 interface CacheStats {
@@ -7,9 +8,14 @@ interface CacheStats {
 }
 
 function normalizeCacheStats(raw: unknown): CacheStats {
-  const obj = (raw && typeof raw === "object") ? (raw as any) : {};
-  const counters = obj && typeof obj.counters === "object" ? obj.counters as Record<string, Record<string, number>> : {};
-  const hot_keys = Array.isArray(obj?.hot_keys) ? obj.hot_keys as CacheStats["hot_keys"] : [];
+  const obj = raw && typeof raw === "object" ? (raw as any) : {};
+  const counters =
+    obj && typeof obj.counters === "object"
+      ? (obj.counters as Record<string, Record<string, number>>)
+      : {};
+  const hot_keys = Array.isArray(obj?.hot_keys)
+    ? (obj.hot_keys as CacheStats["hot_keys"])
+    : [];
   return { counters, hot_keys };
 }
 
@@ -50,7 +56,6 @@ export default function CacheTools() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -59,9 +64,18 @@ export default function CacheTools() {
       <div className="mb-6 flex items-end gap-2">
         <div className="flex flex-col gap-1">
           <label className="text-sm text-gray-600">Invalidate by pattern</label>
-          <input value={pattern} onChange={(e) => setPattern(e.target.value)} placeholder="nav:* or *slug*" className="border rounded px-2 py-1 w-80" />
+          <input
+            value={pattern}
+            onChange={(e) => setPattern(e.target.value)}
+            placeholder="nav:* or *slug*"
+            className="border rounded px-2 py-1 w-80"
+          />
         </div>
-        <button onClick={invalidate} disabled={!pattern || invLoading} className="px-3 py-1 rounded bg-rose-600 text-white disabled:opacity-50">
+        <button
+          onClick={invalidate}
+          disabled={!pattern || invLoading}
+          className="px-3 py-1 rounded bg-rose-600 text-white disabled:opacity-50"
+        >
           {invLoading ? "Invalidating..." : "Invalidate"}
         </button>
       </div>
@@ -95,7 +109,9 @@ export default function CacheTools() {
 
           <section>
             <h2 className="font-semibold mb-2">Counters</h2>
-            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">{JSON.stringify(stats.counters ?? {}, null, 2)}</pre>
+            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">
+              {JSON.stringify(stats.counters ?? {}, null, 2)}
+            </pre>
           </section>
         </div>
       )}

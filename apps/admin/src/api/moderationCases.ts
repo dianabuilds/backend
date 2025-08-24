@@ -1,5 +1,5 @@
-import type { Page } from "./types";
 import { api } from "./client";
+import type { Page } from "./types";
 
 export interface CaseListItem {
   id: string;
@@ -69,7 +69,11 @@ export interface CaseNote {
   text: string;
   internal: boolean;
 }
-export async function addNote(caseId: string, text: string, internal = true): Promise<CaseNote> {
+export async function addNote(
+  caseId: string,
+  text: string,
+  internal = true,
+): Promise<CaseNote> {
   const res = await api.post<CaseNote>(
     `/admin/moderation/cases/${caseId}/notes`,
     { text, internal },
@@ -84,12 +88,19 @@ export interface CaseFullResponse {
   events: any[];
 }
 export async function getCaseFull(id: string): Promise<CaseFullResponse> {
-  const res = await api.get<CaseFullResponse>(
-    `/admin/moderation/cases/${id}`,
-  );
+  const res = await api.get<CaseFullResponse>(`/admin/moderation/cases/${id}`);
   return res.data!;
 }
 
-export async function closeCase(id: string, resolution: "resolved" | "rejected", reason_code?: string, reason_text?: string): Promise<void> {
-  await api.post(`/admin/moderation/cases/${id}/actions/close`, { resolution, reason_code, reason_text });
+export async function closeCase(
+  id: string,
+  resolution: "resolved" | "rejected",
+  reason_code?: string,
+  reason_text?: string,
+): Promise<void> {
+  await api.post(`/admin/moderation/cases/${id}/actions/close`, {
+    resolution,
+    reason_code,
+    reason_text,
+  });
 }

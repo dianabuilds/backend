@@ -1,6 +1,6 @@
 import type { BroadcastCreate, BroadcastFilters } from "../openapi";
-import type { ListResponse } from "./types";
 import { api } from "./client";
+import type { ListResponse } from "./types";
 
 export interface Campaign {
   id: string;
@@ -23,8 +23,13 @@ export interface DraftCampaign {
   created_at?: string | null;
 }
 
-export async function createBroadcast(payload: BroadcastCreate): Promise<unknown> {
-  const res = await api.post<unknown>("/admin/notifications/broadcast", payload);
+export async function createBroadcast(
+  payload: BroadcastCreate,
+): Promise<unknown> {
+  const res = await api.post<unknown>(
+    "/admin/notifications/broadcast",
+    payload,
+  );
   return res.data;
 }
 
@@ -43,7 +48,10 @@ export async function getCampaign(id: string): Promise<Campaign> {
 }
 
 export async function cancelCampaign(id: string): Promise<unknown> {
-  const res = await api.post<unknown>(`/admin/notifications/broadcast/${id}/cancel`, {});
+  const res = await api.post<unknown>(
+    `/admin/notifications/broadcast/${id}/cancel`,
+    {},
+  );
   return res.data;
 }
 

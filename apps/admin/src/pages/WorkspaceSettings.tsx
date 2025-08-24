@@ -1,12 +1,23 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import PageLayout from "./_shared/PageLayout";
-import { api } from "../api/client";
-import type { WorkspaceOut, WorkspaceMemberOut, WorkspaceRole } from "../openapi";
-import { useToast } from "../components/ToastProvider";
 
-const TABS = ["General", "Members", "AI-presets", "Notifications", "Limits"] as const;
+import { api } from "../api/client";
+import { useToast } from "../components/ToastProvider";
+import type {
+  WorkspaceMemberOut,
+  WorkspaceOut,
+  WorkspaceRole,
+} from "../openapi";
+import PageLayout from "./_shared/PageLayout";
+
+const TABS = [
+  "General",
+  "Members",
+  "AI-presets",
+  "Notifications",
+  "Limits",
+] as const;
 
 export default function WorkspaceSettings() {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +35,11 @@ export default function WorkspaceSettings() {
 
   useEffect(() => {
     if (error) {
-      addToast({ title: "Failed to load workspace", description: String(error), variant: "error" });
+      addToast({
+        title: "Failed to load workspace",
+        description: String(error),
+        variant: "error",
+      });
     }
   }, [error, addToast]);
 
@@ -36,7 +51,9 @@ export default function WorkspaceSettings() {
     queryKey: ["workspace-members", id],
     enabled: tab === "Members" && !!id,
     queryFn: async () => {
-      const res = await api.get<WorkspaceMemberOut[]>(`/admin/workspaces/${id}/members`);
+      const res = await api.get<WorkspaceMemberOut[]>(
+        `/admin/workspaces/${id}/members`,
+      );
       return (res.data as WorkspaceMemberOut[]) || [];
     },
   });
@@ -48,14 +65,21 @@ export default function WorkspaceSettings() {
 
   const inviteMember = async () => {
     try {
-      await api.post(`/admin/workspaces/${id}/members`, { user_id: inviteUser, role: inviteRole });
+      await api.post(`/admin/workspaces/${id}/members`, {
+        user_id: inviteUser,
+        role: inviteRole,
+      });
       addToast({ title: "Member invited", variant: "success" });
       setInviteOpen(false);
       setInviteUser("");
       setInviteRole("viewer");
       refetchMembers();
     } catch (e) {
-      addToast({ title: "Failed to invite member", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to invite member",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
@@ -77,12 +101,18 @@ export default function WorkspaceSettings() {
       setEditMember(null);
       refetchMembers();
     } catch (e) {
-      addToast({ title: "Failed to update role", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to update role",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
   // Remove modal
-  const [removeMember, setRemoveMember] = useState<WorkspaceMemberOut | null>(null);
+  const [removeMember, setRemoveMember] = useState<WorkspaceMemberOut | null>(
+    null,
+  );
   const confirmRemove = async () => {
     if (!removeMember) return;
     try {
@@ -91,13 +121,20 @@ export default function WorkspaceSettings() {
       setRemoveMember(null);
       refetchMembers();
     } catch (e) {
-      addToast({ title: "Failed to remove member", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to remove member",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
   const renderMembers = () => (
     <div className="space-y-4">
-      <button className="px-2 py-1 border rounded" onClick={() => setInviteOpen(true)}>
+      <button
+        className="px-2 py-1 border rounded"
+        onClick={() => setInviteOpen(true)}
+      >
         Invite member
       </button>
       {membersLoading && <div>Loading...</div>}
@@ -107,7 +144,7 @@ export default function WorkspaceSettings() {
             <tr className="border-b">
               <th className="p-2 text-left">User ID</th>
               <th className="p-2 text-left">Role</th>
-              <th className="p-2"></th>
+              <th className="p-2" />
             </tr>
           </thead>
           <tbody>
@@ -116,10 +153,16 @@ export default function WorkspaceSettings() {
                 <td className="p-2 font-mono">{m.user_id}</td>
                 <td className="p-2 capitalize">{m.role}</td>
                 <td className="p-2 space-x-2">
-                  <button className="text-blue-600 text-xs" onClick={() => openEdit(m)}>
+                  <button
+                    className="text-blue-600 text-xs"
+                    onClick={() => openEdit(m)}
+                  >
                     Change role
                   </button>
-                  <button className="text-red-600 text-xs" onClick={() => setRemoveMember(m)}>
+                  <button
+                    className="text-red-600 text-xs"
+                    onClick={() => setRemoveMember(m)}
+                  >
                     Remove
                   </button>
                 </td>
@@ -149,10 +192,16 @@ export default function WorkspaceSettings() {
               <option value="viewer">viewer</option>
             </select>
             <div className="flex justify-end gap-2 pt-2">
-              <button className="px-2 py-1" onClick={() => setInviteOpen(false)}>
+              <button
+                className="px-2 py-1"
+                onClick={() => setInviteOpen(false)}
+              >
                 Cancel
               </button>
-              <button className="px-2 py-1 border rounded" onClick={inviteMember}>
+              <button
+                className="px-2 py-1 border rounded"
+                onClick={inviteMember}
+              >
                 Invite
               </button>
             </div>
@@ -191,10 +240,16 @@ export default function WorkspaceSettings() {
             <h3 className="font-semibold">Remove member</h3>
             <p className="text-sm">Remove {removeMember.user_id}?</p>
             <div className="flex justify-end gap-2 pt-2">
-              <button className="px-2 py-1" onClick={() => setRemoveMember(null)}>
+              <button
+                className="px-2 py-1"
+                onClick={() => setRemoveMember(null)}
+              >
                 Cancel
               </button>
-              <button className="px-2 py-1 border rounded text-red-600" onClick={confirmRemove}>
+              <button
+                className="px-2 py-1 border rounded text-red-600"
+                onClick={confirmRemove}
+              >
                 Remove
               </button>
             </div>
@@ -223,7 +278,9 @@ export default function WorkspaceSettings() {
       case "Members":
         return renderMembers();
       default:
-        return <div className="text-sm text-gray-500">No content for {tab} yet.</div>;
+        return (
+          <div className="text-sm text-gray-500">No content for {tab} yet.</div>
+        );
     }
   };
 
@@ -248,7 +305,9 @@ export default function WorkspaceSettings() {
           </button>
         ))}
       </div>
-      <div className="mt-4">{isLoading ? <div>Loading...</div> : renderTab()}</div>
+      <div className="mt-4">
+        {isLoading ? <div>Loading...</div> : renderTab()}
+      </div>
     </PageLayout>
   );
 }

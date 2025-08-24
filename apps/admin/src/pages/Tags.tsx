@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
-  getBlacklist,
   addToBlacklist,
-  removeFromBlacklist,
   type BlacklistItem,
-  listAdminTags,
   createAdminTag,
   deleteAdminTag,
+  getBlacklist,
+  listAdminTags,
+  removeFromBlacklist,
 } from "../api/tags";
 
 type TagItem = {
@@ -103,7 +104,10 @@ export default function Tags() {
         <button onClick={handleSearch} className="px-3 py-1 rounded border">
           Search
         </button>
-        <button onClick={() => navigate("/tags/merge")} className="px-3 py-1 rounded border">
+        <button
+          onClick={() => navigate("/tags/merge")}
+          className="px-3 py-1 rounded border"
+        >
           Merge…
         </button>
         <div className="ml-auto flex items-center gap-2">
@@ -113,7 +117,9 @@ export default function Tags() {
             min={1}
             max={1000}
             value={limit}
-            onChange={(e) => setLimit(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))}
+            onChange={(e) =>
+              setLimit(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))
+            }
             className="w-20 border rounded px-2 py-1"
           />
           <button
@@ -190,18 +196,33 @@ export default function Tags() {
             </thead>
             <tbody>
               {items.map((t, i) => (
-                <tr key={t.id ?? `${t.slug}-${i}`} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                <tr
+                  key={t.id ?? `${t.slug}-${i}`}
+                  className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
                   <td className="p-2 font-mono">{t.id || "—"}</td>
                   <td className="p-2">{t.name || t.slug || "—"}</td>
-                  <td className="p-2">{typeof t.aliases_count === "number" ? t.aliases_count : "—"}</td>
-                  <td className="p-2">{typeof t.usage_count === "number" ? t.usage_count : "—"}</td>
-                  <td className="p-2">{t.created_at ? new Date(t.created_at).toLocaleString() : "—"}</td>
+                  <td className="p-2">
+                    {typeof t.aliases_count === "number"
+                      ? t.aliases_count
+                      : "—"}
+                  </td>
+                  <td className="p-2">
+                    {typeof t.usage_count === "number" ? t.usage_count : "—"}
+                  </td>
+                  <td className="p-2">
+                    {t.created_at
+                      ? new Date(t.created_at).toLocaleString()
+                      : "—"}
+                  </td>
                   <td className="p-2 text-right">
                     <button
                       className="px-2 py-1 rounded border text-red-600 border-red-300"
                       onClick={async () => {
                         if (!t.id) return;
-                        const ok = window.confirm(`Delete tag "${t.name || t.slug}"? This cannot be undone.`);
+                        const ok = window.confirm(
+                          `Delete tag "${t.name || t.slug}"? This cannot be undone.`,
+                        );
                         if (!ok) return;
                         try {
                           await deleteAdminTag(t.id);
@@ -245,7 +266,10 @@ export default function Tags() {
                 className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
                 onClick={async () => {
                   if (!blSlug.trim()) return;
-                  await addToBlacklist(blSlug.trim(), blReason.trim() || undefined);
+                  await addToBlacklist(
+                    blSlug.trim(),
+                    blReason.trim() || undefined,
+                  );
                   setBlSlug("");
                   setBlReason("");
                   await loadBlacklist();
@@ -260,7 +284,7 @@ export default function Tags() {
                   <th className="p-2">Slug</th>
                   <th className="p-2">Reason</th>
                   <th className="p-2">Created</th>
-                  <th className="p-2"></th>
+                  <th className="p-2" />
                 </tr>
               </thead>
               <tbody>
@@ -268,7 +292,9 @@ export default function Tags() {
                   <tr key={b.slug} className="border-b">
                     <td className="p-2 font-mono">{b.slug}</td>
                     <td className="p-2">{b.reason || "—"}</td>
-                    <td className="p-2">{new Date(b.created_at).toLocaleString()}</td>
+                    <td className="p-2">
+                      {new Date(b.created_at).toLocaleString()}
+                    </td>
                     <td className="p-2 text-right">
                       <button
                         className="px-2 py-1 rounded border text-red-600 border-red-300"

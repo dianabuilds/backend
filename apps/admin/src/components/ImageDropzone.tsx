@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+
 import { api } from "../api/client";
 
 interface ImageDropzoneProps {
@@ -8,7 +9,12 @@ interface ImageDropzoneProps {
   height?: number;
 }
 
-export default function ImageDropzone({ value, onChange, className = "", height = 140 }: ImageDropzoneProps) {
+export default function ImageDropzone({
+  value,
+  onChange,
+  className = "",
+  height = 140,
+}: ImageDropzoneProps) {
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -21,10 +27,13 @@ export default function ImageDropzone({ value, onChange, className = "", height 
     if (!u) return null;
 
     // Если путь относительный — префиксуем базой API, иначе Vite (517x) пойдёт на фронт и получит 404.
-    const envBase = (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
+    const envBase = (import.meta as any)?.env?.VITE_API_BASE as
+      | string
+      | undefined;
     const backendBase =
       envBase ||
-      (typeof window !== "undefined" && ["5173", "5174", "5175", "5176"].includes(window.location.port || "")
+      (typeof window !== "undefined" &&
+      ["5173", "5174", "5175", "5176"].includes(window.location.port || "")
         ? `${window.location.protocol}//${window.location.hostname}:8000`
         : "");
 
@@ -51,7 +60,10 @@ export default function ImageDropzone({ value, onChange, className = "", height 
       form.append("file", file);
       setError(null);
       try {
-        const res = await api.request("/admin/media", { method: "POST", body: form });
+        const res = await api.request("/admin/media", {
+          method: "POST",
+          body: form,
+        });
         const url = resolveUrl(res.data, res.response.headers);
         if (!url) {
           setError("Сервер не вернул URL загруженного файла");
@@ -59,7 +71,9 @@ export default function ImageDropzone({ value, onChange, className = "", height 
         }
         onChange?.(url);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Не удалось загрузить изображение");
+        setError(
+          e instanceof Error ? e.message : "Не удалось загрузить изображение",
+        );
       }
     },
     [onChange],
@@ -118,7 +132,9 @@ export default function ImageDropzone({ value, onChange, className = "", height 
           <div className="text-center px-3">
             <div className="mx-auto mb-2 text-3xl">🖼️</div>
             <div className="font-medium mb-0.5">Перетащите изображение</div>
-            <div className="text-xs text-gray-500">или нажмите, чтобы выбрать файл</div>
+            <div className="text-xs text-gray-500">
+              или нажмите, чтобы выбрать файл
+            </div>
             {error && <div className="mt-2 text-xs text-red-600">{error}</div>}
           </div>
         </div>

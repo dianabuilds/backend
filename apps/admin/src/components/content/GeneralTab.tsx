@@ -1,7 +1,7 @@
-import FieldTitle from "../fields/FieldTitle";
+import FieldCover from "../fields/FieldCover";
 import FieldSlug from "../fields/FieldSlug";
 import FieldTags from "../fields/FieldTags";
-import FieldCover from "../fields/FieldCover";
+import FieldTitle from "../fields/FieldTitle";
 import type { GeneralTabProps } from "./GeneralTab.helpers";
 
 export default function GeneralTab({

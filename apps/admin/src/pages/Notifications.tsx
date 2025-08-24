@@ -1,9 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+
 import { api } from "../api/client";
-import { useToast } from "../components/ToastProvider";
+import {
+  type BroadcastCreate,
+  type Campaign,
+  createBroadcast,
+  listBroadcasts,
+} from "../api/notifications";
 import { useAuth } from "../auth/AuthContext";
-import { createBroadcast, listBroadcasts, type BroadcastCreate, type Campaign } from "../api/notifications";
+import { useToast } from "../components/ToastProvider";
 
 interface NotificationItem {
   id: string;
@@ -33,7 +39,12 @@ async function markRead(id: string) {
   await api.post(`/notifications/${id}/read`, {});
 }
 
-async function sendNotification(payload: { user_id: string; title: string; message: string; type: string }) {
+async function sendNotification(payload: {
+  user_id: string;
+  title: string;
+  message: string;
+  type: string;
+}) {
   await api.post("/admin/notifications", payload);
 }
 
@@ -63,7 +74,11 @@ export default function Notifications() {
       setMessage("");
       setTitle("");
     } catch (e) {
-      addToast({ title: "Failed to send notification", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to send notification",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
@@ -72,12 +87,18 @@ export default function Notifications() {
       await markRead(id);
       qc.invalidateQueries({ queryKey: ["notifications"] });
     } catch (e) {
-      addToast({ title: "Failed to mark as read", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to mark as read",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
   // Broadcast state
-  const [bType, setBType] = useState<"system" | "info" | "warning" | "quest">("system");
+  const [bType, setBType] = useState<"system" | "info" | "warning" | "quest">(
+    "system",
+  );
   const [bTitle, setBTitle] = useState("");
   const [bMessage, setBMessage] = useState("");
   const [role, setRole] = useState<string>("");
@@ -107,9 +128,17 @@ export default function Notifications() {
         dry_run: true,
       } as BroadcastCreate);
       setEstimate((res as any).total_estimate ?? 0);
-      addToast({ title: "Estimated recipients", description: String((res as any).total_estimate ?? 0), variant: "info" });
+      addToast({
+        title: "Estimated recipients",
+        description: String((res as any).total_estimate ?? 0),
+        variant: "info",
+      });
     } catch (e) {
-      addToast({ title: "Dry-run failed", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Dry-run failed",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
@@ -127,7 +156,11 @@ export default function Notifications() {
       addToast({ title: "Broadcast started", variant: "success" });
       qc.invalidateQueries({ queryKey: ["campaigns"] });
     } catch (e) {
-      addToast({ title: "Failed to start broadcast", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to start broadcast",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
@@ -146,11 +179,19 @@ export default function Notifications() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Title</label>
-            <input className="border rounded px-2 py-1" value={bTitle} onChange={(e) => setBTitle(e.target.value)} />
+            <input
+              className="border rounded px-2 py-1"
+              value={bTitle}
+              onChange={(e) => setBTitle(e.target.value)}
+            />
           </div>
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Type</label>
-            <select className="border rounded px-2 py-1" value={bType} onChange={(e) => setBType(e.target.value as any)}>
+            <select
+              className="border rounded px-2 py-1"
+              value={bType}
+              onChange={(e) => setBType(e.target.value as any)}
+            >
               <option value="system">system</option>
               <option value="info">info</option>
               <option value="warning">warning</option>
@@ -159,12 +200,21 @@ export default function Notifications() {
           </div>
           <div className="md:col-span-2 flex flex-col">
             <label className="text-sm text-gray-600">Message</label>
-            <textarea className="border rounded px-2 py-1" rows={3} value={bMessage} onChange={(e) => setBMessage(e.target.value)} />
+            <textarea
+              className="border rounded px-2 py-1"
+              rows={3}
+              value={bMessage}
+              onChange={(e) => setBMessage(e.target.value)}
+            />
           </div>
 
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Role</label>
-            <select className="border rounded px-2 py-1" value={role} onChange={(e) => setRole(e.target.value)}>
+            <select
+              className="border rounded px-2 py-1"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
               <option value="">any</option>
               <option value="user">user</option>
               <option value="moderator">moderator</option>
@@ -173,7 +223,11 @@ export default function Notifications() {
           </div>
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Active</label>
-            <select className="border rounded px-2 py-1" value={isActive} onChange={(e) => setIsActive(e.target.value)}>
+            <select
+              className="border rounded px-2 py-1"
+              value={isActive}
+              onChange={(e) => setIsActive(e.target.value)}
+            >
               <option value="any">any</option>
               <option value="true">true</option>
               <option value="false">false</option>
@@ -181,7 +235,11 @@ export default function Notifications() {
           </div>
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Premium</label>
-            <select className="border rounded px-2 py-1" value={isPremium} onChange={(e) => setIsPremium(e.target.value)}>
+            <select
+              className="border rounded px-2 py-1"
+              value={isPremium}
+              onChange={(e) => setIsPremium(e.target.value)}
+            >
               <option value="any">any</option>
               <option value="true">true</option>
               <option value="false">false</option>
@@ -189,17 +247,38 @@ export default function Notifications() {
           </div>
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Created from</label>
-            <input type="datetime-local" className="border rounded px-2 py-1" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} />
+            <input
+              type="datetime-local"
+              className="border rounded px-2 py-1"
+              value={createdFrom}
+              onChange={(e) => setCreatedFrom(e.target.value)}
+            />
           </div>
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Created to</label>
-            <input type="datetime-local" className="border rounded px-2 py-1" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
+            <input
+              type="datetime-local"
+              className="border rounded px-2 py-1"
+              value={createdTo}
+              onChange={(e) => setCreatedTo(e.target.value)}
+            />
           </div>
         </div>
         <div className="mt-3 flex items-center gap-2">
-          <button className="px-3 py-1 rounded border" onClick={doDryRun}>Estimate</button>
-          <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={doStart}>Start broadcast</button>
-          {estimate !== null && <span className="text-sm text-gray-600">Estimated recipients: {estimate}</span>}
+          <button className="px-3 py-1 rounded border" onClick={doDryRun}>
+            Estimate
+          </button>
+          <button
+            className="px-3 py-1 rounded bg-blue-600 text-white"
+            onClick={doStart}
+          >
+            Start broadcast
+          </button>
+          {estimate !== null && (
+            <span className="text-sm text-gray-600">
+              Estimated recipients: {estimate}
+            </span>
+          )}
         </div>
       </section>
 
@@ -223,13 +302,29 @@ export default function Notifications() {
                 <td className="p-2">{c.title}</td>
                 <td className="p-2">{c.type}</td>
                 <td className="p-2">{c.status}</td>
-                <td className="p-2">{c.sent} / {c.total}</td>
-                <td className="p-2">{c.created_at ? new Date(c.created_at).toLocaleString() : "-"}</td>
-                <td className="p-2">{c.started_at ? new Date(c.started_at).toLocaleString() : "-"}</td>
-                <td className="p-2">{c.finished_at ? new Date(c.finished_at).toLocaleString() : "-"}</td>
+                <td className="p-2">
+                  {c.sent} / {c.total}
+                </td>
+                <td className="p-2">
+                  {c.created_at ? new Date(c.created_at).toLocaleString() : "-"}
+                </td>
+                <td className="p-2">
+                  {c.started_at ? new Date(c.started_at).toLocaleString() : "-"}
+                </td>
+                <td className="p-2">
+                  {c.finished_at
+                    ? new Date(c.finished_at).toLocaleString()
+                    : "-"}
+                </td>
               </tr>
             ))}
-            {(!campaigns || campaigns.length === 0) && <tr><td className="p-2 text-gray-500" colSpan={7}>No campaigns</td></tr>}
+            {(!campaigns || campaigns.length === 0) && (
+              <tr>
+                <td className="p-2 text-gray-500" colSpan={7}>
+                  No campaigns
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </section>
@@ -239,11 +334,20 @@ export default function Notifications() {
         <div className="flex flex-wrap items-end gap-2">
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">User ID</label>
-            <input className="border rounded px-2 py-1 w-80" value={targetUser} onChange={(e) => setTargetUser(e.target.value)} placeholder="UUID" />
+            <input
+              className="border rounded px-2 py-1 w-80"
+              value={targetUser}
+              onChange={(e) => setTargetUser(e.target.value)}
+              placeholder="UUID"
+            />
           </div>
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Type</label>
-            <select className="border rounded px-2 py-1" value={type} onChange={(e) => setType(e.target.value)}>
+            <select
+              className="border rounded px-2 py-1"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+            >
               <option value="system">system</option>
               <option value="info">info</option>
               <option value="warning">warning</option>
@@ -252,13 +356,26 @@ export default function Notifications() {
           </div>
           <div className="flex-1 flex flex-col min-w-[220px]">
             <label className="text-sm text-gray-600">Title</label>
-            <input className="border rounded px-2 py-1" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <input
+              className="border rounded px-2 py-1"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </div>
           <div className="flex-1 flex flex-col min-w-[220px]">
             <label className="text-sm text-gray-600">Message</label>
-            <input className="border rounded px-2 py-1" value={message} onChange={(e) => setMessage(e.target.value)} />
+            <input
+              className="border rounded px-2 py-1"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
           </div>
-          <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={handleSend}>Send</button>
+          <button
+            className="px-3 py-1 rounded bg-blue-600 text-white"
+            onClick={handleSend}
+          >
+            Send
+          </button>
         </div>
       </section>
 
@@ -284,11 +401,18 @@ export default function Notifications() {
                   <td className="p-2">{n.title}</td>
                   <td className="p-2">{n.message}</td>
                   <td className="p-2">{n.type ?? "system"}</td>
-                  <td className="p-2">{new Date(n.created_at).toLocaleString()}</td>
-                  <td className="p-2">{n.read_at ? new Date(n.read_at).toLocaleString() : "-"}</td>
+                  <td className="p-2">
+                    {new Date(n.created_at).toLocaleString()}
+                  </td>
+                  <td className="p-2">
+                    {n.read_at ? new Date(n.read_at).toLocaleString() : "-"}
+                  </td>
                   <td className="p-2">
                     {!n.read_at && (
-                      <button className="px-2 py-1 rounded border" onClick={() => handleRead(n.id)}>
+                      <button
+                        className="px-2 py-1 rounded border"
+                        onClick={() => handleRead(n.id)}
+                      >
                         Mark read
                       </button>
                     )}
@@ -296,7 +420,11 @@ export default function Notifications() {
                 </tr>
               ))}
               {(!data || data.length === 0) && (
-                <tr><td className="p-2 text-gray-500" colSpan={6}>No notifications</td></tr>
+                <tr>
+                  <td className="p-2 text-gray-500" colSpan={6}>
+                    No notifications
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

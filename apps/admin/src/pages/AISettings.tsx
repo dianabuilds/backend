@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import { api } from "../api/client";
 
 type CBConfig = {
@@ -25,7 +26,9 @@ type AISettings = {
 type StageConfig = { stage: string } & StageMapEntry;
 
 export default function AISettingsPage() {
-  const [aiSettings, setAISettings] = useState<AISettings>({ has_api_key: false });
+  const [aiSettings, setAISettings] = useState<AISettings>({
+    has_api_key: false,
+  });
   const [aiSecret, setAISecret] = useState<string>(""); // пустая строка — не менять
   const [stageMap, setStageMap] = useState<StageConfig[]>([]); // карта стадий в удобном формате
   const [cb, setCb] = useState<CBConfig>({});
@@ -44,7 +47,7 @@ export default function AISettingsPage() {
           provider: conf.provider ?? "",
           base_url: conf.base_url ?? "",
           model: conf.model ?? "",
-        }))
+        })),
       );
       setCb({
         fail_rate_threshold: data.cb?.fail_rate_threshold ?? 0.5,
@@ -82,7 +85,9 @@ export default function AISettingsPage() {
     }
   };
 
-  useEffect(() => { loadAISettings(); }, []);
+  useEffect(() => {
+    loadAISettings();
+  }, []);
 
   return (
     <div>
@@ -90,30 +95,42 @@ export default function AISettingsPage() {
       <div className="rounded border p-4 max-w-3xl space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-600">Provider (по умолчанию)</label>
+            <label className="text-sm text-gray-600">
+              Provider (по умолчанию)
+            </label>
             <input
               className="border rounded px-2 py-1"
               placeholder="openai, anthropic, ..."
               value={aiSettings.provider ?? ""}
-              onChange={(e) => setAISettings((s) => ({ ...s, provider: e.target.value }))}
+              onChange={(e) =>
+                setAISettings((s) => ({ ...s, provider: e.target.value }))
+              }
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-600">Base URL (по умолчанию)</label>
+            <label className="text-sm text-gray-600">
+              Base URL (по умолчанию)
+            </label>
             <input
               className="border rounded px-2 py-1"
               placeholder="https://api..."
               value={aiSettings.base_url ?? ""}
-              onChange={(e) => setAISettings((s) => ({ ...s, base_url: e.target.value }))}
+              onChange={(e) =>
+                setAISettings((s) => ({ ...s, base_url: e.target.value }))
+              }
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-600">Model (по умолчанию)</label>
+            <label className="text-sm text-gray-600">
+              Model (по умолчанию)
+            </label>
             <input
               className="border rounded px-2 py-1"
               placeholder="gpt-4o-mini, ..."
               value={aiSettings.model ?? ""}
-              onChange={(e) => setAISettings((s) => ({ ...s, model: e.target.value }))}
+              onChange={(e) =>
+                setAISettings((s) => ({ ...s, model: e.target.value }))
+              }
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -121,18 +138,27 @@ export default function AISettingsPage() {
             <input
               className="border rounded px-2 py-1"
               type="password"
-              placeholder={aiSettings.has_api_key ? "Секрет сохранён (оставьте пустым — не менять)" : "Введите ключ"}
+              placeholder={
+                aiSettings.has_api_key
+                  ? "Секрет сохранён (оставьте пустым — не менять)"
+                  : "Введите ключ"
+              }
               value={aiSecret}
               onChange={(e) => setAISecret(e.target.value)}
             />
-            <div className="text-xs text-gray-600">{aiSettings.has_api_key ? "Ключ сохранён" : "Ключ не задан"}</div>
+            <div className="text-xs text-gray-600">
+              {aiSettings.has_api_key ? "Ключ сохранён" : "Ключ не задан"}
+            </div>
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="text-lg font-semibold">Карта моделей по стадиям</div>
           {stageMap.map((item, idx) => (
-            <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+            <div
+              key={idx}
+              className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center"
+            >
               <input
                 className="border rounded px-2 py-1"
                 placeholder="Стадия (например: outline)"
@@ -183,7 +209,9 @@ export default function AISettingsPage() {
               />
               <button
                 className="px-2 py-1 rounded bg-red-200 dark:bg-red-800"
-                onClick={() => setStageMap((m) => m.filter((_, i) => i !== idx))}
+                onClick={() =>
+                  setStageMap((m) => m.filter((_, i) => i !== idx))
+                }
               >
                 Удалить
               </button>
@@ -201,7 +229,9 @@ export default function AISettingsPage() {
           <div className="text-lg font-semibold">Circuit Breaker</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-gray-600">fail_rate_threshold (0..1)</label>
+              <label className="text-sm text-gray-600">
+                fail_rate_threshold (0..1)
+              </label>
               <input
                 className="border rounded px-2 py-1"
                 type="number"
@@ -209,7 +239,12 @@ export default function AISettingsPage() {
                 min={0}
                 max={1}
                 value={cb.fail_rate_threshold ?? 0.5}
-                onChange={(e) => setCb((c) => ({ ...c, fail_rate_threshold: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setCb((c) => ({
+                    ...c,
+                    fail_rate_threshold: Number(e.target.value),
+                  }))
+                }
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -219,7 +254,9 @@ export default function AISettingsPage() {
                 type="number"
                 min={1}
                 value={cb.min_requests ?? 20}
-                onChange={(e) => setCb((c) => ({ ...c, min_requests: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setCb((c) => ({ ...c, min_requests: Number(e.target.value) }))
+                }
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -229,14 +266,21 @@ export default function AISettingsPage() {
                 type="number"
                 min={1}
                 value={cb.open_seconds ?? 60}
-                onChange={(e) => setCb((c) => ({ ...c, open_seconds: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setCb((c) => ({ ...c, open_seconds: Number(e.target.value) }))
+                }
               />
             </div>
           </div>
         </div>
 
         <div>
-          <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={saveAI}>Сохранить</button>
+          <button
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+            onClick={saveAI}
+          >
+            Сохранить
+          </button>
         </div>
       </div>
     </div>

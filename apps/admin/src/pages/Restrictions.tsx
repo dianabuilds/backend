@@ -1,5 +1,6 @@
-import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+
 import { api } from "../api/client";
 
 interface Restriction {
@@ -89,7 +90,7 @@ export default function Restrictions() {
     setEditingId(r.id);
     setEditReason(r.reason ?? "");
     setEditExpires(
-      r.expires_at ? new Date(r.expires_at).toISOString().slice(0, 16) : ""
+      r.expires_at ? new Date(r.expires_at).toISOString().slice(0, 16) : "",
     );
   };
 
@@ -178,7 +179,7 @@ export default function Restrictions() {
                       onChange={(e) => setEditReason(e.target.value)}
                     />
                   ) : (
-                    r.reason ?? ""
+                    (r.reason ?? "")
                   )}
                 </td>
                 <td className="p-2 font-mono">{r.issued_by ?? ""}</td>

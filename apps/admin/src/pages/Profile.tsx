@@ -1,22 +1,28 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import PageLayout from "./_shared/PageLayout";
+import { useState } from "react";
+
 import { api } from "../api/client";
+import type { Workspace } from "../api/types";
 import { useToast } from "../components/ToastProvider";
 import { useWorkspace } from "../workspace/WorkspaceContext";
-import type { Workspace } from "../api/types";
+import PageLayout from "./_shared/PageLayout";
 
 export default function Profile() {
   const { addToast } = useToast();
   const { setWorkspace } = useWorkspace();
   const [defaultWs, setDefaultWs] = useState<string>(
-    () => (typeof localStorage !== "undefined" && localStorage.getItem("defaultWorkspaceId")) || ""
+    () =>
+      (typeof localStorage !== "undefined" &&
+        localStorage.getItem("defaultWorkspaceId")) ||
+      "",
   );
 
   const { data } = useQuery({
     queryKey: ["workspaces"],
     queryFn: async () => {
-      const res = await api.get<Workspace[] | { workspaces: Workspace[] }>("/admin/workspaces");
+      const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
+        "/admin/workspaces",
+      );
       const payload = res.data;
       if (Array.isArray(payload)) return payload;
       return payload?.workspaces ?? [];
@@ -34,7 +40,9 @@ export default function Profile() {
   return (
     <PageLayout title="Profile">
       <div className="max-w-sm flex flex-col gap-2">
-        <label className="text-sm" htmlFor="def-ws">Default workspace</label>
+        <label className="text-sm" htmlFor="def-ws">
+          Default workspace
+        </label>
         <select
           id="def-ws"
           value={defaultWs}
