@@ -1,25 +1,32 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
+from app.core.log_events import cache_invalidate
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
 from app.domains.navigation.application.traces_service import TracesService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
-from app.domains.nodes.models import NodeItem
-from app.domains.telemetry.application.audit_service import AuditService
-from app.domains.telemetry.infrastructure.repositories.audit_repository import AuditLogRepository
-from app.domains.users.infrastructure.models.user import User
 from app.domains.nodes.infrastructure.models.node import Node
-from app.schemas.nodes_common import NodeType, Status
-from app.validation import run_validators
+from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import publish_content, validate_transition
-from app.core.log_events import cache_invalidate
+from app.domains.quests.application.editor_service import EditorService
+from app.domains.telemetry.application.audit_service import AuditService
+from app.domains.telemetry.infrastructure.repositories.audit_repository import (
+    AuditLogRepository,
+)
+from app.domains.users.infrastructure.models.user import User
+from app.schemas.nodes_common import NodeType, Status
+from app.schemas.quest_editor import GraphEdge, GraphNode, SimulateIn, SimulateResult
+from app.schemas.quest_validation import ValidationReport
+from app.validation import run_validators
 
 
 async def _audit(
@@ -29,8 +36,8 @@ async def _audit(
     action: str,
     resource_type: str | None = None,
     resource_id: str | None = None,
-    before: Dict | None = None,
-    after: Dict | None = None,
+    before: dict | None = None,
+    after: dict | None = None,
     request=None,
     reason: str | None = None,
 ) -> None:
@@ -39,7 +46,9 @@ async def _audit(
     ua = None
     try:
         if request is not None and hasattr(request, "headers"):
-            ip = request.headers.get("x-forwarded-for") or getattr(getattr(request, "client", None), "host", None)
+            ip = request.headers.get("x-forwarded-for") or getattr(
+                getattr(request, "client", None), "host", None
+            )
             ua = request.headers.get("user-agent")
     except Exception:  # pragma: no cover - defensive
         pass
@@ -61,7 +70,9 @@ async def _audit(
 class NodeService:
     """Service layer for administrative node operations."""
 
-    def __init__(self, db: AsyncSession, navcache: NavigationCacheService | None = None) -> None:
+    def __init__(
+        self, db: AsyncSession, navcache: NavigationCacheService | None = None
+    ) -> None:
         self._db = db
         self._navcache = navcache or NavigationCacheService(CoreCacheAdapter())
         self._allowed_types = {t.value for t in NodeType}
@@ -74,7 +85,14 @@ class NodeService:
         return value
 
     # Queries -----------------------------------------------------------------
-    async def list(self, workspace_id: UUID, node_type: str | NodeType, *, page: int = 1, per_page: int = 10) -> List[NodeItem]:
+    async def list(
+        self,
+        workspace_id: UUID,
+        node_type: str | NodeType,
+        *,
+        page: int = 1,
+        per_page: int = 10,
+    ) -> list[NodeItem]:
         node_type = self._normalize_type(node_type)
         return await NodeItemDAO.search(
             self._db,
@@ -93,7 +111,7 @@ class NodeService:
         *,
         page: int = 1,
         per_page: int = 10,
-    ) -> List[NodeItem]:
+    ) -> list[NodeItem]:
         node_type = self._normalize_type(node_type)
         return await NodeItemDAO.search(
             self._db,
@@ -104,7 +122,9 @@ class NodeService:
             per_page=per_page,
         )
 
-    async def get(self, workspace_id: UUID, node_type: str | NodeType, node_id: UUID) -> NodeItem:
+    async def get(
+        self, workspace_id: UUID, node_type: str | NodeType, node_id: UUID
+    ) -> NodeItem:
         node_type = self._normalize_type(node_type)
         item = await self._db.get(NodeItem, node_id)
         if not item or item.workspace_id != workspace_id or item.type != node_type:
@@ -113,7 +133,9 @@ class NodeService:
         return item
 
     # Mutations ---------------------------------------------------------------
-    async def create(self, workspace_id: UUID, node_type: str | NodeType, *, actor_id: UUID) -> NodeItem:
+    async def create(
+        self, workspace_id: UUID, node_type: str | NodeType, *, actor_id: UUID
+    ) -> NodeItem:
         node_type = self._normalize_type(node_type)
         item = await NodeItemDAO.create(
             self._db,
@@ -139,14 +161,18 @@ class NodeService:
         workspace_id: UUID,
         node_type: str | NodeType,
         node_id: UUID,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         *,
         actor_id: UUID,
         request=None,
     ) -> NodeItem:
         node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
-        before = {"title": item.title, "summary": item.summary, "status": item.status.value}
+        before = {
+            "title": item.title,
+            "summary": item.summary,
+            "status": item.status.value,
+        }
         for key, value in data.items():
             if hasattr(item, key):
                 setattr(item, key, value)
@@ -162,7 +188,11 @@ class NodeService:
                 resource_type=node_type,
                 resource_id=str(item.id),
                 before=before,
-                after={"title": item.title, "summary": item.summary, "status": item.status.value},
+                after={
+                    "title": item.title,
+                    "summary": item.summary,
+                    "status": item.status.value,
+                },
                 request=request,
             )
         except Exception:
@@ -204,7 +234,9 @@ class NodeService:
                 content={},
             )
             user_stub = User(id=actor_id)
-            await TracesService().maybe_add_auto_trace(self._db, node_stub, user_stub, chance=0.0)
+            await TracesService().maybe_add_auto_trace(
+                self._db, node_stub, user_stub, chance=0.0
+            )
         except Exception:  # pragma: no cover - tracing is best effort
             pass
         try:
@@ -227,10 +259,30 @@ class NodeService:
         node_type = self._normalize_type(node_type)
         return await run_validators(node_type, node_id, self._db)
 
+    async def simulate(
+        self,
+        workspace_id: UUID,
+        node_type: str | NodeType,
+        node_id: UUID,
+        payload: SimulateIn,
+    ) -> tuple[ValidationReport, SimulateResult]:
+        node_type = self._normalize_type(node_type)
+        if node_type != NodeType.quest.value:
+            raise HTTPException(
+                status_code=400, detail="Simulation supported only for quest nodes"
+            )
+        item = await self.get(workspace_id, node_type, node_id)
+        data = item.quest_data or {}
+        nodes = [GraphNode(**n) for n in data.get("nodes", [])]
+        edges = [GraphEdge(**e) for e in data.get("edges", [])]
+        report = await run_validators(node_type, node_id, self._db)
+        result = EditorService().simulate_graph(nodes, edges, payload)
+        return report, result
+
     async def apply_patch(
         self,
         node_id: UUID,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         *,
         actor_id: UUID | None = None,
     ):
