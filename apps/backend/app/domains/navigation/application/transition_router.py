@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import copy
 import logging
 import math
 import random
 import time
-import copy
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict, deque
 from collections.abc import Sequence
@@ -41,6 +41,9 @@ from app.core.metrics import (
     record_route_latency_ms,
     record_route_length,
     record_tag_entropy,
+)
+from app.domains.telemetry.application.transition_metrics_facade import (
+    transition_metrics,
 )
 
 
@@ -456,22 +459,28 @@ class TransitionRouter:
         record_route_latency_ms(elapsed_ms)
         record_repeat_rate(repeat_rate)
         ws_id = str(start.workspace_id)
+        mode = preview.mode if preview else "normal"
+        transition_metrics.observe_latency(ws_id, mode, elapsed_ms)
+        transition_metrics.observe_repeat_rate(ws_id, mode, repeat_rate)
         if reason is None and nxt is None:
             reason = NoRouteReason.NO_ROUTE
             no_route(start.slug)
         if reason == NoRouteReason.NO_ROUTE:
             record_no_route(ws_id)
+            transition_metrics.inc_no_route(ws_id, mode)
         else:
             record_route_length(len(history), ws_id)
             if nxt is not None:
                 tags = getattr(nxt, "tags", []) or []
                 ent = _compute_entropy([getattr(t, "slug", t) for t in tags])
                 record_tag_entropy(ent, ws_id)
+                transition_metrics.observe_entropy(ws_id, mode, ent)
         if fallback_used:
             from app.core.log_events import fallback_used as log_fallback_used
 
             log_fallback_used("transition.router")
             record_fallback_used(ws_id)
+            transition_metrics.inc_fallback(ws_id, mode)
         transition_finish(nxt.slug if nxt else None)
         return TransitionResult(
             next=nxt, reason=reason, trace=list(self.trace), metrics=metrics
