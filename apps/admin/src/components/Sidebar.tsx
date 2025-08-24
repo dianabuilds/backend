@@ -218,6 +218,26 @@ export default function Sidebar() {
           icon: "activity",
         } as AdminMenuItem);
       }
+      const ops = list.find((i) => i.id === "operations");
+      const limitItem: AdminMenuItem = {
+        id: "ops-limits",
+        label: "Limits",
+        path: "/ops/limits",
+        icon: "activity",
+      };
+      if (ops) {
+        ops.children = ops.children || [];
+        if (!ops.children.some((c) => c.id === limitItem.id)) {
+          ops.children.push(limitItem);
+        }
+      } else {
+        list.push({
+          id: "operations",
+          label: "Operations",
+          icon: "activity",
+          children: [limitItem],
+        } as AdminMenuItem);
+      }
       // Доверяем порядку сервера: не пересортировываем на клиенте
       setItems(list);
     } catch (e) {
