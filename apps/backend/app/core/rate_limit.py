@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import re
+import time
 from collections import deque
 from datetime import datetime
+from typing import Optional
 
+import redis.asyncio as redis
 from fastapi import Depends, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.core.real_ip import get_real_ip
@@ -122,3 +126,124 @@ async def close_rate_limiter() -> None:
     if not settings.rate_limit.enabled:
         return
     await FastAPILimiter.close()
+
+
+# --- Token bucket middleware -------------------------------------------------
+
+TOKEN_BUCKET_SCRIPT = """
+local key = KEYS[1]
+local capacity = tonumber(ARGV[1])
+local fill_rate = tonumber(ARGV[2])
+local burst = tonumber(ARGV[3])
+local now = tonumber(ARGV[4])
+
+local max_tokens = capacity + burst
+local data = redis.call('HMGET', key, 'tokens', 'timestamp')
+local tokens = tonumber(data[1])
+local timestamp = tonumber(data[2])
+
+if tokens == nil then
+    tokens = max_tokens
+    timestamp = now
+else
+    local delta = now - timestamp
+    tokens = math.min(tokens + delta * fill_rate, max_tokens)
+    timestamp = now
+end
+
+local allowed = 0
+local retry = 0
+
+if tokens >= 1 then
+    allowed = 1
+    tokens = tokens - 1
+else
+    retry = math.ceil((1 - tokens) / fill_rate)
+end
+
+redis.call('HSET', key, 'tokens', tokens, 'timestamp', timestamp)
+redis.call('EXPIRE', key, math.ceil(max_tokens / fill_rate))
+
+return {allowed, retry}
+"""
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Token-bucket rate limiting using Redis.
+
+    The key has the format ``rl:{workspace_id}:{user_id}:{operation}``.
+    When the limit is exceeded the middleware sets the ``Retry-After`` header
+    and returns ``429``.
+    """
+
+    def __init__(
+        self,
+        app,
+        *,
+        capacity: int,
+        fill_rate: float,
+        burst: int,
+        redis_client: Optional[redis.Redis] = None,
+        redis_url: str | None = None,
+    ) -> None:
+        super().__init__(app)
+        self.capacity = capacity
+        self.fill_rate = fill_rate
+        self.burst = burst
+        if redis_client is not None:
+            self._redis = redis_client
+        else:
+            redis_url = redis_url or settings.rate_limit.redis_url
+            self._redis = redis.from_url(
+                redis_url, encoding="utf-8", decode_responses=True
+            )
+
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        workspace_id = request.headers.get("X-Workspace-ID", "0")
+        user_id = request.headers.get("X-User-ID", "0")
+        operation = request.headers.get("X-Operation", request.url.path)
+        allowed, retry_after = await self._acquire(workspace_id, user_id, operation)
+        if allowed:
+            return await call_next(request)
+        response = Response(status_code=429)
+        if retry_after > 0:
+            response.headers["Retry-After"] = str(int(retry_after))
+        return response
+
+    async def _acquire(
+        self, workspace_id: str, user_id: str, operation: str
+    ) -> tuple[bool, float]:
+        key = f"rl:{workspace_id}:{user_id}:{operation}"
+        now = time.time()
+        try:
+            allowed, retry = await self._redis.eval(
+                TOKEN_BUCKET_SCRIPT,
+                1,
+                key,
+                self.capacity,
+                self.fill_rate,
+                self.burst,
+                now,
+            )
+            return bool(int(allowed)), float(retry)
+        except Exception:  # pragma: no cover - fallback for minimal redis
+            data = await self._redis.hgetall(key) or {}
+            tokens = float(data.get("tokens", self.capacity + self.burst))
+            timestamp = float(data.get("timestamp", now))
+            delta = now - timestamp
+            max_tokens = self.capacity + self.burst
+            tokens = min(tokens + delta * self.fill_rate, max_tokens)
+            if tokens >= 1:
+                tokens -= 1
+                allowed = True
+                retry = 0.0
+            else:
+                allowed = False
+                retry = (1 - tokens) / self.fill_rate
+            await self._redis.hset(
+                key, mapping={"tokens": tokens, "timestamp": now}
+            )
+            await self._redis.expire(
+                key, int(max_tokens / self.fill_rate) or 1
+            )
+            return allowed, retry
