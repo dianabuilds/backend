@@ -271,12 +271,20 @@ export class ApiError<T = any> extends Error {
   status: number;
   code?: string;
   detail?: T;
-  constructor(message: string, status: number, code?: string, detail?: T) {
+  headers?: Headers;
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    detail?: T,
+    headers?: Headers,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.detail = detail;
+    this.headers = headers;
   }
 }
 
@@ -349,7 +357,13 @@ async function request<T = unknown>(url: string, opts: RequestOptions = {}): Pro
       data?.error?.message ||
       resp.statusText ||
       "Request failed";
-    throw new ApiError(String(msg), resp.status, typeof code === "string" ? code : undefined, detail);
+    throw new ApiError(
+      String(msg),
+      resp.status,
+      typeof code === "string" ? code : undefined,
+      detail,
+      resp.headers,
+    );
   }
 
   return { ok: true, status: resp.status, etag, data: data as T, response: resp };

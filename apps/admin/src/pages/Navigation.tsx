@@ -1,6 +1,10 @@
 import { useState } from "react";
 
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
+import LimitBadge, {
+  handleLimit429,
+  refreshLimits,
+} from "../components/LimitBadge";
 
 interface RunResponse {
   transitions?: unknown[];
@@ -31,8 +35,15 @@ export default function Navigation() {
         ? (res.data?.transitions as unknown[]).length
         : 0;
       setResult(`Generated transitions: ${count}`);
-    } catch (e) {
-      setResult(e instanceof Error ? e.message : String(e));
+      await refreshLimits();
+    } catch (e: any) {
+      if (e instanceof ApiError && e.status === 429) {
+        const retry = Number(e.headers?.get("Retry-After") || 0);
+        await handleLimit429("compass_calls", retry);
+        setResult("Rate limit exceeded");
+      } else {
+        setResult(e instanceof Error ? e.message : String(e));
+      }
     } finally {
       setRunning(false);
     }
@@ -98,6 +109,7 @@ export default function Navigation() {
             >
               {running ? "Running..." : "Run generation"}
             </button>
+            <LimitBadge limitKey="compass_calls" />
             <button
               onClick={checkPgvector}
               className="px-3 py-1 rounded border"
