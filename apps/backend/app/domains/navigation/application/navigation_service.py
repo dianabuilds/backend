@@ -60,7 +60,9 @@ class NavigationService:
         max_options = settings.navigation.max_options
 
         manual: List[Dict[str, object]] = []
-        for t in await TransitionsService().get_transitions(db, node, user):
+        for t in await TransitionsService().get_transitions(
+            db, node, user, node.workspace_id
+        ):
             if not await has_access_async(t.to_node, user):
                 continue
             manual.append(

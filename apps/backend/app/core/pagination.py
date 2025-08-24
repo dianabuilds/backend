@@ -174,3 +174,11 @@ def apply_filters(stmt: Select, filters: Mapping[str, str], spec: FilterSpec) ->
         stmt = handler(stmt, value)
         applied[key] = value
     return stmt, applied
+
+
+def scope_by_workspace(query: Select, workspace_id: UUID) -> Select:
+    """Filter a SQLAlchemy query by workspace identifier if possible."""
+    entity = query.column_descriptions[0]["entity"]
+    if hasattr(entity, "workspace_id"):
+        query = query.where(entity.workspace_id == workspace_id)
+    return query
