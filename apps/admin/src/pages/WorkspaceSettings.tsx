@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useToast } from "../components/ToastProvider";
 import type {
+  GenerateQuestIn,
   WorkspaceMemberOut,
   WorkspaceOut,
   WorkspaceRole,
@@ -14,7 +15,7 @@ import PageLayout from "./_shared/PageLayout";
 const TABS = [
   "General",
   "Members",
-  "AI-presets",
+  "AI",
   "Notifications",
   "Limits",
 ] as const;
@@ -42,6 +43,52 @@ export default function WorkspaceSettings() {
       });
     }
   }, [error, addToast]);
+
+  const [selectedPreset, setSelectedPreset] = useState("");
+  const [aiForm, setAIForm] = useState<GenerateQuestIn>({
+    structure: "",
+    length: "",
+    tone: "",
+    genre: "",
+    locale: "",
+  });
+
+  useEffect(() => {
+    const keys = Object.keys(data?.settings?.ai_presets ?? {});
+    if (keys.length > 0 && !selectedPreset) {
+      setSelectedPreset(keys[0]);
+    }
+  }, [data, selectedPreset]);
+
+  useEffect(() => {
+    const preset = data?.settings?.ai_presets?.[selectedPreset] as
+      | Partial<GenerateQuestIn>
+      | undefined;
+    if (preset) {
+      setAIForm({
+        structure: preset.structure ?? "",
+        length: preset.length ?? "",
+        tone: preset.tone ?? "",
+        genre: preset.genre ?? "",
+        locale: preset.locale ?? "",
+        extras: preset.extras ?? undefined,
+        world_template_id: preset.world_template_id ?? undefined,
+      });
+    }
+  }, [data, selectedPreset]);
+
+  const generateAI = async () => {
+    try {
+      await api.post(`/admin/ai/quests/generate`, aiForm);
+      addToast({ title: "Generation enqueued", variant: "success" });
+    } catch (e) {
+      addToast({
+        title: "Generation failed",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
+    }
+  };
 
   const {
     data: members,
@@ -259,6 +306,66 @@ export default function WorkspaceSettings() {
     </div>
   );
 
+  const renderAI = () => {
+    const presets = data?.settings?.ai_presets ?? {};
+    const presetKeys = Object.keys(presets);
+
+    if (presetKeys.length === 0) {
+      return (
+        <div className="text-sm text-gray-500">No AI presets configured.</div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 text-sm">
+        <select
+          className="border rounded px-2 py-1"
+          value={selectedPreset}
+          onChange={(e) => setSelectedPreset(e.target.value)}
+        >
+          {presetKeys.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        <input
+          className="border rounded px-2 py-1 w-full"
+          placeholder="Structure"
+          value={aiForm.structure}
+          onChange={(e) => setAIForm({ ...aiForm, structure: e.target.value })}
+        />
+        <input
+          className="border rounded px-2 py-1 w-full"
+          placeholder="Length"
+          value={aiForm.length}
+          onChange={(e) => setAIForm({ ...aiForm, length: e.target.value })}
+        />
+        <input
+          className="border rounded px-2 py-1 w-full"
+          placeholder="Tone"
+          value={aiForm.tone}
+          onChange={(e) => setAIForm({ ...aiForm, tone: e.target.value })}
+        />
+        <input
+          className="border rounded px-2 py-1 w-full"
+          placeholder="Genre"
+          value={aiForm.genre}
+          onChange={(e) => setAIForm({ ...aiForm, genre: e.target.value })}
+        />
+        <input
+          className="border rounded px-2 py-1 w-full"
+          placeholder="Locale"
+          value={aiForm.locale ?? ""}
+          onChange={(e) => setAIForm({ ...aiForm, locale: e.target.value })}
+        />
+        <button className="px-2 py-1 border rounded" onClick={generateAI}>
+          Generate
+        </button>
+      </div>
+    );
+  };
+
   const renderTab = () => {
     switch (tab) {
       case "General":
@@ -277,6 +384,8 @@ export default function WorkspaceSettings() {
         ) : null;
       case "Members":
         return renderMembers();
+      case "AI":
+        return renderAI();
       default:
         return (
           <div className="text-sm text-gray-500">No content for {tab} yet.</div>
