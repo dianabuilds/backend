@@ -18,7 +18,13 @@ export interface SimulatePreviewResponse {
   next?: string | null;
   reason?: string | null;
   trace?: unknown[];
-  metrics?: Record<string, unknown>;
+  metrics?: {
+    tag_entropy?: number;
+    source_diversity?: number;
+    tags?: string[];
+    sources?: string[];
+    [k: string]: unknown;
+  };
 }
 
 export async function simulatePreview(

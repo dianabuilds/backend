@@ -25,6 +25,9 @@ _tag_entropies: Dict[str, Deque[float]] = defaultdict(lambda: deque(maxlen=1000)
 _transition_counts: Dict[str, int] = defaultdict(int)
 _no_route_counts: Dict[str, int] = defaultdict(int)
 _fallback_used_counts: Dict[str, int] = defaultdict(int)
+_preview_route_lengths: Dict[str, Deque[int]] = defaultdict(lambda: deque(maxlen=1000))
+_preview_transition_counts: Dict[str, int] = defaultdict(int)
+_preview_no_route_counts: Dict[str, int] = defaultdict(int)
 
 
 def record_route_latency_ms(value: float) -> None:
@@ -37,11 +40,17 @@ def record_repeat_rate(rate: float) -> None:
         _repeat_rates.append(rate)
 
 
-def record_route_length(length: int, workspace_id: str | None) -> None:
+def record_route_length(
+    length: int, workspace_id: str | None, preview: bool = False
+) -> None:
     ws = workspace_id or "unknown"
     with _transition_lock:
-        _route_lengths[ws].append(length)
-        _transition_counts[ws] += 1
+        if preview:
+            _preview_route_lengths[ws].append(length)
+            _preview_transition_counts[ws] += 1
+        else:
+            _route_lengths[ws].append(length)
+            _transition_counts[ws] += 1
 
 
 def record_tag_entropy(entropy: float, workspace_id: str | None) -> None:
@@ -50,11 +59,15 @@ def record_tag_entropy(entropy: float, workspace_id: str | None) -> None:
         _tag_entropies[ws].append(entropy)
 
 
-def record_no_route(workspace_id: str | None) -> None:
+def record_no_route(workspace_id: str | None, preview: bool = False) -> None:
     ws = workspace_id or "unknown"
     with _transition_lock:
-        _no_route_counts[ws] += 1
-        _transition_counts[ws] += 1
+        if preview:
+            _preview_no_route_counts[ws] += 1
+            _preview_transition_counts[ws] += 1
+        else:
+            _no_route_counts[ws] += 1
+            _transition_counts[ws] += 1
 
 
 def record_fallback_used(workspace_id: str | None) -> None:
@@ -308,6 +321,9 @@ class MetricsStorage:
             totals = dict(_transition_counts)
             no_routes = dict(_no_route_counts)
             fallbacks = dict(_fallback_used_counts)
+            prev_lengths = {ws: list(v) for ws, v in _preview_route_lengths.items()}
+            prev_totals = dict(_preview_transition_counts)
+            prev_no_routes = dict(_preview_no_route_counts)
         lines.append("# HELP route_latency_ms Route latency milliseconds")
         lines.append("# TYPE route_latency_ms summary")
         if lat:
@@ -333,6 +349,16 @@ class MetricsStorage:
             pct = (cnt / total * 100) if total else 0.0
             lines.append(f'transition_no_route_percent{{workspace="{ws}"}} {pct}')
         lines.append(
+            "# HELP transition_preview_no_route_percent Percentage of preview transitions without route",
+        )
+        lines.append("# TYPE transition_preview_no_route_percent gauge")
+        for ws, cnt in prev_no_routes.items():
+            total = prev_totals.get(ws, 0)
+            pct = (cnt / total * 100) if total else 0.0
+            lines.append(
+                f'transition_preview_no_route_percent{{workspace="{ws}"}} {pct}'
+            )
+        lines.append(
             "# HELP transition_fallback_used_percent Percentage of transitions using fallback"
         )
         lines.append("# TYPE transition_fallback_used_percent gauge")
@@ -352,6 +378,13 @@ class MetricsStorage:
             p95 = _percentile(vals, 0.95) if vals else 0.0
             lines.append(f'route_length_avg{{workspace="{ws}"}} {avg}')
             lines.append(f'route_length_p95{{workspace="{ws}"}} {p95}')
+        lines.append("# HELP preview_route_length Route length in preview")
+        lines.append("# TYPE preview_route_length summary")
+        for ws, vals in prev_lengths.items():
+            avg = sum(vals) / len(vals) if vals else 0.0
+            p95 = _percentile(vals, 0.95) if vals else 0.0
+            lines.append(f'preview_route_length_avg{{workspace="{ws}"}} {avg}')
+            lines.append(f'preview_route_length_p95{{workspace="{ws}"}} {p95}')
         return "\n".join(lines) + "\n"
 
 
