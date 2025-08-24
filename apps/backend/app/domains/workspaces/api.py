@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from jsonschema import ValidationError
 
 from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
@@ -188,6 +189,12 @@ async def put_ai_presets(
     workspace = await WorkspaceDAO.get(db, workspace_id)
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
+    try:
+        from app.domains.ai.validation import validate_ai_presets
+
+        validate_ai_presets(presets)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     settings = WorkspaceSettings.model_validate(workspace.settings_json)
     settings.ai_presets = presets
     workspace.settings_json = settings.model_dump()
