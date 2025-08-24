@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException
@@ -23,7 +23,7 @@ from app.domains.telemetry.infrastructure.repositories.audit_repository import (
     AuditLogRepository,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.schemas.nodes_common import NodeType, Status
+from app.schemas.nodes_common import NodeType, Status, Visibility
 from app.schemas.quest_editor import GraphEdge, GraphNode, SimulateIn, SimulateResult
 from app.schemas.quest_validation import ValidationReport
 from app.validation import run_validators
@@ -206,14 +206,31 @@ class NodeService:
         node_id: UUID,
         *,
         actor_id: UUID,
+        access: Literal["everyone", "premium_only", "early_access"] = "everyone",
+        cover: str | None = None,
         request=None,
     ) -> NodeItem:
         node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
         validate_transition(item.status, Status.published)
+        if access == "early_access":
+            item.visibility = Visibility.unlisted
+        else:
+            item.visibility = Visibility.public
         item.status = Status.published
         item.published_at = datetime.utcnow()
         item.updated_by_user_id = actor_id
+        node = await self._db.get(Node, node_id)
+        if node:
+            node.premium_only = access == "premium_only"
+            node.is_public = access != "early_access"
+            node.visibility = (
+                Visibility.unlisted if access == "early_access" else Visibility.public
+            )
+            if cover is not None:
+                node.cover_url = cover
+            node.updated_by_user_id = actor_id
+            node.updated_at = datetime.utcnow()
         await self._db.flush()
         await self._db.commit()
         await publish_content(item.id, item.slug, actor_id)
