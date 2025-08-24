@@ -8,6 +8,7 @@ import WorkspaceSelector from "./WorkspaceSelector";
 import SystemStatus from "./SystemStatus";
 import Breadcrumbs from "./Breadcrumbs";
 import CommandPalette from "./CommandPalette";
+import AlertsBadge from "./AlertsBadge";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -27,6 +28,7 @@ export default function Layout() {
             )}
           </div>
           <div className="flex items-center gap-4">
+            <AlertsBadge />
             <SystemStatus />
             {user && (
               <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200">
