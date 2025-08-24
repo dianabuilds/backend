@@ -27,6 +27,9 @@ from app.domains.telemetry.infrastructure.repositories.audit_repository import (
     AuditLogRepository,
 )
 from app.domains.users.infrastructure.models.user import User
+from app.domains.notifications.application.ports.notifications import (
+    INotificationPort,
+)
 from app.schemas.nodes_common import NodeType, Status, Visibility
 from app.schemas.quest_editor import GraphEdge, GraphNode, SimulateIn, SimulateResult
 from app.schemas.quest_validation import ValidationReport
@@ -75,10 +78,14 @@ class NodeService:
     """Service layer for administrative node operations."""
 
     def __init__(
-        self, db: AsyncSession, navcache: NavigationCacheService | None = None
+        self,
+        db: AsyncSession,
+        navcache: NavigationCacheService | None = None,
+        notifier: INotificationPort | None = None,
     ) -> None:
         self._db = db
         self._navcache = navcache or NavigationCacheService(CoreCacheAdapter())
+        self._notifier = notifier
         self._allowed_types = {t.value for t in NodeType}
 
     # ------------------------------------------------------------------
@@ -285,7 +292,13 @@ class NodeService:
             actor_id=actor_id,
         )
         await self._db.commit()
-        await publish_content(item.id, item.slug, actor_id)
+        await publish_content(
+            item.id,
+            item.slug,
+            actor_id,
+            workspace_id=workspace_id,
+            notifier=self._notifier,
+        )
         # Invalidate caches
         await self._navcache.invalidate_navigation_by_node(item.slug)
         await self._navcache.invalidate_modes_by_node(item.slug)

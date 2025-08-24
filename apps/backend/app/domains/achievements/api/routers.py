@@ -11,7 +11,7 @@ from app.api.deps import get_current_user, current_workspace
 from app.core.db.session import get_db
 from app.domains.achievements.application.achievements_service import AchievementsService
 from app.domains.achievements.application.admin_service import AchievementsAdminService
-from app.domains.achievements.infrastructure.notifications_adapter import NotificationsAdapter
+from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.achievements.infrastructure.repositories.achievements_repository import (
     AchievementsRepository,
 )
@@ -46,7 +46,9 @@ def _admin_svc(db: AsyncSession) -> AchievementsAdminService:
 
 
 def _svc(db: AsyncSession) -> AchievementsService:
-    return AchievementsService(AchievementsRepository(db), NotificationsAdapter(db))
+    return AchievementsService(
+        AchievementsRepository(db), InAppNotificationPort(db)
+    )
 
 
 @user_router.get("", response_model=List[AchievementOut], summary="List achievements")

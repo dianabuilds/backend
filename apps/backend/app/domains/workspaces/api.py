@@ -29,6 +29,8 @@ from app.security import (
     require_ws_editor,
     require_ws_owner,
 )
+from app.schemas.notification_rules import NotificationRules
+from app.domains.notifications.validation import validate_notification_rules
 
 router = APIRouter(
     prefix="/admin/workspaces",
@@ -205,14 +207,14 @@ async def put_ai_presets(
 
 @router.get(
     "/{workspace_id}/settings/notifications",
-    response_model=dict[str, Any],
+    response_model=NotificationRules,
     summary="Get workspace notification rules",
 )
 async def get_notifications(
     workspace_id: UUID,
     _: WorkspaceMember | None = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
-) -> dict[str, Any]:
+) -> NotificationRules:
     workspace = await WorkspaceDAO.get(db, workspace_id)
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
@@ -222,18 +224,20 @@ async def get_notifications(
 
 @router.put(
     "/{workspace_id}/settings/notifications",
-    response_model=dict[str, Any],
+    response_model=NotificationRules,
     summary="Update workspace notification rules",
 )
 async def put_notifications(
     workspace_id: UUID,
-    rules: dict[str, Any],
+    rules: NotificationRules,
     _: WorkspaceMember | None = Depends(require_ws_editor),
     db: AsyncSession = Depends(get_db),
-) -> dict[str, Any]:
+) -> NotificationRules:
     workspace = await WorkspaceDAO.get(db, workspace_id)
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
+    # Validate explicitly
+    _ = validate_notification_rules(rules.model_dump())
     settings = WorkspaceSettings.model_validate(workspace.settings_json)
     settings.notifications = rules
     workspace.settings_json = settings.model_dump()

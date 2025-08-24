@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.schemas.notification_rules import NotificationRules
+
 
 class WorkspaceRole(str, Enum):
     owner = "owner"
@@ -21,7 +23,7 @@ class WorkspaceType(str, Enum):
 
 class WorkspaceSettings(BaseModel):
     ai_presets: dict[str, object] = Field(default_factory=dict)
-    notifications: dict[str, object] = Field(default_factory=dict)
+    notifications: NotificationRules = Field(default_factory=NotificationRules)
     limits: dict[str, int] = Field(
         default_factory=lambda: {
             "ai_tokens": 0,

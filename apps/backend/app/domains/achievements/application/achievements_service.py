@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.achievements.application.ports.notifications_port import (
+from app.domains.notifications.application.ports.notifications import (
     INotificationPort,
 )
 from app.domains.achievements.application.ports.repository import (
@@ -52,7 +52,11 @@ class AchievementsService:
             return False
         await self._repo.add_user_achievement(user_id, achievement_id, workspace_id)
         await self._notifier.notify(
-            user_id, workspace_id=workspace_id, title="Achievement unlocked", message=ach.title
+            "achievement",
+            user_id,
+            workspace_id=workspace_id,
+            title="Achievement unlocked",
+            message=ach.title,
         )
         await db.commit()
         return True
