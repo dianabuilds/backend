@@ -39,6 +39,7 @@ from app.schemas.notification_settings import (
     NodeNotificationSettingsOut,
     NodeNotificationSettingsUpdate,
 )
+from app.domains.telemetry.application.event_metrics_facade import event_metrics
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -104,6 +105,7 @@ async def read_node(
     if node.nft_required and not await user_has_nft(current_user, node.nft_required):
         raise HTTPException(status_code=403, detail="NFT required")
     node = await repo.increment_views(node)
+    event_metrics.inc("node_visit", str(workspace_id))
     await TracesService().maybe_add_auto_trace(db, node, current_user)
     return node
 

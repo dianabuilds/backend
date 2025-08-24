@@ -21,6 +21,9 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         route = request.scope.get("route")
         route_path = getattr(route, "path", None) or request.url.path
         method = request.method.upper()
+        workspace_id = request.query_params.get("workspace_id")
 
-        metrics_storage.record(duration_ms, response.status_code, method, route_path)
+        metrics_storage.record(
+            duration_ms, response.status_code, method, route_path, workspace_id
+        )
         return response
