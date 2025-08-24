@@ -50,9 +50,13 @@ class NodeItemDAO:
         return item
 
     @staticmethod
-    async def detach_tag(db: AsyncSession, *, node_id: UUID, tag_id: UUID) -> None:
+    async def detach_tag(
+        db: AsyncSession, *, node_id: UUID, tag_id: UUID, workspace_id: UUID
+    ) -> None:
         stmt = delete(ContentTag).where(
-            ContentTag.content_id == node_id, ContentTag.tag_id == tag_id
+            ContentTag.content_id == node_id,
+            ContentTag.tag_id == tag_id,
+            ContentTag.workspace_id == workspace_id,
         )
         await db.execute(stmt)
         await db.flush()
