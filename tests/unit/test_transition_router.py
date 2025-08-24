@@ -1,9 +1,11 @@
-import importlib
-import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 import asyncio
+import importlib
+import sys
+from dataclasses import dataclass
+from types import SimpleNamespace
+
 import pytest
 
 # Ensure apps package is importable
@@ -40,22 +42,35 @@ class RandomListProvider(TransitionProvider):
         return self.mapping.get(node.slug, [])
 
 
-def make_router(seed: int):
+def make_router():
     start = DummyNode("start")
     manual_provider = StaticProvider({"start": [DummyNode("manual1")]})
     random_provider = RandomListProvider({"manual1": [DummyNode("r1"), DummyNode("r2")]})
     policies = [
         ManualPolicy(manual_provider),
-        RandomPolicy(random_provider, seed=seed),
+        RandomPolicy(random_provider),
     ]
     return TransitionRouter(policies, not_repeat_last=5), start
 
 
+async def _build_route(router, start, steps, seed=None):
+    budget = SimpleNamespace(time_ms=1000, db_queries=1000, fallback_chain=[])
+    route = [start]
+    current = start
+    for _ in range(steps):
+        result = await router.route(None, current, None, budget, seed=seed)
+        if result.next is None:
+            break
+        current = result.next
+        route.append(current)
+    return route
+
+
 def test_route_reproducible():
-    router1, start = make_router(seed=42)
-    route1 = asyncio.run(router1.route(None, start, None, 2))
-    router2, start2 = make_router(seed=42)
-    route2 = asyncio.run(router2.route(None, start2, None, 2))
+    router1, start1 = make_router()
+    router2, start2 = make_router()
+    route1 = asyncio.run(_build_route(router1, start1, 2, seed=42))
+    route2 = asyncio.run(_build_route(router2, start2, 2, seed=42))
     assert [n.slug for n in route1] == [n.slug for n in route2]
 
 
@@ -63,6 +78,6 @@ def test_no_loops():
     loop_provider = StaticProvider({"a": [DummyNode("b")], "b": [DummyNode("a")]})
     router = TransitionRouter([ManualPolicy(loop_provider)], not_repeat_last=10)
     start = DummyNode("a")
-    route = asyncio.run(router.route(None, start, None, 5))
+    route = asyncio.run(_build_route(router, start, 5))
     slugs = [n.slug for n in route]
     assert len(slugs) == len(set(slugs))

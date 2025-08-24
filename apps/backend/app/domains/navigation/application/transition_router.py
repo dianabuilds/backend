@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 import random
+import time
 from abc import ABC, abstractmethod
 from collections import deque
 from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING, Deque, List, Optional, Sequence
 from uuid import UUID
 
@@ -96,8 +98,11 @@ class CompassProvider(TransitionProvider):
 class RandomProvider(TransitionProvider):
     """Provide random candidates using own RNG for reproducibility."""
 
-    def __init__(self, seed: int | None = None) -> None:
-        self._rnd = random.Random(seed)
+    def __init__(self) -> None:
+        self._rnd = random.Random()
+
+    def set_seed(self, seed: int | None) -> None:
+        self._rnd.seed(seed)
 
     async def get_transitions(
         self,
@@ -167,9 +172,14 @@ class CompassPolicy(Policy):
 class RandomPolicy(Policy):
     name = "random"
 
-    def __init__(self, provider: TransitionProvider, seed: int | None = None) -> None:
+    def __init__(self, provider: TransitionProvider) -> None:
         super().__init__(provider)
-        self._rnd = random.Random(seed)
+        self._rnd = random.Random()
+
+    def set_seed(self, seed: int | None) -> None:
+        self._rnd.seed(seed)
+        if hasattr(self.provider, "set_seed"):
+            self.provider.set_seed(seed)
 
     async def choose(
         self,
@@ -193,6 +203,20 @@ class TraceEntry:
     slug: str
 
 
+class NoRouteReason(Enum):
+    NO_ROUTE = "NO_ROUTE"
+    TIMEOUT = "timeout"
+    BUDGET_EXCEEDED = "budget_exceeded"
+
+
+@dataclass
+class TransitionResult:
+    next: Optional["Node"]
+    reason: Optional[NoRouteReason]
+    trace: List[TraceEntry]
+    metrics: dict
+
+
 class TransitionRouter:
     """Routes transitions according to provided policies."""
 
@@ -214,15 +238,34 @@ class TransitionRouter:
         return None
 
     async def route(
-        self, db: AsyncSession, start: Node, user: Optional[User], steps: int
-    ) -> List[Node]:
-        route = [start]
+        self,
+        db: AsyncSession,
+        start: Node,
+        user: Optional[User],
+        budget,
+        seed: int | None = None,
+    ) -> TransitionResult:
+        start_time = time.monotonic()
+        self.trace.clear()
+        if seed is not None:
+            for policy in self.policies:
+                if hasattr(policy, "set_seed"):
+                    policy.set_seed(seed)
+                if hasattr(policy.provider, "set_seed"):
+                    policy.provider.set_seed(seed)
+
         self.history.append(start.slug)
-        current = start
-        for _ in range(steps):
-            nxt = await self._next(db, current, user)
-            if nxt is None:
-                break
-            route.append(nxt)
-            current = nxt
-        return route
+        nxt = await self._next(db, start, user)
+
+        elapsed_ms = (time.monotonic() - start_time) * 1000
+        metrics = {"elapsed_ms": elapsed_ms, "db_queries": 0}
+
+        reason: Optional[NoRouteReason] = None
+        if elapsed_ms > getattr(budget, "time_ms", float("inf")):
+            reason = NoRouteReason.TIMEOUT
+        elif metrics["db_queries"] > getattr(budget, "db_queries", float("inf")):
+            reason = NoRouteReason.BUDGET_EXCEEDED
+        elif nxt is None:
+            reason = NoRouteReason.NO_ROUTE
+
+        return TransitionResult(next=nxt, reason=reason, trace=list(self.trace), metrics=metrics)

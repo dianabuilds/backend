@@ -49,7 +49,7 @@ class NavigationService:
             [
                 ManualPolicy(manual_provider),
                 CompassPolicy(compass_provider),
-                RandomPolicy(random_provider, seed=0),
+                RandomPolicy(random_provider),
             ],
             not_repeat_last=settings.navigation.no_repeat_last_n,
         )
@@ -128,9 +128,18 @@ class NavigationService:
     async def build_route(
         self, db: AsyncSession, node: Node, user: Optional[User], steps: int
     ) -> List[Node]:
-        self._router.trace.clear()
-        route = await self._router.route(db, node, user, steps)
-        logger.debug("trace: %s", self._router.trace)
+        from types import SimpleNamespace
+
+        route: List[Node] = [node]
+        current = node
+        budget = SimpleNamespace(time_ms=1000, db_queries=1000, fallback_chain=[])
+        for _ in range(steps):
+            result = await self._router.route(db, current, user, budget, seed=0)
+            logger.debug("trace: %s", result.trace)
+            if result.next is None:
+                break
+            current = result.next
+            route.append(current)
         return route
 
     async def get_navigation(
