@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import HotfixBanner from "./HotfixBanner";
 import Sidebar from "./Sidebar";
 import WorkspaceSelector from "./WorkspaceSelector";
+import SystemStatus from "./SystemStatus";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -13,22 +14,25 @@ export default function Layout() {
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <WorkspaceSelector />
-          {user && (
-            <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200">
-              <Link to="/profile" className="hover:underline">
-                {user.username ?? user.email ?? user.id}
-              </Link>
-              <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800">
-                {user.role}
-              </span>
-              <button
-                onClick={logout}
-                className="px-3 py-1 rounded bg-gray-800 text-white hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600"
-              >
-                Выйти
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            <SystemStatus />
+            {user && (
+              <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200">
+                <Link to="/profile" className="hover:underline">
+                  {user.username ?? user.email ?? user.id}
+                </Link>
+                <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800">
+                  {user.role}
+                </span>
+                <button
+                  onClick={logout}
+                  className="px-3 py-1 rounded bg-gray-800 text-white hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600"
+                >
+                  Выйти
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <HotfixBanner />
         <Outlet />
