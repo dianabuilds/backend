@@ -1,6 +1,6 @@
 ### Main dependencies
 fastapi~=0.116.0
-pydantic~=2.4.0
+pydantic>=2.7,<3.0
 pydantic-settings~=2.0.0
 sqlalchemy~=2.0.0
 alembic~=1.13.0
