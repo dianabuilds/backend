@@ -17,6 +17,7 @@ interface NodeEditorData {
   allow_comments: boolean;
   is_premium_only: boolean;
   contentData: OutputData;
+  node_type: string;
 }
 
 export default function NodeEditor() {
@@ -57,6 +58,7 @@ export default function NodeEditor() {
             blocks: [],
             version: "2.30.7",
           },
+          node_type: (n as any).type ?? (n as any).node_type ?? "node",
         });
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -112,7 +114,7 @@ export default function NodeEditor() {
     <PageLayout>
       <ContentEditor
         nodeId={node.id}
-        node_type="node"
+        node_type={node.node_type}
         title={node.title || "Node"}
         statuses={["draft"]}
         versions={[1]}
