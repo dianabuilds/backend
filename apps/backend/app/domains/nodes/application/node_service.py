@@ -16,8 +16,9 @@ from app.domains.telemetry.application.audit_service import AuditService
 from app.domains.telemetry.infrastructure.repositories.audit_repository import AuditLogRepository
 from app.domains.users.infrastructure.models.user import User
 from app.domains.nodes.infrastructure.models.node import Node
-from app.schemas.nodes_common import Status
-from app.validation.base import run_validators
+from app.schemas.nodes_common import NodeType, Status
+from app.validation import run_validators
+from app.domains.nodes.service import publish_content, validate_transition
 from app.core.log_events import cache_invalidate
 
 
@@ -63,9 +64,18 @@ class NodeService:
     def __init__(self, db: AsyncSession, navcache: NavigationCacheService | None = None) -> None:
         self._db = db
         self._navcache = navcache or NavigationCacheService(CoreCacheAdapter())
+        self._allowed_types = {t.value for t in NodeType}
+
+    # ------------------------------------------------------------------
+    def _normalize_type(self, node_type: str | NodeType) -> str:
+        value = node_type.value if isinstance(node_type, NodeType) else node_type
+        if value not in self._allowed_types:
+            raise HTTPException(status_code=400, detail="Unsupported node type")
+        return value
 
     # Queries -----------------------------------------------------------------
-    async def list(self, workspace_id: UUID, node_type: str, *, page: int = 1, per_page: int = 10) -> List[NodeItem]:
+    async def list(self, workspace_id: UUID, node_type: str | NodeType, *, page: int = 1, per_page: int = 10) -> List[NodeItem]:
+        node_type = self._normalize_type(node_type)
         return await NodeItemDAO.search(
             self._db,
             workspace_id=workspace_id,
@@ -78,12 +88,13 @@ class NodeService:
     async def search(
         self,
         workspace_id: UUID,
-        node_type: str,
+        node_type: str | NodeType,
         q: str,
         *,
         page: int = 1,
         per_page: int = 10,
     ) -> List[NodeItem]:
+        node_type = self._normalize_type(node_type)
         return await NodeItemDAO.search(
             self._db,
             workspace_id=workspace_id,
@@ -93,7 +104,8 @@ class NodeService:
             per_page=per_page,
         )
 
-    async def get(self, workspace_id: UUID, node_type: str, node_id: UUID) -> NodeItem:
+    async def get(self, workspace_id: UUID, node_type: str | NodeType, node_id: UUID) -> NodeItem:
+        node_type = self._normalize_type(node_type)
         item = await self._db.get(NodeItem, node_id)
         if not item or item.workspace_id != workspace_id or item.type != node_type:
             raise HTTPException(status_code=404, detail="Node not found")
@@ -101,7 +113,8 @@ class NodeService:
         return item
 
     # Mutations ---------------------------------------------------------------
-    async def create(self, workspace_id: UUID, node_type: str, *, actor_id: UUID) -> NodeItem:
+    async def create(self, workspace_id: UUID, node_type: str | NodeType, *, actor_id: UUID) -> NodeItem:
+        node_type = self._normalize_type(node_type)
         item = await NodeItemDAO.create(
             self._db,
             workspace_id=workspace_id,
@@ -124,13 +137,14 @@ class NodeService:
     async def update(
         self,
         workspace_id: UUID,
-        node_type: str,
+        node_type: str | NodeType,
         node_id: UUID,
         data: Dict[str, Any],
         *,
         actor_id: UUID,
         request=None,
     ) -> NodeItem:
+        node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
         before = {"title": item.title, "summary": item.summary, "status": item.status.value}
         for key, value in data.items():
@@ -158,18 +172,21 @@ class NodeService:
     async def publish(
         self,
         workspace_id: UUID,
-        node_type: str,
+        node_type: str | NodeType,
         node_id: UUID,
         *,
         actor_id: UUID,
         request=None,
     ) -> NodeItem:
+        node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
+        validate_transition(item.status, Status.published)
         item.status = Status.published
         item.published_at = datetime.utcnow()
         item.updated_by_user_id = actor_id
         await self._db.flush()
         await self._db.commit()
+        await publish_content(item.id, item.slug, actor_id)
         # Invalidate caches
         await self._navcache.invalidate_navigation_by_node(item.slug)
         await self._navcache.invalidate_modes_by_node(item.slug)
@@ -205,8 +222,9 @@ class NodeService:
         return item
 
     async def validate(
-        self, node_type: str, node_id: UUID
+        self, node_type: str | NodeType, node_id: UUID
     ) -> Any:  # pragma: no cover - thin wrapper
+        node_type = self._normalize_type(node_type)
         return await run_validators(node_type, node_id, self._db)
 
     async def apply_patch(
