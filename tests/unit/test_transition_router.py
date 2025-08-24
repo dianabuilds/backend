@@ -1,12 +1,13 @@
-from pathlib import Path
 import asyncio
 import importlib
 import sys
+from pathlib import Path
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import List, Optional
 
 import pytest
+from hypothesis import given, strategies as st
 
 # Ensure apps package is importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -17,6 +18,7 @@ from apps.backend.app.domains.navigation.application.transition_router import (
     RandomPolicy,
     TransitionProvider,
     TransitionRouter,
+    NoRouteReason,
 )
 
 
@@ -42,6 +44,17 @@ class RandomListProvider(TransitionProvider):
 
     async def get_transitions(self, db, node, user, workspace_id):
         return self.mapping.get(node.slug, [])
+
+
+class WorkspaceProvider(TransitionProvider):
+    """Return only nodes that belong to provided workspace."""
+
+    def __init__(self, mapping):
+        self.mapping = mapping
+
+    async def get_transitions(self, db, node, user, workspace_id):
+        candidates = self.mapping.get(node.slug, [])
+        return [n for n in candidates if n.workspace_id == workspace_id]
 
 
 def make_router():
@@ -119,3 +132,105 @@ def test_threshold_respected():
     route = asyncio.run(_build_route(router, start, 5))
     # Second node filtered immediately due to high threshold
     assert [n.slug for n in route] == ["a"]
+
+
+def test_no_route_on_empty_graph():
+    provider = StaticProvider({})
+    router = TransitionRouter([ManualPolicy(provider)], not_repeat_last=0)
+    start = DummyNode("start")
+    budget = SimpleNamespace(time_ms=1000, db_queries=1000, fallback_chain=[])
+    result = asyncio.run(router.route(None, start, None, budget))
+    assert result.next is None
+    assert result.reason == NoRouteReason.NO_ROUTE
+
+
+def test_hidden_archived_filtered():
+    start = DummyNode("start")
+    hidden = DummyNode("hidden")
+    archived = DummyNode("archived")
+    visible = DummyNode("visible")
+    provider = StaticProvider({"start": [hidden, archived, visible]})
+    router = TransitionRouter([ManualPolicy(provider)], not_repeat_last=5)
+    router.history.extend(["hidden", "archived"])
+    route = asyncio.run(_build_route(router, start, 1))
+    assert [n.slug for n in route] == ["start", "visible"]
+
+
+def test_policy_priority():
+    start = DummyNode("start")
+    provider1 = StaticProvider({"start": [DummyNode("p1")]})
+    provider2 = StaticProvider({"start": [DummyNode("p2")]})
+    router = TransitionRouter(
+        [ManualPolicy(provider1), ManualPolicy(provider2)], not_repeat_last=0
+    )
+    route = asyncio.run(_build_route(router, start, 1))
+    assert [n.slug for n in route] == ["start", "p1"]
+
+
+def test_workspace_isolation():
+    start = DummyNode("start", workspace_id="ws1")
+    provider = WorkspaceProvider(
+        {
+            "start": [
+                DummyNode("a", workspace_id="ws1"),
+                DummyNode("b", workspace_id="ws2"),
+            ]
+        }
+    )
+    router = TransitionRouter([ManualPolicy(provider)], not_repeat_last=0)
+    route = asyncio.run(_build_route(router, start, 1))
+    assert [n.slug for n in route] == ["start", "a"]
+
+
+@given(st.integers(min_value=0, max_value=1000))
+def test_determinism_property(seed):
+    router1, start1 = make_router()
+    router2, start2 = make_router()
+    r1 = asyncio.run(_build_route(router1, start1, 2, seed))
+    r2 = asyncio.run(_build_route(router2, start2, 2, seed))
+    assert [n.slug for n in r1] == [n.slug for n in r2]
+
+
+@given(st.integers(min_value=1, max_value=5))
+def test_no_repeat_window_property(window):
+    provider = StaticProvider({"a": [DummyNode("a", tags=["t"]) ]})
+    router = TransitionRouter(
+        [ManualPolicy(provider)],
+        not_repeat_last=0,
+        no_repeat_window=window,
+        repeat_threshold=0.6,
+        repeat_decay=0.5,
+        max_visits=10,
+    )
+    start = DummyNode("a", tags=["t"])
+    route = asyncio.run(_build_route(router, start, window * 2))
+    assert len(route) <= window + 1
+
+
+@given(
+    st.floats(min_value=0.1, max_value=0.9), st.floats(min_value=0.1, max_value=0.9)
+)
+def test_diversity_weight_monotonic(decay1, decay2):
+    if decay1 > decay2:
+        decay1, decay2 = decay2, decay1
+    provider = StaticProvider({"a": [DummyNode("a", tags=["t"]), DummyNode("a", tags=["t"])]})
+    start = DummyNode("a", tags=["t"])
+    router1 = TransitionRouter(
+        [ManualPolicy(provider)],
+        not_repeat_last=0,
+        no_repeat_window=5,
+        repeat_threshold=0.4,
+        repeat_decay=decay1,
+        max_visits=10,
+    )
+    router2 = TransitionRouter(
+        [ManualPolicy(provider)],
+        not_repeat_last=0,
+        no_repeat_window=5,
+        repeat_threshold=0.4,
+        repeat_decay=decay2,
+        max_visits=10,
+    )
+    r1 = asyncio.run(_build_route(router1, start, 5))
+    r2 = asyncio.run(_build_route(router2, start, 5))
+    assert len(r1) <= len(r2)
