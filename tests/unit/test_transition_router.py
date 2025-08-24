@@ -16,6 +16,7 @@ sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 from apps.backend.app.domains.navigation.application.transition_router import (
     ManualPolicy,
     RandomPolicy,
+    CompassPolicy,
     TransitionProvider,
     TransitionRouter,
     NoRouteReason,
@@ -68,8 +69,14 @@ def make_router():
     return TransitionRouter(policies, not_repeat_last=5), start
 
 
+class ConditionalPolicy(ManualPolicy):
+    name = "conditional"
+
+
 async def _build_route(router, start, steps, seed=None):
-    budget = SimpleNamespace(time_ms=1000, db_queries=1000, fallback_chain=[])
+    budget = SimpleNamespace(
+        max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
+    )
     route = [start]
     current = start
     for _ in range(steps):
@@ -138,7 +145,9 @@ def test_no_route_on_empty_graph():
     provider = StaticProvider({})
     router = TransitionRouter([ManualPolicy(provider)], not_repeat_last=0)
     start = DummyNode("start")
-    budget = SimpleNamespace(time_ms=1000, db_queries=1000, fallback_chain=[])
+    budget = SimpleNamespace(
+        max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
+    )
     result = asyncio.run(router.route(None, start, None, budget))
     assert result.next is None
     assert result.reason == NoRouteReason.NO_ROUTE
@@ -165,6 +174,28 @@ def test_policy_priority():
     )
     route = asyncio.run(_build_route(router, start, 1))
     assert [n.slug for n in route] == ["start", "p1"]
+
+
+def test_fallback_chain_sequence():
+    start = DummyNode("start")
+    manual_provider = StaticProvider({"start": []})
+    conditional_provider = StaticProvider({"start": []})
+    compass_provider = StaticProvider({"start": [DummyNode("c1")]})
+    policies = [
+        ManualPolicy(manual_provider),
+        ConditionalPolicy(conditional_provider),
+        CompassPolicy(compass_provider),
+    ]
+    router = TransitionRouter(policies, not_repeat_last=5)
+    budget = SimpleNamespace(
+        max_time_ms=1000,
+        max_queries=1000,
+        max_filters=1000,
+        fallback_chain=["manual", "conditional", "compass"],
+    )
+    result = asyncio.run(router.route(None, start, None, budget))
+    assert result.next and result.next.slug == "c1"
+    assert result.metrics.get("fallback_used")
 
 
 def test_workspace_isolation():
