@@ -116,6 +116,8 @@ async def auth_user(
 from app.domains.workspaces.application.service import (
     require_ws_editor,
     require_ws_owner,
+    require_ws_viewer,
+    require_ws_guest,
 )
 
 ADMIN_AUTH_RESPONSES = {
@@ -172,6 +174,8 @@ __all__ = [
     "auth_user",
     "require_ws_editor",
     "require_ws_owner",
+    "require_ws_viewer",
+    "require_ws_guest",
     "bearer_scheme",
     "ADMIN_AUTH_RESPONSES",
     "AuthRequiredError",

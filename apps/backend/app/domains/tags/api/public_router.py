@@ -11,7 +11,7 @@ from app.core.db.session import get_db
 from app.domains.tags.models import Tag, ContentTag
 from app.domains.tags.dao import TagDAO
 from app.schemas.tag import TagOut, TagCreate, TagUpdate
-from app.security import require_ws_editor
+from app.security import require_ws_editor, require_ws_guest
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -24,6 +24,7 @@ async def list_tags(
     limit: int = Query(10),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_guest),
 ):
     """Retrieve available tags with optional search and popularity filter."""
     stmt = (
@@ -64,7 +65,10 @@ async def create_tag(
 
 @router.get("/{slug}", response_model=TagOut, summary="Get tag")
 async def get_tag(
-    workspace_id: UUID, slug: str, db: AsyncSession = Depends(get_db)
+    workspace_id: UUID,
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_guest),
 ) -> TagOut:
     tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
     if not tag:

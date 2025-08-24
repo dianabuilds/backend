@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import get_current_user, get_current_user_optional, ensure_can_post, require_premium
+from app.security import require_ws_viewer, require_ws_guest
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
     PageRequest,
@@ -52,6 +53,7 @@ async def list_nodes(
     match: str = Query("any", pattern="^(any|all)$"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_guest),
 ) -> List[NodeOut]:
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
     spec = NodeFilterSpec(tags=tag_list, match=match, workspace_id=workspace_id)
@@ -74,6 +76,7 @@ async def create_node(
     workspace_id: UUID,
     current_user: User = Depends(ensure_can_post),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_viewer),
 ):
     repo = NodeRepository(db)
     node = await repo.create(payload, current_user.id, workspace_id)
@@ -89,6 +92,7 @@ async def read_node(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_guest),
 ):
     repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, workspace_id)
@@ -111,6 +115,7 @@ async def set_node_tags(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_viewer),
 ):
     repo = NodeRepository(db)
     node = await repo.get_by_id(node_id, workspace_id)
@@ -136,6 +141,7 @@ async def update_node(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_viewer),
 ):
     repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, workspace_id)
@@ -170,6 +176,7 @@ async def delete_node(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_viewer),
 ):
     repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, workspace_id)
@@ -193,6 +200,7 @@ async def update_reactions(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.reaction_service import ReactionService
     from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
@@ -217,6 +225,7 @@ async def get_node_notification_settings(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_viewer),
 ) -> NodeNotificationSettingsOut:
     repo = NodeRepository(db)
     node = await repo.get_by_id(node_id, workspace_id)
@@ -240,6 +249,7 @@ async def update_node_notification_settings(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_viewer),
 ) -> NodeNotificationSettingsOut:
     repo = NodeRepository(db)
     node = await repo.get_by_id(node_id, workspace_id)
@@ -258,6 +268,7 @@ async def list_feedback(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
@@ -272,6 +283,7 @@ async def create_feedback(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
@@ -291,6 +303,7 @@ async def delete_feedback(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
