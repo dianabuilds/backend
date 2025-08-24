@@ -39,12 +39,15 @@ export default function WorkspaceSelector() {
         onChange={setWorkspace}
         getKey={(ws) => ws.id}
         getLabel={(ws) => ws.name}
+        renderItem={(ws, isSelected) =>
+          `${ws.name}${isSelected ? " (active)" : ""}`
+        }
       />
-      {workspaceId && (
+      {workspaceId && selected && (
         <Link
           to={`/workspaces/${workspaceId}`}
           className="text-gray-600 hover:text-gray-900"
-          title="Workspace settings"
+          title={`Settings for ${selected.name}`}
         >
           <Settings className="w-4 h-4" />
         </Link>
