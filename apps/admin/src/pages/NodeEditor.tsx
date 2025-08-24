@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import {
-  createNode,
-  getNode,
-  updateNode,
-} from "../api/client";
+import { createNode, getNode, patchNode } from "../api/nodes";
 import ContentEditor from "../components/content/ContentEditor";
 import { useToast } from "../components/ToastProvider";
 import type { TagOut } from "../components/tags/TagPicker";
@@ -75,7 +71,7 @@ export default function NodeEditor() {
     if (!node) return;
     setSaving(true);
     try {
-      await updateNode(node.id, {
+      await patchNode(node.id, {
         title: node.title,
         slug: node.slug,
         coverUrl: node.cover_url,

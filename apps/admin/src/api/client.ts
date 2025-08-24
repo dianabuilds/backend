@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { NodeOut, ValidateResult } from "../openapi";
 
 let csrfTokenMem: string | null =
   typeof sessionStorage !== "undefined" ? sessionStorage.getItem("csrfToken") : null;
@@ -421,54 +420,5 @@ export async function getAdminMenu(): Promise<AdminMenuResponse> {
     if (cached) return JSON.parse(cached) as AdminMenuResponse;
     throw e;
   }
-}
-
-// API helpers for admin nodes
-export async function listNodes(
-  params: Record<string, unknown> = {},
-): Promise<NodeOut[]> {
-  const qs = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null) qs.set(key, String(value));
-  }
-  const res = await api.get<NodeOut[]>(
-    `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ""}`,
-  );
-  return res.data ?? [];
-}
-
-export async function getNode(id: string): Promise<NodeOut> {
-  const res = await api.get<NodeOut>(`/admin/nodes/${encodeURIComponent(id)}`);
-  return res.data!;
-}
-
-export async function createNode(type: string): Promise<NodeOut> {
-  const res = await api.post<NodeOut>(`/admin/nodes/${encodeURIComponent(type)}`);
-  return res.data!;
-}
-
-export async function updateNode(
-  id: string,
-  patch: Partial<NodeOut>,
-): Promise<NodeOut> {
-  const res = await api.patch<NodeOut>(
-    `/admin/nodes/${encodeURIComponent(id)}`,
-    patch,
-  );
-  return res.data!;
-}
-
-export async function publishNode(id: string): Promise<NodeOut> {
-  const res = await api.post<NodeOut>(
-    `/admin/nodes/${encodeURIComponent(id)}/publish`,
-  );
-  return res.data!;
-}
-
-export async function validateNode(id: string): Promise<ValidateResult> {
-  const res = await api.post<ValidateResult>(
-    `/admin/nodes/${encodeURIComponent(id)}/validate`,
-  );
-  return res.data!;
 }
 

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { listNodes } from "../api/client";
+import { listNodes } from "../api/nodes";
 
 interface NodeItem {
   id: string;

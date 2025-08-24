@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { createNode, listNodes } from "../api/client";
+import { createNode, listNodes } from "../api/nodes";
 import KpiCard from "../components/KpiCard";
 
 interface DashboardData {
