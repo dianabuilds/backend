@@ -145,7 +145,7 @@ async def validate_node_item(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache)
-    report = await svc.validate(node_type, node_id)
+    report = await svc.validate(workspace_id, node_type, node_id)
     return {"report": report}
 
 
