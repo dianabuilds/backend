@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { NodeOut, ValidateResult } from "../openapi";
 
 let csrfTokenMem: string | null =
   typeof sessionStorage !== "undefined" ? sessionStorage.getItem("csrfToken") : null;
@@ -54,7 +55,9 @@ export async function syncCsrfFromResponse(resp: Response): Promise<void> {
     const cloned = resp.clone();
     const ct = cloned.headers.get("Content-Type") || "";
     if (ct.includes("application/json")) {
-      const data = await cloned.json().catch(() => null) as any;
+      const data = (await cloned.json().catch(() => null)) as
+        | Record<string, unknown>
+        | null;
       const token = data && (data.csrf_token || data.csrfToken || data.csrf);
       if (typeof token === "string" && token) setCsrfToken(token);
     }
@@ -97,7 +100,8 @@ export async function apiFetch(
   }
 
   // Распознаём /auth/*, чтобы избежать лишних заголовков и preflight
-  const pathStr = typeof input === "string" ? input : (input as any)?.url || "";
+  const pathStr =
+    typeof input === "string" ? input : input instanceof Request ? input.url : "";
   const isAuthCall = typeof pathStr === "string" && pathStr.startsWith("/auth/");
   const isSafeMethod = method === "GET" || method === "HEAD";
 
@@ -128,7 +132,9 @@ export async function apiFetch(
     if (!u.startsWith("/")) return u;
     u = applyWorkspace(u);
     try {
-      const envBase = (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
+      const envBase = (
+        import.meta as ImportMeta & { env?: Record<string, string | undefined> }
+      ).env?.VITE_API_BASE;
       if (envBase) {
         return envBase.replace(/\/+$/, "") + u;
       }
@@ -149,11 +155,16 @@ export async function apiFetch(
   };
 
   // Таймаут запроса: можно задать VITE_API_TIMEOUT_MS, иначе 15с для обычных запросов и 60с для /auth/*
-  const envTimeout = Number(((import.meta as any)?.env?.VITE_API_TIMEOUT_MS as string | undefined) || 0);
+  const envTimeout = Number(
+    (
+      (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
+        ?.VITE_API_TIMEOUT_MS || 0
+    ),
+  );
   const defaultTimeout = envTimeout > 0 ? envTimeout : (isAuthCall ? 60000 : 15000);
   const timeoutMs =
-    typeof (init as any).timeoutMs === "number"
-      ? Math.max(0, Number((init as any).timeoutMs))
+    typeof (init as RequestOptions).timeoutMs === "number"
+      ? Math.max(0, Number((init as RequestOptions).timeoutMs))
       : defaultTimeout;
 
   const controller = new AbortController();
@@ -173,7 +184,7 @@ export async function apiFetch(
     // Нормализуем AbortError в предсказуемое сообщение
     if (e && (e.name === "AbortError" || String(e.message || "").toLowerCase().includes("aborted"))) {
       const err = new Error("RequestTimeout");
-      (err as any).cause = e;
+      (err as Error & { cause?: unknown }).cause = e;
       throw err;
     }
     throw e;
@@ -305,7 +316,7 @@ async function request<T = unknown>(url: string, opts: RequestOptions = {}): Pro
     try {
       data = t ? JSON.parse(t) : undefined;
     } catch {
-      data = t as any;
+      data = t;
     }
   }
 
@@ -413,37 +424,51 @@ export async function getAdminMenu(): Promise<AdminMenuResponse> {
 }
 
 // API helpers for admin nodes
-export async function listNodes(params: Record<string, unknown> = {}): Promise<any[]> {
+export async function listNodes(
+  params: Record<string, unknown> = {},
+): Promise<NodeOut[]> {
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null) qs.set(key, String(value));
   }
-  const res = await api.get<any[]>(`/admin/nodes${qs.toString() ? `?${qs.toString()}` : ""}`);
-  return (res.data as any) ?? [];
+  const res = await api.get<NodeOut[]>(
+    `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ""}`,
+  );
+  return res.data ?? [];
 }
 
-export async function getNode(id: string): Promise<any> {
-  const res = await api.get(`/admin/nodes/${encodeURIComponent(id)}`);
-  return res.data as any;
+export async function getNode(id: string): Promise<NodeOut> {
+  const res = await api.get<NodeOut>(`/admin/nodes/${encodeURIComponent(id)}`);
+  return res.data!;
 }
 
-export async function createNode(type: string): Promise<any> {
-  const res = await api.post(`/admin/nodes/${encodeURIComponent(type)}`);
-  return res.data as any;
+export async function createNode(type: string): Promise<NodeOut> {
+  const res = await api.post<NodeOut>(`/admin/nodes/${encodeURIComponent(type)}`);
+  return res.data!;
 }
 
-export async function updateNode(id: string, patch: any): Promise<any> {
-  const res = await api.patch(`/admin/nodes/${encodeURIComponent(id)}`, patch);
-  return res.data as any;
+export async function updateNode(
+  id: string,
+  patch: Partial<NodeOut>,
+): Promise<NodeOut> {
+  const res = await api.patch<NodeOut>(
+    `/admin/nodes/${encodeURIComponent(id)}`,
+    patch,
+  );
+  return res.data!;
 }
 
-export async function publishNode(id: string): Promise<any> {
-  const res = await api.post(`/admin/nodes/${encodeURIComponent(id)}/publish`);
-  return res.data as any;
+export async function publishNode(id: string): Promise<NodeOut> {
+  const res = await api.post<NodeOut>(
+    `/admin/nodes/${encodeURIComponent(id)}/publish`,
+  );
+  return res.data!;
 }
 
-export async function validateNode(id: string): Promise<any> {
-  const res = await api.post(`/admin/nodes/${encodeURIComponent(id)}/validate`);
-  return res.data as any;
+export async function validateNode(id: string): Promise<ValidateResult> {
+  const res = await api.post<ValidateResult>(
+    `/admin/nodes/${encodeURIComponent(id)}/validate`,
+  );
+  return res.data!;
 }
 

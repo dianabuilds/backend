@@ -4,6 +4,7 @@ import NodeEditorModal from "../components/NodeEditorModal";
 import type { NodeEditorData } from "../components/NodeEditorModal.helpers";
 import EditorJSViewer from "../components/EditorJSViewer";
 import { useToast } from "../components/ToastProvider";
+import type { TagOut } from "../components/tags/TagPicker";
 
 type NodeItem = {
   id: string;
@@ -53,7 +54,7 @@ function makeDraft(): NodeEditorData {
     title: "",
     subtitle: "",
     cover_url: null,
-    tags: [],
+    tags: [] as TagOut[],
     allow_comments: true,
     is_premium_only: false,
     contentData: { time: Date.now(), blocks: [{ type: "paragraph", data: { text: "" } }], version: "2.30.7" },
@@ -348,7 +349,7 @@ export default function Nodes() {
       allow_comments: draft.allow_comments,
       is_premium_only: draft.is_premium_only,
       // передаем на случай, если backend уже поддерживает теги в /nodes
-      tags: Array.isArray(draft.tags) ? draft.tags : [],
+      tags: Array.isArray(draft.tags) ? draft.tags.map((t) => t.slug) : [],
     };
     const blocks = Array.isArray(draft.contentData?.blocks) ? draft.contentData.blocks : [];
     const media = blocks
@@ -360,7 +361,7 @@ export default function Nodes() {
     const res = await api.post("/nodes", payload);
     const created: any = res.data;
     const nodeId = String(created?.id ?? created?.uuid ?? created?._id ?? "");
-    const tags = Array.isArray(draft.tags) ? draft.tags.map((t) => String(t).trim()).filter(Boolean) : [];
+    const tags = Array.isArray(draft.tags) ? draft.tags.map((t) => t.slug).filter(Boolean) : [];
 
     if (nodeId && tags.length > 0) {
       const body = { tags };

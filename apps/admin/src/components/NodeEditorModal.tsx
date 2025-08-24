@@ -1,9 +1,10 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import EditorJSEmbed from "./EditorJSEmbed";
 import MediaPicker from "./MediaPicker";
-import TagInput from "./TagInput";
+import TagPicker from "./tags/TagPicker";
 import { useUnsavedChanges } from "../utils/useUnsavedChanges";
 import type { NodeEditorData } from "./NodeEditorModal.helpers";
+import type { OutputData } from "../types/editorjs";
 
 interface Props {
   open: boolean;
@@ -15,19 +16,20 @@ interface Props {
 }
 
 function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = false }: Props) {
-  if (!open || !node) return null;
-
-  const heading = useMemo(() => (node.title?.trim() ? "Редактировать пещеру" : "Создать пещеру"), [node.title]);
+  const heading = useMemo(() => (node?.title?.trim() ? "Редактировать пещеру" : "Создать пещеру"), [node?.title]);
   const dialogRef = useRef<HTMLDivElement>(null);
   const initialJson = useRef<string>(JSON.stringify(node));
   const [dirty, setDirty] = useState(false);
+  const saveRef = useRef<(() => Promise<OutputData>) | null>(null);
 
   useEffect(() => {
+    if (!node) return;
     initialJson.current = JSON.stringify(node);
     setDirty(false);
-  }, [node.id]);
+  }, [node]);
 
   useEffect(() => {
+    if (!node) return;
     setDirty(JSON.stringify(node) !== initialJson.current);
   }, [node]);
 
@@ -68,8 +70,8 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
   // Сохраняем актуальное содержимое редактора перед коммитом
   const handleCommit = async (action: "save" | "next") => {
     try {
-      const saveFn: (() => Promise<any>) | undefined = (handleCommit as any)._save;
-      if (typeof saveFn === "function") {
+      const saveFn = saveRef.current;
+      if (saveFn) {
         const data = await saveFn();
         if (data) onChange({ contentData: data });
       }
@@ -106,6 +108,8 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onCommit]);
+
+  if (!open || !node) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -145,10 +149,9 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
                   value={node.subtitle || ""}
                   onChange={(e) => onChange({ subtitle: e.target.value })}
                 />
-                <TagInput
+                <TagPicker
                   value={node.tags || []}
                   onChange={(tags) => onChange({ tags })}
-                  placeholder="Добавьте теги и нажмите Enter"
                 />
               </div>
 
@@ -197,9 +200,8 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
               onChange={(data) => onChange({ contentData: data })}
               onReady={({ save }) => {
                 // Сохраняем функцию save для использования при коммите
-                (window as any).__ed_save__ = save; // для отладки
-                // сохраняем на экземпляре компонента через ref
-                (handleCommit as any)._save = save;
+                (window as unknown as { __ed_save__?: () => Promise<OutputData> }).__ed_save__ = save;
+                saveRef.current = save;
               }}
               className="border rounded"
               minHeight={480}

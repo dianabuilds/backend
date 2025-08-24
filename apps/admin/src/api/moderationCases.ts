@@ -1,3 +1,4 @@
+import type { Page } from "./types";
 import { api } from "./client";
 
 export interface CaseListItem {
@@ -13,13 +14,6 @@ export interface CaseListItem {
   created_at: string;
   due_at?: string | null;
   last_event_at?: string | null;
-}
-
-export interface CaseListResponse {
-  items: CaseListItem[];
-  page: number;
-  size: number;
-  total: number;
 }
 
 export interface CaseCreateIn {
@@ -44,20 +38,24 @@ export interface CasePatchIn {
   due_at?: string;
 }
 
-export async function listCases(params: Record<string, any> = {}): Promise<CaseListResponse> {
+export async function listCases(
+  params: Record<string, unknown> = {},
+): Promise<Page<CaseListItem>> {
   const qs = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
     if (v === undefined || v === null || v === "") return;
     if (Array.isArray(v)) v.forEach((x) => qs.append(k, String(x)));
     else qs.set(k, String(v));
   });
-  const res = await api.get<CaseListResponse>(`/admin/moderation/cases?${qs.toString()}`);
-  return res.data as CaseListResponse;
+  const res = await api.get<Page<CaseListItem>>(
+    `/admin/moderation/cases?${qs.toString()}`,
+  );
+  return res.data!;
 }
 
 export async function createCase(data: CaseCreateIn): Promise<string> {
   const res = await api.post<{ id: string }>("/admin/moderation/cases", data);
-  return (res.data as any).id;
+  return res.data!.id;
 }
 
 export async function patchCase(id: string, patch: CasePatchIn): Promise<void> {
@@ -72,8 +70,11 @@ export interface CaseNote {
   internal: boolean;
 }
 export async function addNote(caseId: string, text: string, internal = true): Promise<CaseNote> {
-  const res = await api.post<CaseNote>(`/admin/moderation/cases/${caseId}/notes`, { text, internal });
-  return res.data as CaseNote;
+  const res = await api.post<CaseNote>(
+    `/admin/moderation/cases/${caseId}/notes`,
+    { text, internal },
+  );
+  return res.data!;
 }
 
 export interface CaseFullResponse {
@@ -83,8 +84,10 @@ export interface CaseFullResponse {
   events: any[];
 }
 export async function getCaseFull(id: string): Promise<CaseFullResponse> {
-  const res = await api.get<CaseFullResponse>(`/admin/moderation/cases/${id}`);
-  return res.data as CaseFullResponse;
+  const res = await api.get<CaseFullResponse>(
+    `/admin/moderation/cases/${id}`,
+  );
+  return res.data!;
 }
 
 export async function closeCase(id: string, resolution: "resolved" | "rejected", reason_code?: string, reason_text?: string): Promise<void> {

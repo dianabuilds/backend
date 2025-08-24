@@ -45,15 +45,15 @@ export interface RelevanceDryRunOut {
 
 export async function getRelevance(): Promise<RelevanceGetOut> {
   const res = await api.get<RelevanceGetOut>("/admin/search/relevance");
-  return res.data as RelevanceGetOut;
+  return res.data!;
 }
 
 export async function dryRunRelevance(payload: RelevancePayload, sample: string[]): Promise<RelevanceDryRunOut> {
   const res = await api.put<RelevanceDryRunOut>("/admin/search/relevance", { payload, dryRun: true, sample });
-  return res.data as RelevanceDryRunOut;
+  return res.data!;
 }
 
 export async function applyRelevance(payload: RelevancePayload, comment?: string): Promise<RelevanceGetOut> {
   const res = await api.put<RelevanceGetOut>("/admin/search/relevance", { payload, dryRun: false, comment });
-  return res.data as RelevanceGetOut;
+  return res.data!;
 }
