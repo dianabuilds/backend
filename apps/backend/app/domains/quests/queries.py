@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +15,7 @@ from app.domains.users.infrastructure.models.user import User
 from app.schemas.nodes_common import Status
 
 
-async def list_public(db: AsyncSession) -> List[Quest]:
+async def list_public(db: AsyncSession, *, workspace_id: UUID) -> List[Quest]:
     res = await db.execute(
         select(Quest)
         .join(NodeItem, NodeItem.id == Quest.id)
@@ -22,6 +23,7 @@ async def list_public(db: AsyncSession) -> List[Quest]:
             NodeItem.type == "quest",
             NodeItem.status == Status.published,
             Quest.is_deleted == False,
+            Quest.workspace_id == workspace_id,
         )
         .order_by(NodeItem.published_at.desc())
     )
@@ -39,7 +41,8 @@ async def search(
     sort_by: str,
     page: int,
     per_page: int,
-) -> List[Quest]:
+    workspace_id: UUID,
+ ) -> List[Quest]:
     stmt = (
         select(Quest)
         .join(NodeItem, NodeItem.id == Quest.id)
@@ -47,6 +50,7 @@ async def search(
             NodeItem.type == "quest",
             NodeItem.status == Status.published,
             Quest.is_deleted == False,
+            Quest.workspace_id == workspace_id,
         )
     )
 
@@ -88,10 +92,16 @@ async def search(
     return list(res.scalars().all())
 
 
-async def get_for_view(db: AsyncSession, *, slug: str, user: User) -> Quest:
+async def get_for_view(
+    db: AsyncSession, *, slug: str, user: User, workspace_id: UUID
+) -> Quest:
     res = await db.execute(
-        select(Quest).where(Quest.slug == slug, Quest.is_deleted == False)
-    )  # noqa: E712
+        select(Quest).where(
+            Quest.slug == slug,
+            Quest.is_deleted == False,
+            Quest.workspace_id == workspace_id,
+        )
+    )
     quest = res.scalars().first()
     if not quest or (quest.is_draft and quest.author_id != user.id):
         raise ValueError("Quest not found")

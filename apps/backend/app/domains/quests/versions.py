@@ -53,10 +53,22 @@ async def create_version(
     return ver
 
 
-async def release_latest(db: AsyncSession, *, quest_id: UUID, actor: Optional[User] = None) -> Quest:
+async def release_latest(
+    db: AsyncSession,
+    *,
+    quest_id: UUID,
+    workspace_id: UUID,
+    actor: Optional[User] = None,
+) -> Quest:
     """Выпустить (опубликовать) последнюю версию квеста с жёсткой валидацией."""
     # Загружаем квест
-    resq = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
+    resq = await db.execute(
+        select(Quest).where(
+            Quest.id == quest_id,
+            Quest.workspace_id == workspace_id,
+            Quest.is_deleted == False,
+        )
+    )
     quest = resq.scalars().first()
     if not quest:
         raise ValueError("Quest not found")

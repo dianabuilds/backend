@@ -48,8 +48,10 @@ async def create_quest(
     request: Request,
     current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
+    workspace_id: UUID,
 ):
     q = Quest(
+        workspace_id=workspace_id,
         title=body.title,
         subtitle=None,
         description=None,
@@ -75,11 +77,14 @@ async def create_quest(
 @router.get("/{quest_id}", response_model=QuestSummary, summary="Quest with versions")
 async def get_quest(
     quest_id: UUID,
+    workspace_id: UUID,
     _: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     quest = await db.get(Quest, quest_id)
     if not quest:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    if quest.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Quest not found")
     res = await db.execute(
         select(QuestVersion)
@@ -102,9 +107,12 @@ async def create_draft(
     request: Request,
     current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
+    workspace_id: UUID,
 ):
     quest = await db.get(Quest, quest_id)
     if not quest:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    if quest.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Quest not found")
     max_num = (
         await db.execute(
@@ -259,9 +267,16 @@ async def put_graph(
 )
 async def validate_version(
     version_id: UUID,
+    workspace_id: UUID,
     _: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
+    ver = await db.get(QuestVersion, version_id)
+    if not ver:
+        raise HTTPException(status_code=404, detail="Version not found")
+    q = await db.get(Quest, ver.quest_id)
+    if not q or q.workspace_id != workspace_id:
+        raise HTTPException(status_code=404, detail="Version not found")
     nodes = list(
         (
             await db.execute(
@@ -433,11 +448,15 @@ async def autofix_version(
 async def publish_version(
     version_id: UUID,
     request: Request,
+    workspace_id: UUID,
     current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     v = await db.get(QuestVersion, version_id)
     if not v:
+        raise HTTPException(status_code=404, detail="Version not found")
+    q = await db.get(Quest, v.quest_id)
+    if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Version not found")
     if v.status != "draft":
         raise HTTPException(status_code=400, detail="Only draft can be published")
@@ -542,9 +561,16 @@ async def rollback_version(
 async def simulate_version(
     version_id: UUID,
     payload: SimulateIn,
+    workspace_id: UUID,
     _: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
+    ver = await db.get(QuestVersion, version_id)
+    if not ver:
+        raise HTTPException(status_code=404, detail="Version not found")
+    q = await db.get(Quest, ver.quest_id)
+    if not q or q.workspace_id != workspace_id:
+        raise HTTPException(status_code=404, detail="Version not found")
     nodes = list(
         (
             await db.execute(
@@ -591,11 +617,15 @@ async def simulate_version(
 async def delete_draft(
     version_id: UUID,
     request: Request,
+    workspace_id: UUID,
     current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
     v = await db.get(QuestVersion, version_id)
     if not v:
+        raise HTTPException(status_code=404, detail="Version not found")
+    q = await db.get(Quest, v.quest_id)
+    if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Version not found")
     if v.status != "draft":
         raise HTTPException(status_code=400, detail="Only draft can be deleted")
