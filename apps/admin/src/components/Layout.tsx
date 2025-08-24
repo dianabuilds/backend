@@ -6,6 +6,8 @@ import HotfixBanner from "./HotfixBanner";
 import Sidebar from "./Sidebar";
 import WorkspaceSelector from "./WorkspaceSelector";
 import SystemStatus from "./SystemStatus";
+import Breadcrumbs from "./Breadcrumbs";
+import CommandPalette from "./CommandPalette";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -14,6 +16,7 @@ export default function Layout() {
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
       <Sidebar />
       <main className="flex-1 p-6 overflow-y-auto">
+        <CommandPalette />
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <WorkspaceSelector />
@@ -44,6 +47,7 @@ export default function Layout() {
           </div>
         </div>
         <HotfixBanner />
+        <Breadcrumbs />
         <Outlet />
       </main>
     </div>
