@@ -1,15 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
 
 import { api } from "../api/client";
 import {
   getAIPresets,
   saveAIPresets,
+  validateAIPresets,
   getNotificationRules,
   saveNotificationRules,
+  validateNotificationRules,
   getLimits,
   saveLimits,
+  validateLimits,
 } from "../api/workspaceSettings";
 import { useToast } from "../components/ToastProvider";
 import type { WorkspaceMemberOut, WorkspaceOut, WorkspaceRole } from "../openapi";
@@ -50,6 +53,11 @@ export default function WorkspaceSettings() {
   const [aiPresetsText, setAIPresetsText] = useState("{}");
   const [notificationsText, setNotificationsText] = useState("{}");
   const [limitsText, setLimitsText] = useState("{}");
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [notificationsError, setNotificationsError] = useState<string | null>(
+    null,
+  );
+  const [limitsError, setLimitsError] = useState<string | null>(null);
 
   const {
     data: aiPresetsData,
@@ -99,51 +107,51 @@ export default function WorkspaceSettings() {
     }
   }, [limitsData]);
 
-  const savePresets = async () => {
+  const savePresets = async (e: FormEvent) => {
+    e.preventDefault();
     if (!id) return;
     try {
+      setAiError(null);
       const parsed = aiPresetsText ? JSON.parse(aiPresetsText) : {};
+      await validateAIPresets(id, parsed);
       await saveAIPresets(id, parsed);
       addToast({ title: "Presets saved", variant: "success" });
       await refetchAIPresets();
     } catch (e) {
-      addToast({
-        title: "Failed to save presets",
-        description: e instanceof Error ? e.message : String(e),
-        variant: "error",
-      });
+      const msg = e instanceof Error ? e.message : String(e);
+      setAiError(msg);
     }
   };
 
-  const saveNotificationsSettings = async () => {
+  const saveNotificationsSettings = async (e: FormEvent) => {
+    e.preventDefault();
     if (!id) return;
     try {
+      setNotificationsError(null);
       const parsed = notificationsText ? JSON.parse(notificationsText) : {};
+      await validateNotificationRules(id, parsed);
       await saveNotificationRules(id, parsed);
       addToast({ title: "Notifications saved", variant: "success" });
       await refetchNotifications();
     } catch (e) {
-      addToast({
-        title: "Failed to save notifications",
-        description: e instanceof Error ? e.message : String(e),
-        variant: "error",
-      });
+      const msg = e instanceof Error ? e.message : String(e);
+      setNotificationsError(msg);
     }
   };
 
-  const saveLimitsSettings = async () => {
+  const saveLimitsSettings = async (e: FormEvent) => {
+    e.preventDefault();
     if (!id) return;
     try {
+      setLimitsError(null);
       const parsed = limitsText ? JSON.parse(limitsText) : {};
+      await validateLimits(id, parsed);
       await saveLimits(id, parsed);
       addToast({ title: "Limits saved", variant: "success" });
       await refetchLimits();
     } catch (e) {
-      addToast({
-        title: "Failed to save limits",
-        description: e instanceof Error ? e.message : String(e),
-        variant: "error",
-      });
+      const msg = e instanceof Error ? e.message : String(e);
+      setLimitsError(msg);
     }
   };
 
@@ -368,16 +376,21 @@ export default function WorkspaceSettings() {
       {aiPresetsLoading ? (
         <div>Loading...</div>
       ) : (
-        <>
+        <form onSubmit={savePresets} className="space-y-2">
           <textarea
             className="border rounded w-full h-64 p-2 font-mono text-xs"
             value={aiPresetsText}
             onChange={(e) => setAIPresetsText(e.target.value)}
           />
-          <button className="px-2 py-1 border rounded" onClick={savePresets}>
+          {aiError && (
+            <div className="text-sm text-red-600 whitespace-pre-wrap">
+              {aiError}
+            </div>
+          )}
+          <button type="submit" className="px-2 py-1 border rounded">
             Save
           </button>
-        </>
+        </form>
       )}
     </div>
   );
@@ -387,19 +400,21 @@ export default function WorkspaceSettings() {
       {notificationsLoading ? (
         <div>Loading...</div>
       ) : (
-        <>
+        <form onSubmit={saveNotificationsSettings} className="space-y-2">
           <textarea
             className="border rounded w-full h-64 p-2 font-mono text-xs"
             value={notificationsText}
             onChange={(e) => setNotificationsText(e.target.value)}
           />
-          <button
-            className="px-2 py-1 border rounded"
-            onClick={saveNotificationsSettings}
-          >
+          {notificationsError && (
+            <div className="text-sm text-red-600 whitespace-pre-wrap">
+              {notificationsError}
+            </div>
+          )}
+          <button type="submit" className="px-2 py-1 border rounded">
             Save
           </button>
-        </>
+        </form>
       )}
     </div>
   );
@@ -409,16 +424,21 @@ export default function WorkspaceSettings() {
       {limitsLoading ? (
         <div>Loading...</div>
       ) : (
-        <>
+        <form onSubmit={saveLimitsSettings} className="space-y-2">
           <textarea
             className="border rounded w-full h-64 p-2 font-mono text-xs"
             value={limitsText}
             onChange={(e) => setLimitsText(e.target.value)}
           />
-          <button className="px-2 py-1 border rounded" onClick={saveLimitsSettings}>
+          {limitsError && (
+            <div className="text-sm text-red-600 whitespace-pre-wrap">
+              {limitsError}
+            </div>
+          )}
+          <button type="submit" className="px-2 py-1 border rounded">
             Save
           </button>
-        </>
+        </form>
       )}
     </div>
   );
