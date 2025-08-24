@@ -16,6 +16,21 @@ class RequestRecord:
     workspace_id: str | None
 
 
+_transition_lock = threading.Lock()
+_route_latencies: Deque[int] = deque(maxlen=1000)
+_repeat_rates: Deque[float] = deque(maxlen=1000)
+
+
+def record_route_latency_ms(value: float) -> None:
+    with _transition_lock:
+        _route_latencies.append(int(value))
+
+
+def record_repeat_rate(rate: float) -> None:
+    with _transition_lock:
+        _repeat_rates.append(rate)
+
+
 def _status_class(code: int) -> str:
     if code < 200:
         return "1xx"
@@ -217,6 +232,25 @@ class MetricsStorage:
             lines.append(
                 f'http_request_duration_ms_sum{{workspace="{ws}",method="{method}",path="{route}"}} {sum(values_sorted)}'
             )
+        with _transition_lock:
+            lat = list(_route_latencies)
+            rates = list(_repeat_rates)
+        lines.append("# HELP route_latency_ms Route latency milliseconds")
+        lines.append("# TYPE route_latency_ms summary")
+        if lat:
+            avg = sum(lat) / len(lat)
+            p95 = _percentile(lat, 0.95)
+            lines.append(f"route_latency_ms_avg {avg}")
+            lines.append(f"route_latency_ms_p95 {p95}")
+        else:
+            lines.append("route_latency_ms_avg 0")
+            lines.append("route_latency_ms_p95 0")
+        lines.append("# HELP repeat_rate Repeat rate of filtered candidates")
+        lines.append("# TYPE repeat_rate gauge")
+        if rates:
+            lines.append(f"repeat_rate {sum(rates) / len(rates)}")
+        else:
+            lines.append("repeat_rate 0")
         return "\n".join(lines) + "\n"
 
 

@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Deque, List, Optional, Sequence
+from typing import TYPE_CHECKING, Deque, List, Optional, Sequence, Tuple
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +18,9 @@ if TYPE_CHECKING:  # pragma: no cover - used for type hints only
     from app.domains.users.infrastructure.models.user import User
 
 logger = logging.getLogger(__name__)
+
+from app.core.log_events import no_route, transition_finish, transition_start
+from app.core.metrics import record_repeat_rate, record_route_latency_ms
 
 
 class TransitionProvider(ABC):
@@ -49,8 +52,8 @@ class Policy(ABC):
         node: Node,
         user: Optional[User],
         history: Deque[str],
-    ) -> Optional[Node]:
-        """Return next node or ``None`` if not applicable."""
+    ) -> Tuple[Optional["Node"], "TransitionTrace"]:
+        """Return next node and trace info or ``None`` if not applicable."""
 
 
 class ManualTransitionsProvider(TransitionProvider):
@@ -140,14 +143,16 @@ class ManualPolicy(Policy):
         node: Node,
         user: Optional[User],
         history: Deque[str],
-    ) -> Optional[Node]:
+    ) -> Tuple[Optional[Node], "TransitionTrace"]:
         candidates = await self.provider.get_transitions(
             db, node, user, node.workspace_id
         )
+        candidate_slugs = [n.slug for n in candidates]
+        filtered = [n.slug for n in candidates if n.slug in history]
         for n in candidates:
             if n.slug not in history:
-                return n
-        return None
+                return n, TransitionTrace(candidate_slugs, filtered, {}, n.slug)
+        return None, TransitionTrace(candidate_slugs, filtered, {}, None)
 
 
 class CompassPolicy(Policy):
@@ -159,14 +164,16 @@ class CompassPolicy(Policy):
         node: Node,
         user: Optional[User],
         history: Deque[str],
-    ) -> Optional[Node]:
+    ) -> Tuple[Optional[Node], "TransitionTrace"]:
         candidates = await self.provider.get_transitions(
             db, node, user, node.workspace_id
         )
+        candidate_slugs = [n.slug for n in candidates]
+        filtered = [n.slug for n in candidates if n.slug in history]
         for n in candidates:
             if n.slug not in history:
-                return n
-        return None
+                return n, TransitionTrace(candidate_slugs, filtered, {}, n.slug)
+        return None, TransitionTrace(candidate_slugs, filtered, {}, None)
 
 
 class RandomPolicy(Policy):
@@ -187,20 +194,25 @@ class RandomPolicy(Policy):
         node: Node,
         user: Optional[User],
         history: Deque[str],
-    ) -> Optional[Node]:
+    ) -> Tuple[Optional[Node], "TransitionTrace"]:
         candidates = await self.provider.get_transitions(
             db, node, user, node.workspace_id
         )
+        candidate_slugs = [n.slug for n in candidates]
+        filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
         if not candidates:
-            return None
-        return self._rnd.choice(candidates)
+            return None, TransitionTrace(candidate_slugs, filtered, {}, None)
+        chosen = self._rnd.choice(candidates)
+        return chosen, TransitionTrace(candidate_slugs, filtered, {}, chosen.slug)
 
 
 @dataclass
-class TraceEntry:
-    policy: str
-    slug: str
+class TransitionTrace:
+    candidates: List[str]
+    filters: List[str]
+    scores: dict
+    chosen: Optional[str]
 
 
 class NoRouteReason(Enum):
@@ -213,7 +225,7 @@ class NoRouteReason(Enum):
 class TransitionResult:
     next: Optional["Node"]
     reason: Optional[NoRouteReason]
-    trace: List[TraceEntry]
+    trace: List[TransitionTrace]
     metrics: dict
 
 
@@ -223,16 +235,16 @@ class TransitionRouter:
     def __init__(self, policies: Sequence[Policy], not_repeat_last: int = 0) -> None:
         self.policies = list(policies)
         self.history: Deque[str] = deque(maxlen=not_repeat_last)
-        self.trace: List[TraceEntry] = []
+        self.trace: List[TransitionTrace] = []
 
     async def _next(
         self, db: AsyncSession, node: Node, user: Optional[User]
     ) -> Optional[Node]:
         for policy in self.policies:
-            candidate = await policy.choose(db, node, user, self.history)
+            candidate, trace = await policy.choose(db, node, user, self.history)
+            self.trace.append(trace)
             if candidate and candidate.slug not in self.history:
                 self.history.append(candidate.slug)
-                self.trace.append(TraceEntry(policy.name, candidate.slug))
                 logger.debug("%s -> %s", policy.name, candidate.slug)
                 return candidate
         return None
@@ -245,6 +257,7 @@ class TransitionRouter:
         budget,
         seed: int | None = None,
     ) -> TransitionResult:
+        transition_start(start.slug)
         start_time = time.monotonic()
         self.trace.clear()
         if seed is not None:
@@ -258,7 +271,16 @@ class TransitionRouter:
         nxt = await self._next(db, start, user)
 
         elapsed_ms = (time.monotonic() - start_time) * 1000
-        metrics = {"elapsed_ms": elapsed_ms, "db_queries": 0}
+        total_candidates = sum(len(t.candidates) for t in self.trace)
+        filtered = sum(len(t.filters) for t in self.trace)
+        repeat_rate = filtered / total_candidates if total_candidates else 0.0
+        metrics = {
+            "elapsed_ms": elapsed_ms,
+            "db_queries": 0,
+            "repeat_rate": repeat_rate,
+        }
+        record_route_latency_ms(elapsed_ms)
+        record_repeat_rate(repeat_rate)
 
         reason: Optional[NoRouteReason] = None
         if elapsed_ms > getattr(budget, "time_ms", float("inf")):
@@ -267,5 +289,7 @@ class TransitionRouter:
             reason = NoRouteReason.BUDGET_EXCEEDED
         elif nxt is None:
             reason = NoRouteReason.NO_ROUTE
+            no_route(start.slug)
 
+        transition_finish(nxt.slug if nxt else None)
         return TransitionResult(next=nxt, reason=reason, trace=list(self.trace), metrics=metrics)

@@ -13,6 +13,7 @@ except Exception:  # pragma: no cover - optional dependency
     RedisError = Exception  # type: ignore
 
 from app.core.config import settings
+from app.core.log_events import fallback_hit
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +163,7 @@ class FallbackCache(Cache):
             return await self.primary.get(key)
         except Exception as e:  # pragma: no cover - depends on redis
             logger.warning("cache get fallback", exc_info=e)
+            fallback_hit("cache.get")
             return await self.fallback.get(key)
 
     async def set(self, key: str, value: str, ttl: int | None = None) -> None:
@@ -169,6 +171,7 @@ class FallbackCache(Cache):
             await self.primary.set(key, value, ttl)
         except Exception as e:  # pragma: no cover
             logger.warning("cache set fallback", exc_info=e)
+            fallback_hit("cache.set")
             await self.fallback.set(key, value, ttl)
 
     async def mget(self, keys: List[str]) -> List[Optional[str]]:
@@ -176,6 +179,7 @@ class FallbackCache(Cache):
             return await self.primary.mget(keys)
         except Exception as e:  # pragma: no cover
             logger.warning("cache mget fallback", exc_info=e)
+            fallback_hit("cache.mget")
             return await self.fallback.mget(keys)
 
     async def mset(self, mapping: Dict[str, str], ttl: int | None = None) -> None:
@@ -183,6 +187,7 @@ class FallbackCache(Cache):
             await self.primary.mset(mapping, ttl)
         except Exception as e:  # pragma: no cover
             logger.warning("cache mset fallback", exc_info=e)
+            fallback_hit("cache.mset")
             await self.fallback.mset(mapping, ttl)
 
     async def incr(self, key: str, by: int = 1) -> int:
@@ -190,6 +195,7 @@ class FallbackCache(Cache):
             return await self.primary.incr(key, by)
         except Exception as e:  # pragma: no cover
             logger.warning("cache incr fallback", exc_info=e)
+            fallback_hit("cache.incr")
             return await self.fallback.incr(key, by)
 
     async def hincr(self, name: str, field: str, by: int = 1) -> int:
@@ -197,6 +203,7 @@ class FallbackCache(Cache):
             return await self.primary.hincr(name, field, by)
         except Exception as e:  # pragma: no cover
             logger.warning("cache hincr fallback", exc_info=e)
+            fallback_hit("cache.hincr")
             return await self.fallback.hincr(name, field, by)
 
     async def expire(self, key: str, ttl: int) -> None:
@@ -204,6 +211,7 @@ class FallbackCache(Cache):
             await self.primary.expire(key, ttl)
         except Exception as e:  # pragma: no cover
             logger.warning("cache expire fallback", exc_info=e)
+            fallback_hit("cache.expire")
             await self.fallback.expire(key, ttl)
 
     async def delete(self, *keys: str) -> None:
@@ -211,6 +219,7 @@ class FallbackCache(Cache):
             await self.primary.delete(*keys)
         except Exception as e:  # pragma: no cover
             logger.warning("cache delete fallback", exc_info=e)
+            fallback_hit("cache.delete")
             await self.fallback.delete(*keys)
 
     async def scan(self, pattern: str) -> List[str]:
@@ -218,6 +227,7 @@ class FallbackCache(Cache):
             return await self.primary.scan(pattern)
         except Exception as e:  # pragma: no cover
             logger.warning("cache scan fallback", exc_info=e)
+            fallback_hit("cache.scan")
             return await self.fallback.scan(pattern)
 
 
