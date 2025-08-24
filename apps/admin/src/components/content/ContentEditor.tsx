@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 
 import StatusBadge from "../StatusBadge";
 import VersionBadge from "../VersionBadge";
@@ -14,6 +14,7 @@ import type { OutputData } from "../../types/editorjs";
 interface ContentTabProps {
   initial?: OutputData;
   onSave?: (data: OutputData) => Promise<void> | void;
+  storageKey?: string;
 }
 
 interface ContentEditorProps {
@@ -27,6 +28,7 @@ interface ContentEditorProps {
   general: GeneralTabProps;
   content: ContentTabProps;
   toolbar?: ReactNode;
+  onSave?: () => void;
 }
 
 export default function ContentEditor({
@@ -40,6 +42,7 @@ export default function ContentEditor({
   general,
   content,
   toolbar,
+  onSave,
 }: ContentEditorProps) {
   const plugins: TabPlugin[] = [
     { name: "General", render: () => <GeneralTab {...general} /> },
@@ -53,6 +56,17 @@ export default function ContentEditor({
     { name: "Validation", render: () => <ValidationTab /> },
     { name: "Publishing", render: () => <PublishingTab /> },
   ];
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "Enter")) {
+        e.preventDefault();
+        onSave?.();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onSave]);
 
   return (
     <div

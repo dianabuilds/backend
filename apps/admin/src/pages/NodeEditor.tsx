@@ -83,6 +83,11 @@ export default function NodeEditor() {
         premium_only: node.is_premium_only,
       });
       addToast({ title: "Node saved", variant: "success" });
+      if (typeof localStorage !== "undefined") {
+         try {
+           localStorage.removeItem(`node-content-${node.id}`);
+         } catch { /* ignore */ }
+      }
     } catch (e) {
       addToast({
         title: "Failed to save node",
@@ -118,8 +123,19 @@ export default function NodeEditor() {
         title={node.title || "Node"}
         statuses={["draft"]}
         versions={[1]}
+        onSave={handleSave}
         toolbar={
           <div className="flex gap-2">
+            {node.slug && (
+              <a
+                href={`/nodes/${node.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2 py-1 border rounded"
+              >
+                Preview
+              </a>
+            )}
             <button
               type="button"
               className="px-2 py-1 border rounded"
@@ -143,6 +159,7 @@ export default function NodeEditor() {
         content={{
           initial: node.contentData,
           onSave: (d) => setNode({ ...node, contentData: d }),
+          storageKey: `node-content-${node.id}`,
         }}
       />
     </PageLayout>
