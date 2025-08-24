@@ -954,26 +954,10 @@ export default function Nodes() {
                   onTagsChange: (t) => setDraft((d) => ({ ...d, tags: t })),
                   onCoverChange: (url) => setDraft((d) => ({ ...d, cover_url: url })),
                 }}
-                renderContent={() => (
-                  <textarea
-                    className="w-full h-40 border rounded p-2"
-                    placeholder="Node content..."
-                    value={
-                      draft.contentData?.blocks?.[0]?.data?.text ?? ""
-                    }
-                    onChange={(e) =>
-                      setDraft((d) => ({
-                        ...d,
-                        contentData: {
-                          ...d.contentData,
-                          blocks: [
-                            { type: "paragraph", data: { text: e.target.value } },
-                          ],
-                        },
-                      }))
-                    }
-                  />
-                )}
+                content={{
+                  initial: draft.contentData,
+                  onSave: (d) => setDraft((prev) => ({ ...prev, contentData: d })),
+                }}
               />
             </div>
           </div>

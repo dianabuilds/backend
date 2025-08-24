@@ -956,33 +956,11 @@ export default function QuestVersionEditor() {
                 onCoverChange: (url) =>
                   setEditorNode((p) => (p ? { ...p, cover_url: url } : p)),
               }}
-              renderContent={() => (
-                <textarea
-                  className="w-full h-40 border rounded p-2"
-                  placeholder="Node content..."
-                  value={
-                    editorNode.contentData?.blocks?.[0]?.data?.text ?? ""
-                  }
-                  onChange={(e) =>
-                    setEditorNode((p) =>
-                      p
-                        ? {
-                            ...p,
-                            contentData: {
-                              ...p.contentData,
-                              blocks: [
-                                {
-                                  type: "paragraph",
-                                  data: { text: e.target.value },
-                                },
-                              ],
-                            },
-                          }
-                        : p,
-                    )
-                  }
-                />
-              )}
+              content={{
+                initial: editorNode.contentData,
+                onSave: (d) =>
+                  setEditorNode((p) => (p ? { ...p, contentData: d } : p)),
+              }}
             />
           </div>
         </div>
