@@ -27,7 +27,7 @@ from app.core.db.session import check_database_connection, close_db_connection, 
 from app.core.exception_handlers import register_exception_handlers
 from app.core.logging_middleware import RequestLoggingMiddleware
 from app.core.metrics_middleware import MetricsMiddleware
-from app.core.rate_limit import close_rate_limiter, init_rate_limiter
+from app.core.rate_limit import RateLimitMiddleware
 from app.core.real_ip import RealIPMiddleware
 from app.core.request_id import RequestIDMiddleware
 from app.core.security_headers import SecurityHeadersMiddleware
@@ -49,6 +49,13 @@ app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(MetricsMiddleware)
+if settings.rate_limit.enabled:
+    app.add_middleware(
+        RateLimitMiddleware,
+        capacity=10,
+        fill_rate=1,
+        burst=5,
+    )
 # CSRF для мутаций
 app.add_middleware(CSRFMiddleware)
 # Заголовки безопасности и CSP
@@ -202,8 +209,6 @@ async def startup_event():
     configure_from_settings()
     register_handlers()
 
-    await init_rate_limiter()
-
     # Проверяем подключение к базе данных
     if await check_database_connection():
         logger.info("Database connection successful")
@@ -227,4 +232,3 @@ async def shutdown_event():
     """Выполняется при остановке приложения"""
     logger.info("Shutting down application")
     await close_db_connection()
-    await close_rate_limiter()
