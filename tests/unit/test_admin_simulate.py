@@ -1,36 +1,48 @@
-import os
-import importlib
 import sys
+import uuid
+import asyncio
+import importlib
 from pathlib import Path
 from types import SimpleNamespace
 
-from fastapi.testclient import TestClient
-
-os.environ.setdefault("TESTING", "True")
 # Ensure apps package is importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from apps.backend.app.main import app
-from apps.backend.app.domains.registry import register_domain_routers
-from app.domains.navigation.api.admin_transitions_router import admin_required
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
-register_domain_routers(app)
-
-
-async def _admin_dep():
-    return SimpleNamespace(id="admin", role="admin")
-
-
-app.dependency_overrides[admin_required] = _admin_dep
-
-client = TestClient(app)
+from app.core.db.base import Base
+from app.domains.navigation.api.admin_transitions_simulate import (
+    SimulateRequest,
+    simulate_transitions,
+)
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.users.infrastructure.models.user import User
+from app.domains.workspaces.infrastructure.models import Workspace
 
 
 def test_simulate_endpoint_returns_trace():
-    payload = {"start": "a", "graph": {"a": ["b", "c"], "b": []}, "steps": 2, "seed": 1}
-    resp = client.post("/admin/transitions/simulate", json=payload)
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "trace" in data
-    assert isinstance(data["trace"], list)
+    async def _run():
+        engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+        async with async_session() as session:
+            user = User(id=uuid.uuid4())
+            ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
+            node = Node(workspace_id=ws.id, slug="start", content={}, author_id=user.id)
+            session.add_all([user, ws, node])
+            await session.commit()
+
+            payload = SimulateRequest(start="start", seed=1, preview_mode="dry_run")
+            res = await simulate_transitions(
+                payload,
+                SimpleNamespace(id=uuid.uuid4(), role="admin"),
+                session,
+            )
+            assert "trace" in res
+            assert isinstance(res["trace"], list)
+
+    asyncio.run(_run())
