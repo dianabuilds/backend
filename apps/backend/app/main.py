@@ -147,7 +147,8 @@ app.mount("/static/uploads", uploads_static, name="uploads")
 
 from app.api.health import router as health_router
 
-app.include_router(health_router)
+if settings.observability.health_enabled:
+    app.include_router(health_router)
 
 if TESTING:
     # Minimal routers needed for tests

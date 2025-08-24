@@ -4,11 +4,13 @@ import asyncio
 import time
 import logging
 from typing import Any
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+import httpx
 
 from app.core.config import settings
 from app.core.db.session import get_db
@@ -26,6 +28,11 @@ router = APIRouter()
 @router.get("/health", include_in_schema=False)
 @router.get("/healthz", include_in_schema=False)
 async def healthz() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@router.get("/startupz", include_in_schema=False)
+async def startupz() -> dict[str, str]:
     return {"status": "ok"}
 
 
@@ -49,10 +56,55 @@ async def _check_redis() -> bool:
         return False
 
 
+async def _check_queue() -> bool:
+    if not (settings.async_enabled and settings.queue_broker_url):
+        return True
+    try:
+        parsed = urlparse(settings.queue_broker_url)
+        host = parsed.hostname or "localhost"
+        port = parsed.port or (5672 if parsed.scheme.startswith("amqp") else 0)
+        reader, writer = await asyncio.open_connection(host, port)
+        writer.close()
+        await writer.wait_closed()
+        return True
+    except Exception:
+        return False
+
+
+async def _check_ai_service(timeout: float) -> bool:
+    base = settings.embedding.api_base
+    if not base:
+        return True
+    url = base.rstrip("/") + "/health"
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.get(url)
+            return resp.status_code < 500
+    except Exception:
+        return False
+
+
+async def _check_payment_service(timeout: float) -> bool:
+    base = settings.payment.api_base
+    if not base:
+        return True
+    url = base.rstrip("/") + "/health"
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.get(url)
+            return resp.status_code < 500
+    except Exception:
+        return False
+
+
 @router.get("/readyz", include_in_schema=False)
 async def readyz(db: AsyncSession = Depends(get_db)) -> JSONResponse:
-    db_timeout = settings.observability.db_check_timeout_ms / 1000
-    redis_timeout = settings.observability.redis_check_timeout_ms / 1000
+    obs = settings.observability
+    db_timeout = obs.db_check_timeout_ms / 1000
+    redis_timeout = obs.redis_check_timeout_ms / 1000
+    queue_timeout = obs.queue_check_timeout_ms / 1000
+    ai_timeout = obs.ai_check_timeout_ms / 1000
+    payment_timeout = obs.payment_check_timeout_ms / 1000
 
     async def db_check() -> bool:
         return await _check_db(db)
@@ -60,19 +112,33 @@ async def readyz(db: AsyncSession = Depends(get_db)) -> JSONResponse:
     async def redis_check() -> bool:
         return await _check_redis()
 
+    async def queue_check() -> bool:
+        return await _check_queue()
+
+    async def ai_check() -> bool:
+        return await _check_ai_service(ai_timeout)
+
+    async def payment_check() -> bool:
+        return await _check_payment_service(payment_timeout)
+
     start = time.perf_counter()
-    db_task = asyncio.wait_for(db_check(), db_timeout)
-    redis_task = asyncio.wait_for(redis_check(), redis_timeout)
-    db_ok, redis_ok = await asyncio.gather(db_task, redis_task, return_exceptions=True)
+    tasks = {
+        "db": asyncio.wait_for(db_check(), db_timeout),
+        "redis": asyncio.wait_for(redis_check(), redis_timeout),
+        "queue": asyncio.wait_for(queue_check(), queue_timeout),
+        "ai": asyncio.wait_for(ai_check(), ai_timeout),
+        "payment": asyncio.wait_for(payment_check(), payment_timeout),
+    }
+    results = await asyncio.gather(*tasks.values(), return_exceptions=True)
     duration_ms = int((time.perf_counter() - start) * 1000)
 
-    result = {
-        "db": "ok" if db_ok is True else "fail",
-        "redis": "ok" if redis_ok is True else "fail",
-        "duration_ms": duration_ms,
-    }
-    status = 200 if result["db"] == "ok" and result["redis"] == "ok" else 503
+    result: dict[str, Any] = {"duration_ms": duration_ms}
+    status = 200
+    for (name, value) in zip(tasks.keys(), results):
+        ok = value is True
+        result[name] = "ok" if ok else "fail"
+        if not ok:
+            status = 503
+            logger.warning("%s_check_failed %r", name, value)
 
-    if status != 200:
-        logger.warning("readiness_check_failed %s", result)
     return JSONResponse(status_code=status, content=result)
