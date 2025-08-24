@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createCase, listCases, type CaseListItem } from "../api/moderationCases";
+
+import {
+  type CaseListItem,
+  createCase,
+  listCases,
+} from "../api/moderationCases";
 import PageLayout from "./_shared/PageLayout";
 
 export default function ModerationInbox() {
@@ -54,19 +59,30 @@ export default function ModerationInbox() {
         </thead>
         <tbody>
           {items.map((it) => (
-            <tr key={it.id} className="border-t border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                onClick={() => navigate(`/moderation/cases/${it.id}`)}>
+            <tr
+              key={it.id}
+              className="border-t border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+              onClick={() => navigate(`/moderation/cases/${it.id}`)}
+            >
               <td className="py-2 pr-4">{it.summary}</td>
               <td className="py-2 pr-4">{it.type}</td>
               <td className="py-2 pr-4">{it.status}</td>
               <td className="py-2 pr-4">{it.priority}</td>
-              <td className="py-2 pr-4 font-mono">{it.assignee_id?.slice(0, 8) ?? "-"}</td>
+              <td className="py-2 pr-4 font-mono">
+                {it.assignee_id?.slice(0, 8) ?? "-"}
+              </td>
               <td className="py-2 pr-4">{it.labels.join(", ")}</td>
-              <td className="py-2 pr-4">{new Date(it.created_at).toLocaleString()}</td>
+              <td className="py-2 pr-4">
+                {new Date(it.created_at).toLocaleString()}
+              </td>
             </tr>
           ))}
           {items.length === 0 && (
-            <tr><td className="py-6 text-gray-500" colSpan={7}>No cases</td></tr>
+            <tr>
+              <td className="py-6 text-gray-500" colSpan={7}>
+                No cases
+              </td>
+            </tr>
           )}
         </tbody>
       </table>
@@ -74,10 +90,31 @@ export default function ModerationInbox() {
   }, [items, loading, error, navigate]);
 
   return (
-    <PageLayout title="Moderation — Inbox" subtitle="Список обращений и жалоб" actions={<button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={onCreate}>New case</button>}>
+    <PageLayout
+      title="Moderation — Inbox"
+      subtitle="Список обращений и жалоб"
+      actions={
+        <button
+          className="px-3 py-1 rounded bg-blue-600 text-white"
+          onClick={onCreate}
+        >
+          New case
+        </button>
+      }
+    >
       <div className="flex gap-2 mb-3">
-        <input className="border rounded px-2 py-1 w-64" placeholder="Search..." value={q} onChange={(e) => setQ(e.target.value)} />
-        <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={load}>Apply</button>
+        <input
+          className="border rounded px-2 py-1 w-64"
+          placeholder="Search..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <button
+          className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+          onClick={load}
+        >
+          Apply
+        </button>
       </div>
       {table}
     </PageLayout>

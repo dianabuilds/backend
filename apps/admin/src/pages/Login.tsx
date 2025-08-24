@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import { useAuth } from "../auth/AuthContext";
 import { sendRUM } from "../perf/rum";
 
@@ -26,7 +27,11 @@ export default function Login() {
     } catch (err) {
       const dur = performance.now() - t0;
       const msg = err instanceof Error ? err.message : "Ошибка авторизации";
-      sendRUM("login_attempt", { ok: false, dur_ms: Math.round(dur), error: String(msg).slice(0, 200) });
+      sendRUM("login_attempt", {
+        ok: false,
+        dur_ms: Math.round(dur),
+        error: String(msg).slice(0, 200),
+      });
       setError(msg);
     } finally {
       setLoading(false);
@@ -35,10 +40,17 @@ export default function Login() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm p-6 space-y-4 bg-white rounded shadow dark:bg-gray-800">
-        <h1 className="text-xl font-bold text-center text-gray-800 dark:text-gray-100">Admin Login</h1>
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm p-6 space-y-4 bg-white rounded shadow dark:bg-gray-800"
+      >
+        <h1 className="text-xl font-bold text-center text-gray-800 dark:text-gray-100">
+          Admin Login
+        </h1>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Username</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+            Username
+          </label>
           <input
             className="mt-1 w-full rounded border px-3 py-2 text-gray-900 dark:text-gray-100 dark:bg-gray-900"
             value={username}
@@ -47,7 +59,9 @@ export default function Login() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Password</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+            Password
+          </label>
           <input
             type="password"
             className="mt-1 w-full rounded border px-3 py-2 text-gray-900 dark:text-gray-100 dark:bg-gray-900"
@@ -68,4 +82,3 @@ export default function Login() {
     </div>
   );
 }
-

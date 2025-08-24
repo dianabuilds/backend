@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
-import { api } from "../api/client";
 import type EditorJS from "@editorjs/editorjs";
+import { useEffect, useRef } from "react";
+
+import { api } from "../api/client";
 import type { OutputData } from "../types/editorjs";
 
 interface Props {
@@ -14,7 +15,14 @@ interface Props {
 
 type ImageUploadResult = { success: 1; file: { url: string } } | { success: 0 };
 
-export default function EditorJSEmbed({ value, onChange, className, minHeight = 220, placeholder, onReady }: Props) {
+export default function EditorJSEmbed({
+  value,
+  onChange,
+  className,
+  minHeight = 220,
+  placeholder,
+  onReady,
+}: Props) {
   const holderId = useRef(`edjs-${Math.random().toString(36).slice(2)}`);
   const editorRef = useRef<EditorJS | null>(null);
   const changeTimer = useRef<number | null>(null);
@@ -25,9 +33,9 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
     try {
       // База для относительных ссылок: VITE_API_BASE или dev-мэппинг на :8000, иначе текущий origin
       let base = "";
-      const envBase = (import.meta as { env?: Record<string, string | undefined> })?.env?.VITE_API_BASE as
-        | string
-        | undefined;
+      const envBase = (
+        import.meta as { env?: Record<string, string | undefined> }
+      )?.env?.VITE_API_BASE as string | undefined;
       if (envBase) {
         base = envBase;
       } else if (typeof window !== "undefined" && window.location) {
@@ -41,7 +49,11 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
       }
 
       // Унифицировано резолвим и относительные, и абсолютные URL
-      const urlObj = new URL(u, base || (typeof window !== "undefined" ? window.location.origin : undefined));
+      const urlObj = new URL(
+        u,
+        base ||
+          (typeof window !== "undefined" ? window.location.origin : undefined),
+      );
 
       // Важно: не меняем протокол принудительно.
       // Если backend доступен только по http, насильственная замена на https приведёт к невозможности загрузить изображение.
@@ -89,7 +101,11 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
         holder: holderId.current,
         minHeight,
         placeholder: placeholder || "Напишите описание, легенду или сценарий…",
-        data: value || { time: Date.now(), blocks: [{ type: "paragraph", data: { text: "" } }], version: "2.30.7" },
+        data: value || {
+          time: Date.now(),
+          blocks: [{ type: "paragraph", data: { text: "" } }],
+          version: "2.30.7",
+        },
         tools: {
           header: Header,
           list: List,
@@ -106,15 +122,21 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
                     const form = new FormData();
                     form.append("file", file);
                     const res = await api.request<unknown>("/admin/media", {
-                        method: "POST",
-                        body: form,
+                      method: "POST",
+                      body: form,
                     });
                     const rawUrl = extractUrl(res?.data);
                     const url = resolveUrl(rawUrl);
                     if (!url) throw new Error("Empty URL from /media");
-                    const normalized: ImageUploadResult = { success: 1, file: { url } };
+                    const normalized: ImageUploadResult = {
+                      success: 1,
+                      file: { url },
+                    };
                     if (import.meta?.env?.MODE !== "production") {
-                      console.debug("[EditorJS:image] uploadByFile", normalized);
+                      console.debug(
+                        "[EditorJS:image] uploadByFile",
+                        normalized,
+                      );
                     }
                     return normalized;
                   } catch (e) {
@@ -126,9 +148,15 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
                   try {
                     if (typeof url === "string" && url) {
                       const final = resolveUrl(url);
-                      const normalized: ImageUploadResult = { success: 1, file: { url: final } };
+                      const normalized: ImageUploadResult = {
+                        success: 1,
+                        file: { url: final },
+                      };
                       if (import.meta?.env?.MODE !== "production") {
-                        console.debug("[EditorJS:image] uploadByUrl", normalized);
+                        console.debug(
+                          "[EditorJS:image] uploadByUrl",
+                          normalized,
+                        );
                       }
                       return normalized;
                     }
@@ -198,7 +226,7 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
           maxWidth: "100%",
           overflow: "visible",
           position: "relative",
-          paddingLeft: "24px" // небольшой отступ, чтобы «плюсик» не упирался в левую границу
+          paddingLeft: "24px", // небольшой отступ, чтобы «плюсик» не упирался в левую границу
         }}
       />
     </>

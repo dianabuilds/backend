@@ -1,5 +1,5 @@
-import type { TagOut } from "./tags/TagPicker";
 import type { OutputData } from "../types/editorjs";
+import type { TagOut } from "./tags/TagPicker";
 
 export interface NodeEditorData {
   id: string;

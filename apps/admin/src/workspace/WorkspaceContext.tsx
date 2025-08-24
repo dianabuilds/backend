@@ -1,5 +1,6 @@
 /* eslint react-refresh/only-export-components: off */
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, type ReactNode, useContext, useState } from "react";
+
 import { setWorkspaceId as persistWorkspaceId } from "../api/client";
 import type { Workspace } from "../api/types";
 

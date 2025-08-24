@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+
 import {
-  listTransitions,
-  updateTransition,
-  deleteTransition as apiDeleteTransition,
   createTransition,
+  deleteTransition as apiDeleteTransition,
+  listTransitions,
   type Transition,
+  updateTransition,
 } from "../api/transitions";
 
 function ensureArray<T = any>(data: unknown): T[] {
@@ -46,10 +47,14 @@ export default function Transitions() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
   const ids = useMemo(() => items.map((it) => String(it.id)), [items]);
-  const selectedIds = useMemo(() => ids.filter((id) => selected[id]), [ids, selected]);
+  const selectedIds = useMemo(
+    () => ids.filter((id) => selected[id]),
+    [ids, selected],
+  );
   const allSelected = ids.length > 0 && selectedIds.length === ids.length;
 
-  const setWeightValue = (id: string, v: string) => setWeights((m) => ({ ...m, [id]: v }));
+  const setWeightValue = (id: string, v: string) =>
+    setWeights((m) => ({ ...m, [id]: v }));
   const toggleSelectAll = () => {
     if (allSelected) {
       setSelected({});
@@ -59,7 +64,8 @@ export default function Transitions() {
       setSelected(m);
     }
   };
-  const toggleOne = (id: string) => setSelected((m) => ({ ...m, [id]: !m[id] }));
+  const toggleOne = (id: string) =>
+    setSelected((m) => ({ ...m, [id]: !m[id] }));
 
   const load = async () => {
     setLoading(true);
@@ -124,13 +130,15 @@ export default function Transitions() {
 
   const bulkEnable = async () => {
     if (selectedIds.length === 0) return;
-    for (const id of selectedIds) await updateTransition(id, { disabled: false });
+    for (const id of selectedIds)
+      await updateTransition(id, { disabled: false });
     await load();
   };
 
   const bulkDisable = async () => {
     if (selectedIds.length === 0) return;
-    for (const id of selectedIds) await updateTransition(id, { disabled: true });
+    for (const id of selectedIds)
+      await updateTransition(id, { disabled: true });
     await load();
   };
 
@@ -166,14 +174,30 @@ export default function Transitions() {
       <h1 className="text-2xl font-bold mb-2">Transitions</h1>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="from slug" className="border rounded px-2 py-1" />
-        <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="to slug" className="border rounded px-2 py-1" />
-        <select value={status} onChange={(e) => setStatus(e.target.value as StatusFilter)} className="border rounded px-2 py-1">
+        <input
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          placeholder="from slug"
+          className="border rounded px-2 py-1"
+        />
+        <input
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          placeholder="to slug"
+          className="border rounded px-2 py-1"
+        />
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as StatusFilter)}
+          className="border rounded px-2 py-1"
+        >
           <option value="any">any</option>
           <option value="enabled">enabled</option>
           <option value="disabled">disabled</option>
         </select>
-        <button onClick={handleSearch} className="px-3 py-1 rounded border">Search</button>
+        <button onClick={handleSearch} className="px-3 py-1 rounded border">
+          Search
+        </button>
 
         <div className="ml-auto flex items-center gap-2">
           <label className="text-sm text-gray-600">Page size</label>
@@ -182,7 +206,9 @@ export default function Transitions() {
             min={1}
             max={1000}
             value={limit}
-            onChange={(e) => setLimit(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))}
+            onChange={(e) =>
+              setLimit(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))
+            }
             className="w-20 border rounded px-2 py-1"
           />
           <button
@@ -207,11 +233,36 @@ export default function Transitions() {
       <div className="mb-6 rounded border p-3">
         <h2 className="font-semibold mb-2">Create transition</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <input className="border rounded px-2 py-1" placeholder="from slug" value={cFrom} onChange={(e) => setCFrom(e.target.value)} />
-          <input className="border rounded px-2 py-1" placeholder="to slug" value={cTo} onChange={(e) => setCTo(e.target.value)} />
-          <input className="border rounded px-2 py-1 w-48" placeholder="label (optional)" value={cLabel} onChange={(e) => setCLabel(e.target.value)} />
-          <input className="border rounded px-2 py-1 w-24" placeholder="weight" value={cWeight} onChange={(e) => setCWeight(e.target.value)} />
-          <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={create}>Create</button>
+          <input
+            className="border rounded px-2 py-1"
+            placeholder="from slug"
+            value={cFrom}
+            onChange={(e) => setCFrom(e.target.value)}
+          />
+          <input
+            className="border rounded px-2 py-1"
+            placeholder="to slug"
+            value={cTo}
+            onChange={(e) => setCTo(e.target.value)}
+          />
+          <input
+            className="border rounded px-2 py-1 w-48"
+            placeholder="label (optional)"
+            value={cLabel}
+            onChange={(e) => setCLabel(e.target.value)}
+          />
+          <input
+            className="border rounded px-2 py-1 w-24"
+            placeholder="weight"
+            value={cWeight}
+            onChange={(e) => setCWeight(e.target.value)}
+          />
+          <button
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+            onClick={create}
+          >
+            Create
+          </button>
         </div>
       </div>
 
@@ -221,19 +272,41 @@ export default function Transitions() {
       {!loading && !error && (
         <>
           <div className="mb-2 flex items-center gap-2">
-            <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} />
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleSelectAll}
+            />
             <span className="text-sm text-gray-600">Select all</span>
             <div className="ml-auto flex items-center gap-2">
-              <button className="px-2 py-1 rounded border" disabled={selectedIds.length === 0} onClick={bulkEnable}>Enable</button>
-              <button className="px-2 py-1 rounded border" disabled={selectedIds.length === 0} onClick={bulkDisable}>Disable</button>
-              <button className="px-2 py-1 rounded border text-red-600 border-red-300" disabled={selectedIds.length === 0} onClick={bulkDelete}>Delete</button>
+              <button
+                className="px-2 py-1 rounded border"
+                disabled={selectedIds.length === 0}
+                onClick={bulkEnable}
+              >
+                Enable
+              </button>
+              <button
+                className="px-2 py-1 rounded border"
+                disabled={selectedIds.length === 0}
+                onClick={bulkDisable}
+              >
+                Disable
+              </button>
+              <button
+                className="px-2 py-1 rounded border text-red-600 border-red-300"
+                disabled={selectedIds.length === 0}
+                onClick={bulkDelete}
+              >
+                Delete
+              </button>
             </div>
           </div>
 
           <table className="min-w-full text-sm text-left">
             <thead>
               <tr className="border-b">
-                <th className="p-2"></th>
+                <th className="p-2" />
                 <th className="p-2">ID</th>
                 <th className="p-2">From</th>
                 <th className="p-2">To</th>
@@ -249,9 +322,16 @@ export default function Transitions() {
                 const id = String(t.id ?? i);
                 const disabled = Boolean(t.disabled ?? false);
                 return (
-                  <tr key={id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <tr
+                    key={id}
+                    className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
                     <td className="p-2 align-middle">
-                      <input type="checkbox" checked={!!selected[id]} onChange={() => toggleOne(id)} />
+                      <input
+                        type="checkbox"
+                        checked={!!selected[id]}
+                        onChange={() => toggleOne(id)}
+                      />
                     </td>
                     <td className="p-2 font-mono">{t.id ?? "-"}</td>
                     <td className="p-2">{t.from_slug ?? "-"}</td>
@@ -264,21 +344,42 @@ export default function Transitions() {
                           value={weights[id] ?? ""}
                           onChange={(e) => setWeightValue(id, e.target.value)}
                         />
-                        <button onClick={() => saveWeight(id)} className="px-2 py-1 rounded border">Save</button>
+                        <button
+                          onClick={() => saveWeight(id)}
+                          className="px-2 py-1 rounded border"
+                        >
+                          Save
+                        </button>
                       </div>
                     </td>
                     <td className="p-2">{String(disabled)}</td>
-                    <td className="p-2">{t.updated_at ? new Date(t.updated_at).toLocaleString() : "-"}</td>
+                    <td className="p-2">
+                      {t.updated_at
+                        ? new Date(t.updated_at).toLocaleString()
+                        : "-"}
+                    </td>
                     <td className="p-2 space-x-2">
-                      <button onClick={() => toggleDisabled(id, disabled)} className="text-blue-600">{disabled ? "Enable" : "Disable"}</button>
-                      <button onClick={() => doDelete(id)} className="text-red-600">Del</button>
+                      <button
+                        onClick={() => toggleDisabled(id, disabled)}
+                        className="text-blue-600"
+                      >
+                        {disabled ? "Enable" : "Disable"}
+                      </button>
+                      <button
+                        onClick={() => doDelete(id)}
+                        className="text-red-600"
+                      >
+                        Del
+                      </button>
                     </td>
                   </tr>
                 );
               })}
               {ids.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="p-4 text-center text-gray-500">No transitions found</td>
+                  <td colSpan={9} className="p-4 text-center text-gray-500">
+                    No transitions found
+                  </td>
                 </tr>
               )}
             </tbody>

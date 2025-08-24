@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import { api } from "../api/client";
 
 export default function Health() {
@@ -27,7 +28,11 @@ export default function Health() {
       <h1 className="text-2xl font-bold mb-4">Health</h1>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">{error}</p>}
-      {data && <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">{JSON.stringify(data, null, 2)}</pre>}
+      {data && (
+        <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }

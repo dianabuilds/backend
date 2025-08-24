@@ -1,5 +1,18 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { apiFetch, setCsrfToken, syncCsrfFromResponse, setAccessToken, api } from "../api/client";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  api,
+  apiFetch,
+  setAccessToken,
+  setCsrfToken,
+  syncCsrfFromResponse,
+} from "../api/client";
 
 interface User {
   id: string;
@@ -44,11 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       // 1) Логин: увеличенный таймаут (60с), чтобы исключить обрыв на медленных стендах
-      const res = await api.post<{ ok: boolean; csrf_token?: string; access_token?: string }>(
-        "/auth/login",
-        { username, password },
-        { timeoutMs: 60000 }
-      );
+      const res = await api.post<{
+        ok: boolean;
+        csrf_token?: string;
+        access_token?: string;
+      }>("/auth/login", { username, password }, { timeoutMs: 60000 });
 
       const data = res.data!;
       if (!data.ok) {
@@ -66,7 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         me = meNoAuth.data as User;
       } catch (e: any) {
         // Если 401 — пробуем повторить с Bearer и большим таймаутом
-        const isUnauthorized = e instanceof Error && /401|unauthorized/i.test(e.message);
+        const isUnauthorized =
+          e instanceof Error && /401|unauthorized/i.test(e.message);
         if (!isUnauthorized) {
           // Падать не спешим — попробуем с Bearer в любом случае
         }
@@ -77,7 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.access_token) {
           meHeaders["Authorization"] = `Bearer ${data.access_token}`;
         }
-        const meRes = await api.get<User>("/users/me", { headers: meHeaders, timeoutMs: 60000 });
+        const meRes = await api.get<User>("/users/me", {
+          headers: meHeaders,
+          timeoutMs: 60000,
+        });
         me = meRes.data as User;
       }
 
@@ -90,9 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const err = e as Error;
       // Нормализуем таймаут
       const raw = String(err?.message || "");
-      const msg = raw === "RequestTimeout"
-        ? "Превышено время ожидания ответа сервера. Проверьте соединение и попробуйте ещё раз."
-        : raw || "Ошибка авторизации";
+      const msg =
+        raw === "RequestTimeout"
+          ? "Превышено время ожидания ответа сервера. Проверьте соединение и попробуйте ещё раз."
+          : raw || "Ошибка авторизации";
       throw new Error(msg);
     }
   };
@@ -145,4 +163,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
-

@@ -1,10 +1,11 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import type { OutputData } from "../types/editorjs";
+import { useUnsavedChanges } from "../utils/useUnsavedChanges";
 import EditorJSEmbed from "./EditorJSEmbed";
 import MediaPicker from "./MediaPicker";
-import TagPicker from "./tags/TagPicker";
-import { useUnsavedChanges } from "../utils/useUnsavedChanges";
 import type { NodeEditorData } from "./NodeEditorModal.helpers";
-import type { OutputData } from "../types/editorjs";
+import TagPicker from "./tags/TagPicker";
 
 interface Props {
   open: boolean;
@@ -15,8 +16,18 @@ interface Props {
   busy?: boolean;
 }
 
-function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = false }: Props) {
-  const heading = useMemo(() => (node?.title?.trim() ? "Редактировать пещеру" : "Создать пещеру"), [node?.title]);
+function NodeEditorModalImpl({
+  open,
+  node,
+  onChange,
+  onClose,
+  onCommit,
+  busy = false,
+}: Props) {
+  const heading = useMemo(
+    () => (node?.title?.trim() ? "Редактировать пещеру" : "Создать пещеру"),
+    [node?.title],
+  );
   const dialogRef = useRef<HTMLDivElement>(null);
   const initialJson = useRef<string>(JSON.stringify(node));
   const [dirty, setDirty] = useState(false);
@@ -34,7 +45,8 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
   }, [node]);
 
   const handleClose = useCallback(() => {
-    if (dirty && !window.confirm('Есть несохранённые изменения. Закрыть?')) return;
+    if (dirty && !window.confirm("Есть несохранённые изменения. Закрыть?"))
+      return;
     onClose();
   }, [dirty, onClose]);
 
@@ -48,11 +60,11 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
     );
     focusable?.[0]?.focus();
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.preventDefault();
         handleClose();
       }
-      if (e.key !== 'Tab' || !focusable || focusable.length === 0) return;
+      if (e.key !== "Tab" || !focusable || focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (e.shiftKey && document.activeElement === first) {
@@ -63,8 +75,8 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
         first.focus();
       }
     };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
   }, [open, handleClose]);
 
   // Сохраняем актуальное содержимое редактора перед коммитом
@@ -125,7 +137,11 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
           <h2 id="node-editor-heading" className="text-xl font-semibold">
             {heading}
           </h2>
-          <button className="px-2 py-1 text-sm rounded border" onClick={handleClose} aria-label="Закрыть модалку">
+          <button
+            className="px-2 py-1 text-sm rounded border"
+            onClick={handleClose}
+            aria-label="Закрыть модалку"
+          >
             Закрыть
           </button>
         </div>
@@ -176,7 +192,9 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
                 <input
                   type="checkbox"
                   checked={!!node.allow_comments}
-                  onChange={(e) => onChange({ allow_comments: e.target.checked })}
+                  onChange={(e) =>
+                    onChange({ allow_comments: e.target.checked })
+                  }
                 />
                 <span>💬 Разрешить комментарии</span>
               </label>
@@ -184,7 +202,9 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
                 <input
                   type="checkbox"
                   checked={!!node.is_premium_only}
-                  onChange={(e) => onChange({ is_premium_only: e.target.checked })}
+                  onChange={(e) =>
+                    onChange({ is_premium_only: e.target.checked })
+                  }
                 />
                 <span>⭐ Только для премиум</span>
               </label>
@@ -200,7 +220,11 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
               onChange={(data) => onChange({ contentData: data })}
               onReady={({ save }) => {
                 // Сохраняем функцию save для использования при коммите
-                (window as unknown as { __ed_save__?: () => Promise<OutputData> }).__ed_save__ = save;
+                (
+                  window as unknown as {
+                    __ed_save__?: () => Promise<OutputData>;
+                  }
+                ).__ed_save__ = save;
                 saveRef.current = save;
               }}
               className="border rounded"
@@ -212,7 +236,11 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit, busy = f
 
         {/* Footer */}
         <div className="px-5 py-3 border-t flex items-center justify-end gap-3">
-          <button className="px-4 py-1.5 rounded border" onClick={handleClose} disabled={busy}>
+          <button
+            className="px-4 py-1.5 rounded border"
+            onClick={handleClose}
+            disabled={busy}
+          >
             Отмена
           </button>
           <button

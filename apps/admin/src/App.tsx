@@ -1,44 +1,45 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Suspense, lazy } from "react";
-import Layout from "./components/Layout";
-import Dashboard from "./pages/Dashboard";
-import Users from "./pages/Users";
-import Echo from "./pages/Echo";
-import AuditLog from "./pages/AuditLog";
-import Login from "./pages/Login";
-import Restrictions from "./pages/Restrictions";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+
 import { AuthProvider } from "./auth/AuthContext";
-import { WorkspaceProvider } from "./workspace/WorkspaceContext";
-import ContentDashboard from "./pages/ContentDashboard";
-import ContentAll from "./pages/ContentAll";
 import ComingSoon from "./components/ComingSoon";
-import Navigation from "./pages/Navigation";
-import Achievements from "./pages/Achievements";
-import CacheTools from "./pages/CacheTools";
-import RateLimitTools from "./pages/RateLimitTools";
-import Health from "./pages/Health";
-import Nodes from "./pages/Nodes";
-import Tags from "./pages/Tags";
-import Transitions from "./pages/Transitions";
-import Traces from "./pages/Traces";
 import ErrorBoundary from "./components/ErrorBoundary";
+import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastProvider } from "./components/ToastProvider";
-import Monitoring from "./pages/Monitoring";
-import Notifications from "./pages/Notifications";
-import NotificationCampaignEditor from "./pages/NotificationCampaignEditor";
-import QuestEditor from "./pages/QuestEditor";
+import Achievements from "./pages/Achievements";
+import AuditLog from "./pages/AuditLog";
+import CacheTools from "./pages/CacheTools";
+import ContentAll from "./pages/ContentAll";
+import ContentDashboard from "./pages/ContentDashboard";
+import Dashboard from "./pages/Dashboard";
+import Echo from "./pages/Echo";
 import FeatureFlagsPage from "./pages/FeatureFlags";
-import ModerationInbox from "./pages/ModerationInbox";
+import Health from "./pages/Health";
+import Login from "./pages/Login";
 import ModerationCase from "./pages/ModerationCase";
+import ModerationInbox from "./pages/ModerationInbox";
+import Monitoring from "./pages/Monitoring";
+import Navigation from "./pages/Navigation";
+import Nodes from "./pages/Nodes";
+import NotificationCampaignEditor from "./pages/NotificationCampaignEditor";
+import Notifications from "./pages/Notifications";
+import Profile from "./pages/Profile";
+import QuestEditor from "./pages/QuestEditor";
 import QuestsList from "./pages/QuestsList";
 import QuestVersionEditor from "./pages/QuestVersionEditor";
+import RateLimitTools from "./pages/RateLimitTools";
+import Restrictions from "./pages/Restrictions";
 import SearchRelevance from "./pages/SearchRelevance";
 import TagMerge from "./pages/TagMerge";
-import WorkspaceSettings from "./pages/WorkspaceSettings";
+import Tags from "./pages/Tags";
+import Traces from "./pages/Traces";
+import Transitions from "./pages/Transitions";
+import Users from "./pages/Users";
 import Workspaces from "./pages/Workspaces";
-import Profile from "./pages/Profile";
+import WorkspaceSettings from "./pages/WorkspaceSettings";
+import { WorkspaceProvider } from "./workspace/WorkspaceContext";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
 const Worlds = lazy(() => import("./pages/Worlds"));
 const AISettings = lazy(() => import("./pages/AISettings"));
@@ -60,7 +61,11 @@ export default function App() {
           <ToastProvider>
             <BrowserRouter basename="/admin">
               <ErrorBoundary>
-                <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading…</div>}>
+                <Suspense
+                  fallback={
+                    <div className="p-4 text-sm text-gray-500">Loading…</div>
+                  }
+                >
                   <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route
@@ -72,51 +77,87 @@ export default function App() {
                     >
                       <Route index element={<Dashboard />} />
                       <Route path="users" element={<Users />} />
-                    <Route path="nodes" element={<Nodes />} />
-                    <Route path="tags" element={<Tags />} />
-                    <Route path="tags/merge" element={<TagMerge />} />
-                    <Route path="transitions" element={<Transitions />} />
+                      <Route path="nodes" element={<Nodes />} />
+                      <Route path="tags" element={<Tags />} />
+                      <Route path="tags/merge" element={<TagMerge />} />
+                      <Route path="transitions" element={<Transitions />} />
                       <Route path="moderation" element={<ModerationInbox />} />
-                      <Route path="moderation/cases/:id" element={<ModerationCase />} />
-                    <Route path="navigation" element={<Navigation />} />
-                    <Route path="echo" element={<Echo />} />
-                    <Route path="traces" element={<Traces />} />
-                    <Route path="notifications" element={<Notifications />} />
-                    <Route path="notifications/campaigns/:id" element={<NotificationCampaignEditor />} />
+                      <Route
+                        path="moderation/cases/:id"
+                        element={<ModerationCase />}
+                      />
+                      <Route path="navigation" element={<Navigation />} />
+                      <Route path="echo" element={<Echo />} />
+                      <Route path="traces" element={<Traces />} />
+                      <Route path="notifications" element={<Notifications />} />
+                      <Route
+                        path="notifications/campaigns/:id"
+                        element={<NotificationCampaignEditor />}
+                      />
                       <Route path="content" element={<ContentDashboard />} />
                       <Route path="content/all" element={<ContentAll />} />
-                    <Route path="telemetry" element={<Telemetry />} />
-                    <Route path="premium/plans" element={<PremiumPlans />} />
-                    <Route path="premium/limits" element={<PremiumLimits />} />
-                    <Route path="payments/transactions" element={<PaymentsTransactions />} />
-                    <Route path="ai/rate-limits" element={<AIRateLimits />} />
-                    <Route path="ai/quests" element={<AIQuests />} />
-                    <Route path="ai/quests/jobs/:id" element={<AIQuestJobDetails />} />
-                    <Route path="ai/worlds" element={<Worlds />} />
-                    <Route path="ai/settings" element={<AISettings />} />
-                    <Route path="achievements" element={<Achievements />} />
-                    <Route path="workspaces" element={<Workspaces />} />
-                    <Route path="workspaces/:id" element={<WorkspaceSettings />} />
-                    <Route path="profile" element={<Profile />} />
-                    <Route path="quests" element={<QuestsList />} />
-                    <Route path="quests/editor" element={<QuestEditor />} />
-                    <Route path="quests/version/:id" element={<QuestVersionEditor />} />
-                    <Route path="search" element={<ComingSoon title="Search" />} />
-                    <Route path="tools/cache" element={<CacheTools />} />
-                    <Route path="tools/rate-limit" element={<RateLimitTools />} />
-                    <Route path="tools/monitoring" element={<Monitoring />} />
-                    <Route path="tools/restrictions" element={<Restrictions />} />
-                    <Route path="tools/audit" element={<AuditLog />} />
-                    <Route path="tools/flags" element={<FeatureFlagsPage />} />
-                    <Route path="tools/search-settings" element={<SearchRelevance />} />
-                    <Route path="system/health" element={<Health />} />
-                    <Route path="payments" element={<PaymentsGateways />} />
-                  </Route>
-                </Routes>
-              </Suspense>
-            </ErrorBoundary>
-          </BrowserRouter>
-        </ToastProvider>
+                      <Route path="telemetry" element={<Telemetry />} />
+                      <Route path="premium/plans" element={<PremiumPlans />} />
+                      <Route
+                        path="premium/limits"
+                        element={<PremiumLimits />}
+                      />
+                      <Route
+                        path="payments/transactions"
+                        element={<PaymentsTransactions />}
+                      />
+                      <Route path="ai/rate-limits" element={<AIRateLimits />} />
+                      <Route path="ai/quests" element={<AIQuests />} />
+                      <Route
+                        path="ai/quests/jobs/:id"
+                        element={<AIQuestJobDetails />}
+                      />
+                      <Route path="ai/worlds" element={<Worlds />} />
+                      <Route path="ai/settings" element={<AISettings />} />
+                      <Route path="achievements" element={<Achievements />} />
+                      <Route path="workspaces" element={<Workspaces />} />
+                      <Route
+                        path="workspaces/:id"
+                        element={<WorkspaceSettings />}
+                      />
+                      <Route path="profile" element={<Profile />} />
+                      <Route path="quests" element={<QuestsList />} />
+                      <Route path="quests/editor" element={<QuestEditor />} />
+                      <Route
+                        path="quests/version/:id"
+                        element={<QuestVersionEditor />}
+                      />
+                      <Route
+                        path="search"
+                        element={<ComingSoon title="Search" />}
+                      />
+                      <Route path="tools/cache" element={<CacheTools />} />
+                      <Route
+                        path="tools/rate-limit"
+                        element={<RateLimitTools />}
+                      />
+                      <Route path="tools/monitoring" element={<Monitoring />} />
+                      <Route
+                        path="tools/restrictions"
+                        element={<Restrictions />}
+                      />
+                      <Route path="tools/audit" element={<AuditLog />} />
+                      <Route
+                        path="tools/flags"
+                        element={<FeatureFlagsPage />}
+                      />
+                      <Route
+                        path="tools/search-settings"
+                        element={<SearchRelevance />}
+                      />
+                      <Route path="system/health" element={<Health />} />
+                      <Route path="payments" element={<PaymentsGateways />} />
+                    </Route>
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+            </BrowserRouter>
+          </ToastProvider>
         </WorkspaceProvider>
       </AuthProvider>
     </QueryClientProvider>

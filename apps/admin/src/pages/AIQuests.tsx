@@ -1,12 +1,24 @@
-import { useEffect, useState, useMemo, useCallback, memo } from "react";
-import {useQuery, useQueryClient} from "@tanstack/react-query";
-import { api } from "../api/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+import { api } from "../api/client";
 import { createDraft } from "../api/questEditor";
 import CursorPager from "../components/CursorPager";
 
-type WorldTemplate = { id: string; title: string; locale?: string | null; description?: string | null };
-type Character = { id: string; world_id: string; name: string; role?: string | null; description?: string | null };
+type WorldTemplate = {
+  id: string;
+  title: string;
+  locale?: string | null;
+  description?: string | null;
+};
+type Character = {
+  id: string;
+  world_id: string;
+  name: string;
+  role?: string | null;
+  description?: string | null;
+};
 type Job = {
   id: string;
   status: string;
@@ -26,7 +38,12 @@ type Job = {
   logs?: string[] | null;
   error?: string | null;
 };
-type AISettings = { provider?: string | null; base_url?: string | null; model?: string | null; has_api_key: boolean };
+type AISettings = {
+  provider?: string | null;
+  base_url?: string | null;
+  model?: string | null;
+  has_api_key: boolean;
+};
 
 export default function AIQuests() {
   const nav = useNavigate();
@@ -40,20 +57,32 @@ export default function AIQuests() {
 
   // form fields
   const [worldId, setWorldId] = useState<string>("");
-  const [structure, setStructure] = useState<"linear"|"vn_branching"|"epic">("vn_branching");
-  const [length, setLength] = useState<"short"|"long">("short");
-  const [tone, setTone] = useState<"light"|"dark"|"ironic">("light");
+  const [structure, setStructure] = useState<
+    "linear" | "vn_branching" | "epic"
+  >("vn_branching");
+  const [length, setLength] = useState<"short" | "long">("short");
+  const [tone, setTone] = useState<"light" | "dark" | "ironic">("light");
   const [genre, setGenre] = useState<string>("fantasy");
   const [locale, setLocale] = useState<string>("");
 
   // management state
   const [mgmtOpen, setMgmtOpen] = useState<boolean>(false);
   const [worlds, setWorlds] = useState<WorldTemplate[]>([]);
-  const [newWorld, setNewWorld] = useState<{ title: string; locale: string; description: string }>({ title: "", locale: "", description: "" });
+  const [newWorld, setNewWorld] = useState<{
+    title: string;
+    locale: string;
+    description: string;
+  }>({ title: "", locale: "", description: "" });
   const [selectedWorld, setSelectedWorld] = useState<string>("");
   const [characters, setCharacters] = useState<Character[]>([]);
-  const [newChar, setNewChar] = useState<{ name: string; role: string; description: string }>({ name: "", role: "", description: "" });
-  const [aiSettings, setAISettings] = useState<AISettings>({ has_api_key: false });
+  const [newChar, setNewChar] = useState<{
+    name: string;
+    role: string;
+    description: string;
+  }>({ name: "", role: "", description: "" });
+  const [aiSettings, setAISettings] = useState<AISettings>({
+    has_api_key: false,
+  });
   const [aiSecret, setAISecret] = useState<string>("");
 
   // Источник истины — React Query
@@ -81,7 +110,9 @@ export default function AIQuests() {
   const isUpdating = tFetching || jobsLoading;
 
   // Синхронизируем шаблоны через React Query
-  useEffect(() => { setTemplates(templatesData ?? []); }, [templatesData]);
+  useEffect(() => {
+    setTemplates(templatesData ?? []);
+  }, [templatesData]);
 
   // загрузка первой страницы jobs
   const loadJobsFirst = useCallback(async () => {
@@ -89,7 +120,9 @@ export default function AIQuests() {
     setError(null);
     try {
       const res = await api.get<any>("/admin/ai/quests/jobs_cursor?limit=50");
-      const items = Array.isArray(res.data?.items) ? (res.data.items as Job[]) : [];
+      const items = Array.isArray(res.data?.items)
+        ? (res.data.items as Job[])
+        : [];
       setJobs(items);
       setJobsCursor(res.data?.next_cursor || null);
     } catch (e: any) {
@@ -104,8 +137,12 @@ export default function AIQuests() {
     setJobsLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>(`/admin/ai/quests/jobs_cursor?limit=50&cursor=${encodeURIComponent(jobsCursor)}`);
-      const items = Array.isArray(res.data?.items) ? (res.data.items as Job[]) : [];
+      const res = await api.get<any>(
+        `/admin/ai/quests/jobs_cursor?limit=50&cursor=${encodeURIComponent(jobsCursor)}`,
+      );
+      const items = Array.isArray(res.data?.items)
+        ? (res.data.items as Job[])
+        : [];
       setJobs((prev) => [...prev, ...items]);
       setJobsCursor(res.data?.next_cursor || null);
     } catch (e: any) {
@@ -116,10 +153,14 @@ export default function AIQuests() {
   }, [jobsCursor]);
 
   // Показываем "большую" загрузку только на первичном фетче
-  useEffect(() => { setLoading(Boolean(tLoading || jobsLoading)); }, [tLoading, jobsLoading]);
+  useEffect(() => {
+    setLoading(Boolean(tLoading || jobsLoading));
+  }, [tLoading, jobsLoading]);
 
   // начальная загрузка jobs
-  useEffect(() => { loadJobsFirst(); }, [loadJobsFirst]);
+  useEffect(() => {
+    loadJobsFirst();
+  }, [loadJobsFirst]);
 
   // автообновление (простое): периодически обновлять первую страницу, если мы в фокусе и нет ручной догрузки
   useEffect(() => {
@@ -155,9 +196,14 @@ export default function AIQuests() {
   };
 
   const loadCharacters = async (wid: string) => {
-    if (!wid) { setCharacters([]); return; }
+    if (!wid) {
+      setCharacters([]);
+      return;
+    }
     try {
-      const res = await api.get<Character[]>(`/admin/ai/quests/worlds/${encodeURIComponent(wid)}/characters`);
+      const res = await api.get<Character[]>(
+        `/admin/ai/quests/worlds/${encodeURIComponent(wid)}/characters`,
+      );
       setCharacters(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error(e);
@@ -175,7 +221,9 @@ export default function AIQuests() {
   };
 
   // начальная загрузка
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   // авто‑обновление выполняется через React Query (refetchInterval)
 
@@ -208,32 +256,46 @@ export default function AIQuests() {
     }
   };
 
-  const simulate = useCallback(async (jobId: string) => {
-    try {
-      await api.post(`/admin/ai/quests/jobs/${encodeURIComponent(jobId)}/simulate_complete`);
-      await load();
-    } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
-    }
-  }, [load]);
+  const simulate = useCallback(
+    async (jobId: string) => {
+      try {
+        await api.post(
+          `/admin/ai/quests/jobs/${encodeURIComponent(jobId)}/simulate_complete`,
+        );
+        await load();
+      } catch (e) {
+        alert(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [load],
+  );
 
-  const tick = useCallback(async (jobId: string, delta = 10) => {
-    try {
-      await api.post(`/admin/ai/quests/jobs/${encodeURIComponent(jobId)}/tick`, { delta });
-      await load();
-    } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
-    }
-  }, [load]);
+  const tick = useCallback(
+    async (jobId: string, delta = 10) => {
+      try {
+        await api.post(
+          `/admin/ai/quests/jobs/${encodeURIComponent(jobId)}/tick`,
+          { delta },
+        );
+        await load();
+      } catch (e) {
+        alert(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [load],
+  );
 
-  const createNewDraft = useCallback(async (questId: string) => {
-    try {
-      const ver = await createDraft(questId);
-      nav(`/quests/version/${ver}`);
-    } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
-    }
-  }, [nav]);
+  const createNewDraft = useCallback(
+    async (questId: string) => {
+      try {
+        const ver = await createDraft(questId);
+        nav(`/quests/version/${ver}`);
+      } catch (e) {
+        alert(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [nav],
+  );
 
   const createWorld = async () => {
     if (!newWorld.title.trim()) return alert("Введите название мира");
@@ -254,8 +316,13 @@ export default function AIQuests() {
   const removeWorld = async (id: string) => {
     if (!confirm("Удалить мир со всеми персонажами?")) return;
     try {
-      await api.request(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (id === selectedWorld) { setSelectedWorld(""); setCharacters([]); }
+      await api.request(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (id === selectedWorld) {
+        setSelectedWorld("");
+        setCharacters([]);
+      }
       await Promise.all([loadWorlds(), load()]);
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
@@ -266,12 +333,15 @@ export default function AIQuests() {
     if (!selectedWorld) return alert("Выберите мир");
     if (!newChar.name.trim()) return alert("Имя персонажа обязательно");
     try {
-      await api.post(`/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`, {
-        name: newChar.name,
-        role: newChar.role || null,
-        description: newChar.description || null,
-        traits: null,
-      });
+      await api.post(
+        `/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`,
+        {
+          name: newChar.name,
+          role: newChar.role || null,
+          description: newChar.description || null,
+          traits: null,
+        },
+      );
       setNewChar({ name: "", role: "", description: "" });
       await loadCharacters(selectedWorld);
     } catch (e) {
@@ -282,7 +352,10 @@ export default function AIQuests() {
   const removeCharacter = async (id: string) => {
     if (!confirm("Удалить персонажа?")) return;
     try {
-      await api.request(`/admin/ai/quests/characters/${encodeURIComponent(id)}`, { method: "DELETE" });
+      await api.request(
+        `/admin/ai/quests/characters/${encodeURIComponent(id)}`,
+        { method: "DELETE" },
+      );
       await loadCharacters(selectedWorld);
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
@@ -314,8 +387,16 @@ export default function AIQuests() {
     };
     return (
       <span className="inline-flex items-center gap-2">
-        <span className={`px-2 py-0.5 rounded text-xs ${map[s] || "bg-gray-200"}`}>{s}</span>
-        {reused ? <span className="px-2 py-0.5 rounded text-xs bg-purple-200 text-purple-800">cache</span> : null}
+        <span
+          className={`px-2 py-0.5 rounded text-xs ${map[s] || "bg-gray-200"}`}
+        >
+          {s}
+        </span>
+        {reused ? (
+          <span className="px-2 py-0.5 rounded text-xs bg-purple-200 text-purple-800">
+            cache
+          </span>
+        ) : null}
       </span>
     );
   };
@@ -323,7 +404,10 @@ export default function AIQuests() {
   // Оптимизированный список: мемоизированная фильтрация
   const filteredJobs = useMemo(() => {
     const arr = Array.isArray(jobs) ? jobs : [];
-    const byStatus = statusFilter === "all" ? arr : arr.filter((j: any) => j.status === statusFilter);
+    const byStatus =
+      statusFilter === "all"
+        ? arr
+        : arr.filter((j: any) => j.status === statusFilter);
     return reusedOnly ? byStatus.filter((j: any) => j.reused) : byStatus;
   }, [jobs, statusFilter, reusedOnly]);
 
@@ -341,8 +425,23 @@ export default function AIQuests() {
     onSimulate: (id: string) => void;
     onCreateDraft: (questId: string) => void;
   }) {
-    const { id, status, reused, progress, created_at, params, result_quest_id, cost, onTick, onSimulate, onCreateDraft } = props;
-    const createdText = useMemo(() => new Date(created_at).toLocaleString(), [created_at]);
+    const {
+      id,
+      status,
+      reused,
+      progress,
+      created_at,
+      params,
+      result_quest_id,
+      cost,
+      onTick,
+      onSimulate,
+      onCreateDraft,
+    } = props;
+    const createdText = useMemo(
+      () => new Date(created_at).toLocaleString(),
+      [created_at],
+    );
     const paramsText = useMemo(() => {
       if (!params) return "-";
       const base = `${params.structure}/${params.length}/${params.tone}/${params.genre}`;
@@ -354,23 +453,44 @@ export default function AIQuests() {
         <td className="p-2">{statusBadge(status, reused)}</td>
         <td className="p-2">
           <div className="w-40 bg-gray-200 dark:bg-gray-800 rounded h-3 overflow-hidden">
-            <div className="bg-blue-600 h-3" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} aria-label={`progress ${progress}%`} />
+            <div
+              className="bg-blue-600 h-3"
+              style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+              aria-label={`progress ${progress}%`}
+            />
           </div>
           <div className="text-xs text-gray-600 mt-1">{progress}%</div>
         </td>
         <td className="p-2">{createdText}</td>
         <td className="p-2">{paramsText}</td>
-        <td className="p-2">{result_quest_id ? `quest:${result_quest_id}` : "-"}</td>
+        <td className="p-2">
+          {result_quest_id ? `quest:${result_quest_id}` : "-"}
+        </td>
         <td className="p-2">{cost != null ? Number(cost).toFixed(4) : "-"}</td>
         <td className="p-2 text-right space-x-2">
           {(status === "queued" || status === "running") && (
             <>
-              <button className="px-2 py-1 rounded border" onClick={() => onTick(id, 10)}>Tick +10%</button>
-              <button className="px-2 py-1 rounded border" onClick={() => onSimulate(id)}>Simulate</button>
+              <button
+                className="px-2 py-1 rounded border"
+                onClick={() => onTick(id, 10)}
+              >
+                Tick +10%
+              </button>
+              <button
+                className="px-2 py-1 rounded border"
+                onClick={() => onSimulate(id)}
+              >
+                Simulate
+              </button>
             </>
           )}
           {result_quest_id && (
-            <button className="px-2 py-1 rounded border" onClick={() => onCreateDraft(result_quest_id!)}>New draft</button>
+            <button
+              className="px-2 py-1 rounded border"
+              onClick={() => onCreateDraft(result_quest_id!)}
+            >
+              New draft
+            </button>
           )}
         </td>
       </tr>
@@ -386,14 +506,27 @@ export default function AIQuests() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <div className="flex items-center gap-2">
             <label className="w-32 text-sm text-gray-600">Мир</label>
-            <select className="border rounded px-2 py-1 flex-1" value={worldId} onChange={(e) => setWorldId(e.target.value)}>
+            <select
+              className="border rounded px-2 py-1 flex-1"
+              value={worldId}
+              onChange={(e) => setWorldId(e.target.value)}
+            >
               <option value="">— не выбрано —</option>
-              {templates.map((t: any) => (<option key={t.id} value={t.id}>{t.title}{t.locale ? ` · ${t.locale}` : ""}</option>))}
+              {templates.map((t: any) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                  {t.locale ? ` · ${t.locale}` : ""}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex items-center gap-2">
             <label className="w-32 text-sm text-gray-600">Структура</label>
-            <select className="border rounded px-2 py-1 flex-1" value={structure} onChange={(e) => setStructure(e.target.value as any)}>
+            <select
+              className="border rounded px-2 py-1 flex-1"
+              value={structure}
+              onChange={(e) => setStructure(e.target.value as any)}
+            >
               <option value="linear">linear</option>
               <option value="vn_branching">vn_branching</option>
               <option value="epic">epic</option>
@@ -401,14 +534,22 @@ export default function AIQuests() {
           </div>
           <div className="flex items-center gap-2">
             <label className="w-32 text-sm text-gray-600">Длина</label>
-            <select className="border rounded px-2 py-1 flex-1" value={length} onChange={(e) => setLength(e.target.value as any)}>
+            <select
+              className="border rounded px-2 py-1 flex-1"
+              value={length}
+              onChange={(e) => setLength(e.target.value as any)}
+            >
               <option value="short">short (10–15)</option>
               <option value="long">long (40–100)</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
             <label className="w-32 text-sm text-gray-600">Тональность</label>
-            <select className="border rounded px-2 py-1 flex-1" value={tone} onChange={(e) => setTone(e.target.value as any)}>
+            <select
+              className="border rounded px-2 py-1 flex-1"
+              value={tone}
+              onChange={(e) => setTone(e.target.value as any)}
+            >
               <option value="light">light</option>
               <option value="dark">dark</option>
               <option value="ironic">ironic</option>
@@ -416,25 +557,49 @@ export default function AIQuests() {
           </div>
           <div className="flex items-center gap-2">
             <label className="w-32 text-sm text-gray-600">Жанр</label>
-            <input className="border rounded px-2 py-1 flex-1" placeholder="fantasy, sci-fi…" value={genre} onChange={(e) => setGenre(e.target.value)} />
+            <input
+              className="border rounded px-2 py-1 flex-1"
+              placeholder="fantasy, sci-fi…"
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+            />
           </div>
           <div className="flex items-center gap-2">
             <label className="w-32 text-sm text-gray-600">Локаль</label>
-            <input className="border rounded px-2 py-1 flex-1" placeholder="ru-RU / en-US" value={locale} onChange={(e) => setLocale(e.target.value)} />
+            <input
+              className="border rounded px-2 py-1 flex-1"
+              placeholder="ru-RU / en-US"
+              value={locale}
+              onChange={(e) => setLocale(e.target.value)}
+            />
           </div>
         </div>
         <div className="mt-3 flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={reuse} onChange={(e) => setReuse(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={reuse}
+              onChange={(e) => setReuse(e.target.checked)}
+            />
             Reuse result (cache)
           </label>
-          <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={submit}>Сгенерировать</button>
+          <button
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+            onClick={submit}
+          >
+            Сгенерировать
+          </button>
         </div>
       </div>
 
       <div className="mb-6">
-        <button className="px-3 py-1 rounded border" onClick={() => setMgmtOpen((v) => !v)}>
-          {mgmtOpen ? "Скрыть управление" : "Показать управление (Миры/Персонажи/AI Settings)"}
+        <button
+          className="px-3 py-1 rounded border"
+          onClick={() => setMgmtOpen((v) => !v)}
+        >
+          {mgmtOpen
+            ? "Скрыть управление"
+            : "Показать управление (Миры/Персонажи/AI Settings)"}
         </button>
       </div>
 
@@ -443,45 +608,132 @@ export default function AIQuests() {
           <div className="rounded border p-3">
             <h3 className="font-semibold mb-2">Миры</h3>
             <div className="flex flex-col gap-2 mb-3">
-              <input className="border rounded px-2 py-1" placeholder="Название" value={newWorld.title} onChange={(e) => setNewWorld((s) => ({ ...s, title: e.target.value }))} />
-              <input className="border rounded px-2 py-1" placeholder="Локаль (ru-RU / en-US)" value={newWorld.locale} onChange={(e) => setNewWorld((s) => ({ ...s, locale: e.target.value }))} />
-              <textarea className="border rounded px-2 py-1" placeholder="Описание" value={newWorld.description} onChange={(e) => setNewWorld((s) => ({ ...s, description: e.target.value }))} />
-              <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={createWorld}>Добавить мир</button>
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="Название"
+                value={newWorld.title}
+                onChange={(e) =>
+                  setNewWorld((s) => ({ ...s, title: e.target.value }))
+                }
+              />
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="Локаль (ru-RU / en-US)"
+                value={newWorld.locale}
+                onChange={(e) =>
+                  setNewWorld((s) => ({ ...s, locale: e.target.value }))
+                }
+              />
+              <textarea
+                className="border rounded px-2 py-1"
+                placeholder="Описание"
+                value={newWorld.description}
+                onChange={(e) =>
+                  setNewWorld((s) => ({ ...s, description: e.target.value }))
+                }
+              />
+              <button
+                className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+                onClick={createWorld}
+              >
+                Добавить мир
+              </button>
             </div>
             <div className="max-h-80 overflow-auto divide-y">
               {worlds.map((w) => (
-                <div key={w.id} className="py-2 flex items-center justify-between gap-2">
-                  <button className={`text-left flex-1 ${selectedWorld === w.id ? "font-semibold" : ""}`} onClick={() => setSelectedWorld(w.id)}>
-                    {w.title}{w.locale ? ` · ${w.locale}` : ""}
+                <div
+                  key={w.id}
+                  className="py-2 flex items-center justify-between gap-2"
+                >
+                  <button
+                    className={`text-left flex-1 ${selectedWorld === w.id ? "font-semibold" : ""}`}
+                    onClick={() => setSelectedWorld(w.id)}
+                  >
+                    {w.title}
+                    {w.locale ? ` · ${w.locale}` : ""}
                   </button>
-                  <button className="px-2 py-1 rounded border" onClick={() => removeWorld(w.id)}>Удалить</button>
+                  <button
+                    className="px-2 py-1 rounded border"
+                    onClick={() => removeWorld(w.id)}
+                  >
+                    Удалить
+                  </button>
                 </div>
               ))}
-              {worlds.length === 0 && <div className="text-sm text-gray-500">Пока нет миров</div>}
+              {worlds.length === 0 && (
+                <div className="text-sm text-gray-500">Пока нет миров</div>
+              )}
             </div>
           </div>
 
           <div className="rounded border p-3">
-            <h3 className="font-semibold mb-2">Персонажи {selectedWorld ? "" : "(выберите мир)"}</h3>
+            <h3 className="font-semibold mb-2">
+              Персонажи {selectedWorld ? "" : "(выберите мир)"}
+            </h3>
             {selectedWorld && (
               <>
                 <div className="flex flex-col gap-2 mb-3">
-                  <input className="border rounded px-2 py-1" placeholder="Имя" value={newChar.name} onChange={(e) => setNewChar((s) => ({ ...s, name: e.target.value }))} />
-                  <input className="border rounded px-2 py-1" placeholder="Роль" value={newChar.role} onChange={(e) => setNewChar((s) => ({ ...s, role: e.target.value }))} />
-                  <textarea className="border rounded px-2 py-1" placeholder="Описание" value={newChar.description} onChange={(e) => setNewChar((s) => ({ ...s, description: e.target.value }))} />
-                  <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={addCharacter}>Добавить персонажа</button>
+                  <input
+                    className="border rounded px-2 py-1"
+                    placeholder="Имя"
+                    value={newChar.name}
+                    onChange={(e) =>
+                      setNewChar((s) => ({ ...s, name: e.target.value }))
+                    }
+                  />
+                  <input
+                    className="border rounded px-2 py-1"
+                    placeholder="Роль"
+                    value={newChar.role}
+                    onChange={(e) =>
+                      setNewChar((s) => ({ ...s, role: e.target.value }))
+                    }
+                  />
+                  <textarea
+                    className="border rounded px-2 py-1"
+                    placeholder="Описание"
+                    value={newChar.description}
+                    onChange={(e) =>
+                      setNewChar((s) => ({ ...s, description: e.target.value }))
+                    }
+                  />
+                  <button
+                    className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+                    onClick={addCharacter}
+                  >
+                    Добавить персонажа
+                  </button>
                 </div>
                 <div className="max-h-80 overflow-auto divide-y">
                   {characters.map((c) => (
-                    <div key={c.id} className="py-2 flex items-center justify-between gap-2">
+                    <div
+                      key={c.id}
+                      className="py-2 flex items-center justify-between gap-2"
+                    >
                       <div className="flex-1">
-                        <div className="font-medium">{c.name}{c.role ? ` · ${c.role}` : ""}</div>
-                        {c.description && <div className="text-xs text-gray-600">{c.description}</div>}
+                        <div className="font-medium">
+                          {c.name}
+                          {c.role ? ` · ${c.role}` : ""}
+                        </div>
+                        {c.description && (
+                          <div className="text-xs text-gray-600">
+                            {c.description}
+                          </div>
+                        )}
                       </div>
-                      <button className="px-2 py-1 rounded border" onClick={() => removeCharacter(c.id)}>Удалить</button>
+                      <button
+                        className="px-2 py-1 rounded border"
+                        onClick={() => removeCharacter(c.id)}
+                      >
+                        Удалить
+                      </button>
                     </div>
                   ))}
-                  {characters.length === 0 && <div className="text-sm text-gray-500">Пока нет персонажей</div>}
+                  {characters.length === 0 && (
+                    <div className="text-sm text-gray-500">
+                      Пока нет персонажей
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -490,20 +742,58 @@ export default function AIQuests() {
           <div className="rounded border p-3">
             <h3 className="font-semibold mb-2">AI Settings</h3>
             <div className="flex flex-col gap-2">
-              <input className="border rounded px-2 py-1" placeholder="Provider (например: openai, anthropic…)" value={aiSettings.provider ?? ""} onChange={(e) => setAISettings((s) => ({ ...s, provider: e.target.value }))} />
-              <input className="border rounded px-2 py-1" placeholder="Base URL (необязательно)" value={aiSettings.base_url ?? ""} onChange={(e) => setAISettings((s) => ({ ...s, base_url: e.target.value }))} />
-              <input className="border rounded px-2 py-1" placeholder="Model (например: gpt-4o-mini)" value={aiSettings.model ?? ""} onChange={(e) => setAISettings((s) => ({ ...s, model: e.target.value }))} />
-              <input className="border rounded px-2 py-1" placeholder={aiSettings.has_api_key ? "API Key (оставьте пустым — не менять)" : "API Key"} type="password" value={aiSecret} onChange={(e) => setAISecret(e.target.value)} />
-              <div className="text-xs text-gray-600">{aiSettings.has_api_key ? "Ключ сохранён" : "Ключ не задан"}</div>
-              <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={saveAI}>Сохранить</button>
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="Provider (например: openai, anthropic…)"
+                value={aiSettings.provider ?? ""}
+                onChange={(e) =>
+                  setAISettings((s) => ({ ...s, provider: e.target.value }))
+                }
+              />
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="Base URL (необязательно)"
+                value={aiSettings.base_url ?? ""}
+                onChange={(e) =>
+                  setAISettings((s) => ({ ...s, base_url: e.target.value }))
+                }
+              />
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="Model (например: gpt-4o-mini)"
+                value={aiSettings.model ?? ""}
+                onChange={(e) =>
+                  setAISettings((s) => ({ ...s, model: e.target.value }))
+                }
+              />
+              <input
+                className="border rounded px-2 py-1"
+                placeholder={
+                  aiSettings.has_api_key
+                    ? "API Key (оставьте пустым — не менять)"
+                    : "API Key"
+                }
+                type="password"
+                value={aiSecret}
+                onChange={(e) => setAISecret(e.target.value)}
+              />
+              <div className="text-xs text-gray-600">
+                {aiSettings.has_api_key ? "Ключ сохранён" : "Ключ не задан"}
+              </div>
+              <button
+                className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+                onClick={saveAI}
+              >
+                Сохранить
+              </button>
             </div>
 
-                <CursorPager
-                  hasMore={Boolean(jobsCursor)}
-                  loading={jobsLoading}
-                  onLoadMore={loadJobsMore}
-                  className="mt-3 flex justify-center"
-                />
+            <CursorPager
+              hasMore={Boolean(jobsCursor)}
+              loading={jobsLoading}
+              onLoadMore={loadJobsMore}
+              className="mt-3 flex justify-center"
+            />
           </div>
         </div>
       )}
@@ -515,7 +805,11 @@ export default function AIQuests() {
         <>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <label className="text-sm text-gray-600">Status</label>
-            <select className="border rounded px-2 py-1" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <select
+              className="border rounded px-2 py-1"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
               <option value="all">all</option>
               <option value="queued">queued</option>
               <option value="running">running</option>
@@ -524,48 +818,60 @@ export default function AIQuests() {
               <option value="canceled">canceled</option>
             </select>
             <label className="text-sm flex items-center gap-2">
-              <input type="checkbox" checked={reusedOnly} onChange={(e) => setReusedOnly(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={reusedOnly}
+                onChange={(e) => setReusedOnly(e.target.checked)}
+              />
               reused only
             </label>
-            {isUpdating && <span className="text-xs text-gray-500" aria-live="polite">Updating…</span>}
+            {isUpdating && (
+              <span className="text-xs text-gray-500" aria-live="polite">
+                Updating…
+              </span>
+            )}
           </div>
           <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="p-2 text-left">ID</th>
-                <th className="p-2 text-left">Status</th>
-                <th className="p-2 text-left">Progress</th>
-                <th className="p-2 text-left">Created</th>
-                <th className="p-2 text-left">Params</th>
-                <th className="p-2 text-left">Result</th>
-                <th className="p-2 text-left">Cost</th>
-                <th className="p-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredJobs.map((j) => (
-                <JobRow
-                  key={j.id}
-                  id={j.id}
-                  status={j.status}
-                  reused={(j as any).reused}
-                  progress={j.progress ?? 0}
-                  created_at={j.created_at}
-                  params={j.params}
-                  result_quest_id={j.result_quest_id}
-                  cost={j.cost}
-                  onTick={tick}
-                  onSimulate={simulate}
-                  onCreateDraft={createNewDraft}
-                />
-              ))}
-              {filteredJobs.length === 0 && (
-                <tr><td colSpan={8} className="p-4 text-center text-gray-500">No jobs</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="p-2 text-left">ID</th>
+                  <th className="p-2 text-left">Status</th>
+                  <th className="p-2 text-left">Progress</th>
+                  <th className="p-2 text-left">Created</th>
+                  <th className="p-2 text-left">Params</th>
+                  <th className="p-2 text-left">Result</th>
+                  <th className="p-2 text-left">Cost</th>
+                  <th className="p-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredJobs.map((j) => (
+                  <JobRow
+                    key={j.id}
+                    id={j.id}
+                    status={j.status}
+                    reused={(j as any).reused}
+                    progress={j.progress ?? 0}
+                    created_at={j.created_at}
+                    params={j.params}
+                    result_quest_id={j.result_quest_id}
+                    cost={j.cost}
+                    onTick={tick}
+                    onSimulate={simulate}
+                    onCreateDraft={createNewDraft}
+                  />
+                ))}
+                {filteredJobs.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="p-4 text-center text-gray-500">
+                      No jobs
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>

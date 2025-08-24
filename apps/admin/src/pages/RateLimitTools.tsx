@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+
 import { api } from "../api/client";
 
 interface RateRules {
@@ -57,7 +58,6 @@ export default function RateLimitTools() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -70,8 +70,16 @@ export default function RateLimitTools() {
           <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-sm">
             {rules.enabled ? "Enabled" : "Disabled"}
           </span>
-          <button onClick={toggle} disabled={toggling} className="px-3 py-1 rounded border">
-            {toggling ? "Applying..." : rules.enabled ? "Disable (non-prod only)" : "Enable"}
+          <button
+            onClick={toggle}
+            disabled={toggling}
+            className="px-3 py-1 rounded border"
+          >
+            {toggling
+              ? "Applying..."
+              : rules.enabled
+                ? "Disable (non-prod only)"
+                : "Enable"}
           </button>
         </div>
       )}
@@ -86,10 +94,15 @@ export default function RateLimitTools() {
                 <input
                   className="border rounded px-2 py-1 w-40"
                   value={value}
-                  onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, [key]: e.target.value }))
+                  }
                   placeholder="5/min, 10/sec, 3/hour"
                 />
-                <button className="px-3 py-1 rounded border" onClick={() => saveRule(key)}>
+                <button
+                  className="px-3 py-1 rounded border"
+                  onClick={() => saveRule(key)}
+                >
                   Save
                 </button>
               </div>
@@ -101,7 +114,9 @@ export default function RateLimitTools() {
       {recent && (
         <section>
           <h2 className="font-semibold mb-2">Recent 429</h2>
-          <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">{JSON.stringify(recent, null, 2)}</pre>
+          <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">
+            {JSON.stringify(recent, null, 2)}
+          </pre>
         </section>
       )}
     </div>

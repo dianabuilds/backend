@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import { useDebounce } from "../utils/useDebounce";
 
 interface Restriction {
@@ -56,14 +57,23 @@ async function updateRole(id: string, role: string) {
   await api.post(`/admin/users/${id}/role`, { role });
 }
 
-async function setPremium(id: string, is_premium: boolean, premium_until?: string | null) {
+async function setPremium(
+  id: string,
+  is_premium: boolean,
+  premium_until?: string | null,
+) {
   await api.post(`/admin/users/${id}/premium`, {
     is_premium,
     premium_until: premium_until ?? null,
   });
 }
 
-async function createRestriction(user_id: string, type: string, reason?: string, expires_at?: string | null) {
+async function createRestriction(
+  user_id: string,
+  type: string,
+  reason?: string,
+  expires_at?: string | null,
+) {
   await api.post(`/admin/restrictions`, {
     user_id,
     type,
@@ -111,7 +121,13 @@ export default function Users() {
     if (last.index >= users.length - 1 && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [rowVirtualizer, users.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [
+    rowVirtualizer,
+    users.length,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ]);
 
   const virtualRows = rowVirtualizer.getVirtualItems();
   const totalSize = rowVirtualizer.getTotalSize();
@@ -125,9 +141,17 @@ export default function Users() {
     try {
       await updateRole(id, role);
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      addToast({ title: "Role updated", description: `User role set to "${role}"`, variant: "success" });
+      addToast({
+        title: "Role updated",
+        description: `User role set to "${role}"`,
+        variant: "success",
+      });
     } catch (e) {
-      addToast({ title: "Failed to update role", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to update role",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
@@ -139,7 +163,11 @@ export default function Users() {
   const openPremium = (u: AdminUser) => {
     setPremiumUser(u);
     setPremiumFlag(!!u.is_premium);
-    setPremiumUntil(u.premium_until ? new Date(u.premium_until).toISOString().slice(0, 16) : "");
+    setPremiumUntil(
+      u.premium_until
+        ? new Date(u.premium_until).toISOString().slice(0, 16)
+        : "",
+    );
   };
   const applyPremium = async () => {
     if (!premiumUser) return;
@@ -147,13 +175,17 @@ export default function Users() {
       await setPremium(
         premiumUser.id,
         premiumFlag,
-        premiumUntil ? new Date(premiumUntil).toISOString() : null
+        premiumUntil ? new Date(premiumUntil).toISOString() : null,
       );
       addToast({ title: "Premium updated", variant: "success" });
       setPremiumUser(null);
       queryClient.invalidateQueries({ queryKey: ["users"] });
     } catch (e) {
-      addToast({ title: "Failed to update premium", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to update premium",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
@@ -176,17 +208,22 @@ export default function Users() {
         restrictUser.id,
         restrictType,
         restrictReason || undefined,
-        restrictUntil ? new Date(restrictUntil).toISOString() : undefined
+        restrictUntil ? new Date(restrictUntil).toISOString() : undefined,
       );
       addToast({ title: "Restriction applied", variant: "success" });
       setRestrictUser(null);
       queryClient.invalidateQueries({ queryKey: ["users"] });
     } catch (e) {
-      addToast({ title: "Failed to apply restriction", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to apply restriction",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
-  const firstBanRestriction = (u: AdminUser) => u.restrictions.find((r) => r.type === "ban");
+  const firstBanRestriction = (u: AdminUser) =>
+    u.restrictions.find((r) => r.type === "ban");
 
   const unban = async (u: AdminUser) => {
     const r = firstBanRestriction(u);
@@ -196,7 +233,11 @@ export default function Users() {
       addToast({ title: "User unbanned", variant: "success" });
       queryClient.invalidateQueries({ queryKey: ["users"] });
     } catch (e) {
-      addToast({ title: "Failed to unban", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to unban",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     }
   };
 
@@ -253,7 +294,10 @@ export default function Users() {
                   );
                 }
                 return (
-                  <tr key={u.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <tr
+                    key={u.id}
+                    className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
                     <td className="p-2 font-mono">{u.id}</td>
                     <td className="p-2">{u.email ?? ""}</td>
                     <td className="p-2">{u.username ?? ""}</td>
@@ -269,8 +313,14 @@ export default function Users() {
                       </select>
                     </td>
                     <td className="p-2">{u.is_active ? "yes" : "no"}</td>
-                    <td className="p-2">{u.premium_until ? new Date(u.premium_until).toLocaleDateString() : "-"}</td>
-                    <td className="p-2">{new Date(u.created_at).toLocaleDateString()}</td>
+                    <td className="p-2">
+                      {u.premium_until
+                        ? new Date(u.premium_until).toLocaleDateString()
+                        : "-"}
+                    </td>
+                    <td className="p-2">
+                      {new Date(u.created_at).toLocaleDateString()}
+                    </td>
                     <td className="p-2">{u.wallet_address ?? ""}</td>
                     <td className="p-2">
                       {u.restrictions.length > 0
@@ -320,7 +370,11 @@ export default function Users() {
             <h2 className="text-lg font-bold mb-2">Update premium</h2>
             <div className="space-y-2">
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={premiumFlag} onChange={(e) => setPremiumFlag(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={premiumFlag}
+                  onChange={(e) => setPremiumFlag(e.target.checked)}
+                />
                 <span>is_premium</span>
               </label>
               <label className="flex flex-col gap-1">
@@ -334,8 +388,18 @@ export default function Users() {
               </label>
             </div>
             <div className="mt-3 flex justify-end gap-2">
-              <button className="px-3 py-1 rounded border" onClick={() => setPremiumUser(null)}>Cancel</button>
-              <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={applyPremium}>Save</button>
+              <button
+                className="px-3 py-1 rounded border"
+                onClick={() => setPremiumUser(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 py-1 rounded bg-blue-600 text-white"
+                onClick={applyPremium}
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>
@@ -349,14 +413,22 @@ export default function Users() {
             <div className="space-y-2">
               <label className="flex flex-col gap-1">
                 <span className="text-sm text-gray-600">type</span>
-                <select value={restrictType} onChange={(e) => setRestrictType(e.target.value)} className="border rounded px-2 py-1">
+                <select
+                  value={restrictType}
+                  onChange={(e) => setRestrictType(e.target.value)}
+                  className="border rounded px-2 py-1"
+                >
                   <option value="ban">ban</option>
                   <option value="post_restrict">post_restrict</option>
                 </select>
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-sm text-gray-600">reason</span>
-                <input value={restrictReason} onChange={(e) => setRestrictReason(e.target.value)} className="border rounded px-2 py-1" />
+                <input
+                  value={restrictReason}
+                  onChange={(e) => setRestrictReason(e.target.value)}
+                  className="border rounded px-2 py-1"
+                />
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-sm text-gray-600">expires_at</span>
@@ -369,8 +441,18 @@ export default function Users() {
               </label>
             </div>
             <div className="mt-3 flex justify-end gap-2">
-              <button className="px-3 py-1 rounded border" onClick={() => setRestrictUser(null)}>Cancel</button>
-              <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={applyRestriction}>Apply</button>
+              <button
+                className="px-3 py-1 rounded border"
+                onClick={() => setRestrictUser(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 py-1 rounded bg-blue-600 text-white"
+                onClick={applyRestriction}
+              >
+                Apply
+              </button>
             </div>
           </div>
         </div>

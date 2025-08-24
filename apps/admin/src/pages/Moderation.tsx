@@ -1,5 +1,6 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { api } from "../api/client";
 
 interface HiddenNode {
@@ -122,10 +123,7 @@ export default function Moderation() {
             ))}
             {data?.length === 0 && (
               <tr>
-                <td
-                  colSpan={6}
-                  className="p-4 text-center text-gray-500"
-                >
+                <td colSpan={6} className="p-4 text-center text-gray-500">
                   No hidden nodes
                 </td>
               </tr>

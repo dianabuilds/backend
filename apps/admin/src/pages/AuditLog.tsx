@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 interface AuditLogEntry {
@@ -27,7 +27,9 @@ function ensureArray<T = any>(data: unknown): T[] {
   return [];
 }
 
-async function fetchAudit(params: Record<string, string>): Promise<AuditLogEntry[]> {
+async function fetchAudit(
+  params: Record<string, string>,
+): Promise<AuditLogEntry[]> {
   const qs = new URLSearchParams(params).toString();
   const res = await api.get(qs ? `/admin/audit?${qs}` : "/admin/audit");
   return ensureArray<AuditLogEntry>(res.data);
@@ -42,11 +44,15 @@ export default function AuditLog() {
   const [dateTo, setDateTo] = useState(searchParams.get("date_to") || "");
   const page = searchParams.get("page") || "1";
   const params: Record<string, string> = { page };
-  if (searchParams.get("actor_id")) params.actor_id = searchParams.get("actor_id")!;
+  if (searchParams.get("actor_id"))
+    params.actor_id = searchParams.get("actor_id")!;
   if (searchParams.get("action")) params.action = searchParams.get("action")!;
-  if (searchParams.get("resource")) params.resource = searchParams.get("resource")!;
-  if (searchParams.get("date_from")) params.date_from = searchParams.get("date_from")!;
-  if (searchParams.get("date_to")) params.date_to = searchParams.get("date_to")!;
+  if (searchParams.get("resource"))
+    params.resource = searchParams.get("resource")!;
+  if (searchParams.get("date_from"))
+    params.date_from = searchParams.get("date_from")!;
+  if (searchParams.get("date_to"))
+    params.date_to = searchParams.get("date_to")!;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["audit", params],
@@ -117,7 +123,9 @@ export default function AuditLog() {
       </div>
       {isLoading && <p>Loading...</p>}
       {error && (
-        <p className="text-red-500">{error instanceof Error ? error.message : String(error)}</p>
+        <p className="text-red-500">
+          {error instanceof Error ? error.message : String(error)}
+        </p>
       )}
       {!isLoading && !error && (
         <>
@@ -134,12 +142,23 @@ export default function AuditLog() {
             </thead>
             <tbody>
               {data?.map((e) => (
-                <tr key={e.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                <tr
+                  key={e.id}
+                  className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
                   <td className="p-2 font-mono">{e.actor_id}</td>
                   <td className="p-2">{e.action}</td>
-                  <td className="p-2">{e.resource_type ? `${e.resource_type}:${e.resource_id}` : e.resource_id}</td>
-                  <td className="p-2">{e.ip} / {e.user_agent}</td>
-                  <td className="p-2">{new Date(e.created_at).toLocaleString()}</td>
+                  <td className="p-2">
+                    {e.resource_type
+                      ? `${e.resource_type}:${e.resource_id}`
+                      : e.resource_id}
+                  </td>
+                  <td className="p-2">
+                    {e.ip} / {e.user_agent}
+                  </td>
+                  <td className="p-2">
+                    {new Date(e.created_at).toLocaleString()}
+                  </td>
                   <td className="p-2">
                     {(e.before != null || e.after != null) && (
                       <button
@@ -176,8 +195,12 @@ export default function AuditLog() {
           <div className="bg-white dark:bg-gray-900 p-4 rounded shadow max-w-3xl w-full">
             <h2 className="text-lg font-bold mb-2">Diff</h2>
             <div className="grid grid-cols-2 gap-4 max-h-96 overflow-auto text-xs">
-              <pre className="bg-gray-100 dark:bg-gray-800 p-2 overflow-auto">{JSON.stringify(selected.before, null, 2)}</pre>
-              <pre className="bg-gray-100 dark:bg-gray-800 p-2 overflow-auto">{JSON.stringify(selected.after, null, 2)}</pre>
+              <pre className="bg-gray-100 dark:bg-gray-800 p-2 overflow-auto">
+                {JSON.stringify(selected.before, null, 2)}
+              </pre>
+              <pre className="bg-gray-100 dark:bg-gray-800 p-2 overflow-auto">
+                {JSON.stringify(selected.after, null, 2)}
+              </pre>
             </div>
             <div className="text-right mt-2">
               <button

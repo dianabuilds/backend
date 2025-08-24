@@ -1,15 +1,20 @@
-import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import PageLayout from "./_shared/PageLayout";
+
 import { api } from "../api/client";
-import type { WorkspaceOut } from "../openapi";
-import { useToast } from "../components/ToastProvider";
 import RoleBadge from "../components/RoleBadge";
+import { useToast } from "../components/ToastProvider";
+import type { WorkspaceOut } from "../openapi";
+import PageLayout from "./_shared/PageLayout";
 
 function ensureArray(data: unknown): WorkspaceOut[] {
   if (Array.isArray(data)) return data as WorkspaceOut[];
-  if (data && typeof data === "object" && Array.isArray((data as any).workspaces)) {
+  if (
+    data &&
+    typeof data === "object" &&
+    Array.isArray((data as any).workspaces)
+  ) {
     return (data as any).workspaces as WorkspaceOut[];
   }
   return [];
@@ -20,14 +25,20 @@ export default function Workspaces() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["workspaces-list"],
     queryFn: async () => {
-      const res = await api.get<WorkspaceOut[] | { workspaces: WorkspaceOut[] }>("/admin/workspaces");
+      const res = await api.get<
+        WorkspaceOut[] | { workspaces: WorkspaceOut[] }
+      >("/admin/workspaces");
       return ensureArray(res.data);
     },
   });
 
   useEffect(() => {
     if (error) {
-      addToast({ title: "Failed to load workspaces", description: String(error), variant: "error" });
+      addToast({
+        title: "Failed to load workspaces",
+        description: String(error),
+        variant: "error",
+      });
     }
   }, [error, addToast]);
 
@@ -52,7 +63,9 @@ export default function Workspaces() {
                 <td className="p-2">
                   <Link to={`/workspaces/${ws.id}`}>{ws.name}</Link>
                 </td>
-                <td className="p-2">{ws.role ? <RoleBadge role={ws.role} /> : null}</td>
+                <td className="p-2">
+                  {ws.role ? <RoleBadge role={ws.role} /> : null}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -1,6 +1,6 @@
 import type { AutofixReport, ValidationReport } from "../openapi";
-import type { Page } from "./types";
 import { api } from "./client";
+import type { Page } from "./types";
 
 export type AdminQuest = {
   id: string;
@@ -29,19 +29,31 @@ export async function listAdminQuests(params?: {
   if (params?.created_from) q.set("created_from", params.created_from);
   if (params?.created_to) q.set("created_to", params.created_to);
   if (typeof params?.page === "number") q.set("page", String(params.page));
-  if (typeof params?.per_page === "number") q.set("per_page", String(params.per_page));
+  if (typeof params?.per_page === "number")
+    q.set("per_page", String(params.per_page));
   const res = await api.get<Page<AdminQuest>>(
     `/admin/quests${q.toString() ? `?${q.toString()}` : ""}`,
   );
   return res.data!;
 }
 
-export async function validateQuest(questId: string): Promise<ValidationReport> {
-  const res = await api.get<ValidationReport>(`/admin/quests/${encodeURIComponent(questId)}/validation`);
+export async function validateQuest(
+  questId: string,
+): Promise<ValidationReport> {
+  const res = await api.get<ValidationReport>(
+    `/admin/quests/${encodeURIComponent(questId)}/validation`,
+  );
   return res.data!;
 }
 
-export async function publishQuest(questId: string, opts: { access: PublishAccess; cover_url?: string | null; style_preset?: string | null }) {
+export async function publishQuest(
+  questId: string,
+  opts: {
+    access: PublishAccess;
+    cover_url?: string | null;
+    style_preset?: string | null;
+  },
+) {
   const res = await api.post<unknown>(
     `/admin/quests/${encodeURIComponent(questId)}/publish`,
     {

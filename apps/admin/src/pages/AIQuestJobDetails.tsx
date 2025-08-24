@@ -1,6 +1,7 @@
-import { useMemo } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+
 import { api } from "../api/client";
 
 type JobDetails = {
@@ -42,7 +43,19 @@ type JobDetails = {
   };
 };
 
-type ValidationResp = { version_id: string; report: { errors: number; warnings: number; items: Array<{ level: string; code: string; message: string; node?: string | null }>} };
+type ValidationResp = {
+  version_id: string;
+  report: {
+    errors: number;
+    warnings: number;
+    items: Array<{
+      level: string;
+      code: string;
+      message: string;
+      node?: string | null;
+    }>;
+  };
+};
 
 export default function AIQuestJobDetails() {
   const nav = useNavigate();
@@ -53,7 +66,9 @@ export default function AIQuestJobDetails() {
     queryKey: ["ai-quests", "job-details", id],
     enabled: Boolean(id),
     queryFn: async () => {
-      const res = await api.get<JobDetails>(`/admin/ai/quests/jobs/${encodeURIComponent(id)}/details`);
+      const res = await api.get<JobDetails>(
+        `/admin/ai/quests/jobs/${encodeURIComponent(id)}/details`,
+      );
       return res.data;
     },
     refetchOnWindowFocus: true,
@@ -70,7 +85,9 @@ export default function AIQuestJobDetails() {
     queryKey: ["ai-quests", "validation", versionId],
     enabled: Boolean(versionId),
     queryFn: async () => {
-      const res = await api.get<ValidationResp>(`/admin/ai/quests/versions/${encodeURIComponent(versionId!)}/validation`);
+      const res = await api.get<ValidationResp>(
+        `/admin/ai/quests/versions/${encodeURIComponent(versionId!)}/validation`,
+      );
       return res.data;
     },
     staleTime: 15_000,
@@ -84,7 +101,8 @@ export default function AIQuestJobDetails() {
       provider: data.job.provider || "-",
       model: data.job.model || "-",
       cost: data.job.cost ?? data.aggregates.cost,
-      tokens: data.job.token_usage?.total?.total ?? data.aggregates.total_tokens,
+      tokens:
+        data.job.token_usage?.total?.total ?? data.aggregates.total_tokens,
       progress: data.job.progress ?? null,
       reused: data.job.reused ?? false,
     };
@@ -92,43 +110,99 @@ export default function AIQuestJobDetails() {
 
   const recalcValidation = async () => {
     if (!versionId) return;
-    await api.get<ValidationResp>(`/admin/ai/quests/versions/${encodeURIComponent(versionId)}/validation?recalc=true`);
+    await api.get<ValidationResp>(
+      `/admin/ai/quests/versions/${encodeURIComponent(versionId)}/validation?recalc=true`,
+    );
     await refetchValidation();
   };
 
   const reload = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["ai-quests", "job-details", id] }),
-      versionId ? queryClient.invalidateQueries({ queryKey: ["ai-quests", "validation", versionId] }) : Promise.resolve(),
+      queryClient.invalidateQueries({
+        queryKey: ["ai-quests", "job-details", id],
+      }),
+      versionId
+        ? queryClient.invalidateQueries({
+            queryKey: ["ai-quests", "validation", versionId],
+          })
+        : Promise.resolve(),
     ]);
   };
 
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center gap-2">
-        <button className="text-sm text-blue-600 hover:underline" onClick={() => nav(-1)}>&larr; Назад</button>
+        <button
+          className="text-sm text-blue-600 hover:underline"
+          onClick={() => nav(-1)}
+        >
+          &larr; Назад
+        </button>
         <h1 className="text-lg font-semibold">AI Quest — Детали задачи</h1>
-        <button onClick={reload} className="ml-auto text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200">Обновить</button>
+        <button
+          onClick={reload}
+          className="ml-auto text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
+        >
+          Обновить
+        </button>
       </div>
 
-      {isLoading ? <div className="text-sm text-gray-500">Загрузка…</div> : null}
-      {error ? <div className="text-sm text-red-600">Ошибка: {error instanceof Error ? error.message : String(error)}</div> : null}
+      {isLoading ? (
+        <div className="text-sm text-gray-500">Загрузка…</div>
+      ) : null}
+      {error ? (
+        <div className="text-sm text-red-600">
+          Ошибка: {error instanceof Error ? error.message : String(error)}
+        </div>
+      ) : null}
       {data ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded border p-3">
               <div className="text-sm text-gray-500">Задача</div>
               <div className="mt-1 text-sm">
-                <div><span className="text-gray-500">ID:</span> {data.job.id}</div>
-                <div><span className="text-gray-500">Статус:</span> <StatusBadge status={summary?.status || "-"} reused={summary?.reused} /></div>
-                <div><span className="text-gray-500">Провайдер:</span> {summary?.provider} <span className="ml-2 text-gray-500">Модель:</span> {summary?.model}</div>
-                <div><span className="text-gray-500">Создана:</span> {data.job.created_at || "-"} <span className="ml-2 text-gray-500">Начата:</span> {data.job.started_at || "-"} <span className="ml-2 text-gray-500">Завершена:</span> {data.job.finished_at || "-"}</div>
-                <div><span className="text-gray-500">Стоимость:</span> ${Number(summary?.cost || 0).toFixed(4)} <span className="ml-2 text-gray-500">Токены:</span> {summary?.tokens ?? "-"}</div>
-                {data.job.error ? <div className="text-red-600 break-words mt-2">Ошибка: {data.job.error}</div> : null}
+                <div>
+                  <span className="text-gray-500">ID:</span> {data.job.id}
+                </div>
+                <div>
+                  <span className="text-gray-500">Статус:</span>{" "}
+                  <StatusBadge
+                    status={summary?.status || "-"}
+                    reused={summary?.reused}
+                  />
+                </div>
+                <div>
+                  <span className="text-gray-500">Провайдер:</span>{" "}
+                  {summary?.provider}{" "}
+                  <span className="ml-2 text-gray-500">Модель:</span>{" "}
+                  {summary?.model}
+                </div>
+                <div>
+                  <span className="text-gray-500">Создана:</span>{" "}
+                  {data.job.created_at || "-"}{" "}
+                  <span className="ml-2 text-gray-500">Начата:</span>{" "}
+                  {data.job.started_at || "-"}{" "}
+                  <span className="ml-2 text-gray-500">Завершена:</span>{" "}
+                  {data.job.finished_at || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">Стоимость:</span> $
+                  {Number(summary?.cost || 0).toFixed(4)}{" "}
+                  <span className="ml-2 text-gray-500">Токены:</span>{" "}
+                  {summary?.tokens ?? "-"}
+                </div>
+                {data.job.error ? (
+                  <div className="text-red-600 break-words mt-2">
+                    Ошибка: {data.job.error}
+                  </div>
+                ) : null}
               </div>
               <div className="mt-3 flex gap-2">
                 {data.job.result_version_id ? (
-                  <Link to={`/quests/version/${data.job.result_version_id}`} className="text-sm px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700">
+                  <Link
+                    to={`/quests/version/${data.job.result_version_id}`}
+                    className="text-sm px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
+                  >
                     Открыть версию
                   </Link>
                 ) : null}
@@ -138,34 +212,79 @@ export default function AIQuestJobDetails() {
             <div className="rounded border p-3">
               <div className="text-sm text-gray-500">Агрегаты</div>
               <div className="mt-1 text-sm">
-                <div><span className="text-gray-500">Prompt tokens:</span> {data.aggregates.prompt_tokens}</div>
-                <div><span className="text-gray-500">Completion tokens:</span> {data.aggregates.completion_tokens}</div>
-                <div><span className="text-gray-500">Всего токенов:</span> {data.aggregates.total_tokens}</div>
-                <div><span className="text-gray-500">Суммарная стоимость:</span> ${data.aggregates.cost.toFixed(4)}</div>
+                <div>
+                  <span className="text-gray-500">Prompt tokens:</span>{" "}
+                  {data.aggregates.prompt_tokens}
+                </div>
+                <div>
+                  <span className="text-gray-500">Completion tokens:</span>{" "}
+                  {data.aggregates.completion_tokens}
+                </div>
+                <div>
+                  <span className="text-gray-500">Всего токенов:</span>{" "}
+                  {data.aggregates.total_tokens}
+                </div>
+                <div>
+                  <span className="text-gray-500">Суммарная стоимость:</span> $
+                  {data.aggregates.cost.toFixed(4)}
+                </div>
               </div>
               {versionId ? (
                 <div className="mt-3">
-                  <div className="text-sm text-gray-500 mb-1">Валидация версии</div>
-                  {vFetching ? <div className="text-xs text-gray-500">Загрузка отчёта…</div> : null}
+                  <div className="text-sm text-gray-500 mb-1">
+                    Валидация версии
+                  </div>
+                  {vFetching ? (
+                    <div className="text-xs text-gray-500">
+                      Загрузка отчёта…
+                    </div>
+                  ) : null}
                   {validation ? (
                     <div className="text-sm">
                       <div>
-                        Ошибок: <span className={validation.report.errors > 0 ? "text-red-600" : "text-green-600"}>{validation.report.errors}</span>,
-                        предупреждений: <span className="text-yellow-600">{validation.report.warnings}</span>
+                        Ошибок:{" "}
+                        <span
+                          className={
+                            validation.report.errors > 0
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }
+                        >
+                          {validation.report.errors}
+                        </span>
+                        , предупреждений:{" "}
+                        <span className="text-yellow-600">
+                          {validation.report.warnings}
+                        </span>
                       </div>
                       <details className="mt-2">
-                        <summary className="cursor-pointer text-gray-700">Показать детали</summary>
+                        <summary className="cursor-pointer text-gray-700">
+                          Показать детали
+                        </summary>
                         <ul className="mt-2 list-disc pl-5 space-y-1">
                           {validation.report.items.map((it, idx) => (
-                            <li key={idx} className={it.level === "error" ? "text-red-600" : "text-yellow-700"}>
-                              [{it.level}] {it.code}: {it.message}{it.node ? ` (node=${it.node})` : ""}
+                            <li
+                              key={idx}
+                              className={
+                                it.level === "error"
+                                  ? "text-red-600"
+                                  : "text-yellow-700"
+                              }
+                            >
+                              [{it.level}] {it.code}: {it.message}
+                              {it.node ? ` (node=${it.node})` : ""}
                             </li>
                           ))}
                         </ul>
                       </details>
                     </div>
                   ) : null}
-                  <button onClick={recalcValidation} className="mt-2 text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200">Пересчитать</button>
+                  <button
+                    onClick={recalcValidation}
+                    className="mt-2 text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
+                  >
+                    Пересчитать
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -174,7 +293,9 @@ export default function AIQuestJobDetails() {
           <div className="rounded border p-3">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">Стадии генерации</div>
-              {isFetching ? <div className="text-xs text-gray-500">Обновление…</div> : null}
+              {isFetching ? (
+                <div className="text-xs text-gray-500">Обновление…</div>
+              ) : null}
             </div>
             <div className="mt-2 overflow-x-auto">
               <table className="min-w-full text-sm">
@@ -192,22 +313,39 @@ export default function AIQuestJobDetails() {
                   {data.stage_logs.map((s, idx) => (
                     <tr key={idx} className="border-t">
                       <td className="px-2 py-1">{s.stage}</td>
-                      <td className="px-2 py-1">{s.provider} / {s.model}</td>
                       <td className="px-2 py-1">
-                        {s.usage ? `${s.usage.prompt ?? 0} + ${s.usage.completion ?? 0} = ${s.usage.total ?? ((s.usage.prompt ?? 0) + (s.usage.completion ?? 0))}` : "-"}
+                        {s.provider} / {s.model}
                       </td>
-                      <td className="px-2 py-1">${Number(s.cost || 0).toFixed(4)}</td>
+                      <td className="px-2 py-1">
+                        {s.usage
+                          ? `${s.usage.prompt ?? 0} + ${s.usage.completion ?? 0} = ${s.usage.total ?? (s.usage.prompt ?? 0) + (s.usage.completion ?? 0)}`
+                          : "-"}
+                      </td>
+                      <td className="px-2 py-1">
+                        ${Number(s.cost || 0).toFixed(4)}
+                      </td>
                       <td className="px-2 py-1">{s.created_at || "-"}</td>
                       <td className="px-2 py-1">
                         <details>
-                          <summary className="text-blue-600 cursor-pointer hover:underline">Показать</summary>
-                          <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-xs bg-gray-50 p-2 rounded">{s.raw_response}</pre>
+                          <summary className="text-blue-600 cursor-pointer hover:underline">
+                            Показать
+                          </summary>
+                          <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-xs bg-gray-50 p-2 rounded">
+                            {s.raw_response}
+                          </pre>
                         </details>
                       </td>
                     </tr>
                   ))}
                   {data.stage_logs.length === 0 ? (
-                    <tr><td className="px-2 py-3 text-gray-500 text-sm" colSpan={6}>Логи стадий отсутствуют</td></tr>
+                    <tr>
+                      <td
+                        className="px-2 py-3 text-gray-500 text-sm"
+                        colSpan={6}
+                      >
+                        Логи стадий отсутствуют
+                      </td>
+                    </tr>
                   ) : null}
                 </tbody>
               </table>
@@ -229,8 +367,16 @@ function StatusBadge({ status, reused }: { status: string; reused?: boolean }) {
   };
   return (
     <span className="inline-flex items-center gap-2">
-      <span className={`px-2 py-0.5 rounded text-xs ${map[status] || "bg-gray-200"}`}>{status}</span>
-      {reused ? <span className="px-2 py-0.5 rounded text-xs bg-purple-200 text-purple-800">cache</span> : null}
+      <span
+        className={`px-2 py-0.5 rounded text-xs ${map[status] || "bg-gray-200"}`}
+      >
+        {status}
+      </span>
+      {reused ? (
+        <span className="px-2 py-0.5 rounded text-xs bg-purple-200 text-purple-800">
+          cache
+        </span>
+      ) : null}
     </span>
   );
 }
