@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from uuid import UUID
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from types import SimpleNamespace
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.db.transition_query import TransitionFilterSpec, TransitionQueryService
-from app.domains.nodes.application.query_models import PageRequest, QueryContext
+from app.api.deps import get_preview_context
 from app.core.db.session import get_db
+from app.core.db.transition_query import TransitionFilterSpec, TransitionQueryService
+from app.core.preview import PreviewContext
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
@@ -21,7 +22,6 @@ from app.domains.navigation.application.transition_router import (
     TransitionRouter,
 )
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
-from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.navigation.infrastructure.models.transition_models import (
     NodeTransition,
     NodeTransitionType,
@@ -31,6 +31,8 @@ from app.domains.navigation.schemas.transitions import (
     NodeTransitionUpdate,
     TransitionDisableRequest,
 )
+from app.domains.nodes.application.query_models import PageRequest, QueryContext
+from app.domains.nodes.infrastructure.models.node import Node
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -199,7 +201,9 @@ class _DictProvider(TransitionProvider):
 
 @router.post("/simulate", summary="Simulate transitions")
 async def simulate_transitions(
-    payload: SimulateRequest, current_user=Depends(admin_required)
+    payload: SimulateRequest,
+    current_user=Depends(admin_required),
+    preview: PreviewContext = Depends(get_preview_context),
 ):
     provider = _DictProvider(payload.graph)
     policies = [RandomPolicy(provider)]
@@ -212,7 +216,9 @@ async def simulate_transitions(
     traces: list[dict] = []
     route: list[str] = [start.slug]
     for _ in range(payload.steps):
-        res = await router.route(None, current, None, budget, seed=payload.seed)
+        res = await router.route(
+            None, current, None, budget, seed=payload.seed, preview=preview
+        )
         traces.extend(asdict(t) for t in res.trace)
         if res.next is None:
             break

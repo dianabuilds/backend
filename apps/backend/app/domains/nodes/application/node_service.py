@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.log_events import cache_invalidate
+from app.core.preview import PreviewContext
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
@@ -21,15 +22,15 @@ from app.domains.nodes.service import (
     publish_content,
     validate_transition,
 )
+from app.domains.notifications.application.ports.notifications import (
+    INotificationPort,
+)
 from app.domains.quests.application.editor_service import EditorService
 from app.domains.telemetry.application.audit_service import AuditService
 from app.domains.telemetry.infrastructure.repositories.audit_repository import (
     AuditLogRepository,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.domains.notifications.application.ports.notifications import (
-    INotificationPort,
-)
 from app.schemas.nodes_common import NodeType, Status, Visibility
 from app.schemas.quest_editor import GraphEdge, GraphNode, SimulateIn, SimulateResult
 from app.schemas.quest_validation import ValidationReport
@@ -362,6 +363,7 @@ class NodeService:
         node_type: str | NodeType,
         node_id: UUID,
         payload: SimulateIn,
+        preview: PreviewContext | None = None,
     ) -> tuple[ValidationReport, SimulateResult]:
         node_type = self._normalize_type(node_type)
         if node_type != NodeType.quest.value:
@@ -373,7 +375,7 @@ class NodeService:
         nodes = [GraphNode(**n) for n in data.get("nodes", [])]
         edges = [GraphEdge(**e) for e in data.get("edges", [])]
         report = await run_validators(node_type, node_id, self._db)
-        result = EditorService().simulate_graph(nodes, edges, payload)
+        result = EditorService().simulate_graph(nodes, edges, payload, preview)
         return report, result
 
     async def apply_patch(

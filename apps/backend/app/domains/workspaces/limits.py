@@ -7,6 +7,7 @@ from typing import Any, Callable
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.preview import PreviewContext
 from app.domains.premium.application.quota_service import QuotaService
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
 from app.schemas.workspaces import WorkspaceSettings
@@ -30,6 +31,7 @@ async def consume_workspace_limit(
     amount: int = 1,
     scope: str = "day",
     degrade: bool = False,
+    preview: PreviewContext | None = None,
 ) -> bool:
     ws = await WorkspaceDAO.get(db, workspace_id)
     if not ws:
@@ -46,7 +48,7 @@ async def consume_workspace_limit(
             quota_key=key,
             amount=amount,
             scope=scope,
-            dry_run=False,
+            preview=preview,
             plan=str(workspace_id),
             workspace_id=str(workspace_id),
         )
@@ -84,6 +86,7 @@ def workspace_limit(
                 workspace_id = getattr(node, "workspace_id", None)
             if hasattr(user_id, "id"):
                 user_id = user_id.id
+            preview = kwargs.get("preview")
             if db and user_id and workspace_id:
                 allowed = await consume_workspace_limit(
                     db,
@@ -93,6 +96,7 @@ def workspace_limit(
                     amount=amount,
                     scope=scope,
                     degrade=degrade,
+                    preview=preview,
                 )
                 if not allowed and degrade:
                     return {}

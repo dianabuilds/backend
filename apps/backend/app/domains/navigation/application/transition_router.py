@@ -15,6 +15,8 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.core.preview import PreviewContext
+
 if TYPE_CHECKING:  # pragma: no cover - used for type hints only
     from app.domains.nodes.infrastructure.models.node import Node
     from app.domains.users.infrastructure.models.user import User
@@ -349,6 +351,7 @@ class TransitionRouter:
         user: Optional[User],
         budget,
         seed: int | None = None,
+        preview: PreviewContext | None = None,
     ) -> TransitionResult:
         transition_start(start.slug)
         start_time = time.monotonic()

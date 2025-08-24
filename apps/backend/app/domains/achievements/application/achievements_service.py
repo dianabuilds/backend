@@ -7,9 +7,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.notifications.application.ports.notifications import (
-    INotificationPort,
-)
+from app.core.preview import PreviewContext
 from app.domains.achievements.application.ports.repository import (
     IAchievementsRepository,
 )
@@ -17,11 +15,14 @@ from app.domains.achievements.infrastructure.models.achievement_models import (
     Achievement,
     UserAchievement,
 )
+from app.domains.notifications.application.ports.notifications import (
+    INotificationPort,
+)
 from app.domains.notifications.infrastructure.models.notification_models import (
     Notification,
 )
-from app.models.event_counter import UserEventCounter
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
+from app.models.event_counter import UserEventCounter
 
 
 class AchievementsService:
@@ -86,23 +87,29 @@ class AchievementsService:
         user_id: UUID,
         event: str,
         payload: dict[str, Any] | None = None,
+        preview: PreviewContext | None = None,
     ) -> list[Achievement]:
         """Handle user event and unlock achievements if conditions met."""
 
         payload = payload or {}
 
+        dry_run = preview and preview.mode == "dry_run"
+
         counter = await db.get(
             UserEventCounter,
             {"workspace_id": workspace_id, "user_id": user_id, "event": event},
         )
-        if not counter:
-            counter = UserEventCounter(
-                workspace_id=workspace_id, user_id=user_id, event=event, count=0
-            )
-            db.add(counter)
+        current_count = int(counter.count or 0) if counter else 0
+        new_count = current_count + 1
+        if not dry_run:
+            if not counter:
+                counter = UserEventCounter(
+                    workspace_id=workspace_id, user_id=user_id, event=event, count=0
+                )
+                db.add(counter)
+                await db.flush()
+            counter.count = new_count
             await db.flush()
-        counter.count = int(counter.count or 0) + 1
-        await db.flush()
 
         res = await db.execute(
             select(Achievement).where(Achievement.workspace_id == workspace_id)
@@ -123,7 +130,8 @@ class AchievementsService:
 
         candidates = [a for a in all_achs if _match_condition(a)]
         if not candidates:
-            await db.commit()
+            if not dry_run:
+                await db.commit()
             return []
 
         unlocked: list[Achievement] = []
@@ -136,6 +144,9 @@ class AchievementsService:
                 )
             )
             if exists.scalars().first():
+                continue
+            if dry_run:
+                unlocked.append(ach)
                 continue
             ua = UserAchievement(
                 user_id=user_id,
@@ -154,7 +165,8 @@ class AchievementsService:
             db.add(note)
             unlocked.append(ach)
 
-        await db.commit()
+        if not dry_run:
+            await db.commit()
         return unlocked
 
 

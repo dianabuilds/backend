@@ -7,12 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import load_only
 
-from app.core.security import verify_access_token
-from app.security import bearer_scheme
 from app.core.db.session import get_db
-from app.domains.users.infrastructure.models.user import User
-from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
 from app.core.log_filters import user_id_var
+from app.core.security import verify_access_token
+from app.domains.moderation.infrastructure.models.moderation_models import (
+    UserRestriction,
+)
+from app.domains.users.infrastructure.models.user import User
+from app.security import bearer_scheme
 
 
 async def get_current_user(
@@ -34,7 +36,9 @@ async def get_current_user(
     try:
         user_id = UUID(user_id_str)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
     # Выбираем только безопасные колонки, чтобы не падать на отсутствующих (например, premium_until)
     result = await db.execute(
         select(User)
@@ -62,7 +66,8 @@ async def get_current_user(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
-            (UserRestriction.expires_at == None) | (UserRestriction.expires_at > datetime.utcnow()),
+            (UserRestriction.expires_at == None)
+            | (UserRestriction.expires_at > datetime.utcnow()),
         )
     )
     if result.scalars().first():
@@ -147,9 +152,10 @@ def assert_owner_or_role(owner_id: UUID, min_role: str, current_user: User) -> N
         min_role: Minimal role required when user is not the owner.
         current_user: Authenticated user performing the action.
     """
-    if current_user.id != owner_id and role_order.get(current_user.role, 0) < role_order[
-        min_role
-    ]:
+    if (
+        current_user.id != owner_id
+        and role_order.get(current_user.role, 0) < role_order[min_role]
+    ):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 
@@ -170,7 +176,8 @@ async def ensure_can_post(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "post_restrict",
-            (UserRestriction.expires_at == None) | (UserRestriction.expires_at > datetime.utcnow()),
+            (UserRestriction.expires_at == None)
+            | (UserRestriction.expires_at > datetime.utcnow()),
         )
     )
     if result.scalars().first():

@@ -2,11 +2,20 @@ from __future__ import annotations
 
 from typing import Dict, List, Set
 
-from app.schemas.quest_editor import GraphNode, GraphEdge, ValidateResult, SimulateIn, SimulateResult
+from app.core.preview import PreviewContext
+from app.schemas.quest_editor import (
+    GraphEdge,
+    GraphNode,
+    SimulateIn,
+    SimulateResult,
+    ValidateResult,
+)
 
 
 class EditorService:
-    def validate_graph(self, nodes: List[GraphNode], edges: List[GraphEdge]) -> ValidateResult:
+    def validate_graph(
+        self, nodes: List[GraphNode], edges: List[GraphEdge]
+    ) -> ValidateResult:
         errors: List[str] = []
         warnings: List[str] = []
 
@@ -62,7 +71,13 @@ class EditorService:
         ok = len([e for e in errors if e]) == 0
         return ValidateResult(ok=ok, errors=errors, warnings=warnings)
 
-    def simulate_graph(self, nodes: List[GraphNode], edges: List[GraphEdge], payload: SimulateIn) -> SimulateResult:
+    def simulate_graph(
+        self,
+        nodes: List[GraphNode],
+        edges: List[GraphEdge],
+        payload: SimulateIn,
+        preview: PreviewContext | None = None,
+    ) -> SimulateResult:
         key_to_node = {n.key: n for n in nodes}
         adj: Dict[str, List[GraphEdge]] = {}
         for e in edges:
@@ -86,7 +101,9 @@ class EditorService:
             if not outs:
                 break
             nxt = outs[0]
-            steps.append({"edge": f"{nxt.from_node_key}->{nxt.to_node_key}", "label": nxt.label})
+            steps.append(
+                {"edge": f"{nxt.from_node_key}->{nxt.to_node_key}", "label": nxt.label}
+            )
             cur = key_to_node.get(nxt.to_node_key)
             if not cur:
                 break

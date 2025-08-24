@@ -1,29 +1,37 @@
 from __future__ import annotations
 
-from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_, func
 
-from app.api.deps import get_current_user, assert_owner_or_role
+from app.api.deps import (
+    assert_owner_or_role,
+    get_current_user,
+    get_preview_context,
+)
 from app.core.db.session import get_db
-from app.domains.quests.infrastructure.models.quest_models import Quest, QuestPurchase, QuestProgress
-from app.domains.nodes.infrastructure.models.node import Node
+from app.core.preview import PreviewContext
+
+# правила доступа и геймплей вынесены в домен quests
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.quests.infrastructure.models.quest_models import (
+    Quest,
+    QuestPurchase,
+)
 from app.domains.users.infrastructure.models.user import User
+from app.schemas.node import NodeOut
 from app.schemas.quest import (
     QuestBuyIn,
     QuestCreate,
-    QuestUpdate,
     QuestOut,
     QuestProgressOut,
+    QuestUpdate,
 )
-from app.schemas.node import NodeOut
-# правила доступа и геймплей вынесены в домен quests
-from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
-from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 
 navcache = NavigationCacheService(CoreCacheAdapter())
 
@@ -31,11 +39,10 @@ router = APIRouter(prefix="/quests", tags=["quests"])
 
 
 @router.get("", response_model=list[QuestOut], summary="List quests")
-async def list_quests(
-    workspace_id: UUID, db: AsyncSession = Depends(get_db)
-):
+async def list_quests(workspace_id: UUID, db: AsyncSession = Depends(get_db)):
     """Return all published quests."""
     from app.domains.quests.queries import list_public
+
     return await list_public(db, workspace_id=workspace_id)
 
 
@@ -53,6 +60,7 @@ async def search_quests(
     db: AsyncSession = Depends(get_db),
 ):
     from app.domains.quests.queries import search
+
     tag_list = [t for t in (tags.split(",") if tags else []) if t]
     return await search(
         db,
@@ -77,6 +85,7 @@ async def get_quest(
 ):
     """Fetch a quest by slug, ensuring access permissions."""
     from app.domains.quests.queries import get_for_view
+
     try:
         quest = await get_for_view(
             db, slug=slug, user=current_user, workspace_id=workspace_id
@@ -94,13 +103,23 @@ async def create_quest(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    preview: PreviewContext = Depends(get_preview_context),
 ):
     """Create a new quest owned by the current user."""
     # Квота на создание историй (stories/month) по тарифу
     from app.domains.premium.quotas import check_and_consume_quota
-    await check_and_consume_quota(db, current_user.id, quota_key="stories", amount=1, scope="month", dry_run=False)
+
+    await check_and_consume_quota(
+        db,
+        current_user.id,
+        quota_key="stories",
+        amount=1,
+        scope="month",
+        preview=preview,
+    )
 
     from app.domains.quests.authoring import create_quest as create_quest_domain
+
     quest = await create_quest_domain(
         db, payload=payload, author=current_user, workspace_id=workspace_id
     )
@@ -118,6 +137,7 @@ async def update_quest(
 ):
     """Modify quest fields if the user is the author."""
     from app.domains.quests.authoring import update_quest as update_quest_domain
+
     try:
         quest = await update_quest_domain(
             db,
@@ -159,13 +179,17 @@ async def publish_quest(
     # Author or moderator can publish
     assert_owner_or_role(quest.author_id, "moderator", current_user)
 
-    from app.domains.quests.versions import release_latest, ValidationFailed
+    from app.domains.quests.versions import ValidationFailed, release_latest
+
     try:
         quest = await release_latest(
             db, quest_id=quest_id, workspace_id=workspace_id, actor=current_user
         )
     except ValidationFailed as vf:
-        raise HTTPException(status_code=400, detail={"code": "VALIDATION_FAILED", "report": getattr(vf, "report", {})})
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "VALIDATION_FAILED", "report": getattr(vf, "report", {})},
+        )
     await navcache.invalidate_compass_all()
     return quest
 
@@ -179,6 +203,7 @@ async def delete_quest(
 ):
     """Soft delete a quest owned by the current user."""
     from app.domains.quests.authoring import delete_quest_soft
+
     try:
         await delete_quest_soft(
             db, quest_id=quest_id, workspace_id=workspace_id, actor=current_user
@@ -204,6 +229,7 @@ async def start_quest(
 ):
     """Begin or restart progress for a quest."""
     from app.domains.quests.gameplay import start_quest as start_quest_domain
+
     try:
         progress = await start_quest_domain(
             db, quest_id=quest_id, workspace_id=workspace_id, user=current_user
@@ -228,6 +254,7 @@ async def get_progress(
 ):
     """Retrieve progress of the current user in a quest."""
     from app.domains.quests.gameplay import get_progress as get_progress_domain
+
     try:
         progress = await get_progress_domain(
             db, quest_id=quest_id, workspace_id=workspace_id, user=current_user
@@ -250,8 +277,11 @@ async def get_quest_node(
 ):
     """Return node details within a quest and update progress."""
     from app.domains.quests.gameplay import get_node as get_node_domain
+
     try:
-        node = await get_node_domain(db, quest_id=quest_id, node_id=node_id, user=current_user)
+        node = await get_node_domain(
+            db, quest_id=quest_id, node_id=node_id, user=current_user
+        )
     except ValueError as e:
         msg = str(e)
         if "Quest not found" in msg:
@@ -270,7 +300,9 @@ async def buy_quest(
     db: AsyncSession = Depends(get_db),
 ):
     """Purchase access to a paid quest."""
-    result = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
+    result = await db.execute(
+        select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False)
+    )
     quest = result.scalars().first()
     if not quest or quest.is_draft:
         raise HTTPException(status_code=404, detail="Quest not found")
@@ -290,12 +322,16 @@ async def buy_quest(
         raise HTTPException(status_code=400, detail="Payment token required")
     # Валюта может храниться в самом квесте/настройках; используем "USD" по умолчанию
     from app.domains.payments.manager import verify_payment as verify_pay
-    ok, gw = await verify_pay(db, amount=int(quest.price or 0), currency="USD", token=payload.payment_token)
+
+    ok, gw = await verify_pay(
+        db, amount=int(quest.price or 0), currency="USD", token=payload.payment_token
+    )
     if not ok:
         raise HTTPException(status_code=400, detail="Payment not confirmed")
 
     # Фиксируем транзакцию с расчётом комиссии
     from app.domains.payments.ledger import capture_transaction
+
     breakdown = await capture_transaction(
         db,
         user_id=current_user.id,

@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import cache as shared_cache
+from app.core.preview import PreviewContext
 from app.domains.premium.application.quota_service import (
     QuotaService,
 )  # общий сервис квот
@@ -30,7 +31,7 @@ async def check_and_consume_quota(
     quota_key: str,
     amount: int = 1,
     scope: str = "month",
-    dry_run: bool = False,
+    preview: PreviewContext | None = None,
     workspace_id: Any | None = None,
 ) -> dict:
     plans_map = await build_quota_plans_map(db)
@@ -44,7 +45,7 @@ async def check_and_consume_quota(
         quota_key=quota_key,
         amount=amount,
         scope=scope,
-        dry_run=dry_run,
+        preview=preview,
         plan=plan_slug,
         idempotency_token=None,
         workspace_id=str(workspace_id) if workspace_id is not None else None,
@@ -59,5 +60,10 @@ async def get_quota_status(
     scope: str = "month",
 ) -> dict:
     return await check_and_consume_quota(
-        db, user_id, quota_key=quota_key, amount=0, scope=scope, dry_run=True
+        db,
+        user_id,
+        quota_key=quota_key,
+        amount=0,
+        scope=scope,
+        preview=PreviewContext(mode="dry_run"),
     )

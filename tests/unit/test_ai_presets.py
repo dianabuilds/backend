@@ -23,11 +23,15 @@ sys.modules.setdefault("app.security", security_stub)
 
 from fastapi import HTTPException
 
+from app.core.preview import PreviewContext
+from app.domains.ai.infrastructure.models.generation_models import GenerationJob
+from app.domains.ai.services.generation import (
+    enqueue_generation_job,
+    process_next_generation_job,
+)
 from app.domains.workspaces.api import put_ai_presets
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.workspaces import WorkspaceSettings
-from app.domains.ai.services.generation import enqueue_generation_job, process_next_generation_job
-from app.domains.ai.infrastructure.models.generation_models import GenerationJob
 
 
 @pytest.mark.asyncio
@@ -64,7 +68,9 @@ async def test_generation_uses_workspace_presets(monkeypatch) -> None:
         }
         ws = Workspace(
             id=uuid.uuid4(),
-            name="W", slug="w", owner_user_id=uuid.uuid4(),
+            name="W",
+            slug="w",
+            owner_user_id=uuid.uuid4(),
             settings_json=WorkspaceSettings(ai_presets=presets).model_dump(),
         )
         session.add(ws)
@@ -78,6 +84,7 @@ async def test_generation_uses_workspace_presets(monkeypatch) -> None:
             model=None,
             workspace_id=ws.id,
             reuse=False,
+            preview=PreviewContext(),
         )
         await session.commit()
 
@@ -95,7 +102,9 @@ async def test_generation_uses_workspace_presets(monkeypatch) -> None:
 
         from app.domains.ai import pipeline as ai_pipeline
 
-        monkeypatch.setattr(ai_pipeline, "run_full_generation", fake_run_full_generation)
+        monkeypatch.setattr(
+            ai_pipeline, "run_full_generation", fake_run_full_generation
+        )
 
         await process_next_generation_job(session)
 

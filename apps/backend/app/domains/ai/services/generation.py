@@ -18,6 +18,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.core.preview import PreviewContext
 from app.domains.ai.infrastructure.models.generation_models import (
     GenerationJob,
     JobStatus,
@@ -35,6 +36,7 @@ async def enqueue_generation_job(
     model: str | None = None,
     workspace_id: UUID | None = None,
     reuse: bool = True,
+    preview: PreviewContext | None = None,
 ) -> GenerationJob:
     """Создать задание на генерацию ИИ‑квеста и поставить в очередь.
     Если reuse=True и уже есть завершённая задача с идентичными параметрами — создаём
@@ -103,7 +105,7 @@ async def enqueue_generation_job(
                 quota_key="ai_generations",
                 amount=1,
                 scope="month",
-                dry_run=False,
+                preview=preview,
             )
         except Exception:
             # Если квота превышена — исключение уйдёт вверх и API вернёт 429

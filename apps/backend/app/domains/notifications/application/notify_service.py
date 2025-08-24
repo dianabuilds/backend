@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from app.core.preview import PreviewContext
 from app.domains.notifications.application.ports.notification_repo import (
     INotificationRepository,
 )
@@ -26,6 +27,7 @@ class NotifyService:
         title: str,
         message: str,
         type: Any,
+        preview: PreviewContext | None = None,
     ) -> dict[str, Any]:
         # Репозиторий создаёт запись и коммитит (сохранено поведение старой реализации)
         dto = await self._repo.create_and_commit(

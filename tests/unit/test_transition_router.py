@@ -1,25 +1,26 @@
 import asyncio
 import importlib
 import sys
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 from types import SimpleNamespace
 from typing import List, Optional
 
-import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 
 # Ensure apps package is importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
+from apps.backend.app.core.preview import PreviewContext
 from apps.backend.app.domains.navigation.application.transition_router import (
-    ManualPolicy,
-    RandomPolicy,
     CompassPolicy,
+    ManualPolicy,
+    NoRouteReason,
+    RandomPolicy,
     TransitionProvider,
     TransitionRouter,
-    NoRouteReason,
 )
 
 
@@ -61,7 +62,9 @@ class WorkspaceProvider(TransitionProvider):
 def make_router():
     start = DummyNode("start")
     manual_provider = StaticProvider({"start": [DummyNode("manual1")]})
-    random_provider = RandomListProvider({"manual1": [DummyNode("r1"), DummyNode("r2")]})
+    random_provider = RandomListProvider(
+        {"manual1": [DummyNode("r1"), DummyNode("r2")]}
+    )
     policies = [
         ManualPolicy(manual_provider),
         RandomPolicy(random_provider),
@@ -80,7 +83,9 @@ async def _build_route(router, start, steps, seed=None):
     route = [start]
     current = start
     for _ in range(steps):
-        result = await router.route(None, current, None, budget, seed=seed)
+        result = await router.route(
+            None, current, None, budget, seed=seed, preview=PreviewContext()
+        )
         if result.next is None:
             break
         current = result.next
@@ -148,7 +153,9 @@ def test_no_route_on_empty_graph():
     budget = SimpleNamespace(
         max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
     )
-    result = asyncio.run(router.route(None, start, None, budget))
+    result = asyncio.run(
+        router.route(None, start, None, budget, preview=PreviewContext())
+    )
     assert result.next is None
     assert result.reason == NoRouteReason.NO_ROUTE
 
@@ -193,7 +200,9 @@ def test_fallback_chain_sequence():
         max_filters=1000,
         fallback_chain=["manual", "conditional", "compass"],
     )
-    result = asyncio.run(router.route(None, start, None, budget))
+    result = asyncio.run(
+        router.route(None, start, None, budget, preview=PreviewContext())
+    )
     assert result.next and result.next.slug == "c1"
     assert result.metrics.get("fallback_used")
 
@@ -224,7 +233,7 @@ def test_determinism_property(seed):
 
 @given(st.integers(min_value=1, max_value=5))
 def test_no_repeat_window_property(window):
-    provider = StaticProvider({"a": [DummyNode("a", tags=["t"]) ]})
+    provider = StaticProvider({"a": [DummyNode("a", tags=["t"])]})
     router = TransitionRouter(
         [ManualPolicy(provider)],
         not_repeat_last=0,
@@ -238,13 +247,13 @@ def test_no_repeat_window_property(window):
     assert len(route) <= window + 1
 
 
-@given(
-    st.floats(min_value=0.1, max_value=0.9), st.floats(min_value=0.1, max_value=0.9)
-)
+@given(st.floats(min_value=0.1, max_value=0.9), st.floats(min_value=0.1, max_value=0.9))
 def test_diversity_weight_monotonic(decay1, decay2):
     if decay1 > decay2:
         decay1, decay2 = decay2, decay1
-    provider = StaticProvider({"a": [DummyNode("a", tags=["t"]), DummyNode("a", tags=["t"])]})
+    provider = StaticProvider(
+        {"a": [DummyNode("a", tags=["t"]), DummyNode("a", tags=["t"])]}
+    )
     start = DummyNode("a", tags=["t"])
     router1 = TransitionRouter(
         [ManualPolicy(provider)],
