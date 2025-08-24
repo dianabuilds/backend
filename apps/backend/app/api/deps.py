@@ -8,14 +8,14 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import load_only
 
 from app.core.db.session import get_db
-from app.core.log_filters import user_id_var
+from app.core.log_filters import user_id_var, workspace_id_var
+from app.core.preview import PreviewContext, get_preview_context
 from app.core.security import verify_access_token
 from app.domains.moderation.infrastructure.models.moderation_models import (
     UserRestriction,
 )
 from app.domains.users.infrastructure.models.user import User
 from app.security import bearer_scheme
-from app.core.preview import PreviewContext, get_preview_context
 
 
 async def get_current_user(
@@ -69,8 +69,7 @@ async def get_current_user(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
-            (UserRestriction.expires_at == None)
-            | (UserRestriction.expires_at > now),
+            (UserRestriction.expires_at == None) | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
@@ -109,8 +108,7 @@ async def get_current_user_optional(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
-            (UserRestriction.expires_at == None)
-            | (UserRestriction.expires_at > now),
+            (UserRestriction.expires_at == None) | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
@@ -187,8 +185,7 @@ async def ensure_can_post(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "post_restrict",
-            (UserRestriction.expires_at == None)
-            | (UserRestriction.expires_at > now),
+            (UserRestriction.expires_at == None) | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
@@ -211,4 +208,5 @@ async def current_workspace(
     """
     from app.domains.workspaces.application.service import WorkspaceService
 
+    workspace_id_var.set(str(workspace_id))
     return await WorkspaceService.get_for_user(db, workspace_id, user)
