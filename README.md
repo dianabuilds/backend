@@ -34,6 +34,23 @@
    ```bash
    python scripts/seed_db.py --users 5 --nodes 30
    ```
+8. Проверить запуск сервисов:
+   ```bash
+   python scripts/smoke_check.py
+   ```
+
+## Workspaces и лимиты
+
+- Создайте рабочее пространство:
+  ```bash
+  http POST :8000/admin/workspaces/123e4567-e89b-12d3-a456-426614174000 name=Demo slug=demo
+  ```
+- Все запросы к контенту требуют `workspace_id`:
+  ```bash
+  http GET :8000/admin/nodes/all workspace_id==123e4567-e89b-12d3-a456-426614174000
+  ```
+- Лимиты запросов настраиваются переменными `RATE_LIMIT_*` в `.env`.
+- Импортируйте коллекцию `docs/postman_collection.json` или используйте `docs/httpie_examples.sh` для быстрого теста API.
 
 ## Тесты
 ```bash

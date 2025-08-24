@@ -1,0 +1,41 @@
+{
+  "info": {
+    "name": "Workspace API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List workspaces",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/workspaces"
+      }
+    },
+    {
+      "name": "Create workspace",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/workspaces/{{workspace_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Demo\",\n  \"slug\": \"demo\"\n}"
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      }
+    },
+    {
+      "name": "List nodes",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/admin/nodes/all?workspace_id={{workspace_id}}&node_type=article"
+        }
+      }
+    }
+  ]
+}
