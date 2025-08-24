@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
 import LimitBadge, {
@@ -27,12 +27,16 @@ describe("LimitBadge", () => {
       expect(screen.getByTestId("limit-compass_calls")).toHaveTextContent("5"),
     );
 
-    await refreshLimits();
+    await act(async () => {
+      await refreshLimits();
+    });
     await waitFor(() =>
       expect(screen.getByTestId("limit-compass_calls")).toHaveTextContent("3"),
     );
 
-    await handleLimit429("compass_calls", 9);
+    await act(async () => {
+      await handleLimit429("compass_calls", 9);
+    });
     await waitFor(() =>
       expect(screen.getByTestId("limit-compass_calls")).toHaveAttribute(
         "title",
@@ -40,7 +44,9 @@ describe("LimitBadge", () => {
       ),
     );
 
-    await refreshLimits();
+    await act(async () => {
+      await refreshLimits();
+    });
     await waitFor(() =>
       expect(screen.getByTestId("limit-compass_calls")).toHaveTextContent("2"),
     );

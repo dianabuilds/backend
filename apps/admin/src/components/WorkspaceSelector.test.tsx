@@ -28,13 +28,13 @@ describe("WorkspaceSelector", () => {
   });
 
   it("supports quick switch", async () => {
-    render(
-      <MemoryRouter>
-        <WorkspaceProvider>
-          <WorkspaceSelector />
-        </WorkspaceProvider>
-      </MemoryRouter>,
-    );
+      render(
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <WorkspaceProvider>
+            <WorkspaceSelector />
+          </WorkspaceProvider>
+        </MemoryRouter>,
+      );
     const switchBtn = screen.getByTitle("Quick switch workspace");
     fireEvent.click(switchBtn);
 

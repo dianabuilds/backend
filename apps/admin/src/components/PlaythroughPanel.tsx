@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
-import type { GraphEdge, GraphNode, VersionGraph } from "../api/questEditor";
+import type {
+  GraphEdgeOutput as GraphEdge,
+  GraphNodeOutput as GraphNode,
+  VersionGraphOutput as VersionGraph,
+} from "../openapi";
 
 function buildAdj(
   edges: GraphEdge[],
