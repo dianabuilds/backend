@@ -3,6 +3,13 @@ from enum import Enum
 # Common enums and types for node schemas
 
 
+class NodeType(str, Enum):
+    """Supported node types."""
+
+    article = "article"
+    quest = "quest"
+
+
 class Status(str, Enum):
     draft = "draft"
     in_review = "in_review"
@@ -19,4 +26,4 @@ class Visibility(str, Enum):
 # Simple type alias for node version numbers
 Version = int
 
-__all__ = ["Status", "Visibility", "Version"]
+__all__ = ["NodeType", "Status", "Visibility", "Version"]
