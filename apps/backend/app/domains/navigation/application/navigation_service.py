@@ -24,6 +24,7 @@ from app.domains.navigation.application.transition_router import (
     RandomPolicy,
     RandomProvider,
     TransitionRouter,
+    TransitionResult,
 )
 from app.domains.navigation.application.transitions_service import TransitionsService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
@@ -149,26 +150,16 @@ class NavigationService:
         db: AsyncSession,
         node: Node,
         user: Optional[User],
-        steps: int,
         preview: PreviewContext | None = None,
-    ) -> List[Node]:
+    ) -> TransitionResult:
         from types import SimpleNamespace
 
-        route: List[Node] = [node]
-        current = node
         budget = SimpleNamespace(
             max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
         )
-        for _ in range(steps):
-            result = await self._router.route(
-                db, current, user, budget, preview=preview
-            )
-            logger.debug("trace: %s", result.trace)
-            if result.next is None:
-                break
-            current = result.next
-            route.append(current)
-        return route
+        result = await self._router.route(db, node, user, budget, preview=preview)
+        logger.debug("trace: %s", result.trace)
+        return result
 
     async def get_navigation(
         self, db: AsyncSession, node: Node, user: Optional[User]
