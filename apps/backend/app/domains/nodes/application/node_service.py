@@ -178,14 +178,20 @@ class NodeService:
     ) -> NodeItem:
         node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
+        before_status = item.status
         before = {
             "title": item.title,
             "summary": item.summary,
-            "status": item.status.value,
+            "status": before_status.value,
         }
         for key, value in data.items():
             if hasattr(item, key):
                 setattr(item, key, value)
+        # If the node was published, reset it to draft on edit
+        if before_status == Status.published:
+            item.status = Status.draft
+            item.visibility = Visibility.private
+            item.published_at = None
         item.updated_by_user_id = actor_id
         item.updated_at = datetime.utcnow()
         await self._db.flush()
@@ -203,6 +209,17 @@ class NodeService:
             },
             actor_id=actor_id,
         )
+        if before_status == Status.published:
+            await NodePatchService.record(
+                self._db,
+                node_id=item.id,
+                data={
+                    "action": "status_reset",
+                    "from": before_status.value,
+                    "to": item.status.value,
+                },
+                actor_id=actor_id,
+            )
         await self._db.commit()
         try:
             await _audit(
