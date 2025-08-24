@@ -55,10 +55,14 @@ class IAchievementsRepository:
     async def is_user_premium(self, user_id: UUID) -> bool:  # pragma: no cover
         ...
 
-    async def count_nodes_by_author(self, user_id: UUID) -> int:  # pragma: no cover
+    async def count_nodes_by_author(
+        self, user_id: UUID, workspace_id: UUID
+    ) -> int:  # pragma: no cover
         ...
 
-    async def sum_views_by_author(self, user_id: UUID) -> int:  # pragma: no cover
+    async def sum_views_by_author(
+        self, user_id: UUID, workspace_id: UUID
+    ) -> int:  # pragma: no cover
         ...
 
     # CRUD for achievements (admin)

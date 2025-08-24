@@ -142,16 +142,20 @@ class AchievementsRepository(IAchievementsRepository):
         res = await self._db.execute(select(User.is_premium).where(User.id == user_id))
         return bool(res.scalar())
 
-    async def count_nodes_by_author(self, user_id: UUID) -> int:
+    async def count_nodes_by_author(self, user_id: UUID, workspace_id: UUID) -> int:
         res = await self._db.execute(
-            select(func.count(Node.id)).where(Node.author_id == user_id)
+            select(func.count(Node.id)).where(
+                Node.author_id == user_id,
+                Node.workspace_id == workspace_id,
+            )
         )
         return int(res.scalar() or 0)
 
-    async def sum_views_by_author(self, user_id: UUID) -> int:
+    async def sum_views_by_author(self, user_id: UUID, workspace_id: UUID) -> int:
         res = await self._db.execute(
             select(func.coalesce(func.sum(Node.views), 0)).where(
-                Node.author_id == user_id
+                Node.author_id == user_id,
+                Node.workspace_id == workspace_id,
             )
         )
         return int(res.scalar() or 0)
