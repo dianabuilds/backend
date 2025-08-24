@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import difflib
+import json
 from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm.attributes import set_committed_value
 
 from app.domains.tags.models import ContentTag
@@ -106,6 +109,40 @@ class NodePatchDAO:
             patch.reverted_at = datetime.utcnow()
             await db.flush()
         return patch
+
+    @staticmethod
+    async def get(db: AsyncSession, *, patch_id: UUID) -> NodePatch | None:
+        return await db.get(NodePatch, patch_id)
+
+    @staticmethod
+    async def list(db: AsyncSession, *, node_id: UUID | None = None) -> list[NodePatch]:
+        stmt = select(NodePatch)
+        if node_id:
+            stmt = stmt.where(NodePatch.node_id == node_id)
+        stmt = stmt.order_by(NodePatch.created_at.desc())
+        res = await db.execute(stmt)
+        return list(res.scalars().all())
+
+    @staticmethod
+    async def diff(db: AsyncSession, patch: NodePatch) -> str:
+        item = await db.get(NodeItem, patch.node_id)
+        if not item:
+            return ""
+        mapper = inspect(NodeItem)
+        original = {c.key: getattr(item, c.key) for c in mapper.column_attrs}
+        patched = original.copy()
+        if isinstance(patch.data, dict):
+            patched.update(patch.data)
+        original_json = json.dumps(original, sort_keys=True, indent=2, default=str)
+        patched_json = json.dumps(patched, sort_keys=True, indent=2, default=str)
+        diff = difflib.unified_diff(
+            original_json.splitlines(),
+            patched_json.splitlines(),
+            fromfile="original",
+            tofile="patched",
+            lineterm="",
+        )
+        return "\n".join(diff)
 
     @staticmethod
     async def overlay(db: AsyncSession, items: list[NodeItem]) -> None:

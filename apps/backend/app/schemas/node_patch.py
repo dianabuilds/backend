@@ -23,9 +23,13 @@ class NodePatchOut(BaseModel):
         orm_mode = True
 
     @model_validator(mode="after")
-    def _extract_quest_data(self) -> "NodePatchOut":
+    def _extract_quest_data(self) -> NodePatchOut:
         if self.quest_data is None and isinstance(self.data, dict):
             quest_part = self.data.get("quest_data")
             if isinstance(quest_part, dict):
                 self.quest_data = quest_part
         return self
+
+
+class NodePatchDiffOut(NodePatchOut):
+    diff: str | None = None
