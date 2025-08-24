@@ -10,10 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.domains.quests.infrastructure.models.quest_models import Quest
-from app.domains.quests.infrastructure.models.quest_version_models import QuestVersion, QuestGraphNode, QuestGraphEdge
+from app.domains.quests.infrastructure.models.quest_version_models import (
+    QuestVersion,
+    QuestGraphNode,
+    QuestGraphEdge,
+)
 from app.schemas.quest import QuestCreate, QuestUpdate
 from app.domains.users.infrastructure.models.user import User
 from app.domains.quests.versions import release_latest, ValidationFailed
+from uuid import UUID
 
 
 async def create_quest(
@@ -21,10 +26,10 @@ async def create_quest(
     *,
     payload: QuestCreate,
     author: User,
-    workspace_id: UUID | None = None,
+    workspace_id: UUID,
 ) -> Quest:
     quest = Quest(
-        workspace_id=workspace_id or uuid4(),
+        workspace_id=workspace_id,
         title=payload.title,
         subtitle=payload.subtitle,
         description=payload.description,
@@ -45,8 +50,21 @@ async def create_quest(
     return quest
 
 
-async def update_quest(db: AsyncSession, *, quest_id: UUID, payload: QuestUpdate, actor: User) -> Quest:
-    result = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
+async def update_quest(
+    db: AsyncSession,
+    *,
+    quest_id: UUID,
+    workspace_id: UUID,
+    payload: QuestUpdate,
+    actor: User,
+) -> Quest:
+    result = await db.execute(
+        select(Quest).where(
+            Quest.id == quest_id,
+            Quest.workspace_id == workspace_id,
+            Quest.is_deleted == False,
+        )
+    )
     quest = result.scalars().first()
     if not quest:
         raise ValueError("Quest not found")
@@ -68,9 +86,13 @@ async def _latest_version(db: AsyncSession, quest_id: UUID) -> QuestVersion | No
     return res.scalars().first()
 
 
-async def publish_quest(db: AsyncSession, *, quest_id: UUID, actor: User) -> Quest:
+async def publish_quest(
+    db: AsyncSession, *, quest_id: UUID, workspace_id: UUID, actor: User
+) -> Quest:
     """Публикация квеста — делегирует в versions.release_latest с жёсткой валидацией."""
-    return await release_latest(db, quest_id=quest_id, actor=actor)
+    return await release_latest(
+        db, quest_id=quest_id, workspace_id=workspace_id, actor=actor
+    )
 
 
 _KEY_RE = re.compile(r"^[A-Za-z0-9_.:\-]+$")
@@ -249,9 +271,17 @@ async def delete_node(db: AsyncSession, *, version_id: UUID, key: str, cascade_e
     await db.commit()
 
 
-async def delete_quest_soft(db: AsyncSession, *, quest_id: UUID, actor: User) -> None:
+async def delete_quest_soft(
+    db: AsyncSession, *, quest_id: UUID, workspace_id: UUID, actor: User
+) -> None:
     """Мягкое удаление квеста (пометка is_deleted=True) с проверкой владельца."""
-    res = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))  # noqa: E712
+    res = await db.execute(
+        select(Quest).where(
+            Quest.id == quest_id,
+            Quest.workspace_id == workspace_id,
+            Quest.is_deleted == False,
+        )
+    )  # noqa: E712
     quest = res.scalars().first()
     if not quest:
         raise ValueError("Quest not found")

@@ -14,8 +14,16 @@ from app.domains.users.infrastructure.models.user import User
 from app.domains.quests.access import can_view, can_start
 
 
-async def start_quest(db: AsyncSession, *, quest_id: UUID, user: User) -> QuestProgress:
-    res = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
+async def start_quest(
+    db: AsyncSession, *, quest_id: UUID, workspace_id: UUID, user: User
+) -> QuestProgress:
+    res = await db.execute(
+        select(Quest).where(
+            Quest.id == quest_id,
+            Quest.workspace_id == workspace_id,
+            Quest.is_deleted == False,
+        )
+    )
     quest = res.scalars().first()
     if not quest or quest.is_draft:
         raise ValueError("Quest not found")
@@ -45,8 +53,16 @@ async def start_quest(db: AsyncSession, *, quest_id: UUID, user: User) -> QuestP
     return progress
 
 
-async def get_progress(db: AsyncSession, *, quest_id: UUID, user: User) -> QuestProgress:
-    qres = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
+async def get_progress(
+    db: AsyncSession, *, quest_id: UUID, workspace_id: UUID, user: User
+) -> QuestProgress:
+    qres = await db.execute(
+        select(Quest).where(
+            Quest.id == quest_id,
+            Quest.workspace_id == workspace_id,
+            Quest.is_deleted == False,
+        )
+    )
     quest = qres.scalars().first()
     if not quest or quest.is_draft:
         raise ValueError("Quest not found")
@@ -63,8 +79,21 @@ async def get_progress(db: AsyncSession, *, quest_id: UUID, user: User) -> Quest
     return progress
 
 
-async def get_node(db: AsyncSession, *, quest_id: UUID, node_id: UUID, user: User) -> Node:
-    res = await db.execute(select(Quest).where(Quest.id == quest_id, Quest.is_deleted == False))
+async def get_node(
+    db: AsyncSession,
+    *,
+    quest_id: UUID,
+    workspace_id: UUID,
+    node_id: UUID,
+    user: User,
+) -> Node:
+    res = await db.execute(
+        select(Quest).where(
+            Quest.id == quest_id,
+            Quest.workspace_id == workspace_id,
+            Quest.is_deleted == False,
+        )
+    )
     quest = res.scalars().first()
     if not quest or quest.is_draft:
         raise ValueError("Quest not found")
