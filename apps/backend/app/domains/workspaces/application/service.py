@@ -54,6 +54,37 @@ async def require_ws_owner(
     return m
 
 
+async def require_ws_viewer(
+    workspace_id: UUID,
+    user: User = Depends(auth_user),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceMember | None:
+    """Ensure the current user has at least viewer rights in the workspace."""
+    m = await WorkspaceMemberDAO.get(
+        db, workspace_id=workspace_id, user_id=user.id
+    )
+    if not (
+        user.role == "admin"
+        or (m and m.role in (WorkspaceRole.owner, WorkspaceRole.editor, WorkspaceRole.viewer))
+    ):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return m
+
+
+async def require_ws_guest(
+    workspace_id: UUID,
+    user: User = Depends(auth_user),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceMember | None:
+    """Ensure the current user is a member of the workspace."""
+    m = await WorkspaceMemberDAO.get(
+        db, workspace_id=workspace_id, user_id=user.id
+    )
+    if not (user.role == "admin" or m):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return m
+
+
 def scope_by_workspace(query: Select, workspace_id: UUID) -> Select:
     """Filter a SQLAlchemy query by workspace identifier if possible."""
     entity = query.column_descriptions[0]["entity"]

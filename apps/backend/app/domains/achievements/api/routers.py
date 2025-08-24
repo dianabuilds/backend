@@ -23,7 +23,12 @@ from app.schemas.achievement_admin import (
     AchievementCreateIn,
     AchievementUpdateIn,
 )
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.security import (
+    ADMIN_AUTH_RESPONSES,
+    auth_user,
+    require_ws_editor,
+    require_ws_guest,
+)
 
 
 router = APIRouter()
@@ -34,8 +39,6 @@ admin_router = APIRouter(
     responses=ADMIN_AUTH_RESPONSES,
 )
 user_router = APIRouter(prefix="/achievements", tags=["achievements"])
-
-admin_required = require_admin_role()
 
 
 def _admin_svc(db: AsyncSession) -> AchievementsAdminService:
@@ -51,6 +54,7 @@ async def list_achievements(
     workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    _: object = Depends(require_ws_guest),
 ) -> List[AchievementOut]:
     rows = await _svc(db).list(workspace.id, current_user.id)
     items: List[AchievementOut] = []
@@ -71,9 +75,10 @@ async def list_achievements(
 
 @admin_router.get("", response_model=List[AchievementAdminOut], summary="List achievements (admin)")
 async def list_achievements_admin(
+    workspace_id: UUID,
     workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(admin_required),
+    _: object = Depends(require_ws_editor),
 ) -> List[AchievementAdminOut]:
     rows = await _admin_svc(db).list(workspace.id)
     return [AchievementAdminOut.model_validate(r) for r in rows]
@@ -82,9 +87,11 @@ async def list_achievements_admin(
 @admin_router.post("", response_model=AchievementAdminOut, summary="Create achievement")
 async def create_achievement_admin(
     body: AchievementCreateIn,
+    workspace_id: UUID,
     workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    current: User = Depends(auth_user),
+    _: object = Depends(require_ws_editor),
 ) -> AchievementAdminOut:
     data = {
         "code": body.code.strip(),
@@ -109,9 +116,11 @@ async def create_achievement_admin(
 async def update_achievement_admin(
     achievement_id: UUID,
     body: AchievementUpdateIn,
+    workspace_id: UUID,
     workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    current: User = Depends(auth_user),
+    _: object = Depends(require_ws_editor),
 ) -> AchievementAdminOut:
     data = body.model_dump(exclude_unset=True)
     try:
@@ -128,9 +137,11 @@ async def update_achievement_admin(
 @admin_router.delete("/{achievement_id}", summary="Delete achievement")
 async def delete_achievement_admin(
     achievement_id: UUID,
+    workspace_id: UUID,
     workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(admin_required),
+    current: User = Depends(auth_user),
+    _: object = Depends(require_ws_editor),
 ):
     ok = await _admin_svc(db).delete(db, workspace.id, achievement_id)
     if not ok:
@@ -146,9 +157,11 @@ class UserIdIn(BaseModel):
 async def grant_achievement(
     achievement_id: UUID,
     body: UserIdIn,
+    workspace_id: UUID,
     workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(admin_required),
+    current: User = Depends(auth_user),
+    _: object = Depends(require_ws_editor),
 ):
     granted = await _svc(db).grant_manual(
         db, workspace.id, body.user_id, achievement_id
@@ -160,9 +173,11 @@ async def grant_achievement(
 async def revoke_achievement(
     achievement_id: UUID,
     body: UserIdIn,
+    workspace_id: UUID,
     workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(admin_required),
+    current: User = Depends(auth_user),
+    _: object = Depends(require_ws_editor),
 ):
     revoked = await _svc(db).revoke_manual(
         db, workspace.id, body.user_id, achievement_id
