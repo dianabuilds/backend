@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -10,12 +11,23 @@ from app.core.config import settings
 from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.navigation.application.random_service import RandomService
 from app.domains.navigation.application.transitions_service import TransitionsService
+from app.domains.navigation.application.transition_router import (
+    CompassPolicy,
+    CompassProvider,
+    ManualPolicy,
+    ManualTransitionsProvider,
+    RandomPolicy,
+    RandomProvider,
+    TransitionRouter,
+)
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
 from app.domains.navigation.application.echo_service import EchoService
 from app.domains.navigation.application.compass_service import CompassService
 from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+
+logger = logging.getLogger(__name__)
 
 
 def _normalise(scores: List[Node]) -> dict[str, float]:
@@ -30,6 +42,17 @@ class NavigationService:
         self._echo = EchoService()
         self._compass = CompassService()
         self._navcache = NavigationCacheService(CoreCacheAdapter())
+        manual_provider = ManualTransitionsProvider(TransitionsService())
+        compass_provider = CompassProvider(self._compass)
+        random_provider = RandomProvider()
+        self._router = TransitionRouter(
+            [
+                ManualPolicy(manual_provider),
+                CompassPolicy(compass_provider),
+                RandomPolicy(random_provider, seed=0),
+            ],
+            not_repeat_last=settings.navigation.no_repeat_last_n,
+        )
 
     async def generate_transitions(
         self, db: AsyncSession, node: Node, user: Optional[User]
@@ -99,6 +122,14 @@ class NavigationService:
         seen = {t["slug"] for t in manual}
         automatic = [t for t in weighted if t["slug"] not in seen][: max(0, remaining)]
         return manual + automatic
+
+    async def build_route(
+        self, db: AsyncSession, node: Node, user: Optional[User], steps: int
+    ) -> List[Node]:
+        self._router.trace.clear()
+        route = await self._router.route(db, node, user, steps)
+        logger.debug("trace: %s", self._router.trace)
+        return route
 
     async def get_navigation(
         self, db: AsyncSession, node: Node, user: Optional[User]
