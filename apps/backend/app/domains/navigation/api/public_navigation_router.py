@@ -12,6 +12,7 @@ from app.domains.navigation.application.compass_service import CompassService
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
+from app.domains.telemetry.application.event_metrics_facade import event_metrics
 
 router = APIRouter(prefix="/navigation", tags=["navigation"])
 
@@ -33,6 +34,7 @@ async def compass_endpoint(
             raise HTTPException(status_code=404, detail="User not found")
 
     nodes = await CompassService().get_compass_nodes(db, node, user, 5)
+    event_metrics.inc("compass", str(node.workspace_id))
     return [
         {
             "id": str(n.id),

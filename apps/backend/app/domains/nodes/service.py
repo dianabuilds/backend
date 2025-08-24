@@ -9,6 +9,7 @@ from app.schemas.nodes_common import Status
 from app.domains.notifications.application.ports.notifications import (
     INotificationPort,
 )
+from app.domains.telemetry.application.event_metrics_facade import event_metrics
 
 from .dao import NodePatchDAO
 
@@ -44,6 +45,7 @@ async def publish_content(
     await bus.publish(
         NodePublished(node_id=node_id, slug=slug, author_id=author_id)
     )
+    event_metrics.inc("publish", str(workspace_id))
     if notifier:
         try:
             await notifier.notify(

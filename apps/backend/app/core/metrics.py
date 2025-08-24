@@ -13,6 +13,7 @@ class RequestRecord:
     status_code: int
     method: str
     route: str  # шаблон маршрута, либо фактический путь, если шаблон недоступен
+    workspace_id: str | None
 
 
 def _status_class(code: int) -> str:
@@ -42,10 +43,19 @@ class MetricsStorage:
         self._lock = threading.Lock()
         self._records: Deque[RequestRecord] = deque()
 
-    def record(self, duration_ms: int, status_code: int, method: str, route: str) -> None:
+    def record(
+        self,
+        duration_ms: int,
+        status_code: int,
+        method: str,
+        route: str,
+        workspace_id: str | None = None,
+    ) -> None:
         now = time.time()
         with self._lock:
-            self._records.append(RequestRecord(now, duration_ms, status_code, method, route))
+            self._records.append(
+                RequestRecord(now, duration_ms, status_code, method, route, workspace_id)
+            )
             # Храним не более 24 часов
             cutoff = now - 24 * 3600
             while self._records and self._records[0].ts < cutoff:
@@ -177,34 +187,35 @@ class MetricsStorage:
         lines: List[str] = []
         lines.append("# HELP http_requests_total Total HTTP requests")
         lines.append("# TYPE http_requests_total counter")
-        count_map: Dict[Tuple[str, str, int], int] = defaultdict(int)
-        duration_map: Dict[Tuple[str, str], List[int]] = defaultdict(list)
+        count_map: Dict[Tuple[str, str, str, int], int] = defaultdict(int)
+        duration_map: Dict[Tuple[str, str, str], List[int]] = defaultdict(list)
         for r in records:
-            count_map[(r.method, r.route, r.status_code)] += 1
-            duration_map[(r.method, r.route)].append(r.duration_ms)
-        for (method, route, status), cnt in count_map.items():
+            ws = r.workspace_id or "unknown"
+            count_map[(ws, r.method, r.route, r.status_code)] += 1
+            duration_map[(ws, r.method, r.route)].append(r.duration_ms)
+        for (ws, method, route, status), cnt in count_map.items():
             lines.append(
-                f'http_requests_total{{method="{method}",path="{route}",status="{status}"}} {cnt}'
+                f'http_requests_total{{workspace="{ws}",method="{method}",path="{route}",status="{status}"}} {cnt}'
             )
 
         lines.append("# HELP http_request_duration_ms Request duration milliseconds")
         lines.append("# TYPE http_request_duration_ms histogram")
         buckets = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
-        for (method, route), values in duration_map.items():
+        for (ws, method, route), values in duration_map.items():
             values_sorted = sorted(values)
             for b in buckets:
                 count = sum(1 for v in values_sorted if v <= b)
                 lines.append(
-                    f'http_request_duration_ms_bucket{{le="{b}",method="{method}",path="{route}"}} {count}'
+                    f'http_request_duration_ms_bucket{{le="{b}",workspace="{ws}",method="{method}",path="{route}"}} {count}'
                 )
             lines.append(
-                f'http_request_duration_ms_bucket{{le="+Inf",method="{method}",path="{route}"}} {len(values_sorted)}'
+                f'http_request_duration_ms_bucket{{le="+Inf",workspace="{ws}",method="{method}",path="{route}"}} {len(values_sorted)}'
             )
             lines.append(
-                f'http_request_duration_ms_count{{method="{method}",path="{route}"}} {len(values_sorted)}'
+                f'http_request_duration_ms_count{{workspace="{ws}",method="{method}",path="{route}"}} {len(values_sorted)}'
             )
             lines.append(
-                f'http_request_duration_ms_sum{{method="{method}",path="{route}"}} {sum(values_sorted)}'
+                f'http_request_duration_ms_sum{{workspace="{ws}",method="{method}",path="{route}"}} {sum(values_sorted)}'
             )
         return "\n".join(lines) + "\n"
 

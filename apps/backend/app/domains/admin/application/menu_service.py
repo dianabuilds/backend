@@ -121,6 +121,7 @@ BASE_MENU: List[dict] = [
             {"id": "audit", "label": "Audit log", "path": "/tools/audit", "icon": "audit", "order": 4},
             {"id": "flags", "label": "Feature flags", "path": "/tools/flags", "icon": "flags", "order": 5},
             {"id": "search-settings", "label": "Search settings", "path": "/tools/search-settings", "icon": "search", "order": 6},
+            {"id": "workspace-metrics", "label": "Workspace metrics", "path": "/tools/workspace-metrics", "icon": "activity", "order": 7},
         ],
     },
     {

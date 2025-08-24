@@ -21,6 +21,7 @@ from app.domains.notifications.infrastructure.models.notification_models import 
     Notification,
 )
 from app.models.event_counter import UserEventCounter
+from app.domains.telemetry.application.event_metrics_facade import event_metrics
 
 
 class AchievementsService:
@@ -143,6 +144,7 @@ class AchievementsService:
                 unlocked_at=datetime.utcnow(),
             )
             db.add(ua)
+            event_metrics.inc("achievement", str(workspace_id))
             note = Notification(
                 user_id=user_id,
                 workspace_id=workspace_id,

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.core.metrics import metrics_storage
+from app.domains.telemetry.application.event_metrics_facade import event_metrics
 
 
 router = APIRouter(
@@ -75,3 +76,8 @@ async def metrics_errors_recent(limit: int = Query(100, ge=1, le=500)):
     Последние ошибки (4xx/5xx).
     """
     return {"items": metrics_storage.recent_errors(limit)}
+
+
+@router.get("/events")
+async def metrics_events():
+    return {"counters": event_metrics.snapshot()}

@@ -55,3 +55,14 @@ export async function getTopEndpoints(
   );
   return res.data?.items ?? [];
 }
+
+export interface EventCounters {
+  [workspace: string]: Record<string, number>;
+}
+
+export async function getEventCounters(): Promise<EventCounters> {
+  const res = await api.get<{ counters: EventCounters }>(
+    "/admin/metrics/events",
+  );
+  return res.data?.counters || {};
+}
