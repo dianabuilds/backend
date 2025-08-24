@@ -5,13 +5,10 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.system.events import (
-    NodeArchived,
-    NodePublished,
-    NodeUpdated,
-    get_event_bus,
-)
 from app.schemas.nodes_common import Status
+from app.domains.notifications.application.ports.notifications import (
+    INotificationPort,
+)
 
 from .dao import NodePatchDAO
 
@@ -32,16 +29,38 @@ def validate_transition(current: Status, new: Status) -> None:
         raise ValueError(f"Invalid transition {current} -> {new}")
 
 
-async def publish_content(node_id: UUID, slug: str, author_id: UUID) -> None:
+async def publish_content(
+    node_id: UUID,
+    slug: str,
+    author_id: UUID,
+    *,
+    workspace_id: UUID,
+    notifier: INotificationPort | None = None,
+) -> None:
     """Publish node and emit domain event."""
+    from app.domains.system.events import NodePublished, get_event_bus
+
     bus = get_event_bus()
     await bus.publish(
         NodePublished(node_id=node_id, slug=slug, author_id=author_id)
     )
+    if notifier:
+        try:
+            await notifier.notify(
+                "publish",
+                author_id,
+                workspace_id=workspace_id,
+                title="Content published",
+                message=slug,
+            )
+        except Exception:
+            pass
 
 
 async def update_content(node_id: UUID, slug: str, author_id: UUID) -> None:
     """Update node and emit domain event."""
+    from app.domains.system.events import NodeUpdated, get_event_bus
+
     bus = get_event_bus()
     await bus.publish(
         NodeUpdated(node_id=node_id, slug=slug, author_id=author_id)
@@ -50,6 +69,8 @@ async def update_content(node_id: UUID, slug: str, author_id: UUID) -> None:
 
 async def archive_content(node_id: UUID, slug: str, author_id: UUID) -> None:
     """Archive node and emit domain event."""
+    from app.domains.system.events import NodeArchived, get_event_bus
+
     bus = get_event_bus()
     await bus.publish(
         NodeArchived(node_id=node_id, slug=slug, author_id=author_id)

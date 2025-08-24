@@ -11,6 +11,7 @@ from app.domains.navigation.application.navigation_cache_service import (
 )
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.application.node_service import NodeService
+from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.nodes.models import NodeItem
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.nodes_common import NodeType
@@ -53,7 +54,7 @@ async def list_nodes(
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    svc = NodeService(db, navcache)
+    svc = NodeService(db, navcache, InAppNotificationPort(db))
     if q:
         items = await svc.search(
             workspace_id, node_type, q, page=page, per_page=per_page
@@ -71,7 +72,7 @@ async def create_node(
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    svc = NodeService(db, navcache)
+    svc = NodeService(db, navcache, InAppNotificationPort(db))
     item = await svc.create(workspace_id, node_type, actor_id=current_user.id)
     return _serialize(item)
 
@@ -84,7 +85,7 @@ async def get_node(
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    svc = NodeService(db, navcache)
+    svc = NodeService(db, navcache, InAppNotificationPort(db))
     item = await svc.get(workspace_id, node_type, node_id)
     return _serialize(item)
 
@@ -100,7 +101,7 @@ async def update_node(
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    svc = NodeService(db, navcache)
+    svc = NodeService(db, navcache, InAppNotificationPort(db))
     item = await svc.update(
         workspace_id,
         node_type,
@@ -123,7 +124,7 @@ async def publish_node(
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    svc = NodeService(db, navcache)
+    svc = NodeService(db, navcache, InAppNotificationPort(db))
     item = await svc.publish(
         workspace_id,
         node_type,
@@ -144,7 +145,7 @@ async def validate_node_item(
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    svc = NodeService(db, navcache)
+    svc = NodeService(db, navcache, InAppNotificationPort(db))
     report = await svc.validate(workspace_id, node_type, node_id)
     blocking = [item for item in report.items if item.level == "error"]
     warnings = [item for item in report.items if item.level == "warning"]
@@ -160,6 +161,6 @@ async def simulate_node(
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    svc = NodeService(db, navcache)
+    svc = NodeService(db, navcache, InAppNotificationPort(db))
     report, result = await svc.simulate(workspace_id, node_type, node_id, payload)
     return {"report": report, "result": result}
