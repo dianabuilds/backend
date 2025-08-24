@@ -1,46 +1,93 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { getNode, patchNode } from "../api/nodes";
+import type { NodeOut } from "../openapi";
+import { useUnsavedChanges } from "./useUnsavedChanges";
+
 /**
- * Generic hook to manage editor node state with auto-save capability.
- * @param initial - initial node data
- * @param onSave - async save handler invoked on auto-save or manual save
- * @param delay - debounce delay in ms before auto-saving
+ * Hook for editing a node with auto‑save and dirty state tracking.
+ * Handles loading, manual saving and debounced auto‑saving.
  */
-export function useEditorNode<T>(
-  initial: T,
-  onSave?: (data: T) => Promise<void> | void,
-  delay = 1000,
-) {
-  const [data, setData] = useState<T>(initial);
+export function useEditorNode(id: string, autoSaveDelay = 1000) {
+  const [data, setData] = useState<NodeOut | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const baseRef = useRef<NodeOut | null>(null);
   const timer = useRef<number | null>(null);
-  const latest = useRef<T>(initial);
+
+  useUnsavedChanges(dirty);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const node = await getNode(id);
+      setData(node);
+      baseRef.current = node;
+      setDirty(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const computePatch = useCallback((): Partial<NodeOut> => {
+    const current = data;
+    const base = baseRef.current;
+    const patch: Partial<NodeOut> = {};
+    if (!current || !base) return patch;
+    for (const key of Object.keys(current) as (keyof NodeOut)[]) {
+      const c = current[key];
+      const b = base[key];
+      if (JSON.stringify(c) !== JSON.stringify(b)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (patch as any)[key] = c as any;
+      }
+    }
+    return patch;
+  }, [data]);
 
   const save = useCallback(async () => {
-    if (!onSave) return;
+    if (!data) return;
+    const patch = computePatch();
+    if (Object.keys(patch).length === 0) {
+      setDirty(false);
+      return;
+    }
     setSaving(true);
     try {
-      await onSave(latest.current);
+      const updated = await patchNode(id, patch);
+      setData(updated);
+      baseRef.current = updated;
+      setDirty(false);
     } finally {
       setSaving(false);
     }
-  }, [onSave]);
+  }, [computePatch, data, id]);
 
-  const update = useCallback((next: T) => {
-    setData(next);
-  }, []);
-
-  useEffect(() => {
-    latest.current = data;
-    if (!onSave) return;
+  const scheduleSave = useCallback(() => {
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       void save();
-    }, delay);
-    return () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    };
-  }, [data, delay, onSave, save]);
+    }, autoSaveDelay);
+  }, [save, autoSaveDelay]);
 
-  return { data, update, save, saving, setData };
+  const update = useCallback((patch: Partial<NodeOut>) => {
+    setData((prev) => ({ ...(prev || {}), ...patch } as NodeOut));
+  }, []);
+
+  useEffect(() => {
+    const current = data;
+    const base = baseRef.current;
+    if (!current || !base) return;
+    const isDirty = JSON.stringify(current) !== JSON.stringify(base);
+    setDirty(isDirty);
+    if (isDirty) scheduleSave();
+  }, [data, scheduleSave]);
+
+  return { data, update, loading, saving, dirty, save, reload: load };
 }
+
