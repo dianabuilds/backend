@@ -15,7 +15,7 @@ repos:
     hooks:
       - id: mypy
         args: ["apps/backend/app"]
-        language_version: python3.11
+        language_version: python3.12
   - repo: local
     hooks:
       - id: eslint
