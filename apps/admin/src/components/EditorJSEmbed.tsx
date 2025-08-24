@@ -1,20 +1,22 @@
 import { useEffect, useRef } from "react";
 import { api } from "../api/client";
-
-type EditorData = any;
+import type EditorJS from "@editorjs/editorjs";
+import type { OutputData } from "../types/editorjs";
 
 interface Props {
-  value?: EditorData;
-  onChange?: (data: EditorData) => void;
+  value?: OutputData;
+  onChange?: (data: OutputData) => void;
   className?: string;
   minHeight?: number;
   placeholder?: string;
-  onReady?: (api: { save: () => Promise<any> }) => void;
+  onReady?: (api: { save: () => Promise<OutputData> }) => void;
 }
+
+type ImageUploadResult = { success: 1; file: { url: string } } | { success: 0 };
 
 export default function EditorJSEmbed({ value, onChange, className, minHeight = 220, placeholder, onReady }: Props) {
   const holderId = useRef(`edjs-${Math.random().toString(36).slice(2)}`);
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<EditorJS | null>(null);
   const changeTimer = useRef<number | null>(null);
 
   // Преобразуем относительный URL (/static/uploads/...) в абсолютный к backend origin (в dev 5173–5176) или VITE_API_BASE
@@ -23,7 +25,9 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
     try {
       // База для относительных ссылок: VITE_API_BASE или dev-мэппинг на :8000, иначе текущий origin
       let base = "";
-      const envBase = (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
+      const envBase = (import.meta as { env?: Record<string, string | undefined> })?.env?.VITE_API_BASE as
+        | string
+        | undefined;
       if (envBase) {
         base = envBase;
       } else if (typeof window !== "undefined" && window.location) {
@@ -48,20 +52,36 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
     }
   };
 
+  const extractUrl = (data: unknown): string => {
+    if (typeof data === "string") return data;
+    if (data && typeof data === "object") {
+      const obj = data as Record<string, unknown>;
+      const file = obj.file as Record<string, unknown> | undefined;
+      if (typeof file?.url === "string") return file.url;
+      if (typeof obj.url === "string") return obj.url;
+      const inner = obj.data as Record<string, unknown> | undefined;
+      const innerFile = inner?.file as Record<string, unknown> | undefined;
+      if (typeof innerFile?.url === "string") return innerFile.url;
+      const innerUrl = inner?.url;
+      if (typeof innerUrl === "string") return innerUrl;
+    }
+    return "";
+  };
+
   // removed waitForImage helper (unused)
 
   useEffect(() => {
     let destroyed = false;
 
     async function init() {
-      const EditorJS = (await import("@editorjs/editorjs")).default as any;
-      const Header = (await import("@editorjs/header")).default as any;
-      const List = (await import("@editorjs/list")).default as any;
-      const Checklist = (await import("@editorjs/checklist")).default as any;
-      const ImageTool = (await import("@editorjs/image")).default as any;
-      const Table = (await import("@editorjs/table")).default as any;
-      const Quote = (await import("@editorjs/quote")).default as any;
-      const Delimiter = (await import("@editorjs/delimiter")).default as any;
+      const EditorJS = (await import("@editorjs/editorjs")).default;
+      const Header = (await import("@editorjs/header")).default;
+      const List = (await import("@editorjs/list")).default;
+      const Checklist = (await import("@editorjs/checklist")).default;
+      const ImageTool = (await import("@editorjs/image")).default;
+      const Table = (await import("@editorjs/table")).default;
+      const Quote = (await import("@editorjs/quote")).default;
+      const Delimiter = (await import("@editorjs/delimiter")).default;
 
       if (destroyed) return;
 
@@ -81,53 +101,41 @@ export default function EditorJSEmbed({ value, onChange, className, minHeight = 
             class: ImageTool,
             config: {
               uploader: {
-                async uploadByFile(file: File) {
+                async uploadByFile(file: File): Promise<ImageUploadResult> {
                   try {
                     const form = new FormData();
                     form.append("file", file);
-                    const res = await api.request<any>("/admin/media", {
+                    const res = await api.request<unknown>("/admin/media", {
                         method: "POST",
                         body: form,
                     });
-                    // Поддерживаем разные формы ответа:
-                    // - строка: "http://..."
-                    // - { url: "..." }
-                    // - { file: { url: "..." } }
-                    // - { data: { url: "..." } } или { data: { file: { url: "..." } } }
-                    const d: any = res?.data;
-                    const rawUrl =
-                      (typeof d === "string" ? d : null) ||
-                      d?.file?.url ||
-                      d?.url ||
-                      d?.data?.file?.url ||
-                      d?.data?.url ||
-                      "";
+                    const rawUrl = extractUrl(res?.data);
                     const url = resolveUrl(rawUrl);
                     if (!url) throw new Error("Empty URL from /media");
-                    const normalized = { success: 1, file: { url } };
+                    const normalized: ImageUploadResult = { success: 1, file: { url } };
                     if (import.meta?.env?.MODE !== "production") {
                       console.debug("[EditorJS:image] uploadByFile", normalized);
                     }
-                    return normalized as any;
+                    return normalized;
                   } catch (e) {
                     console.error("Image upload failed:", e);
-                    return { success: 0 } as any;
+                    return { success: 0 };
                   }
                 },
-                async uploadByUrl(url: string) {
+                async uploadByUrl(url: string): Promise<ImageUploadResult> {
                   try {
                     if (typeof url === "string" && url) {
                       const final = resolveUrl(url);
-                      const normalized = { success: 1, file: { url: final } };
+                      const normalized: ImageUploadResult = { success: 1, file: { url: final } };
                       if (import.meta?.env?.MODE !== "production") {
                         console.debug("[EditorJS:image] uploadByUrl", normalized);
                       }
-                      return normalized as any;
+                      return normalized;
                     }
                   } catch (e) {
                     console.error("Image uploadByUrl failed:", e);
                   }
-                  return { success: 0 } as any;
+                  return { success: 0 };
                 },
               },
             },
