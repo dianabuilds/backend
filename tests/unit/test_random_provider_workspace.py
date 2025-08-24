@@ -67,7 +67,8 @@ def test_random_provider_scoped_by_workspace() -> None:
             session.add_all([user, w1, w2, start, n1, n2])
             await session.commit()
 
-            provider = RandomProvider(seed=42)
+            provider = RandomProvider()
+            provider.set_seed(42)
             res = await provider.get_transitions(session, start, None, w1.id)
             assert all(n.workspace_id == w1.id for n in res)
 
