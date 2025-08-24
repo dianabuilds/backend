@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.preview import PreviewContext
-from app.domains.premium.application.quota_service import QuotaService
+from app.domains.quota.application.quota_service import QuotaService
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
 from app.schemas.workspaces import WorkspaceSettings
 
@@ -41,16 +41,15 @@ async def consume_workspace_limit(
     if not limit or int(limit) <= 0:
         return True
     qs = _get_qs()
-    qs.set_plans_map({str(workspace_id): {key: {scope: int(limit)}}})
     try:
-        await qs.check_and_consume(
+        await qs.consume(
             user_id=str(user_id),
-            quota_key=key,
+            workspace_id=str(workspace_id),
+            key=key,
+            limit=int(limit),
             amount=amount,
             scope=scope,
             preview=preview,
-            plan=str(workspace_id),
-            workspace_id=str(workspace_id),
         )
         return True
     except HTTPException:
