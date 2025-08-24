@@ -21,6 +21,7 @@ import Login from "./pages/Login";
 import ModerationCase from "./pages/ModerationCase";
 import ModerationInbox from "./pages/ModerationInbox";
 import Monitoring from "./pages/Monitoring";
+import ReliabilityDashboard from "./pages/ReliabilityDashboard";
 import Navigation from "./pages/Navigation";
 import Nodes from "./pages/Nodes";
 import NotificationCampaignEditor from "./pages/NotificationCampaignEditor";
@@ -170,6 +171,10 @@ export default function App() {
                         element={<SearchRelevance />}
                       />
                       <Route path="ops/limits" element={<Limits />} />
+                      <Route
+                        path="ops/reliability"
+                        element={<ReliabilityDashboard />}
+                      />
                       <Route path="system/health" element={<Health />} />
                       <Route path="payments" element={<PaymentsGateways />} />
                     </Route>

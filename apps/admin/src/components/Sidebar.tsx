@@ -235,7 +235,7 @@ export default function Sidebar() {
         {
           id: "ops-reliability",
           label: "Reliability",
-          path: "/tools/monitoring",
+          path: "/ops/reliability",
           icon: "activity",
         },
         {
