@@ -146,7 +146,9 @@ async def validate_node_item(
 ):
     svc = NodeService(db, navcache)
     report = await svc.validate(workspace_id, node_type, node_id)
-    return {"report": report}
+    blocking = [item for item in report.items if item.level == "error"]
+    warnings = [item for item in report.items if item.level == "warning"]
+    return {"report": report, "blocking": blocking, "warnings": warnings}
 
 
 @router.post("/{node_type}/{node_id}/simulate", summary="Simulate quest node")
