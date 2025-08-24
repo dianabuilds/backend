@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.system.events import (
     NodeArchived,
@@ -9,6 +12,8 @@ from app.domains.system.events import (
     get_event_bus,
 )
 from app.schemas.nodes_common import Status
+
+from .dao import NodePatchDAO
 
 ALLOWED_TRANSITIONS: dict[Status, set[Status]] = {
     Status.draft: {Status.in_review},
@@ -49,3 +54,29 @@ async def archive_content(node_id: UUID, slug: str, author_id: UUID) -> None:
     await bus.publish(
         NodeArchived(node_id=node_id, slug=slug, author_id=author_id)
     )
+
+
+class NodePatchService:
+    """Persist node patches for later processing.
+
+    Patches recorded through this service are immediately marked as reverted so
+    that they do not affect node data when retrieved via the overlay mechanism.
+    """
+
+    @staticmethod
+    async def record(
+        db: AsyncSession,
+        *,
+        node_id: UUID,
+        data: dict[str, Any],
+        actor_id: UUID | None = None,
+    ) -> None:
+        patch = await NodePatchDAO.create(
+            db,
+            node_id=node_id,
+            data=data,
+            created_by_user_id=actor_id,
+        )
+        # Mark patch as reverted so it won't be applied as a hotfix overlay.
+        patch.reverted_at = patch.created_at
+        await db.flush()

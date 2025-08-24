@@ -16,7 +16,11 @@ from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
-from app.domains.nodes.service import publish_content, validate_transition
+from app.domains.nodes.service import (
+    NodePatchService,
+    publish_content,
+    validate_transition,
+)
 from app.domains.quests.application.editor_service import EditorService
 from app.domains.telemetry.application.audit_service import AuditService
 from app.domains.telemetry.infrastructure.repositories.audit_repository import (
@@ -145,6 +149,12 @@ class NodeService:
             title=f"New {node_type}",
             created_by_user_id=actor_id,
         )
+        await NodePatchService.record(
+            self._db,
+            node_id=item.id,
+            data={"action": "create"},
+            actor_id=actor_id,
+        )
         await self._db.commit()
         await _audit(
             self._db,
@@ -179,6 +189,20 @@ class NodeService:
         item.updated_by_user_id = actor_id
         item.updated_at = datetime.utcnow()
         await self._db.flush()
+        await NodePatchService.record(
+            self._db,
+            node_id=item.id,
+            data={
+                "action": "update",
+                "before": before,
+                "after": {
+                    "title": item.title,
+                    "summary": item.summary,
+                    "status": item.status.value,
+                },
+            },
+            actor_id=actor_id,
+        )
         await self._db.commit()
         try:
             await _audit(
@@ -232,6 +256,17 @@ class NodeService:
             node.updated_by_user_id = actor_id
             node.updated_at = datetime.utcnow()
         await self._db.flush()
+        await NodePatchService.record(
+            self._db,
+            node_id=item.id,
+            data={
+                "action": "publish",
+                "status": item.status.value,
+                "visibility": item.visibility.value,
+                "access": access,
+            },
+            actor_id=actor_id,
+        )
         await self._db.commit()
         await publish_content(item.id, item.slug, actor_id)
         # Invalidate caches
@@ -274,7 +309,18 @@ class NodeService:
         self, node_type: str | NodeType, node_id: UUID
     ) -> Any:  # pragma: no cover - thin wrapper
         node_type = self._normalize_type(node_type)
-        return await run_validators(node_type, node_id, self._db)
+        report = await run_validators(node_type, node_id, self._db)
+        await NodePatchService.record(
+            self._db,
+            node_id=node_id,
+            data={
+                "action": "validate",
+                "errors": report.errors,
+                "warnings": report.warnings,
+            },
+        )
+        await self._db.commit()
+        return report
 
     async def simulate(
         self,
