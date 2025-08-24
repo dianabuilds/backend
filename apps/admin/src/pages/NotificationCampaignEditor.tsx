@@ -1,11 +1,12 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import {
-  getDraftCampaign,
-  updateDraftCampaign,
-  sendDraftCampaign,
   type DraftCampaign,
+  getDraftCampaign,
+  sendDraftCampaign,
+  updateDraftCampaign,
 } from "../api/notifications";
 import { useToast } from "../components/ToastProvider";
 
@@ -64,7 +65,11 @@ export default function NotificationCampaignEditor() {
       <h1 className="text-xl font-semibold">Campaign Editor</h1>
       <div className="flex flex-col space-y-2">
         <label className="text-sm">Title</label>
-        <input className="border rounded px-2 py-1" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input
+          className="border rounded px-2 py-1"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
       </div>
       <div className="flex flex-col space-y-2">
         <label className="text-sm">Message</label>

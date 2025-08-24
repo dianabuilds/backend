@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import type { VersionGraph, GraphEdge, GraphNode } from "../api/questEditor";
 
-function buildAdj(edges: GraphEdge[]): Record<string, { to: string; label?: string | null }[]> {
+import type { GraphEdge, GraphNode, VersionGraph } from "../api/questEditor";
+
+function buildAdj(
+  edges: GraphEdge[],
+): Record<string, { to: string; label?: string | null }[]> {
   const m: Record<string, { to: string; label?: string | null }[]> = {};
   for (const e of edges) {
     if (!m[e.from_node_key]) m[e.from_node_key] = [];
@@ -32,7 +35,9 @@ export default function PlaythroughPanel({
 
   const start = useMemo(() => findStart(graph.nodes || []), [graph.nodes]);
 
-  const [current, setCurrent] = useState<string | null>(start ? start.key : null);
+  const [current, setCurrent] = useState<string | null>(
+    start ? start.key : null,
+  );
   const [path, setPath] = useState<string[]>(current ? [current] : []);
 
   useEffect(() => {
@@ -42,9 +47,14 @@ export default function PlaythroughPanel({
     setPath(key ? [key] : []);
   }, [graph]);
 
-  const outgoing = useMemo(() => (current ? adj[current] || [] : []), [adj, current]);
+  const outgoing = useMemo(
+    () => (current ? adj[current] || [] : []),
+    [adj, current],
+  );
   const node = current ? nodesByKey[current] : null;
-  const isEnd = node ? node.type === "end" || (outgoing.length === 0 && node.type !== "start") : false;
+  const isEnd = node
+    ? node.type === "end" || (outgoing.length === 0 && node.type !== "start")
+    : false;
 
   const moveTo = (nextKey: string) => {
     setCurrent(nextKey);
@@ -77,21 +87,43 @@ export default function PlaythroughPanel({
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Playthrough</h3>
         <div className="flex items-center gap-2">
-          <button className="px-2 py-1 rounded border" onClick={reset} disabled={!start}>Reset</button>
-          <button className="px-2 py-1 rounded border" onClick={back} disabled={(path.length || 0) <= 1}>Back</button>
-          <button className="px-2 py-1 rounded border" onClick={randomStep} disabled={outgoing.length === 0}>Random</button>
+          <button
+            className="px-2 py-1 rounded border"
+            onClick={reset}
+            disabled={!start}
+          >
+            Reset
+          </button>
+          <button
+            className="px-2 py-1 rounded border"
+            onClick={back}
+            disabled={(path.length || 0) <= 1}
+          >
+            Back
+          </button>
+          <button
+            className="px-2 py-1 rounded border"
+            onClick={randomStep}
+            disabled={outgoing.length === 0}
+          >
+            Random
+          </button>
         </div>
       </div>
 
       <div className="mt-3 text-sm">
         <div className="mb-2">
           <span className="text-gray-600">Path:</span>{" "}
-          {path.length === 0 ? <i className="text-gray-500">—</i> : (
+          {path.length === 0 ? (
+            <i className="text-gray-500">—</i>
+          ) : (
             <span className="font-mono">
               {path.map((k, i) => (
                 <span key={`${k}-${i}`}>
                   {i > 0 ? " › " : ""}
-                  <button className="underline" onClick={() => setCurrent(k)}>{k}</button>
+                  <button className="underline" onClick={() => setCurrent(k)}>
+                    {k}
+                  </button>
                 </span>
               ))}
             </span>
@@ -101,9 +133,22 @@ export default function PlaythroughPanel({
           <div className="mb-3">
             <div className="flex items-center gap-2">
               <div className="font-semibold">{node.title || node.key}</div>
-              <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800">{node.type || "normal"}</span>
-              {isEnd && <span className="text-xs px-2 py-0.5 rounded bg-green-200 text-green-800">END</span>}
-              {onOpenNode && <button className="text-xs underline" onClick={() => onOpenNode(node.key)}>open</button>}
+              <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800">
+                {node.type || "normal"}
+              </span>
+              {isEnd && (
+                <span className="text-xs px-2 py-0.5 rounded bg-green-200 text-green-800">
+                  END
+                </span>
+              )}
+              {onOpenNode && (
+                <button
+                  className="text-xs underline"
+                  onClick={() => onOpenNode(node.key)}
+                >
+                  open
+                </button>
+              )}
             </div>
           </div>
         ) : (

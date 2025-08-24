@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { getAdminMenu, type AdminMenuItem } from "../api/client";
+
+import { type AdminMenuItem, getAdminMenu } from "../api/client";
 import { getIconComponent } from "../icons/registry";
 
 function useExpandedState() {
@@ -46,7 +47,10 @@ function normalizePath(p?: string | null): string | null {
   return path;
 }
 
-function longestPrefixMatch(pathname: string, itemPath?: string | null): boolean {
+function longestPrefixMatch(
+  pathname: string,
+  itemPath?: string | null,
+): boolean {
   if (!itemPath) return false;
   // Ensure trailing slash consistency for matching prefixes
   const a = pathname.endsWith("/") ? pathname : pathname + "/";
@@ -54,7 +58,19 @@ function longestPrefixMatch(pathname: string, itemPath?: string | null): boolean
   return a.startsWith(b);
 }
 
-function MenuItem({ item, level, activePath, expanded, toggle }: { item: AdminMenuItem; level: number; activePath: string; expanded: Record<string, boolean>; toggle: (id: string) => void; }) {
+function MenuItem({
+  item,
+  level,
+  activePath,
+  expanded,
+  toggle,
+}: {
+  item: AdminMenuItem;
+  level: number;
+  activePath: string;
+  expanded: Record<string, boolean>;
+  toggle: (id: string) => void;
+}) {
   const Icon = getIconComponent(item.icon);
 
   const content = (
@@ -65,7 +81,12 @@ function MenuItem({ item, level, activePath, expanded, toggle }: { item: AdminMe
   );
 
   if (item.divider) {
-    return <div role="separator" className="my-2 border-t border-gray-200 dark:border-gray-700" />;
+    return (
+      <div
+        role="separator"
+        className="my-2 border-t border-gray-200 dark:border-gray-700"
+      />
+    );
   }
 
   const padding = 8 + level * 12;
@@ -93,8 +114,12 @@ function MenuItem({ item, level, activePath, expanded, toggle }: { item: AdminMe
 
     const open = expanded[item.id] ?? false;
     // Auto-open if a child is active
-    const childActive = item.children.some((c: AdminMenuItem) => longestPrefixMatch(activePath, normalizePath(c.path) || undefined));
-    const isActive = longestPrefixMatch(activePath, normalizePath(item.path) || undefined) || childActive;
+    const childActive = item.children.some((c: AdminMenuItem) =>
+      longestPrefixMatch(activePath, normalizePath(c.path) || undefined),
+    );
+    const isActive =
+      longestPrefixMatch(activePath, normalizePath(item.path) || undefined) ||
+      childActive;
 
     useEffect(() => {
       if (childActive && !open) {
@@ -119,7 +144,14 @@ function MenuItem({ item, level, activePath, expanded, toggle }: { item: AdminMe
         {open && (
           <div id={`group-${item.id}`} className="mt-1 space-y-1">
             {item.children.map((child: AdminMenuItem) => (
-              <MenuItem key={child.id} item={child} level={level + 1} activePath={activePath} expanded={expanded} toggle={toggle} />
+              <MenuItem
+                key={child.id}
+                item={child}
+                level={level + 1}
+                activePath={activePath}
+                expanded={expanded}
+                toggle={toggle}
+              />
             ))}
           </div>
         )}
@@ -197,8 +229,11 @@ export default function Sidebar() {
       return (
         <div className="space-y-2" aria-busy>
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />)
-          )}
+            <div
+              key={i}
+              className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"
+            />
+          ))}
         </div>
       );
     }
@@ -206,9 +241,14 @@ export default function Sidebar() {
       // Fallback minimal menu
       return (
         <div>
-          <div className="mb-2 text-sm text-red-600" role="alert">{error}</div>
+          <div className="mb-2 text-sm text-red-600" role="alert">
+            {error}
+          </div>
           <nav className="space-y-1">
-            <NavLink to="/" className="block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
+            <NavLink
+              to="/"
+              className="block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
               Dashboard
             </NavLink>
           </nav>
@@ -218,14 +258,24 @@ export default function Sidebar() {
     return (
       <nav className="space-y-1">
         {(items || []).map((item) => (
-          <MenuItem key={item.id} item={item} level={0} activePath={location.pathname} expanded={expanded} toggle={toggle} />
+          <MenuItem
+            key={item.id}
+            item={item}
+            level={0}
+            activePath={location.pathname}
+            expanded={expanded}
+            toggle={toggle}
+          />
         ))}
       </nav>
     );
   }, [loading, error, items, location.pathname, expanded, toggle]);
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-900 p-4 shadow-sm" aria-label="Sidebar navigation">
+    <aside
+      className="w-64 bg-white dark:bg-gray-900 p-4 shadow-sm"
+      aria-label="Sidebar navigation"
+    >
       {content}
     </aside>
   );

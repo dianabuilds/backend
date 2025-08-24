@@ -3,7 +3,8 @@
 // Это только для типовой поддержки, чтобы можно было временно использовать onCommit в JSX.
 
 import "react";
-import type {HTMLAttributes} from "react";
+
+import type { HTMLAttributes } from "react";
 
 declare module "react" {
   interface DOMAttributes<T> {

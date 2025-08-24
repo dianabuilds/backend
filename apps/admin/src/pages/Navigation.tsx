@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import { api } from "../api/client";
 
 interface RunResponse {
@@ -26,7 +27,9 @@ export default function Navigation() {
       const payload: Record<string, unknown> = { node_slug: nodeSlug.trim() };
       if (userId.trim()) payload.user_id = userId.trim();
       const res = await api.post<RunResponse>("/admin/navigation/run", payload);
-      const count = Array.isArray(res.data?.transitions) ? (res.data?.transitions as unknown[]).length : 0;
+      const count = Array.isArray(res.data?.transitions)
+        ? (res.data?.transitions as unknown[]).length
+        : 0;
       setResult(`Generated transitions: ${count}`);
     } catch (e) {
       setResult(e instanceof Error ? e.message : String(e));
@@ -53,7 +56,9 @@ export default function Navigation() {
   const checkPgvector = async () => {
     setPgvLoading(true);
     try {
-      const res = await api.get<{ enabled: boolean }>("/admin/navigation/pgvector/status");
+      const res = await api.get<{ enabled: boolean }>(
+        "/admin/navigation/pgvector/status",
+      );
       setPgv(res.data?.enabled ?? null);
     } catch {
       setPgv(null);
@@ -69,19 +74,46 @@ export default function Navigation() {
         <div className="flex flex-col gap-2 max-w-xl">
           <label className="flex flex-col gap-1">
             <span className="text-sm text-gray-600">Node slug</span>
-            <input value={nodeSlug} onChange={(e) => setNodeSlug(e.target.value)} className="border rounded px-2 py-1" placeholder="node-slug" />
+            <input
+              value={nodeSlug}
+              onChange={(e) => setNodeSlug(e.target.value)}
+              className="border rounded px-2 py-1"
+              placeholder="node-slug"
+            />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-sm text-gray-600">User ID (optional)</span>
-            <input value={userId} onChange={(e) => setUserId(e.target.value)} className="border rounded px-2 py-1" placeholder="uuid or empty for anon" />
+            <input
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              className="border rounded px-2 py-1"
+              placeholder="uuid or empty for anon"
+            />
           </label>
           <div className="flex items-center gap-2">
-            <button disabled={!nodeSlug || running} onClick={run} className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50">
+            <button
+              disabled={!nodeSlug || running}
+              onClick={run}
+              className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50"
+            >
               {running ? "Running..." : "Run generation"}
             </button>
-            <button onClick={checkPgvector} className="px-3 py-1 rounded border">Check pgvector</button>
-            {pgvLoading ? <span className="text-sm text-gray-500">Checking...</span> : pgv !== null && (
-              <span className={`text-sm ${pgv ? "text-green-600" : "text-yellow-700"}`}>pgvector: {pgv ? "enabled" : "disabled"}</span>
+            <button
+              onClick={checkPgvector}
+              className="px-3 py-1 rounded border"
+            >
+              Check pgvector
+            </button>
+            {pgvLoading ? (
+              <span className="text-sm text-gray-500">Checking...</span>
+            ) : (
+              pgv !== null && (
+                <span
+                  className={`text-sm ${pgv ? "text-green-600" : "text-yellow-700"}`}
+                >
+                  pgvector: {pgv ? "enabled" : "disabled"}
+                </span>
+              )
             )}
           </div>
           {result && <div className="text-sm mt-2">{result}</div>}
@@ -89,23 +121,43 @@ export default function Navigation() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-2">Invalidate navigation cache</h2>
+        <h2 className="text-xl font-semibold mb-2">
+          Invalidate navigation cache
+        </h2>
         <div className="flex flex-col gap-2 max-w-xl">
           <label className="flex items-center gap-2">
             <span>Scope:</span>
-            <select value={scope} onChange={(e) => setScope(e.target.value as any)} className="border rounded px-2 py-1">
+            <select
+              value={scope}
+              onChange={(e) => setScope(e.target.value as any)}
+              className="border rounded px-2 py-1"
+            >
               <option value="all">all</option>
               <option value="node">node</option>
               <option value="user">user</option>
             </select>
           </label>
           {scope === "node" && (
-            <input placeholder="node-slug" value={invNodeSlug} onChange={(e) => setInvNodeSlug(e.target.value)} className="border rounded px-2 py-1" />
+            <input
+              placeholder="node-slug"
+              value={invNodeSlug}
+              onChange={(e) => setInvNodeSlug(e.target.value)}
+              className="border rounded px-2 py-1"
+            />
           )}
           {scope === "user" && (
-            <input placeholder="user-id" value={invUserId} onChange={(e) => setInvUserId(e.target.value)} className="border rounded px-2 py-1" />
+            <input
+              placeholder="user-id"
+              value={invUserId}
+              onChange={(e) => setInvUserId(e.target.value)}
+              className="border rounded px-2 py-1"
+            />
           )}
-          <button onClick={invalidate} disabled={invLoading} className="px-3 py-1 rounded bg-rose-600 text-white disabled:opacity-50">
+          <button
+            onClick={invalidate}
+            disabled={invLoading}
+            className="px-3 py-1 rounded bg-rose-600 text-white disabled:opacity-50"
+          >
             {invLoading ? "Invalidating..." : "Invalidate"}
           </button>
         </div>

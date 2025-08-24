@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+
 import { api } from "../api/client";
+import { addToCatalog } from "../utils/tagManager";
 import ImageDropzone from "./ImageDropzone";
 import TagInput from "./TagInput";
-import { addToCatalog } from "../utils/tagManager";
 
 interface Props {
   value?: string | null;
@@ -28,7 +29,12 @@ interface ApiMediaAsset {
 
 let mediaCache: MediaAsset[] | null = null;
 
-export default function MediaPicker({ value, onChange, className = "", height = 140 }: Props) {
+export default function MediaPicker({
+  value,
+  onChange,
+  className = "",
+  height = 140,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<MediaAsset[]>([]);
   const [query, setQuery] = useState("");
@@ -61,7 +67,9 @@ export default function MediaPicker({ value, onChange, className = "", height = 
   }, [open]);
 
   const filteredItems = items.filter((m) => {
-    const matchesQuery = m.url.toLowerCase().includes(query.toLowerCase()) || m.name?.toLowerCase().includes(query.toLowerCase());
+    const matchesQuery =
+      m.url.toLowerCase().includes(query.toLowerCase()) ||
+      m.name?.toLowerCase().includes(query.toLowerCase());
     const matchesTags = filterTags.every((t) => m.tags.includes(t));
     return matchesQuery && matchesTags;
   });
@@ -87,7 +95,11 @@ export default function MediaPicker({ value, onChange, className = "", height = 
                 placeholder="Search"
                 className="border px-2 py-1 rounded"
               />
-              <TagInput value={filterTags} onChange={setFilterTags} placeholder="Filter tags" />
+              <TagInput
+                value={filterTags}
+                onChange={setFilterTags}
+                placeholder="Filter tags"
+              />
             </div>
             <div className="grid grid-cols-3 gap-2">
               {filteredItems.map((m) => (

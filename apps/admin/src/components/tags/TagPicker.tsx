@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import type { TagOut as TagOutBase } from "../../openapi";
+
 import { api } from "../../api/client";
+import type { TagOut as TagOutBase } from "../../openapi";
 import MultiSelectBase from "../ui/MultiSelectBase";
 
 export type TagOut = TagOutBase & { id: string };

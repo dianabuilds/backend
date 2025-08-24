@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import { api } from "../api/client";
 import ValidationReportView from "./ValidationReportView";
 
@@ -35,13 +36,19 @@ export default function PublishButton({ questId, onSuccess }: Props) {
 
   return (
     <div className="space-y-2">
-      <button onClick={publish} disabled={loading} className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50">
+      <button
+        onClick={publish}
+        disabled={loading}
+        className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+      >
         {loading ? "Публикую…" : "Опубликовать"}
       </button>
       {error ? <div className="text-sm text-red-700">{error}</div> : null}
       {report ? (
         <div className="mt-2">
-          <div className="text-sm font-semibold">Публикация заблокирована: ошибки валидации</div>
+          <div className="text-sm font-semibold">
+            Публикация заблокирована: ошибки валидации
+          </div>
           <ValidationReportView report={report} />
         </div>
       ) : null}

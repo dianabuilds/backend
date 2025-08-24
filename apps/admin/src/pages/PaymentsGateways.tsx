@@ -1,5 +1,6 @@
-import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+
 import { api } from "../api/client";
 
 type Gateway = {
@@ -23,7 +24,8 @@ export default function PaymentsGateways() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["payments", "gateways"],
-    queryFn: async () => (await api.get<Gateway[]>("/admin/payments/gateways")).data || [],
+    queryFn: async () =>
+      (await api.get<Gateway[]>("/admin/payments/gateways")).data || [],
     staleTime: 10_000,
   });
 
@@ -32,7 +34,12 @@ export default function PaymentsGateways() {
     type: "crypto_jwt",
     enabled: true,
     priority: 100,
-    config: { fee_mode: "percent", fee_percent: 0, fee_fixed_cents: 0, min_fee_cents: 0 },
+    config: {
+      fee_mode: "percent",
+      fee_percent: 0,
+      fee_fixed_cents: 0,
+      min_fee_cents: 0,
+    },
   });
 
   const isEdit = Boolean(draft.id);
@@ -43,7 +50,12 @@ export default function PaymentsGateways() {
       type: "crypto_jwt",
       enabled: true,
       priority: 100,
-      config: { fee_mode: "percent", fee_percent: 0, fee_fixed_cents: 0, min_fee_cents: 0 },
+      config: {
+        fee_mode: "percent",
+        fee_percent: 0,
+        fee_fixed_cents: 0,
+        min_fee_cents: 0,
+      },
     });
 
   const save = async () => {
@@ -56,7 +68,10 @@ export default function PaymentsGateways() {
       config: draft.config ?? {},
     };
     if (isEdit) {
-      await api.put(`/admin/payments/gateways/${encodeURIComponent(draft.id!)}`, payload);
+      await api.put(
+        `/admin/payments/gateways/${encodeURIComponent(draft.id!)}`,
+        payload,
+      );
     } else {
       await api.post(`/admin/payments/gateways`, payload);
     }
@@ -83,12 +98,20 @@ export default function PaymentsGateways() {
   };
 
   // Fee helpers
-  const setFee = (key: "fee_mode" | "fee_percent" | "fee_fixed_cents" | "min_fee_cents", value: string | number) => {
+  const setFee = (
+    key: "fee_mode" | "fee_percent" | "fee_fixed_cents" | "min_fee_cents",
+    value: string | number,
+  ) => {
     setDraft((d) => ({ ...d, config: { ...(d.config || {}), [key]: value } }));
   };
 
   // Verify token
-  const [verify, setVerify] = useState<{ token: string; amount: number; currency: string; preferred_slug?: string }>({
+  const [verify, setVerify] = useState<{
+    token: string;
+    amount: number;
+    currency: string;
+    preferred_slug?: string;
+  }>({
     token: "",
     amount: 100,
     currency: "USD",
@@ -99,13 +122,18 @@ export default function PaymentsGateways() {
   const doVerify = async () => {
     setVerifyRes("");
     try {
-      const res = await api.post<{ ok: boolean; gateway?: string }>(`/admin/payments/verify`, {
-        token: verify.token,
-        amount: Number(verify.amount || 0),
-        currency: verify.currency || null,
-        preferred_slug: verify.preferred_slug || null,
-      });
-      setVerifyRes(`ok=${(res.data as any)?.ok}, gateway=${(res.data as any)?.gateway || "-"}`);
+      const res = await api.post<{ ok: boolean; gateway?: string }>(
+        `/admin/payments/verify`,
+        {
+          token: verify.token,
+          amount: Number(verify.amount || 0),
+          currency: verify.currency || null,
+          preferred_slug: verify.preferred_slug || null,
+        },
+      );
+      setVerifyRes(
+        `ok=${(res.data as any)?.ok}, gateway=${(res.data as any)?.gateway || "-"}`,
+      );
     } catch (e: any) {
       setVerifyRes(`Ошибка: ${e?.message || String(e)}`);
     }
@@ -116,27 +144,58 @@ export default function PaymentsGateways() {
       <h1 className="text-lg font-semibold">Payments — Gateways</h1>
 
       <div className="rounded border p-3">
-        <div className="text-sm text-gray-500 mb-2">{isEdit ? "Редактирование шлюза" : "Создание шлюза"}</div>
+        <div className="text-sm text-gray-500 mb-2">
+          {isEdit ? "Редактирование шлюза" : "Создание шлюза"}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs text-gray-500">Slug</label>
-            <input className="w-full rounded border px-2 py-1" value={draft.slug || ""} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} />
+            <input
+              className="w-full rounded border px-2 py-1"
+              value={draft.slug || ""}
+              onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
+            />
           </div>
           <div>
             <label className="block text-xs text-gray-500">Type</label>
-            <select className="w-full rounded border px-2 py-1" value={draft.type || ""} onChange={(e) => setDraft({ ...draft, type: e.target.value })}>
+            <select
+              className="w-full rounded border px-2 py-1"
+              value={draft.type || ""}
+              onChange={(e) => setDraft({ ...draft, type: e.target.value })}
+            >
               {TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-xs text-gray-500">Priority</label>
-            <input className="w-full rounded border px-2 py-1" type="number" value={draft.priority ?? 100} onChange={(e) => setDraft({ ...draft, priority: parseInt(e.target.value || "100", 10) })} />
+            <input
+              className="w-full rounded border px-2 py-1"
+              type="number"
+              value={draft.priority ?? 100}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  priority: parseInt(e.target.value || "100", 10),
+                })
+              }
+            />
           </div>
           <div className="flex items-center gap-2">
-            <input id="gw-enabled" type="checkbox" checked={!!draft.enabled} onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })} />
-            <label htmlFor="gw-enabled" className="text-sm">Enabled</label>
+            <input
+              id="gw-enabled"
+              type="checkbox"
+              checked={!!draft.enabled}
+              onChange={(e) =>
+                setDraft({ ...draft, enabled: e.target.checked })
+              }
+            />
+            <label htmlFor="gw-enabled" className="text-sm">
+              Enabled
+            </label>
           </div>
 
           <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-3 mt-2">
@@ -160,30 +219,42 @@ export default function PaymentsGateways() {
                 type="number"
                 step="0.1"
                 value={Number(draft.config?.fee_percent || 0)}
-                onChange={(e) => setFee("fee_percent", parseFloat(e.target.value || "0"))}
+                onChange={(e) =>
+                  setFee("fee_percent", parseFloat(e.target.value || "0"))
+                }
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500">Fee fixed (cents)</label>
+              <label className="block text-xs text-gray-500">
+                Fee fixed (cents)
+              </label>
               <input
                 className="w-full rounded border px-2 py-1"
                 type="number"
                 value={Number(draft.config?.fee_fixed_cents || 0)}
-                onChange={(e) => setFee("fee_fixed_cents", parseInt(e.target.value || "0", 10))}
+                onChange={(e) =>
+                  setFee("fee_fixed_cents", parseInt(e.target.value || "0", 10))
+                }
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500">Min fee (cents)</label>
+              <label className="block text-xs text-gray-500">
+                Min fee (cents)
+              </label>
               <input
                 className="w-full rounded border px-2 py-1"
                 type="number"
                 value={Number(draft.config?.min_fee_cents || 0)}
-                onChange={(e) => setFee("min_fee_cents", parseInt(e.target.value || "0", 10))}
+                onChange={(e) =>
+                  setFee("min_fee_cents", parseInt(e.target.value || "0", 10))
+                }
               />
             </div>
 
             <div className="md:col-span-4">
-              <label className="block text-xs text-gray-500">Config (JSON)</label>
+              <label className="block text-xs text-gray-500">
+                Config (JSON)
+              </label>
               <textarea
                 className="w-full rounded border px-2 py-1 font-mono text-xs min-h-[120px]"
                 value={JSON.stringify(draft.config || {}, null, 2)}
@@ -200,15 +271,29 @@ export default function PaymentsGateways() {
           </div>
         </div>
         <div className="mt-3 flex gap-2">
-          <button onClick={save} className="text-sm px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700">{isEdit ? "Сохранить" : "Создать"}</button>
-          <button onClick={resetDraft} className="text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200">Сбросить</button>
+          <button
+            onClick={save}
+            className="text-sm px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
+          >
+            {isEdit ? "Сохранить" : "Создать"}
+          </button>
+          <button
+            onClick={resetDraft}
+            className="text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
+          >
+            Сбросить
+          </button>
         </div>
       </div>
 
       <div className="rounded border p-3">
         <div className="text-sm text-gray-500 mb-2">Список шлюзов</div>
-        {isLoading ? <div className="text-sm text-gray-500">Загрузка…</div> : null}
-        {error ? <div className="text-sm text-red-600">{(error as any)?.message}</div> : null}
+        {isLoading ? (
+          <div className="text-sm text-gray-500">Загрузка…</div>
+        ) : null}
+        {error ? (
+          <div className="text-sm text-red-600">{(error as any)?.message}</div>
+        ) : null}
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -238,13 +323,27 @@ export default function PaymentsGateways() {
                     })()}
                   </td>
                   <td className="px-2 py-1">
-                    <button onClick={() => edit(g)} className="text-blue-600 hover:underline mr-2">Edit</button>
-                    <button onClick={() => remove(g.id)} className="text-red-600 hover:underline">Delete</button>
+                    <button
+                      onClick={() => edit(g)}
+                      className="text-blue-600 hover:underline mr-2"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => remove(g.id)}
+                      className="text-red-600 hover:underline"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
               {(data || []).length === 0 ? (
-                <tr><td className="px-2 py-3 text-gray-500" colSpan={6}>Нет шлюзов</td></tr>
+                <tr>
+                  <td className="px-2 py-3 text-gray-500" colSpan={6}>
+                    Нет шлюзов
+                  </td>
+                </tr>
               ) : null}
             </tbody>
           </table>
@@ -256,23 +355,60 @@ export default function PaymentsGateways() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="md:col-span-2">
             <label className="block text-xs text-gray-500">Token (JWT)</label>
-            <textarea className="w-full rounded border px-2 py-1 font-mono text-xs min-h-[80px]" value={verify.token} onChange={(e) => setVerify((v) => ({ ...v, token: e.target.value }))} />
+            <textarea
+              className="w-full rounded border px-2 py-1 font-mono text-xs min-h-[80px]"
+              value={verify.token}
+              onChange={(e) =>
+                setVerify((v) => ({ ...v, token: e.target.value }))
+              }
+            />
           </div>
           <div>
-            <label className="block text-xs text-gray-500">Amount (cents)</label>
-            <input className="w-full rounded border px-2 py-1" type="number" value={verify.amount} onChange={(e) => setVerify((v) => ({ ...v, amount: parseInt(e.target.value || "0", 10) }))} />
+            <label className="block text-xs text-gray-500">
+              Amount (cents)
+            </label>
+            <input
+              className="w-full rounded border px-2 py-1"
+              type="number"
+              value={verify.amount}
+              onChange={(e) =>
+                setVerify((v) => ({
+                  ...v,
+                  amount: parseInt(e.target.value || "0", 10),
+                }))
+              }
+            />
           </div>
           <div>
             <label className="block text-xs text-gray-500">Currency</label>
-            <input className="w-full rounded border px-2 py-1" value={verify.currency} onChange={(e) => setVerify((v) => ({ ...v, currency: e.target.value }))} />
+            <input
+              className="w-full rounded border px-2 py-1"
+              value={verify.currency}
+              onChange={(e) =>
+                setVerify((v) => ({ ...v, currency: e.target.value }))
+              }
+            />
           </div>
           <div>
-            <label className="block text-xs text-gray-500">Preferred slug (optional)</label>
-            <input className="w-full rounded border px-2 py-1" value={verify.preferred_slug || ""} onChange={(e) => setVerify((v) => ({ ...v, preferred_slug: e.target.value }))} />
+            <label className="block text-xs text-gray-500">
+              Preferred slug (optional)
+            </label>
+            <input
+              className="w-full rounded border px-2 py-1"
+              value={verify.preferred_slug || ""}
+              onChange={(e) =>
+                setVerify((v) => ({ ...v, preferred_slug: e.target.value }))
+              }
+            />
           </div>
         </div>
         <div className="mt-3 flex items-center gap-2">
-          <button onClick={doVerify} className="text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200">Проверить</button>
+          <button
+            onClick={doVerify}
+            className="text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
+          >
+            Проверить
+          </button>
           {verifyRes ? <div className="text-sm">{verifyRes}</div> : null}
         </div>
       </div>

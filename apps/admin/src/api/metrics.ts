@@ -1,6 +1,6 @@
 import type { MetricsSummary } from "../openapi";
-import type { ListResponse } from "./types";
 import { api } from "./client";
+import type { ListResponse } from "./types";
 
 export interface TimeseriesPoint {
   ts: number;
@@ -26,7 +26,9 @@ export interface TopEndpointItem {
   count: number;
 }
 
-export async function getMetricsSummary(range: "1h" | "24h" = "1h"): Promise<MetricsSummary> {
+export async function getMetricsSummary(
+  range: "1h" | "24h" = "1h",
+): Promise<MetricsSummary> {
   const res = await api.get<MetricsSummary>(
     `/admin/metrics/summary?range=${encodeURIComponent(range)}`,
   );

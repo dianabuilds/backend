@@ -1,8 +1,9 @@
-import { Outlet, Link } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
+
 import { useAuth } from "../auth/AuthContext";
+import HotfixBanner from "./HotfixBanner";
 import Sidebar from "./Sidebar";
 import WorkspaceSelector from "./WorkspaceSelector";
-import HotfixBanner from "./HotfixBanner";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -17,7 +18,9 @@ export default function Layout() {
               <Link to="/profile" className="hover:underline">
                 {user.username ?? user.email ?? user.id}
               </Link>
-              <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800">{user.role}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800">
+                {user.role}
+              </span>
               <button
                 onClick={logout}
                 className="px-3 py-1 rounded bg-gray-800 text-white hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600"

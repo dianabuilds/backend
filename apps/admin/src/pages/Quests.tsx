@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+
 import { api } from "../api/client";
 import { useToast } from "../components/ToastProvider";
-import { Link } from "react-router-dom";
 
 interface QuestItem {
   id: string;
@@ -31,7 +32,9 @@ function ensureArray<T = any>(data: unknown): T[] {
   return [];
 }
 
-async function fetchQuests(params: Record<string, string>): Promise<QuestItem[]> {
+async function fetchQuests(
+  params: Record<string, string>,
+): Promise<QuestItem[]> {
   const qs = new URLSearchParams(params).toString();
   const res = await api.get(`/admin/quests?${qs}`);
   return ensureArray<QuestItem>(res.data);
@@ -68,10 +71,18 @@ export default function Quests() {
     setPublishing(id);
     try {
       const q = await publishQuest(id);
-      addToast({ title: "Quest published", description: q.title, variant: "success" });
+      addToast({
+        title: "Quest published",
+        description: q.title,
+        variant: "success",
+      });
       qc.invalidateQueries({ queryKey: ["quests-admin"] });
     } catch (e) {
-      addToast({ title: "Failed to publish quest", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Failed to publish quest",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     } finally {
       setPublishing(null);
     }
@@ -82,10 +93,19 @@ export default function Quests() {
       <h1 className="text-2xl font-bold mb-4">Quests</h1>
 
       <div className="mb-4 flex items-end gap-2">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search..." className="border rounded px-2 py-1" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search..."
+          className="border rounded px-2 py-1"
+        />
         <label className="flex items-center gap-2 text-sm">
           <span>Author role</span>
-          <select value={authorRole} onChange={(e) => setAuthorRole(e.target.value)} className="border rounded px-2 py-1">
+          <select
+            value={authorRole}
+            onChange={(e) => setAuthorRole(e.target.value)}
+            className="border rounded px-2 py-1"
+          >
             <option value="">any</option>
             <option value="admin">admin</option>
             <option value="moderator">moderator</option>
@@ -94,13 +114,22 @@ export default function Quests() {
         </label>
         <label className="flex items-center gap-2 text-sm">
           <span>Status</span>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="border rounded px-2 py-1">
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="border rounded px-2 py-1"
+          >
             <option value="any">any</option>
             <option value="draft">draft</option>
             <option value="published">published</option>
           </select>
         </label>
-        <Link className="px-3 py-1 rounded bg-blue-600 text-white" to="/quests/editor">Create quest</Link>
+        <Link
+          className="px-3 py-1 rounded bg-blue-600 text-white"
+          to="/quests/editor"
+        >
+          Create quest
+        </Link>
       </div>
 
       {isLoading && <p>Loading…</p>}
@@ -127,8 +156,14 @@ export default function Quests() {
                 <td className="p-2">{q.price ?? 0}</td>
                 <td className="p-2">{q.is_premium_only ? "yes" : "no"}</td>
                 <td className="p-2">{q.is_draft ? "Draft" : "Published"}</td>
-                <td className="p-2">{new Date(q.created_at).toLocaleString()}</td>
-                <td className="p-2">{q.published_at ? new Date(q.published_at).toLocaleString() : "-"}</td>
+                <td className="p-2">
+                  {new Date(q.created_at).toLocaleString()}
+                </td>
+                <td className="p-2">
+                  {q.published_at
+                    ? new Date(q.published_at).toLocaleString()
+                    : "-"}
+                </td>
                 <td className="p-2 space-x-2">
                   {q.is_draft && (
                     <>
@@ -144,14 +179,22 @@ export default function Quests() {
                         onClick={() => handlePublish(q.id)}
                         disabled={publishing === q.id}
                       >
-                        {publishing === q.id ? "Publishing..." : "Publish & notify"}
+                        {publishing === q.id
+                          ? "Publishing..."
+                          : "Publish & notify"}
                       </button>
                     </>
                   )}
                 </td>
               </tr>
             ))}
-            {(!data || data.length === 0) && <tr><td className="p-2 text-gray-500" colSpan={8}>No quests</td></tr>}
+            {(!data || data.length === 0) && (
+              <tr>
+                <td className="p-2 text-gray-500" colSpan={8}>
+                  No quests
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       )}

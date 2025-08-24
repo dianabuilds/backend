@@ -1,21 +1,21 @@
-import React from "react";
 import {
-  Home,
-  Users as UsersIcon,
   Activity,
-  FileText,
   Ban,
+  Bell,
+  Box,
+  Database,
+  ExternalLink,
+  FileText,
+  Home,
+  Menu as MenuIcon,
+  Search,
   Settings,
   Shield,
   Tag,
-  Search,
-  ExternalLink,
-  Menu as MenuIcon,
-  Database,
-  Box,
-  Bell,
   Trophy,
+  Users as UsersIcon,
 } from "lucide-react";
+import type React from "react";
 
 export type IconName =
   | "home"
@@ -49,11 +49,13 @@ export const iconRegistry: Record<string, React.ComponentType<any>> = {
   database: Database,
   box: Box,
   bell: Bell,
-    achievements: Trophy,
+  achievements: Trophy,
   notifications: Bell,
 };
 
-export function getIconComponent(name?: string | null): React.ComponentType<any> {
+export function getIconComponent(
+  name?: string | null,
+): React.ComponentType<any> {
   if (!name) return MenuIcon;
   return iconRegistry[name] || MenuIcon;
 }

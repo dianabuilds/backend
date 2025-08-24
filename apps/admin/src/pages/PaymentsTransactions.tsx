@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+
 import { api } from "../api/client";
 import CursorPager from "../components/CursorPager";
-import ErrorBanner from "../components/ErrorBanner";
 import DataTable from "../components/DataTable";
 import type { Column } from "../components/DataTable.helpers";
+import ErrorBanner from "../components/ErrorBanner";
 import { useToast } from "../components/ToastProvider";
 
 type Tx = {
@@ -38,27 +39,37 @@ export default function PaymentsTransactions() {
   const [error, setError] = useState<string | null>(null);
   const { addToast } = useToast();
 
-  const buildQuery = useCallback((cursor?: string | null) => {
-    const qs = new URLSearchParams();
-    if (gateway) qs.set("f_gateway", gateway);
-    if (ptype) qs.set("f_product_type", ptype);
-    if (user) qs.set("f_user_id", user);
-    qs.set("limit", String(limit));
-    if (cursor) qs.set("cursor", cursor);
-    return qs.toString();
-  }, [gateway, ptype, user, limit]);
+  const buildQuery = useCallback(
+    (cursor?: string | null) => {
+      const qs = new URLSearchParams();
+      if (gateway) qs.set("f_gateway", gateway);
+      if (ptype) qs.set("f_product_type", ptype);
+      if (user) qs.set("f_user_id", user);
+      qs.set("limit", String(limit));
+      if (cursor) qs.set("cursor", cursor);
+      return qs.toString();
+    },
+    [gateway, ptype, user, limit],
+  );
 
   const loadFirst = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>(`/admin/payments/transactions_cursor?${buildQuery(null)}`, { retry: 1 });
+      const res = await api.get<any>(
+        `/admin/payments/transactions_cursor?${buildQuery(null)}`,
+        { retry: 1 },
+      );
       const data: CursorResp = res.data || { items: [], next_cursor: null };
       setRows(Array.isArray(data.items) ? data.items : []);
       setNext((data as any).next_cursor || null);
     } catch (e: any) {
       setError(e?.message || "Ошибка загрузки");
-      addToast({ title: "Ошибка загрузки", description: e?.message, variant: "error" });
+      addToast({
+        title: "Ошибка загрузки",
+        description: e?.message,
+        variant: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -69,14 +80,21 @@ export default function PaymentsTransactions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>(`/admin/payments/transactions_cursor?${buildQuery(next)}`, { retry: 1 });
+      const res = await api.get<any>(
+        `/admin/payments/transactions_cursor?${buildQuery(next)}`,
+        { retry: 1 },
+      );
       const data: CursorResp = res.data || { items: [], next_cursor: null };
       const newItems = Array.isArray(data.items) ? data.items : [];
       setRows((prev) => [...prev, ...newItems]);
       setNext((data as any).next_cursor || null);
     } catch (e: any) {
       setError(e?.message || "Ошибка загрузки");
-      addToast({ title: "Ошибка загрузки", description: e?.message, variant: "error" });
+      addToast({
+        title: "Ошибка загрузки",
+        description: e?.message,
+        variant: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -92,11 +110,38 @@ export default function PaymentsTransactions() {
       <div className="rounded border p-3">
         <div className="text-sm text-gray-500 mb-2">Фильтры</div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-          <input className="rounded border px-2 py-1" placeholder="Gateway (slug)" value={gateway} onChange={(e) => setGateway(e.target.value)} />
-          <input className="rounded border px-2 py-1" placeholder="Product type" value={ptype} onChange={(e) => setPtype(e.target.value)} />
-          <input className="rounded border px-2 py-1" placeholder="User ID" value={user} onChange={(e) => setUser(e.target.value)} />
-          <input className="rounded border px-2 py-1" type="number" min={1} max={100} value={limit} onChange={(e) => setLimit(parseInt(e.target.value || "50"))} />
-          <button onClick={loadFirst} className="text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200">Применить</button>
+          <input
+            className="rounded border px-2 py-1"
+            placeholder="Gateway (slug)"
+            value={gateway}
+            onChange={(e) => setGateway(e.target.value)}
+          />
+          <input
+            className="rounded border px-2 py-1"
+            placeholder="Product type"
+            value={ptype}
+            onChange={(e) => setPtype(e.target.value)}
+          />
+          <input
+            className="rounded border px-2 py-1"
+            placeholder="User ID"
+            value={user}
+            onChange={(e) => setUser(e.target.value)}
+          />
+          <input
+            className="rounded border px-2 py-1"
+            type="number"
+            min={1}
+            max={100}
+            value={limit}
+            onChange={(e) => setLimit(parseInt(e.target.value || "50"))}
+          />
+          <button
+            onClick={loadFirst}
+            className="text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
+          >
+            Применить
+          </button>
         </div>
       </div>
 
@@ -104,9 +149,17 @@ export default function PaymentsTransactions() {
         {error ? <ErrorBanner message={error} /> : null}
         {(() => {
           const cols: Column<Tx>[] = [
-            { key: "created_at", title: "Time", accessor: (t) => t.created_at || "-" },
+            {
+              key: "created_at",
+              title: "Time",
+              accessor: (t) => t.created_at || "-",
+            },
             { key: "user_id", title: "User" },
-            { key: "gateway", title: "Gateway", accessor: (t) => t.gateway || "-" },
+            {
+              key: "gateway",
+              title: "Gateway",
+              accessor: (t) => t.gateway || "-",
+            },
             {
               key: "product",
               title: "Product",
@@ -126,14 +179,24 @@ export default function PaymentsTransactions() {
                 </span>
               ),
             },
-            { key: "fee_cents", title: "Fee", render: (t) => (t.fee_cents / 100).toFixed(2) },
-            { key: "net_cents", title: "Net", render: (t) => (t.net_cents / 100).toFixed(2) },
+            {
+              key: "fee_cents",
+              title: "Fee",
+              render: (t) => (t.fee_cents / 100).toFixed(2),
+            },
+            {
+              key: "net_cents",
+              title: "Net",
+              render: (t) => (t.net_cents / 100).toFixed(2),
+            },
             {
               key: "meta",
               title: "Meta",
               render: (t) => (
                 <details>
-                  <summary className="text-blue-600 cursor-pointer hover:underline">Показать</summary>
+                  <summary className="text-blue-600 cursor-pointer hover:underline">
+                    Показать
+                  </summary>
                   <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-xs bg-gray-50 p-2 rounded">
                     {JSON.stringify(t.meta ?? {}, null, 2)}
                   </pre>
@@ -152,7 +215,12 @@ export default function PaymentsTransactions() {
           );
         })()}
 
-        <CursorPager hasMore={Boolean(next)} loading={loading} onLoadMore={loadMore} className="mt-3 flex justify-center" />
+        <CursorPager
+          hasMore={Boolean(next)}
+          loading={loading}
+          onLoadMore={loadMore}
+          className="mt-3 flex justify-center"
+        />
       </div>
     </div>
   );

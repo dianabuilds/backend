@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { Settings } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Settings } from "lucide-react";
+
 import { api } from "../api/client";
+import type { Workspace } from "../api/types";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 import SelectBase from "./ui/SelectBase";
-import type { Workspace } from "../api/types";
 
 export default function WorkspaceSelector() {
   const { workspaceId, setWorkspace } = useWorkspace();
@@ -13,7 +14,9 @@ export default function WorkspaceSelector() {
   const { data } = useQuery({
     queryKey: ["workspaces"],
     queryFn: async () => {
-      const res = await api.get<Workspace[] | { workspaces: Workspace[] }>("/admin/workspaces");
+      const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
+        "/admin/workspaces",
+      );
       const payload = res.data;
       if (Array.isArray(payload)) return payload;
       return payload?.workspaces ?? [];

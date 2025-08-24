@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { api } from "../api/client";
+import EditorJSViewer from "../components/EditorJSViewer";
 import NodeEditorModal from "../components/NodeEditorModal";
 import type { NodeEditorData } from "../components/NodeEditorModal.helpers";
-import EditorJSViewer from "../components/EditorJSViewer";
-import { useToast } from "../components/ToastProvider";
 import type { TagOut } from "../components/tags/TagPicker";
+import { useToast } from "../components/ToastProvider";
 
 type NodeItem = {
   id: string;
@@ -36,13 +37,20 @@ function normalizeNode(raw: any): NodeItem {
     ...n,
     id: String(n.id ?? n.uuid ?? n._id),
     slug: n.slug,
-    is_visible: typeof n.is_visible === "boolean" ? n.is_visible : Boolean(n.isVisible),
-    is_public: typeof n.is_public === "boolean" ? n.is_public : Boolean(n.isPublic),
-    premium_only: typeof n.premium_only === "boolean" ? n.premium_only : Boolean(n.premiumOnly),
+    is_visible:
+      typeof n.is_visible === "boolean" ? n.is_visible : Boolean(n.isVisible),
+    is_public:
+      typeof n.is_public === "boolean" ? n.is_public : Boolean(n.isPublic),
+    premium_only:
+      typeof n.premium_only === "boolean"
+        ? n.premium_only
+        : Boolean(n.premiumOnly),
     is_recommendable:
       typeof n.is_recommendable === "boolean"
         ? n.is_recommendable
-        : (typeof n.isRecommendable === "boolean" ? n.isRecommendable : true),
+        : typeof n.isRecommendable === "boolean"
+          ? n.isRecommendable
+          : true,
     created_at: n.created_at ?? n.createdAt ?? undefined,
     updated_at: n.updated_at ?? n.updatedAt ?? undefined,
   };
@@ -57,18 +65,29 @@ function makeDraft(): NodeEditorData {
     tags: [] as TagOut[],
     allow_comments: true,
     is_premium_only: false,
-    contentData: { time: Date.now(), blocks: [{ type: "paragraph", data: { text: "" } }], version: "2.30.7" },
+    contentData: {
+      time: Date.now(),
+      blocks: [{ type: "paragraph", data: { text: "" } }],
+      version: "2.30.7",
+    },
   };
 }
 
-type ChangeSet = Partial<Pick<NodeItem, "is_visible" | "is_public" | "premium_only" | "is_recommendable">>;
+type ChangeSet = Partial<
+  Pick<
+    NodeItem,
+    "is_visible" | "is_public" | "premium_only" | "is_recommendable"
+  >
+>;
 
 export default function Nodes() {
   const { addToast } = useToast();
 
   // Пагинация/поиск
   const [q, setQ] = useState("");
-  const [visibility, setVisibility] = useState<"all" | "visible" | "hidden">("all");
+  const [visibility, setVisibility] = useState<"all" | "visible" | "hidden">(
+    "all",
+  );
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(20);
 
@@ -135,16 +154,26 @@ export default function Nodes() {
     } else {
       // Восстановление: confirm и прямой вызов
       if (!node.slug) {
-        addToast({ title: "Restore failed", description: "Slug is missing", variant: "error" });
+        addToast({
+          title: "Restore failed",
+          description: "Slug is missing",
+          variant: "error",
+        });
         return;
       }
       if (!confirm("Restore this node?")) return;
       (async () => {
         try {
           setModBusy(true);
-          await api.post(`/admin/moderation/nodes/${encodeURIComponent(String(node.slug))}/restore`);
+          await api.post(
+            `/admin/moderation/nodes/${encodeURIComponent(String(node.slug))}/restore`,
+          );
           // Оптимистично обновляем строку и baseline
-          setItems((prev) => prev.map((n) => (n.id === node.id ? { ...n, is_visible: true } : n)));
+          setItems((prev) =>
+            prev.map((n) =>
+              n.id === node.id ? { ...n, is_visible: true } : n,
+            ),
+          );
           setBaseline((prev) => {
             const m = new Map(prev);
             const base = m.get(node.id) || node;
@@ -155,7 +184,11 @@ export default function Nodes() {
           // Фоновая верификация
           await load(page);
         } catch (e) {
-          addToast({ title: "Restore failed", description: e instanceof Error ? e.message : String(e), variant: "error" });
+          addToast({
+            title: "Restore failed",
+            description: e instanceof Error ? e.message : String(e),
+            variant: "error",
+          });
         } finally {
           setModBusy(false);
         }
@@ -166,15 +199,26 @@ export default function Nodes() {
   const submitModerationHide = async () => {
     if (!modTarget) return;
     if (!modTarget.slug) {
-      addToast({ title: "Hide failed", description: "Slug is missing", variant: "error" });
+      addToast({
+        title: "Hide failed",
+        description: "Slug is missing",
+        variant: "error",
+      });
       return;
     }
     try {
       setModBusy(true);
-      await api.post(`/admin/moderation/nodes/${encodeURIComponent(String(modTarget.slug))}/hide`, { reason: modReason || "" });
+      await api.post(
+        `/admin/moderation/nodes/${encodeURIComponent(String(modTarget.slug))}/hide`,
+        { reason: modReason || "" },
+      );
       setModOpen(false);
       // Оптимистично: делаем ноду невидимой и фиксируем в baseline
-      setItems((prev) => prev.map((n) => (n.id === modTarget.id ? { ...n, is_visible: false } : n)));
+      setItems((prev) =>
+        prev.map((n) =>
+          n.id === modTarget.id ? { ...n, is_visible: false } : n,
+        ),
+      );
       setBaseline((prev) => {
         const m = new Map(prev);
         const base = m.get(modTarget.id) || modTarget;
@@ -184,7 +228,11 @@ export default function Nodes() {
       addToast({ title: "Node hidden", variant: "success" });
       await load(page);
     } catch (e) {
-      addToast({ title: "Hide failed", description: e instanceof Error ? e.message : String(e), variant: "error" });
+      addToast({
+        title: "Hide failed",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     } finally {
       setModBusy(false);
     }
@@ -206,7 +254,8 @@ export default function Nodes() {
         offset: String(pageIndex * limit),
       };
       if (q) params.q = q;
-      if (visibility !== "all") params.visible = visibility === "visible" ? "true" : "false";
+      if (visibility !== "all")
+        params.visible = visibility === "visible" ? "true" : "false";
       const qs = new URLSearchParams(params).toString();
       const res = await api.get(`/admin/nodes?${qs}`);
       const raw = ensureArray<any>(res.data) as any[];
@@ -221,7 +270,11 @@ export default function Nodes() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
-      addToast({ title: "Failed to load nodes", description: msg, variant: "error" });
+      addToast({
+        title: "Failed to load nodes",
+        description: msg,
+        variant: "error",
+      });
       setItems([]);
       setBaseline(new Map());
       setPending(new Map());
@@ -252,7 +305,9 @@ export default function Nodes() {
       false;
     const nextVal = !current;
 
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, [field]: nextVal } : n)));
+    setItems((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, [field]: nextVal } : n)),
+    );
 
     setPending((prev) => {
       const next = new Map(prev);
@@ -285,10 +340,16 @@ export default function Nodes() {
       if (cs.is_public !== undefined && cs.is_public !== base.is_public) {
         (cs.is_public ? ops.public : ops.private).push(id);
       }
-      if (cs.premium_only !== undefined && cs.premium_only !== base.premium_only) {
+      if (
+        cs.premium_only !== undefined &&
+        cs.premium_only !== base.premium_only
+      ) {
         ops.toggle_premium.push(id);
       }
-      if (cs.is_recommendable !== undefined && cs.is_recommendable !== base.is_recommendable) {
+      if (
+        cs.is_recommendable !== undefined &&
+        cs.is_recommendable !== base.is_recommendable
+      ) {
         ops.toggle_recommendable.push(id);
       }
     }
@@ -303,7 +364,11 @@ export default function Nodes() {
         results.push(`${op}: ${ids.length}`);
       }
       if (any) {
-        addToast({ title: "Changes applied", description: results.join(", "), variant: "success" });
+        addToast({
+          title: "Changes applied",
+          description: results.join(", "),
+          variant: "success",
+        });
         // Оптимистично фиксируем новые значения как базовые,
         // чтобы статус в таблице не «откатывался» визуально.
         setBaseline(new Map(items.map((n) => [n.id, { ...n }])));
@@ -351,29 +416,40 @@ export default function Nodes() {
       // передаем на случай, если backend уже поддерживает теги в /nodes
       tags: Array.isArray(draft.tags) ? draft.tags.map((t) => t.slug) : [],
     };
-    const blocks = Array.isArray(draft.contentData?.blocks) ? draft.contentData.blocks : [];
+    const blocks = Array.isArray(draft.contentData?.blocks)
+      ? draft.contentData.blocks
+      : [];
     const media = blocks
       .filter((b: any) => b.type === "image" && b.data?.file?.url)
       .map((b: any) => String(b.data.file.url));
     if (media.length) payload.media = media;
-    if (draft.cover_url || media.length) payload.cover_url = draft.cover_url || media[0];
+    if (draft.cover_url || media.length)
+      payload.cover_url = draft.cover_url || media[0];
 
     const res = await api.post("/nodes", payload);
     const created: any = res.data;
     const nodeId = String(created?.id ?? created?.uuid ?? created?._id ?? "");
-    const tags = Array.isArray(draft.tags) ? draft.tags.map((t) => t.slug).filter(Boolean) : [];
+    const tags = Array.isArray(draft.tags)
+      ? draft.tags.map((t) => t.slug).filter(Boolean)
+      : [];
 
     if (nodeId && tags.length > 0) {
       const body = { tags };
       // Пытаемся использовать доступные варианты эндпоинтов
       try {
-        await api.request(`/nodes/${encodeURIComponent(nodeId)}/tags`, { method: "PUT", json: body });
+        await api.request(`/nodes/${encodeURIComponent(nodeId)}/tags`, {
+          method: "PUT",
+          json: body,
+        });
       } catch {
         try {
           await api.post(`/nodes/${encodeURIComponent(nodeId)}/tags`, body);
         } catch {
           try {
-            await api.post(`/admin/nodes/${encodeURIComponent(nodeId)}/tags`, body);
+            await api.post(
+              `/admin/nodes/${encodeURIComponent(nodeId)}/tags`,
+              body,
+            );
           } catch {
             // если все варианты недоступны — тихо продолжаем, чтобы не ломать флоу создания
           }
@@ -451,7 +527,9 @@ export default function Nodes() {
               disabled={changesCount === 0 || loading || applying}
               onClick={applyChanges}
             >
-              {applying ? "Applying…" : `Apply changes${changesCount > 0 ? ` (${changesCount})` : ""}`}
+              {applying
+                ? "Applying…"
+                : `Apply changes${changesCount > 0 ? ` (${changesCount})` : ""}`}
             </button>
             <button
               type="button"
@@ -480,14 +558,156 @@ export default function Nodes() {
         {/* Bulk по выделению (по-прежнему доступно) */}
         {selected.size > 0 && (
           <div className="mb-2 flex gap-2">
-            <span className="self-center text-sm">Selected {selected.size}</span>
-            <button type="button" className="px-2 py-1 border rounded" onClick={() => { setItems(items.map(n => selected.has(n.id) ? { ...n, is_visible: false } : n)); setPending(p => { const m=new Map(p); Array.from(selected).forEach(id=>{ const cs={...(m.get(id)||{})}; cs.is_visible=false; m.set(id, cs);}); return m;}); }}>Hide</button>
-            <button type="button" className="px-2 py-1 border rounded" onClick={() => { setItems(items.map(n => selected.has(n.id) ? { ...n, is_visible: true } : n)); setPending(p => { const m=new Map(p); Array.from(selected).forEach(id=>{ const cs={...(m.get(id)||{})}; cs.is_visible=true; m.set(id, cs);}); return m;}); }}>Show</button>
-            <button type="button" className="px-2 py-1 border rounded" onClick={() => { setItems(items.map(n => selected.has(n.id) ? { ...n, is_public: true } : n)); setPending(p => { const m=new Map(p); Array.from(selected).forEach(id=>{ const cs={...(m.get(id)||{})}; cs.is_public=true; m.set(id, cs);}); return m;}); }}>Public</button>
-            <button type="button" className="px-2 py-1 border rounded" onClick={() => { setItems(items.map(n => selected.has(n.id) ? { ...n, is_public: false } : n)); setPending(p => { const m=new Map(p); Array.from(selected).forEach(id=>{ const cs={...(m.get(id)||{})}; cs.is_public=false; m.set(id, cs);}); return m;}); }}>Private</button>
-            <button type="button" className="px-2 py-1 border rounded" onClick={() => { setItems(items.map(n => selected.has(n.id) ? { ...n, premium_only: !n.premium_only } : n)); setPending(p => { const m=new Map(p); Array.from(selected).forEach(id=>{ const cs={...(m.get(id)||{})}; cs.premium_only = !(baseline.get(id)?.premium_only ?? false); m.set(id, cs);}); return m;}); }}>Toggle premium</button>
-            <button type="button" className="px-2 py-1 border rounded" onClick={() => { setItems(items.map(n => selected.has(n.id) ? { ...n, is_recommendable: !n.is_recommendable } : n)); setPending(p => { const m=new Map(p); Array.from(selected).forEach(id=>{ const cs={...(m.get(id)||{})}; cs.is_recommendable = !(baseline.get(id)?.is_recommendable ?? false); m.set(id, cs);}); return m;}); }}>Toggle recommendable</button>
-            <button type="button" className="ml-auto px-2 py-1 border rounded" onClick={() => setSelected(new Set())}>Clear</button>
+            <span className="self-center text-sm">
+              Selected {selected.size}
+            </span>
+            <button
+              type="button"
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                setItems(
+                  items.map((n) =>
+                    selected.has(n.id) ? { ...n, is_visible: false } : n,
+                  ),
+                );
+                setPending((p) => {
+                  const m = new Map(p);
+                  Array.from(selected).forEach((id) => {
+                    const cs = { ...(m.get(id) || {}) };
+                    cs.is_visible = false;
+                    m.set(id, cs);
+                  });
+                  return m;
+                });
+              }}
+            >
+              Hide
+            </button>
+            <button
+              type="button"
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                setItems(
+                  items.map((n) =>
+                    selected.has(n.id) ? { ...n, is_visible: true } : n,
+                  ),
+                );
+                setPending((p) => {
+                  const m = new Map(p);
+                  Array.from(selected).forEach((id) => {
+                    const cs = { ...(m.get(id) || {}) };
+                    cs.is_visible = true;
+                    m.set(id, cs);
+                  });
+                  return m;
+                });
+              }}
+            >
+              Show
+            </button>
+            <button
+              type="button"
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                setItems(
+                  items.map((n) =>
+                    selected.has(n.id) ? { ...n, is_public: true } : n,
+                  ),
+                );
+                setPending((p) => {
+                  const m = new Map(p);
+                  Array.from(selected).forEach((id) => {
+                    const cs = { ...(m.get(id) || {}) };
+                    cs.is_public = true;
+                    m.set(id, cs);
+                  });
+                  return m;
+                });
+              }}
+            >
+              Public
+            </button>
+            <button
+              type="button"
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                setItems(
+                  items.map((n) =>
+                    selected.has(n.id) ? { ...n, is_public: false } : n,
+                  ),
+                );
+                setPending((p) => {
+                  const m = new Map(p);
+                  Array.from(selected).forEach((id) => {
+                    const cs = { ...(m.get(id) || {}) };
+                    cs.is_public = false;
+                    m.set(id, cs);
+                  });
+                  return m;
+                });
+              }}
+            >
+              Private
+            </button>
+            <button
+              type="button"
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                setItems(
+                  items.map((n) =>
+                    selected.has(n.id)
+                      ? { ...n, premium_only: !n.premium_only }
+                      : n,
+                  ),
+                );
+                setPending((p) => {
+                  const m = new Map(p);
+                  Array.from(selected).forEach((id) => {
+                    const cs = { ...(m.get(id) || {}) };
+                    cs.premium_only = !(
+                      baseline.get(id)?.premium_only ?? false
+                    );
+                    m.set(id, cs);
+                  });
+                  return m;
+                });
+              }}
+            >
+              Toggle premium
+            </button>
+            <button
+              type="button"
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                setItems(
+                  items.map((n) =>
+                    selected.has(n.id)
+                      ? { ...n, is_recommendable: !n.is_recommendable }
+                      : n,
+                  ),
+                );
+                setPending((p) => {
+                  const m = new Map(p);
+                  Array.from(selected).forEach((id) => {
+                    const cs = { ...(m.get(id) || {}) };
+                    cs.is_recommendable = !(
+                      baseline.get(id)?.is_recommendable ?? false
+                    );
+                    m.set(id, cs);
+                  });
+                  return m;
+                });
+              }}
+            >
+              Toggle recommendable
+            </button>
+            <button
+              type="button"
+              className="ml-auto px-2 py-1 border rounded"
+              onClick={() => setSelected(new Set())}
+            >
+              Clear
+            </button>
           </div>
         )}
 
@@ -500,9 +720,15 @@ export default function Nodes() {
                   <th className="p-2">
                     <input
                       type="checkbox"
-                      checked={items.length > 0 && selected.size === items.length}
+                      checked={
+                        items.length > 0 && selected.size === items.length
+                      }
                       onChange={(e) =>
-                        setSelected(e.target.checked ? new Set(items.map((i) => i.id)) : new Set())
+                        setSelected(
+                          e.target.checked
+                            ? new Set(items.map((i) => i.id))
+                            : new Set(),
+                        )
                       }
                     />
                   </th>
@@ -541,31 +767,59 @@ export default function Nodes() {
                       className={`border-b hover:bg-gray-50 dark:hover:bg-gray-800 ${changed ? "bg-amber-50 dark:bg-amber-900/20" : ""}`}
                     >
                       <td className="p-2">
-                        <input type="checkbox" checked={selected.has(n.id)} onChange={() => toggleSelect(n.id)} />
+                        <input
+                          type="checkbox"
+                          checked={selected.has(n.id)}
+                          onChange={() => toggleSelect(n.id)}
+                        />
                       </td>
                       <td className="p-2 font-mono">{n.id ?? "-"}</td>
                       <td className="p-2">{n.slug ?? n.name ?? "-"}</td>
-                      <td className="p-2">{statusParts.length ? statusParts.join(" / ") : "-"}</td>
+                      <td className="p-2">
+                        {statusParts.length ? statusParts.join(" / ") : "-"}
+                      </td>
                       <td className="p-2 text-center">
                         <input
                           type="checkbox"
                           checked={!!n.is_visible}
                           onChange={() => toggleField(n.id, "is_visible")}
                           disabled={applying || loading || modBusy}
-                          title={n.is_visible ? "Hide (with reason)" : "Restore"}
+                          title={
+                            n.is_visible ? "Hide (with reason)" : "Restore"
+                          }
                         />
                       </td>
                       <td className="p-2 text-center">
-                        <input type="checkbox" checked={!!n.is_public} onChange={() => toggleField(n.id, "is_public")} />
+                        <input
+                          type="checkbox"
+                          checked={!!n.is_public}
+                          onChange={() => toggleField(n.id, "is_public")}
+                        />
                       </td>
                       <td className="p-2 text-center">
-                        <input type="checkbox" checked={!!n.premium_only} onChange={() => toggleField(n.id, "premium_only")} />
+                        <input
+                          type="checkbox"
+                          checked={!!n.premium_only}
+                          onChange={() => toggleField(n.id, "premium_only")}
+                        />
                       </td>
                       <td className="p-2 text-center">
-                        <input type="checkbox" checked={!!n.is_recommendable} onChange={() => toggleField(n.id, "is_recommendable")} />
+                        <input
+                          type="checkbox"
+                          checked={!!n.is_recommendable}
+                          onChange={() => toggleField(n.id, "is_recommendable")}
+                        />
                       </td>
-                      <td className="p-2">{n.created_at ? new Date(n.created_at).toLocaleString() : "-"}</td>
-                      <td className="p-2">{n.updated_at ? new Date(n.updated_at).toLocaleString() : "-"}</td>
+                      <td className="p-2">
+                        {n.created_at
+                          ? new Date(n.created_at).toLocaleString()
+                          : "-"}
+                      </td>
+                      <td className="p-2">
+                        {n.updated_at
+                          ? new Date(n.updated_at).toLocaleString()
+                          : "-"}
+                      </td>
                       <td className="p-2">
                         <button
                           type="button"
@@ -630,11 +884,19 @@ export default function Nodes() {
               }
               await load(page);
               if (created?.slug) {
-                addToast({ title: "Node created", description: `Slug: ${created.slug}`, variant: "success" });
+                addToast({
+                  title: "Node created",
+                  description: `Slug: ${created.slug}`,
+                  variant: "success",
+                });
               }
             } catch (e) {
               const msg = e instanceof Error ? e.message : String(e);
-              addToast({ title: "Failed to create node", description: msg, variant: "error" });
+              addToast({
+                title: "Failed to create node",
+                description: msg,
+                variant: "error",
+              });
             } finally {
               creatingRef.current = false;
             }
@@ -647,7 +909,8 @@ export default function Nodes() {
             <div className="w-full max-w-md rounded bg-white p-4 shadow dark:bg-gray-900">
               <h3 className="mb-3 text-lg font-semibold">Hide node</h3>
               <p className="mb-2 text-sm text-gray-600">
-                Provide a reason for hiding this node. The action will be logged in audit.
+                Provide a reason for hiding this node. The action will be logged
+                in audit.
               </p>
               <input
                 className="mb-3 w-full rounded border px-2 py-1"
@@ -684,7 +947,11 @@ export default function Nodes() {
             <div className="w-full max-w-3xl rounded bg-white p-4 shadow dark:bg-gray-900">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold">Node preview</h3>
-                <button className="px-2 py-1 rounded border" onClick={() => setPreviewOpen(false)} disabled={previewBusy}>
+                <button
+                  className="px-2 py-1 rounded border"
+                  onClick={() => setPreviewOpen(false)}
+                  disabled={previewBusy}
+                >
                   Close
                 </button>
               </div>
@@ -692,30 +959,50 @@ export default function Nodes() {
               {previewError && <p className="text-red-600">{previewError}</p>}
               {!previewBusy && !previewError && previewData && (
                 <div className="space-y-2">
-                  <div><span className="font-semibold">Title:</span> {previewData.title ?? "-"}</div>
-                  <div><span className="font-semibold">Slug:</span> {previewData.slug ?? "-"}</div>
+                  <div>
+                    <span className="font-semibold">Title:</span>{" "}
+                    {previewData.title ?? "-"}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Slug:</span>{" "}
+                    {previewData.slug ?? "-"}
+                  </div>
                   <div>
                     <span className="font-semibold">Visible:</span>{" "}
-                    {(previewData.is_visible !== undefined || previewData.isVisible !== undefined)
+                    {previewData.is_visible !== undefined ||
+                    previewData.isVisible !== undefined
                       ? String(previewData.is_visible ?? previewData.isVisible)
                       : "-"}
                   </div>
                   <div>
                     <span className="font-semibold">Public:</span>{" "}
-                    {(previewData.is_public !== undefined || previewData.isPublic !== undefined)
+                    {previewData.is_public !== undefined ||
+                    previewData.isPublic !== undefined
                       ? String(previewData.is_public ?? previewData.isPublic)
                       : "-"}
                   </div>
                   <div>
                     <span className="font-semibold">Tags:</span>{" "}
-                    {
-                      Array.isArray(previewData.tags)
-                        ? previewData.tags.map((t: any) => (typeof t === "string" ? t : (t?.slug || t?.name || ""))).filter(Boolean).join(", ")
-                        : (Array.isArray(previewData.tag_slugs) ? previewData.tag_slugs.join(", ") : "-")
-                    }
+                    {Array.isArray(previewData.tags)
+                      ? previewData.tags
+                          .map((t: any) =>
+                            typeof t === "string"
+                              ? t
+                              : t?.slug || t?.name || "",
+                          )
+                          .filter(Boolean)
+                          .join(", ")
+                      : Array.isArray(previewData.tag_slugs)
+                        ? previewData.tag_slugs.join(", ")
+                        : "-"}
                   </div>
                   <div className="mt-3">
-                    <EditorJSViewer value={previewData.content ?? previewData.contentData ?? { blocks: [] }} />
+                    <EditorJSViewer
+                      value={
+                        previewData.content ??
+                        previewData.contentData ?? { blocks: [] }
+                      }
+                    />
                   </div>
                 </div>
               )}

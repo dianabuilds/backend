@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import KpiCard from "../components/KpiCard";
+
 import { api } from "../api/client";
+import KpiCard from "../components/KpiCard";
 
 interface DashboardData {
   kpi: {
@@ -45,7 +46,9 @@ export default function Dashboard() {
 
   const [invalidateScope, setInvalidateScope] = useState("nav");
   const [invalidateSlug, setInvalidateSlug] = useState("");
-  const [invalidateMessage, setInvalidateMessage] = useState<string | null>(null);
+  const [invalidateMessage, setInvalidateMessage] = useState<string | null>(
+    null,
+  );
 
   const handleInvalidate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,13 +83,21 @@ export default function Dashboard() {
   return (
     <div>
       <h1 className="mb-4 text-2xl font-bold">Dashboard</h1>
-      {loading && <p className="text-gray-600 dark:text-gray-400">Loading...</p>}
+      {loading && (
+        <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+      )}
       {error && <p className="text-red-600">{error}</p>}
       {data && (
         <div className="space-y-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-            <KpiCard title="Active users (24h)" value={data.kpi.active_users_24h} />
-            <KpiCard title="New registrations (24h)" value={data.kpi.new_registrations_24h} />
+            <KpiCard
+              title="Active users (24h)"
+              value={data.kpi.active_users_24h}
+            />
+            <KpiCard
+              title="New registrations (24h)"
+              value={data.kpi.new_registrations_24h}
+            />
             <KpiCard title="Active premium" value={data.kpi.active_premium} />
             <KpiCard title="Nodes created (24h)" value={data.kpi.nodes_24h} />
             <KpiCard title="Quests created (24h)" value={data.kpi.quests_24h} />
@@ -104,7 +115,9 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <h2 className="mb-2 text-xl font-semibold">Latest user restrictions</h2>
+            <h2 className="mb-2 text-xl font-semibold">
+              Latest user restrictions
+            </h2>
             <ul className="space-y-1">
               {data.latest_restrictions.map((r) => (
                 <li key={r.id} className="text-gray-700 dark:text-gray-300">
@@ -117,26 +130,34 @@ export default function Dashboard() {
           <div>
             <h2 className="mb-2 text-xl font-semibold">System</h2>
             <p className="text-gray-700 dark:text-gray-300">
-              DB: {data.system.db_ok ? "OK" : "Fail"}, Redis: {data.system.redis_ok ? "OK" : "Fail"}
+              DB: {data.system.db_ok ? "OK" : "Fail"}, Redis:{" "}
+              {data.system.redis_ok ? "OK" : "Fail"}
             </p>
             <p className="text-gray-700 dark:text-gray-300">
-              nav keys: {data.system.nav_keys}, comp keys: {data.system.comp_keys}
+              nav keys: {data.system.nav_keys}, comp keys:{" "}
+              {data.system.comp_keys}
             </p>
             {data.system.version && (
-              <p className="text-gray-700 dark:text-gray-300">Version: {data.system.version}</p>
+              <p className="text-gray-700 dark:text-gray-300">
+                Version: {data.system.version}
+              </p>
             )}
-            {data.system.sentry_errors && data.system.sentry_errors.length > 0 && (
-              <div className="mt-2">
-                <p className="font-medium">Sentry errors:</p>
-                <ul className="list-disc pl-5">
-                  {data.system.sentry_errors.map((e) => (
-                    <li key={e.id} className="text-gray-700 dark:text-gray-300">
-                      {e.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {data.system.sentry_errors &&
+              data.system.sentry_errors.length > 0 && (
+                <div className="mt-2">
+                  <p className="font-medium">Sentry errors:</p>
+                  <ul className="list-disc pl-5">
+                    {data.system.sentry_errors.map((e) => (
+                      <li
+                        key={e.id}
+                        className="text-gray-700 dark:text-gray-300"
+                      >
+                        {e.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
           </div>
 
           <div>
@@ -165,7 +186,11 @@ export default function Dashboard() {
                     Invalidate
                   </button>
                 </div>
-                {invalidateMessage && <p className="text-sm text-gray-600 dark:text-gray-400">{invalidateMessage}</p>}
+                {invalidateMessage && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {invalidateMessage}
+                  </p>
+                )}
               </form>
             </div>
             <div>
@@ -184,7 +209,11 @@ export default function Dashboard() {
                     Recompute last N nodes
                   </button>
                 </div>
-                {recomputeMessage && <p className="text-sm text-gray-600 dark:text-gray-400">{recomputeMessage}</p>}
+                {recomputeMessage && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {recomputeMessage}
+                  </p>
+                )}
               </form>
             </div>
           </div>
