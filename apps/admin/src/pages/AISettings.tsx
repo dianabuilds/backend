@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
+import LimitBadge, {
+  handleLimit429,
+  refreshLimits,
+} from "../components/LimitBadge";
 
 type CBConfig = {
   fail_rate_threshold?: number;
@@ -79,9 +83,16 @@ export default function AISettingsPage() {
         api_key: aiSecret === "" ? null : aiSecret, // null — оставить без изменений, "" — очистить, строка — сохранить
       });
       await loadAISettings();
+      await refreshLimits();
       alert("Настройки сохранены");
-    } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
+    } catch (e: any) {
+      if (e instanceof ApiError && e.status === 429) {
+        const retry = Number(e.headers?.get("Retry-After") || 0);
+        await handleLimit429("ai_tokens", retry);
+        alert("Rate limit exceeded");
+      } else {
+        alert(e instanceof Error ? e.message : String(e));
+      }
     }
   };
 
@@ -274,13 +285,14 @@ export default function AISettingsPage() {
           </div>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
           <button
             className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
             onClick={saveAI}
           >
             Сохранить
           </button>
+          <LimitBadge limitKey="ai_tokens" />
         </div>
       </div>
     </div>
