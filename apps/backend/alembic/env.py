@@ -1,13 +1,19 @@
 from logging.config import fileConfig
+from pathlib import Path
+import sys
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+config = context.config
+
+# Ensure backend package is on sys.path so we can import application modules
+sys.path.insert(0, str(Path(config.config_file_name).resolve().parent / config.get_main_option("prepend_sys_path")))
+
+fileConfig(config.config_file_name)
+
 from app.core.config import settings
 from app.core.db.base import Base
-
-config = context.config
-fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 
