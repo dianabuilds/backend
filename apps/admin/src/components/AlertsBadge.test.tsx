@@ -11,12 +11,12 @@ function renderWithClient() {
   const qc = new QueryClient();
   render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <AlertsBadge />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AlertsBadge />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    }
 
 describe("AlertsBadge", () => {
   afterEach(() => {

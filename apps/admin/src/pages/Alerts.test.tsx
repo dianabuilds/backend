@@ -11,12 +11,12 @@ function renderPage() {
   const qc = new QueryClient();
   render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <Alerts />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Alerts />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
 
 describe("Alerts page", () => {
   afterEach(() => vi.restoreAllMocks());

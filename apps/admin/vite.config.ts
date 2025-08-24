@@ -1,6 +1,6 @@
 import react from "@vitejs/plugin-react";
+import process from "node:process";
 import { defineConfig, loadEnv, type ProxyOptions } from "vite";
-declare const process: any;
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
