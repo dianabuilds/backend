@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Deque, List, Optional, Sequence
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -22,7 +23,11 @@ class TransitionProvider(ABC):
 
     @abstractmethod
     async def get_transitions(
-        self, db: AsyncSession, node: Node, user: Optional[User]
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: Optional[User],
+        workspace_id: UUID,
     ) -> Sequence[Node]:
         """Return candidate nodes for transition."""
 
@@ -56,9 +61,15 @@ class ManualTransitionsProvider(TransitionProvider):
         self._service = service
 
     async def get_transitions(
-        self, db: AsyncSession, node: Node, user: Optional[User]
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: Optional[User],
+        workspace_id: UUID,
     ) -> Sequence[Node]:
-        transitions = await self._service.get_transitions(db, node, user)
+        transitions = await self._service.get_transitions(
+            db, node, user, workspace_id
+        )
         return [t.to_node for t in transitions]
 
 
@@ -72,9 +83,14 @@ class CompassProvider(TransitionProvider):
         self._limit = limit
 
     async def get_transitions(
-        self, db: AsyncSession, node: Node, user: Optional[User]
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: Optional[User],
+        workspace_id: UUID,
     ) -> Sequence[Node]:
-        return await self._service.get_compass_nodes(db, node, user, self._limit)
+        nodes = await self._service.get_compass_nodes(db, node, user, self._limit)
+        return [n for n in nodes if n.workspace_id == workspace_id]
 
 
 class RandomProvider(TransitionProvider):
@@ -84,8 +100,13 @@ class RandomProvider(TransitionProvider):
         self._rnd = random.Random(seed)
 
     async def get_transitions(
-        self, db: AsyncSession, node: Node, user: Optional[User]
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: Optional[User],
+        workspace_id: UUID,
     ) -> Sequence[Node]:
+        from app.core.pagination import scope_by_workspace
         from app.domains.navigation.application.access_policy import has_access_async
         from app.domains.nodes.infrastructure.models.node import Node
 
@@ -94,7 +115,9 @@ class RandomProvider(TransitionProvider):
             Node.is_public == True,
             Node.is_recommendable == True,
             Node.id != node.id,
+            Node.workspace_id == workspace_id,
         )
+        query = scope_by_workspace(query, workspace_id)
         result = await db.execute(query)
         nodes: List[Node] = result.scalars().all()
         nodes = [n for n in nodes if await has_access_async(n, user)]
@@ -113,7 +136,9 @@ class ManualPolicy(Policy):
         user: Optional[User],
         history: Deque[str],
     ) -> Optional[Node]:
-        candidates = await self.provider.get_transitions(db, node, user)
+        candidates = await self.provider.get_transitions(
+            db, node, user, node.workspace_id
+        )
         for n in candidates:
             if n.slug not in history:
                 return n
@@ -130,7 +155,9 @@ class CompassPolicy(Policy):
         user: Optional[User],
         history: Deque[str],
     ) -> Optional[Node]:
-        candidates = await self.provider.get_transitions(db, node, user)
+        candidates = await self.provider.get_transitions(
+            db, node, user, node.workspace_id
+        )
         for n in candidates:
             if n.slug not in history:
                 return n
@@ -151,7 +178,9 @@ class RandomPolicy(Policy):
         user: Optional[User],
         history: Deque[str],
     ) -> Optional[Node]:
-        candidates = await self.provider.get_transitions(db, node, user)
+        candidates = await self.provider.get_transitions(
+            db, node, user, node.workspace_id
+        )
         candidates = [n for n in candidates if n.slug not in history]
         if not candidates:
             return None

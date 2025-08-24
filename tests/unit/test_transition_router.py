@@ -21,13 +21,14 @@ from apps.backend.app.domains.navigation.application.transition_router import (
 @dataclass
 class DummyNode:
     slug: str
+    workspace_id: str = "ws"
 
 
 class StaticProvider(TransitionProvider):
     def __init__(self, mapping):
         self.mapping = mapping
 
-    async def get_transitions(self, db, node, user):
+    async def get_transitions(self, db, node, user, workspace_id):
         return self.mapping.get(node.slug, [])
 
 
@@ -35,7 +36,7 @@ class RandomListProvider(TransitionProvider):
     def __init__(self, mapping):
         self.mapping = mapping
 
-    async def get_transitions(self, db, node, user):
+    async def get_transitions(self, db, node, user, workspace_id):
         return self.mapping.get(node.slug, [])
 
 
