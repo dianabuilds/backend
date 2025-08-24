@@ -11,6 +11,10 @@ from .transition import (
 from .moderation import RestrictionCreate, ContentHide
 from .feedback import FeedbackCreate, FeedbackOut
 from .notification import NotificationOut
+from .notification_settings import (
+    NodeNotificationSettingsOut,
+    NodeNotificationSettingsUpdate,
+)
 from .trace import NodeTraceCreate, NodeTraceOut
 from .achievement import AchievementOut
 
@@ -38,6 +42,8 @@ __all__ = (
     "FeedbackCreate",
     "FeedbackOut",
     "NotificationOut",
+    "NodeNotificationSettingsOut",
+    "NodeNotificationSettingsUpdate",
     "NodeTraceCreate",
     "NodeTraceOut",
     "AchievementOut",
