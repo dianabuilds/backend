@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import asdict
 from uuid import UUID, uuid4
 from typing import Any
@@ -12,6 +13,11 @@ from sqlalchemy.future import select
 from app.core.db.session import get_db
 from app.core.preview import PreviewContext, PreviewMode
 from app.domains.navigation.application.navigation_service import NavigationService
+from app.domains.navigation.application.transition_router import (
+    NoRouteReason,
+    _compute_entropy,
+)
+from app.core.metrics import record_no_route, record_route_length
 from app.domains.nodes.infrastructure.models.node import Node
 from app.security import (
     ADMIN_AUTH_RESPONSES,
@@ -85,9 +91,32 @@ async def simulate_transitions(
 
     preview = PreviewContext(mode=payload.preview_mode, seed=payload.seed)
     res = await svc.build_route(db, node, None, preview=preview)
+    tags = [getattr(t, "slug", t) for t in getattr(res.next, "tags", []) or []]
+    tag_entropy = _compute_entropy(tags)
+    chosen_trace = next((t for t in res.trace if t.chosen), None)
+    sources = [chosen_trace.policy] if chosen_trace and chosen_trace.policy else []
+    source_diversity = 0.0
+    if sources:
+        counts = {s: sources.count(s) for s in set(sources)}
+        total = sum(counts.values())
+        source_diversity = -sum(
+            (c / total) * math.log(c / total) for c in counts.values()
+        )
+    if res.reason == NoRouteReason.NO_ROUTE:
+        record_no_route(str(payload.workspace_id), preview=True)
+    else:
+        record_route_length(
+            len(svc._router.history), str(payload.workspace_id), preview=True
+        )
     return {
         "next": res.next.slug if res.next else None,
         "reason": res.reason.value if res.reason else None,
         "trace": [asdict(t) for t in res.trace],
-        "metrics": res.metrics,
+        "metrics": {
+            **res.metrics,
+            "tag_entropy": tag_entropy,
+            "source_diversity": source_diversity,
+            "tags": tags,
+            "sources": sources,
+        },
     }

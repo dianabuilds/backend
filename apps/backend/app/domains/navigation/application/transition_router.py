@@ -335,6 +335,7 @@ class TransitionTrace:
     filters: List[str]
     scores: dict
     chosen: Optional[str]
+    policy: str | None = None
 
 
 class NoRouteReason(Enum):
@@ -415,6 +416,7 @@ class TransitionRouter:
             candidate, trace = await policy.choose(
                 db, start, user, self.history, self.repeat_filter, preview
             )
+            trace.policy = policy.name
             self.trace.append(trace)
             queries += 1
             filtered_total += len(trace.filters)
