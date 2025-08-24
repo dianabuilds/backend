@@ -56,6 +56,23 @@ export async function getTopEndpoints(
   return res.data?.items ?? [];
 }
 
+export interface TransitionMetrics {
+  route_length_avg: number;
+  route_length_p95: number;
+  tag_entropy_avg: number;
+  no_route_percent: number;
+  fallback_used_percent: number;
+}
+
+export type TransitionStats = Record<string, TransitionMetrics>;
+
+export async function getTransitionStats(): Promise<TransitionStats> {
+  const res = await api.get<{ stats: TransitionStats }>(
+    "/admin/metrics/transitions"
+  );
+  return res.data?.stats || {};
+}
+
 export interface EventCounters {
   [workspace: string]: Record<string, number>;
 }

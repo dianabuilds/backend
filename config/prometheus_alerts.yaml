@@ -1,0 +1,19 @@
+groups:
+  - name: navigation
+    rules:
+      - alert: HighRouteLatencyP95
+        expr: route_latency_ms_p95 > 150
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High p95 route latency
+          description: p95 route latency exceeds 150 ms
+      - alert: HighNoRoutePercentage
+        expr: max(transition_no_route_percent) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High no-route percentage
+          description: More than 5% of transitions result in no route

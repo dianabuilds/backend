@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import logging
+import math
 import random
 import time
 from abc import ABC, abstractmethod
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Deque, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Deque, List, Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,8 +21,24 @@ if TYPE_CHECKING:  # pragma: no cover - used for type hints only
 
 logger = logging.getLogger(__name__)
 
+
+def _compute_entropy(tags: Sequence[str]) -> float:
+    if not tags:
+        return 0.0
+    counts = Counter(tags)
+    total = sum(counts.values())
+    return -sum((c / total) * math.log(c / total) for c in counts.values())
+
+
 from app.core.log_events import no_route, transition_finish, transition_start
-from app.core.metrics import record_repeat_rate, record_route_latency_ms
+from app.core.metrics import (
+    record_fallback_used,
+    record_no_route,
+    record_repeat_rate,
+    record_route_latency_ms,
+    record_route_length,
+    record_tag_entropy,
+)
 
 
 class TransitionProvider(ABC):
@@ -52,17 +70,18 @@ class Policy(ABC):
         node: Node,
         user: Optional[User],
         history: Deque[str],
-        repeat_filter: "RepeatFilter",
-    ) -> Tuple[Optional["Node"], "TransitionTrace"]:
+        repeat_filter: RepeatFilter,
+    ) -> Tuple[Optional[Node], TransitionTrace]:
         """Return next node and trace info or ``None`` if not applicable."""
 
 
 class ManualTransitionsProvider(TransitionProvider):
-    def __init__(self, service: "TransitionsService" | None = None) -> None:
+    def __init__(self, service: TransitionsService | None = None) -> None:
         if service is None:
             from app.domains.navigation.application.transitions_service import (
                 TransitionsService,
             )
+
             service = TransitionsService()
         self._service = service
 
@@ -73,16 +92,16 @@ class ManualTransitionsProvider(TransitionProvider):
         user: Optional[User],
         workspace_id: UUID,
     ) -> Sequence[Node]:
-        transitions = await self._service.get_transitions(
-            db, node, user, workspace_id
-        )
+        transitions = await self._service.get_transitions(db, node, user, workspace_id)
         return [t.to_node for t in transitions]
 
 
 class CompassProvider(TransitionProvider):
-    def __init__(self, service: "CompassService" | None = None, limit: int = 5) -> None:
+    def __init__(self, service: CompassService | None = None, limit: int = 5) -> None:
         if service is None:
-            from app.domains.navigation.application.compass_service import CompassService
+            from app.domains.navigation.application.compass_service import (
+                CompassService,
+            )
 
             service = CompassService()
         self._service = service
@@ -164,7 +183,7 @@ class RepeatFilter:
             if counts[old] <= 0:
                 del counts[old]
 
-    def update(self, node: "Node") -> None:
+    def update(self, node: Node) -> None:
         self.visit_counts[node.slug] += 1
         for tag in getattr(node, "tags", []) or []:
             self._add(self.tag_history, self.tag_counts, tag)
@@ -172,19 +191,19 @@ class RepeatFilter:
         if source:
             self._add(self.source_history, self.source_counts, source)
 
-    def _score(self, node: "Node") -> float:
+    def _score(self, node: Node) -> float:
         scores: List[float] = []
         for tag in getattr(node, "tags", []) or []:
             count = self.tag_counts.get(tag, 0)
-            scores.append(self.decay ** count)
+            scores.append(self.decay**count)
         source = getattr(node, "source", None)
         if source:
             count = self.source_counts.get(source, 0)
-            scores.append(self.decay ** count)
+            scores.append(self.decay**count)
         return min(scores) if scores else 1.0
 
-    def filter(self, nodes: Sequence["Node"]) -> Tuple[List["Node"], List[str]]:
-        allowed: List["Node"] = []
+    def filter(self, nodes: Sequence[Node]) -> Tuple[List[Node], List[str]]:
+        allowed: List[Node] = []
         filtered: List[str] = []
         for n in nodes:
             if self.max_visits and self.visit_counts.get(n.slug, 0) >= self.max_visits:
@@ -209,7 +228,7 @@ class ManualPolicy(Policy):
         user: Optional[User],
         history: Deque[str],
         repeat_filter: RepeatFilter,
-    ) -> Tuple[Optional[Node], "TransitionTrace"]:
+    ) -> Tuple[Optional[Node], TransitionTrace]:
         candidates = await self.provider.get_transitions(
             db, node, user, node.workspace_id
         )
@@ -233,7 +252,7 @@ class CompassPolicy(Policy):
         user: Optional[User],
         history: Deque[str],
         repeat_filter: RepeatFilter,
-    ) -> Tuple[Optional[Node], "TransitionTrace"]:
+    ) -> Tuple[Optional[Node], TransitionTrace]:
         candidates = await self.provider.get_transitions(
             db, node, user, node.workspace_id
         )
@@ -266,7 +285,7 @@ class RandomPolicy(Policy):
         user: Optional[User],
         history: Deque[str],
         repeat_filter: RepeatFilter,
-    ) -> Tuple[Optional[Node], "TransitionTrace"]:
+    ) -> Tuple[Optional[Node], TransitionTrace]:
         candidates = await self.provider.get_transitions(
             db, node, user, node.workspace_id
         )
@@ -297,7 +316,7 @@ class NoRouteReason(Enum):
 
 @dataclass
 class TransitionResult:
-    next: Optional["Node"]
+    next: Optional[Node]
     reason: Optional[NoRouteReason]
     trace: List[TransitionTrace]
     metrics: dict
@@ -371,7 +390,9 @@ class TransitionRouter:
             if elapsed_ms > getattr(budget, "max_time_ms", float("inf")):
                 reason = NoRouteReason.TIMEOUT
                 break
-            if queries > getattr(budget, "max_queries", float("inf")) or filtered_total > getattr(budget, "max_filters", float("inf")):
+            if queries > getattr(
+                budget, "max_queries", float("inf")
+            ) or filtered_total > getattr(budget, "max_filters", float("inf")):
                 reason = NoRouteReason.BUDGET_EXCEEDED
                 break
 
@@ -395,15 +416,23 @@ class TransitionRouter:
         }
         record_route_latency_ms(elapsed_ms)
         record_repeat_rate(repeat_rate)
-
+        ws_id = str(start.workspace_id)
         if reason is None and nxt is None:
             reason = NoRouteReason.NO_ROUTE
             no_route(start.slug)
-
+        if reason == NoRouteReason.NO_ROUTE:
+            record_no_route(ws_id)
+        else:
+            record_route_length(len(self.history), ws_id)
+            if nxt is not None:
+                ent = _compute_entropy([t.slug for t in getattr(nxt, "tags", [])])
+                record_tag_entropy(ent, ws_id)
         if fallback_used:
             from app.core.log_events import fallback_used as log_fallback_used
 
             log_fallback_used("transition.router")
-
+            record_fallback_used(ws_id)
         transition_finish(nxt.slug if nxt else None)
-        return TransitionResult(next=nxt, reason=reason, trace=list(self.trace), metrics=metrics)
+        return TransitionResult(
+            next=nxt, reason=reason, trace=list(self.trace), metrics=metrics
+        )

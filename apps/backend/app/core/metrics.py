@@ -2,8 +2,9 @@ import math
 import threading
 import time
 from collections import defaultdict, deque
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Deque, Dict, Iterable, List, Tuple
+from typing import Deque, Dict, List, Tuple
 
 
 @dataclass
@@ -19,6 +20,11 @@ class RequestRecord:
 _transition_lock = threading.Lock()
 _route_latencies: Deque[int] = deque(maxlen=1000)
 _repeat_rates: Deque[float] = deque(maxlen=1000)
+_route_lengths: Dict[str, Deque[int]] = defaultdict(lambda: deque(maxlen=1000))
+_tag_entropies: Dict[str, Deque[float]] = defaultdict(lambda: deque(maxlen=1000))
+_transition_counts: Dict[str, int] = defaultdict(int)
+_no_route_counts: Dict[str, int] = defaultdict(int)
+_fallback_used_counts: Dict[str, int] = defaultdict(int)
 
 
 def record_route_latency_ms(value: float) -> None:
@@ -29,6 +35,32 @@ def record_route_latency_ms(value: float) -> None:
 def record_repeat_rate(rate: float) -> None:
     with _transition_lock:
         _repeat_rates.append(rate)
+
+
+def record_route_length(length: int, workspace_id: str | None) -> None:
+    ws = workspace_id or "unknown"
+    with _transition_lock:
+        _route_lengths[ws].append(length)
+        _transition_counts[ws] += 1
+
+
+def record_tag_entropy(entropy: float, workspace_id: str | None) -> None:
+    ws = workspace_id or "unknown"
+    with _transition_lock:
+        _tag_entropies[ws].append(entropy)
+
+
+def record_no_route(workspace_id: str | None) -> None:
+    ws = workspace_id or "unknown"
+    with _transition_lock:
+        _no_route_counts[ws] += 1
+        _transition_counts[ws] += 1
+
+
+def record_fallback_used(workspace_id: str | None) -> None:
+    ws = workspace_id or "unknown"
+    with _transition_lock:
+        _fallback_used_counts[ws] += 1
 
 
 def _status_class(code: int) -> str:
@@ -69,7 +101,9 @@ class MetricsStorage:
         now = time.time()
         with self._lock:
             self._records.append(
-                RequestRecord(now, duration_ms, status_code, method, route, workspace_id)
+                RequestRecord(
+                    now, duration_ms, status_code, method, route, workspace_id
+                )
             )
             # Храним не более 24 часов
             cutoff = now - 24 * 3600
@@ -120,7 +154,13 @@ class MetricsStorage:
             step_seconds = 60
         recent = self._select_recent(range_seconds)
         if not recent:
-            return {"step": step_seconds, "from": int(time.time()) - range_seconds, "to": int(time.time()), "series": [], "p95": []}
+            return {
+                "step": step_seconds,
+                "from": int(time.time()) - range_seconds,
+                "to": int(time.time()),
+                "series": [],
+                "p95": [],
+            }
 
         buckets: Dict[int, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
         durations: Dict[int, List[int]] = defaultdict(list)
@@ -138,15 +178,27 @@ class MetricsStorage:
         all_bucket_keys = sorted(buckets.keys())
         series = []
         for cls in classes:
-            points = [{"ts": b, "value": buckets[b].get(cls, 0)} for b in all_bucket_keys]
+            points = [
+                {"ts": b, "value": buckets[b].get(cls, 0)} for b in all_bucket_keys
+            ]
             series.append({"name": cls, "points": points})
         # p95
-        p95_points = [{"ts": b, "value": _percentile(durations[b], 0.95)} for b in all_bucket_keys]
+        p95_points = [
+            {"ts": b, "value": _percentile(durations[b], 0.95)} for b in all_bucket_keys
+        ]
 
         return {
             "step": step_seconds,
-            "from": min(all_bucket_keys) if all_bucket_keys else int(time.time()) - range_seconds,
-            "to": max(all_bucket_keys) + step_seconds if all_bucket_keys else int(time.time()),
+            "from": (
+                min(all_bucket_keys)
+                if all_bucket_keys
+                else int(time.time()) - range_seconds
+            ),
+            "to": (
+                max(all_bucket_keys) + step_seconds
+                if all_bucket_keys
+                else int(time.time())
+            ),
             "series": series,
             "p95": p95_points,
         }
@@ -179,7 +231,15 @@ class MetricsStorage:
 
         out = []
         for route, p95, err_rate, rps, count in rows[: max(limit, 1)]:
-            out.append({"route": route, "p95": p95, "error_rate": err_rate, "rps": rps, "count": count})
+            out.append(
+                {
+                    "route": route,
+                    "p95": p95,
+                    "error_rate": err_rate,
+                    "rps": rps,
+                    "count": count,
+                }
+            )
         return out
 
     def recent_errors(self, limit: int = 100) -> List[dict]:
@@ -190,7 +250,15 @@ class MetricsStorage:
             out: List[dict] = []
             for r in it:
                 if r.status_code >= 400:
-                    out.append({"ts": int(r.ts), "method": r.method, "route": r.route, "status_code": r.status_code, "duration_ms": r.duration_ms})
+                    out.append(
+                        {
+                            "ts": int(r.ts),
+                            "method": r.method,
+                            "route": r.route,
+                            "status_code": r.status_code,
+                            "duration_ms": r.duration_ms,
+                        }
+                    )
                     if len(out) >= limit:
                         break
         return out
@@ -235,6 +303,11 @@ class MetricsStorage:
         with _transition_lock:
             lat = list(_route_latencies)
             rates = list(_repeat_rates)
+            lengths = {ws: list(v) for ws, v in _route_lengths.items()}
+            entropies = {ws: list(v) for ws, v in _tag_entropies.items()}
+            totals = dict(_transition_counts)
+            no_routes = dict(_no_route_counts)
+            fallbacks = dict(_fallback_used_counts)
         lines.append("# HELP route_latency_ms Route latency milliseconds")
         lines.append("# TYPE route_latency_ms summary")
         if lat:
@@ -251,7 +324,54 @@ class MetricsStorage:
             lines.append(f"repeat_rate {sum(rates) / len(rates)}")
         else:
             lines.append("repeat_rate 0")
+        lines.append(
+            "# HELP transition_no_route_percent Percentage of transitions without route"
+        )
+        lines.append("# TYPE transition_no_route_percent gauge")
+        for ws, cnt in no_routes.items():
+            total = totals.get(ws, 0)
+            pct = (cnt / total * 100) if total else 0.0
+            lines.append(f'transition_no_route_percent{{workspace="{ws}"}} {pct}')
+        lines.append(
+            "# HELP transition_fallback_used_percent Percentage of transitions using fallback"
+        )
+        lines.append("# TYPE transition_fallback_used_percent gauge")
+        for ws, cnt in fallbacks.items():
+            total = totals.get(ws, 0)
+            pct = (cnt / total * 100) if total else 0.0
+            lines.append(f'transition_fallback_used_percent{{workspace="{ws}"}} {pct}')
+        lines.append("# HELP tag_entropy_avg Average tag entropy per workspace")
+        lines.append("# TYPE tag_entropy_avg gauge")
+        for ws, vals in entropies.items():
+            avg = sum(vals) / len(vals) if vals else 0.0
+            lines.append(f'tag_entropy_avg{{workspace="{ws}"}} {avg}')
+        lines.append("# HELP route_length Route length")
+        lines.append("# TYPE route_length summary")
+        for ws, vals in lengths.items():
+            avg = sum(vals) / len(vals) if vals else 0.0
+            p95 = _percentile(vals, 0.95) if vals else 0.0
+            lines.append(f'route_length_avg{{workspace="{ws}"}} {avg}')
+            lines.append(f'route_length_p95{{workspace="{ws}"}} {p95}')
         return "\n".join(lines) + "\n"
+
+
+def transition_stats() -> Dict[str, dict]:
+    with _transition_lock:
+        out: Dict[str, dict] = {}
+        for ws in _transition_counts.keys():
+            lengths = list(_route_lengths.get(ws, []))
+            ents = list(_tag_entropies.get(ws, []))
+            total = _transition_counts.get(ws, 0)
+            no_r = _no_route_counts.get(ws, 0)
+            fb = _fallback_used_counts.get(ws, 0)
+            out[ws] = {
+                "route_length_avg": sum(lengths) / len(lengths) if lengths else 0.0,
+                "route_length_p95": _percentile(lengths, 0.95) if lengths else 0.0,
+                "tag_entropy_avg": sum(ents) / len(ents) if ents else 0.0,
+                "no_route_percent": (no_r / total * 100) if total else 0.0,
+                "fallback_used_percent": (fb / total * 100) if total else 0.0,
+            }
+        return out
 
 
 metrics_storage = MetricsStorage()
