@@ -11,6 +11,7 @@ from app.api.deps import get_current_user
 from app.core.security import verify_access_token
 from app.core.db.session import get_db
 from app.domains.notifications.infrastructure.models.notification_models import Notification
+from app.domains.workspaces.application.service import scope_by_workspace
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.notification import NotificationOut
 from app.domains.notifications.infrastructure.transports.websocket import manager as ws_manager
@@ -21,14 +22,17 @@ ws_router = APIRouter()
 
 @router.get("", response_model=list[NotificationOut], summary="List notifications")
 async def list_notifications(
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
+    stmt = (
         select(Notification)
         .where(Notification.user_id == current_user.id)
         .order_by(Notification.created_at.desc())
     )
+    stmt = scope_by_workspace(stmt, workspace_id)
+    result = await db.execute(stmt)
     return result.scalars().all()
 
 
@@ -39,15 +43,16 @@ async def list_notifications(
 )
 async def mark_read(
     notification_id: UUID,
+    workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Notification).where(
-            Notification.id == notification_id,
-            Notification.user_id == current_user.id,
-        )
+    stmt = select(Notification).where(
+        Notification.id == notification_id,
+        Notification.user_id == current_user.id,
     )
+    stmt = scope_by_workspace(stmt, workspace_id)
+    result = await db.execute(stmt)
     notif = result.scalars().first()
     if not notif:
         raise HTTPException(status_code=404, detail="Notification not found")

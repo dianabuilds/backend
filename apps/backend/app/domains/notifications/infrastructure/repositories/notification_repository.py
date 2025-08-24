@@ -17,12 +17,19 @@ class NotificationRepository(INotificationRepository):
     async def create_and_commit(
         self,
         *,
+        workspace_id: UUID,
         user_id: UUID,
         title: str,
         message: str,
         type: Any,
     ) -> Dict[str, Any]:
-        notif = Notification(user_id=user_id, title=title, message=message, type=type)
+        notif = Notification(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            title=title,
+            message=message,
+            type=type,
+        )
         self._db.add(notif)
         await self._db.commit()
         await self._db.refresh(notif)
