@@ -18,12 +18,21 @@ from starlette.middleware.gzip import GZipMiddleware
 TESTING = os.environ.get("TESTING") == "True"
 
 if not TESTING:
-    pass
+    from config.opentelemetry import setup_otel
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+    from opentelemetry.instrumentation.requests import RequestsInstrumentor
+    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from app.core.body_limit import BodySizeLimitMiddleware
 from app.core.config import settings
 from app.core.cookies_security_middleware import CookiesSecurityMiddleware
 from app.core.csrf import CSRFMiddleware
-from app.core.db.session import check_database_connection, close_db_connection, init_db
+from app.core.db.session import (
+    check_database_connection,
+    close_db_connection,
+    get_engine,
+    init_db,
+)
 from app.core.exception_handlers import register_exception_handlers
 from app.core.logging_middleware import RequestLoggingMiddleware
 from app.core.metrics_middleware import MetricsMiddleware
@@ -40,6 +49,12 @@ from app.domains.system.events import register_handlers
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+if not TESTING:
+    setup_otel()
+    FastAPIInstrumentor.instrument_app(app)
+    SQLAlchemyInstrumentor().instrument(engine=get_engine().sync_engine)
+    RequestsInstrumentor().instrument()
+    HTTPXClientInstrumentor().instrument()
 # Сжатие ответов
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 # Лимит размера тела запросов
