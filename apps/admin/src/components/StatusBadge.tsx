@@ -6,6 +6,7 @@ interface Props {
 export default function StatusBadge({ status, reused }: Props) {
   const map: Record<string, string> = {
     draft: "bg-gray-200 text-gray-800",
+    in_review: "bg-blue-200 text-blue-800",
     published: "bg-green-200 text-green-800",
     archived: "bg-red-200 text-red-800",
   };

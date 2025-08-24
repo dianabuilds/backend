@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "../api/client";
 import ContentEditor from "../components/content/ContentEditor";
-import EditorJSViewer from "../components/EditorJSViewer";
 import { useToast } from "../components/ToastProvider";
+import StatusBadge from "../components/StatusBadge";
 import type { TagOut } from "../components/tags/TagPicker";
 import type { OutputData } from "../types/editorjs";
 
@@ -38,6 +38,7 @@ function normalizeNode(raw: any): NodeItem {
     ...n,
     id: String(n.id ?? n.uuid ?? n._id),
     slug: n.slug,
+    status: n.status ?? n.state ?? undefined,
     is_visible:
       typeof n.is_visible === "boolean" ? n.is_visible : Boolean(n.isVisible),
     is_public:
@@ -108,6 +109,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     "all",
   );
   const [nodeType, setNodeType] = useState(initialType);
+  const [status, setStatus] = useState("all");
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(20);
 
@@ -133,8 +135,29 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
 
   // Модалка создания ноды
   const [editorOpen, setEditorOpen] = useState(false);
-  const [draft, setDraft] = useState<NodeEditorData>(makeDraft());
+  const [draft, setDraft] = useState<NodeEditorData>(() => {
+    if (typeof localStorage !== "undefined") {
+      const raw = localStorage.getItem("node-draft");
+      if (raw) {
+        try {
+          return JSON.parse(raw) as NodeEditorData;
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    return makeDraft();
+  });
   const canSave = useMemo(() => !!draft.title.trim(), [draft.title]);
+
+  useEffect(() => {
+    if (typeof localStorage === "undefined") return;
+    try {
+      localStorage.setItem("node-draft", JSON.stringify(draft));
+    } catch {
+      /* ignore */
+    }
+  }, [draft]);
 
   // Модерация: скрытие с причиной / восстановление
   const [modOpen, setModOpen] = useState(false);
@@ -143,27 +166,6 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   const [modBusy, setModBusy] = useState(false);
 
   // Превью ноды
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewBusy, setPreviewBusy] = useState(false);
-  const [previewData, setPreviewData] = useState<any | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-
-  const openPreviewBySlug = async (slug?: string) => {
-    if (!slug) return;
-    setPreviewOpen(true);
-    setPreviewBusy(true);
-    setPreviewError(null);
-    setPreviewData(null);
-    try {
-      const res = await api.get(`/nodes/${encodeURIComponent(slug)}`);
-      setPreviewData(res.data);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setPreviewError(msg);
-    } finally {
-      setPreviewBusy(false);
-    }
-  };
 
   const openModerationFor = (node: NodeItem) => {
     // Если нода сейчас видима — запрашиваем причину и скрываем
@@ -275,6 +277,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       };
       if (q) params.q = q;
       if (nodeType) params.node_type = nodeType;
+      if (status !== "all") params.status = status;
       if (visibility !== "all")
         params.visible = visibility === "visible" ? "true" : "false";
       const qs = new URLSearchParams(params).toString();
@@ -486,6 +489,14 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     creatingRef.current = true;
     try {
       const created = await doCreate();
+      if (typeof localStorage !== "undefined") {
+        try {
+          localStorage.removeItem("node-draft");
+          localStorage.removeItem("node-draft-content");
+        } catch {
+          /* ignore */
+        }
+      }
       if (action === "next") {
         setDraft(makeDraft());
       } else {
@@ -536,6 +547,21 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
             placeholder="node type"
             className="border rounded px-2 py-1"
           />
+          <select
+            className="border rounded px-2 py-1"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(0);
+              setTimeout(() => load(0));
+            }}
+          >
+            <option value="all">all statuses</option>
+            <option value="draft">draft</option>
+            <option value="in_review">in_review</option>
+            <option value="published">published</option>
+            <option value="archived">archived</option>
+          </select>
           <select
             className="border rounded px-2 py-1"
             value={visibility}
@@ -833,13 +859,6 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                       base.premium_only !== n.premium_only ||
                       base.is_recommendable !== n.is_recommendable);
 
-                  const statusParts = [
-                    n.is_visible ? "visible" : "hidden",
-                    n.is_public ? "public" : "private",
-                    n.premium_only ? "premium" : null,
-                    n.is_recommendable ? null : "not-recommendable",
-                  ].filter(Boolean) as string[];
-
                   return (
                     <tr
                       key={n.id ?? i}
@@ -855,7 +874,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                       <td className="p-2 font-mono">{n.id ?? "-"}</td>
                       <td className="p-2">{n.slug ?? n.name ?? "-"}</td>
                       <td className="p-2">
-                        {statusParts.length ? statusParts.join(" / ") : "-"}
+                        {n.status ? <StatusBadge status={n.status} /> : "-"}
                       </td>
                       <td className="p-2 text-center">
                         <input
@@ -900,15 +919,19 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                           : "-"}
                       </td>
                       <td className="p-2">
-                        <button
-                          type="button"
-                          className="px-2 py-1 border rounded disabled:opacity-50"
-                          disabled={!n.slug}
-                          onClick={() => openPreviewBySlug(String(n.slug))}
-                          title="Просмотреть ноду"
-                        >
-                          View
-                        </button>
+                        {n.slug ? (
+                          <a
+                            href={`/nodes/${n.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-1 border rounded"
+                            title="Просмотреть ноду"
+                          >
+                            View
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">View</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -953,6 +976,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                 title={draft.title || "New node"}
                 statuses={["draft"]}
                 versions={[1]}
+                onSave={() => handleCommit("save")}
                 toolbar={
                   <div className="flex gap-2">
                     <button
@@ -993,6 +1017,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                 content={{
                   initial: draft.contentData,
                   onSave: (d) => setDraft((prev) => ({ ...prev, contentData: d })),
+                  storageKey: "node-draft-content",
                 }}
               />
             </div>
@@ -1037,74 +1062,6 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
           </div>
         )}
 
-        {/* Preview modal */}
-        {previewOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-3xl rounded bg-white p-4 shadow dark:bg-gray-900">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold">Node preview</h3>
-                <button
-                  className="px-2 py-1 rounded border"
-                  onClick={() => setPreviewOpen(false)}
-                  disabled={previewBusy}
-                >
-                  Close
-                </button>
-              </div>
-              {previewBusy && <p>Loading…</p>}
-              {previewError && <p className="text-red-600">{previewError}</p>}
-              {!previewBusy && !previewError && previewData && (
-                <div className="space-y-2">
-                  <div>
-                    <span className="font-semibold">Title:</span>{" "}
-                    {previewData.title ?? "-"}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Slug:</span>{" "}
-                    {previewData.slug ?? "-"}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Visible:</span>{" "}
-                    {previewData.is_visible !== undefined ||
-                    previewData.isVisible !== undefined
-                      ? String(previewData.is_visible ?? previewData.isVisible)
-                      : "-"}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Public:</span>{" "}
-                    {previewData.is_public !== undefined ||
-                    previewData.isPublic !== undefined
-                      ? String(previewData.is_public ?? previewData.isPublic)
-                      : "-"}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Tags:</span>{" "}
-                    {Array.isArray(previewData.tags)
-                      ? previewData.tags
-                          .map((t: any) =>
-                            typeof t === "string"
-                              ? t
-                              : t?.slug || t?.name || "",
-                          )
-                          .filter(Boolean)
-                          .join(", ")
-                      : Array.isArray(previewData.tag_slugs)
-                        ? previewData.tag_slugs.join(", ")
-                        : "-"}
-                  </div>
-                  <div className="mt-3">
-                    <EditorJSViewer
-                      value={
-                        previewData.content ??
-                        previewData.contentData ?? { blocks: [] }
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Moderation sidebar removed: управление скрытием ведём через общий список и фильтр visible/hidden */}
