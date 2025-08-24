@@ -27,7 +27,7 @@ describe("WorkspaceSelector", () => {
     localStorage.setItem("workspaceId", "ws1");
   });
 
-  it("shows active workspace indicator and updates on change", async () => {
+  it("supports quick switch", async () => {
     render(
       <MemoryRouter>
         <WorkspaceProvider>
@@ -35,20 +35,12 @@ describe("WorkspaceSelector", () => {
         </WorkspaceProvider>
       </MemoryRouter>,
     );
-
-    const options = screen.getAllByRole("option");
-    expect(options[0].textContent).toContain("Workspace One (active)");
-
-    const select = screen.getByRole("combobox");
-    fireEvent.change(select, { target: { value: "ws2" } });
+    const switchBtn = screen.getByTitle("Quick switch workspace");
+    fireEvent.click(switchBtn);
 
     await waitFor(() => {
-      expect(screen.getAllByRole("option")[1].textContent).toContain(
-        "Workspace Two (active)",
-      );
+      const link = screen.getByTitle("Settings for Workspace Two");
+      expect(link).toHaveAttribute("href", "/workspaces/ws2");
     });
-
-    const link = screen.getByTitle("Settings for Workspace Two");
-    expect(link).toHaveAttribute("href", "/workspaces/ws2");
   });
 });
