@@ -219,23 +219,45 @@ export default function Sidebar() {
         } as AdminMenuItem);
       }
       const ops = list.find((i) => i.id === "operations");
-      const limitItem: AdminMenuItem = {
-        id: "ops-limits",
-        label: "Limits",
-        path: "/ops/limits",
-        icon: "activity",
-      };
+      const opsChildren: AdminMenuItem[] = [
+        {
+          id: "ops-status",
+          label: "Status",
+          path: "/system/health",
+          icon: "activity",
+        },
+        {
+          id: "ops-limits",
+          label: "Limits",
+          path: "/ops/limits",
+          icon: "activity",
+        },
+        {
+          id: "ops-reliability",
+          label: "Reliability",
+          path: "/tools/monitoring",
+          icon: "activity",
+        },
+        {
+          id: "ops-trace",
+          label: "Trace",
+          path: "/traces",
+          icon: "activity",
+        },
+      ];
       if (ops) {
         ops.children = ops.children || [];
-        if (!ops.children.some((c) => c.id === limitItem.id)) {
-          ops.children.push(limitItem);
+        for (const item of opsChildren) {
+          if (!ops.children.some((c) => c.id === item.id)) {
+            ops.children.push(item);
+          }
         }
       } else {
         list.push({
           id: "operations",
           label: "Operations",
           icon: "activity",
-          children: [limitItem],
+          children: opsChildren,
         } as AdminMenuItem);
       }
       // Доверяем порядку сервера: не пересортировываем на клиенте
