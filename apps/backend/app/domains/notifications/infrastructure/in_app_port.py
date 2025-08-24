@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from app.core.preview import PreviewContext
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.notifications.application.notify_service import NotifyService
@@ -30,6 +32,7 @@ class InAppNotificationPort(INotificationPort):
         workspace_id: UUID,
         title: str,
         message: str,
+        preview: PreviewContext | None = None,
     ) -> None:
         from app.domains.workspaces.infrastructure.models import Workspace
         from app.schemas.workspaces import WorkspaceSettings
@@ -48,6 +51,7 @@ class InAppNotificationPort(INotificationPort):
             title=title,
             message=message,
             type=None,
+            preview=preview,
         )
 
 

@@ -29,6 +29,7 @@ async def list_notifications(
     stmt = (
         select(Notification)
         .where(Notification.user_id == current_user.id)
+        .where(Notification.is_preview.is_(False))
         .order_by(Notification.created_at.desc())
     )
     stmt = scope_by_workspace(stmt, workspace_id)
@@ -50,6 +51,7 @@ async def mark_read(
     stmt = select(Notification).where(
         Notification.id == notification_id,
         Notification.user_id == current_user.id,
+        Notification.is_preview.is_(False),
     )
     stmt = scope_by_workspace(stmt, workspace_id)
     result = await db.execute(stmt)
