@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 
 import WorkspaceSelector from "../components/WorkspaceSelector";
-import { simulatePreview } from "../api/preview";
+import { simulatePreview, createPreviewLink } from "../api/preview";
+import { setPreviewToken } from "../api/client";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
 export default function Preview() {
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, setWorkspace } = useWorkspace();
 
   const [start, setStart] = useState("");
   const [previewMode, setPreviewMode] = useState("off");
@@ -23,6 +24,24 @@ export default function Preview() {
   const [error, setError] = useState<string | null>(null);
   const [autoRunning, setAutoRunning] = useState(false);
   const [tab, setTab] = useState<"preview" | "trace">("preview");
+  const [sharedMode, setSharedMode] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+      setPreviewToken(token);
+      setSharedMode(true);
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1] || ""));
+        if (payload?.workspace_id) {
+          setWorkspace({ id: payload.workspace_id } as any);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [setWorkspace]);
 
   useEffect(() => {
     if (history.length === 0) setCurrent(start);
@@ -89,13 +108,25 @@ export default function Preview() {
     }
   };
 
+  const share = async () => {
+    if (!workspaceId) return;
+    try {
+      const { url } = await createPreviewLink(workspaceId);
+      window.open(url, "_blank");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">Workspace</span>
-          <WorkspaceSelector />
-        </label>
+        {!sharedMode && (
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-600">Workspace</span>
+            <WorkspaceSelector />
+          </label>
+        )}
         <label className="flex flex-col gap-1">
           <span className="text-sm text-gray-600">Start node/quest</span>
           <input
@@ -192,6 +223,11 @@ export default function Preview() {
         <button onClick={reset} className="px-3 py-1 rounded border">
           Reset
         </button>
+        {!sharedMode && (
+          <button onClick={share} disabled={!workspaceId} className="px-3 py-1 rounded border">
+            Share link
+          </button>
+        )}
       </div>
 
       {error && <p className="text-red-600">{error}</p>}

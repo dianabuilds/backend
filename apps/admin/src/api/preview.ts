@@ -31,3 +31,16 @@ export async function simulatePreview(
   return res.data ?? {};
 }
 
+export interface PreviewLinkResponse {
+  url: string;
+}
+
+export async function createPreviewLink(
+  workspace_id: string,
+): Promise<PreviewLinkResponse> {
+  const res = await api.post<PreviewLinkResponse>("/admin/preview/link", {
+    workspace_id,
+  });
+  return res.data as PreviewLinkResponse;
+}
+
