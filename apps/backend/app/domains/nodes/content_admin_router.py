@@ -1,14 +1,18 @@
-from fastapi import APIRouter, Depends, Request, Query
 from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
-from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.models import NodeItem
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.nodes_common import NodeType
+from app.schemas.quest_editor import SimulateIn
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
 
 router = APIRouter(
@@ -35,16 +39,18 @@ def _serialize(item: NodeItem) -> dict:
 @router.get("", summary="List nodes")
 async def list_nodes(
     workspace_id: UUID,
-    node_type: NodeType = Query(..., alias="type"),
+    node_type: NodeType = Query(..., alias="type"),  # noqa: B008
     page: int = 1,
     per_page: int = 10,
     q: str | None = None,
-    _: object = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache)
     if q:
-        items = await svc.search(workspace_id, node_type, q, page=page, per_page=per_page)
+        items = await svc.search(
+            workspace_id, node_type, q, page=page, per_page=per_page
+        )
     else:
         items = await svc.list(workspace_id, node_type, page=page, per_page=per_page)
     return {"items": [_serialize(i) for i in items]}
@@ -54,9 +60,9 @@ async def list_nodes(
 async def create_node(
     node_type: NodeType,
     workspace_id: UUID,
-    _: object = Depends(require_ws_editor),
-    current_user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    current_user: User = Depends(auth_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache)
     item = await svc.create(workspace_id, node_type, actor_id=current_user.id)
@@ -68,8 +74,8 @@ async def get_node(
     node_type: NodeType,
     node_id: UUID,
     workspace_id: UUID,
-    _: object = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache)
     item = await svc.get(workspace_id, node_type, node_id)
@@ -83,9 +89,9 @@ async def update_node(
     workspace_id: UUID,
     request: Request,
     payload: dict,
-    _: object = Depends(require_ws_editor),
-    current_user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    current_user: User = Depends(auth_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache)
     item = await svc.update(
@@ -105,9 +111,9 @@ async def publish_node(
     node_id: UUID,
     workspace_id: UUID,
     request: Request,
-    _: object = Depends(require_ws_editor),
-    current_user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    current_user: User = Depends(auth_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache)
     item = await svc.publish(
@@ -125,9 +131,23 @@ async def validate_node_item(
     node_type: NodeType,
     node_id: UUID,
     workspace_id: UUID,
-    _: object = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache)
     report = await svc.validate(node_type, node_id)
     return {"report": report}
+
+
+@router.post("/{node_type}/{node_id}/simulate", summary="Simulate quest node")
+async def simulate_node(
+    node_type: NodeType,
+    node_id: UUID,
+    workspace_id: UUID,
+    payload: SimulateIn,
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    svc = NodeService(db, navcache)
+    report, result = await svc.simulate(workspace_id, node_type, node_id, payload)
+    return {"report": report, "result": result}

@@ -1,19 +1,23 @@
-from __future__ import annotations
-
+# mypy: ignore-errors
 """Utilities for validating quests and quest graphs."""
 
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
-from app.domains.quests.infrastructure.models.quest_models import Quest
+from app.domains.nodes.models import NodeItem
+from app.domains.quests.application.editor_service import EditorService
+from app.schemas.quest_editor import GraphEdge, GraphNode
 from app.schemas.quest_validation import ValidationItem, ValidationReport
 from app.validation.base import validator
 
 
-async def validate_version_graph(_db: AsyncSession, _version_id: UUID) -> Dict[str, Any]:
+async def validate_version_graph(
+    _db: AsyncSession, _version_id: UUID
+) -> dict[str, Any]:
     """Validate a quest version graph.
 
     Currently returns an empty report compatible with older code.
@@ -22,7 +26,7 @@ async def validate_version_graph(_db: AsyncSession, _version_id: UUID) -> Dict[s
     return {"errors": 0, "warnings": 0, "items": []}
 
 
-async def validate_quest(_db: AsyncSession, _quest: Quest) -> ValidationReport:
+async def validate_quest(_db: AsyncSession, _quest: Any) -> ValidationReport:
     """Validate a quest before publishing.
 
     Returns an empty :class:`ValidationReport` indicating no issues.
@@ -32,12 +36,11 @@ async def validate_quest(_db: AsyncSession, _quest: Quest) -> ValidationReport:
 
 
 @validator("quest")
-async def quest_graph_validator(db: AsyncSession, quest_id: UUID) -> ValidationReport:
-    """Simple quest validator registered in the global validation registry."""
+async def quest_graph_validator(db: AsyncSession, node_id: UUID) -> ValidationReport:
+    """Validate quest graph stored within a :class:`NodeItem`."""
 
-    res = await db.execute(select(Quest).where(Quest.id == quest_id))
-    quest = res.scalars().first()
-    if quest is None:
+    item = await db.get(NodeItem, node_id)
+    if item is None:
         return ValidationReport(
             errors=1,
             warnings=0,
@@ -50,7 +53,24 @@ async def quest_graph_validator(db: AsyncSession, quest_id: UUID) -> ValidationR
                 )
             ],
         )
-    return ValidationReport(errors=0, warnings=0, items=[])
+
+    data = item.quest_data or {}
+    nodes = [GraphNode(**n) for n in data.get("nodes", [])]
+    edges = [GraphEdge(**e) for e in data.get("edges", [])]
+
+    result = EditorService().validate_graph(nodes, edges)
+    items = [
+        ValidationItem(level="error", code="graph_error", message=m)
+        for m in result.errors
+    ] + [
+        ValidationItem(level="warning", code="graph_warning", message=m)
+        for m in result.warnings
+    ]
+    return ValidationReport(
+        errors=len(result.errors),
+        warnings=len(result.warnings),
+        items=items,
+    )
 
 
 __all__ = ["validate_version_graph", "validate_quest"]
