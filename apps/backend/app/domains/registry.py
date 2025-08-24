@@ -220,6 +220,14 @@ def register_domain_routers(app: FastAPI) -> None:
         app.include_router(admin_transitions_router)
     except Exception:
         pass
+    # Admin transitions simulate
+    try:
+        from app.domains.navigation.api.admin_transitions_simulate import (
+            router as admin_transitions_simulate_router,
+        )
+        app.include_router(admin_transitions_simulate_router)
+    except Exception:
+        pass
     # Admin rate limit
     try:
         from app.domains.admin.api.ratelimit_router import router as admin_ratelimit_router

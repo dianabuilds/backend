@@ -4,6 +4,7 @@ import logging
 import math
 import random
 import time
+import copy
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict, deque
 from collections.abc import Sequence
@@ -379,7 +380,7 @@ class TransitionRouter:
         user: Optional[User],
         budget,
         preview: PreviewContext | None = None,
-    ) -> TransitionResult | TransitionTrace:
+    ) -> TransitionResult:
         transition_start(start.slug)
         start_time = time.monotonic()
         self.trace.clear()
@@ -391,11 +392,14 @@ class TransitionRouter:
                 if hasattr(policy.provider, "set_seed"):
                     policy.provider.set_seed(seed)
 
+        history = self.history
+        repeat_filter = self.repeat_filter
         if preview and preview.mode != "off":
-            return TransitionTrace([], [], {}, None)
+            history = deque(self.history, maxlen=self.history.maxlen)
+            repeat_filter = copy.deepcopy(self.repeat_filter)
 
-        self.history.append(start.slug)
-        self.repeat_filter.update(start)
+        history.append(start.slug)
+        repeat_filter.update(start)
 
         if getattr(budget, "fallback_chain", None):
             policy_order = [
@@ -414,7 +418,7 @@ class TransitionRouter:
 
         for idx, policy in enumerate(policy_order):
             candidate, trace = await policy.choose(
-                db, start, user, self.history, self.repeat_filter, preview
+                db, start, user, history, repeat_filter, preview
             )
             trace.policy = policy.name
             self.trace.append(trace)
@@ -431,11 +435,11 @@ class TransitionRouter:
                 reason = NoRouteReason.BUDGET_EXCEEDED
                 break
 
-            if candidate and candidate.slug not in self.history:
+            if candidate and candidate.slug not in history:
                 if idx > 0:
                     fallback_used = True
-                self.history.append(candidate.slug)
-                self.repeat_filter.update(candidate)
+                history.append(candidate.slug)
+                repeat_filter.update(candidate)
                 logger.debug("%s -> %s", policy.name, candidate.slug)
                 nxt = candidate
                 break
@@ -458,7 +462,7 @@ class TransitionRouter:
         if reason == NoRouteReason.NO_ROUTE:
             record_no_route(ws_id)
         else:
-            record_route_length(len(self.history), ws_id)
+            record_route_length(len(history), ws_id)
             if nxt is not None:
                 tags = getattr(nxt, "tags", []) or []
                 ent = _compute_entropy([getattr(t, "slug", t) for t in tags])
