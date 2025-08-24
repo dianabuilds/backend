@@ -212,3 +212,4 @@ node_modules/
 admin-frontend/dist/
 admin-frontend/.vite/
 
+/apps/admin/package-lock.json
