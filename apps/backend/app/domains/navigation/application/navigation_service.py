@@ -132,7 +132,9 @@ class NavigationService:
 
         route: List[Node] = [node]
         current = node
-        budget = SimpleNamespace(time_ms=1000, db_queries=1000, fallback_chain=[])
+        budget = SimpleNamespace(
+            max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
+        )
         for _ in range(steps):
             result = await self._router.route(db, current, user, budget, seed=0)
             logger.debug("trace: %s", result.trace)

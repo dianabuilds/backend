@@ -14,6 +14,7 @@ TRANSITION_START = "transition.start"
 TRANSITION_FINISH = "transition.finish"
 NO_ROUTE = "no_route"
 FALLBACK_HIT = "fallback.hit"
+FALLBACK_USED = "fallback.used"
 
 # in-memory metrics for admin cache stats
 cache_counters: Dict[str, Dict[str, int]] = defaultdict(lambda: {"hit": 0, "miss": 0})
@@ -57,3 +58,7 @@ def no_route(node: str) -> None:
 
 def fallback_hit(component: str) -> None:
     logger.warning(f"{FALLBACK_HIT} component={component}")
+
+
+def fallback_used(component: str) -> None:
+    logger.info(f"{FALLBACK_USED} component={component}")

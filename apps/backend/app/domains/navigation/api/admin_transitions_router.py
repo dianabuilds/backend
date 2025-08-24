@@ -205,7 +205,9 @@ async def simulate_transitions(
     policies = [RandomPolicy(provider)]
     router = TransitionRouter(policies, not_repeat_last=5)
     start = _DummyNode(payload.start)
-    budget = SimpleNamespace(time_ms=1000, db_queries=1000, fallback_chain=[])
+    budget = SimpleNamespace(
+        max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
+    )
     current = start
     traces: list[dict] = []
     route: list[str] = [start.slug]

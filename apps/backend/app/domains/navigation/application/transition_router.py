@@ -316,26 +316,12 @@ class TransitionRouter:
         max_visits: int = 0,
     ) -> None:
         self.policies = list(policies)
+        self.policy_map = {p.name: p for p in self.policies}
         self.history: Deque[str] = deque(maxlen=not_repeat_last)
         self.trace: List[TransitionTrace] = []
         self.repeat_filter = RepeatFilter(
             no_repeat_window, repeat_threshold, repeat_decay, max_visits
         )
-
-    async def _next(
-        self, db: AsyncSession, node: Node, user: Optional[User]
-    ) -> Optional[Node]:
-        for policy in self.policies:
-            candidate, trace = await policy.choose(
-                db, node, user, self.history, self.repeat_filter
-            )
-            self.trace.append(trace)
-            if candidate and candidate.slug not in self.history:
-                self.history.append(candidate.slug)
-                self.repeat_filter.update(candidate)
-                logger.debug("%s -> %s", policy.name, candidate.slug)
-                return candidate
-        return None
 
     async def route(
         self,
@@ -357,28 +343,67 @@ class TransitionRouter:
 
         self.history.append(start.slug)
         self.repeat_filter.update(start)
-        nxt = await self._next(db, start, user)
+
+        if getattr(budget, "fallback_chain", None):
+            policy_order = [
+                p
+                for name in getattr(budget, "fallback_chain", [])
+                if (p := self.policy_map.get(name))
+            ]
+        else:
+            policy_order = list(self.policies)
+
+        fallback_used = False
+        queries = 0
+        filtered_total = 0
+        nxt: Optional[Node] = None
+        reason: Optional[NoRouteReason] = None
+
+        for idx, policy in enumerate(policy_order):
+            candidate, trace = await policy.choose(
+                db, start, user, self.history, self.repeat_filter
+            )
+            self.trace.append(trace)
+            queries += 1
+            filtered_total += len(trace.filters)
+
+            elapsed_ms = (time.monotonic() - start_time) * 1000
+            if elapsed_ms > getattr(budget, "max_time_ms", float("inf")):
+                reason = NoRouteReason.TIMEOUT
+                break
+            if queries > getattr(budget, "max_queries", float("inf")) or filtered_total > getattr(budget, "max_filters", float("inf")):
+                reason = NoRouteReason.BUDGET_EXCEEDED
+                break
+
+            if candidate and candidate.slug not in self.history:
+                if idx > 0:
+                    fallback_used = True
+                self.history.append(candidate.slug)
+                self.repeat_filter.update(candidate)
+                logger.debug("%s -> %s", policy.name, candidate.slug)
+                nxt = candidate
+                break
 
         elapsed_ms = (time.monotonic() - start_time) * 1000
         total_candidates = sum(len(t.candidates) for t in self.trace)
-        filtered = sum(len(t.filters) for t in self.trace)
-        repeat_rate = filtered / total_candidates if total_candidates else 0.0
+        repeat_rate = filtered_total / total_candidates if total_candidates else 0.0
         metrics = {
             "elapsed_ms": elapsed_ms,
-            "db_queries": 0,
+            "db_queries": queries,
             "repeat_rate": repeat_rate,
+            "fallback_used": fallback_used,
         }
         record_route_latency_ms(elapsed_ms)
         record_repeat_rate(repeat_rate)
 
-        reason: Optional[NoRouteReason] = None
-        if elapsed_ms > getattr(budget, "time_ms", float("inf")):
-            reason = NoRouteReason.TIMEOUT
-        elif metrics["db_queries"] > getattr(budget, "db_queries", float("inf")):
-            reason = NoRouteReason.BUDGET_EXCEEDED
-        elif nxt is None:
+        if reason is None and nxt is None:
             reason = NoRouteReason.NO_ROUTE
             no_route(start.slug)
+
+        if fallback_used:
+            from app.core.log_events import fallback_used as log_fallback_used
+
+            log_fallback_used("transition.router")
 
         transition_finish(nxt.slug if nxt else None)
         return TransitionResult(next=nxt, reason=reason, trace=list(self.trace), metrics=metrics)
