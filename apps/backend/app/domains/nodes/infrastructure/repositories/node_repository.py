@@ -121,10 +121,14 @@ class NodeRepositoryAdapter(INodeRepository):
             slug_norm = (slug or "").strip().lower()
             if not slug_norm:
                 continue
-            res = await self._db.execute(select(Tag).where(Tag.slug == slug_norm))
+            res = await self._db.execute(
+                select(Tag).where(
+                    Tag.slug == slug_norm, Tag.workspace_id == node.workspace_id
+                )
+            )
             tag = res.scalar_one_or_none()
             if not tag:
-                tag = Tag(slug=slug_norm, name=slug_norm)
+                tag = Tag(slug=slug_norm, name=slug_norm, workspace_id=node.workspace_id)
                 self._db.add(tag)
                 await self._db.flush()
                 await self._db.refresh(tag)
@@ -226,10 +230,12 @@ class NodeRepositoryAdapter(INodeRepository):
             slug_norm = (slug or "").strip().lower()
             if not slug_norm:
                 continue
-            existing = await self._db.execute(select(Tag).where(Tag.slug == slug_norm))
+            existing = await self._db.execute(
+                select(Tag).where(Tag.slug == slug_norm, Tag.workspace_id == workspace_id)
+            )
             tag = existing.scalar_one_or_none()
             if not tag:
-                tag = Tag(slug=slug_norm, name=slug_norm)
+                tag = Tag(slug=slug_norm, name=slug_norm, workspace_id=workspace_id)
                 self._db.add(tag)
                 await self._db.flush()
                 await self._db.refresh(tag)
@@ -257,17 +263,22 @@ class NodeRepositoryAdapter(INodeRepository):
             slug_norm = (slug or "").strip().lower()
             if not slug_norm:
                 continue
-            existing = await self._db.execute(select(Tag).where(Tag.slug == slug_norm))
+            existing = await self._db.execute(
+                select(Tag).where(Tag.slug == slug_norm, Tag.workspace_id == workspace_id)
+            )
             tag = existing.scalar_one_or_none()
             if not tag:
-                tag = Tag(slug=slug_norm, name=slug_norm)
+                tag = Tag(slug=slug_norm, name=slug_norm, workspace_id=workspace_id)
                 self._db.add(tag)
                 await self._db.flush()
                 await self._db.refresh(tag)
             add_ids.append(tag.id)
         if remove:
             rem_q = await self._db.execute(
-                select(Tag.id).where(Tag.slug.in_([s.strip().lower() for s in remove]))
+                select(Tag.id).where(
+                    Tag.slug.in_([s.strip().lower() for s in remove]),
+                    Tag.workspace_id == workspace_id,
+                )
             )
             rem_ids = [row[0] for row in rem_q.all()]
             if rem_ids:
