@@ -31,6 +31,13 @@ from app.domains.nodes.schemas.feedback import FeedbackCreate, FeedbackOut
 from app.domains.nodes.schemas.node import NodeCreate, NodeOut, NodeUpdate, ReactionUpdate
 from app.domains.tags.schemas.node_tags import NodeTagsUpdate
 from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter as NodeRepository
+from app.domains.notifications.infrastructure.repositories.settings_repository import (
+    NodeNotificationSettingsRepository,
+)
+from app.schemas.notification_settings import (
+    NodeNotificationSettingsOut,
+    NodeNotificationSettingsUpdate,
+)
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -198,6 +205,51 @@ async def update_reactions(
         workspace_id=workspace_id,
         actor_id=str(current_user.id),
     )
+
+
+@router.get(
+    "/{node_id}/notification-settings",
+    response_model=NodeNotificationSettingsOut,
+    summary="Get node notification settings",
+)
+async def get_node_notification_settings(
+    node_id: UUID,
+    workspace_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> NodeNotificationSettingsOut:
+    repo = NodeRepository(db)
+    node = await repo.get_by_id(node_id, workspace_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    settings_repo = NodeNotificationSettingsRepository(db)
+    setting = await settings_repo.get(current_user.id, node_id)
+    if not setting:
+        return NodeNotificationSettingsOut(node_id=node_id, enabled=True)
+    return NodeNotificationSettingsOut.model_validate(setting)
+
+
+@router.patch(
+    "/{node_id}/notification-settings",
+    response_model=NodeNotificationSettingsOut,
+    summary="Update node notification settings",
+)
+async def update_node_notification_settings(
+    node_id: UUID,
+    payload: NodeNotificationSettingsUpdate,
+    workspace_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> NodeNotificationSettingsOut:
+    repo = NodeRepository(db)
+    node = await repo.get_by_id(node_id, workspace_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    settings_repo = NodeNotificationSettingsRepository(db)
+    setting = await settings_repo.upsert(
+        current_user.id, node_id, payload.enabled
+    )
+    return NodeNotificationSettingsOut.model_validate(setting)
 
 
 @router.get("/{slug}/feedback", response_model=List[FeedbackOut], summary="List feedback")
