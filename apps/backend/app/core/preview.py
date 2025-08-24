@@ -6,12 +6,12 @@ from typing import Literal, Optional
 
 from fastapi import Request
 
-PreviewMode = Literal["read_only", "dry_run", "shadow"]
+PreviewMode = Literal["off", "read_only", "dry_run", "shadow"]
 
 
 @dataclass
 class PreviewContext:
-    mode: PreviewMode = "read_only"
+    mode: PreviewMode = "off"
     preview_user: Optional[str] = None
     seed: Optional[int] = None
     time: Optional[datetime] = None
@@ -23,7 +23,7 @@ class PreviewContext:
 async def get_preview_context(request: Request) -> PreviewContext:
     q = request.query_params
     h = request.headers
-    mode = q.get("preview_mode") or h.get("X-Preview-Mode") or "read_only"
+    mode = q.get("preview_mode") or h.get("X-Preview-Mode") or "off"
     preview_user = q.get("preview_user") or h.get("X-Preview-User")
     seed = q.get("preview_seed") or h.get("X-Preview-Seed")
     seed_val = int(seed) if seed is not None else None

@@ -6,6 +6,7 @@ from typing import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.core.preview import PreviewContext
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
 from app.domains.navigation.application.access_policy import has_access_async
@@ -18,7 +19,10 @@ class RandomService:
         user: User | None = None,
         exclude_node_id: str | None = None,
         tag_whitelist: Sequence[str] | None = None,
+        preview: PreviewContext | None = None,
     ) -> Node | None:
+        if preview and preview.seed is not None:
+            random.seed(preview.seed)
         query = select(Node).where(
             Node.is_visible == True,  # noqa: E712
             Node.is_public == True,

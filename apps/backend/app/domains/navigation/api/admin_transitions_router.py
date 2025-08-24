@@ -9,10 +9,9 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import get_preview_context
 from app.core.db.session import get_db
 from app.core.db.transition_query import TransitionFilterSpec, TransitionQueryService
-from app.core.preview import PreviewContext
+from app.core.preview import PreviewContext, get_preview_context
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
@@ -216,8 +215,10 @@ async def simulate_transitions(
     traces: list[dict] = []
     route: list[str] = [start.slug]
     for _ in range(payload.steps):
+        if payload.seed is not None:
+            preview.seed = payload.seed
         res = await router.route(
-            None, current, None, budget, seed=payload.seed, preview=preview
+            None, current, None, budget, preview=preview
         )
         traces.extend(asdict(t) for t in res.trace)
         if res.next is None:

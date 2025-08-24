@@ -82,10 +82,9 @@ async def _build_route(router, start, steps, seed=None):
     )
     route = [start]
     current = start
+    preview = PreviewContext(seed=seed) if seed is not None else PreviewContext()
     for _ in range(steps):
-        result = await router.route(
-            None, current, None, budget, seed=seed, preview=PreviewContext()
-        )
+        result = await router.route(None, current, None, budget, preview=preview)
         if result.next is None:
             break
         current = result.next
