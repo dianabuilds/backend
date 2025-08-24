@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import MediaAsset
+from app.domains.workspaces.application.service import scope_by_workspace
 
 
 class MediaAssetDAO:
@@ -27,10 +28,10 @@ class MediaAssetDAO:
     ) -> List[MediaAsset]:
         stmt = (
             select(MediaAsset)
-            .where(MediaAsset.workspace_id == workspace_id)
             .order_by(MediaAsset.created_at.desc())
             .offset(offset)
             .limit(limit)
         )
+        stmt = scope_by_workspace(stmt, workspace_id)
         result = await db.execute(stmt)
         return list(result.scalars().all())

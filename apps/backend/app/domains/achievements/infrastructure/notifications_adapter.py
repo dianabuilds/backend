@@ -13,5 +13,13 @@ class NotificationsAdapter(INotificationPort):
     def __init__(self, db: AsyncSession) -> None:
         self._svc = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
 
-    async def notify(self, user_id: UUID, *, title: str, message: str) -> None:
-        await self._svc.create_notification(user_id=user_id, title=title, message=message, type=None)
+    async def notify(
+        self, user_id: UUID, *, workspace_id: UUID, title: str, message: str
+    ) -> None:
+        await self._svc.create_notification(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            title=title,
+            message=message,
+            type=None,
+        )

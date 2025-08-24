@@ -52,7 +52,7 @@ class AchievementsService:
             return False
         await self._repo.add_user_achievement(user_id, achievement_id, workspace_id)
         await self._notifier.notify(
-            user_id, title="Achievement unlocked", message=ach.title
+            user_id, workspace_id=workspace_id, title="Achievement unlocked", message=ach.title
         )
         await db.commit()
         return True

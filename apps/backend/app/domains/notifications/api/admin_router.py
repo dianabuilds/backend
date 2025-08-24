@@ -25,6 +25,7 @@ router = APIRouter(
 
 
 class SendNotificationPayload(BaseModel):
+    workspace_id: UUID
     user_id: UUID
     title: str
     message: str
@@ -42,6 +43,10 @@ async def send_notification(
         raise HTTPException(status_code=404, detail="User not found")
     svc = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
     notif = await svc.create_notification(
-        user_id=payload.user_id, title=payload.title, message=payload.message, type=payload.type
+        workspace_id=payload.workspace_id,
+        user_id=payload.user_id,
+        title=payload.title,
+        message=payload.message,
+        type=payload.type,
     )
     return {"id": str(notif.id), "status": "queued"}

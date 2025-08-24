@@ -15,13 +15,20 @@ class NotifyService:
     async def create_notification(
         self,
         *,
+        workspace_id: UUID,
         user_id: UUID,
         title: str,
         message: str,
         type: Any,
     ) -> Dict[str, Any]:
         # Репозиторий создаёт запись и коммитит (сохранено поведение старой реализации)
-        dto = await self._repo.create_and_commit(user_id=user_id, title=title, message=message, type=type)
+        dto = await self._repo.create_and_commit(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            title=title,
+            message=message,
+            type=type,
+        )
         # Пушим клиенту; сбои доставки не прерывают создание
         try:
             await self._pusher.send(user_id, dto)

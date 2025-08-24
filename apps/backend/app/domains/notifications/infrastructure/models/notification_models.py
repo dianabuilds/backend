@@ -23,7 +23,7 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False)
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
     message = Column(String, nullable=False)

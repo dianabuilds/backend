@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, String, DateTime, Integer, Enum as SAEnum
+from sqlalchemy import Column, String, DateTime, Integer, Enum as SAEnum, ForeignKey
 
 from .adapters import UUID as GUID, JSONB
 from . import Base
@@ -27,3 +27,4 @@ class OutboxEvent(Base):
     attempts = Column(Integer, default=0, nullable=False)
     next_retry_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    workspace_id = Column(GUID(), ForeignKey("workspaces.id"), nullable=False, index=True)

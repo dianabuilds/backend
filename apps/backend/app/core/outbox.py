@@ -1,7 +1,7 @@
 """Simple helper for inserting events into the outbox table."""
 
 from datetime import datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 from typing import Any, Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ async def emit(
     db: AsyncSession,
     topic: str,
     payload: Dict[str, Any],
+    workspace_id: UUID,
     dedup_key: Optional[str] = None,
 ) -> OutboxEvent:
     """Insert an event into the transactional outbox.
@@ -28,6 +29,7 @@ async def emit(
         status=OutboxStatus.NEW,
         attempts=0,
         next_retry_at=datetime.utcnow(),
+        workspace_id=workspace_id,
     )
     db.add(event)
     await db.flush()
