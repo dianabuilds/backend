@@ -3,19 +3,22 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { api } from "../api/client";
+import {
+  getAIPresets,
+  saveAIPresets,
+  getNotificationRules,
+  saveNotificationRules,
+  getLimits,
+  saveLimits,
+} from "../api/workspaceSettings";
 import { useToast } from "../components/ToastProvider";
-import type {
-  GenerateQuestIn,
-  WorkspaceMemberOut,
-  WorkspaceOut,
-  WorkspaceRole,
-} from "../openapi";
+import type { WorkspaceMemberOut, WorkspaceOut, WorkspaceRole } from "../openapi";
 import PageLayout from "./_shared/PageLayout";
 
 const TABS = [
   "General",
   "Members",
-  "AI",
+  "AI-presets",
   "Notifications",
   "Limits",
 ] as const;
@@ -44,46 +47,100 @@ export default function WorkspaceSettings() {
     }
   }, [error, addToast]);
 
-  const [selectedPreset, setSelectedPreset] = useState("");
-  const [aiForm, setAIForm] = useState<GenerateQuestIn>({
-    structure: "",
-    length: "",
-    tone: "",
-    genre: "",
-    locale: "",
+  const [aiPresetsText, setAIPresetsText] = useState("{}");
+  const [notificationsText, setNotificationsText] = useState("{}");
+  const [limitsText, setLimitsText] = useState("{}");
+
+  const {
+    data: aiPresetsData,
+    isLoading: aiPresetsLoading,
+    refetch: refetchAIPresets,
+  } = useQuery({
+    queryKey: ["workspace-ai-presets", id],
+    enabled: tab === "AI-presets" && !!id,
+    queryFn: async () => getAIPresets(id!),
+  });
+
+  const {
+    data: notificationsData,
+    isLoading: notificationsLoading,
+    refetch: refetchNotifications,
+  } = useQuery({
+    queryKey: ["workspace-notifications", id],
+    enabled: tab === "Notifications" && !!id,
+    queryFn: async () => getNotificationRules(id!),
+  });
+
+  const {
+    data: limitsData,
+    isLoading: limitsLoading,
+    refetch: refetchLimits,
+  } = useQuery({
+    queryKey: ["workspace-limits", id],
+    enabled: tab === "Limits" && !!id,
+    queryFn: async () => getLimits(id!),
   });
 
   useEffect(() => {
-    const keys = Object.keys(data?.settings?.ai_presets ?? {});
-    if (keys.length > 0 && !selectedPreset) {
-      setSelectedPreset(keys[0]);
+    if (aiPresetsData) {
+      setAIPresetsText(JSON.stringify(aiPresetsData, null, 2));
     }
-  }, [data, selectedPreset]);
+  }, [aiPresetsData]);
 
   useEffect(() => {
-    const preset = data?.settings?.ai_presets?.[selectedPreset] as
-      | Partial<GenerateQuestIn>
-      | undefined;
-    if (preset) {
-      setAIForm({
-        structure: preset.structure ?? "",
-        length: preset.length ?? "",
-        tone: preset.tone ?? "",
-        genre: preset.genre ?? "",
-        locale: preset.locale ?? "",
-        extras: preset.extras ?? undefined,
-        world_template_id: preset.world_template_id ?? undefined,
-      });
+    if (notificationsData) {
+      setNotificationsText(JSON.stringify(notificationsData, null, 2));
     }
-  }, [data, selectedPreset]);
+  }, [notificationsData]);
 
-  const generateAI = async () => {
+  useEffect(() => {
+    if (limitsData) {
+      setLimitsText(JSON.stringify(limitsData, null, 2));
+    }
+  }, [limitsData]);
+
+  const savePresets = async () => {
+    if (!id) return;
     try {
-      await api.post(`/admin/ai/quests/generate`, aiForm);
-      addToast({ title: "Generation enqueued", variant: "success" });
+      const parsed = aiPresetsText ? JSON.parse(aiPresetsText) : {};
+      await saveAIPresets(id, parsed);
+      addToast({ title: "Presets saved", variant: "success" });
+      await refetchAIPresets();
     } catch (e) {
       addToast({
-        title: "Generation failed",
+        title: "Failed to save presets",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
+    }
+  };
+
+  const saveNotificationsSettings = async () => {
+    if (!id) return;
+    try {
+      const parsed = notificationsText ? JSON.parse(notificationsText) : {};
+      await saveNotificationRules(id, parsed);
+      addToast({ title: "Notifications saved", variant: "success" });
+      await refetchNotifications();
+    } catch (e) {
+      addToast({
+        title: "Failed to save notifications",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
+    }
+  };
+
+  const saveLimitsSettings = async () => {
+    if (!id) return;
+    try {
+      const parsed = limitsText ? JSON.parse(limitsText) : {};
+      await saveLimits(id, parsed);
+      addToast({ title: "Limits saved", variant: "success" });
+      await refetchLimits();
+    } catch (e) {
+      addToast({
+        title: "Failed to save limits",
         description: e instanceof Error ? e.message : String(e),
         variant: "error",
       });
@@ -306,65 +363,65 @@ export default function WorkspaceSettings() {
     </div>
   );
 
-  const renderAI = () => {
-    const presets = data?.settings?.ai_presets ?? {};
-    const presetKeys = Object.keys(presets);
+  const renderAIPresets = () => (
+    <div className="space-y-2">
+      {aiPresetsLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <>
+          <textarea
+            className="border rounded w-full h-64 p-2 font-mono text-xs"
+            value={aiPresetsText}
+            onChange={(e) => setAIPresetsText(e.target.value)}
+          />
+          <button className="px-2 py-1 border rounded" onClick={savePresets}>
+            Save
+          </button>
+        </>
+      )}
+    </div>
+  );
 
-    if (presetKeys.length === 0) {
-      return (
-        <div className="text-sm text-gray-500">No AI presets configured.</div>
-      );
-    }
+  const renderNotifications = () => (
+    <div className="space-y-2">
+      {notificationsLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <>
+          <textarea
+            className="border rounded w-full h-64 p-2 font-mono text-xs"
+            value={notificationsText}
+            onChange={(e) => setNotificationsText(e.target.value)}
+          />
+          <button
+            className="px-2 py-1 border rounded"
+            onClick={saveNotificationsSettings}
+          >
+            Save
+          </button>
+        </>
+      )}
+    </div>
+  );
 
-    return (
-      <div className="space-y-2 text-sm">
-        <select
-          className="border rounded px-2 py-1"
-          value={selectedPreset}
-          onChange={(e) => setSelectedPreset(e.target.value)}
-        >
-          {presetKeys.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-        <input
-          className="border rounded px-2 py-1 w-full"
-          placeholder="Structure"
-          value={aiForm.structure}
-          onChange={(e) => setAIForm({ ...aiForm, structure: e.target.value })}
-        />
-        <input
-          className="border rounded px-2 py-1 w-full"
-          placeholder="Length"
-          value={aiForm.length}
-          onChange={(e) => setAIForm({ ...aiForm, length: e.target.value })}
-        />
-        <input
-          className="border rounded px-2 py-1 w-full"
-          placeholder="Tone"
-          value={aiForm.tone}
-          onChange={(e) => setAIForm({ ...aiForm, tone: e.target.value })}
-        />
-        <input
-          className="border rounded px-2 py-1 w-full"
-          placeholder="Genre"
-          value={aiForm.genre}
-          onChange={(e) => setAIForm({ ...aiForm, genre: e.target.value })}
-        />
-        <input
-          className="border rounded px-2 py-1 w-full"
-          placeholder="Locale"
-          value={aiForm.locale ?? ""}
-          onChange={(e) => setAIForm({ ...aiForm, locale: e.target.value })}
-        />
-        <button className="px-2 py-1 border rounded" onClick={generateAI}>
-          Generate
-        </button>
-      </div>
-    );
-  };
+  const renderLimits = () => (
+    <div className="space-y-2">
+      {limitsLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <>
+          <textarea
+            className="border rounded w-full h-64 p-2 font-mono text-xs"
+            value={limitsText}
+            onChange={(e) => setLimitsText(e.target.value)}
+          />
+          <button className="px-2 py-1 border rounded" onClick={saveLimitsSettings}>
+            Save
+          </button>
+        </>
+      )}
+    </div>
+  );
 
   const renderTab = () => {
     switch (tab) {
@@ -384,8 +441,12 @@ export default function WorkspaceSettings() {
         ) : null;
       case "Members":
         return renderMembers();
-      case "AI":
-        return renderAI();
+      case "AI-presets":
+        return renderAIPresets();
+      case "Notifications":
+        return renderNotifications();
+      case "Limits":
+        return renderLimits();
       default:
         return (
           <div className="text-sm text-gray-500">No content for {tab} yet.</div>
