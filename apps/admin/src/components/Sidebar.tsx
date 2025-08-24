@@ -209,8 +209,17 @@ export default function Sidebar() {
     setError(null);
     try {
       const { items } = await getAdminMenu();
+      const list = [...items];
+      if (!list.some((i) => i.path === "/preview")) {
+        list.push({
+          id: "preview",
+          label: "Preview",
+          path: "/preview",
+          icon: "activity",
+        } as AdminMenuItem);
+      }
       // Доверяем порядку сервера: не пересортировываем на клиенте
-      setItems(items);
+      setItems(list);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setItems(null);
