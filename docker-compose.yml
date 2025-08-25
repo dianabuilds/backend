@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./apps/backend
+    environment:
+      - APP_ENV_MODE=${APP_ENV_MODE}
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    ports:
+      - "8000:8000"
+    profiles: ["local", "dev", "test"]
+
+  admin:
+    build: ./apps/admin
+    environment:
+      - APP_ENV_MODE=${APP_ENV_MODE}
+    ports:
+      - "3000:3000"
+    profiles: ["local", "dev"]
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    profiles: ["local", "dev", "test"]
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    profiles: ["local", "dev", "test"]
+
+  minio:
+    image: minio/minio
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address :9001
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    profiles: ["local", "dev", "test"]
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    profiles: ["local"]
+
+  wiremock:
+    image: wiremock/wiremock
+    ports:
+      - "8083:8080"
+    profiles: ["test"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib
+    ports:
+      - "4317:4317"
+    profiles: ["local", "dev"]
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    profiles: ["local", "dev"]
+
+volumes:
+  postgres_data:
+  minio_data:
