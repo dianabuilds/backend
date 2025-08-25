@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.health import readyz
@@ -15,6 +16,7 @@ from app.core.db.session import get_db
 from app.admin.ops.cors import router as cors_router
 from app.admin.ops.alerts import router as alerts_router
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
+from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.workspaces import WorkspaceSettings
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -41,25 +43,39 @@ def _workspace_info(ws: Any) -> dict[str, Any]:
     return {"id": str(ws.id), "slug": ws.slug, "name": ws.name}
 
 
+async def _resolve_workspace(
+    db: AsyncSession, workspace_id: Optional[UUID]
+) -> Optional[Workspace]:
+    if workspace_id:
+        return await WorkspaceDAO.get(db, workspace_id)
+    # попробуем системный workspace 'main'
+    res = await db.execute(select(Workspace).where(Workspace.slug == "main"))
+    ws = res.scalars().first()
+    if ws:
+        return ws
+    # fallback: первый существующий
+    res = await db.execute(select(Workspace).order_by(Workspace.created_at))
+    return res.scalars().first()
+
+
 @router.get("/status")
 async def get_status(
-    workspace_id: UUID, db: AsyncSession = Depends(get_db)  # noqa: B008
+    workspace_id: Optional[UUID] = None, db: AsyncSession = Depends(get_db)  # noqa: B008
 ) -> dict[str, Any]:
-    cache_key = f"ops:status:{workspace_id}"
+    # Кэшируем по реальному id (или по ключу 'none', если WS не найден)
+    ws = await _resolve_workspace(db, workspace_id)
+    cache_ws_key = str(ws.id) if ws else "none"
+    cache_key = f"ops:status:{cache_ws_key}"
     cached = await shared_cache.get(cache_key)
     if cached:
         return json.loads(cached)
-
-    ws = await WorkspaceDAO.get(db, workspace_id)
-    if not ws:
-        raise HTTPException(status_code=404, detail="Workspace not found")
 
     ready_resp = await readyz(db)
     ready_data = json.loads(ready_resp.body)
 
     result = {
         "build": _build_version(),
-        "workspace": _workspace_info(ws),
+        "workspace": _workspace_info(ws) if ws else None,
         "ready": ready_data,
     }
     await shared_cache.set(cache_key, json.dumps(result), CACHE_TTL)
@@ -68,16 +84,17 @@ async def get_status(
 
 @router.get("/limits")
 async def get_limits(
-    workspace_id: UUID, db: AsyncSession = Depends(get_db)  # noqa: B008
+    workspace_id: Optional[UUID] = None, db: AsyncSession = Depends(get_db)  # noqa: B008
 ) -> dict[str, int]:
-    cache_key = f"ops:limits:{workspace_id}"
+    ws = await _resolve_workspace(db, workspace_id)
+    if not ws:
+        # нет рабочей области — вернём пустые лимиты, но не валимся
+        return {}
+
+    cache_key = f"ops:limits:{ws.id}"
     cached = await shared_cache.get(cache_key)
     if cached:
         return json.loads(cached)
-
-    ws = await WorkspaceDAO.get(db, workspace_id)
-    if not ws:
-        raise HTTPException(status_code=404, detail="Workspace not found")
 
     settings = WorkspaceSettings.model_validate(ws.settings_json)
     now = datetime.now(timezone.utc)
@@ -88,7 +105,7 @@ async def get_limits(
         if limit_int <= 0:
             result[key] = -1
             continue
-        pattern = f"q:{key}:{period}:*:{workspace_id}"
+        pattern = f"q:{key}:{period}:*:{ws.id}"
         keys = await shared_cache.scan(pattern)
         used = 0
         if keys:
