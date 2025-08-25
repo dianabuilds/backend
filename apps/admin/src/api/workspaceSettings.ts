@@ -1,7 +1,27 @@
 import { api } from "./client";
 
-export async function getAIPresets(workspaceId: string): Promise<Record<string, any>> {
-  const res = await api.get<Record<string, any>>(
+export type AIPresets = {
+  model?: string;
+  temperature?: number;
+  system_prompt?: string;
+  forbidden?: string[];
+};
+
+export type NotificationChannel = "in-app" | "email" | "webhook";
+
+export type NotificationRules = {
+  achievement: NotificationChannel[];
+  publish: NotificationChannel[];
+};
+
+export type WorkspaceLimits = {
+  ai_tokens: number;
+  notif_per_day: number;
+  compass_calls: number;
+};
+
+export async function getAIPresets(workspaceId: string): Promise<AIPresets> {
+  const res = await api.get<AIPresets>(
     `/admin/workspaces/${workspaceId}/settings/ai-presets`,
   );
   return res.data ?? {};
@@ -9,9 +29,9 @@ export async function getAIPresets(workspaceId: string): Promise<Record<string, 
 
 export async function saveAIPresets(
   workspaceId: string,
-  presets: Record<string, any>,
-): Promise<Record<string, any>> {
-  const res = await api.put<Record<string, any>>(
+  presets: AIPresets,
+): Promise<AIPresets> {
+  const res = await api.put<AIPresets>(
     `/admin/workspaces/${workspaceId}/settings/ai-presets`,
     presets,
   );
@@ -20,7 +40,7 @@ export async function saveAIPresets(
 
 export async function validateAIPresets(
   workspaceId: string,
-  presets: Record<string, any>,
+  presets: AIPresets,
 ): Promise<void> {
   await api.post(
     `/admin/workspaces/${workspaceId}/settings/ai-presets/validate`,
@@ -30,27 +50,35 @@ export async function validateAIPresets(
 
 export async function getNotificationRules(
   workspaceId: string,
-): Promise<Record<string, any>> {
-  const res = await api.get<Record<string, any>>(
+): Promise<NotificationRules> {
+  const res = await api.get<NotificationRules>(
     `/admin/workspaces/${workspaceId}/settings/notifications`,
   );
-  return res.data ?? {};
+  return (
+    res.data ?? {
+      achievement: [],
+      publish: [],
+    }
+  );
 }
 
 export async function saveNotificationRules(
   workspaceId: string,
-  rules: Record<string, any>,
-): Promise<Record<string, any>> {
-  const res = await api.put<Record<string, any>>(
+  rules: NotificationRules,
+): Promise<NotificationRules> {
+  const res = await api.put<NotificationRules>(
     `/admin/workspaces/${workspaceId}/settings/notifications`,
     rules,
   );
-  return res.data ?? {};
+  return res.data ?? {
+    achievement: [],
+    publish: [],
+  };
 }
 
 export async function validateNotificationRules(
   workspaceId: string,
-  rules: Record<string, any>,
+  rules: NotificationRules,
 ): Promise<void> {
   await api.post(
     `/admin/workspaces/${workspaceId}/settings/notifications/validate`,
@@ -60,27 +88,37 @@ export async function validateNotificationRules(
 
 export async function getLimits(
   workspaceId: string,
-): Promise<Record<string, number>> {
-  const res = await api.get<Record<string, number>>(
+): Promise<WorkspaceLimits> {
+  const res = await api.get<WorkspaceLimits>(
     `/admin/workspaces/${workspaceId}/settings/limits`,
   );
-  return res.data ?? {};
+  return (
+    res.data ?? {
+      ai_tokens: 0,
+      notif_per_day: 0,
+      compass_calls: 0,
+    }
+  );
 }
 
 export async function saveLimits(
   workspaceId: string,
-  limits: Record<string, number>,
-): Promise<Record<string, number>> {
-  const res = await api.put<Record<string, number>>(
+  limits: WorkspaceLimits,
+): Promise<WorkspaceLimits> {
+  const res = await api.put<WorkspaceLimits>(
     `/admin/workspaces/${workspaceId}/settings/limits`,
     limits,
   );
-  return res.data ?? {};
+  return res.data ?? {
+    ai_tokens: 0,
+    notif_per_day: 0,
+    compass_calls: 0,
+  };
 }
 
 export async function validateLimits(
   workspaceId: string,
-  limits: Record<string, number>,
+  limits: WorkspaceLimits,
 ): Promise<void> {
   await api.post(
     `/admin/workspaces/${workspaceId}/settings/limits/validate`,

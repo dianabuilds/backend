@@ -13,6 +13,10 @@ import {
   getLimits,
   saveLimits,
   validateLimits,
+  type AIPresets,
+  type NotificationRules,
+  type WorkspaceLimits,
+  type NotificationChannel,
 } from "../api/workspaceSettings";
 import { useToast } from "../components/ToastProvider";
 import type { WorkspaceMemberOut, WorkspaceOut, WorkspaceRole } from "../openapi";
@@ -50,9 +54,18 @@ export default function WorkspaceSettings() {
     }
   }, [error, addToast]);
 
-  const [aiPresetsText, setAIPresetsText] = useState("{}");
-  const [notificationsText, setNotificationsText] = useState("{}");
-  const [limitsText, setLimitsText] = useState("{}");
+  const [aiPresets, setAIPresets] = useState<AIPresets>({
+    forbidden: [],
+  });
+  const [notifications, setNotifications] = useState<NotificationRules>({
+    achievement: [],
+    publish: [],
+  });
+  const [limits, setLimitsState] = useState<WorkspaceLimits>({
+    ai_tokens: 0,
+    notif_per_day: 0,
+    compass_calls: 0,
+  });
   const [aiError, setAiError] = useState<string | null>(null);
   const [notificationsError, setNotificationsError] = useState<string | null>(
     null,
@@ -91,19 +104,31 @@ export default function WorkspaceSettings() {
 
   useEffect(() => {
     if (aiPresetsData) {
-      setAIPresetsText(JSON.stringify(aiPresetsData, null, 2));
+      setAIPresets({
+        model: aiPresetsData.model ?? "",
+        temperature: aiPresetsData.temperature,
+        system_prompt: aiPresetsData.system_prompt ?? "",
+        forbidden: aiPresetsData.forbidden ?? [],
+      });
     }
   }, [aiPresetsData]);
 
   useEffect(() => {
     if (notificationsData) {
-      setNotificationsText(JSON.stringify(notificationsData, null, 2));
+      setNotifications({
+        achievement: notificationsData.achievement ?? [],
+        publish: notificationsData.publish ?? [],
+      });
     }
   }, [notificationsData]);
 
   useEffect(() => {
     if (limitsData) {
-      setLimitsText(JSON.stringify(limitsData, null, 2));
+      setLimitsState({
+        ai_tokens: limitsData.ai_tokens ?? 0,
+        notif_per_day: limitsData.notif_per_day ?? 0,
+        compass_calls: limitsData.compass_calls ?? 0,
+      });
     }
   }, [limitsData]);
 
@@ -112,9 +137,8 @@ export default function WorkspaceSettings() {
     if (!id) return;
     try {
       setAiError(null);
-      const parsed = aiPresetsText ? JSON.parse(aiPresetsText) : {};
-      await validateAIPresets(id, parsed);
-      await saveAIPresets(id, parsed);
+      await validateAIPresets(id, aiPresets);
+      await saveAIPresets(id, aiPresets);
       addToast({ title: "Presets saved", variant: "success" });
       await refetchAIPresets();
     } catch (e) {
@@ -128,9 +152,8 @@ export default function WorkspaceSettings() {
     if (!id) return;
     try {
       setNotificationsError(null);
-      const parsed = notificationsText ? JSON.parse(notificationsText) : {};
-      await validateNotificationRules(id, parsed);
-      await saveNotificationRules(id, parsed);
+      await validateNotificationRules(id, notifications);
+      await saveNotificationRules(id, notifications);
       addToast({ title: "Notifications saved", variant: "success" });
       await refetchNotifications();
     } catch (e) {
@@ -144,9 +167,8 @@ export default function WorkspaceSettings() {
     if (!id) return;
     try {
       setLimitsError(null);
-      const parsed = limitsText ? JSON.parse(limitsText) : {};
-      await validateLimits(id, parsed);
-      await saveLimits(id, parsed);
+      await validateLimits(id, limits);
+      await saveLimits(id, limits);
       addToast({ title: "Limits saved", variant: "success" });
       await refetchLimits();
     } catch (e) {
@@ -372,16 +394,107 @@ export default function WorkspaceSettings() {
   );
 
   const renderAIPresets = () => (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {aiPresetsLoading ? (
         <div>Loading...</div>
       ) : (
-        <form onSubmit={savePresets} className="space-y-2">
-          <textarea
-            className="border rounded w-full h-64 p-2 font-mono text-xs"
-            value={aiPresetsText}
-            onChange={(e) => setAIPresetsText(e.target.value)}
-          />
+        <form onSubmit={savePresets} className="space-y-4 max-w-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600">Model</label>
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="gpt-4o-mini"
+                value={aiPresets.model ?? ""}
+                onChange={(e) =>
+                  setAIPresets((p) => ({ ...p, model: e.target.value }))
+                }
+              />
+              <div className="text-xs text-gray-600">
+                Название модели по умолчанию
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600">Temperature (0..2)</label>
+              <input
+                className="border rounded px-2 py-1"
+                type="number"
+                step="0.1"
+                min={0}
+                max={2}
+                value={aiPresets.temperature ?? 0}
+                onChange={(e) =>
+                  setAIPresets((p) => ({
+                    ...p,
+                    temperature: Number(e.target.value),
+                  }))
+                }
+              />
+              <div className="text-xs text-gray-600">
+                0 — детерминированно, 2 — максимально случайно
+              </div>
+            </div>
+            <div className="flex flex-col gap-1 md:col-span-2">
+              <label className="text-sm text-gray-600">System prompt</label>
+              <textarea
+                className="border rounded px-2 py-1 h-24"
+                placeholder="You are helpful..."
+                value={aiPresets.system_prompt ?? ""}
+                onChange={(e) =>
+                  setAIPresets((p) => ({
+                    ...p,
+                    system_prompt: e.target.value,
+                  }))
+                }
+              />
+              <div className="text-xs text-gray-600">
+                Добавляется к каждому запросу
+              </div>
+            </div>
+            <div className="flex flex-col gap-1 md:col-span-2">
+              <label className="text-sm text-gray-600">Forbidden words</label>
+              {aiPresets.forbidden?.map((f, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <input
+                    className="border rounded px-2 py-1 flex-1"
+                    value={f}
+                    onChange={(e) =>
+                      setAIPresets((p) => {
+                        const list = [...(p.forbidden ?? [])];
+                        list[idx] = e.target.value;
+                        return { ...p, forbidden: list };
+                      })
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="px-2 py-1 rounded bg-red-200 dark:bg-red-800"
+                    onClick={() =>
+                      setAIPresets((p) => ({
+                        ...p,
+                        forbidden: (p.forbidden ?? []).filter((_, i) => i !== idx),
+                      }))
+                    }
+                  >
+                    Удалить
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+                onClick={() =>
+                  setAIPresets((p) => ({
+                    ...p,
+                    forbidden: [...(p.forbidden ?? []), ""],
+                  }))
+                }
+              >
+                Добавить
+              </button>
+              <div className="text-xs text-gray-600">Список запретных слов</div>
+            </div>
+          </div>
           {aiError && (
             <div className="text-sm text-red-600 whitespace-pre-wrap">
               {aiError}
@@ -395,17 +508,48 @@ export default function WorkspaceSettings() {
     </div>
   );
 
+  const CHANNELS: NotificationChannel[] = [
+    "in-app",
+    "email",
+    "webhook",
+  ];
+
   const renderNotifications = () => (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {notificationsLoading ? (
         <div>Loading...</div>
       ) : (
-        <form onSubmit={saveNotificationsSettings} className="space-y-2">
-          <textarea
-            className="border rounded w-full h-64 p-2 font-mono text-xs"
-            value={notificationsText}
-            onChange={(e) => setNotificationsText(e.target.value)}
-          />
+        <form onSubmit={saveNotificationsSettings} className="space-y-4">
+          {(["achievement", "publish"] as const).map((trigger) => (
+            <div key={trigger} className="flex flex-col gap-1">
+              <div className="text-sm font-medium capitalize">{trigger}</div>
+              <div className="flex gap-4">
+                {CHANNELS.map((ch) => (
+                  <label
+                    key={ch}
+                    className="text-sm flex items-center gap-1"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={notifications[trigger].includes(ch)}
+                      onChange={(e) =>
+                        setNotifications((n) => {
+                          const set = new Set(n[trigger]);
+                          if (e.target.checked) set.add(ch);
+                          else set.delete(ch);
+                          return { ...n, [trigger]: Array.from(set) };
+                        })
+                      }
+                    />
+                    {ch}
+                  </label>
+                ))}
+              </div>
+              <div className="text-xs text-gray-600">
+                Каналы доставки для события {trigger}
+              </div>
+            </div>
+          ))}
           {notificationsError && (
             <div className="text-sm text-red-600 whitespace-pre-wrap">
               {notificationsError}
@@ -420,16 +564,63 @@ export default function WorkspaceSettings() {
   );
 
   const renderLimits = () => (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {limitsLoading ? (
         <div>Loading...</div>
       ) : (
-        <form onSubmit={saveLimitsSettings} className="space-y-2">
-          <textarea
-            className="border rounded w-full h-64 p-2 font-mono text-xs"
-            value={limitsText}
-            onChange={(e) => setLimitsText(e.target.value)}
-          />
+        <form onSubmit={saveLimitsSettings} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600">ai_tokens</label>
+              <input
+                className="border rounded px-2 py-1"
+                type="number"
+                min={0}
+                value={limits.ai_tokens}
+                onChange={(e) =>
+                  setLimitsState((l) => ({
+                    ...l,
+                    ai_tokens: Number(e.target.value),
+                  }))
+                }
+              />
+              <div className="text-xs text-gray-600">Лимит токенов ИИ</div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600">notif_per_day</label>
+              <input
+                className="border rounded px-2 py-1"
+                type="number"
+                min={0}
+                value={limits.notif_per_day}
+                onChange={(e) =>
+                  setLimitsState((l) => ({
+                    ...l,
+                    notif_per_day: Number(e.target.value),
+                  }))
+                }
+              />
+              <div className="text-xs text-gray-600">
+                Максимум уведомлений в день
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600">compass_calls</label>
+              <input
+                className="border rounded px-2 py-1"
+                type="number"
+                min={0}
+                value={limits.compass_calls}
+                onChange={(e) =>
+                  setLimitsState((l) => ({
+                    ...l,
+                    compass_calls: Number(e.target.value),
+                  }))
+                }
+              />
+              <div className="text-xs text-gray-600">Запросы к Compass</div>
+            </div>
+          </div>
           {limitsError && (
             <div className="text-sm text-red-600 whitespace-pre-wrap">
               {limitsError}
