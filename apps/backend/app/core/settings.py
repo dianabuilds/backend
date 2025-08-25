@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 import logging
 from enum import Enum
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .app_settings import (
@@ -10,7 +11,6 @@ from .app_settings import (
     JwtSettings,
     NavigationSettings,
     CompassSettings,
-    CorsSettings,
     EmbeddingSettings,
     AdminSettings,
     SecuritySettings,
@@ -88,7 +88,10 @@ _ENV_DEFAULTS: dict[EnvMode, dict[str, object]] = {
 
 
 class Settings(ProjectSettings):
-    env_mode: EnvMode = EnvMode.development
+    env_mode: EnvMode = Field(
+        default=EnvMode.development,
+        validation_alias=AliasChoices("APP_ENV_MODE", "ENVIRONMENT", "ENV_MODE"),
+    )
     debug: bool = False
 
     allow_external_calls: bool | None = None
@@ -98,6 +101,50 @@ class Settings(ProjectSettings):
     payment_provider: str | None = None
     email_provider: str | None = None
     rng_seed_strategy: str | None = None
+
+    # CORS settings
+    cors_allow_credentials: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "APP_CORS_ALLOW_CREDENTIALS", "CORS_ALLOW_CREDENTIALS"
+        ),
+    )
+    cors_allow_origins: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices(
+            "APP_CORS_ALLOW_ORIGINS",
+            "CORS_ALLOW_ORIGINS",
+            "CORS_ALLOWED_ORIGINS",
+        ),
+    )
+    cors_allow_methods: list[str] = Field(
+        default_factory=lambda: [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "OPTIONS",
+            "PATCH",
+        ],
+        validation_alias=AliasChoices(
+            "APP_CORS_ALLOW_METHODS",
+            "CORS_ALLOW_METHODS",
+            "CORS_ALLOWED_METHODS",
+        ),
+    )
+    cors_allow_headers: list[str] = Field(
+        default_factory=lambda: [
+            "Authorization",
+            "Content-Type",
+            "X-CSRF-Token",
+            "X-Requested-With",
+        ],
+        validation_alias=AliasChoices(
+            "APP_CORS_ALLOW_HEADERS",
+            "CORS_ALLOW_HEADERS",
+            "CORS_ALLOWED_HEADERS",
+        ),
+    )
 
     # Async processing and related features
     async_enabled: bool = False
@@ -111,7 +158,6 @@ class Settings(ProjectSettings):
     jwt: JwtSettings = JwtSettings()
     navigation: NavigationSettings = NavigationSettings()
     compass: CompassSettings = CompassSettings()
-    cors: CorsSettings = CorsSettings()
     embedding: EmbeddingSettings = EmbeddingSettings()
     admin: AdminSettings = AdminSettings()
     security: SecuritySettings = SecuritySettings()
@@ -172,6 +218,14 @@ class Settings(ProjectSettings):
             "echo": self.debug,
         }
 
+    def effective_origins(self) -> dict[str, list[str] | str]:
+        """Return kwargs for CORSMiddleware based on configuration."""
+        if self.cors_allow_origins:
+            return {"allow_origins": self.cors_allow_origins}
+        if self.is_production:
+            return {"allow_origins": []}
+        return {"allow_origin_regex": r"https?://[^/]+"}
+
 
 def validate_settings(settings: Settings) -> None:
     missing = []
@@ -214,9 +268,9 @@ def validate_settings(settings: Settings) -> None:
             missing.append("EMBEDDING_MODEL")
 
     if settings.is_production and (
-        not settings.cors.allowed_origins or "*" in settings.cors.allowed_origins
+        not settings.cors_allow_origins or "*" in settings.cors_allow_origins
     ):
-        missing.append("CORS_ALLOWED_ORIGINS (must be explicit origins)")
+        missing.append("APP_CORS_ALLOW_ORIGINS (must be explicit origins)")
 
     if missing:
         missing_vars = ", ".join(missing)

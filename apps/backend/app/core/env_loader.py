@@ -59,11 +59,13 @@ def _normalize_env_for_pydantic_json() -> None:
     Это нужно для pydantic-settings, который парсит списковые поля через json.loads.
     """
     list_keys = {
-        # Вложенная форма с двойным подчёркиванием (env_nested_delimiter="__")
-        "CORS__ALLOWED_ORIGINS",
-        "CORS__ALLOWED_METHODS",
-        "CORS__ALLOWED_HEADERS",
-        # Плоская форма с префиксом из под-настроек (env_prefix="CORS_")
+        "APP_CORS_ALLOW_ORIGINS",
+        "APP_CORS_ALLOW_METHODS",
+        "APP_CORS_ALLOW_HEADERS",
+        # Backwards compatibility with older variable names
+        "CORS_ALLOW_ORIGINS",
+        "CORS_ALLOW_METHODS",
+        "CORS_ALLOW_HEADERS",
         "CORS_ALLOWED_ORIGINS",
         "CORS_ALLOWED_METHODS",
         "CORS_ALLOWED_HEADERS",
