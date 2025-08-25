@@ -2,7 +2,7 @@ import react from "@vitejs/plugin-react";
 import process from "node:process";
 import { defineConfig, loadEnv, type ProxyOptions } from "vite";
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const proxyTarget = env.VITE_API_BASE || "http://localhost:8000";
 
@@ -95,9 +95,12 @@ export default defineConfig(({ mode }) => {
   proxy["/admin/achievements"] = { target: proxyTarget, changeOrigin: true };
   proxy["/admin/moderation"] = { target: proxyTarget, changeOrigin: true };
 
+  // В dev base="/" (модули и /@vite/client отдаются с корня), в build — "/admin/"
+  const base = command === "build" ? "/admin/" : "/";
+
   // https://vite.dev/config/
   return {
-    base: "/admin/",
+    base,
     plugins: [react()],
     server: {
       port: 5173,

@@ -16,3 +16,12 @@ class RealIPSettings(BaseSettings):
         if isinstance(v, str):
             return [item.strip() for item in v.split(",") if item.strip()]
         return v
+
+    @field_validator("depth", mode="before")
+    def empty_depth_as_none(cls, v):  # noqa: N805
+        # Преобразуем пустую строку/строку из пробелов в None, чтобы пройти валидацию int | None
+        if v is None:
+            return None
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v

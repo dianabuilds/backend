@@ -2,7 +2,7 @@ import sys
 from logging.config import fileConfig
 from pathlib import Path
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, create_engine
 
 from alembic import context
 
@@ -39,12 +39,8 @@ def run_migrations_offline():
 
 def run_migrations_online():
     url = settings.database_url.replace("+asyncpg", "")
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.",
-        url=url,
-        poolclass=pool.NullPool,
-    )
+    # Не читаем секцию из alembic.ini, чтобы избежать configparser interpolation errors.
+    connectable = create_engine(url, poolclass=pool.NullPool)
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():

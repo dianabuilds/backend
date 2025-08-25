@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
 
 import EnvChip from "../components/EnvChip";
-import {
-  DevToolsSettings,
-  getDevToolsSettings,
-  updateDevToolsSettings,
-} from "../api/devtools";
+import type { DevToolsSettings } from "../api/devtools";
+import { getDevToolsSettings, updateDevToolsSettings } from "../api/devtools";
 import PageLayout from "./_shared/PageLayout";
 
 function Toggle({
