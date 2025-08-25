@@ -25,7 +25,10 @@ _session_ctx: ContextVar[AsyncSession | None] = ContextVar("db_session", default
 def get_engine() -> AsyncEngine:
     global _engine
     if _engine is None:
-        logger.info(f"Creating database engine for environment: {settings.env_mode}")
+        logger.info(
+            f"Creating database engine for environment: {settings.env_mode}"
+            f" (database: {settings.database_name})"
+        )
         _engine = create_async_engine(
             settings.database_url,
             connect_args=settings.db_connect_args,

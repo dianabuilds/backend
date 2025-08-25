@@ -23,6 +23,12 @@ ENV_PROVIDER_MAP: dict[EnvMode, EnvMap] = {
         IEmail: FakeEmail,
         IMediaStorage: FakeMediaStorage,
     },
+    EnvMode.test: {
+        IAIProvider: FakeAIProvider,
+        IPayments: FakePayments,
+        IEmail: FakeEmail,
+        IMediaStorage: FakeMediaStorage,
+    },
     EnvMode.staging: {
         IAIProvider: SandboxAIProvider,
         IPayments: SandboxPayments,

@@ -16,6 +16,7 @@ from typing import AsyncGenerator, Dict, Any
 
 # Устанавливаем переменные окружения для тестов
 os.environ["TESTING"] = "True"
+os.environ["ENV_MODE"] = "test"
 os.environ["DATABASE__USERNAME"] = "testuser"
 os.environ["DATABASE__PASSWORD"] = "testpass"
 os.environ["DATABASE__HOST"] = "localhost"

@@ -42,12 +42,22 @@ class ProjectSettings(BaseSettings):
 
 class EnvMode(str, Enum):
     development = "development"
+    test = "test"
     staging = "staging"
     production = "production"
 
 
 _ENV_DEFAULTS: dict[EnvMode, dict[str, object]] = {
     EnvMode.development: {
+        "allow_external_calls": True,
+        "preview_default_mode": "preview",
+        "rate_limit_policy": "lenient",
+        "ai_provider": "mock",
+        "payment_provider": "mock",
+        "email_provider": "console",
+        "rng_seed_strategy": "fixed",
+    },
+    EnvMode.test: {
         "allow_external_calls": True,
         "preview_default_mode": "preview",
         "rate_limit_policy": "lenient",
@@ -127,7 +137,16 @@ class Settings(ProjectSettings):
 
     @property
     def database_url(self) -> str:
-        return self.database.url
+        db = self.database
+        name = f"{db.name}_{self.env_mode.value}" if db.name else db.name
+        return (
+            f"postgresql+asyncpg://{db.username}:{db.password}"
+            f"@{db.host}:{db.port}/{name}"
+        )
+
+    @property
+    def database_name(self) -> str:
+        return f"{self.database.name}_{self.env_mode.value}" if self.database.name else self.database.name
 
     @property
     def db_connect_args(self) -> dict:
