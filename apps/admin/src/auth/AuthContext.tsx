@@ -57,14 +57,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       // 1) Логин: увеличенный таймаут (60с), чтобы исключить обрыв на медленных стендах
-      const res = await api.post<{
+      const form = new URLSearchParams({ username, password });
+      const resp = await apiFetch(
+        "/auth/login",
+        {
+          method: "POST",
+          body: form,
+          timeoutMs: 60000,
+        } as any,
+      );
+
+      const data = (await resp.json()) as {
         ok: boolean;
         csrf_token?: string;
         access_token?: string;
-      }>("/auth/login", { username, password }, { timeoutMs: 60000 });
-
-      const data = res.data!;
-      if (!data.ok) {
+      };
+      if (!resp.ok || !data.ok) {
         throw new Error("Неверный логин или пароль");
       }
 
