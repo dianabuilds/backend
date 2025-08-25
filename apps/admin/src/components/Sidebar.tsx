@@ -230,6 +230,20 @@ export default function Sidebar() {
       if (!placed && !list.some((i) => i.id === preview.id)) {
         list.push(preview);
       }
+      const traceItem: AdminMenuItem = {
+        id: "transitions-trace",
+        label: "Transitions Trace",
+        path: "/transitions/trace",
+        icon: "activity",
+      };
+      if (!list.some((i) => i.id === traceItem.id)) {
+        const idx = list.findIndex((i) => i.id === "transitions");
+        if (idx >= 0) {
+          list.splice(idx + 1, 0, traceItem);
+        } else {
+          list.push(traceItem);
+        }
+      }
       // Доверяем порядку сервера: не пересортировываем на клиенте
       setItems(list);
     } catch (e) {
