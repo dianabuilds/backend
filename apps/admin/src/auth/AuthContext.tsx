@@ -86,8 +86,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 2) Профиль: сначала пробуем без Authorization (чтобы избежать preflight), короткий таймаут
       let me: User | null = null;
       try {
-        const meNoAuth = await api.get<User>("/users/me", { timeoutMs: 20000 });
-        me = meNoAuth.data as User;
+        const meNoAuthResp = await apiFetch("/users/me", {
+          timeoutMs: 20000,
+          skipAuth: true,
+        });
+        if (meNoAuthResp.ok) {
+          me = (await meNoAuthResp.json()) as User;
+        }
       } catch (e: unknown) {
         // Если 401 — пробуем повторить с Bearer и большим таймаутом
         const isUnauthorized =

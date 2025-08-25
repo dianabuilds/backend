@@ -97,12 +97,13 @@ function getAccessToken(): string {
  */
 export async function apiFetch(
   input: RequestInfo,
-  init: RequestInit = {},
+  init: RequestInit & { skipAuth?: boolean } = {},
   _retry = true,
 ): Promise<Response> {
-  const method = (init.method || "GET").toUpperCase();
+  const { skipAuth, ...rest } = init as RequestInit & { skipAuth?: boolean };
+  const method = (rest.method || "GET").toUpperCase();
   const headers: Record<string, string> = {
-    ...(init.headers as Record<string, string> | undefined),
+    ...(rest.headers as Record<string, string> | undefined),
   };
 
   // Явно запрашиваем JSON, чтобы сервер мог отличать API-запросы от HTML SPA
@@ -125,7 +126,7 @@ export async function apiFetch(
   // Если явно не передали Authorization — берём токен из cookie/хранилища,
   // но НИКОГДА не добавляем его автоматически для /auth/*, чтобы избежать preflight/конфликтов.
   const lowerCaseHeaders = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
-  if (!("authorization" in lowerCaseHeaders) && !isAuthCall) {
+  if (!skipAuth && !("authorization" in lowerCaseHeaders) && !isAuthCall) {
     const at = getAccessToken();
     const hasCookieAccess =
       typeof document !== "undefined" && /(?:^|;\s*)access_token=/.test(document.cookie || "");
@@ -188,7 +189,7 @@ export async function apiFetch(
   let resp: Response;
   try {
     resp = await fetch(toUrl(input), {
-      ...init,
+      ...rest,
       method,
       headers,
       credentials: "include",
