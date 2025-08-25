@@ -1,7 +1,11 @@
 from app.core.env_loader import load_dotenv
+
+# Ensure environment variables from .env are loaded before importing modules
+# that access them (e.g. logging configuration or settings).
+load_dotenv()
+
 from app.core.logging_configuration import configure_logging
 
-load_dotenv()
 configure_logging()
 
 import logging
