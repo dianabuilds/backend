@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.health import readyz
 from app.core.cache import cache as shared_cache
 from app.core.db.session import get_db
+from app.admin.ops.cors import router as cors_router
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
 from app.schemas.workspaces import WorkspaceSettings
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
@@ -24,6 +25,8 @@ router = APIRouter(
     dependencies=[Depends(admin_required)],
     responses=ADMIN_AUTH_RESPONSES,
 )
+
+router.include_router(cors_router)
 
 CACHE_TTL = 10
 
