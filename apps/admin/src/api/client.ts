@@ -162,7 +162,7 @@ export async function apiFetch(
       const port = String(loc.port || "");
       const isViteDev = /^517[3-6]$/.test(port);
       if (isViteDev) {
-          return `${loc.protocol}//${loc.hostname}:8000${u}`;
+          return 'http://' + loc.hostname + ':8000' + u;
       }
     } catch {
       // ignore
