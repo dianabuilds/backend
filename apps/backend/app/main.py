@@ -92,9 +92,9 @@ if not _allowed_origins:
         # other hosts were missing the `Access-Control-Allow-Origin` header
         # and the browser blocked the response, breaking authorisation.
         #
-        # Allow any IPv4 host while still limiting to HTTP(S) protocols.
+        # Allow any local host (IPv4 or IPv6) while still limiting to HTTP(S).
         _allow_origin_regex = (
-            r"https?://(localhost|127\.0\.0\.1|\d{1,3}(?:\.\d{1,3}){3})(:\d+)?"
+            r"https?://(localhost|127\.0\.0\.1|\[::1\]|\d{1,3}(?:\.\d{1,3}){3})(:\d+)?"
         )
 cors_kwargs = {"allow_origins": _allowed_origins}
 if _allow_origin_regex:
