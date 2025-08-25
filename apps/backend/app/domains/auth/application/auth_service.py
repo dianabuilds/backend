@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Any
 from uuid import uuid4
 
-from app.core.errors import http_error
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.core.errors import http_error
+from app.core.security import get_password_hash, verify_password
 from app.domains.auth.application.ports.token_port import ITokenService
 from app.domains.auth.infrastructure.nonce_store import NonceStore
 from app.domains.auth.infrastructure.verification_token_store import (
@@ -15,12 +16,11 @@ from app.domains.auth.infrastructure.verification_token_store import (
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.auth import (
     EVMVerify,
-    LoginSchema,
     LoginResponse,
+    LoginSchema,
     SignupSchema,
     Token,
 )
-from app.core.security import get_password_hash, verify_password
 
 
 class AuthService:
@@ -52,9 +52,9 @@ class AuthService:
         )
 
     async def refresh(self, payload: Token) -> LoginResponse:
-        sub = self._tokens.verify_access_token(payload.token)
+        sub = self._tokens.verify_refresh_token(payload.token)
         if not sub:
-            raise http_error(401, "Invalid token")
+            raise http_error(401, "Invalid refresh token")
         access = self._tokens.create_access_token(sub)
         refresh = self._tokens.create_refresh_token(sub)
         return LoginResponse(
