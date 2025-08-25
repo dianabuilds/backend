@@ -86,7 +86,16 @@ if not _allowed_origins:
     if settings.is_production:
         _allowed_origins = []
     else:
-        _allow_origin_regex = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+        # In development we often access the API via a direct IP address
+        # (e.g. when running inside Docker or a remote VM). The previous
+        # regex only allowed `localhost` or `127.0.0.1`, so requests from
+        # other hosts were missing the `Access-Control-Allow-Origin` header
+        # and the browser blocked the response, breaking authorisation.
+        #
+        # Allow any IPv4 host while still limiting to HTTP(S) protocols.
+        _allow_origin_regex = (
+            r"https?://(localhost|127\.0\.0\.1|\d{1,3}(?:\.\d{1,3}){3})(:\d+)?"
+        )
 cors_kwargs = {"allow_origins": _allowed_origins}
 if _allow_origin_regex:
     cors_kwargs = {"allow_origin_regex": _allow_origin_regex}
