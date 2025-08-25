@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { confirmWithEnv } from "../utils/env";
 
 import {
   createTransition,
@@ -119,7 +120,7 @@ export default function Transitions() {
   };
 
   const doDelete = async (id: string) => {
-    const ok = window.confirm("Delete this transition? This cannot be undone.");
+    const ok = confirmWithEnv("Delete this transition? This cannot be undone.");
     if (!ok) return;
     await apiDeleteTransition(id);
     await load();
@@ -144,7 +145,7 @@ export default function Transitions() {
 
   const bulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    const ok = window.confirm(`Delete ${selectedIds.length} transition(s)?`);
+    const ok = confirmWithEnv(`Delete ${selectedIds.length} transition(s)?`);
     if (!ok) return;
     for (const id of selectedIds) await apiDeleteTransition(id);
     await load();

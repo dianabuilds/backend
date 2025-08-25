@@ -48,6 +48,8 @@ import WorkspaceMetrics from "./pages/WorkspaceMetrics";
 import Limits from "./pages/Limits";
 import Alerts from "./pages/Alerts";
 import DevToolsPage from "./pages/DevToolsPage";
+import GettingStarted from "./pages/GettingStarted";
+import { isLocal } from "./utils/env";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
 const Worlds = lazy(() => import("./pages/Worlds"));
 const AISettings = lazy(() => import("./pages/AISettings"));
@@ -83,7 +85,13 @@ export default function App() {
                         </ProtectedRoute>
                       }
                     >
-                      <Route index element={<Dashboard />} />
+                        <Route index element={<Dashboard />} />
+                        {isLocal && (
+                          <Route
+                            path="getting-started"
+                            element={<GettingStarted />}
+                          />
+                        )}
                       <Route path="users" element={<Users />} />
                       <Route path="nodes" element={<Nodes />} />
                       <Route path="tags" element={<Tags />} />

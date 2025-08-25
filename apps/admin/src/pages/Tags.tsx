@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { confirmWithEnv } from "../utils/env";
 
 import {
   addToBlacklist,
@@ -220,7 +221,7 @@ export default function Tags() {
                       className="px-2 py-1 rounded border text-red-600 border-red-300"
                       onClick={async () => {
                         if (!t.id) return;
-                        const ok = window.confirm(
+                        const ok = confirmWithEnv(
                           `Delete tag "${t.name || t.slug}"? This cannot be undone.`,
                         );
                         if (!ok) return;

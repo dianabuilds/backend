@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { isLocal } from "../utils/env";
 
 import { type AdminMenuItem, getAdminMenu } from "../api/client";
 import { getIconComponent } from "../icons/registry";
@@ -219,13 +220,13 @@ export default function Sidebar() {
         } as AdminMenuItem);
       }
       const ops = list.find((i) => i.id === "operations");
-      const opsChildren: AdminMenuItem[] = [
-        {
-          id: "ops-status",
-          label: "Status",
-          path: "/system/health",
-          icon: "activity",
-        },
+        const opsChildren: AdminMenuItem[] = [
+          {
+            id: "ops-status",
+            label: "Status",
+            path: "/system/health",
+            icon: "activity",
+          },
         {
           id: "ops-limits",
           label: "Limits",
@@ -250,13 +251,21 @@ export default function Sidebar() {
           path: "/traces",
           icon: "activity",
         },
-        {
-          id: "ops-dev-tools",
-          label: "Dev Tools",
-          path: "/ops/dev-tools",
-          icon: "activity",
-        },
-      ];
+          {
+            id: "ops-dev-tools",
+            label: "Dev Tools",
+            path: "/ops/dev-tools",
+            icon: "activity",
+          },
+        ];
+        if (isLocal) {
+          opsChildren.unshift({
+            id: "ops-getting-started",
+            label: "Getting Started",
+            path: "/getting-started",
+            icon: "database",
+          });
+        }
       if (ops) {
         ops.children = ops.children || [];
         for (const item of opsChildren) {

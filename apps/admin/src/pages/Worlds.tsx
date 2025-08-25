@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { confirmWithEnv } from "../utils/env";
 
 import { api } from "../api/client";
 
@@ -80,7 +81,7 @@ export default function WorldsPage() {
   };
 
   const removeWorld = async (id: string) => {
-    if (!confirm("Удалить мир со всеми персонажами?")) return;
+    if (!confirmWithEnv("Удалить мир со всеми персонажами?")) return;
     try {
       await api.request(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`, {
         method: "DELETE",
@@ -116,7 +117,7 @@ export default function WorldsPage() {
   };
 
   const removeCharacter = async (id: string) => {
-    if (!confirm("Удалить персонажа?")) return;
+    if (!confirmWithEnv("Удалить персонажа?")) return;
     try {
       await api.request(
         `/admin/ai/quests/characters/${encodeURIComponent(id)}`,

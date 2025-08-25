@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { confirmWithEnv } from "../utils/env";
 
 import { api } from "../api/client";
 
@@ -80,7 +81,7 @@ export default function PaymentsGateways() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Удалить шлюз?")) return;
+    if (!confirmWithEnv("Удалить шлюз?")) return;
     await api.del(`/admin/payments/gateways/${encodeURIComponent(id)}`);
     await qc.invalidateQueries({ queryKey: ["payments", "gateways"] });
   };
