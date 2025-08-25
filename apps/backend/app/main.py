@@ -98,46 +98,22 @@ if enable_metrics:
 # CORS: разрешаем фронту ходить на API в dev
 # В dev по умолчанию допускаем любой порт на localhost/127.0.0.1,
 # если явно не настроено через переменные окружения
-_allowed_origins = settings.cors.allowed_origins
-_allow_origin_regex = None
-if not _allowed_origins:
-    if settings.is_production:
-        _allowed_origins = []
-    else:
-        # In development we often access the API via a direct IP address
-        # (e.g. when running inside Docker or a remote VM). The previous
-        # regex only allowed `localhost` or `127.0.0.1`, so requests from
-        # other hosts were missing the `Access-Control-Allow-Origin` header
-        # and the browser blocked the response, breaking authorisation.
-        #
-        # In practice the frontend may be served from arbitrary hostnames
-        # (e.g. `frontend`, `host.docker.internal` or any numeric IP). The
-        # previous regular expression only matched a handful of hosts which
-        # meant that other local origins failed CORS checks and the browser
-        # rejected the response.
-        #
-        # Accept any hostname or IP address in development while still
-        # limiting the scheme to HTTP(S). Starlette will echo the actual
-        # `Origin` value so this remains safe for local development.
-        _allow_origin_regex = r"https?://[^/]+"
-cors_kwargs = {"allow_origins": _allowed_origins}
-if _allow_origin_regex:
-    cors_kwargs = {"allow_origin_regex": _allow_origin_regex}
+cors_kwargs = settings.effective_origins()
 
 # Include "*" so that any method or header is accepted even if settings
 # provide a restrictive list. This prevents 400 responses on preflight
 # requests when the frontend sends unexpected headers.
-allow_methods = settings.cors.allowed_methods or ["*"]
+allow_methods = settings.cors_allow_methods or ["*"]
 if "*" not in allow_methods:
     allow_methods.append("*")
 
-allow_headers = settings.cors.allowed_headers or ["*"]
+allow_headers = settings.cors_allow_headers or ["*"]
 if "*" not in allow_headers:
     allow_headers.append("*")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=settings.cors.allow_credentials,
+    allow_credentials=settings.cors_allow_credentials,
     allow_methods=allow_methods,
     allow_headers=allow_headers,
     **cors_kwargs,
@@ -204,8 +180,8 @@ uploads_static = StaticFiles(directory=UPLOADS_DIR)
 # Wrap with CORS middleware because mounted apps bypass the main app middlewares
 uploads_static = CORSMiddleware(
     uploads_static,
-    allow_origins=_allowed_origins,
-    allow_credentials=settings.cors.allow_credentials,
+    **settings.effective_origins(),
+    allow_credentials=settings.cors_allow_credentials,
     allow_methods=["GET"],
     allow_headers=["*"],
 )
