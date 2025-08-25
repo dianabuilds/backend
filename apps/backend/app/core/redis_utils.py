@@ -4,7 +4,7 @@ import os
 import ssl
 from typing import Any
 
-try:
+try:  # pragma: no cover - optional dependency
     import redis.asyncio as redis  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     redis = None
@@ -19,24 +19,26 @@ def create_async_redis(
     pool_timeout: float = 5.0,
     health_check_interval: int = 30,
 ):
-    """
-    Унифицированное создание Redis-клиента с поддержкой TLS (rediss://).
+    """Create configured Redis client with TLS and pooling support.
 
-    - Для rediss:// настраивает SSLContext (TLS >= 1.2).
-    - Проверку сертификата можно включить REDIS_SSL_VERIFY=true (по умолчанию отключена).
-    - Таймаут подключения сокетов, ожидания свободного соединения из пула и период health-check'ов.
+    The previous implementation passed ``timeout`` directly to ``redis.from_url``,
+    which forwards unknown parameters to the connection constructor. Newer
+    versions of redis-py no longer accept ``timeout`` in ``Connection`` and raise
+    ``TypeError: Connection.__init__() got an unexpected keyword argument
+    'timeout'``.  To keep a blocking pool with a timeout we now build the pool
+    explicitly using :class:`redis.asyncio.connection.BlockingConnectionPool` and
+    then create the client from that pool.
+
+    Parameters mirror the old helper, but ``pool_timeout`` is applied as the
+    pool's blocking timeout.
     """
+
     if redis is None:
         raise RuntimeError("redis library is not installed")
 
-    kwargs: dict[str, Any] = {
-        "decode_responses": decode_responses,
+    # Connection-specific kwargs
+    conn_kwargs: dict[str, Any] = {
         "socket_connect_timeout": connect_timeout,
-        "retry_on_timeout": True,
-        "max_connections": max_connections,
-        # timeout — это blocking_timeout пула соединений
-        "timeout": pool_timeout,
-        "health_check_interval": health_check_interval,
     }
 
     scheme = url.split(":", 1)[0].lower()
@@ -48,7 +50,19 @@ def create_async_redis(
         if not verify:
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
-        # В redis-py достаточно передать ssl_context, параметр "ssl" у asyncio-connection не поддерживается
-        kwargs["ssl_context"] = ctx
+        # redis-py expects an ``ssl_context`` for TLS connections
+        conn_kwargs["ssl_context"] = ctx
 
-    return redis.from_url(url, **kwargs)
+    pool = redis.BlockingConnectionPool.from_url(
+        url,
+        max_connections=max_connections,
+        timeout=pool_timeout,
+        **conn_kwargs,
+    )
+
+    return redis.Redis(
+        connection_pool=pool,
+        decode_responses=decode_responses,
+        retry_on_timeout=True,
+        health_check_interval=health_check_interval,
+    )
