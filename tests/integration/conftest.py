@@ -1,18 +1,20 @@
 """
 Минимальная конфигурация для тестов без использования SQLAlchemy ORM.
 """
+
+import asyncio
 import importlib
 import os
 import sys
-import asyncio
+from collections.abc import AsyncGenerator
+from pathlib import Path
+
 import pytest
 import pytest_asyncio
-from pathlib import Path
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
-from typing import AsyncGenerator, Dict, Any
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 # Устанавливаем переменные окружения для тестов
 os.environ["TESTING"] = "True"
@@ -24,15 +26,17 @@ os.environ["DATABASE__PORT"] = "5432"
 os.environ["DATABASE__NAME"] = "project_test"
 os.environ["JWT__SECRET"] = "test-secret-key"
 os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
+os.environ["CORS_ALLOW_ORIGINS"] = '["https://example.com"]'
 
 # Импортируем только то, что нам нужно
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from app.main import app
-from app.core.security import get_password_hash, create_access_token
-from app.core.db.session import get_db
-from tests.integration.db_utils import setup_test_db, get_db_url, TestUser
+from tests.integration.db_utils import TestUser, get_db_url, setup_test_db  # noqa: E402
+
+from app.core.db.session import get_db  # noqa: E402
+from app.core.security import create_access_token, get_password_hash  # noqa: E402
+from app.main import app  # noqa: E402
 
 # Инициализируем тестовую базу данных
 setup_test_db()
@@ -40,9 +44,7 @@ setup_test_db()
 # Создаем тестовый движок и сессию
 TEST_DB_URL = get_db_url()
 test_engine = create_async_engine(
-    TEST_DB_URL, 
-    echo=False,
-    connect_args={"check_same_thread": False}
+    TEST_DB_URL, echo=False, connect_args={"check_same_thread": False}
 )
 TestingSessionLocal = sessionmaker(
     bind=test_engine, class_=AsyncSession, expire_on_commit=False
@@ -67,13 +69,14 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         try:
             await session.execute(text("DELETE FROM users"))
             await session.commit()
-        except:
+        except Exception:
             await session.rollback()
 
 
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Создает тестовый клиент."""
+
     async def override_get_db():
         try:
             yield db_session
@@ -98,7 +101,7 @@ async def test_user(db_session: AsyncSession) -> TestUser:
         username="testuser",
         password_hash=get_password_hash("Password123"),
         is_active=True,
-        is_premium=False
+        is_premium=False,
     )
 
     # Вставляем пользователя в базу данных
@@ -114,7 +117,7 @@ async def test_user(db_session: AsyncSession) -> TestUser:
 
 
 @pytest_asyncio.fixture(scope="function")
-async def auth_headers(test_user: TestUser) -> Dict[str, str]:
+async def auth_headers(test_user: TestUser) -> dict[str, str]:
     """Получает заголовки авторизации для тестового пользователя."""
     token = create_access_token(test_user.id)
     return {"Authorization": f"Bearer {token}"}
