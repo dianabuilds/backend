@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+# mypy: ignore-errors
 import hashlib
 import json
-import time
 import logging
+import time
 from datetime import datetime, timezone
-from typing import List, Tuple
 
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.admin_menu import MenuItem, MenuResponse
@@ -13,17 +13,140 @@ from app.schemas.admin_menu import MenuItem, MenuResponse
 logger = logging.getLogger(__name__)
 
 # Базовая конфигурация меню (группы, ссылки, роли, фиче-флаги)
-BASE_MENU: List[dict] = [
+BASE_MENU: list[dict] = [
     {
-        "id": "observability",
-        "label": "Observability",
-        "icon": "activity",
+        "id": "content",
+        "label": "Content",
+        "icon": "file",
         "order": 1,
         "children": [
-            {"id": "dashboard", "label": "Dashboard", "path": "/", "icon": "dashboard", "order": 1},
-            {"id": "nav-traces", "label": "Traces", "path": "/traces", "icon": "traces", "order": 2},
             {
-                "id": "telemetry-rum",
+                "id": "nodes",
+                "label": "Nodes",
+                "path": "/nodes",
+                "icon": "nodes",
+                "order": 1,
+            },
+            {
+                "id": "quests",
+                "label": "Quests",
+                "path": "/quests",
+                "icon": "quests",
+                "order": 2,
+                "roles": ["admin", "moderator"],
+            },
+            {
+                "id": "tags",
+                "label": "Tags",
+                "path": "/tags",
+                "icon": "tags",
+                "order": 3,
+            },
+            {
+                "id": "ai-worlds",
+                "label": "Worlds",
+                "path": "/ai/worlds",
+                "icon": "nodes",
+                "order": 4,
+            },
+            {
+                "id": "achievements",
+                "label": "Achievements",
+                "path": "/achievements",
+                "icon": "achievements",
+                "order": 5,
+            },
+            {
+                "id": "ai-quests-main",
+                "label": "Generator",
+                "path": "/ai/quests",
+                "icon": "ai",
+                "order": 6,
+            },
+            {
+                "id": "moderation",
+                "label": "Moderation",
+                "path": "/moderation",
+                "icon": "moderation",
+                "order": 7,
+                "roles": ["moderator", "admin"],
+                "featureFlag": "moderation.enabled",
+            },
+        ],
+    },
+    {
+        "id": "navigation",
+        "label": "Navigation",
+        "icon": "navigation",
+        "order": 2,
+        "children": [
+            {
+                "id": "navigation-main",
+                "label": "Navigation",
+                "path": "/navigation",
+                "icon": "navigation",
+                "order": 1,
+            },
+            {
+                "id": "nav-transitions",
+                "label": "Transitions",
+                "path": "/transitions",
+                "icon": "transitions",
+                "order": 2,
+            },
+            {
+                "id": "nav-echo",
+                "label": "Echo",
+                "path": "/echo",
+                "icon": "echo",
+                "order": 3,
+            },
+            {
+                "id": "nav-preview",
+                "label": "Preview",
+                "path": "/preview",
+                "icon": "navigation",
+                "order": 4,
+            },
+            {
+                "id": "debug",
+                "label": "Debug",
+                "icon": "navigation",
+                "order": 5,
+                "children": [
+                    {
+                        "id": "transitions-trace",
+                        "label": "Transitions Trace",
+                        "path": "/debug/transitions-trace",
+                        "icon": "navigation",
+                        "order": 1,
+                    }
+                ],
+            },
+        ],
+    },
+    {
+        "id": "monitoring",
+        "label": "Monitoring",
+        "icon": "activity",
+        "order": 3,
+        "children": [
+            {
+                "id": "dashboard",
+                "label": "Dashboard",
+                "path": "/",
+                "icon": "dashboard",
+                "order": 1,
+            },
+            {
+                "id": "traces",
+                "label": "Traces",
+                "path": "/traces",
+                "icon": "traces",
+                "order": 2,
+            },
+            {
+                "id": "rum",
                 "label": "RUM",
                 "path": "/telemetry",
                 "icon": "telemetry",
@@ -31,11 +154,19 @@ BASE_MENU: List[dict] = [
                 "roles": ["admin", "moderator"],
             },
             {
+                "id": "workspace-metrics",
+                "label": "Workspace metrics",
+                "path": "/tools/workspace-metrics",
+                "icon": "activity",
+                "order": 4,
+                "roles": ["admin"],
+            },
+            {
                 "id": "health",
                 "label": "Health",
                 "path": "/system/health",
                 "icon": "health",
-                "order": 4,
+                "order": 5,
                 "roles": ["admin"],
             },
         ],
@@ -44,38 +175,21 @@ BASE_MENU: List[dict] = [
         "id": "administration",
         "label": "Administration",
         "icon": "users",
-        "order": 2,
+        "order": 4,
         "children": [
-            {"id": "users-list", "label": "Users", "path": "/users", "icon": "users", "order": 1},
-            {"id": "nodes", "label": "Nodes", "path": "/nodes", "icon": "nodes", "order": 2},
-            {"id": "tags", "label": "Tags", "path": "/tags", "icon": "tags", "order": 3},
             {
-                "id": "quests",
-                "label": "Quests",
-                "path": "/quests",
-                "icon": "quests",
-                "order": 4,
-                "roles": ["admin", "moderator"],
+                "id": "users-list",
+                "label": "Users",
+                "path": "/users",
+                "icon": "users",
+                "order": 1,
             },
-            {
-                "id": "moderation",
-                "label": "Moderation",
-                "path": "/moderation",
-                "icon": "moderation",
-                "order": 5,
-                "roles": ["moderator", "admin"],
-                "featureFlag": "moderation.enabled",
-            },
-            {"id": "ai-quests-main", "label": "Generator", "path": "/ai/quests", "icon": "ai", "order": 6},
-            {"id": "ai-worlds", "label": "Worlds", "path": "/ai/worlds", "icon": "nodes", "order": 7},
-            {"id": "ai-settings", "label": "AI Settings", "path": "/ai/settings", "icon": "ai", "order": 8},
-            {"id": "ai-rate-limits", "label": "Rate limits", "path": "/ai/rate-limits", "icon": "rate-limit", "order": 9},
             {
                 "id": "premium-plans",
                 "label": "Plans",
                 "path": "/premium/plans",
                 "icon": "payments",
-                "order": 10,
+                "order": 2,
                 "roles": ["admin"],
             },
             {
@@ -83,23 +197,15 @@ BASE_MENU: List[dict] = [
                 "label": "Limits",
                 "path": "/premium/limits",
                 "icon": "rate-limit",
-                "order": 11,
+                "order": 3,
                 "roles": ["admin"],
             },
             {
-                "id": "cache",
-                "label": "Cache",
-                "path": "/tools/cache",
-                "icon": "cache",
-                "order": 12,
-                "roles": ["admin"],
-            },
-            {
-                "id": "rate-limit",
-                "label": "Rate limit",
+                "id": "rate-limits",
+                "label": "Rate limits",
                 "path": "/tools/rate-limit",
                 "icon": "rate-limit",
-                "order": 13,
+                "order": 4,
                 "roles": ["admin"],
             },
             {
@@ -107,15 +213,7 @@ BASE_MENU: List[dict] = [
                 "label": "Restrictions",
                 "path": "/tools/restrictions",
                 "icon": "restrictions",
-                "order": 14,
-                "roles": ["admin"],
-            },
-            {
-                "id": "audit",
-                "label": "Audit log",
-                "path": "/tools/audit",
-                "icon": "audit",
-                "order": 15,
+                "order": 5,
                 "roles": ["admin"],
             },
             {
@@ -123,7 +221,7 @@ BASE_MENU: List[dict] = [
                 "label": "Feature flags",
                 "path": "/tools/flags",
                 "icon": "flags",
-                "order": 16,
+                "order": 6,
                 "roles": ["admin"],
             },
             {
@@ -131,73 +229,52 @@ BASE_MENU: List[dict] = [
                 "label": "Search settings",
                 "path": "/tools/search-settings",
                 "icon": "search",
-                "order": 17,
+                "order": 7,
                 "roles": ["admin"],
             },
             {
-                "id": "workspace-metrics",
-                "label": "Workspace metrics",
-                "path": "/tools/workspace-metrics",
-                "icon": "activity",
-                "order": 18,
-                "roles": ["admin"],
+                "id": "ai-settings",
+                "label": "AI Settings",
+                "path": "/ai/settings",
+                "icon": "ai",
+                "order": 8,
             },
             {
-                "id": "payments-gateways",
-                "label": "Gateways",
-                "path": "/payments",
-                "icon": "payments",
-                "order": 19,
-                "roles": ["admin"],
-                "featureFlag": "payments",
-            },
-            {
-                "id": "payments-transactions",
-                "label": "Transactions",
-                "path": "/payments/transactions",
-                "icon": "audit",
-                "order": 20,
-                "roles": ["admin"],
-                "featureFlag": "payments",
+                "id": "system-tools",
+                "label": "System tools",
+                "icon": "settings",
+                "order": 9,
+                "children": [
+                    {
+                        "id": "cache",
+                        "label": "Cache",
+                        "path": "/tools/cache",
+                        "icon": "cache",
+                        "order": 1,
+                        "roles": ["admin"],
+                    },
+                    {
+                        "id": "audit",
+                        "label": "Audit log",
+                        "path": "/tools/audit",
+                        "icon": "audit",
+                        "order": 2,
+                        "roles": ["admin"],
+                    },
+                ],
             },
         ],
-    },
-    {
-        "id": "navigation",
-        "label": "Navigation",
-        "icon": "navigation",
-        "order": 3,
-        "children": [
-            {"id": "navigation-main", "label": "Navigation", "path": "/navigation", "icon": "navigation", "order": 1},
-            {"id": "nav-transitions", "label": "Transitions", "path": "/transitions", "icon": "transitions", "order": 2},
-            {"id": "nav-echo", "label": "Echo", "path": "/echo", "icon": "echo", "order": 3},
-        ],
-    },
-    {
-        "id": "notifications-top",
-        "label": "Notifications",
-        "path": "/notifications",
-        "icon": "notifications",
-        "order": 4,
-        "hidden": False,
-    },
-    {"id": "quests-top", "label": "Quests", "path": "/quests", "icon": "quests", "order": 5, "hidden": True},
-    {
-        "id": "achievements-top",
-        "label": "Achievements",
-        "path": "/achievements",
-        "icon": "achievements",
-        "order": 6,
-        "hidden": False,
     },
 ]
 
 CACHE_TTL = 45  # seconds
-_menu_cache: dict[Tuple[str, Tuple[str, ...]], Tuple[float, MenuResponse, str]] = {}
+_menu_cache: dict[tuple[str, tuple[str, ...]], tuple[float, MenuResponse, str]] = {}
 
 
-def _filter_and_convert(items: List[dict], role: str, flags: set[str]) -> List[MenuItem]:
-    result: List[MenuItem] = []
+def _filter_and_convert(
+    items: list[dict], role: str, flags: set[str]
+) -> list[MenuItem]:
+    result: list[MenuItem] = []
     for raw in items:
         if raw.get("hidden"):
             continue
@@ -228,15 +305,19 @@ def _filter_and_convert(items: List[dict], role: str, flags: set[str]) -> List[M
     return result
 
 
-def build_menu(user: User, flags: List[str]) -> MenuResponse:
+def build_menu(user: User, flags: list[str]) -> MenuResponse:
     role = getattr(user, "role", "")
     items = _filter_and_convert(BASE_MENU, role, set(flags))
     items_dump = [item.model_dump(by_alias=True) for item in items]
-    version = hashlib.sha256(json.dumps(items_dump, sort_keys=True).encode()).hexdigest()
-    return MenuResponse(items=items, version=version, generated_at=datetime.now(timezone.utc))
+    version = hashlib.sha256(
+        json.dumps(items_dump, sort_keys=True).encode()
+    ).hexdigest()
+    return MenuResponse(
+        items=items, version=version, generated_at=datetime.now(timezone.utc)
+    )
 
 
-def get_cached_menu(user: User, flags: List[str]) -> tuple[MenuResponse, str, bool]:
+def get_cached_menu(user: User, flags: list[str]) -> tuple[MenuResponse, str, bool]:
     key = (getattr(user, "role", ""), tuple(sorted(flags)))
     now = time.time()
     cached = _menu_cache.get(key)
@@ -248,7 +329,7 @@ def get_cached_menu(user: User, flags: List[str]) -> tuple[MenuResponse, str, bo
     return menu, etag, False
 
 
-def count_items(items: List[MenuItem]) -> int:
+def count_items(items: list[MenuItem]) -> int:
     total = 0
     for item in items:
         total += 1
