@@ -14,6 +14,7 @@
    pip install -r requirements.txt
    ```
 2. Создать файл `.env` на основе `.env.example` и заполнить переменные окружения.
+   Примеры конфигураций для разных сред и правила cookies описаны в `docs/environment.md`.
 3. Инициализировать базу данных:
    ```bash
    python scripts/init_db.py
