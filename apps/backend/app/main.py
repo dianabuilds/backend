@@ -90,39 +90,24 @@ if not _allowed_origins:
 cors_kwargs = {"allow_origins": _allowed_origins}
 if _allow_origin_regex:
     cors_kwargs = {"allow_origin_regex": _allow_origin_regex}
+
+# Include "*" so that any method or header is accepted even if settings
+# provide a restrictive list. This prevents 400 responses on preflight
+# requests when the frontend sends unexpected headers.
+allow_methods = settings.cors.allowed_methods or ["*"]
+if "*" not in allow_methods:
+    allow_methods.append("*")
+
+allow_headers = settings.cors.allowed_headers or ["*"]
+if "*" not in allow_headers:
+    allow_headers.append("*")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=settings.cors.allow_credentials,
-    allow_methods=settings.cors.allowed_methods,
-    allow_headers=settings.cors.allowed_headers,
+    allow_methods=allow_methods,
+    allow_headers=allow_headers,
     **cors_kwargs,
-# =======
-# # В dev разрешаем фронт с 5173 (localhost и 127.0.0.1), если явно не настроено
-# _allowed_origins = (
-#     settings.cors.allowed_origins
-#     if settings.cors.allowed_origins
-#     else (
-#         [
-#             "http://localhost:5173",
-#             "http://127.0.0.1:5173",
-#             "http://localhost:5174",
-#             "http://127.0.0.1:5174",
-#             "http://localhost:5175",
-#             "http://127.0.0.1:5175",
-#             "http://localhost:5176",
-#             "http://127.0.0.1:5176",
-#         ]
-#         if not settings.is_production
-#         else []
-#     )
-# )
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=_allowed_origins,
-#     allow_credentials=settings.cors.allow_credentials,
-#     allow_methods=settings.cors.allowed_methods,
-#     allow_headers=settings.cors.allowed_headers,
-# >>>>>>> main
 )
 if settings.rate_limit.enabled:
     app.add_middleware(

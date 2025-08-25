@@ -57,12 +57,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       // 1) Логин: увеличенный таймаут (60с), чтобы исключить обрыв на медленных стендах
+      // Отправляем данные как form-data, чтобы избежать preflight-запроса CORS
+      const form = new URLSearchParams();
+      form.set("username", username);
+      form.set("password", password);
       const resp = await apiFetch(
         "/auth/login",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
+          body: form,
           timeoutMs: 60000,
         },
       );
