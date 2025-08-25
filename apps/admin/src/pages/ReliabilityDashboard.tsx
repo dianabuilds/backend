@@ -1,19 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import KpiCard from "../components/KpiCard";
 import GraphCanvas from "../components/GraphCanvas";
 import type { GraphEdge, GraphNode } from "../components/GraphCanvas.helpers";
 import { getReliabilityMetrics, type ReliabilityMetrics } from "../api/metrics";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 
 export default function ReliabilityDashboard() {
-  const [workspace, setWorkspace] = useState("");
-  const [branch, setBranch] = useState("");
+  const { workspaceId, branch } = useWorkspace();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["reliability-metrics", workspace, branch],
-    queryFn: () => getReliabilityMetrics(workspace, branch),
-    enabled: !!workspace || !!branch,
+    queryKey: ["reliability-metrics", workspaceId, branch],
+    queryFn: () => getReliabilityMetrics(workspaceId, branch),
+    enabled: !!workspaceId || !!branch,
     refetchInterval: 15000,
   });
 
@@ -52,18 +52,12 @@ export default function ReliabilityDashboard() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Reliability</h1>
       <div className="flex flex-wrap items-end gap-2">
-        <input
-          value={workspace}
-          onChange={(e) => setWorkspace(e.target.value)}
-          placeholder="workspace"
-          className="border rounded px-2 py-1"
-        />
-        <input
-          value={branch}
-          onChange={(e) => setBranch(e.target.value)}
-          placeholder="branch"
-          className="border rounded px-2 py-1"
-        />
+        <span className="text-sm text-gray-600">
+          Workspace: {workspaceId || "(none)"}
+        </span>
+        <span className="text-sm text-gray-600">
+          Branch: {branch || "(none)"}
+        </span>
       </div>
       {isLoading && <div className="text-sm text-gray-500">Loading…</div>}
       {error && (

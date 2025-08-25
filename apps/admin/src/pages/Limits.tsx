@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 
 import { api } from "../api/client";
 import ErrorBanner from "../components/ErrorBanner";
@@ -15,6 +16,7 @@ interface BlockItem {
 }
 
 export default function Limits() {
+  const { workspaceId } = useWorkspace();
   const [tab, setTab] = useState<"Workspace" | "User">("Workspace");
   const [userId, setUserId] = useState("");
   const [limits, setLimits] = useState<LimitMap>({});
@@ -48,11 +50,11 @@ export default function Limits() {
 
   useEffect(() => {
     loadLimits();
-  }, [tab]);
+  }, [tab, workspaceId]);
 
   useEffect(() => {
     loadBlocks();
-  }, []);
+  }, [workspaceId]);
 
   return (
     <div className="p-4 space-y-4">

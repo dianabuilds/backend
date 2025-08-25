@@ -208,6 +208,8 @@ def _filter_and_convert(items: List[dict], role: str, flags: set[str]) -> List[M
         if flag and flag not in flags:
             continue
         children = _filter_and_convert(raw.get("children", []), role, flags)
+        if not children and not raw.get("path") and not raw.get("external"):
+            continue
         item = MenuItem(
             id=raw["id"],
             label=raw["label"],
