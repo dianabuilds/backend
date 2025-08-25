@@ -15,6 +15,7 @@ from .rate_limit import RateLimitSettings
 from .csrf import CsrfSettings
 from .real_ip import RealIPSettings
 from .observability import ObservabilitySettings
+from .auth import AuthSettings
 
 __all__ = [
     "DatabaseSettings",
@@ -34,4 +35,5 @@ __all__ = [
     "CsrfSettings",
     "RealIPSettings",
     "ObservabilitySettings",
+    "AuthSettings",
 ]
