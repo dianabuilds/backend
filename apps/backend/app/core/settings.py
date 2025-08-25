@@ -1,28 +1,29 @@
-from functools import lru_cache
-from pathlib import Path
 import logging
 from enum import Enum
+from functools import lru_cache
+from pathlib import Path
+
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .app_settings import (
-    DatabaseSettings,
-    CacheSettings,
-    JwtSettings,
-    NavigationSettings,
-    CompassSettings,
-    EmbeddingSettings,
     AdminSettings,
-    SecuritySettings,
-    LoggingSettings,
-    SMTPSettings,
-    SentrySettings,
-    PaymentSettings,
+    CacheSettings,
+    CompassSettings,
     CookieSettings,
-    RateLimitSettings,
     CsrfSettings,
-    RealIPSettings,
+    DatabaseSettings,
+    EmbeddingSettings,
+    JwtSettings,
+    LoggingSettings,
+    NavigationSettings,
     ObservabilitySettings,
+    PaymentSettings,
+    RateLimitSettings,
+    RealIPSettings,
+    SecuritySettings,
+    SentrySettings,
+    SMTPSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -145,6 +146,27 @@ class Settings(ProjectSettings):
             "CORS_ALLOWED_HEADERS",
         ),
     )
+    cors_allow_origin_regex: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "APP_CORS_ALLOW_ORIGIN_REGEX",
+            "CORS_ALLOW_ORIGIN_REGEX",
+        ),
+    )
+    cors_expose_headers: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices(
+            "APP_CORS_EXPOSE_HEADERS",
+            "CORS_EXPOSE_HEADERS",
+        ),
+    )
+    cors_max_age: int = Field(
+        default=600,
+        validation_alias=AliasChoices(
+            "APP_CORS_MAX_AGE",
+            "CORS_MAX_AGE",
+        ),
+    )
 
     # Async processing and related features
     async_enabled: bool = False
@@ -192,7 +214,11 @@ class Settings(ProjectSettings):
 
     @property
     def database_name(self) -> str:
-        return f"{self.database.name}_{self.env_mode.value}" if self.database.name else self.database.name
+        return (
+            f"{self.database.name}_{self.env_mode.value}"
+            if self.database.name
+            else self.database.name
+        )
 
     @property
     def db_connect_args(self) -> dict:
@@ -281,7 +307,7 @@ def validate_settings(settings: Settings) -> None:
             )
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     settings = Settings()
     validate_settings(settings)

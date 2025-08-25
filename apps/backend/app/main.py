@@ -36,7 +36,7 @@ if policy.allow_write:
 import punq
 
 from app.core.body_limit import BodySizeLimitMiddleware
-from app.core.config import settings
+from app.core.config import Settings, get_settings
 from app.core.cookies_security_middleware import CookiesSecurityMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.db.session import (
@@ -58,6 +58,8 @@ from app.domains.registry import register_domain_routers
 from app.domains.system.bootstrap import ensure_default_admin, ensure_global_workspace
 from app.domains.system.events import register_handlers
 from app.providers import register_providers
+
+settings: Settings = get_settings()
 
 # Initialize RNG based on configuration
 _rng_seed = init_rng(settings.rng_seed_strategy)
@@ -95,28 +97,16 @@ app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 if enable_metrics:
     app.add_middleware(MetricsMiddleware)
-# CORS: разрешаем фронту ходить на API в dev
-# В dev по умолчанию допускаем любой порт на localhost/127.0.0.1,
-# если явно не настроено через переменные окружения
-cors_kwargs = settings.effective_origins()
-
-# Include "*" so that any method or header is accepted even if settings
-# provide a restrictive list. This prevents 400 responses on preflight
-# requests when the frontend sends unexpected headers.
-allow_methods = settings.cors_allow_methods or ["*"]
-if "*" not in allow_methods:
-    allow_methods.append("*")
-
-allow_headers = settings.cors_allow_headers or ["*"]
-if "*" not in allow_headers:
-    allow_headers.append("*")
-
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=settings.cors_allow_origins,
+    allow_origin_regex=settings.cors_allow_origin_regex,
     allow_credentials=settings.cors_allow_credentials,
-    allow_methods=allow_methods,
-    allow_headers=allow_headers,
-    **cors_kwargs,
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
+    expose_headers=settings.cors_expose_headers,
+    max_age=settings.cors_max_age,
 )
 if settings.rate_limit.enabled:
     app.add_middleware(
@@ -180,10 +170,13 @@ uploads_static = StaticFiles(directory=UPLOADS_DIR)
 # Wrap with CORS middleware because mounted apps bypass the main app middlewares
 uploads_static = CORSMiddleware(
     uploads_static,
-    **settings.effective_origins(),
+    allow_origins=settings.cors_allow_origins,
+    allow_origin_regex=settings.cors_allow_origin_regex,
     allow_credentials=settings.cors_allow_credentials,
-    allow_methods=["GET"],
-    allow_headers=["*"],
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
+    expose_headers=settings.cors_expose_headers,
+    max_age=settings.cors_max_age,
 )
 # Inject CORP so admin can load images cross-origin
 from app.web.header_injector import HeaderInjector
