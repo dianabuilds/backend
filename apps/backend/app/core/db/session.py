@@ -1,18 +1,19 @@
 import asyncio
 import logging
 import time
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from pathlib import Path
-from typing import AsyncGenerator, Optional
+from typing import Optional
+
+from sqlalchemy import event, text
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import text, event
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, AsyncEngine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError, OperationalError
-
 from app.core.config import settings
 from app.core.db.base import Base
 
@@ -32,16 +33,21 @@ def get_engine() -> AsyncEngine:
         _engine = create_async_engine(
             settings.database_url,
             connect_args=settings.db_connect_args,
-            **settings.db_pool_settings
+            **settings.db_pool_settings,
         )
 
         if settings.logging.slow_query_ms:
+
             @event.listens_for(_engine.sync_engine, "before_cursor_execute")
-            def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):  # noqa: D401
+            def before_cursor_execute(
+                conn, cursor, statement, parameters, context, executemany
+            ):  # noqa: D401
                 context._query_start_time = time.perf_counter()
 
             @event.listens_for(_engine.sync_engine, "after_cursor_execute")
-            def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):  # noqa: D401
+            def after_cursor_execute(
+                conn, cursor, statement, parameters, context, executemany
+            ):  # noqa: D401
                 total = (time.perf_counter() - context._query_start_time) * 1000
                 if total >= settings.logging.slow_query_ms:
                     logger.warning(
@@ -50,16 +56,14 @@ def get_engine() -> AsyncEngine:
                         statement,
                         parameters,
                     )
+
     return _engine
 
 
 def get_session_factory():
     engine = get_engine()
     return sessionmaker(
-        bind=engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        autoflush=False
+        bind=engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
     )
 
 
@@ -148,12 +152,19 @@ async def check_database_connection(max_retries: int = 5) -> bool:
             return True
         except OperationalError as e:
             retry_count += 1
-            wait_time = min(2 ** retry_count, 30)
+            wait_time = min(2**retry_count, 30)
             logger.warning(
-                f"Database connection attempt {retry_count}/{max_retries} failed: {str(e)}. "
-                f"Retrying in {wait_time} seconds..."
+                "Database connection attempt %s/%s failed: %s. "
+                "Retrying in %s seconds...",
+                retry_count,
+                max_retries,
+                str(e),
+                wait_time,
             )
             await asyncio.sleep(wait_time)
+        except SQLAlchemyError as e:
+            logger.error("Database connection error: %s", str(e))
+            return False
 
     logger.error(f"Failed to connect to database after {max_retries} attempts")
     return False
