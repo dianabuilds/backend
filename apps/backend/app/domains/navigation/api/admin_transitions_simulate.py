@@ -9,6 +9,7 @@ from sqlalchemy.future import select
 
 from app.core.db.session import get_db
 from app.core.preview import PreviewContext, PreviewMode
+from app.core.rng import next_seed
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.nodes.infrastructure.models.node import Node
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
@@ -35,8 +36,8 @@ admin_required = require_admin_role()
 @router.post("/simulate", summary="Simulate transitions")
 async def simulate_transitions(
     payload: SimulateRequest,
-    current_user=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user=Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     result = await db.execute(select(Node).where(Node.slug == payload.start))
     node = result.scalars().first()
@@ -47,11 +48,13 @@ async def simulate_transitions(
     if payload.history:
         svc._router.history.extend(payload.history)
 
-    preview = PreviewContext(mode=payload.preview_mode, seed=payload.seed)
+    seed = payload.seed if payload.seed is not None else next_seed()
+    preview = PreviewContext(mode=payload.preview_mode, seed=seed)
     res = await svc.build_route(db, node, current_user, preview=preview)
     return {
         "next": res.next.slug if res.next else None,
         "reason": res.reason.value if res.reason else None,
         "trace": [asdict(t) for t in res.trace],
         "metrics": res.metrics,
+        "seed": seed,
     }

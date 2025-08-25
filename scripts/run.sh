@@ -6,6 +6,7 @@ HOST="0.0.0.0"
 PORT="8000"
 WORKERS=4
 ENVIRONMENT=${ENVIRONMENT:-"development"}
+SEED=""
 
 # Функция для вывода справки
 show_help() {
@@ -18,6 +19,7 @@ show_help() {
     echo "  --host HOST      Specify host (default: 0.0.0.0)"
     echo "  --port PORT      Specify port (default: 8000)"
     echo "  --workers N      Specify number of workers (default: 4, only in prod mode)"
+    echo "  --seed SEED      Use specific RNG seed (exported as RNG_SEED)"
     echo ""
     echo "Examples:"
     echo "  $0 --dev         Run in development mode"
@@ -53,6 +55,10 @@ while [[ $# -gt 0 ]]; do
             WORKERS="$2"
             shift 2
             ;;
+        --seed)
+            SEED="$2"
+            shift 2
+            ;;
         *)
             echo "Unknown option: $1"
             show_help
@@ -72,6 +78,11 @@ if [ "$MODE" = "prod" ]; then
 else
     export ENVIRONMENT="development"
     echo "Running in DEVELOPMENT mode"
+fi
+
+if [ -n "$SEED" ]; then
+    export RNG_SEED="$SEED"
+    echo "Using RNG seed $SEED"
 fi
 
 # Проверка наличия миграций и применение их при необходимости
