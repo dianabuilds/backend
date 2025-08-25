@@ -20,14 +20,13 @@ def create_async_redis(
     health_check_interval: int = 30,
 ):
     """Create configured Redis client with TLS and pooling support.
-
-    The previous implementation passed ``timeout`` directly to ``redis.from_url``,
-    which forwards unknown parameters to the connection constructor. Newer
-    versions of redis-py no longer accept ``timeout`` in ``Connection`` and raise
-    ``TypeError: Connection.__init__() got an unexpected keyword argument
-    'timeout'``.  To keep a blocking pool with a timeout we now build the pool
-    explicitly using :class:`redis.asyncio.connection.BlockingConnectionPool` and
-    then create the client from that pool.
+    The previous implementation passed deprecated parameters such as ``timeout``
+    or ``ssl_context`` directly to ``redis.from_url``, which forwarded them to
+    the connection constructor.  redis-py 6 removed these arguments, leading to
+    ``TypeError`` during client initialization.  To keep a blocking pool with a
+    configurable timeout we now build the pool explicitly using
+    :class:`redis.asyncio.connection.BlockingConnectionPool` and translate TLS
+    options to the new ``ssl``-based API.
 
     Parameters mirror the old helper, but ``pool_timeout`` is applied as the
     pool's blocking timeout.
@@ -43,15 +42,11 @@ def create_async_redis(
 
     scheme = url.split(":", 1)[0].lower()
     if scheme == "rediss":
-        ctx = ssl.create_default_context()
-        if hasattr(ssl, "TLSVersion"):
-            ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         verify = os.getenv("REDIS_SSL_VERIFY", "").lower() in {"1", "true", "yes", "on"}
+        conn_kwargs["ssl"] = True
         if not verify:
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-        # redis-py expects an ``ssl_context`` for TLS connections
-        conn_kwargs["ssl_context"] = ctx
+            conn_kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
+            conn_kwargs["ssl_check_hostname"] = False
 
     pool = redis.BlockingConnectionPool.from_url(
         url,
