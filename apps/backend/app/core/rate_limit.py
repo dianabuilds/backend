@@ -14,6 +14,7 @@ from fastapi_limiter.depends import RateLimiter
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
+from app.core.policy import policy
 from app.core.real_ip import get_real_ip
 
 
@@ -58,6 +59,7 @@ def rate_limit_dep(rule: str):
     async def _dep(request: Request, response: Response):
         if (
             not settings.rate_limit.enabled
+            or policy.rate_limit_mode != "enforce"
             or request.method.upper() == "OPTIONS"
             or request.url.path in {"/health", "/readiness"}
         ):
@@ -94,6 +96,7 @@ def rate_limit_dep_key(key: str):
     async def _dep(request: Request, response: Response):
         if (
             not settings.rate_limit.enabled
+            or policy.rate_limit_mode != "enforce"
             or request.method.upper() == "OPTIONS"
             or request.url.path in {"/health", "/readiness"}
         ):
@@ -112,7 +115,7 @@ def rate_limit_dep_key(key: str):
 
 
 async def init_rate_limiter() -> None:
-    if not settings.rate_limit.enabled:
+    if not settings.rate_limit.enabled or policy.rate_limit_mode != "enforce":
         return
     import redis.asyncio as redis
 
@@ -123,7 +126,7 @@ async def init_rate_limiter() -> None:
 
 
 async def close_rate_limiter() -> None:
-    if not settings.rate_limit.enabled:
+    if not settings.rate_limit.enabled or policy.rate_limit_mode != "enforce":
         return
     await FastAPILimiter.close()
 
@@ -199,6 +202,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        if policy.rate_limit_mode != "enforce":
+            return await call_next(request)
         workspace_id = request.headers.get("X-Workspace-ID", "0")
         user_id = request.headers.get("X-User-ID", "0")
         operation = request.headers.get("X-Operation", request.url.path)

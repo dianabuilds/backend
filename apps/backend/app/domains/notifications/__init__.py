@@ -1,10 +1,10 @@
 """Notifications domain package."""
 
-import os
+from app.core.policy import policy
 
 # Ensure event listeners are registered when package is imported. Skip this
 # during tests to avoid importing the full application graph.
-if os.environ.get("TESTING") != "True":
+if policy.allow_write:
     try:  # pragma: no cover - best effort import
         from . import service as _service  # type: ignore  # noqa: F401
     except Exception:  # pragma: no cover

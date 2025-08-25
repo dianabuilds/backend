@@ -1,4 +1,3 @@
-import os
 from typing import Any
 
 from sqlalchemy.ext.declarative import declared_attr
@@ -20,10 +19,10 @@ class Base(DeclarativeBase):
         return cls.__name__.lower()
 
 
+from app.core.policy import policy
+
 # Import all models here so Base has them registered
-# In testing mode we only import the user model to avoid configuring
-# unrelated relationships which may depend on missing tables.
-if os.environ.get("TESTING") == "True":
+if not policy.allow_write:
     from app.domains.users.infrastructure.models.user import User  # noqa
 else:
     from app.core.idempotency_models import IdempotencyKey  # noqa
