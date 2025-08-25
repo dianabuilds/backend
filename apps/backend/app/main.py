@@ -77,6 +77,19 @@ app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(MetricsMiddleware)
+# CORS: разрешаем фронту ходить на API в dev
+# В dev по умолчанию допускаем любой порт на localhost/127.0.0.1,
+# если явно не настроено через переменные окружения
+_allowed_origins = settings.cors.allowed_origins
+_allow_origin_regex = None
+if not _allowed_origins:
+    if settings.is_production:
+        _allowed_origins = []
+    else:
+        _allow_origin_regex = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+cors_kwargs = {"allow_origins": _allowed_origins}
+if _allow_origin_regex:
+    cors_kwargs = {"allow_origin_regex": _allow_origin_regex}
 if settings.rate_limit.enabled:
     app.add_middleware(
         RateLimitMiddleware,
@@ -94,35 +107,15 @@ app.add_middleware(
     TrustedHostMiddleware, allowed_hosts=settings.security.allowed_hosts or ["*"]
 )
 app.add_middleware(RealIPMiddleware)
-register_exception_handlers(app)
-
-# CORS: разрешаем фронту ходить на API в dev
-# В dev разрешаем фронт с 5173 (localhost и 127.0.0.1), если явно не настроено
-_allowed_origins = (
-    settings.cors.allowed_origins
-    if settings.cors.allowed_origins
-    else (
-        [
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-            "http://localhost:5174",
-            "http://127.0.0.1:5174",
-            "http://localhost:5175",
-            "http://127.0.0.1:5175",
-            "http://localhost:5176",
-            "http://127.0.0.1:5176",
-        ]
-        if not settings.is_production
-        else []
-    )
-)
+# CORS must be outermost to ensure preflight requests bypass other middleware like CSRF
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allowed_origins,
     allow_credentials=settings.cors.allow_credentials,
     allow_methods=settings.cors.allowed_methods,
     allow_headers=settings.cors.allowed_headers,
+    **cors_kwargs,
 )
+register_exception_handlers(app)
 
 
 @app.middleware("http")
