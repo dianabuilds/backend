@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,11 +34,25 @@ _nonce_store: dict[str, str] = {}
     "/login",
     response_model=LoginResponse,
     dependencies=[Depends(_rate.dependency("login"))],
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/json": {
+                    "schema": LoginSchema.model_json_schema()
+                },
+                "application/x-www-form-urlencoded": {
+                    "schema": LoginSchema.model_json_schema()
+                },
+            },
+        }
+    },
 )
 async def login(
-    payload: Annotated[LoginSchema, Depends(LoginSchema.from_request)],
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> LoginResponse:
+    payload = await LoginSchema.from_request(request)
     return await _svc.login(db, payload)
 
 
