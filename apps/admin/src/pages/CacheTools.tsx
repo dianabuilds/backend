@@ -61,6 +61,9 @@ export default function CacheTools() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Cache tools</h1>
+      <p className="text-sm text-gray-600 mb-6">
+        Inspect cache statistics and invalidate entries by pattern.
+      </p>
       <div className="mb-6 flex items-end gap-2">
         <div className="flex flex-col gap-1">
           <label className="text-sm text-gray-600">Invalidate by pattern</label>
@@ -109,9 +112,29 @@ export default function CacheTools() {
 
           <section>
             <h2 className="font-semibold mb-2">Counters</h2>
-            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">
-              {JSON.stringify(stats.counters ?? {}, null, 2)}
-            </pre>
+            <div className="space-y-4">
+              {Object.entries(stats.counters ?? {}).map(([group, counters]) => (
+                <div key={group}>
+                  <h3 className="font-medium mb-1">{group}</h3>
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="p-2 text-left">Name</th>
+                        <th className="p-2 text-left">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(counters ?? {}).map(([name, value]) => (
+                        <tr key={name} className="border-b">
+                          <td className="p-2 font-mono">{name}</td>
+                          <td className="p-2">{value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
           </section>
         </div>
       )}

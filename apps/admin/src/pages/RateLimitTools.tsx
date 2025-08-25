@@ -6,7 +6,13 @@ interface RateRules {
   enabled: boolean;
   rules: Record<string, string>;
 }
-type Recent429 = Array<Record<string, unknown>>;
+interface RecentHit {
+  path: string;
+  ip: string;
+  rule: string;
+  ts: string;
+}
+type Recent429 = RecentHit[];
 
 export default function RateLimitTools() {
   const [rules, setRules] = useState<RateRules | null>(null);
@@ -47,6 +53,19 @@ export default function RateLimitTools() {
 
   const entries = useMemo(() => Object.entries(draft), [draft]);
 
+  const counts = useMemo(() => {
+    if (!recent) return {} as Record<string, number>;
+    return recent.reduce((acc, r) => {
+      const p = r.path || "unknown";
+      acc[p] = (acc[p] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [recent]);
+
+  const max = useMemo(() => {
+    return Object.values(counts).reduce((m, v) => (v > m ? v : m), 1);
+  }, [counts]);
+
   const saveRule = async (key: string) => {
     try {
       await api.patch("/admin/ratelimit/rules", { key, rule: draft[key] });
@@ -63,6 +82,9 @@ export default function RateLimitTools() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Rate limit</h1>
+      <p className="text-sm text-gray-600 mb-6">
+        Manage rate limit rules and inspect recent 429 errors.
+      </p>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">{error}</p>}
       {rules && (
@@ -114,9 +136,42 @@ export default function RateLimitTools() {
       {recent && (
         <section>
           <h2 className="font-semibold mb-2">Recent 429</h2>
-          <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">
-            {JSON.stringify(recent, null, 2)}
-          </pre>
+          {recent.length ? (
+            <>
+              <table className="min-w-full text-sm mb-4">
+                <thead>
+                  <tr className="border-b">
+                    <th className="p-2 text-left">Path</th>
+                    <th className="p-2 text-left">IP</th>
+                    <th className="p-2 text-left">Rule</th>
+                    <th className="p-2 text-left">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent.map((r, i) => (
+                    <tr key={i} className="border-b">
+                      <td className="p-2 font-mono">{r.path}</td>
+                      <td className="p-2">{r.ip}</td>
+                      <td className="p-2">{r.rule}</td>
+                      <td className="p-2">{r.ts}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="flex items-end gap-2 h-32">
+                {Object.entries(counts).map(([p, c]) => (
+                  <div
+                    key={p}
+                    className="bg-blue-500 w-8"
+                    style={{ height: `${(c / max) * 100}%` }}
+                    title={`${p}: ${c}`}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <p>No recent 429 errors.</p>
+          )}
         </section>
       )}
     </div>
