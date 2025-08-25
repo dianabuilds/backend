@@ -33,7 +33,7 @@ def run_command(command: list[str], error_message: str) -> bool:
 
 def main() -> bool:
     """Основная функция для инициализации базы данных."""
-    print(f"Initializing database for environment: {settings.environment}")
+    print(f"Initializing database for environment: {settings.env_mode}")
 
     # Проверяем, существует ли директория alembic/versions
     versions_dir = project_root / "apps" / "backend" / "alembic" / "versions"
