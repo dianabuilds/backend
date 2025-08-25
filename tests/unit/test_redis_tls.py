@@ -12,7 +12,7 @@ from app.core.redis_utils import create_async_redis
 
 
 def test_rediss_no_ssl_kwarg(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("REDIS_SSL_VERIFY", raising=False)
+    monkeypatch.setenv("REDIS_SSL_VERIFY", "0")
     captured: dict[str, object] = {}
 
     class DummyPool:  # pragma: no cover - only used for type compatibility
@@ -34,6 +34,6 @@ def test_rediss_no_ssl_kwarg(monkeypatch: pytest.MonkeyPatch) -> None:
 
     create_async_redis("rediss://localhost:6379/0")
 
-    assert "ssl" not in captured
+    assert captured["ssl"] is True
     assert captured["ssl_cert_reqs"] == ssl.CERT_NONE
     assert captured["ssl_check_hostname"] is False

@@ -1,7 +1,10 @@
 """CORS headers are correctly handled."""
 
 import pytest
+from fastapi import Response
 from httpx import AsyncClient
+
+from app.main import app
 
 
 @pytest.mark.asyncio
@@ -37,12 +40,6 @@ async def test_cors_preflight_and_requests(client: AsyncClient):
     response = await client.get("/", headers={"Origin": bad_origin})
     assert response.status_code == 200
     assert "access-control-allow-origin" not in response.headers
-=======
-import pytest
-from httpx import AsyncClient
-from fastapi import Response
-
-from app.main import app
 
 
 @app.get("/cors-cookie")
@@ -95,3 +92,4 @@ async def test_options_no_redirect(client: AsyncClient) -> None:
     )
     assert response.status_code == 200
     assert not 300 <= response.status_code < 400
+
