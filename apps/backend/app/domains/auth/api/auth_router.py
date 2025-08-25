@@ -1,6 +1,7 @@
+from typing import Annotated, Any
+
+from fastapi import APIRouter, Depends, Header, Query, Request
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, Query, Request, Header
-from typing import Any, Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -8,9 +9,9 @@ from app.core.db.session import get_db
 from app.core.errors import http_error
 from app.domains.auth.application.auth_service import AuthService
 from app.domains.auth.infrastructure.mail_adapter import LegacyMailAdapter
+from app.domains.auth.infrastructure.nonce_store import NonceStore
 from app.domains.auth.infrastructure.ratelimit_adapter import CoreRateLimiter
 from app.domains.auth.infrastructure.token_adapter import CoreTokenAdapter
-from app.domains.auth.infrastructure.nonce_store import NonceStore
 from app.domains.auth.infrastructure.verification_token_store import (
     VerificationTokenStore,
 )
@@ -33,13 +34,15 @@ _tokens = CoreTokenAdapter()
 _rate = CoreRateLimiter()
 _mailer = LegacyMailAdapter()
 
-if settings.auth.redis_url.startswith("fakeredis://"):
+if settings.auth.redis_url and settings.auth.redis_url.startswith("fakeredis://"):
     import fakeredis.aioredis as fakeredis  # type: ignore
 
     _redis = fakeredis.FakeRedis(decode_responses=True)
 else:
     if redis is None:  # pragma: no cover - requires redis
         raise RuntimeError("redis library is not installed")
+    if settings.auth.redis_url is None:
+        raise RuntimeError("Redis URL is not configured")
     _redis = redis.from_url(settings.auth.redis_url, decode_responses=True)
 
 _nonce_store = NonceStore(_redis, settings.auth.nonce_ttl)

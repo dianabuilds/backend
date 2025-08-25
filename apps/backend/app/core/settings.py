@@ -1,13 +1,15 @@
 import logging
+import os
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
+
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .app_settings import (
-    AuthSettings,
     AdminSettings,
+    AuthSettings,
     CacheSettings,
     CompassSettings,
     CookieSettings,
@@ -199,6 +201,13 @@ class Settings(ProjectSettings):
         for field, value in defaults.items():
             if getattr(self, field) in (None, ""):
                 setattr(self, field, value)
+
+        if self.cache.redis_url in (None, ""):
+            self.cache.redis_url = os.getenv("REDIS_URL")
+        if self.auth.redis_url in (None, ""):
+            self.auth.redis_url = self.cache.redis_url
+        if self.rate_limit.redis_url in (None, ""):
+            self.rate_limit.redis_url = self.cache.redis_url
 
     @property
     def is_production(self) -> bool:
