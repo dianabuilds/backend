@@ -2,30 +2,29 @@ from __future__ import annotations
 
 from datetime import datetime
 from uuid import UUID
-from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class QuestBase(BaseModel):
-    title: Optional[str] = None
-    subtitle: Optional[str] = None
-    description: Optional[str] = None
-    cover_image: Optional[str] = None
-    tags: list[str] = []
-    price: Optional[int] = None
+    title: str | None = None
+    subtitle: str | None = None
+    description: str | None = None
+    cover_image: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    price: int | None = None
     is_premium_only: bool = False
-    entry_node_id: Optional[UUID] = None
-    nodes: list[UUID] = []
-    custom_transitions: Optional[dict] = None
+    entry_node_id: UUID | None = None
+    nodes: list[UUID] = Field(default_factory=list)
+    custom_transitions: dict | None = None
     allow_comments: bool = True
     # generation meta
-    structure: Optional[str] = None
-    length: Optional[str] = None
-    tone: Optional[str] = None
-    genre: Optional[str] = None
-    locale: Optional[str] = None
-    cost_generation: Optional[int] = None
+    structure: str | None = None
+    length: str | None = None
+    tone: str | None = None
+    genre: str | None = None
+    locale: str | None = None
+    cost_generation: int | None = None
 
 
 class QuestCreate(QuestBase):
@@ -41,21 +40,19 @@ class QuestOut(QuestBase):
     slug: str
     author_id: UUID
     is_draft: bool
-    published_at: Optional[datetime]
+    published_at: datetime | None
     created_at: datetime
     created_by_user_id: UUID | None = None
     updated_by_user_id: UUID | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class QuestProgressOut(BaseModel):
     current_node_id: UUID
     started_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class QuestBuyIn(BaseModel):

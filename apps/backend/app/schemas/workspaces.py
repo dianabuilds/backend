@@ -65,8 +65,7 @@ class WorkspaceOut(BaseModel):
     updated_at: datetime
     role: WorkspaceRole | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class WorkspaceWithRoleOut(WorkspaceOut):
@@ -91,5 +90,4 @@ class WorkspaceMemberOut(BaseModel):
     user_id: UUID
     role: WorkspaceRole
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
