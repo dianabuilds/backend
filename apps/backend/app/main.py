@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 from app.core.env_loader import load_dotenv
 
 # Ensure environment variables from .env are loaded before importing modules
@@ -19,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.policy import policy
+from app.core.rng import init_rng
 
 if policy.allow_write:
     try:  # pragma: no cover - optional OTEL dependencies
@@ -31,9 +33,10 @@ if policy.allow_write:
         setup_otel = None  # type: ignore[assignment]
         FastAPIInstrumentor = HTTPXClientInstrumentor = None  # type: ignore[assignment]
         RequestsInstrumentor = SQLAlchemyInstrumentor = None  # type: ignore[assignment]
+import punq
+
 from app.core.body_limit import BodySizeLimitMiddleware
 from app.core.config import settings
-from app.core.settings import EnvMode
 from app.core.cookies_security_middleware import CookiesSecurityMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.db.session import (
@@ -49,25 +52,29 @@ from app.core.rate_limit import RateLimitMiddleware
 from app.core.real_ip import RealIPMiddleware
 from app.core.request_id import RequestIDMiddleware
 from app.core.security_headers import SecurityHeadersMiddleware
+from app.core.settings import EnvMode
 from app.domains.ai.embedding_config import configure_from_settings
 from app.domains.registry import register_domain_routers
 from app.domains.system.bootstrap import ensure_default_admin, ensure_global_workspace
 from app.domains.system.events import register_handlers
-import punq
 from app.providers import register_providers
+
+# Initialize RNG based on configuration
+_rng_seed = init_rng(settings.rng_seed_strategy)
 
 # Используем базовое логирование из uvicorn/стандартного logging
 logger = logging.getLogger(__name__)
+logger.info("RNG seed initialised to %s", _rng_seed)
 
 container = punq.Container()
 register_providers(container, settings)
 
 app = FastAPI()
 app.state.container = container
-enable_metrics = (
-    settings.observability.metrics_enabled
-    and settings.env_mode in {EnvMode.staging, EnvMode.production}
-)
+enable_metrics = settings.observability.metrics_enabled and settings.env_mode in {
+    EnvMode.staging,
+    EnvMode.production,
+}
 if policy.allow_write and setup_otel and enable_metrics:
     setup_otel()
     if FastAPIInstrumentor:
@@ -202,7 +209,7 @@ uploads_static = CORSMiddleware(
     allow_methods=["GET"],
     allow_headers=["*"],
 )
-# Дополнительно инжектируем CORP, чтобы изображения можно было использовать кросс-оригинально в админке
+# Inject CORP so admin can load images cross-origin
 from app.web.header_injector import HeaderInjector
 
 uploads_static = HeaderInjector(
@@ -210,8 +217,8 @@ uploads_static = HeaderInjector(
 )
 app.mount("/static/uploads", uploads_static, name="uploads")
 
-from app.api.health import router as health_router
-from app.api.ops import router as ops_router
+from app.api.health import router as health_router  # noqa: E402
+from app.api.ops import router as ops_router  # noqa: E402
 
 if settings.observability.health_enabled:
     app.include_router(health_router)
@@ -223,10 +230,8 @@ if not policy.allow_write:
 
     app.include_router(auth_router)
 else:
-    # Legacy routers (best-effort): import and include inside try-blocks to avoid startup failures
+    # Legacy routers: import inside try to avoid startup failures
     try:
-        # from app.api.tags import router as tags_router  # removed: served by domain router
-        # from app.api.quests import router as quests_router  # removed: served by domain router
         from app.api.metrics_exporter import router as metrics_router
         from app.api.rum_metrics import admin_router as rum_admin_router
         from app.api.rum_metrics import router as rum_metrics_router

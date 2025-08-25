@@ -1,7 +1,7 @@
-import sys
-import uuid
 import asyncio
 import importlib
+import sys
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,17 +9,17 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
 
-from app.core.db.base import Base
-from app.domains.navigation.api.admin_transitions_simulate import (
+from app.core.db.base import Base  # noqa: E402
+from app.domains.navigation.api.admin_transitions_simulate import (  # noqa: E402
     SimulateRequest,
     simulate_transitions,
 )
-from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.users.infrastructure.models.user import User
-from app.domains.workspaces.infrastructure.models import Workspace
+from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
+from app.domains.users.infrastructure.models.user import User  # noqa: E402
+from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 
 
 def test_simulate_endpoint_returns_trace():
@@ -27,7 +27,9 @@ def test_simulate_endpoint_returns_trace():
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async_session = sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
 
         async with async_session() as session:
             user = User(id=uuid.uuid4())

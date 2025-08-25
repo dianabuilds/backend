@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import math
 from dataclasses import asdict
-from uuid import UUID, uuid4
 from typing import Any
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict
@@ -11,19 +11,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.db.session import get_db
+from app.core.metrics import record_no_route, record_route_length
 from app.core.preview import PreviewContext, PreviewMode
+from app.core.rng import next_seed
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.navigation.application.transition_router import (
     NoRouteReason,
     _compute_entropy,
 )
-from app.core.metrics import record_no_route, record_route_length
 from app.domains.nodes.infrastructure.models.node import Node
 from app.security import (
     ADMIN_AUTH_RESPONSES,
-    require_admin_role,
-    require_admin_or_preview_token,
     create_preview_token,
+    require_admin_or_preview_token,
+    require_admin_role,
 )
 
 
@@ -67,7 +68,7 @@ async def create_preview_link(payload: PreviewLinkRequest) -> dict[str, str]:
 )
 async def simulate_transitions(
     payload: SimulateRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db),  # noqa: B008
     request: Request = None,
 ):
     result = await db.execute(
@@ -89,7 +90,8 @@ async def simulate_transitions(
     if payload.history:
         svc._router.history.extend(payload.history)
 
-    preview = PreviewContext(mode=payload.preview_mode, seed=payload.seed)
+    seed = payload.seed if payload.seed is not None else next_seed()
+    preview = PreviewContext(mode=payload.preview_mode, seed=seed)
     res = await svc.build_route(db, node, None, preview=preview)
     tags = [getattr(t, "slug", t) for t in getattr(res.next, "tags", []) or []]
     tag_entropy = _compute_entropy(tags)
@@ -119,4 +121,5 @@ async def simulate_transitions(
             "tags": tags,
             "sources": sources,
         },
+        "seed": seed,
     }
