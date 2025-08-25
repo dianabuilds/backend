@@ -213,3 +213,8 @@ admin-frontend/dist/
 admin-frontend/.vite/
 
 /apps/admin/package-lock.json
+
+# Allow admin src lib directory
+!apps/admin/src/lib/
+
+!apps/admin/src/lib/**
