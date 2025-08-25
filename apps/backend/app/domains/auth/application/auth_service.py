@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import uuid4
 
-from fastapi import HTTPException
+from app.core.errors import http_error
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -42,22 +42,9 @@ class AuthService:
         )
         user = q.scalars().first()
         if not user or not verify_password(payload.password, user.password_hash or ""):
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": {
-                        "code": "BAD_REQUEST",
-                        "message": "Incorrect username or password",
-                    }
-                },
-            )
+            raise http_error(400, "Incorrect username or password")
         if not user.is_active:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": {"code": "BAD_REQUEST", "message": "Email not verified"}
-                },
-            )
+            raise http_error(400, "Email not verified")
         access = self._tokens.create_access_token(str(user.id))
         refresh = self._tokens.create_refresh_token(str(user.id))
         return LoginResponse(
@@ -67,7 +54,7 @@ class AuthService:
     async def refresh(self, payload: Token) -> LoginResponse:
         sub = self._tokens.verify_access_token(payload.token)
         if not sub:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise http_error(401, "Invalid token")
         access = self._tokens.create_access_token(sub)
         refresh = self._tokens.create_refresh_token(sub)
         return LoginResponse(
@@ -79,26 +66,10 @@ class AuthService:
     ) -> dict[str, Any]:
         q = await db.execute(select(User).where(User.username == payload.username))
         if q.scalars().first():
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": {
-                        "code": "BAD_REQUEST",
-                        "message": "Username already taken",
-                    }
-                },
-            )
+            raise http_error(400, "Username already taken")
         q = await db.execute(select(User).where(User.email == payload.email))
         if q.scalars().first():
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": {
-                        "code": "BAD_REQUEST",
-                        "message": "Email already registered",
-                    }
-                },
-            )
+            raise http_error(400, "Email already registered")
         user = User(
             email=payload.email,
             username=payload.username,
@@ -115,17 +86,11 @@ class AuthService:
     async def verify_email(self, db: AsyncSession, token: str) -> dict[str, Any]:
         user_id = await self._verification_store.pop(token)
         if not user_id:
-            raise HTTPException(
-                status_code=400,
-                detail={"error": {"code": "BAD_REQUEST", "message": "Invalid token"}},
-            )
+            raise http_error(400, "Invalid token")
         q = await db.execute(select(User).where(User.id == user_id))
         user = q.scalars().first()
         if not user:
-            raise HTTPException(
-                status_code=400,
-                detail={"error": {"code": "BAD_REQUEST", "message": "Invalid token"}},
-            )
+            raise http_error(400, "Invalid token")
         user.is_active = True
         db.add(user)
         await db.commit()
@@ -136,19 +101,11 @@ class AuthService:
     ) -> dict[str, Any]:
         user_id = self._tokens.verify_access_token(token)
         if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise http_error(401, "Invalid token")
         q = await db.execute(select(User).where(User.id == user_id))
         user = q.scalars().first()
         if not user or not verify_password(old_password, user.password_hash or ""):
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": {
-                        "code": "BAD_REQUEST",
-                        "message": "Incorrect old password",
-                    }
-                },
-            )
+            raise http_error(400, "Incorrect old password")
         user.password_hash = get_password_hash(new_password)
         db.add(user)
         await db.commit()
@@ -165,8 +122,5 @@ class AuthService:
     async def evm_verify(self, payload: EVMVerify) -> dict[str, Any]:
         stored = await self._nonce_store.pop(payload.wallet_address)
         if not stored or stored != payload.message:
-            raise HTTPException(
-                status_code=400,
-                detail={"error": {"code": "BAD_REQUEST", "message": "Invalid nonce"}},
-            )
+            raise http_error(400, "Invalid nonce")
         return {"message": "Wallet verified"}

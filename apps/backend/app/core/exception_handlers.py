@@ -10,24 +10,11 @@ from pydantic import ValidationError
 from fastapi.exceptions import RequestValidationError
 import sentry_sdk
 
-from app.core.errors import DomainError
+from app.core.errors import DomainError, ERROR_CODE_MAP
 from app.core.log_filters import request_id_var
 from app.security.exceptions import AuthError
 
 logger = logging.getLogger("app.errors")
-
-
-# Map HTTP status codes to our unified error codes.
-# Codes are intentionally whitelisted to keep the surface small and predictable.
-ERROR_CODE_MAP = {
-    400: "BAD_REQUEST",
-    401: "AUTH_REQUIRED",
-    403: "FORBIDDEN",
-    404: "NOT_FOUND",
-    409: "CONFLICT",
-    422: "VALIDATION_ERROR",
-    429: "RATE_LIMITED",
-}
 
 
 def _build_body(
