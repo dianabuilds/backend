@@ -77,25 +77,6 @@ app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(MetricsMiddleware)
-if settings.rate_limit.enabled:
-    app.add_middleware(
-        RateLimitMiddleware,
-        capacity=10,
-        fill_rate=1,
-        burst=5,
-    )
-# CSRF для мутаций
-app.add_middleware(CSRFMiddleware)
-# Заголовки безопасности и CSP
-app.add_middleware(SecurityHeadersMiddleware)
-# Усиление Set-Cookie флагов
-app.add_middleware(CookiesSecurityMiddleware)
-app.add_middleware(
-    TrustedHostMiddleware, allowed_hosts=settings.security.allowed_hosts or ["*"]
-)
-app.add_middleware(RealIPMiddleware)
-register_exception_handlers(app)
-
 # CORS: разрешаем фронту ходить на API в dev
 # В dev разрешаем фронт с 5173 (localhost и 127.0.0.1), если явно не настроено
 _allowed_origins = (
@@ -123,6 +104,24 @@ app.add_middleware(
     allow_methods=settings.cors.allowed_methods,
     allow_headers=settings.cors.allowed_headers,
 )
+if settings.rate_limit.enabled:
+    app.add_middleware(
+        RateLimitMiddleware,
+        capacity=10,
+        fill_rate=1,
+        burst=5,
+    )
+# CSRF для мутаций
+app.add_middleware(CSRFMiddleware)
+# Заголовки безопасности и CSP
+app.add_middleware(SecurityHeadersMiddleware)
+# Усиление Set-Cookie флагов
+app.add_middleware(CookiesSecurityMiddleware)
+app.add_middleware(
+    TrustedHostMiddleware, allowed_hosts=settings.security.allowed_hosts or ["*"]
+)
+app.add_middleware(RealIPMiddleware)
+register_exception_handlers(app)
 
 
 @app.middleware("http")
