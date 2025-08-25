@@ -13,7 +13,7 @@ from app.domains.auth.infrastructure.nonce_store import NonceStore
 from app.domains.auth.infrastructure.verification_token_store import (
     VerificationTokenStore,
 )
-from app.domains.users.schemas.auth import (
+from app.schemas.auth import (
     EVMVerify,
     LoginResponse,
     LoginSchema,
