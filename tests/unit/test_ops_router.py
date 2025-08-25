@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from apps.backend.app.api import ops as ops_module  # noqa: E402
+from app.admin.ops import alerts as alerts_module  # noqa: E402
 from fastapi import FastAPI  # noqa: E402
 
 from app.core.cache import cache as shared_cache  # noqa: E402
@@ -112,3 +113,14 @@ def test_limits_endpoint_remaining_and_cached():
 
     resp2 = client.get(f"/admin/ops/limits?workspace_id={workspace_id}")
     assert resp2.json() == data
+
+
+def test_alerts_endpoint(monkeypatch):
+    async def fake_fetch():  # pragma: no cover - helper
+        return [{"id": "1", "description": "boom"}]
+
+    monkeypatch.setattr(alerts_module, "fetch_active_alerts", fake_fetch)
+
+    resp = client.get("/admin/ops/alerts")
+    assert resp.status_code == 200
+    assert resp.json()["alerts"][0]["description"] == "boom"

@@ -65,7 +65,11 @@ async def list_workspaces(
     workspaces: list[WorkspaceWithRoleOut] = []
     for ws, role in result.all():
         data = WorkspaceOut.model_validate(ws, from_attributes=True)
-        workspaces.append(WorkspaceWithRoleOut(**data.model_dump(), role=role))
+        workspaces.append(
+            WorkspaceWithRoleOut(
+                **data.model_dump(exclude={"role"}), role=role
+            )
+        )
     return workspaces
 
 
