@@ -16,6 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.core.policy import policy
 from app.core.real_ip import get_real_ip
+from app.core.redis_utils import create_async_redis
 
 
 def _parse_rule(rule: str) -> tuple[int, int]:
@@ -117,11 +118,10 @@ def rate_limit_dep_key(key: str):
 async def init_rate_limiter() -> None:
     if not settings.rate_limit.enabled or policy.rate_limit_mode != "enforce":
         return
-    import redis.asyncio as redis
-
-    redis_client = redis.from_url(
-        settings.rate_limit.redis_url, encoding="utf-8", decode_responses=True
-    )
+    redis_url = settings.rate_limit.redis_url
+    if not redis_url:
+        return
+    redis_client = create_async_redis(redis_url, decode_responses=True, connect_timeout=2.0)
     await FastAPILimiter.init(redis_client)
 
 
@@ -197,8 +197,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             self._redis = redis_client
         else:
             redis_url = redis_url or settings.rate_limit.redis_url
-            self._redis = redis.from_url(
-                redis_url, encoding="utf-8", decode_responses=True
+            self._redis = create_async_redis(
+                redis_url, decode_responses=True, connect_timeout=2.0
             )
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]

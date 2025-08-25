@@ -14,6 +14,7 @@ import httpx
 
 from app.core.config import settings
 from app.core.db.session import get_db
+from app.core.redis_utils import create_async_redis
 
 try:
     import redis.asyncio as redis  # type: ignore
@@ -49,7 +50,7 @@ async def _check_redis() -> bool:
     if not url or redis is None:
         return True
     try:
-        client = redis.from_url(url)
+        client = create_async_redis(url, decode_responses=True, connect_timeout=2.0)
         await client.ping()
         return True
     except Exception:

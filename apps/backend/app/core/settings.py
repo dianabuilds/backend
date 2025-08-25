@@ -202,12 +202,44 @@ class Settings(ProjectSettings):
             if getattr(self, field) in (None, ""):
                 setattr(self, field, value)
 
+        # --- Redis URL normalization -------------------------------------------------
+        # Берём REDIS_URL из окружения, если в секции cache пусто
         if self.cache.redis_url in (None, ""):
             self.cache.redis_url = os.getenv("REDIS_URL")
+
+        # Если установлен REDIS_SSL/REDIS_TLS=true или порт указывает на TLS,
+        # то принудительно переводим схему на rediss://
+        def _normalize_redis_url(url: str | None) -> str | None:
+            if not url:
+                return url
+            try:
+                from urllib.parse import urlparse, urlunparse
+                parsed = urlparse(url)
+                tls_hint = os.getenv("REDIS_SSL") or os.getenv("REDIS_TLS")
+                tls_enabled = str(tls_hint).lower() in {"1", "true", "yes", "on"}
+                # Хостинговые TLS-порты часто 6380, 14403; redns/redislabs также обычно требуют TLS
+                is_tls_port = (parsed.port in {6380, 14403, 443})
+                host_hint = (parsed.hostname or "").lower()
+                requires_tls = tls_enabled or is_tls_port or ("redis-cloud" in host_hint) or ("redns" in host_hint)
+                if parsed.scheme == "redis" and requires_tls:
+                    parsed = parsed._replace(scheme="rediss")
+                    return urlunparse(parsed)
+                return url
+            except Exception:
+                return url
+
+        self.cache.redis_url = _normalize_redis_url(self.cache.redis_url)
+
+        # Проталкиваем в другие подсистемы, если у них пусто; иначе тоже нормализуем
         if self.auth.redis_url in (None, ""):
             self.auth.redis_url = self.cache.redis_url
+        else:
+            self.auth.redis_url = _normalize_redis_url(self.auth.redis_url)
+
         if self.rate_limit.redis_url in (None, ""):
             self.rate_limit.redis_url = self.cache.redis_url
+        else:
+            self.rate_limit.redis_url = _normalize_redis_url(self.rate_limit.redis_url)
 
     @property
     def is_production(self) -> bool:
