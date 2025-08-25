@@ -20,3 +20,11 @@ export async function updateDevToolsSettings(
   return res.data ?? {};
 }
 
+export async function seedDatabase(): Promise<void> {
+  await api.post("/admin/devtools/seed");
+}
+
+export async function resetDatabase(): Promise<void> {
+  await api.post("/admin/devtools/reset-db");
+}
+

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { confirmWithEnv } from "../utils/env";
 
 import { api } from "../api/client";
 import { useToast } from "../components/ToastProvider";
@@ -147,7 +148,7 @@ export default function Achievements() {
   };
 
   const onDelete = async (row: AchievementAdmin) => {
-    if (!confirm(`Delete achievement "${row.title}"?`)) return;
+    if (!confirmWithEnv(`Delete achievement "${row.title}"?`)) return;
     try {
       await deleteAdminAchievement(row.id);
       setItems((arr) => arr.filter((x) => x.id !== row.id));

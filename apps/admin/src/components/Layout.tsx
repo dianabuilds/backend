@@ -3,6 +3,7 @@ import { Link, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 import HotfixBanner from "./HotfixBanner";
+import EnvBanner from "./EnvBanner";
 import Sidebar from "./Sidebar";
 import WorkspaceSelector from "./WorkspaceSelector";
 import SystemStatus from "./SystemStatus";
@@ -47,11 +48,12 @@ export default function Layout() {
               </div>
             )}
           </div>
-        </div>
-        <HotfixBanner />
-        <Breadcrumbs />
-        <Outlet />
-      </main>
-    </div>
-  );
+          </div>
+          <EnvBanner />
+          <HotfixBanner />
+          <Breadcrumbs />
+          <Outlet />
+        </main>
+      </div>
+    );
 }

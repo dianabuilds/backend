@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { confirmWithEnv } from "../utils/env";
 
 import { api } from "../api/client";
 
@@ -63,7 +64,7 @@ export default function PremiumPlans() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Удалить тариф?")) return;
+    if (!confirmWithEnv("Удалить тариф?")) return;
     await api.del(`/admin/premium/plans/${encodeURIComponent(id)}`);
     await qc.invalidateQueries({ queryKey: ["premium", "plans"] });
   };

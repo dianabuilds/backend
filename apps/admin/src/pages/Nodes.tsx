@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { confirmWithEnv } from "../utils/env";
 
 import { api } from "../api/client";
 import ContentEditor from "../components/content/ContentEditor";
@@ -183,7 +184,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
         });
         return;
       }
-      if (!confirm("Restore this node?")) return;
+      if (!confirmWithEnv("Restore this node?")) return;
       (async () => {
         try {
           setModBusy(true);

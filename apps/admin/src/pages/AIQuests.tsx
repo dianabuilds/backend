@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { confirmWithEnv } from "../utils/env";
 
 import { api } from "../api/client";
 import { createDraft } from "../api/questEditor";
@@ -314,7 +315,7 @@ export default function AIQuests() {
   };
 
   const removeWorld = async (id: string) => {
-    if (!confirm("Удалить мир со всеми персонажами?")) return;
+    if (!confirmWithEnv("Удалить мир со всеми персонажами?")) return;
     try {
       await api.request(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`, {
         method: "DELETE",
@@ -350,7 +351,7 @@ export default function AIQuests() {
   };
 
   const removeCharacter = async (id: string) => {
-    if (!confirm("Удалить персонажа?")) return;
+    if (!confirmWithEnv("Удалить персонажа?")) return;
     try {
       await api.request(
         `/admin/ai/quests/characters/${encodeURIComponent(id)}`,
