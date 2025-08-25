@@ -26,12 +26,29 @@ export default function Health() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Health</h1>
+      <p className="text-sm text-gray-600 mb-6">
+        View application health statuses.
+      </p>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">{error}</p>}
       {data && (
-        <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-auto">
-          {JSON.stringify(data, null, 2)}
-        </pre>
+        <div className="grid gap-2 max-w-md">
+          {Object.entries(data).map(([key, value]) => (
+            <div
+              key={key}
+              className="border rounded p-2 flex justify-between text-sm"
+            >
+              <span>{key}</span>
+              <span
+                className={
+                  value === "ok" ? "text-green-600" : "text-red-600"
+                }
+              >
+                {String(value)}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
