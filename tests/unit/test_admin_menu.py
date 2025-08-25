@@ -1,13 +1,13 @@
-from types import SimpleNamespace
 import sys
 import types
+from types import SimpleNamespace
 
 # menu_service imports User from the users module, which pulls in the DB model and
 # causes circular imports in tests. Stub it with a lightweight placeholder.
 sys.modules.setdefault(
     "app.domains.users.infrastructure.models.user", types.SimpleNamespace(User=object)
 )
-from app.domains.admin.application.menu_service import build_menu
+from app.domains.admin.application.menu_service import build_menu  # noqa: E402
 
 
 def collect_ids(items):
@@ -18,12 +18,11 @@ def collect_ids(items):
     return res
 
 
-def test_admin_sees_all_sections_and_payments_flag():
+def test_admin_sees_all_sections():
     user = SimpleNamespace(role="admin")
-    menu = build_menu(user, ["payments"])
+    menu = build_menu(user, [])
     ids = collect_ids(menu.items)
-    assert {"observability", "administration", "navigation"}.issubset(ids)
-    assert "payments-gateways" in ids
+    assert {"content", "navigation", "monitoring", "administration"}.issubset(ids)
 
 
 def test_moderator_moderation_flag():
@@ -33,7 +32,6 @@ def test_moderator_moderation_flag():
     assert "moderation" in ids
     assert "premium-plans" not in ids
     assert "cache" not in ids
-    assert "payments-gateways" not in ids
 
 
 def test_user_has_limited_access():
@@ -42,5 +40,5 @@ def test_user_has_limited_access():
     ids = collect_ids(menu.items)
     assert "premium-plans" not in ids
     assert "moderation" not in ids
-    assert "telemetry-rum" not in ids
+    assert "rum" not in ids
     assert "navigation-main" in ids

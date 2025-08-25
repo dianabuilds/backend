@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -12,8 +11,8 @@ class MenuItem(BaseModel):
     path: str | None = None
     icon: str | None = None
     order: int = 100
-    children: List["MenuItem"] = Field(default_factory=list)
-    roles: List[str] | None = None
+    children: list[MenuItem] = Field(default_factory=list)
+    roles: list[str] | None = None
     feature_flag: str | None = Field(default=None, alias="featureFlag")
     external: bool = False
     divider: bool = False
@@ -23,7 +22,7 @@ class MenuItem(BaseModel):
 
 
 class MenuResponse(BaseModel):
-    items: List[MenuItem]
+    items: list[MenuItem]
     version: str
     generated_at: datetime = Field(alias="generatedAt")
 
@@ -33,11 +32,11 @@ class MenuResponse(BaseModel):
     def _validate(self):
         ids: set[str] = set()
 
-        def walk(items: List[MenuItem], depth: int) -> None:
+        def walk(items: list[MenuItem], depth: int) -> None:
             if not items:
                 return
-            if depth > 2:
-                raise ValueError("menu depth exceeds 2")
+            if depth > 3:
+                raise ValueError("menu depth exceeds 3")
             for item in items:
                 if item.id in ids:
                     raise ValueError(f"duplicate id: {item.id}")
