@@ -1,37 +1,27 @@
-# Database migrations
+# Database Migrations
 
-The project uses Alembic for schema migrations.
+This project uses [Alembic](https://alembic.sqlalchemy.org/) for schema migrations.
 
-## Creating a migration
+## Creating a Migration
 
+1. Make sure the database schema is up to date:
+   ```bash
+   alembic upgrade head
+   ```
+2. Generate a new migration based on model changes:
+   ```bash
+   alembic revision --autogenerate -m "describe change"
+   ```
+3. Review the generated script under `apps/backend/alembic/versions/` and adjust if needed.
+4. Apply the migration:
+   ```bash
+   alembic upgrade head
+   ```
+
+## Verifying Migrations
+
+To ensure models match the database, run:
 ```bash
-alembic revision --autogenerate -m "add new table"
+pytest tests/unit/test_migrations.py
 ```
-
-## Applying migrations
-
-```bash
-alembic upgrade head
-```
-
-## Viewing history
-
-```bash
-alembic history
-```
-
-## Rollback scenarios
-
-To revert the last migration:
-
-```bash
-alembic downgrade -1
-```
-
-To roll back to a specific revision:
-
-```bash
-alembic downgrade <revision_id>
-```
-
-Always back up your data before downgrading in production. After a rollback you may need to regenerate ORM models or data fixtures to match the previous schema.
+Set `RUN_DB_TESTS=1` to execute migration checks against a real database.
