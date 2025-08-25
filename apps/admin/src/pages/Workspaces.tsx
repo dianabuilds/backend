@@ -22,7 +22,7 @@ function ensureArray(data: unknown): WorkspaceOut[] {
 
 export default function Workspaces() {
   const { addToast } = useToast();
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["workspaces-list"],
     queryFn: async () => {
       const res = await api.get<
@@ -31,6 +31,29 @@ export default function Workspaces() {
       return ensureArray(res.data);
     },
   });
+
+  const onCreate = async () => {
+    const name = prompt("Workspace name:")?.trim();
+    if (!name) return;
+    const slug = prompt("Workspace slug:")?.trim();
+    if (!slug) return;
+    try {
+      await api.post("/admin/workspaces", { name, slug });
+      addToast({
+        title: "Workspace created",
+        description: `${name} (${slug})`,
+        variant: "success",
+      });
+      await refetch();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      addToast({
+        title: "Failed to create workspace",
+        description: msg,
+        variant: "error",
+      });
+    }
+  };
 
   useEffect(() => {
     if (error) {
@@ -43,7 +66,17 @@ export default function Workspaces() {
   }, [error, addToast]);
 
   return (
-    <PageLayout title="Workspaces">
+    <PageLayout
+      title="Workspaces"
+      actions={
+        <button
+          className="px-3 py-1 rounded bg-blue-600 text-white"
+          onClick={onCreate}
+        >
+          Create workspace
+        </button>
+      }
+    >
       {isLoading && <div>Loading...</div>}
       {!isLoading && !error && (
         <table className="min-w-full text-sm">
