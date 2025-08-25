@@ -250,6 +250,12 @@ export default function Sidebar() {
           path: "/traces",
           icon: "activity",
         },
+        {
+          id: "ops-dev-tools",
+          label: "Dev Tools",
+          path: "/ops/dev-tools",
+          icon: "activity",
+        },
       ];
       if (ops) {
         ops.children = ops.children || [];
