@@ -5,6 +5,9 @@ export interface AlertItem {
   startsAt?: string;
   description: string;
   url?: string | null;
+  type?: string;
+  severity?: string;
+  status?: "active" | "resolved";
 }
 
 export async function getAlerts(): Promise<AlertItem[]> {
@@ -28,5 +31,14 @@ export async function getAlerts(): Promise<AlertItem[]> {
       a.annotations?.link ||
       a.generatorURL ||
       null,
+    type: a.type || a.labels?.type || a.labels?.alertname,
+    severity: a.severity || a.labels?.severity || a.labels?.level,
+    status:
+      a.status ||
+      (a.endsAt || a.ends_at ? "resolved" : "active"),
   }));
+}
+
+export async function resolveAlert(id: string): Promise<void> {
+  await api.post(`/admin/ops/alerts/${id}/resolve`, {});
 }
