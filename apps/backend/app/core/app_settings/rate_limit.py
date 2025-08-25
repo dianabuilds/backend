@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class RateLimitSettings(BaseSettings):
     enabled: bool = False
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str | None = None
     rules_login: str = Field("5/min", alias="RULES_LOGIN")
     rules_login_json: str = Field("5/min", alias="RULES_LOGIN_JSON")
     rules_signup: str = Field("3/hour", alias="RULES_SIGNUP")
@@ -13,4 +13,3 @@ class RateLimitSettings(BaseSettings):
     rules_change_password: str = Field("5/min", alias="RULES_CHANGE_PASSWORD")
 
     model_config = SettingsConfigDict(env_prefix="RATE_LIMIT_", extra="ignore")
-
