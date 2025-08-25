@@ -2,72 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import {
+  getMetricsSummary,
   getTimeseries,
   getTopEndpoints,
-  type TimeseriesResponse,
   type TopEndpointItem,
 } from "../api/metrics";
-
-/**
- * Простой столбчатый mini-chart без внешних зависимостей.
- */
-function StackedBars({
-  series,
-  height = 80,
-}: {
-  series: TimeseriesResponse["series"];
-  height?: number;
-}) {
-  const buckets =
-    series[0]?.points.map((p, i) => {
-      const sum = series.reduce((acc, s) => acc + (s.points[i]?.value || 0), 0);
-      return { ts: p.ts, sum };
-    }) || [];
-  const max = Math.max(1, ...buckets.map((b) => b.sum));
-  return (
-    <div className="flex items-end gap-[2px] h-[100px]" style={{ height }}>
-      {buckets.map((b, i) => {
-        const totals = series.map((s) => s.points[i]?.value || 0);
-        const heights = totals.map((v) => Math.round((v / max) * height));
-        // Цвета по классам: 2xx зелёный, 4xx оранжевый, 5xx красный
-        const colors = ["#10b981", "#f59e0b", "#ef4444"];
-        return (
-          <div key={b.ts} className="w-[6px] flex flex-col justify-end">
-            {heights.map((h, j) => (
-              <div key={j} style={{ height: h, backgroundColor: colors[j] }} />
-            ))}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function LineChart({
-  points,
-  height = 80,
-}: {
-  points: { ts: number; value: number }[];
-  height?: number;
-}) {
-  const max = Math.max(1, ...points.map((p) => p.value));
-  const path = useMemo(() => {
-    if (points.length === 0) return "";
-    return points
-      .map((p, i) => {
-        const x = i * 8 + 4;
-        const y = height - Math.round((p.value / max) * height);
-        return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-      })
-      .join(" ");
-  }, [points, height]);
-  const width = points.length * 8 + 4;
-  return (
-    <svg width={width} height={height}>
-      <path d={path} fill="none" stroke="#3b82f6" strokeWidth="2" />
-    </svg>
-  );
-}
+import { LineChart, StackedBars } from "../components/Charts";
+import SummaryCard from "../components/SummaryCard";
 
 export default function Monitoring() {
   const [range, setRange] = useState<"1h" | "24h">("1h");
@@ -86,6 +27,17 @@ export default function Monitoring() {
   });
 
   const {
+    data: summary,
+    error: sError,
+    isLoading: sLoading,
+    refetch: refetchSummary,
+  } = useQuery({
+    queryKey: ["metrics-summary", range],
+    queryFn: () => getMetricsSummary(range),
+    refetchInterval: 15000,
+  });
+
+  const {
     data: top,
     isLoading: topLoading,
     error: topError,
@@ -95,6 +47,29 @@ export default function Monitoring() {
     queryFn: () => getTopEndpoints(range, by, 20),
     refetchInterval: 30000,
   });
+
+  const barHighlight = useMemo(() => {
+    if (!tsData) return [] as boolean[];
+    const sums =
+      tsData.series[0]?.points.map((_, i) =>
+        tsData.series.reduce(
+          (acc, s) => acc + (s.points[i]?.value || 0),
+          0,
+        ),
+      ) || [];
+    const avg = sums.reduce((a, b) => a + b, 0) / (sums.length || 1);
+    return sums.map((s, i) => {
+      const errors = tsData.series[2]?.points[i]?.value || 0;
+      return s > avg * 1.5 || errors > 0;
+    });
+  }, [tsData]);
+
+  const lineHighlight = useMemo(() => {
+    if (!tsData) return [] as boolean[];
+    const values = tsData.p95.map((p) => p.value);
+    const avg = values.reduce((a, b) => a + b, 0) / (values.length || 1);
+    return values.map((v) => v > avg * 1.5);
+  }, [tsData]);
 
   const legend = (
     <div className="flex items-center gap-4 text-sm">
@@ -156,11 +131,50 @@ export default function Monitoring() {
           onClick={() => {
             refetchTs();
             refetchTop();
+            refetchSummary();
           }}
         >
           Refresh
         </button>
       </div>
+
+      {sLoading && (
+        <p className="text-gray-600 dark:text-gray-400">Loading summary…</p>
+      )}
+      {sError && <p className="text-red-600">{(sError as Error).message}</p>}
+      {summary && (
+        <SummaryCard
+          title="Summary"
+          items={[
+            { label: "RPS", value: summary.rps.toFixed(2) },
+            {
+              label: "Error rate",
+              value: `${(summary.error_rate * 100).toFixed(2)}%`,
+              highlight: summary.error_rate > 0.1,
+            },
+            {
+              label: "p95 latency",
+              value: `${Math.round(summary.p95_latency)} ms`,
+              highlight: summary.p95_latency > 1000,
+            },
+            {
+              label: "p99 latency",
+              value: `${Math.round(summary.p99_latency)} ms`,
+            },
+            { label: "Count", value: summary.count },
+            {
+              label: "Errors",
+              value: summary.error_count,
+              highlight: summary.error_count > 0,
+            },
+            {
+              label: "429",
+              value: summary.count_429,
+              highlight: summary.count_429 > 0,
+            },
+          ]}
+        />
+      )}
 
       <section className="space-y-2">
         <div className="flex items-center justify-between">
@@ -177,12 +191,12 @@ export default function Monitoring() {
         )}
         {tsData && (
           <div className="flex items-end gap-4">
-            <StackedBars series={tsData.series} />
+            <StackedBars series={tsData.series} highlight={barHighlight} />
             <div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                 p95 latency
               </div>
-              <LineChart points={tsData.p95} />
+              <LineChart points={tsData.p95} highlight={lineHighlight} />
             </div>
           </div>
         )}
