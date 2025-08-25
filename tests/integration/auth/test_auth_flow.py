@@ -3,13 +3,15 @@
 """
 
 import os
+
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Устанавливаем флаг для использования минимальной конфигурации
 os.environ["USE_MINIMAL_CONFIG"] = "True"
+
 
 @pytest.mark.asyncio
 async def test_signup_success(client: AsyncClient, db_session: AsyncSession):
@@ -49,6 +51,21 @@ async def test_login_success(client: AsyncClient, test_user):
     response = await client.post("/auth/login", json=login_data)
 
     # Проверяем ответ
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["ok"] is True
+
+
+@pytest.mark.asyncio
+async def test_login_form_success(client: AsyncClient, test_user):
+    """Проверка входа через form-data."""
+    login_data = {"username": "testuser", "password": "Password123"}
+    response = await client.post(
+        "/auth/login",
+        data=login_data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data

@@ -57,14 +57,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       // 1) Логин: увеличенный таймаут (60с), чтобы исключить обрыв на медленных стендах
-      const form = new URLSearchParams({ username, password });
       const resp = await apiFetch(
         "/auth/login",
         {
           method: "POST",
-          body: form,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
           timeoutMs: 60000,
-        } as any,
+        },
       );
 
       const data = (await resp.json()) as {
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const meNoAuth = await api.get<User>("/users/me", { timeoutMs: 20000 });
         me = meNoAuth.data as User;
-      } catch (e: any) {
+      } catch (e: unknown) {
         // Если 401 — пробуем повторить с Bearer и большим таймаутом
         const isUnauthorized =
           e instanceof Error && /401|unauthorized/i.test(e.message);
