@@ -1,10 +1,11 @@
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Header
+from fastapi import APIRouter, Depends, Query, Request, Header
 from typing import Any, Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.db.session import get_db
+from app.core.errors import http_error
 from app.domains.auth.application.auth_service import AuthService
 from app.domains.auth.infrastructure.mail_adapter import LegacyMailAdapter
 from app.domains.auth.infrastructure.ratelimit_adapter import CoreRateLimiter
@@ -90,7 +91,7 @@ async def verify_email(
     token: str = Query(...),
 ) -> dict[str, Any]:
     if not token:
-        raise HTTPException(status_code=400, detail="Token required")
+        raise http_error(400, "Token required")
     return await _svc.verify_email(db, token)
 
 

@@ -2,6 +2,22 @@
 
 Quick examples for interacting with workspace-aware endpoints.
 
+## Error format
+
+All API errors follow a unified structure:
+
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Error description"
+  }
+}
+```
+
+Clients can rely on the ``code`` field for machine readable handling of
+different error scenarios.
+
 ## HTTPie
 
 ```bash
