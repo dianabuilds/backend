@@ -23,7 +23,7 @@ def _is_production() -> bool:
     # Пытаемся взять окружение из настроек, если есть; иначе используем переменные окружения
     try:
         from apps.backend.app.core.config import settings  # type: ignore
-        env = getattr(settings, "environment", None) or os.getenv("APP_ENV") or os.getenv("ENV")
+        env = getattr(settings, "env_mode", None) or os.getenv("APP_ENV") or os.getenv("ENV")
     except Exception:
         env = os.getenv("APP_ENV") or os.getenv("ENV")
     env = (env or "").lower()

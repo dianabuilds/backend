@@ -250,7 +250,7 @@ async def read_root(request: Request):
 @app.on_event("startup")
 async def startup_event():
     """Выполняется при запуске приложения"""
-    logger.info(f"Starting application in {settings.environment} environment")
+    logger.info(f"Starting application in {settings.env_mode} environment")
 
     # Конфигурируем провайдер эмбеддингов из настроек
     configure_from_settings()
