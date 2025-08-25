@@ -20,7 +20,6 @@ def create_async_redis(
     health_check_interval: int = 30,
 ):
     """Create configured Redis client with TLS and pooling support.
-
     The previous implementation passed deprecated parameters such as ``timeout``
     or ``ssl_context`` directly to ``redis.from_url``, which forwarded them to
     the connection constructor.  redis-py 6 removed these arguments, leading to
