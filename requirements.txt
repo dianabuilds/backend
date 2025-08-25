@@ -1,6 +1,5 @@
 # Main dependencies
-fastapi>=0.110.0
-fastapi>=0.116.0
+fastapi>=0.116.0,<0.117.0
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
 sqlalchemy>=2.0.0
@@ -13,7 +12,6 @@ fastapi-limiter>=0.1.5
 
 # Database
 asyncpg>=0.28.0
-psycopg2-binary>=2.9.9
 # bcrypt<=4.0.1
 # Security
 bcrypt==4.0.1
@@ -47,14 +45,14 @@ punq~=0.7.0
 
 
 ### Observability
-opentelemetry-api~=1.24.0
-opentelemetry-sdk~=1.24.0
-opentelemetry-exporter-otlp~=1.24.0
-opentelemetry-exporter-prometheus==0.45b0
-opentelemetry-instrumentation-fastapi~=0.45b0
-opentelemetry-instrumentation-sqlalchemy~=0.45b0
-opentelemetry-instrumentation-httpx~=0.45b0
-opentelemetry-instrumentation-requests~=0.45b0
+opentelemetry-api~=1.36.0
+opentelemetry-sdk~=1.36.0
+opentelemetry-exporter-otlp~=1.36.0
+opentelemetry-exporter-prometheus~=0.57b0
+opentelemetry-instrumentation-fastapi~=0.57b0
+opentelemetry-instrumentation-sqlalchemy~=0.57b0
+opentelemetry-instrumentation-httpx~=0.57b0
+opentelemetry-instrumentation-requests~=0.57b0
 prometheus-client~=0.20.0
 
 
