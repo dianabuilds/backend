@@ -27,6 +27,9 @@ os.environ["DATABASE__NAME"] = "project_test"
 os.environ["JWT__SECRET"] = "test-secret-key"
 os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
 os.environ["CORS_ALLOW_ORIGINS"] = '["https://example.com"]'
+os.environ["CORS_ALLOW_HEADERS"] = (
+    "X-Custom-Header, Authorization, Content-Type, X-CSRF-Token, X-Requested-With"
+)
 
 # Импортируем только то, что нам нужно
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
