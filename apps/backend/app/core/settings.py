@@ -205,20 +205,20 @@ class Settings(ProjectSettings):
 
     @property
     def database_url(self) -> str:
-        db = self.database
-        name = f"{db.name}_{self.env_mode.value}" if db.name else db.name
-        return (
-            f"postgresql+asyncpg://{db.username}:{db.password}"
-            f"@{db.host}:{db.port}/{name}"
-        )
+        """Return the database connection URL without modifying the name.
+
+        Previously the environment suffix (e.g. ``_development``) was
+        automatically appended to the database name. This caused connection
+        attempts to non‑existent databases like ``defaultdb_development`` when
+        the actual database was simply ``defaultdb``. Now we rely on the name
+        provided in the settings as-is so the correct database is used.
+        """
+        return self.database.url
 
     @property
     def database_name(self) -> str:
-        return (
-            f"{self.database.name}_{self.env_mode.value}"
-            if self.database.name
-            else self.database.name
-        )
+        """Return the configured database name without environment suffix."""
+        return self.database.name
 
     @property
     def db_connect_args(self) -> dict:
