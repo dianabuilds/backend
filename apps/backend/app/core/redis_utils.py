@@ -48,7 +48,7 @@ def create_async_redis(
             "yes",
             "on",
         }
-        conn_kwargs["ssl"] = True
+        # conn_kwargs["ssl"] = True
         if not verify:
             conn_kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
             conn_kwargs["ssl_check_hostname"] = False

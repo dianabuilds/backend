@@ -13,6 +13,7 @@ from sqlalchemy import text
 import httpx
 
 from app.core.config import settings
+from app.domains.ai.application.embedding_service import get_embedding
 from app.core.db.session import get_db
 from app.core.redis_utils import create_async_redis
 
@@ -73,14 +74,12 @@ async def _check_queue() -> bool:
 
 
 async def _check_ai_service(timeout: float) -> bool:
-    base = settings.embedding.api_base
-    if not base:
-        return True
-    url = base.rstrip("/") + "/health"
+    # Проверяем фактическую работоспособность провайдера эмбеддингов.
+    # Важно: get_embedding использует синхронные HTTP-клиенты, поэтому
+    # переносим выполнение в отдельный поток, чтобы не блокировать event loop.
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.get(url)
-            return resp.status_code < 500
+        vec = await asyncio.to_thread(get_embedding, "health check")
+        return isinstance(vec, list) and len(vec) > 0
     except Exception:
         return False
 

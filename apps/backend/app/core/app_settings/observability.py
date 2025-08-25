@@ -9,7 +9,8 @@ class ObservabilitySettings(BaseSettings):
     db_check_timeout_ms: int = Field(500, alias="OBS_DB_CHECK_TIMEOUT_MS")
     redis_check_timeout_ms: int = Field(500, alias="OBS_REDIS_CHECK_TIMEOUT_MS")
     queue_check_timeout_ms: int = Field(500, alias="OBS_QUEUE_CHECK_TIMEOUT_MS")
-    ai_check_timeout_ms: int = Field(500, alias="OBS_AI_CHECK_TIMEOUT_MS")
+    # Реальная векторизация может занимать > 500 мс — берём более реалистичный дефолт
+    ai_check_timeout_ms: int = Field(3000, alias="OBS_AI_CHECK_TIMEOUT_MS")
     payment_check_timeout_ms: int = Field(500, alias="OBS_PAYMENT_CHECK_TIMEOUT_MS")
 
     structured_logs: bool = Field(True, alias="OBS_STRUCTURED_LOGS")
