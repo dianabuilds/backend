@@ -21,7 +21,7 @@ os.environ["DATABASE__USERNAME"] = "testuser"
 os.environ["DATABASE__PASSWORD"] = "testpass"
 os.environ["DATABASE__HOST"] = "localhost"
 os.environ["DATABASE__PORT"] = "5432"
-os.environ["DATABASE__NAME"] = "testdb"
+os.environ["DATABASE__NAME"] = "project_test"
 os.environ["JWT__SECRET"] = "test-secret-key"
 os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
 
@@ -29,9 +29,9 @@ os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from apps.backend.app.main import app
-from apps.backend.app.core.security import get_password_hash, create_access_token
-from apps.backend.app.core.db.session import get_db
+from app.main import app
+from app.core.security import get_password_hash, create_access_token
+from app.core.db.session import get_db
 from tests.integration.db_utils import setup_test_db, get_db_url, TestUser
 
 # Инициализируем тестовую базу данных

@@ -13,7 +13,8 @@ from sqlalchemy import text
 
 
 # Путь к тестовой базе данных
-TEST_DB_PATH = "../test.db"
+TEST_DB_NAME = os.getenv("DATABASE__NAME", "project_test")
+TEST_DB_PATH = f"../{TEST_DB_NAME}.db"
 
 # SQL для создания таблицы users
 CREATE_USERS_TABLE = """
