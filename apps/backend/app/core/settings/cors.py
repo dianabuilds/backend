@@ -9,7 +9,12 @@ class CorsSettings(BaseSettings):
         default_factory=lambda: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
     )
     allowed_headers: List[str] = Field(
-        default_factory=lambda: ["Authorization", "Content-Type", "X-CSRF-Token"]
+        default_factory=lambda: [
+            "Authorization",
+            "Content-Type",
+            "X-CSRF-Token",
+            "X-Requested-With",
+        ]
     )
 
     model_config = SettingsConfigDict(env_prefix="CORS_")

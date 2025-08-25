@@ -59,8 +59,13 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         method = request.method.upper()
         if method in {"POST", "PUT", "PATCH", "DELETE"}:
             path = request.url.path or ""
-            if (path.startswith("/auth") and path != "/auth/logout") or any(
-                path.startswith(p) for p in settings.csrf.exempt_paths
+            normalized_path = path.removeprefix("/api")
+            if (
+                normalized_path.startswith("/auth")
+                and normalized_path != "/auth/logout"
+            ) or any(
+                normalized_path.startswith(p) or path.startswith(p)
+                for p in settings.csrf.exempt_paths
             ):
                 return await call_next(request)
 
