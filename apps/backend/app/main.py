@@ -33,6 +33,7 @@ if policy.allow_write:
         RequestsInstrumentor = SQLAlchemyInstrumentor = None  # type: ignore[assignment]
 from app.core.body_limit import BodySizeLimitMiddleware
 from app.core.config import settings
+from app.core.settings import EnvMode
 from app.core.cookies_security_middleware import CookiesSecurityMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.db.session import (
@@ -262,7 +263,9 @@ async def startup_event():
     register_handlers()
 
     # Проверяем подключение к базе данных
-    if await check_database_connection():
+    if settings.env_mode == EnvMode.test:
+        logger.info("Test environment detected, skipping database initialization")
+    elif await check_database_connection():
         logger.info("Database connection successful")
         await init_db()
         # Создаём/чиним дефолтного администратора (для dev)
