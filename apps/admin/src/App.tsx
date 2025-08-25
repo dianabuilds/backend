@@ -43,7 +43,7 @@ import Users from "./pages/Users";
 import Workspaces from "./pages/Workspaces";
 import WorkspaceSettings from "./pages/WorkspaceSettings";
 import ValidationReport from "./pages/ValidationReport";
-import { WorkspaceProvider } from "./workspace/WorkspaceContext";
+import { WorkspaceBranchProvider } from "./workspace/WorkspaceContext";
 import WorkspaceMetrics from "./pages/WorkspaceMetrics";
 import Limits from "./pages/Limits";
 import Alerts from "./pages/Alerts";
@@ -67,7 +67,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <WorkspaceProvider>
+        <WorkspaceBranchProvider>
           <ToastProvider>
             <BrowserRouter basename="/admin">
               <ErrorBoundary>
@@ -195,7 +195,7 @@ export default function App() {
               </ErrorBoundary>
             </BrowserRouter>
           </ToastProvider>
-        </WorkspaceProvider>
+        </WorkspaceBranchProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

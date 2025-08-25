@@ -420,6 +420,7 @@ export interface AdminMenuItem {
   children?: AdminMenuItem[] | null;
   external?: boolean | null;
   divider?: boolean | null;
+  roles?: string[] | null;
 }
 
 export interface AdminMenuResponse {

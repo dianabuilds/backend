@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 
 import { type AdminMenuItem, getAdminMenu } from "../api/client";
 import { getIconComponent } from "../icons/registry";
+import { useAuth } from "../auth/AuthContext";
 
 function useExpandedState() {
   const KEY = "adminSidebarExpanded";
@@ -203,6 +204,21 @@ export default function Sidebar() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { expanded, toggle } = useExpandedState();
+  const { user } = useAuth();
+
+  const filterByRole = useCallback(
+    (list: AdminMenuItem[]): AdminMenuItem[] => {
+      const role = user?.role;
+      return list
+        .filter((i) => !i.roles || (role ? i.roles.includes(role) : false))
+        .map((i) => ({
+          ...i,
+          children: i.children ? filterByRole(i.children) : [],
+        }))
+        .filter((i) => i.path || (i.children && i.children.length > 0));
+    },
+    [user?.role],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -215,6 +231,7 @@ export default function Sidebar() {
         label: "Preview",
         path: "/preview",
         icon: "activity",
+        roles: ["admin"],
       };
       let placed = false;
       for (const section of list) {
@@ -235,6 +252,7 @@ export default function Sidebar() {
         label: "Transitions Trace",
         path: "/transitions/trace",
         icon: "activity",
+        roles: ["admin"],
       };
       if (!list.some((i) => i.id === traceItem.id)) {
         const idx = list.findIndex((i) => i.id === "transitions");
@@ -245,14 +263,14 @@ export default function Sidebar() {
         }
       }
       // Доверяем порядку сервера: не пересортировываем на клиенте
-      setItems(list);
+      setItems(filterByRole(list));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setItems(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterByRole]);
 
   useEffect(() => {
     load();

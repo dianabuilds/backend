@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { WorkspaceProvider } from "../workspace/WorkspaceContext";
+import { WorkspaceBranchProvider } from "../workspace/WorkspaceContext";
 import WorkspaceSelector from "./WorkspaceSelector";
 
 vi.mock("@tanstack/react-query", () => ({
@@ -30,9 +30,9 @@ describe("WorkspaceSelector", () => {
   it("supports quick switch", async () => {
       render(
         <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <WorkspaceProvider>
+          <WorkspaceBranchProvider>
             <WorkspaceSelector />
-          </WorkspaceProvider>
+          </WorkspaceBranchProvider>
         </MemoryRouter>,
       );
     const switchBtn = screen.getByTitle("Quick switch workspace");
