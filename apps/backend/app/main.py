@@ -91,8 +91,16 @@ cors_kwargs = {"allow_origins": _allowed_origins}
 if _allow_origin_regex:
     cors_kwargs = {"allow_origin_regex": _allow_origin_regex}
 
+# Include "*" so that any method or header is accepted even if settings
+# provide a restrictive list. This prevents 400 responses on preflight
+# requests when the frontend sends unexpected headers.
 allow_methods = settings.cors.allowed_methods or ["*"]
+if "*" not in allow_methods:
+    allow_methods.append("*")
+
 allow_headers = settings.cors.allowed_headers or ["*"]
+if "*" not in allow_headers:
+    allow_headers.append("*")
 
 app.add_middleware(
     CORSMiddleware,
