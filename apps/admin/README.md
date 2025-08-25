@@ -7,6 +7,12 @@ This template provides a minimal setup to get React working in Vite with HMR and
 - `⌘K` / `Ctrl+K` — open the command palette for quick navigation to **Status**, **Limits** and **Trace** pages.
 - `Esc` — close the command palette.
 
+## UI components
+
+### Tooltip
+
+Form fields use a shared `Tooltip` component to show brief explanations on hover.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh

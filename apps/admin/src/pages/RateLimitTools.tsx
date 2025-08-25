@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { api } from "../api/client";
+import Tooltip from "../components/Tooltip";
 
 interface RateRules {
   enabled: boolean;
@@ -112,7 +113,9 @@ export default function RateLimitTools() {
           <div className="space-y-2">
             {entries.map(([key, value]) => (
               <div key={key} className="flex items-center gap-2">
-                <label className="w-40 text-sm text-gray-600">{key}</label>
+                <label className="w-40 text-sm text-gray-600 flex items-center gap-1">
+                  {key} <Tooltip text="Rate rule like 5/min or 10/sec" />
+                </label>
                 <input
                   className="border rounded px-2 py-1 w-40"
                   value={value}

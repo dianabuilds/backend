@@ -19,6 +19,7 @@ import {
   type NotificationChannel,
 } from "../api/workspaceSettings";
 import { useToast } from "../components/ToastProvider";
+import Tooltip from "../components/Tooltip";
 import type { WorkspaceMemberOut, WorkspaceOut, WorkspaceRole } from "../openapi";
 import PageLayout from "./_shared/PageLayout";
 
@@ -401,7 +402,9 @@ export default function WorkspaceSettings() {
         <form onSubmit={savePresets} className="space-y-4 max-w-2xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-gray-600">Model</label>
+              <label className="text-sm text-gray-600 flex items-center gap-1">
+                Model <Tooltip text="Default model name" />
+              </label>
               <input
                 className="border rounded px-2 py-1"
                 placeholder="gpt-4o-mini"
@@ -410,12 +413,11 @@ export default function WorkspaceSettings() {
                   setAIPresets((p) => ({ ...p, model: e.target.value }))
                 }
               />
-              <div className="text-xs text-gray-600">
-                Название модели по умолчанию
-              </div>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-gray-600">Temperature (0..2)</label>
+              <label className="text-sm text-gray-600 flex items-center gap-1">
+                Temperature (0..2) <Tooltip text="0 – deterministic, 2 – most random" />
+              </label>
               <input
                 className="border rounded px-2 py-1"
                 type="number"
@@ -430,12 +432,11 @@ export default function WorkspaceSettings() {
                   }))
                 }
               />
-              <div className="text-xs text-gray-600">
-                0 — детерминированно, 2 — максимально случайно
-              </div>
             </div>
             <div className="flex flex-col gap-1 md:col-span-2">
-              <label className="text-sm text-gray-600">System prompt</label>
+              <label className="text-sm text-gray-600 flex items-center gap-1">
+                System prompt <Tooltip text="Added to every request" />
+              </label>
               <textarea
                 className="border rounded px-2 py-1 h-24"
                 placeholder="You are helpful..."
@@ -447,12 +448,11 @@ export default function WorkspaceSettings() {
                   }))
                 }
               />
-              <div className="text-xs text-gray-600">
-                Добавляется к каждому запросу
-              </div>
             </div>
             <div className="flex flex-col gap-1 md:col-span-2">
-              <label className="text-sm text-gray-600">Forbidden words</label>
+              <label className="text-sm text-gray-600 flex items-center gap-1">
+                Forbidden words <Tooltip text="List of disallowed words" />
+              </label>
               {aiPresets.forbidden?.map((f, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
                   <input
@@ -492,7 +492,6 @@ export default function WorkspaceSettings() {
               >
                 Добавить
               </button>
-              <div className="text-xs text-gray-600">Список запретных слов</div>
             </div>
           </div>
           {aiError && (
@@ -522,7 +521,9 @@ export default function WorkspaceSettings() {
         <form onSubmit={saveNotificationsSettings} className="space-y-4">
           {(["achievement", "publish"] as const).map((trigger) => (
             <div key={trigger} className="flex flex-col gap-1">
-              <div className="text-sm font-medium capitalize">{trigger}</div>
+              <div className="text-sm font-medium capitalize flex items-center gap-1">
+                {trigger} <Tooltip text={`Delivery channels for ${trigger} event`} />
+              </div>
               <div className="flex gap-4">
                 {CHANNELS.map((ch) => (
                   <label
@@ -544,9 +545,6 @@ export default function WorkspaceSettings() {
                     {ch}
                   </label>
                 ))}
-              </div>
-              <div className="text-xs text-gray-600">
-                Каналы доставки для события {trigger}
               </div>
             </div>
           ))}
@@ -571,7 +569,9 @@ export default function WorkspaceSettings() {
         <form onSubmit={saveLimitsSettings} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-gray-600">ai_tokens</label>
+              <label className="text-sm text-gray-600 flex items-center gap-1">
+                ai_tokens <Tooltip text="AI tokens limit" />
+              </label>
               <input
                 className="border rounded px-2 py-1"
                 type="number"
@@ -584,10 +584,11 @@ export default function WorkspaceSettings() {
                   }))
                 }
               />
-              <div className="text-xs text-gray-600">Лимит токенов ИИ</div>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-gray-600">notif_per_day</label>
+              <label className="text-sm text-gray-600 flex items-center gap-1">
+                notif_per_day <Tooltip text="Maximum notifications per day" />
+              </label>
               <input
                 className="border rounded px-2 py-1"
                 type="number"
@@ -600,12 +601,11 @@ export default function WorkspaceSettings() {
                   }))
                 }
               />
-              <div className="text-xs text-gray-600">
-                Максимум уведомлений в день
-              </div>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-gray-600">compass_calls</label>
+              <label className="text-sm text-gray-600 flex items-center gap-1">
+                compass_calls <Tooltip text="Requests to Compass" />
+              </label>
               <input
                 className="border rounded px-2 py-1"
                 type="number"
@@ -618,7 +618,6 @@ export default function WorkspaceSettings() {
                   }))
                 }
               />
-              <div className="text-xs text-gray-600">Запросы к Compass</div>
             </div>
           </div>
           {limitsError && (

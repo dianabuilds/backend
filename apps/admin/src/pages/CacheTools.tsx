@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { api } from "../api/client";
+import Tooltip from "../components/Tooltip";
 
 interface CacheStats {
   counters: Record<string, Record<string, number>>;
@@ -66,7 +67,9 @@ export default function CacheTools() {
       </p>
       <div className="mb-6 flex items-end gap-2">
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-gray-600">Invalidate by pattern</label>
+          <label className="text-sm text-gray-600 flex items-center gap-1">
+            Invalidate by pattern <Tooltip text="Redis key pattern, e.g., nav:*" />
+          </label>
           <input
             value={pattern}
             onChange={(e) => setPattern(e.target.value)}

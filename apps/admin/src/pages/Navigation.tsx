@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { api, ApiError } from "../api/client";
 import LimitBadge, { handleLimit429, refreshLimits } from "../components/LimitBadge";
+import Tooltip from "../components/Tooltip";
 
 interface RunResponse {
   transitions?: unknown[];
@@ -43,7 +44,9 @@ export default function Navigation() {
       <h1 className="text-2xl font-bold mb-4">Navigation tools</h1>
       <div className="flex flex-col gap-2 max-w-xl">
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">Node slug</span>
+          <span className="text-sm text-gray-600">
+            Node slug <Tooltip text="Slug of the starting node" />
+          </span>
           <input
             value={nodeSlug}
             onChange={(e) => setNodeSlug(e.target.value)}
@@ -52,7 +55,9 @@ export default function Navigation() {
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">User ID (optional)</span>
+          <span className="text-sm text-gray-600">
+            User ID (optional) <Tooltip text="UUID of user; leave empty for anonymous" />
+          </span>
           <input
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
