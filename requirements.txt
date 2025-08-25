@@ -33,6 +33,7 @@ python-dotenv~=1.0.0
 ### Utilities
 python-multipart~=0.0.6
 requests~=2.32.4
+punq~=0.7.0
 
 ### Testing
 httpx~=0.24.0

@@ -52,11 +52,17 @@ from app.domains.ai.embedding_config import configure_from_settings
 from app.domains.registry import register_domain_routers
 from app.domains.system.bootstrap import ensure_default_admin, ensure_global_workspace
 from app.domains.system.events import register_handlers
+import punq
+from app.providers import register_providers
 
 # Используем базовое логирование из uvicorn/стандартного logging
 logger = logging.getLogger(__name__)
 
+container = punq.Container()
+register_providers(container, settings)
+
 app = FastAPI()
+app.state.container = container
 if policy.allow_write and setup_otel:
     setup_otel()
     if FastAPIInstrumentor:
