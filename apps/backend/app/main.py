@@ -92,10 +92,16 @@ if not _allowed_origins:
         # other hosts were missing the `Access-Control-Allow-Origin` header
         # and the browser blocked the response, breaking authorisation.
         #
-        # Allow any local host (IPv4 or IPv6) while still limiting to HTTP(S).
-        _allow_origin_regex = (
-            r"https?://(localhost|127\.0\.0\.1|\[::1\]|\d{1,3}(?:\.\d{1,3}){3})(:\d+)?"
-        )
+        # In practice the frontend may be served from arbitrary hostnames
+        # (e.g. `frontend`, `host.docker.internal` or any numeric IP). The
+        # previous regular expression only matched a handful of hosts which
+        # meant that other local origins failed CORS checks and the browser
+        # rejected the response.
+        #
+        # Accept any hostname or IP address in development while still
+        # limiting the scheme to HTTP(S). Starlette will echo the actual
+        # `Origin` value so this remains safe for local development.
+        _allow_origin_regex = r"https?://[^/]+"
 cors_kwargs = {"allow_origins": _allowed_origins}
 if _allow_origin_regex:
     cors_kwargs = {"allow_origin_regex": _allow_origin_regex}
