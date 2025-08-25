@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { isLocal } from "../utils/env";
 
 import { type AdminMenuItem, getAdminMenu } from "../api/client";
 import { getIconComponent } from "../icons/registry";
@@ -211,75 +210,25 @@ export default function Sidebar() {
     try {
       const { items } = await getAdminMenu();
       const list = [...items];
-      if (!list.some((i) => i.path === "/preview")) {
-        list.push({
-          id: "preview",
-          label: "Preview",
-          path: "/preview",
-          icon: "activity",
-        } as AdminMenuItem);
-      }
-      const ops = list.find((i) => i.id === "operations");
-        const opsChildren: AdminMenuItem[] = [
-          {
-            id: "ops-status",
-            label: "Status",
-            path: "/system/health",
-            icon: "activity",
-          },
-        {
-          id: "ops-limits",
-          label: "Limits",
-          path: "/ops/limits",
-          icon: "activity",
-        },
-        {
-          id: "ops-reliability",
-          label: "Reliability",
-          path: "/ops/reliability",
-          icon: "activity",
-        },
-        {
-          id: "ops-transitions-trace",
-          label: "Transitions Trace",
-          path: "/transitions/trace",
-          icon: "activity",
-        },
-        {
-          id: "ops-trace",
-          label: "Trace",
-          path: "/traces",
-          icon: "activity",
-        },
-          {
-            id: "ops-dev-tools",
-            label: "Dev Tools",
-            path: "/ops/dev-tools",
-            icon: "activity",
-          },
-        ];
-        if (isLocal) {
-          opsChildren.unshift({
-            id: "ops-getting-started",
-            label: "Getting Started",
-            path: "/getting-started",
-            icon: "database",
-          });
-        }
-      if (ops) {
-        ops.children = ops.children || [];
-        for (const item of opsChildren) {
-          if (!ops.children.some((c) => c.id === item.id)) {
-            ops.children.push(item);
+      const preview: AdminMenuItem = {
+        id: "preview",
+        label: "Preview",
+        path: "/preview",
+        icon: "activity",
+      };
+      let placed = false;
+      for (const section of list) {
+        if (section.id === "navigation") {
+          section.children = section.children || [];
+          if (!section.children.some((c) => c.id === preview.id)) {
+            section.children.push(preview);
           }
+          placed = true;
+          break;
         }
-      } else {
-        list.push({
-          id: "operations",
-          label: "Operations",
-          icon: "activity",
-          children: opsChildren,
-        } as AdminMenuItem);
+      }
+      if (!placed && !list.some((i) => i.id === preview.id)) {
+        list.push(preview);
       }
       // Доверяем порядку сервера: не пересортировываем на клиенте
       setItems(list);
