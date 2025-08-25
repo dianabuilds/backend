@@ -9,7 +9,6 @@ from app.core.logging_configuration import configure_logging
 configure_logging()
 
 import logging
-import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -19,9 +18,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 
-TESTING = os.environ.get("TESTING") == "True"
+from app.core.policy import policy
 
-if not TESTING:
+if policy.allow_write:
     try:  # pragma: no cover - optional OTEL dependencies
         from config.opentelemetry import setup_otel
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
@@ -58,7 +57,7 @@ from app.domains.system.events import register_handlers
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
-if not TESTING and setup_otel:
+if policy.allow_write and setup_otel:
     setup_otel()
     if FastAPIInstrumentor:
         FastAPIInstrumentor.instrument_app(app)
@@ -167,7 +166,7 @@ async def admin_spa_fallback(request: Request, call_next):
 
 DIST_DIR = Path(__file__).resolve().parent.parent.parent / "admin" / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-if not TESTING and DIST_ASSETS_DIR.exists():
+if policy.allow_write and DIST_ASSETS_DIR.exists():
     # serve built frontend assets (js, css, etc.) with correct MIME types
     from app.web.immutable_static import ImmutableStaticFiles as _ImmutableStaticFiles
 
@@ -206,7 +205,7 @@ if settings.observability.health_enabled:
     app.include_router(health_router)
 app.include_router(ops_router)
 
-if TESTING:
+if not policy.allow_write:
     # Minimal routers needed for tests
     from app.domains.auth.api.routers import router as auth_router
 

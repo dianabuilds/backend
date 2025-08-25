@@ -1,7 +1,6 @@
 """
 Адаптеры типов данных SQLAlchemy для совместимости между PostgreSQL и SQLite.
 """
-import os
 import uuid
 from typing import Any, Dict, Optional, Union
 
@@ -9,8 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB as pg_JSONB, UUID as pg_UUID, T
 from sqlalchemy.types import JSON, TypeDecorator, CHAR
 import sqlalchemy.types as types
 
-# Определяем, находимся ли мы в тестовой среде
-IS_TESTING = os.environ.get("TESTING", "").lower() in ("true", "1", "t")
+from app.core.policy import policy
 
 
 class UUID(TypeDecorator):
@@ -55,7 +53,7 @@ class JSONB(TypeDecorator):
     cache_ok = True
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql' and not IS_TESTING:
+        if dialect.name == 'postgresql' and policy.allow_write:
             return dialect.type_descriptor(pg_JSONB())
         else:
             return dialect.type_descriptor(types.Text())
@@ -93,7 +91,7 @@ class ARRAY(TypeDecorator):
         self.item_type = item_type
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == "postgresql" and not IS_TESTING:
+        if dialect.name == "postgresql" and policy.allow_write:
             from sqlalchemy.dialects.postgresql import ARRAY as pg_ARRAY
 
             return dialect.type_descriptor(pg_ARRAY(self.item_type))
@@ -104,7 +102,7 @@ class ARRAY(TypeDecorator):
         import json
 
         # Для SQLite/тестов храним как JSON-строку, для PostgreSQL — отдаём как есть
-        if dialect.name != "postgresql" or IS_TESTING:
+        if dialect.name != "postgresql" or not policy.allow_write:
             if value is not None and not isinstance(value, str):
                 return json.dumps(value)
         return value
@@ -122,7 +120,7 @@ class ARRAY(TypeDecorator):
         except Exception:
             is_numeric = False
 
-        if dialect.name == "postgresql" and not IS_TESTING:
+        if dialect.name == "postgresql" and policy.allow_write:
             # В PostgreSQL драйвер обычно возвращает уже Python-список
             if isinstance(value, (list, tuple)):
                 if is_numeric:
@@ -179,7 +177,7 @@ class VECTOR(TypeDecorator):
         self.dim = dim
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == "postgresql" and not IS_TESTING:
+        if dialect.name == "postgresql" and policy.allow_write:
             try:  # pragma: no cover - pgvector may not be installed in tests
                 from pgvector.sqlalchemy import Vector
 
@@ -202,7 +200,7 @@ class VECTOR(TypeDecorator):
             pass
 
         # В PostgreSQL pgvector ожидает список чисел, а не JSON-строку
-        if dialect.name == "postgresql" and not IS_TESTING:
+        if dialect.name == "postgresql" and policy.allow_write:
             try:
                 return [float(x) for x in value]  # type: ignore[iterable]
             except Exception:
@@ -239,7 +237,7 @@ class VECTOR(TypeDecorator):
         except Exception:
             pass
 
-        if dialect.name == "postgresql" and not IS_TESTING:
+        if dialect.name == "postgresql" and policy.allow_write:
             # Драйвер может вернуть list/tuple (или np.ndarray, обработан выше)
             if isinstance(value, (list, tuple)):
                 try:
@@ -291,6 +289,6 @@ class TSVector(TypeDecorator):
     cache_ok = True
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == "postgresql" and not IS_TESTING:
+        if dialect.name == "postgresql" and policy.allow_write:
             return dialect.type_descriptor(pg_TSVECTOR())
         return dialect.type_descriptor(types.Text())
