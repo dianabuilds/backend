@@ -50,4 +50,4 @@ class ContentTag(Base):
     )
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow, nullable=False)
 
-    tag = relationship("Tag")
+    tag = relationship("Tag", overlaps="content_items")

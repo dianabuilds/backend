@@ -41,7 +41,12 @@ class NodeItem(Base):
     updated_at = sa.Column(
         sa.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
-    tags = relationship("Tag", secondary="content_tags", back_populates="content_items")
+    tags = relationship(
+        "Tag",
+        secondary="content_tags",
+        back_populates="content_items",
+        overlaps="tag",
+    )
 
 
 class NodePatch(Base):
