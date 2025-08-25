@@ -1,3 +1,4 @@
+# ruff: noqa: B008
 from __future__ import annotations
 
 from datetime import datetime
@@ -7,13 +8,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_preview_context
 from app.core.db.session import get_db
+from app.core.preview import PreviewContext
 from app.domains.audit.application.audit_service import audit_log
 from app.domains.nodes import service as node_service
 from app.domains.nodes.service import validate_transition
 from app.domains.quests.application.editor_service import EditorService
-from app.api.deps import get_preview_context
-from app.core.preview import PreviewContext
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.quests.infrastructure.models.quest_version_models import (
     QuestGraphEdge,
@@ -48,9 +49,9 @@ router = APIRouter(
 async def create_quest(
     body: QuestCreateIn,
     request: Request,
+    workspace_id: UUID,
     current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
-    workspace_id: UUID,
 ):
     q = Quest(
         workspace_id=workspace_id,
@@ -107,9 +108,9 @@ async def get_quest(
 async def create_draft(
     quest_id: UUID,
     request: Request,
+    workspace_id: UUID,
     current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
-    workspace_id: UUID,
 ):
     quest = await db.get(Quest, quest_id)
     if not quest:
@@ -297,7 +298,7 @@ async def validate_version(
         .scalars()
         .all()
     )
-    res = validate_graph(
+    res = EditorService().validate_graph(
         [
             GraphNode(
                 key=n.key,
