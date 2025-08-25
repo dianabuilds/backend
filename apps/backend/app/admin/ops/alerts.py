@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
@@ -22,11 +23,14 @@ async def fetch_active_alerts() -> list[dict[str, Any]]:
         return []
     url = base_url.rstrip("/") + "/api/v1/alerts"
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
+        async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             data = resp.json()
-    except Exception:
+    except Exception as e:  # pragma: no cover - network errors
+        logging.getLogger(__name__).warning(
+            "Failed to fetch alerts from %s", url, exc_info=e
+        )
         return []
     alerts = (
         data.get("data", {}).get("alerts")
