@@ -15,14 +15,16 @@ def create_async_redis(
     *,
     decode_responses: bool = True,
     connect_timeout: float = 2.0,
+    max_connections: int = 50,
+    pool_timeout: float = 5.0,
+    health_check_interval: int = 30,
 ):
     """
     Унифицированное создание Redis-клиента с поддержкой TLS (rediss://).
 
     - Для rediss:// настраивает SSLContext (TLS >= 1.2).
-    - Проверку сертификата можно включить REDIS_SSL_VERIFY=true (по умолчанию отключена,
-      чтобы избежать проблем с кастомными CA в облачных Redis).
-    - Быстрый таймаут подключения, чтобы health-check не «висел».
+    - Проверку сертификата можно включить REDIS_SSL_VERIFY=true (по умолчанию отключена).
+    - Таймаут подключения сокетов, ожидания свободного соединения из пула и период health-check'ов.
     """
     if redis is None:
         raise RuntimeError("redis library is not installed")
@@ -30,20 +32,23 @@ def create_async_redis(
     kwargs: dict[str, Any] = {
         "decode_responses": decode_responses,
         "socket_connect_timeout": connect_timeout,
+        "retry_on_timeout": True,
+        "max_connections": max_connections,
+        # timeout — это blocking_timeout пула соединений
+        "timeout": pool_timeout,
+        "health_check_interval": health_check_interval,
     }
 
     scheme = url.split(":", 1)[0].lower()
     if scheme == "rediss":
         ctx = ssl.create_default_context()
-        # Принудительно TLS >= 1.2
-        if hasattr(ssl, "TLSVersion"):  # Py3.7+
+        if hasattr(ssl, "TLSVersion"):
             ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-        # Управление верификацией сертификата
         verify = os.getenv("REDIS_SSL_VERIFY", "").lower() in {"1", "true", "yes", "on"}
         if not verify:
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
-        kwargs["ssl"] = True
+        # В redis-py достаточно передать ssl_context, параметр "ssl" у asyncio-connection не поддерживается
         kwargs["ssl_context"] = ctx
 
     return redis.from_url(url, **kwargs)

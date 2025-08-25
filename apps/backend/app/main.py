@@ -99,16 +99,20 @@ app.add_middleware(RequestLoggingMiddleware)
 if enable_metrics:
     app.add_middleware(MetricsMiddleware)
 # CORS configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_allow_origins,
-    allow_origin_regex=settings.cors_allow_origin_regex,
-    allow_credentials=settings.cors_allow_credentials,
-    allow_methods=settings.cors_allow_methods,
-    allow_headers=settings.cors_allow_headers,
-    expose_headers=settings.cors_expose_headers,
-    max_age=settings.cors_max_age,
-)
+# В dev, если явные origin'ы не заданы, используем безопасный фолбэк (regex) из настроек
+_cors_kwargs = {
+    "allow_credentials": settings.cors_allow_credentials,
+    "allow_methods": settings.cors_allow_methods,
+    "allow_headers": settings.cors_allow_headers,
+    "expose_headers": settings.cors_expose_headers,
+    "max_age": settings.cors_max_age,
+}
+_effective = settings.effective_origins()
+if "allow_origins" in _effective:
+    _cors_kwargs["allow_origins"] = _effective["allow_origins"]
+else:
+    _cors_kwargs["allow_origin_regex"] = _effective["allow_origin_regex"]  # type: ignore[index]
+app.add_middleware(CORSMiddleware, **_cors_kwargs)
 if settings.rate_limit.enabled:
     app.add_middleware(
         RateLimitMiddleware,

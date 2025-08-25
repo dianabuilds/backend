@@ -121,7 +121,9 @@ async def init_rate_limiter() -> None:
     redis_url = settings.rate_limit.redis_url
     if not redis_url:
         return
-    redis_client = create_async_redis(redis_url, decode_responses=True, connect_timeout=2.0)
+    redis_client = create_async_redis(
+        redis_url, decode_responses=True, connect_timeout=2.0, max_connections=100
+    )
     await FastAPILimiter.init(redis_client)
 
 
@@ -198,7 +200,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         else:
             redis_url = redis_url or settings.rate_limit.redis_url
             self._redis = create_async_redis(
-                redis_url, decode_responses=True, connect_timeout=2.0
+                redis_url, decode_responses=True, connect_timeout=2.0, max_connections=100
             )
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
