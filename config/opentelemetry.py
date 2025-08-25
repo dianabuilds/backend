@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """OpenTelemetry instrumentation helpers.
 
 The project treats OpenTelemetry as an optional dependency.  In production
@@ -10,7 +8,10 @@ application from starting.  To make the instrumentation optional we attempt to
 import the modules and fall back to ``None`` if they are unavailable.
 """
 
-from typing import Iterable
+from __future__ import annotations
+
+import os
+from collections.abc import Iterable, Sequence
 
 try:  # pragma: no cover - the happy path is exercised in environments with OTEL
     from opentelemetry import metrics, trace
@@ -27,6 +28,12 @@ except ModuleNotFoundError:  # pragma: no cover - executed when OTEL isn't insta
 
 def _all_present(modules: Iterable[object]) -> bool:
     return all(mod is not None for mod in modules)
+
+
+def _parse_headers(header_str: str) -> Sequence[tuple[str, str]]:
+    return tuple(
+        part.split("=", 1) for part in header_str.split(",") if "=" in part
+    )
 
 
 def setup_otel(service_name: str = "backend") -> PrometheusMetricReader | None:
@@ -46,8 +53,22 @@ def setup_otel(service_name: str = "backend") -> PrometheusMetricReader | None:
 
     resource = Resource(attributes={"service.name": service_name})
 
+    exporter_kwargs: dict[str, object] = {}
+    endpoint = os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") or os.getenv(
+        "OTEL_EXPORTER_OTLP_ENDPOINT"
+    )
+    if endpoint:
+        exporter_kwargs["endpoint"] = endpoint
+    headers_env = os.getenv("OTEL_EXPORTER_OTLP_TRACES_HEADERS") or os.getenv(
+        "OTEL_EXPORTER_OTLP_HEADERS"
+    )
+    if headers_env:
+        exporter_kwargs["headers"] = _parse_headers(headers_env)
+
     tracer_provider = TracerProvider(resource=resource)
-    tracer_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+    tracer_provider.add_span_processor(
+        BatchSpanProcessor(OTLPSpanExporter(**exporter_kwargs))
+    )
     trace.set_tracer_provider(tracer_provider)
 
     reader = PrometheusMetricReader()

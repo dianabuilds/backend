@@ -73,11 +73,12 @@ register_providers(container, settings)
 
 app = FastAPI()
 app.state.container = container
-enable_metrics = settings.observability.metrics_enabled and settings.env_mode in {
+enable_tracing = settings.env_mode in {
     EnvMode.staging,
     EnvMode.production,
 }
-if policy.allow_write and setup_otel and enable_metrics:
+enable_metrics = enable_tracing and settings.observability.metrics_enabled
+if policy.allow_write and setup_otel and enable_tracing:
     setup_otel()
     if FastAPIInstrumentor:
         FastAPIInstrumentor.instrument_app(app)
