@@ -64,7 +64,11 @@ register_providers(container, settings)
 
 app = FastAPI()
 app.state.container = container
-if policy.allow_write and setup_otel:
+enable_metrics = (
+    settings.observability.metrics_enabled
+    and settings.env_mode in {EnvMode.staging, EnvMode.production}
+)
+if policy.allow_write and setup_otel and enable_metrics:
     setup_otel()
     if FastAPIInstrumentor:
         FastAPIInstrumentor.instrument_app(app)
@@ -82,7 +86,8 @@ app.add_middleware(BodySizeLimitMiddleware)
 # Корреляция по запросам
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
-app.add_middleware(MetricsMiddleware)
+if enable_metrics:
+    app.add_middleware(MetricsMiddleware)
 # CORS: разрешаем фронту ходить на API в dev
 # В dev по умолчанию допускаем любой порт на localhost/127.0.0.1,
 # если явно не настроено через переменные окружения

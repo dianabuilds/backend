@@ -28,11 +28,26 @@ from typing import Any
 from app.core.config import settings
 
 
-def _build_config() -> dict[str, Any]:
+def _resolve_format(fmt: str | None = None) -> str:
+    """Return log output format, either ``"json"`` or ``"pretty"``.
+
+    The default is derived from ``settings.logging.json_logs`` where ``True``
+    results in JSON output.  Passing an explicit ``fmt`` overrides the
+    settings allowing callers to switch formats programmatically.
+    """
+
+    if fmt is None:
+        return "json" if settings.logging.json_logs else "pretty"
+    fmt_lower = fmt.lower()
+    return "json" if fmt_lower == "json" else "pretty"
+
+
+def _build_config(fmt: str | None = None) -> dict[str, Any]:
     """Construct a ``logging.config.dictConfig`` compatible dictionary."""
 
     formatter: dict[str, Any]
-    if settings.logging.json_logs:
+    resolved_fmt = _resolve_format(fmt)
+    if resolved_fmt == "json":
         formatter = {"()": "app.core.json_formatter.JSONFormatter"}
     else:
         formatter = {
@@ -109,7 +124,9 @@ def _build_config() -> dict[str, Any]:
     return config
 
 
-def configure_logging(config: dict[str, Any] | None = None) -> None:
+def configure_logging(
+    config: dict[str, Any] | None = None, fmt: str | None = None
+) -> None:
     """Configure application logging.
 
     Parameters
@@ -121,7 +138,7 @@ def configure_logging(config: dict[str, Any] | None = None) -> None:
     """
 
     if config is None:
-        config = _build_config()
+        config = _build_config(fmt)
 
     # ``dictConfig`` replaces existing handlers for the specified
     # loggers.  Clearing root handlers prevents duplicate logs if the

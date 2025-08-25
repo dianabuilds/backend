@@ -1,3 +1,4 @@
+import json
 import math
 import threading
 import time
@@ -386,6 +387,13 @@ class MetricsStorage:
             lines.append(f'preview_route_length_avg{{workspace="{ws}"}} {avg}')
             lines.append(f'preview_route_length_p95{{workspace="{ws}"}} {p95}')
         return "\n".join(lines) + "\n"
+
+    def render_summary(self, range_seconds: int, output: str = "json") -> str:
+        """Return aggregated metrics in either JSON or pretty text form."""
+        data = self.summary(range_seconds)
+        if output == "pretty":
+            return "\n".join(f"{k}: {v}" for k, v in data.items()) + "\n"
+        return json.dumps(data)
 
 
 def transition_stats() -> Dict[str, dict]:
