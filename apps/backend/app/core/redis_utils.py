@@ -43,7 +43,6 @@ def create_async_redis(
     scheme = url.split(":", 1)[0].lower()
     if scheme == "rediss":
         verify = os.getenv("REDIS_SSL_VERIFY", "").lower() in {"1", "true", "yes", "on"}
-        conn_kwargs["ssl"] = True
         if not verify:
             conn_kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
             conn_kwargs["ssl_check_hostname"] = False
