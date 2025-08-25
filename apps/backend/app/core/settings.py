@@ -2,11 +2,11 @@ import logging
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .app_settings import (
+    AuthSettings,
     AdminSettings,
     CacheSettings,
     CompassSettings,
@@ -192,6 +192,7 @@ class Settings(ProjectSettings):
     csrf: CsrfSettings = CsrfSettings()
     real_ip: RealIPSettings = RealIPSettings()
     observability: ObservabilitySettings = ObservabilitySettings()
+    auth: AuthSettings = AuthSettings()
 
     def model_post_init(self, __context: dict) -> None:  # type: ignore[override]
         defaults = _ENV_DEFAULTS.get(self.env_mode, {})

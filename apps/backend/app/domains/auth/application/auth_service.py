@@ -1,25 +1,40 @@
 from __future__ import annotations
 
-from typing import Tuple
-
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from fastapi import HTTPException
+from typing import Any
 from uuid import uuid4
 
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
 from app.domains.auth.application.ports.token_port import ITokenService
+from app.domains.auth.infrastructure.nonce_store import NonceStore
+from app.domains.auth.infrastructure.verification_token_store import (
+    VerificationTokenStore,
+)
 from app.domains.users.infrastructure.models.user import User
-from app.schemas.auth import LoginSchema, LoginResponse, Token, SignupSchema
-from app.core.security import verify_password, get_password_hash
+from app.schemas.auth import (
+    EVMVerify,
+    LoginSchema,
+    LoginResponse,
+    SignupSchema,
+    Token,
+)
+from app.core.security import get_password_hash, verify_password
 
 
 class AuthService:
-    def __init__(self, tokens: ITokenService) -> None:
+    def __init__(
+        self,
+        tokens: ITokenService,
+        verification_store: VerificationTokenStore,
+        nonce_store: NonceStore,
+    ) -> None:
         self._tokens = tokens
-        self._verification_tokens: dict[str, str] = {}
+        self._verification_store = verification_store
+        self._nonce_store = nonce_store
 
     async def login(self, db: AsyncSession, payload: LoginSchema) -> LoginResponse:
-        # Простая аутентификация по email/username и паролю
         q = await db.execute(
             select(User).where(
                 (User.email == payload.login) | (User.username == payload.login)
@@ -40,10 +55,7 @@ class AuthService:
             raise HTTPException(
                 status_code=400,
                 detail={
-                    "error": {
-                        "code": "BAD_REQUEST",
-                        "message": "Email not verified",
-                    }
+                    "error": {"code": "BAD_REQUEST", "message": "Email not verified"}
                 },
             )
         access = self._tokens.create_access_token(str(user.id))
@@ -56,7 +68,6 @@ class AuthService:
         sub = self._tokens.verify_access_token(payload.token)
         if not sub:
             raise HTTPException(status_code=401, detail="Invalid token")
-        # В данной модели ре‑логинимся по subject
         access = self._tokens.create_access_token(sub)
         refresh = self._tokens.create_refresh_token(sub)
         return LoginResponse(
@@ -65,8 +76,7 @@ class AuthService:
 
     async def signup(
         self, db: AsyncSession, payload: SignupSchema, mailer: object
-    ) -> dict:
-        # Check for duplicate username
+    ) -> dict[str, Any]:
         q = await db.execute(select(User).where(User.username == payload.username))
         if q.scalars().first():
             raise HTTPException(
@@ -78,7 +88,6 @@ class AuthService:
                     }
                 },
             )
-        # Check for duplicate email
         q = await db.execute(select(User).where(User.email == payload.email))
         if q.scalars().first():
             raise HTTPException(
@@ -100,11 +109,11 @@ class AuthService:
         await db.commit()
         await db.refresh(user)
         token = uuid4().hex
-        self._verification_tokens[token] = str(user.id)
+        await self._verification_store.set(token, str(user.id))
         return {"verification_token": token}
 
-    async def verify_email(self, db: AsyncSession, token: str) -> dict:
-        user_id = self._verification_tokens.pop(token, None)
+    async def verify_email(self, db: AsyncSession, token: str) -> dict[str, Any]:
+        user_id = await self._verification_store.pop(token)
         if not user_id:
             raise HTTPException(
                 status_code=400,
@@ -124,7 +133,7 @@ class AuthService:
 
     async def change_password(
         self, db: AsyncSession, token: str, old_password: str, new_password: str
-    ) -> dict:
+    ) -> dict[str, Any]:
         user_id = self._tokens.verify_access_token(token)
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -144,3 +153,20 @@ class AuthService:
         db.add(user)
         await db.commit()
         return {"message": "Password updated"}
+
+    async def logout(self) -> dict[str, Any]:
+        return {"message": "Logged out"}
+
+    async def evm_nonce(self, user_id: str) -> dict[str, str]:
+        nonce = uuid4().hex
+        await self._nonce_store.set(user_id, nonce)
+        return {"nonce": nonce}
+
+    async def evm_verify(self, payload: EVMVerify) -> dict[str, Any]:
+        stored = await self._nonce_store.pop(payload.wallet_address)
+        if not stored or stored != payload.message:
+            raise HTTPException(
+                status_code=400,
+                detail={"error": {"code": "BAD_REQUEST", "message": "Invalid nonce"}},
+            )
+        return {"message": "Wallet verified"}
