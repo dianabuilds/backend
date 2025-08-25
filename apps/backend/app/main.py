@@ -22,11 +22,16 @@ from starlette.middleware.gzip import GZipMiddleware
 TESTING = os.environ.get("TESTING") == "True"
 
 if not TESTING:
-    from config.opentelemetry import setup_otel
-    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-    from opentelemetry.instrumentation.requests import RequestsInstrumentor
-    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+    try:  # pragma: no cover - optional OTEL dependencies
+        from config.opentelemetry import setup_otel
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+        from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+        from opentelemetry.instrumentation.requests import RequestsInstrumentor
+        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+    except ModuleNotFoundError:  # pragma: no cover
+        setup_otel = None  # type: ignore[assignment]
+        FastAPIInstrumentor = HTTPXClientInstrumentor = None  # type: ignore[assignment]
+        RequestsInstrumentor = SQLAlchemyInstrumentor = None  # type: ignore[assignment]
 from app.core.body_limit import BodySizeLimitMiddleware
 from app.core.config import settings
 from app.core.cookies_security_middleware import CookiesSecurityMiddleware
@@ -53,12 +58,16 @@ from app.domains.system.events import register_handlers
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
-if not TESTING:
+if not TESTING and setup_otel:
     setup_otel()
-    FastAPIInstrumentor.instrument_app(app)
-    SQLAlchemyInstrumentor().instrument(engine=get_engine().sync_engine)
-    RequestsInstrumentor().instrument()
-    HTTPXClientInstrumentor().instrument()
+    if FastAPIInstrumentor:
+        FastAPIInstrumentor.instrument_app(app)
+    if SQLAlchemyInstrumentor:
+        SQLAlchemyInstrumentor().instrument(engine=get_engine().sync_engine)
+    if RequestsInstrumentor:
+        RequestsInstrumentor().instrument()
+    if HTTPXClientInstrumentor:
+        HTTPXClientInstrumentor().instrument()
 # Сжатие ответов
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 # Лимит размера тела запросов
