@@ -3,7 +3,7 @@ import { useAuth } from "../auth/AuthContext";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { listFlags } from "../api/flags";
-import { patchNode, validateNode } from "../api/nodes";
+import { patchNode, recomputeNodeEmbedding, validateNode } from "../api/nodes";
 import type { ValidateResult } from "../openapi";
 
 interface CoverChange {
@@ -21,6 +21,7 @@ interface NodeSidebarProps {
     created_at: string;
     updated_at: string;
     is_public: boolean;
+    hidden: boolean;
     published_at: string | null;
     node_type: string;
     cover_url: string | null;
@@ -32,6 +33,8 @@ interface NodeSidebarProps {
   onCoverChange?: (data: CoverChange) => void;
   onStatusChange?: (is_public: boolean, updated_at?: string) => void;
   onScheduleChange?: (published_at: string | null, updated_at?: string) => void;
+  onHiddenChange?: (hidden: boolean, updated_at?: string) => void;
+  hasChanges?: boolean;
 }
 
 export default function NodeSidebar({
@@ -40,6 +43,8 @@ export default function NodeSidebar({
   onCoverChange,
   onStatusChange,
   onScheduleChange,
+  onHiddenChange,
+  hasChanges,
 }: NodeSidebarProps) {
   const { user } = useAuth();
   const role = user?.role;
@@ -77,12 +82,14 @@ export default function NodeSidebar({
   const [slugError, setSlugError] = useState<string | null>(null);
 
   const [statusSaving, setStatusSaving] = useState(false);
+  const [hiddenSaving, setHiddenSaving] = useState(false);
   const [scheduleValue, setScheduleValue] = useState(
     node.published_at ? node.published_at.slice(0, 16) : "",
   );
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [validation, setValidation] = useState<ValidateResult | null>(null);
   const [validating, setValidating] = useState(false);
+  const [recomputing, setRecomputing] = useState(false);
 
   useEffect(() => {
     setScheduleValue(node.published_at ? node.published_at.slice(0, 16) : "");
@@ -203,6 +210,18 @@ export default function NodeSidebar({
     }
   };
 
+  const handleHiddenChange = async (checked: boolean) => {
+    setHiddenSaving(true);
+    try {
+      const res = await patchNode(node.id, { hidden: checked });
+      const updated = (res as any).updatedAt ?? (res as any).updated_at;
+      const hidden = (res as any).hidden ?? checked;
+      onHiddenChange?.(hidden, updated);
+    } finally {
+      setHiddenSaving(false);
+    }
+  };
+
   const handleScheduleChange = async (value: string) => {
     setScheduleValue(value);
     setScheduleSaving(true);
@@ -214,6 +233,15 @@ export default function NodeSidebar({
       onScheduleChange?.(publishedAt, updated);
     } finally {
       setScheduleSaving(false);
+    }
+  };
+
+  const handleRecompute = async () => {
+    setRecomputing(true);
+    try {
+      await recomputeNodeEmbedding(node.id);
+    } finally {
+      setRecomputing(false);
     }
   };
 
@@ -450,7 +478,24 @@ export default function NodeSidebar({
       {canModerate ? (
         <details>
           <summary className="cursor-pointer font-semibold">Advanced</summary>
-          <div className="mt-2 space-y-1 text-sm">
+          <div className="mt-2 space-y-2 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={node.hidden}
+                onChange={(e) => handleHiddenChange(e.target.checked)}
+                disabled={hiddenSaving}
+              />
+              Hide from navigation
+            </label>
+            <button
+              type="button"
+              className="px-2 py-1 border rounded text-xs"
+              onClick={handleRecompute}
+              disabled={recomputing || !!hasChanges}
+            >
+              {recomputing ? "Recomputing..." : "Recompute embedding"}
+            </button>
             <div>Type: {node.node_type}</div>
           </div>
         </details>

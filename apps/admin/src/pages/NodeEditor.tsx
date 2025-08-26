@@ -32,6 +32,7 @@ interface NodeEditorData {
   allow_comments: boolean;
   is_premium_only: boolean;
   is_public: boolean;
+  hidden: boolean;
   published_at: string | null;
   contentData: OutputData;
   node_type: string;
@@ -102,6 +103,14 @@ export default function NodeEditor() {
             typeof raw.is_public === "boolean"
               ? (raw.is_public as boolean)
               : Boolean(raw.isPublic),
+          hidden:
+            typeof raw.hidden === "boolean"
+              ? (raw.hidden as boolean)
+              : typeof raw.is_visible === "boolean"
+                ? !(raw.is_visible as boolean)
+                : typeof raw.isVisible === "boolean"
+                  ? !(raw.isVisible as boolean)
+                  : false,
           published_at:
             typeof raw.published_at === "string"
               ? (raw.published_at as string)
@@ -396,6 +405,7 @@ function NodeEditorInner({
             created_at: node.created_at,
             updated_at: node.updated_at,
             is_public: node.is_public,
+            hidden: node.hidden,
             published_at: node.published_at,
             node_type: node.node_type,
             cover_url: node.cover_url,
@@ -429,6 +439,14 @@ function NodeEditorInner({
               updated_at: updated ?? prev.updated_at,
             }))
           }
+          onHiddenChange={(hidden, updated) =>
+            setData((prev) => ({
+              ...prev,
+              hidden,
+              updated_at: updated ?? prev.updated_at,
+            }))
+          }
+          hasChanges={unsaved || saving}
         />
       </div>
     </div>

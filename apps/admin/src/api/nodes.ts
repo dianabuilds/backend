@@ -28,7 +28,7 @@ export async function getNode(id: string): Promise<NodeOut> {
 
 export async function patchNode(
   id: string,
-  patch: Partial<NodeOut>,
+  patch: Record<string, unknown>,
 ): Promise<NodeOut> {
   const res = await api.patch<NodeOut>(
     `/admin/nodes/${encodeURIComponent(id)}`,
@@ -64,4 +64,10 @@ export async function simulateNode(
     payload,
   );
   return res.data;
+}
+
+export async function recomputeNodeEmbedding(id: string): Promise<void> {
+  await api.post(
+    `/admin/ai/nodes/${encodeURIComponent(id)}/embedding/recompute`,
+  );
 }
