@@ -4,6 +4,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { type AdminMenuItem, getAdminMenu } from "../api/client";
 import { getIconComponent } from "../icons/registry";
 import { useAuth } from "../auth/AuthContext";
+import { ADMIN_DEV_TOOLS } from "../utils/env";
 
 function useExpandedState() {
   const KEY = "adminSidebarExpanded";
@@ -209,8 +210,10 @@ export default function Sidebar() {
   const filterByRole = useCallback(
     (list: AdminMenuItem[]): AdminMenuItem[] => {
       const role = user?.role;
+      const hide = new Set(["nav-preview", "nav-echo", "debug"]);
       return list
         .filter((i) => !i.roles || (role ? i.roles.includes(role) : false))
+        .filter((i) => ADMIN_DEV_TOOLS || !hide.has(i.id))
         .map((i) => ({
           ...i,
           children: i.children ? filterByRole(i.children) : [],
@@ -225,45 +228,8 @@ export default function Sidebar() {
     setError(null);
     try {
       const { items } = await getAdminMenu();
-      const list = [...items];
-      const preview: AdminMenuItem = {
-        id: "preview",
-        label: "Preview",
-        path: "/preview",
-        icon: "activity",
-        roles: ["admin"],
-      };
-      let placed = false;
-      for (const section of list) {
-        if (section.id === "navigation") {
-          section.children = section.children || [];
-          if (!section.children.some((c) => c.id === preview.id)) {
-            section.children.push(preview);
-          }
-          placed = true;
-          break;
-        }
-      }
-      if (!placed && !list.some((i) => i.id === preview.id)) {
-        list.push(preview);
-      }
-      const traceItem: AdminMenuItem = {
-        id: "transitions-trace",
-        label: "Transitions Trace",
-        path: "/transitions/trace",
-        icon: "activity",
-        roles: ["admin"],
-      };
-      if (!list.some((i) => i.id === traceItem.id)) {
-        const idx = list.findIndex((i) => i.id === "transitions");
-        if (idx >= 0) {
-          list.splice(idx + 1, 0, traceItem);
-        } else {
-          list.push(traceItem);
-        }
-      }
       // Доверяем порядку сервера: не пересортировываем на клиенте
-      setItems(filterByRole(list));
+      setItems(filterByRole([...items]));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setItems(null);

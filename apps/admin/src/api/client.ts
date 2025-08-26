@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { ADMIN_DEV_TOOLS } from "../utils/env";
 
 let csrfTokenMem: string | null =
   typeof sessionStorage !== "undefined" ? sessionStorage.getItem("csrfToken") : null;
@@ -111,6 +112,13 @@ export async function apiFetch(
   const headers: Record<string, string> = {
     ...(rest.headers as Record<string, string> | undefined),
   };
+
+  if (ADMIN_DEV_TOOLS) {
+    const existing = headers["X-Feature-Flags"];
+    headers["X-Feature-Flags"] = existing
+      ? `${existing},ADMIN_DEV_TOOLS`
+      : "ADMIN_DEV_TOOLS";
+  }
 
   // Явно запрашиваем JSON, чтобы сервер мог отличать API-запросы от HTML SPA
   if (!Object.keys(headers).some((k) => k.toLowerCase() === "accept")) {

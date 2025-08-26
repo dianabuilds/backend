@@ -49,7 +49,7 @@ import Limits from "./pages/Limits";
 import Alerts from "./pages/Alerts";
 import DevToolsPage from "./pages/DevToolsPage";
 import GettingStarted from "./pages/GettingStarted";
-import { isLocal } from "./utils/env";
+import { ADMIN_DEV_TOOLS, isLocal } from "./utils/env";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
 const Worlds = lazy(() => import("./pages/Worlds"));
 const AISettings = lazy(() => import("./pages/AISettings"));
@@ -97,15 +97,17 @@ export default function App() {
                       <Route path="tags" element={<Tags />} />
                       <Route path="tags/merge" element={<TagMerge />} />
                       <Route path="transitions" element={<Transitions />} />
-                      <Route path="transitions/trace" element={<TransitionsTrace />} />
+                      {ADMIN_DEV_TOOLS && (
+                        <Route path="transitions/trace" element={<TransitionsTrace />} />
+                      )}
                       <Route path="moderation" element={<ModerationInbox />} />
                       <Route
                         path="moderation/cases/:id"
                         element={<ModerationCase />}
                       />
                       <Route path="navigation" element={<Navigation />} />
-                      <Route path="preview" element={<Preview />} />
-                      <Route path="echo" element={<Echo />} />
+                      {ADMIN_DEV_TOOLS && <Route path="preview" element={<Preview />} />}
+                      {ADMIN_DEV_TOOLS && <Route path="echo" element={<Echo />} />}
                       <Route path="traces" element={<Traces />} />
                       <Route path="notifications" element={<Notifications />} />
                       <Route
@@ -186,7 +188,9 @@ export default function App() {
                         element={<ReliabilityDashboard />}
                       />
                       <Route path="ops/alerts" element={<Alerts />} />
-                      <Route path="ops/dev-tools" element={<DevToolsPage />} />
+                      {ADMIN_DEV_TOOLS && (
+                        <Route path="ops/dev-tools" element={<DevToolsPage />} />
+                      )}
                       <Route path="system/health" element={<Health />} />
                       <Route path="payments" element={<PaymentsGateways />} />
                     </Route>
