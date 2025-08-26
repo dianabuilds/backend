@@ -25,6 +25,7 @@ interface ContentEditorProps {
   content: ContentTabProps;
   toolbar?: ReactNode;
   onSave?: () => void;
+  onClose?: () => void;
 }
 
 export default function ContentEditor({
@@ -39,10 +40,16 @@ export default function ContentEditor({
   content,
   toolbar,
   onSave,
+  onClose,
 }: ContentEditorProps) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose?.();
+        return;
+      }
       if (!(e.ctrlKey || e.metaKey)) return;
 
       if (e.key === "s") {
@@ -53,16 +60,18 @@ export default function ContentEditor({
 
       if (e.key === "Enter") {
         e.preventDefault();
-        const btn = Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(
-          (b) => b.textContent?.trim() === "Save & Next",
-        );
+        const btn = Array.from(
+          document.querySelectorAll<HTMLButtonElement>("button"),
+        ).find((b) => b.textContent?.trim() === "Save & Next");
         btn?.click();
         return;
       }
 
       if (e.shiftKey && (e.key === "I" || e.key === "i")) {
         e.preventDefault();
-        const plus = document.querySelector<HTMLButtonElement>(".ce-toolbar__plus");
+        const plus = document.querySelector<HTMLButtonElement>(
+          ".ce-toolbar__plus",
+        );
         plus?.click();
         window.setTimeout(() => {
           const image = document.querySelector<HTMLElement>(
@@ -74,7 +83,7 @@ export default function ContentEditor({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onSave]);
+  }, [onSave, onClose]);
 
   return (
     <div

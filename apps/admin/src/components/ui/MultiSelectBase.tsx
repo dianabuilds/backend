@@ -7,7 +7,7 @@ export type MultiSelectBaseProps<T> = {
   getKey: (item: T) => string;
   getLabel: (item: T) => string;
   renderItem?: (item: T, selected: boolean) => React.ReactNode;
-};
+} & React.SelectHTMLAttributes<HTMLSelectElement>;
 
 export default function MultiSelectBase<T>({
   items,
@@ -16,6 +16,7 @@ export default function MultiSelectBase<T>({
   getKey,
   getLabel,
   renderItem,
+  ...rest
 }: MultiSelectBaseProps<T>) {
   const selectedKeys = values.map((v) => getKey(v));
 
@@ -28,6 +29,7 @@ export default function MultiSelectBase<T>({
         const selectedItems = items.filter((i) => options.includes(getKey(i)));
         onChange(selectedItems);
       }}
+      {...rest}
     >
       {items.map((item) => {
         const key = getKey(item);
