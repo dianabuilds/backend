@@ -47,9 +47,7 @@ import { WorkspaceBranchProvider } from "./workspace/WorkspaceContext";
 import WorkspaceMetrics from "./pages/WorkspaceMetrics";
 import Limits from "./pages/Limits";
 import Alerts from "./pages/Alerts";
-import DevToolsPage from "./pages/DevToolsPage";
-import GettingStarted from "./pages/GettingStarted";
-import { ADMIN_DEV_TOOLS, isLocal } from "./utils/env";
+import { ADMIN_DEV_TOOLS } from "./utils/env";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
 const Worlds = lazy(() => import("./pages/Worlds"));
 const AISettings = lazy(() => import("./pages/AISettings"));
@@ -86,12 +84,6 @@ export default function App() {
                       }
                     >
                         <Route index element={<Dashboard />} />
-                        {isLocal && (
-                          <Route
-                            path="getting-started"
-                            element={<GettingStarted />}
-                          />
-                        )}
                       <Route path="users" element={<Users />} />
                       <Route path="nodes" element={<Nodes />} />
                       <Route path="tags" element={<Tags />} />
@@ -190,9 +182,6 @@ export default function App() {
                         element={<ReliabilityDashboard />}
                       />
                       <Route path="ops/alerts" element={<Alerts />} />
-                      {ADMIN_DEV_TOOLS && (
-                        <Route path="ops/dev-tools" element={<DevToolsPage />} />
-                      )}
                       <Route path="system/health" element={<Health />} />
                       <Route path="payments" element={<PaymentsGateways />} />
                     </Route>

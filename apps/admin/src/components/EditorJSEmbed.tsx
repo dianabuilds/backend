@@ -132,12 +132,6 @@ export default function EditorJSEmbed({
                       success: 1,
                       file: { url },
                     };
-                    if (import.meta?.env?.MODE !== "production") {
-                      console.debug(
-                        "[EditorJS:image] uploadByFile",
-                        normalized,
-                      );
-                    }
                     return normalized;
                   } catch (e) {
                     console.error("Image upload failed:", e);
@@ -152,12 +146,6 @@ export default function EditorJSEmbed({
                         success: 1,
                         file: { url: final },
                       };
-                      if (import.meta?.env?.MODE !== "production") {
-                        console.debug(
-                          "[EditorJS:image] uploadByUrl",
-                          normalized,
-                        );
-                      }
                       return normalized;
                     }
                   } catch (e) {

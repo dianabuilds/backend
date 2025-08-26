@@ -4,7 +4,6 @@ import { NavLink, useLocation } from "react-router-dom";
 import { type AdminMenuItem, getAdminMenu } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { getIconComponent } from "../icons/registry";
-import { ADMIN_DEV_TOOLS } from "../utils/env";
 import { safeLocalStorage } from "../utils/safeStorage";
 
 function useExpandedState() {
@@ -211,10 +210,9 @@ export default function Sidebar() {
   const filterByRole = useCallback(
     (list: AdminMenuItem[]): AdminMenuItem[] => {
       const role = user?.role;
-      const hide = new Set(["nav-preview", "nav-echo", "debug"]);
       return list
         .filter((i) => !i.roles || (role ? i.roles.includes(role) : false))
-        .filter((i) => ADMIN_DEV_TOOLS || !hide.has(i.id))
+        .filter((i) => !i.hidden)
         .map((i) => ({
           ...i,
           children: i.children ? filterByRole(i.children) : [],
