@@ -3,23 +3,31 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Header, Query, Response
+from fastapi import APIRouter, Depends, Header, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import get_current_user
 from app.core.db.session import get_db
-from app.domains.nodes.application.node_query_service import NodeQueryService
-from app.domains.nodes.application.query_models import NodeFilterSpec, PageRequest, QueryContext
-from app.domains.nodes.application.services.nodes_admin_service import NodesAdminService
-from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
-from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.core.log_events import cache_invalidate
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.nodes.application.node_query_service import NodeQueryService
+from app.domains.nodes.application.query_models import (
+    NodeFilterSpec,
+    PageRequest,
+    QueryContext,
+)
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.nodes.schemas.node import NodeOut, NodeBulkOperation
+from app.domains.nodes.schemas.node import NodeBulkOperation, NodeOut
+from app.domains.workspaces.infrastructure.models import Workspace
+from app.schemas.workspaces import WorkspaceType
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(prefix="/admin/nodes", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
+router = APIRouter(
+    prefix="/admin/nodes", tags=["admin"], responses=ADMIN_AUTH_RESPONSES
+)
 admin_required = require_admin_role()
 
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -42,12 +50,16 @@ async def list_nodes_admin(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     q: str | None = None,
-    current_user=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user=Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
+    spec_workspace_id = workspace_id
+    workspace = await db.get(Workspace, workspace_id)
+    if workspace and workspace.is_system and workspace.type == WorkspaceType.global_:
+        spec_workspace_id = None
     spec = NodeFilterSpec(
-        workspace_id=workspace_id,
+        workspace_id=spec_workspace_id,
         author_id=author,
         tags=tag_list,
         match=match,
@@ -75,8 +87,8 @@ async def list_nodes_admin(
 async def bulk_node_operation(
     payload: NodeBulkOperation,
     workspace_id: UUID,
-    current_user=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user=Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     result = await db.execute(
         select(Node).where(Node.id.in_(payload.ids), Node.workspace_id == workspace_id)
