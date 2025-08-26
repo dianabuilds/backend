@@ -102,6 +102,7 @@ async def update_node(
     workspace_id: UUID,
     request: Request,
     payload: dict,
+    next: int = Query(0),
     _: object = Depends(require_ws_editor),  # noqa: B008
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
@@ -115,6 +116,10 @@ async def update_node(
         actor_id=current_user.id,
         request=request,
     )
+    if next:
+        from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
+
+        ux_metrics.inc_save_next()
     return _serialize(item)
 
 

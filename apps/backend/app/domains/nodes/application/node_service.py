@@ -7,7 +7,17 @@ from uuid import UUID, uuid4
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.log_events import cache_invalidate
+from app.core.log_events import (
+    cache_invalidate,
+    node_autosave_fail,
+    node_autosave_ok,
+    node_create_fail,
+    node_create_start,
+    node_create_success,
+    node_publish_fail,
+    node_publish_start,
+    node_publish_success,
+)
 from app.core.preview import PreviewContext
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
@@ -27,6 +37,7 @@ from app.domains.notifications.application.ports.notifications import (
 )
 from app.domains.quests.application.editor_service import EditorService
 from app.domains.telemetry.application.audit_service import AuditService
+from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 from app.domains.telemetry.infrastructure.repositories.audit_repository import (
     AuditLogRepository,
 )
@@ -149,21 +160,27 @@ class NodeService:
         self, workspace_id: UUID, node_type: str | NodeType, *, actor_id: UUID
     ) -> NodeItem:
         node_type = self._normalize_type(node_type)
-        item = await NodeItemDAO.create(
-            self._db,
-            workspace_id=workspace_id,
-            type=node_type,
-            slug=f"{node_type}-{uuid4().hex[:8]}",
-            title=f"New {node_type}",
-            created_by_user_id=actor_id,
-        )
-        await NodePatchService.record(
-            self._db,
-            node_id=item.id,
-            data={"action": "create"},
-            actor_id=actor_id,
-        )
-        await self._db.commit()
+        node_create_start(str(actor_id), node_type)
+        try:
+            item = await NodeItemDAO.create(
+                self._db,
+                workspace_id=workspace_id,
+                type=node_type,
+                slug=f"{node_type}-{uuid4().hex[:8]}",
+                title=f"New {node_type}",
+                created_by_user_id=actor_id,
+            )
+            await NodePatchService.record(
+                self._db,
+                node_id=item.id,
+                data={"action": "create"},
+                actor_id=actor_id,
+            )
+            await self._db.commit()
+        except Exception as exc:
+            node_create_fail(str(actor_id), str(exc))
+            raise
+        node_create_success(str(item.id), str(actor_id))
         await _audit(
             self._db,
             actor_id=str(actor_id),
@@ -192,6 +209,7 @@ class NodeService:
             "summary": item.summary,
             "status": before_status.value,
         }
+        first_save = item.updated_at == item.created_at
         for key, value in data.items():
             if hasattr(item, key):
                 setattr(item, key, value)
@@ -228,7 +246,15 @@ class NodeService:
                 },
                 actor_id=actor_id,
             )
-        await self._db.commit()
+        try:
+            await self._db.commit()
+        except Exception as exc:
+            node_autosave_fail(str(item.id), str(actor_id), str(exc))
+            raise
+        node_autosave_ok(str(item.id), str(actor_id))
+        if first_save:
+            delta = (item.updated_at - item.created_at).total_seconds()
+            ux_metrics.record_first_save(delta)
         try:
             await _audit(
                 self._db,
@@ -259,6 +285,7 @@ class NodeService:
         cover: str | None = None,
         request=None,
     ) -> NodeItem:
+        node_publish_start(str(node_id), str(actor_id))
         node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
         validate_transition(item.status, Status.published)
@@ -292,7 +319,15 @@ class NodeService:
             },
             actor_id=actor_id,
         )
-        await self._db.commit()
+        try:
+            await self._db.commit()
+        except Exception as exc:
+            node_publish_fail(str(node_id), str(actor_id), str(exc))
+            raise
+        node_publish_success(str(node_id), str(actor_id))
+        if node:
+            await self._db.refresh(node, attribute_names=["tags"])
+            ux_metrics.record_publish(bool(node.tags))
         await publish_content(
             item.id,
             item.slug,

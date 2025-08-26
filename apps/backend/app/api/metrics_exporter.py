@@ -10,6 +10,7 @@ from app.domains.telemetry.application.metrics_registry import llm_metrics
 from app.domains.telemetry.application.transition_metrics_facade import (
     transition_metrics,
 )
+from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 from app.domains.telemetry.application.worker_metrics_facade import worker_metrics
 
 router = APIRouter()
@@ -25,6 +26,7 @@ async def metrics() -> Response:
         + llm_metrics.prometheus()
         + worker_metrics.prometheus()
         + event_metrics.prometheus()
+        + ux_metrics.prometheus()
         + transition_metrics.prometheus()
     )
     return Response(text, media_type="text/plain; version=0.0.4")

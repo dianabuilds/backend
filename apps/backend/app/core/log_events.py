@@ -1,6 +1,5 @@
 import logging
 from collections import Counter, defaultdict
-from typing import Dict
 
 logger = logging.getLogger("app")
 
@@ -16,8 +15,21 @@ NO_ROUTE = "no_route"
 FALLBACK_HIT = "fallback.hit"
 FALLBACK_USED = "fallback.used"
 
+# Node lifecycle events
+NODE_CREATE_START = "node.create.start"
+NODE_CREATE_SUCCESS = "node.create.success"
+NODE_CREATE_FAIL = "node.create.fail"
+NODE_AUTOSAVE_OK = "node.autosave.ok"
+NODE_AUTOSAVE_FAIL = "node.autosave.fail"
+NODE_COVER_UPLOAD_START = "node.cover_upload.start"
+NODE_COVER_UPLOAD_SUCCESS = "node.cover_upload.success"
+NODE_COVER_UPLOAD_FAIL = "node.cover_upload.fail"
+NODE_PUBLISH_START = "node.publish.start"
+NODE_PUBLISH_SUCCESS = "node.publish.success"
+NODE_PUBLISH_FAIL = "node.publish.fail"
+
 # in-memory metrics for admin cache stats
-cache_counters: Dict[str, Dict[str, int]] = defaultdict(lambda: {"hit": 0, "miss": 0})
+cache_counters: dict[str, dict[str, int]] = defaultdict(lambda: {"hit": 0, "miss": 0})
 cache_key_hits: Counter[str] = Counter()
 
 
@@ -62,3 +74,52 @@ def fallback_hit(component: str) -> None:
 
 def fallback_used(component: str) -> None:
     logger.info(f"{FALLBACK_USED} component={component}")
+
+
+# Node lifecycle logging helpers -------------------------------------------
+def node_create_start(user: str | None, node_type: str | None) -> None:
+    logger.info(f"{NODE_CREATE_START} user={user or '-'} type={node_type or '-'}")
+
+
+def node_create_success(node_id: str, user: str | None) -> None:
+    logger.info(f"{NODE_CREATE_SUCCESS} node={node_id} user={user or '-'}")
+
+
+def node_create_fail(user: str | None, reason: str) -> None:
+    logger.warning(f"{NODE_CREATE_FAIL} user={user or '-'} reason={reason}")
+
+
+def node_autosave_ok(node_id: str, user: str | None) -> None:
+    logger.info(f"{NODE_AUTOSAVE_OK} node={node_id} user={user or '-'}")
+
+
+def node_autosave_fail(node_id: str | None, user: str | None, reason: str) -> None:
+    logger.warning(
+        f"{NODE_AUTOSAVE_FAIL} node={node_id or '-'} user={user or '-'} reason={reason}"
+    )
+
+
+def node_cover_upload_start(user: str | None) -> None:
+    logger.info(f"{NODE_COVER_UPLOAD_START} user={user or '-'}")
+
+
+def node_cover_upload_success(user: str | None) -> None:
+    logger.info(f"{NODE_COVER_UPLOAD_SUCCESS} user={user or '-'}")
+
+
+def node_cover_upload_fail(user: str | None, reason: str) -> None:
+    logger.warning(f"{NODE_COVER_UPLOAD_FAIL} user={user or '-'} reason={reason}")
+
+
+def node_publish_start(node_id: str, user: str | None) -> None:
+    logger.info(f"{NODE_PUBLISH_START} node={node_id} user={user or '-'}")
+
+
+def node_publish_success(node_id: str, user: str | None) -> None:
+    logger.info(f"{NODE_PUBLISH_SUCCESS} node={node_id} user={user or '-'}")
+
+
+def node_publish_fail(node_id: str | None, user: str | None, reason: str) -> None:
+    logger.warning(
+        f"{NODE_PUBLISH_FAIL} node={node_id or '-'} user={user or '-'} reason={reason}"
+    )

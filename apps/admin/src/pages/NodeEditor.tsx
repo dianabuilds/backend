@@ -261,6 +261,7 @@ function NodeEditorInner({
   const navigate = useNavigate();
   const { addToast } = useToast();
   const manualRef = useRef(false);
+  const saveNextRef = useRef(false);
   const { user } = useAuth();
   const canEdit = user?.role === "admin";
   const [savedAt, setSavedAt] = useState<Date | null>(null);
@@ -289,13 +290,17 @@ function NodeEditorInner({
   const saveCallback = canEdit
     ? async (data: NodeDraft, signal?: AbortSignal) => {
         try {
-          const updated = await patchNode(data.id, {
-            title: data.title,
-            content: data.contentData,
-            tags: data.tags.map((t) => t.slug),
-            summary: data.summary,
-            updated_at: node.updated_at,
-          }, { signal });
+          const updated = await patchNode(
+            data.id,
+            {
+              title: data.title,
+              content: data.contentData,
+              tags: data.tags.map((t) => t.slug),
+              summary: data.summary,
+              updated_at: node.updated_at,
+            },
+            { signal, next: saveNextRef.current },
+          );
           setNode((prev) => ({
             ...prev,
             ...data,
@@ -326,6 +331,7 @@ function NodeEditorInner({
           throw e;
         } finally {
           manualRef.current = false;
+          saveNextRef.current = false;
         }
       }
     : undefined;
@@ -435,6 +441,7 @@ function NodeEditorInner({
   const handleSaveNext = async () => {
     if (!canEdit) return;
     manualRef.current = true;
+    saveNextRef.current = true;
     try {
       await save();
     } catch {
