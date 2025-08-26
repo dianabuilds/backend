@@ -55,6 +55,24 @@ export default function WorkspaceSettings() {
     }
   }, [error, addToast]);
 
+  const { data: globalAi } = useQuery({
+    queryKey: ["global-ai-settings"],
+    queryFn: async () => {
+      const res = await api.get<{ model?: string }>("/admin/ai/settings");
+      return res.data ?? {};
+    },
+  });
+
+  const { data: globalLimits } = useQuery({
+    queryKey: ["global-premium-limits"],
+    queryFn: async () => {
+      const res = await api.get<WorkspaceLimits>("/admin/premium/limits");
+      return (
+        res.data ?? { ai_tokens: 0, notif_per_day: 0, compass_calls: 0 }
+      );
+    },
+  });
+
   const [aiPresets, setAIPresets] = useState<AIPresets>({
     forbidden: [],
   });
@@ -132,6 +150,23 @@ export default function WorkspaceSettings() {
       });
     }
   }, [limitsData]);
+
+  const effectiveModel = aiPresets.model || globalAi?.model || "";
+  const modelSource = aiPresets.model
+    ? "workspace"
+    : globalAi?.model
+    ? "global"
+    : "";
+  const effectiveLimits = {
+    ai_tokens: limits.ai_tokens || globalLimits?.ai_tokens || 0,
+    notif_per_day: limits.notif_per_day || globalLimits?.notif_per_day || 0,
+    compass_calls: limits.compass_calls || globalLimits?.compass_calls || 0,
+  };
+  const limitSource = {
+    ai_tokens: limits.ai_tokens ? "workspace" : "global",
+    notif_per_day: limits.notif_per_day ? "workspace" : "global",
+    compass_calls: limits.compass_calls ? "workspace" : "global",
+  };
 
   const savePresets = async (e: FormEvent) => {
     e.preventDefault();
@@ -413,6 +448,11 @@ export default function WorkspaceSettings() {
                   setAIPresets((p) => ({ ...p, model: e.target.value }))
                 }
               />
+              <Tooltip text={`source: ${modelSource || "none"}`}>
+                <span className="text-xs text-gray-500">
+                  effective: {effectiveModel || ""}
+                </span>
+              </Tooltip>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm text-gray-600 flex items-center gap-1">
@@ -584,6 +624,11 @@ export default function WorkspaceSettings() {
                   }))
                 }
               />
+              <Tooltip text={`source: ${limitSource.ai_tokens}`}>
+                <span className="text-xs text-gray-500">
+                  effective: {effectiveLimits.ai_tokens}
+                </span>
+              </Tooltip>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm text-gray-600 flex items-center gap-1">
@@ -601,6 +646,11 @@ export default function WorkspaceSettings() {
                   }))
                 }
               />
+              <Tooltip text={`source: ${limitSource.notif_per_day}`}>
+                <span className="text-xs text-gray-500">
+                  effective: {effectiveLimits.notif_per_day}
+                </span>
+              </Tooltip>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm text-gray-600 flex items-center gap-1">
@@ -618,6 +668,11 @@ export default function WorkspaceSettings() {
                   }))
                 }
               />
+              <Tooltip text={`source: ${limitSource.compass_calls}`}>
+                <span className="text-xs text-gray-500">
+                  effective: {effectiveLimits.compass_calls}
+                </span>
+              </Tooltip>
             </div>
           </div>
           {limitsError && (

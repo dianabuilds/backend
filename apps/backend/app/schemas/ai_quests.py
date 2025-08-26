@@ -32,7 +32,7 @@ class GenerationJobOut(BaseModel):
     token_usage: dict[str, Any] | None = None
     reused: bool = False
     progress: int = 0
-    logs: list[str] | None = None
+    logs: list[dict[str, Any]] | None = None
     error: str | None = None
 
     model_config = {"from_attributes": True}
