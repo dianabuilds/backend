@@ -32,6 +32,7 @@ import Simulation from "./pages/Simulation";
 import Profile from "./pages/Profile";
 import QuestsList from "./pages/QuestsList";
 import NodeEditor from "./pages/NodeEditor";
+import NodeDiff from "./pages/NodeDiff";
 import QuestVersionEditor from "./pages/QuestVersionEditor";
 import RateLimitTools from "./pages/RateLimitTools";
 import Restrictions from "./pages/Restrictions";
@@ -158,6 +159,7 @@ export default function App() {
                         element={<ValidationReport />}
                       />
                       <Route path="nodes/:id" element={<NodeEditor />} />
+                      <Route path="nodes/:id/diff" element={<NodeDiff />} />
                       <Route
                         path="search"
                         element={<ComingSoon title="Search" />}

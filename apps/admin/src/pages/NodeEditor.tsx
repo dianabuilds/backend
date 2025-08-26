@@ -268,6 +268,8 @@ function NodeEditorInner({
   const titleRef = useRef<HTMLInputElement>(null);
   const retryRef = useRef<number | null>(null);
   const saveRef = useRef<() => Promise<void>>();
+  const [staleDraft, setStaleDraft] = useState<NodeDraft | null>(null);
+  const [staleOpen, setStaleOpen] = useState(false);
 
   const [node, setNode] = useState<NodeEditorData>(initialNode);
   const draftInitial: NodeDraft = {
@@ -286,6 +288,7 @@ function NodeEditorInner({
             content: data.contentData,
             tags: data.tags.map((t) => t.slug),
             summary: data.summary,
+            updated_at: node.updated_at,
           });
           setNode((prev) => ({
             ...prev,
@@ -303,7 +306,13 @@ function NodeEditorInner({
           if (manualRef.current) {
             addToast({ title: "Node saved", variant: "success" });
           }
-        } catch (e) {
+        } catch (e: any) {
+          if (e?.response?.status === 409) {
+            setStaleDraft(data);
+            setStaleOpen(true);
+            setSaveError("Conflict: node was updated elsewhere");
+            return;
+          }
           setSaveError(e instanceof Error ? e.message : String(e));
           retryRef.current = window.setTimeout(() => {
             if (saveRef.current) void saveRef.current();
@@ -337,6 +346,40 @@ function NodeEditorInner({
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
+
+  const overwrite = async () => {
+    if (!staleDraft) return;
+    try {
+      const updated = await patchNode(staleDraft.id, {
+        title: staleDraft.title,
+        content: staleDraft.contentData,
+        tags: staleDraft.tags.map((t) => t.slug),
+        summary: staleDraft.summary,
+        updated_at: node.updated_at,
+      }, { force: true });
+      setNode((prev) => ({
+        ...prev,
+        ...staleDraft,
+        slug: updated.slug ?? prev.slug,
+        updated_at: updated.updatedAt ?? prev.updated_at,
+      }));
+      setSavedAt(new Date());
+      setUnsaved(false);
+      setSaveError(null);
+      setStaleDraft(null);
+      setStaleOpen(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const openCurrent = () => {
+    window.location.reload();
+  };
+
+  const openDiff = () => {
+    navigate(`/nodes/${node.id}/diff`);
+  };
 
   const handleSave = async () => {
     if (!canEdit) return;
@@ -574,6 +617,45 @@ function NodeEditorInner({
           hasChanges={unsaved || saving}
         />
       </div>
+      {staleOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50">
+          <div className="bg-white p-4 rounded shadow max-w-sm space-y-3">
+            <p className="text-sm">
+              Эта версия устарела. Что вы хотите сделать?
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                className="px-2 py-1 border rounded"
+                onClick={openCurrent}
+              >
+                Открыть актуальную
+              </button>
+              <button
+                type="button"
+                className="px-2 py-1 border rounded"
+                onClick={overwrite}
+              >
+                Перезаписать
+              </button>
+              <button
+                type="button"
+                className="px-2 py-1 border rounded"
+                onClick={openDiff}
+              >
+                Сравнить diff
+              </button>
+              <button
+                type="button"
+                className="px-2 py-1 border rounded"
+                onClick={() => setStaleOpen(false)}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

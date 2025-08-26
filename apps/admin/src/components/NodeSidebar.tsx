@@ -201,7 +201,10 @@ export default function NodeSidebar({
           return;
         }
       }
-      const res = await patchNode(node.id, { is_public: checked });
+      const res = await patchNode(node.id, {
+        is_public: checked,
+        updated_at: node.updated_at,
+      });
       const updated = (res as any).updatedAt ?? (res as any).updated_at;
       const published = (res as any).isPublic ?? checked;
       onStatusChange?.(published, updated);
@@ -213,7 +216,10 @@ export default function NodeSidebar({
   const handleHiddenChange = async (checked: boolean) => {
     setHiddenSaving(true);
     try {
-      const res = await patchNode(node.id, { hidden: checked });
+      const res = await patchNode(node.id, {
+        hidden: checked,
+        updated_at: node.updated_at,
+      });
       const updated = (res as any).updatedAt ?? (res as any).updated_at;
       const hidden = (res as any).hidden ?? checked;
       onHiddenChange?.(hidden, updated);
@@ -227,7 +233,10 @@ export default function NodeSidebar({
     setScheduleSaving(true);
     try {
       const iso = value ? new Date(value).toISOString() : null;
-      const res = await patchNode(node.id, { published_at: iso });
+      const res = await patchNode(node.id, {
+        published_at: iso,
+        updated_at: node.updated_at,
+      });
       const updated = (res as any).updatedAt ?? (res as any).updated_at;
       const publishedAt = (res as any).published_at ?? (res as any).publishedAt ?? iso;
       onScheduleChange?.(publishedAt, updated);
@@ -260,7 +269,10 @@ export default function NodeSidebar({
   const saveSlug = async () => {
     setSlugSaving(true);
     try {
-      const res = await patchNode(node.id, { slug: slugDraft });
+      const res = await patchNode(node.id, {
+        slug: slugDraft,
+        updated_at: node.updated_at,
+      });
       onSlugChange?.(res.slug ?? slugDraft, res.updatedAt);
       setSlugModal(false);
     } catch (e) {
