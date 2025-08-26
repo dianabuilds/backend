@@ -7,7 +7,6 @@ import ContentTab from "../components/content/ContentTab";
 import GeneralTab from "../components/content/GeneralTab";
 import NodeSidebar from "../components/NodeSidebar";
 import StatusBadge from "../components/StatusBadge";
-import type { TagOut } from "../components/tags/TagPicker";
 import ErrorBanner from "../components/ErrorBanner";
 import { useToast } from "../components/ToastProvider";
 import WorkspaceSelector from "../components/WorkspaceSelector";
@@ -29,7 +28,7 @@ interface NodeEditorData {
   cover_meta: any | null;
   cover_alt: string;
   summary: string;
-  tags: TagOut[];
+  tags: string[];
   allow_comments: boolean;
   is_premium_only: boolean;
   is_public: boolean;
@@ -43,7 +42,7 @@ interface NodeDraft {
   id: string;
   title: string;
   summary: string;
-  tags: TagOut[];
+  tags: string[];
   contentData: OutputData;
 }
 
@@ -90,9 +89,7 @@ export default function NodeEditor() {
                 : "",
           summary:
             typeof raw.summary === "string" ? (raw.summary as string) : "",
-          tags: Array.isArray(n.tags)
-            ? n.tags.map((slug) => ({ id: slug, slug, name: slug }))
-            : [],
+          tags: Array.isArray(n.tags) ? n.tags : [],
           allow_comments: n.allow_feedback ?? true,
           is_premium_only: n.premium_only ?? false,
           is_public:
@@ -295,7 +292,7 @@ function NodeEditorInner({
             {
               title: data.title,
               content: data.contentData,
-              tags: data.tags.map((t) => t.slug),
+              tags: data.tags,
               summary: data.summary,
               updated_at: node.updated_at,
             },
@@ -400,7 +397,7 @@ function NodeEditorInner({
       const updated = await patchNode(staleDraft.id, {
         title: staleDraft.title,
         content: staleDraft.contentData,
-        tags: staleDraft.tags.map((t) => t.slug),
+        tags: staleDraft.tags,
         summary: staleDraft.summary,
         updated_at: node.updated_at,
       }, { force: true });
