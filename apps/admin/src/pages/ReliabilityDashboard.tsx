@@ -8,12 +8,12 @@ import { getReliabilityMetrics, type ReliabilityMetrics } from "../api/metrics";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
 export default function ReliabilityDashboard() {
-  const { workspaceId, branch } = useWorkspace();
+  const { workspaceId } = useWorkspace();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["reliability-metrics", workspaceId, branch],
-    queryFn: () => getReliabilityMetrics(workspaceId, branch),
-    enabled: !!workspaceId || !!branch,
+    queryKey: ["reliability-metrics", workspaceId],
+    queryFn: () => getReliabilityMetrics(workspaceId),
+    enabled: !!workspaceId,
     refetchInterval: 15000,
   });
 
@@ -54,9 +54,6 @@ export default function ReliabilityDashboard() {
       <div className="flex flex-wrap items-end gap-2">
         <span className="text-sm text-gray-600">
           Workspace: {workspaceId || "(none)"}
-        </span>
-        <span className="text-sm text-gray-600">
-          Branch: {branch || "(none)"}
         </span>
       </div>
       {isLoading && <div className="text-sm text-gray-500">Loading…</div>}

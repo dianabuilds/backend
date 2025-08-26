@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 import WorkspaceSelector from "./WorkspaceSelector";
-import BranchSelector from "./BranchSelector";
 import { safeLocalStorage } from "../utils/safeStorage";
 
 export default function WorkspaceControlPanel() {
@@ -31,7 +30,6 @@ export default function WorkspaceControlPanel() {
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4">
       <WorkspaceSelector />
-      <BranchSelector />
       <input
         className="border rounded px-2 py-1"
         placeholder="plan"

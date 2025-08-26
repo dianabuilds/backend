@@ -7,47 +7,52 @@ import { safeLocalStorage } from "../utils/safeStorage";
 
 interface WorkspaceContextType {
   workspaceId: string;
-  branch: string;
   setWorkspace: (workspace: Workspace | undefined) => void;
-  setBranch: (branch: string) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType>({
   workspaceId: "",
-  branch: "",
   setWorkspace: () => {},
-  setBranch: () => {},
 });
+
+function updateUrl(id: string) {
+  try {
+    const url = new URL(window.location.href);
+    if (id) url.searchParams.set("workspace_id", id);
+    else url.searchParams.delete("workspace_id");
+    window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+  } catch {
+    // ignore
+  }
+}
 
 export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
   const [workspaceId, setWorkspaceIdState] = useState<string>(() => {
-    const stored = safeLocalStorage.getItem("workspaceId") || "";
-    const fallback = safeLocalStorage.getItem("defaultWorkspaceId") || "";
-    return stored || fallback;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get("workspace_id") || "";
+      const stored = safeLocalStorage.getItem("workspaceId") || "";
+      const fallback = safeLocalStorage.getItem("defaultWorkspaceId") || "";
+      return fromUrl || stored || fallback;
+    } catch {
+      return "";
+    }
   });
 
   useEffect(() => {
     persistWorkspaceId(workspaceId || null);
+    updateUrl(workspaceId);
   }, [workspaceId]);
-
-  const [branch, setBranchState] = useState<string>(() => {
-    return safeLocalStorage.getItem("branch") || "";
-  });
 
   const setWorkspace = (ws: Workspace | undefined) => {
     const id = ws?.id ?? "";
     setWorkspaceIdState(id);
     persistWorkspaceId(id || null);
-  };
-
-  const setBranch = (b: string) => {
-    setBranchState(b);
-    if (b) safeLocalStorage.setItem("branch", b);
-    else safeLocalStorage.removeItem("branch");
+    updateUrl(id);
   };
 
   return (
-    <WorkspaceContext.Provider value={{ workspaceId, branch, setWorkspace, setBranch }}>
+    <WorkspaceContext.Provider value={{ workspaceId, setWorkspace }}>
       {children}
     </WorkspaceContext.Provider>
   );

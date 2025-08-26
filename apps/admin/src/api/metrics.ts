@@ -95,11 +95,9 @@ export interface ReliabilityMetrics {
 
 export async function getReliabilityMetrics(
   workspace?: string,
-  branch?: string,
 ): Promise<ReliabilityMetrics> {
   const params = new URLSearchParams();
   if (workspace) params.append("workspace", workspace);
-  if (branch) params.append("branch", branch);
   const qs = params.toString();
   const res = await api.get<ReliabilityMetrics>(
     `/admin/metrics/reliability${qs ? `?${qs}` : ""}`,
