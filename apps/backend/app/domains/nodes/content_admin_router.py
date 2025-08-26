@@ -154,6 +154,21 @@ async def validate_node_item(
     return {"report": report, "blocking": blocking, "warnings": warnings}
 
 
+@router.post("/{node_type}/{node_id}/validate_ai", summary="Validate node item with AI")
+async def validate_node_item_ai(
+    node_type: NodeType,
+    node_id: UUID,
+    workspace_id: UUID,
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    svc = NodeService(db, navcache, InAppNotificationPort(db))
+    report = await svc.validate_with_ai(workspace_id, node_type, node_id)
+    blocking = [item for item in report.items if item.level == "error"]
+    warnings = [item for item in report.items if item.level == "warning"]
+    return {"report": report, "blocking": blocking, "warnings": warnings}
+
+
 @router.post("/{node_type}/{node_id}/simulate", summary="Simulate quest node")
 async def simulate_node(
     node_type: NodeType,
@@ -162,7 +177,7 @@ async def simulate_node(
     payload: SimulateIn,
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    preview: PreviewContext = Depends(get_preview_context),
+    preview: PreviewContext = Depends(get_preview_context),  # noqa: B008
 ):
     svc = NodeService(db, navcache, InAppNotificationPort(db))
     report, result = await svc.simulate(
