@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { useWorkspace } from "../workspace/WorkspaceContext";
+
 interface Command {
   cmd: string;
   name: string;
@@ -16,6 +18,7 @@ export default function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  const { workspaceId } = useWorkspace();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -34,7 +37,11 @@ export default function CommandPalette() {
 
   const onSelect = (path: string) => {
     setOpen(false);
-    navigate(path);
+    const to =
+      workspaceId && path.startsWith("/nodes")
+        ? `${path}?workspace_id=${workspaceId}`
+        : path;
+    navigate(to);
   };
 
   const matches = COMMANDS.filter(

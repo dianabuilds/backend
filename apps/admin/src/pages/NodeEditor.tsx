@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { createNode, getNode, patchNode } from "../api/nodes";
+import { useAuth } from "../auth/AuthContext";
 import Breadcrumbs from "../components/Breadcrumbs";
 import ContentTab from "../components/content/ContentTab";
 import GeneralTab from "../components/content/GeneralTab";
@@ -14,7 +15,6 @@ import WorkspaceSelector from "../components/WorkspaceSelector";
 import type { OutputData } from "../types/editorjs";
 import { useAutosave } from "../utils/useAutosave";
 import { useUnsavedChanges } from "../utils/useUnsavedChanges";
-import { safeLocalStorage } from "../utils/safeStorage";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
 interface NodeEditorData {
@@ -47,7 +47,10 @@ export default function NodeEditor() {
       if (id === "new") {
         try {
           const n = await createNode("quest");
-          navigate(`/nodes/${n.id}`, { replace: true });
+          const path = workspaceId
+            ? `/nodes/${n.id}?workspace_id=${workspaceId}`
+            : `/nodes/${n.id}`;
+          navigate(path, { replace: true });
         } catch (e) {
           setError(e instanceof Error ? e.message : String(e));
           setLoading(false);
@@ -134,39 +137,47 @@ function NodeEditorInner({
   const navigate = useNavigate();
   const { addToast } = useToast();
   const manualRef = useRef(false);
+  const { user } = useAuth();
+  const canEdit = user?.role === "admin";
   const [savedAt, setSavedAt] = useState<Date | null>(null);
-  const { data: node, update: setNode, save, saving, setData } =
-    useAutosave<NodeEditorData>(initialNode, async (data) => {
-      try {
-        const updated = await patchNode(data.id, {
-          title: data.title,
-          content: data.contentData,
-          allow_feedback: data.allow_comments,
-          premium_only: data.is_premium_only,
-          tags: data.tags.map((t) => t.slug),
-          is_public: data.is_public,
-          cover_url: data.cover_url,
-          summary: data.summary,
-        });
-        if (updated.slug && updated.slug !== data.slug) {
-          setData((prev) => ({ ...prev, slug: updated.slug ?? prev.slug }));
-        }
-        setSavedAt(new Date());
-        if (manualRef.current) {
-          addToast({
-            title: "Node saved",
-            variant: "success",
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [unsaved, setUnsaved] = useState(false);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const saveCallback = canEdit
+    ? async (data: NodeEditorData) => {
+        try {
+          const updated = await patchNode(data.id, {
+            title: data.title,
+            content: data.contentData,
+            allow_feedback: data.allow_comments,
+            premium_only: data.is_premium_only,
+            tags: data.tags.map((t) => t.slug),
+            is_public: data.is_public,
+            cover_url: data.cover_url,
+            summary: data.summary,
           });
+          if (updated.slug && updated.slug !== data.slug) {
+            setData((prev) => ({ ...prev, slug: updated.slug ?? prev.slug }));
+          }
+          setSavedAt(new Date());
+          if (manualRef.current) {
+            addToast({
+              title: "Node saved",
+              variant: "success",
+            });
+          }
+        } catch (e) {
+          setSaveError(e instanceof Error ? e.message : String(e));
+        } finally {
+          manualRef.current = false;
         }
-      } finally {
-        manualRef.current = false;
       }
-    },
-      2500,
-    );
+    : undefined;
+  const { data: node, update: updateNode, save, saving, setData } =
+    useAutosave<NodeEditorData>(initialNode, saveCallback, 2500);
   const setNode = (next: NodeEditorData) => {
-    setUnsaved(true);
-    update(next);
+    if (canEdit) setUnsaved(true);
+    updateNode(next);
   };
   useUnsavedChanges(unsaved);
   useEffect(() => {
@@ -174,19 +185,30 @@ function NodeEditorInner({
   }, []);
 
   const handleSave = async () => {
+    if (!canEdit) return;
     manualRef.current = true;
     await save();
   };
 
   const handleSaveNext = async () => {
+    if (!canEdit) return;
     manualRef.current = true;
     await save();
     const nextId = Number(node.id);
-    navigate(Number.isNaN(nextId) ? "/nodes/new" : `/nodes/${nextId + 1}`);
+    const nextPath = Number.isNaN(nextId)
+      ? "/nodes/new"
+      : `/nodes/${nextId + 1}`;
+    navigate(
+      workspaceId ? `${nextPath}?workspace_id=${workspaceId}` : nextPath,
+    );
   };
 
   const handleCreate = () => {
-    navigate("/nodes/new");
+    if (!canEdit) return;
+    const path = workspaceId
+      ? `/nodes/new?workspace_id=${workspaceId}`
+      : "/nodes/new";
+    navigate(path);
   };
 
   const handleClose = () => {
@@ -210,30 +232,36 @@ function NodeEditorInner({
             <StatusBadge status={node.is_public ? "published" : "draft"} />
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <button
-              type="button"
-              className="px-2 py-1 border rounded"
-              disabled={!node.title.trim()}
-              onClick={handleCreate}
-            >
-              Create
-            </button>
-            <button
-              type="button"
-              className="px-2 py-1 border rounded"
-              disabled={saving}
-              onClick={handleSave}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="px-2 py-1 border rounded"
-              disabled={saving}
-              onClick={handleSaveNext}
-            >
-              Save & Next
-            </button>
+            {canEdit && (
+              <button
+                type="button"
+                className="px-2 py-1 border rounded"
+                disabled={!node.title.trim()}
+                onClick={handleCreate}
+              >
+                Create
+              </button>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                className="px-2 py-1 border rounded"
+                disabled={saving}
+                onClick={handleSave}
+              >
+                Save
+              </button>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                className="px-2 py-1 border rounded"
+                disabled={saving}
+                onClick={handleSaveNext}
+              >
+                Save & Next
+              </button>
+            )}
             {node.slug && (
               <a
                 href={`/nodes/${node.slug}`}
@@ -251,13 +279,15 @@ function NodeEditorInner({
             >
               Close
             </button>
-            <span className="ml-2 text-gray-500">
-              {saving
-                ? "Saving..."
-                : savedAt
-                  ? `Saved ${savedAt.toLocaleTimeString()}`
-                  : null}
-            </span>
+            {canEdit && (
+              <span className="ml-2 text-gray-500">
+                {saving
+                  ? "Saving..."
+                  : savedAt
+                    ? `Saved ${savedAt.toLocaleTimeString()}`
+                    : null}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -272,21 +302,27 @@ function NodeEditorInner({
             is_public={node.is_public}
             allow_comments={node.allow_comments}
             is_premium_only={node.is_premium_only}
-            onTitleChange={(v) => setNode({ ...node, title: v })}
-            onSummaryChange={(v) => setNode({ ...node, summary: v })}
-            onTagsChange={(t) => setNode({ ...node, tags: t })}
-            onIsPublicChange={(v) => setNode({ ...node, is_public: v })}
-            onAllowCommentsChange={(v) =>
-              setNode({ ...node, allow_comments: v })
+            onTitleChange={canEdit ? (v) => setNode({ ...node, title: v }) : undefined}
+            onSummaryChange={
+              canEdit ? (v) => setNode({ ...node, summary: v }) : undefined
             }
-            onPremiumOnlyChange={(v) =>
-              setNode({ ...node, is_premium_only: v })
+            onTagsChange={canEdit ? (t) => setNode({ ...node, tags: t }) : undefined}
+            onIsPublicChange={
+              canEdit ? (v) => setNode({ ...node, is_public: v }) : undefined
             }
-            onCoverChange={(url) => setNode({ ...node, cover_url: url })}
+            onAllowCommentsChange={
+              canEdit ? (v) => setNode({ ...node, allow_comments: v }) : undefined
+            }
+            onPremiumOnlyChange={
+              canEdit ? (v) => setNode({ ...node, is_premium_only: v }) : undefined
+            }
+            onCoverChange={
+              canEdit ? (url) => setNode({ ...node, cover_url: url }) : undefined
+            }
           />
           <ContentTab
             initial={node.contentData}
-            onSave={(d) => setNode({ ...node, contentData: d })}
+            onSave={canEdit ? (d) => setNode({ ...node, contentData: d }) : undefined}
             storageKey={`node-content-${node.id}`}
           />
         </div>
