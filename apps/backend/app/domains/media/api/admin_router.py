@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-
 import io
-from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
 from app.core.deps import get_storage
+from app.core.log_events import (
+    node_cover_upload_fail,
+    node_cover_upload_start,
+    node_cover_upload_success,
+)
 from app.domains.media.application.ports.storage_port import IStorageGateway
 from app.domains.media.application.storage_service import StorageService
 from app.domains.media.dao import MediaAssetDAO
@@ -23,39 +26,55 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=List[MediaAssetOut], summary="List media assets")
+@router.get("", response_model=list[MediaAssetOut], summary="List media assets")
 async def list_media_assets(
     workspace_id: UUID,
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    _: object = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
-) -> List[MediaAssetOut]:
-    items = await MediaAssetDAO.list(db, workspace_id=workspace_id, limit=limit, offset=offset)
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> list[MediaAssetOut]:
+    items = await MediaAssetDAO.list(
+        db,
+        workspace_id=workspace_id,
+        limit=limit,
+        offset=offset,
+    )
     return [MediaAssetOut.model_validate(i) for i in items]
 
 
 @router.post("", summary="Upload media asset")
 async def upload_media_asset(
     workspace_id: UUID,
-    file: UploadFile = File(...),
-    _: object = Depends(require_ws_editor),
-    storage: IStorageGateway = Depends(get_storage),
-    db: AsyncSession = Depends(get_db),
+    file: UploadFile = File(...),  # noqa: B008
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    storage: IStorageGateway = Depends(get_storage),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    if file.content_type not in {"image/jpeg", "image/png", "image/webp"}:
-        raise HTTPException(status_code=415, detail="Unsupported media type")
-    data = await file.read()
-    if len(data) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="File too large")
-    service = StorageService(storage)
-    url = service.save_file(io.BytesIO(data), file.filename, file.content_type)
-    asset = await MediaAssetDAO.create(
-        db,
-        workspace_id=workspace_id,
-        url=url,
-        type=file.content_type,
-        metadata_json=None,
-    )
-    await db.commit()
-    return {"success": 1, "file": {"url": url}, "url": url, "asset": MediaAssetOut.model_validate(asset)}
+    node_cover_upload_start(str(getattr(_, "id", None)))
+    try:
+        if file.content_type not in {"image/jpeg", "image/png", "image/webp"}:
+            raise HTTPException(status_code=415, detail="Unsupported media type")
+        data = await file.read()
+        if len(data) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="File too large")
+        service = StorageService(storage)
+        url = service.save_file(io.BytesIO(data), file.filename, file.content_type)
+        asset = await MediaAssetDAO.create(
+            db,
+            workspace_id=workspace_id,
+            url=url,
+            type=file.content_type,
+            metadata_json=None,
+        )
+        await db.commit()
+    except Exception as exc:
+        node_cover_upload_fail(str(getattr(_, "id", None)), str(exc))
+        raise
+    node_cover_upload_success(str(getattr(_, "id", None)))
+    return {
+        "success": 1,
+        "file": {"url": url},
+        "url": url,
+        "asset": MediaAssetOut.model_validate(asset),
+    }
