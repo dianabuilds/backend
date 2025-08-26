@@ -131,7 +131,7 @@ export default function Quests() {
         </label>
         <Link
           className="px-3 py-1 rounded bg-blue-600 text-white"
-          to="/nodes/new"
+          to={workspaceId ? `/nodes/new?workspace_id=${workspaceId}` : "/nodes/new"}
         >
           Create quest
         </Link>

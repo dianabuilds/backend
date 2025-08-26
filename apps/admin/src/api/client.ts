@@ -142,6 +142,10 @@ export async function apiFetch(
     headers["X-Preview-Token"] = previewTokenMem;
   }
 
+  if (workspaceIdMem) {
+    headers["X-Workspace-Id"] = workspaceIdMem;
+  }
+
   // Формируем конечный URL:
   // - Если задан VITE_API_BASE — используем его (например, https://api.example.com)
   // - Иначе: если dev‑сервер фронта на 5173–5176, по умолчанию шлём на http://<hostname>:8000

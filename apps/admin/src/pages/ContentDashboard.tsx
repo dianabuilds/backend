@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
+import { useWorkspace } from "../workspace/WorkspaceContext";
+
 import { api } from "../api/client";
 import { createNode, listNodes } from "../api/nodes";
 import KpiCard from "../components/KpiCard";
@@ -35,6 +37,7 @@ function Progress({ label, value, limit }: { label: string; value: number; limit
 
 export default function ContentDashboard() {
   const navigate = useNavigate();
+  const { workspaceId } = useWorkspace();
   const [search, setSearch] = useState("");
   const [recomputeLimit, setRecomputeLimit] = useState(10);
   const [recomputeMessage, setRecomputeMessage] = useState<string | null>(null);
@@ -79,12 +82,18 @@ export default function ContentDashboard() {
 
   const createQuest = async () => {
     const n = await createNode("quest");
-    navigate(`/nodes/${n.id}`);
+    const path = workspaceId
+      ? `/nodes/${n.id}?workspace_id=${workspaceId}`
+      : `/nodes/${n.id}`;
+    navigate(path);
   };
 
   const createGenericNode = async () => {
     const n = await createNode("other");
-    navigate(`/nodes/${n.id}`);
+    const path = workspaceId
+      ? `/nodes/${n.id}?workspace_id=${workspaceId}`
+      : `/nodes/${n.id}`;
+    navigate(path);
   };
 
   const handleSearch = (e: React.FormEvent) => {
