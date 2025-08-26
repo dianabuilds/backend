@@ -357,6 +357,40 @@ class NodeService:
         await self._db.commit()
         return report
 
+    async def validate_with_ai(
+        self,
+        workspace_id: UUID,
+        node_type: str | NodeType,
+        node_id: UUID,
+    ) -> Any:  # pragma: no cover - thin wrapper
+        """Run local validators and AI-based checks."""
+
+        node_type = self._normalize_type(node_type)
+        await self.get(workspace_id, node_type, node_id)
+
+        local = await run_validators(node_type, node_id, self._db)
+
+        from app.validation.ai import run_ai_validation
+
+        ai = await run_ai_validation(self._db, node_id)
+        combined = ValidationReport(
+            errors=local.errors + ai.errors,
+            warnings=local.warnings + ai.warnings,
+            items=local.items + ai.items,
+        )
+
+        await NodePatchService.record(
+            self._db,
+            node_id=node_id,
+            data={
+                "action": "validate_ai",
+                "errors": combined.errors,
+                "warnings": combined.warnings,
+            },
+        )
+        await self._db.commit()
+        return combined
+
     async def simulate(
         self,
         workspace_id: UUID,
