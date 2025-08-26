@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { AuthProvider } from "./auth/AuthContext";
 import ComingSoon from "./components/ComingSoon";
@@ -45,7 +45,7 @@ import Users from "./pages/Users";
 import Workspaces from "./pages/Workspaces";
 import WorkspaceSettings from "./pages/WorkspaceSettings";
 import ValidationReport from "./pages/ValidationReport";
-import { WorkspaceBranchProvider, useWorkspace } from "./workspace/WorkspaceContext";
+import { WorkspaceBranchProvider } from "./workspace/WorkspaceContext";
 import Limits from "./pages/Limits";
 import Alerts from "./pages/Alerts";
 import AIUsage from "./pages/AIUsage";
@@ -64,14 +64,6 @@ const PaymentsGateways = lazy(() => import("./pages/PaymentsGateways"));
 const AIRateLimits = lazy(() => import("./pages/AIRateLimits"));
 
 const queryClient = new QueryClient();
-
-function QuestEditorRedirect() {
-  const { workspaceId } = useWorkspace();
-  const to = workspaceId
-    ? `/nodes/new?workspace_id=${workspaceId}`
-    : "/nodes/new";
-  return <Navigate to={to} replace />;
-}
 
 export default function App() {
   return (
@@ -146,10 +138,6 @@ export default function App() {
                       />
                       <Route path="profile" element={<Profile />} />
                       <Route path="quests" element={<QuestsList />} />
-                      <Route
-                        path="quests/editor"
-                        element={<QuestEditorRedirect />}
-                      />
                       <Route
                         path="quests/version/:id"
                         element={<QuestVersionEditor />}
