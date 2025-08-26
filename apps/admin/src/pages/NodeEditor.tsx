@@ -38,6 +38,14 @@ interface NodeEditorData {
   node_type: string;
 }
 
+interface NodeDraft {
+  id: string;
+  title: string;
+  summary: string;
+  tags: TagOut[];
+  contentData: OutputData;
+}
+
 export default function NodeEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -258,49 +266,73 @@ function NodeEditorInner({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [unsaved, setUnsaved] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
+  const retryRef = useRef<number | null>(null);
+  const saveRef = useRef<() => Promise<void>>();
+
+  const [node, setNode] = useState<NodeEditorData>(initialNode);
+  const draftInitial: NodeDraft = {
+    id: initialNode.id,
+    title: initialNode.title,
+    summary: initialNode.summary,
+    tags: initialNode.tags,
+    contentData: initialNode.contentData,
+  };
+
   const saveCallback = canEdit
-    ? async (data: NodeEditorData) => {
+    ? async (data: NodeDraft) => {
         try {
           const updated = await patchNode(data.id, {
             title: data.title,
             content: data.contentData,
-            allow_feedback: data.allow_comments,
-            premium_only: data.is_premium_only,
             tags: data.tags.map((t) => t.slug),
-            is_public: data.is_public,
-            published_at: data.published_at,
-            cover_url: data.cover_url,
-            cover_asset_id: data.cover_asset_id,
-            cover_meta: data.cover_meta,
-            cover_alt: data.cover_alt,
             summary: data.summary,
           });
-          setData((prev) => ({
+          setNode((prev) => ({
             ...prev,
+            ...data,
             slug: updated.slug ?? prev.slug,
             updated_at: updated.updatedAt ?? prev.updated_at,
           }));
           setSavedAt(new Date());
           setUnsaved(false);
+          setSaveError(null);
+          if (retryRef.current) {
+            window.clearTimeout(retryRef.current);
+            retryRef.current = null;
+          }
           if (manualRef.current) {
-            addToast({
-              title: "Node saved",
-              variant: "success",
-            });
+            addToast({ title: "Node saved", variant: "success" });
           }
         } catch (e) {
           setSaveError(e instanceof Error ? e.message : String(e));
+          retryRef.current = window.setTimeout(() => {
+            if (saveRef.current) void saveRef.current();
+          }, 10000);
+          throw e;
         } finally {
           manualRef.current = false;
         }
       }
     : undefined;
-  const { data: node, update: updateNode, save, saving, setData } =
-    useAutosave<NodeEditorData>(initialNode, saveCallback, 2500);
-  const setNode = (next: NodeEditorData) => {
-    if (canEdit) setUnsaved(true);
-    updateNode(next);
+
+  const { data: draft, update: updateDraft, save, saving } = useAutosave<NodeDraft>(
+    draftInitial,
+    saveCallback,
+    2500,
+    `node-draft-${initialNode.id}`,
+  );
+  saveRef.current = save;
+
+  const handleDraftChange = (patch: Partial<NodeDraft>) => {
+    setNode((prev) => ({ ...prev, ...patch }));
+    updateDraft({ ...draft, ...patch });
+    setUnsaved(true);
   };
+
+  useEffect(() => {
+    setNode((prev) => ({ ...prev, ...draft }));
+  }, [draft]);
+
   useUnsavedChanges(unsaved);
   useEffect(() => {
     titleRef.current?.focus();
@@ -309,13 +341,21 @@ function NodeEditorInner({
   const handleSave = async () => {
     if (!canEdit) return;
     manualRef.current = true;
-    await save();
+    try {
+      await save();
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleSaveNext = async () => {
     if (!canEdit) return;
     manualRef.current = true;
-    await save();
+    try {
+      await save();
+    } catch {
+      /* ignore */
+    }
     const path = workspaceId
       ? `/nodes/new?workspace_id=${workspaceId}`
       : "/nodes/new";
@@ -456,11 +496,15 @@ function NodeEditorInner({
             is_public={node.is_public}
             allow_comments={node.allow_comments}
             is_premium_only={node.is_premium_only}
-            onTitleChange={canEdit ? (v) => setNode({ ...node, title: v }) : undefined}
-            onSummaryChange={
-              canEdit ? (v) => setNode({ ...node, summary: v }) : undefined
+            onTitleChange={
+              canEdit ? (v) => handleDraftChange({ title: v }) : undefined
             }
-            onTagsChange={canEdit ? (t) => setNode({ ...node, tags: t }) : undefined}
+            onSummaryChange={
+              canEdit ? (v) => handleDraftChange({ summary: v }) : undefined
+            }
+            onTagsChange={
+              canEdit ? (t) => handleDraftChange({ tags: t }) : undefined
+            }
             onIsPublicChange={
               canEdit ? (v) => setNode({ ...node, is_public: v }) : undefined
             }
@@ -472,9 +516,10 @@ function NodeEditorInner({
             }
           />
           <ContentTab
-            initial={node.contentData}
-            onSave={canEdit ? (d) => setNode({ ...node, contentData: d }) : undefined}
-            storageKey={`node-content-${node.id}`}
+            value={node.contentData}
+            onChange={
+              canEdit ? (d) => handleDraftChange({ contentData: d }) : undefined
+            }
           />
         </div>
         <NodeSidebar
@@ -506,21 +551,21 @@ function NodeEditorInner({
             })
           }
           onStatusChange={(is_public, updated) =>
-            setData((prev) => ({
+            setNode((prev) => ({
               ...prev,
               is_public,
               updated_at: updated ?? prev.updated_at,
             }))
           }
           onScheduleChange={(published_at, updated) =>
-            setData((prev) => ({
+            setNode((prev) => ({
               ...prev,
               published_at,
               updated_at: updated ?? prev.updated_at,
             }))
           }
           onHiddenChange={(hidden, updated) =>
-            setData((prev) => ({
+            setNode((prev) => ({
               ...prev,
               hidden,
               updated_at: updated ?? prev.updated_at,

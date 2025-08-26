@@ -60,7 +60,7 @@ export function useAutosave<T>(
     if (!onSave) return;
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
-      void save();
+      save().catch(() => {});
     }, delay);
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
