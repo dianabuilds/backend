@@ -217,10 +217,16 @@ class Settings(ProjectSettings):
                 parsed = urlparse(url)
                 tls_hint = os.getenv("REDIS_SSL") or os.getenv("REDIS_TLS")
                 tls_enabled = str(tls_hint).lower() in {"1", "true", "yes", "on"}
-                # Хостинговые TLS-порты часто 6380, 14403; redns/redislabs также обычно требуют TLS
-                is_tls_port = (parsed.port in {6380, 14403, 443})
+                # Хостинговые TLS-порты часто 6380, 14403;
+                # redns/redislabs также обычно требуют TLS
+                is_tls_port = parsed.port in {6380, 14403, 443}
                 host_hint = (parsed.hostname or "").lower()
-                requires_tls = tls_enabled or is_tls_port or ("redis-cloud" in host_hint) or ("redns" in host_hint)
+                requires_tls = (
+                    tls_enabled
+                    or is_tls_port
+                    or ("redis-cloud" in host_hint)
+                    or ("redns" in host_hint)
+                )
                 if parsed.scheme == "redis" and requires_tls:
                     parsed = parsed._replace(scheme="rediss")
                     return urlunparse(parsed)
@@ -289,14 +295,16 @@ class Settings(ProjectSettings):
     def effective_origins(self) -> dict[str, list[str] | str]:
         """Return kwargs for CORSMiddleware based on configuration."""
         if self.cors_allow_origins:
-            result: dict[str, list[str] | str] = {"allow_origins": self.cors_allow_origins}
+            result: dict[str, list[str] | str] = {
+                "allow_origins": self.cors_allow_origins
+            }
             if not self.is_production:
-                # Разрешаем любые http-origin'ы в dev/test для удобства разработки
-                result["allow_origin_regex"] = r"http://[^/]+"
+                # Разрешаем любые http/https origin'ы в dev/test для удобства разработки
+                result["allow_origin_regex"] = r"https?://[^/]+"
             return result
         if self.is_production:
             return {"allow_origins": []}
-        return {"allow_origin_regex": r"http://[^/]+"}
+        return {"allow_origin_regex": r"https?://[^/]+"}
 
 
 def validate_settings(settings: Settings) -> None:
