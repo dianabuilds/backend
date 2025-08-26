@@ -8,10 +8,12 @@ import GeneralTab from "../components/content/GeneralTab";
 import SidePanels from "../components/content/SidePanels";
 import StatusBadge from "../components/StatusBadge";
 import type { TagOut } from "../components/tags/TagPicker";
+import ErrorBanner from "../components/ErrorBanner";
 import { useToast } from "../components/ToastProvider";
 import WorkspaceSelector from "../components/WorkspaceSelector";
 import type { OutputData } from "../types/editorjs";
 import { useAutosave } from "../utils/useAutosave";
+import { useUnsavedChanges } from "../utils/useUnsavedChanges";
 import { safeLocalStorage } from "../utils/safeStorage";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
@@ -133,54 +135,75 @@ function NodeEditorInner({
   const { addToast } = useToast();
   const manualRef = useRef(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
-  const { data: node, update: setNode, save, saving, setData } =
-    useAutosave<NodeEditorData>(initialNode, async (data) => {
-      try {
-        const updated = await patchNode(data.id, {
-          title: data.title,
-          content: data.contentData,
-          allow_feedback: data.allow_comments,
-          premium_only: data.is_premium_only,
-          tags: data.tags.map((t) => t.slug),
-          is_public: data.is_public,
-          cover_url: data.cover_url,
-          summary: data.summary,
-        });
-        if (updated.slug && updated.slug !== data.slug) {
-          setData((prev) => ({ ...prev, slug: updated.slug ?? prev.slug }));
-        }
-        setSavedAt(new Date());
-        if (manualRef.current) {
-          const traceUrl =
-            data.slug && workspaceId
-              ? `/transitions/trace?start=${encodeURIComponent(data.slug)}&workspace=${workspaceId}`
-              : undefined;
-          addToast({
-            title: "Node saved",
-            variant: "success",
-            description: traceUrl ? (
-              <a
-                href={traceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                Open Trace
-              </a>
-            ) : undefined,
+  const titleRef = useRef<HTMLInputElement>(null);
+  const [unsaved, setUnsaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const { data: node, update, save, saving, setData } =
+    useAutosave<NodeEditorData>(
+      initialNode,
+      async (data) => {
+        try {
+          const updated = await patchNode(data.id, {
+            title: data.title,
+            content: data.contentData,
+            allow_feedback: data.allow_comments,
+            premium_only: data.is_premium_only,
+            tags: data.tags.map((t) => t.slug),
+            is_public: data.is_public,
+            cover_url: data.cover_url,
+            summary: data.summary,
           });
+          if (updated.slug && updated.slug !== data.slug) {
+            setData((prev) => ({ ...prev, slug: updated.slug ?? prev.slug }));
+          }
+          setSavedAt(new Date());
+          setUnsaved(false);
+          setSaveError(null);
+          if (manualRef.current) {
+            const traceUrl =
+              data.slug && workspaceId
+                ? `/transitions/trace?start=${encodeURIComponent(
+                    data.slug,
+                  )}&workspace=${workspaceId}`
+                : undefined;
+            addToast({
+              title: "Node saved",
+              variant: "success",
+              description: traceUrl ? (
+                <a
+                  href={traceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  Open Trace
+                </a>
+              ) : undefined,
+            });
+          }
+          safeLocalStorage.removeItem(`node-content-${data.id}`);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setSaveError(msg);
+          addToast({
+            title: "Failed to save node",
+            description: msg,
+            variant: "error",
+          });
+        } finally {
+          manualRef.current = false;
         }
-        safeLocalStorage.removeItem(`node-content-${data.id}`);
-      } catch (e) {
-        addToast({
-          title: "Failed to save node",
-          description: e instanceof Error ? e.message : String(e),
-          variant: "error",
-        });
-      } finally {
-        manualRef.current = false;
-      }
-    });
+      },
+      2500,
+    );
+  const setNode = (next: NodeEditorData) => {
+    setUnsaved(true);
+    update(next);
+  };
+  useUnsavedChanges(unsaved);
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
 
   const handleSave = async () => {
     manualRef.current = true;
@@ -203,6 +226,13 @@ function NodeEditorInner({
 
   return (
     <div className="flex h-full flex-col">
+      {saveError ? (
+        <ErrorBanner
+          message={saveError}
+          onClose={() => setSaveError(null)}
+          className="m-4"
+        />
+      ) : null}
       <div className="border-b p-4">
         <Breadcrumbs />
         <div className="mt-2 flex items-center justify-between">
@@ -214,6 +244,7 @@ function NodeEditorInner({
             <button
               type="button"
               className="px-2 py-1 border rounded"
+              disabled={!node.title.trim()}
               onClick={handleCreate}
             >
               Create
@@ -265,6 +296,7 @@ function NodeEditorInner({
         <div className="flex-1 overflow-auto p-4 space-y-6">
           <GeneralTab
             title={node.title}
+            titleRef={titleRef}
             cover_url={node.cover_url}
             summary={node.summary}
             tags={node.tags}

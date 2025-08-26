@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import type { TagOut } from "../tags/TagPicker";
 
 export interface GeneralTabProps {
@@ -9,6 +10,7 @@ export interface GeneralTabProps {
   cover_url?: string | null;
   summary?: string;
   onTitleChange: (v: string) => void;
+  titleRef?: Ref<HTMLInputElement>;
   onTagsChange?: (tags: TagOut[]) => void;
   onIsPublicChange?: (v: boolean) => void;
   onAllowCommentsChange?: (v: boolean) => void;
