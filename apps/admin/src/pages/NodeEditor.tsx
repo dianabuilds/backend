@@ -5,7 +5,7 @@ import { createNode, getNode, patchNode } from "../api/nodes";
 import { useAuth } from "../auth/AuthContext";
 import ContentTab from "../components/content/ContentTab";
 import GeneralTab from "../components/content/GeneralTab";
-import SidePanels from "../components/content/SidePanels";
+import NodeSidebar from "../components/NodeSidebar";
 import StatusBadge from "../components/StatusBadge";
 import type { TagOut } from "../components/tags/TagPicker";
 import ErrorBanner from "../components/ErrorBanner";
@@ -22,6 +22,9 @@ interface NodeEditorData {
   slug: string;
   author_id: string;
   cover_url: string | null;
+  cover_asset_id: string | null;
+  cover_meta: any | null;
+  cover_alt: string;
   summary: string;
   tags: TagOut[];
   allow_comments: boolean;
@@ -70,6 +73,19 @@ export default function NodeEditor() {
               : typeof raw.coverUrl === "string"
                 ? (raw.coverUrl as string)
                 : null,
+          cover_asset_id:
+            typeof raw.cover_asset_id === "string"
+              ? (raw.cover_asset_id as string)
+              : typeof raw.coverAssetId === "string"
+                ? (raw.coverAssetId as string)
+                : null,
+          cover_meta: (raw.cover_meta as any) ?? (raw.coverMeta as any) ?? null,
+          cover_alt:
+            typeof raw.cover_alt === "string"
+              ? (raw.cover_alt as string)
+              : typeof raw.coverAlt === "string"
+                ? (raw.coverAlt as string)
+                : "",
           summary:
             typeof raw.summary === "string" ? (raw.summary as string) : "",
           tags: Array.isArray(n.tags)
@@ -153,6 +169,9 @@ function NodeEditorInner({
             tags: data.tags.map((t) => t.slug),
             is_public: data.is_public,
             cover_url: data.cover_url,
+            cover_asset_id: data.cover_asset_id,
+            cover_meta: data.cover_meta,
+            cover_alt: data.cover_alt,
             summary: data.summary,
           });
           if (updated.slug && updated.slug !== data.slug) {
@@ -348,9 +367,6 @@ function NodeEditorInner({
             onPremiumOnlyChange={
               canEdit ? (v) => setNode({ ...node, is_premium_only: v }) : undefined
             }
-            onCoverChange={
-              canEdit ? (url) => setNode({ ...node, cover_url: url }) : undefined
-            }
           />
           <ContentTab
             initial={node.contentData}
@@ -358,15 +374,28 @@ function NodeEditorInner({
             storageKey={`node-content-${node.id}`}
           />
         </div>
-        <SidePanels
+        <NodeSidebar
           node={{
             id: node.id,
             slug: node.slug,
             author_id: node.author_id,
             is_public: node.is_public,
             node_type: node.node_type,
+            cover_url: node.cover_url,
+            cover_asset_id: node.cover_asset_id,
+            cover_alt: node.cover_alt,
+            cover_meta: node.cover_meta,
           }}
           onSlugChange={(slug) => setNode({ ...node, slug })}
+          onCoverChange={(c) =>
+            setNode({
+              ...node,
+              cover_asset_id: c.assetId,
+              cover_url: c.url,
+              cover_alt: c.alt,
+              cover_meta: c.meta,
+            })
+          }
         />
       </div>
     </div>
