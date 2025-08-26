@@ -24,6 +24,75 @@ from app.domains.ai.infrastructure.models.generation_models import (
     JobStatus,
 )
 
+
+async def _merge_generation_settings(
+    db: AsyncSession,
+    *,
+    params: dict[str, Any],
+    provider: str | None,
+    model: str | None,
+    workspace_id: UUID | None,
+) -> tuple[dict[str, Any], str | None, str | None, dict[str, dict[str, Any]]]:
+    """Merge explicit params, workspace overrides and global AI settings.
+
+    Returns updated (params, provider, model, trace).
+    """
+
+    from app.domains.ai.infrastructure.models.ai_settings import AISettings
+    from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
+    from app.schemas.workspaces import WorkspaceSettings
+
+    trace: dict[str, dict[str, Any]] = {}
+    orig_provider, orig_model = provider, model
+    orig_params = dict(params)
+
+    def _set(key: str, value: Any, source: str) -> None:
+        nonlocal provider, model
+        if key == "provider":
+            provider = value
+        elif key == "model":
+            model = value
+        else:
+            params[key] = value
+        trace[key] = {"value": value, "source": source}
+
+    # 1) Global settings
+    try:
+        res = await db.execute(select(AISettings).limit(1))
+        ai = res.scalars().first()
+        if ai:
+            if ai.provider:
+                _set("provider", ai.provider, "global")
+            if ai.model:
+                _set("model", ai.model, "global")
+    except Exception:
+        pass
+
+    # 2) Workspace overrides
+    if workspace_id is not None:
+        try:
+            ws = await WorkspaceDAO.get(db, workspace_id)
+            if ws:
+                settings = WorkspaceSettings.model_validate(ws.settings_json)
+                presets = settings.ai_presets or {}
+                params.setdefault("workspace_id", str(workspace_id))
+                for key in ("provider", "model", "temperature", "system_prompt", "forbidden"):
+                    if key in presets and presets[key] is not None and key not in params:
+                        _set(key, presets[key], "workspace")
+        except Exception:
+            pass
+
+    # 3) Explicit request values override
+    if orig_provider is not None:
+        _set("provider", orig_provider, "explicit")
+    if orig_model is not None:
+        _set("model", orig_model, "explicit")
+    for key in ("temperature", "system_prompt", "forbidden"):
+        if key in orig_params:
+            _set(key, params.get(key), "explicit")
+
+    return params, provider, model, trace
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,23 +112,13 @@ async def enqueue_generation_job(
     мгновенно завершённую job, переиспользуя result_quest_id/cost/token_usage.
     """
     params = dict(params)
-    if workspace_id is not None:
-        try:
-            from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
-            from app.schemas.workspaces import WorkspaceSettings
-
-            ws = await WorkspaceDAO.get(db, workspace_id)
-            if ws:
-                settings = WorkspaceSettings.model_validate(ws.settings_json)
-                presets = settings.ai_presets or {}
-                params.setdefault("workspace_id", str(workspace_id))
-                if model is None and isinstance(presets.get("model"), str):
-                    model = presets["model"]
-                for key in ("temperature", "system_prompt", "forbidden"):
-                    if key in presets and key not in params:
-                        params[key] = presets[key]
-        except Exception:
-            pass
+    params, provider, model, trace = await _merge_generation_settings(
+        db,
+        params=params,
+        provider=provider,
+        model=model,
+        workspace_id=workspace_id,
+    )
 
     if reuse:
         # Ищем последнюю завершённую задачу с такими же параметрами
@@ -88,6 +147,7 @@ async def enqueue_generation_job(
                 token_usage=cached.token_usage,
                 reused=True,
                 error=None,
+                logs=[{"applied": trace}],
             )
             db.add(job)
             await db.flush()
@@ -117,6 +177,7 @@ async def enqueue_generation_job(
         model=model,
         params=params,
         status=JobStatus.queued,
+        logs=[{"applied": trace}],
     )
     db.add(job)
     await db.flush()  # чтобы получить id
@@ -156,31 +217,7 @@ async def process_next_generation_job(db: AsyncSession) -> UUID | None:
     _job_t0 = datetime.utcnow()
 
     try:
-        # 3) Загружаем пресеты рабочей области при необходимости
-        params = job.params or {}
-        workspace_id = params.get("workspace_id")
-        if workspace_id:
-            try:
-                from uuid import UUID
-
-                from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
-                from app.schemas.workspaces import WorkspaceSettings
-
-                ws = await WorkspaceDAO.get(db, UUID(workspace_id))
-                if ws:
-                    settings = WorkspaceSettings.model_validate(ws.settings_json)
-                    presets = settings.ai_presets or {}
-                    if job.model is None and isinstance(presets.get("model"), str):
-                        job.model = presets["model"]
-                    for key in ("temperature", "system_prompt", "forbidden"):
-                        if key in presets and key not in params:
-                            params[key] = presets[key]
-                    job.params = params
-                    await db.flush()
-            except Exception:
-                pass
-
-        # 4) Запускаем пайплайн
+        # 3) Запускаем пайплайн
         from app.domains.ai.pipeline import run_full_generation
 
         result = await run_full_generation(db, job)
@@ -204,6 +241,7 @@ async def process_next_generation_job(db: AsyncSession) -> UUID | None:
             if workspace_id and job.created_by and tokens > 0:
                 from app.domains.workspaces.limits import consume_workspace_limit
 
+                limit_log: dict[str, Any] = {}
                 allowed = await consume_workspace_limit(
                     db,
                     job.created_by,
@@ -212,7 +250,14 @@ async def process_next_generation_job(db: AsyncSession) -> UUID | None:
                     amount=tokens,
                     scope="month",
                     degrade=True,
+                    log=limit_log,
+                    preview=preview,
                 )
+                if limit_log:
+                    try:
+                        job.logs.append({"limits": limit_log})
+                    except Exception:
+                        pass
                 if not allowed:
                     job.status = JobStatus.failed
                     job.error = "AI tokens limit exceeded"
@@ -223,7 +268,10 @@ async def process_next_generation_job(db: AsyncSession) -> UUID | None:
             pass
         # сохраняем логи и факт использованного провайдера/модели
         if hasattr(job, "logs"):
-            job.logs = result.get("logs")  # type: ignore[attr-defined]
+            existing = list(getattr(job, "logs", []) or [])
+            new_logs = result.get("logs") or []
+            existing.extend(new_logs)
+            job.logs = existing  # type: ignore[attr-defined]
         if "last_provider" in result and result.get("last_provider"):
             job.provider = result.get("last_provider")
         if "last_model" in result and result.get("last_model"):

@@ -31,6 +31,7 @@ from app.domains.ai.services.generation import (
 )
 from app.domains.workspaces.api import put_ai_presets
 from app.domains.workspaces.infrastructure.models import Workspace
+from app.domains.ai.infrastructure.models.ai_settings import AISettings
 from app.schemas.workspaces import WorkspaceSettings
 
 
@@ -112,3 +113,42 @@ async def test_generation_uses_workspace_presets(monkeypatch) -> None:
         assert called["params"]["temperature"] == 0.5
         assert called["params"]["system_prompt"] == "system"
         assert called["params"]["forbidden"] == ["foo"]
+
+
+@pytest.mark.asyncio
+async def test_generation_merges_sources_and_logs() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Workspace.__table__.metadata.create_all)
+        await conn.run_sync(GenerationJob.__table__.metadata.create_all)
+        await conn.run_sync(AISettings.__table__.metadata.create_all)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with async_session() as session:
+        ai = AISettings(provider="openai", model="gpt-global")
+        session.add(ai)
+        ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=uuid.uuid4(), settings_json=WorkspaceSettings(ai_presets={"system_prompt": "ws-system"}).model_dump())
+        session.add(ws)
+        await session.commit()
+
+        job = await enqueue_generation_job(
+            session,
+            created_by=None,
+            params={"temperature": 0.9},
+            provider=None,
+            model="explicit-model",
+            workspace_id=ws.id,
+            reuse=False,
+            preview=PreviewContext(),
+        )
+        await session.commit()
+
+        assert job.model == "explicit-model"
+        assert job.provider == "openai"
+        assert job.params["temperature"] == 0.9
+        assert job.params["system_prompt"] == "ws-system"
+        trace = job.logs[0]["applied"]
+        assert trace["model"]["source"] == "explicit"
+        assert trace["provider"]["source"] == "global"
+        assert trace["temperature"]["source"] == "explicit"
+        assert trace["system_prompt"]["source"] == "workspace"

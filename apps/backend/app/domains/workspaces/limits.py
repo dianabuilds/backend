@@ -32,12 +32,33 @@ async def consume_workspace_limit(
     scope: str = "day",
     degrade: bool = False,
     preview: PreviewContext | None = None,
+    log: dict[str, Any] | None = None,
 ) -> bool:
     ws = await WorkspaceDAO.get(db, workspace_id)
     if not ws:
+        if log is not None:
+            log[key] = {"value": 0, "source": "global"}
         return True
     settings = WorkspaceSettings.model_validate(ws.settings_json)
     limit = settings.limits.get(key)
+    source = "workspace"
+    if not limit or int(limit) <= 0:
+        try:
+            from app.domains.premium.quotas import get_quota_status
+
+            status = await get_quota_status(
+                db,
+                user_id,
+                quota_key=key,
+                scope=scope,
+                preview=preview,
+            )
+            limit = status.get("limit")
+            source = "global"
+        except Exception:
+            limit = None
+    if log is not None:
+        log[key] = {"value": int(limit) if limit else 0, "source": source}
     if not limit or int(limit) <= 0:
         return True
     qs = _get_qs()
