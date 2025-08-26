@@ -58,7 +58,9 @@ export default function WorkspaceSettings() {
   const { data: globalAi } = useQuery({
     queryKey: ["global-ai-settings"],
     queryFn: async () => {
-      const res = await api.get<{ model?: string }>("/admin/ai/settings");
+      const res = await api.get<{ model?: string; provider?: string }>(
+        "/admin/ai/settings",
+      );
       return res.data ?? {};
     },
   });
@@ -74,6 +76,7 @@ export default function WorkspaceSettings() {
   });
 
   const [aiPresets, setAIPresets] = useState<AIPresets>({
+    provider: "",
     forbidden: [],
   });
   const [notifications, setNotifications] = useState<NotificationRules>({
@@ -124,6 +127,7 @@ export default function WorkspaceSettings() {
   useEffect(() => {
     if (aiPresetsData) {
       setAIPresets({
+        provider: aiPresetsData.provider ?? "",
         model: aiPresetsData.model ?? "",
         temperature: aiPresetsData.temperature,
         system_prompt: aiPresetsData.system_prompt ?? "",
@@ -151,6 +155,12 @@ export default function WorkspaceSettings() {
     }
   }, [limitsData]);
 
+  const effectiveProvider = aiPresets.provider || globalAi?.provider || "";
+  const providerSource = aiPresets.provider
+    ? "workspace"
+    : globalAi?.provider
+    ? "global"
+    : "";
   const effectiveModel = aiPresets.model || globalAi?.model || "";
   const modelSource = aiPresets.model
     ? "workspace"
@@ -436,6 +446,24 @@ export default function WorkspaceSettings() {
       ) : (
         <form onSubmit={savePresets} className="space-y-4 max-w-2xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600 flex items-center gap-1">
+                Provider <Tooltip text="Default AI provider" />
+              </label>
+              <input
+                className="border rounded px-2 py-1"
+                placeholder="openai"
+                value={aiPresets.provider ?? ""}
+                onChange={(e) =>
+                  setAIPresets((p) => ({ ...p, provider: e.target.value }))
+                }
+              />
+              <Tooltip text={`source: ${providerSource || "none"}`}>
+                <span className="text-xs text-gray-500">
+                  effective: {effectiveProvider || ""}
+                </span>
+              </Tooltip>
+            </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm text-gray-600 flex items-center gap-1">
                 Model <Tooltip text="Default model name" />
