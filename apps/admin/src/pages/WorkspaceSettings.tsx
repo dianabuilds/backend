@@ -637,7 +637,10 @@ export default function WorkspaceSettings() {
     switch (tab) {
       case "General":
         return data ? (
-          <div className="text-sm space-y-1">
+          <div className="text-sm space-y-2">
+            <p className="text-gray-500">
+              Basic information about the workspace.
+            </p>
             <div>
               <b>ID:</b> {data.id}
             </div>
@@ -650,13 +653,41 @@ export default function WorkspaceSettings() {
           </div>
         ) : null;
       case "Members":
-        return renderMembers();
+        return (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-500">
+              Manage members and their roles.
+            </p>
+            {renderMembers()}
+          </div>
+        );
       case "AI-presets":
-        return renderAIPresets();
+        return (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-500">
+              Configure default AI parameters.
+            </p>
+            {renderAIPresets()}
+          </div>
+        );
       case "Notifications":
-        return renderNotifications();
+        return (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-500">
+              Choose how events send notifications.
+            </p>
+            {renderNotifications()}
+          </div>
+        );
       case "Limits":
-        return renderLimits();
+        return (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-500">
+              Set usage limits for this workspace.
+            </p>
+            {renderLimits()}
+          </div>
+        );
       default:
         return (
           <div className="text-sm text-gray-500">No content for {tab} yet.</div>
