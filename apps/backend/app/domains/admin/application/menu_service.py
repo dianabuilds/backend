@@ -239,6 +239,14 @@ BASE_MENU: list[dict] = [
                 "order": 10,
                 "roles": ["admin"],
             },
+            {
+                "id": "ai-system-settings",
+                "label": "AI Settings",
+                "path": "/ai/system",
+                "icon": "settings",
+                "order": 11,
+                "roles": ["admin"],
+            },
         ],
     },
 ]
