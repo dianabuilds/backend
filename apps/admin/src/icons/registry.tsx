@@ -1,18 +1,22 @@
 import {
   Activity,
+  CreditCard,
   Ban,
   Bell,
   Box,
   Database,
+  Flag,
   ExternalLink,
   FileText,
   Home,
   Menu as MenuIcon,
+  Lock,
   Search,
   Settings,
   Shield,
   Tag,
   Trophy,
+  Plug,
   Users as UsersIcon,
 } from "lucide-react";
 import type React from "react";
@@ -32,7 +36,11 @@ export type IconName =
   | "database"
   | "box"
   | "bell"
-  | "notifications";
+  | "notifications"
+  | "lock"
+  | "credit-card"
+  | "plug"
+  | "flag";
 
 export const iconRegistry: Record<string, React.ComponentType<any>> = {
   home: Home,
@@ -51,6 +59,10 @@ export const iconRegistry: Record<string, React.ComponentType<any>> = {
   bell: Bell,
   achievements: Trophy,
   notifications: Bell,
+  lock: Lock,
+  "credit-card": CreditCard,
+  plug: Plug,
+  flag: Flag,
 };
 
 export function getIconComponent(

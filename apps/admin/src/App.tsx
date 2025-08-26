@@ -17,6 +17,9 @@ import Dashboard from "./pages/Dashboard";
 import Echo from "./pages/Echo";
 import FeatureFlagsPage from "./pages/FeatureFlags";
 import Health from "./pages/Health";
+import Authentication from "./pages/Authentication";
+import Integrations from "./pages/Integrations";
+import Metrics from "./pages/Metrics";
 import Login from "./pages/Login";
 import ModerationCase from "./pages/ModerationCase";
 import ModerationInbox from "./pages/ModerationInbox";
@@ -156,6 +159,26 @@ export default function App() {
                       <Route
                         path="search"
                         element={<ComingSoon title="Search" />}
+                      />
+                      <Route
+                        path="settings/authentication"
+                        element={<Authentication />}
+                      />
+                      <Route
+                        path="settings/payments"
+                        element={<PaymentsGateways />}
+                      />
+                      <Route
+                        path="settings/integrations"
+                        element={<Integrations />}
+                      />
+                      <Route
+                        path="settings/metrics"
+                        element={<Metrics />}
+                      />
+                      <Route
+                        path="settings/feature-flags"
+                        element={<FeatureFlagsPage />}
                       />
                       <Route path="tools/cache" element={<CacheTools />} />
                       <Route
