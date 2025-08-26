@@ -62,6 +62,7 @@ async def test_generation_uses_workspace_presets(monkeypatch) -> None:
 
     async with async_session() as session:
         presets = {
+            "provider": "workspace-provider",
             "model": "gpt-test",
             "temperature": 0.5,
             "system_prompt": "system",
@@ -89,6 +90,7 @@ async def test_generation_uses_workspace_presets(monkeypatch) -> None:
         )
         await session.commit()
 
+        assert job.provider == "workspace-provider"
         assert job.model == "gpt-test"
         assert job.params["temperature"] == 0.5
         assert job.params["system_prompt"] == "system"
@@ -97,6 +99,7 @@ async def test_generation_uses_workspace_presets(monkeypatch) -> None:
         called = {}
 
         async def fake_run_full_generation(db, job_arg):
+            called["provider"] = job_arg.provider
             called["model"] = job_arg.model
             called["params"] = job_arg.params
             return {}
@@ -109,6 +112,7 @@ async def test_generation_uses_workspace_presets(monkeypatch) -> None:
 
         await process_next_generation_job(session)
 
+        assert called["provider"] == "workspace-provider"
         assert called["model"] == "gpt-test"
         assert called["params"]["temperature"] == 0.5
         assert called["params"]["system_prompt"] == "system"

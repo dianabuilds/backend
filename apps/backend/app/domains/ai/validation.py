@@ -16,6 +16,7 @@ AI_PRESETS_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "properties": {
         "model": {"type": "string"},
+        "provider": {"type": "string"},
         "temperature": {"type": "number"},
         "system_prompt": {"type": "string"},
         "forbidden": {

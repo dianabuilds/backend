@@ -1,6 +1,7 @@
 import { api } from "./client";
 
 export type AIPresets = {
+  provider?: string;
   model?: string;
   temperature?: number;
   system_prompt?: string;
