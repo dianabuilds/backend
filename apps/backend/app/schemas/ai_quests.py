@@ -14,6 +14,9 @@ class GenerateQuestIn(BaseModel):
     genre: str
     locale: Optional[str] = None
     extras: dict[str, Any] | None = None
+    model: Optional[str] = None
+    remember: bool = False
+    workspace_id: Optional[UUID] = None
 
 
 class GenerationJobOut(BaseModel):

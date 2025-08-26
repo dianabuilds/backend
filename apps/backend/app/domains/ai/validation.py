@@ -23,6 +23,10 @@ AI_PRESETS_SCHEMA: Dict[str, Any] = {
             "type": "array",
             "items": {"type": "string"},
         },
+        "allowed_models": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
     },
     "additionalProperties": False,
 }

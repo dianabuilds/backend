@@ -32,19 +32,25 @@ async def _merge_generation_settings(
     provider: str | None,
     model: str | None,
     workspace_id: UUID | None,
-) -> tuple[dict[str, Any], str | None, str | None, dict[str, dict[str, Any]]]:
-    """Merge explicit params, workspace overrides and global AI settings.
+    user_id: UUID | None = None,
+) -> tuple[
+    dict[str, Any], str | None, str | None, dict[str, dict[str, Any]], list[str]
+]:
+    """Merge explicit params, user/workspace overrides and global AI settings.
 
-    Returns updated (params, provider, model, trace).
+    Returns updated ``(params, provider, model, trace, allowed_models)`` where
+    ``allowed_models`` is a workspace allow-list (may be empty).
     """
 
     from app.domains.ai.infrastructure.models.ai_settings import AISettings
     from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
     from app.schemas.workspaces import WorkspaceSettings
+    from app.domains.ai.infrastructure.models.user_pref_models import UserAIPref
 
     trace: dict[str, dict[str, Any]] = {}
     orig_provider, orig_model = provider, model
     orig_params = dict(params)
+    allowed_models: list[str] = []
 
     def _set(key: str, value: Any, source: str) -> None:
         nonlocal provider, model
@@ -68,7 +74,19 @@ async def _merge_generation_settings(
     except Exception:
         pass
 
-    # 2) Workspace overrides
+    # 2) User preference
+    if user_id is not None:
+        try:
+            res = await db.execute(
+                select(UserAIPref).where(UserAIPref.user_id == user_id)
+            )
+            pref = res.scalars().first()
+            if pref and pref.model:
+                _set("model", pref.model, "user_pref")
+        except Exception:
+            pass
+
+    # 3) Workspace overrides / allow-list
     if workspace_id is not None:
         try:
             ws = await WorkspaceDAO.get(db, workspace_id)
@@ -76,13 +94,26 @@ async def _merge_generation_settings(
                 settings = WorkspaceSettings.model_validate(ws.settings_json)
                 presets = settings.ai_presets or {}
                 params.setdefault("workspace_id", str(workspace_id))
-                for key in ("provider", "model", "temperature", "system_prompt", "forbidden"):
+                allowed_models = [
+                    str(m) for m in presets.get("allowed_models", []) if m
+                ]
+                for key in (
+                    "provider",
+                    "model",
+                    "temperature",
+                    "system_prompt",
+                    "forbidden",
+                ):
                     if key in presets and presets[key] is not None and key not in params:
                         _set(key, presets[key], "workspace")
         except Exception:
             pass
 
-    # 3) Explicit request values override
+    # ensure requested/derived model is within workspace allow-list
+    if allowed_models and model not in allowed_models:
+        _set("model", allowed_models[0], "workspace_allow")
+
+    # 4) Explicit request values override
     if orig_provider is not None:
         _set("provider", orig_provider, "explicit")
     if orig_model is not None:
@@ -91,7 +122,7 @@ async def _merge_generation_settings(
         if key in orig_params:
             _set(key, params.get(key), "explicit")
 
-    return params, provider, model, trace
+    return params, provider, model, trace, allowed_models
 
 logger = logging.getLogger(__name__)
 
@@ -112,13 +143,16 @@ async def enqueue_generation_job(
     мгновенно завершённую job, переиспользуя result_quest_id/cost/token_usage.
     """
     params = dict(params)
-    params, provider, model, trace = await _merge_generation_settings(
+    params, provider, model, trace, allowed_models = await _merge_generation_settings(
         db,
         params=params,
         provider=provider,
         model=model,
         workspace_id=workspace_id,
+        user_id=created_by,
     )
+    if allowed_models:
+        params.setdefault("allowed_models", allowed_models)
 
     if reuse:
         # Ищем последнюю завершённую задачу с такими же параметрами
