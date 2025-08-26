@@ -12,7 +12,6 @@ export default function Simulation() {
   const [previewMode, setPreviewMode] = useState("off");
   const [role, setRole] = useState("");
   const [plan, setPlan] = useState("");
-  const [branch, setBranch] = useState("");
   const [seed, setSeed] = useState<string>("");
   const [locale, setLocale] = useState("");
   const [device, setDevice] = useState("");
@@ -69,7 +68,6 @@ export default function Simulation() {
         preview_mode: previewMode,
         role: role || undefined,
         plan: plan || undefined,
-        branch: branch || undefined,
         seed: seed ? Number(seed) : undefined,
         locale: locale || undefined,
         device: device || undefined,
@@ -124,7 +122,7 @@ export default function Simulation() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Simulation</h1>
       <p className="text-sm text-gray-600">
-        Simulate navigation for a specific branch without affecting real data.
+        Simulate navigation without affecting real data.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
         {!sharedMode && (
@@ -171,15 +169,6 @@ export default function Simulation() {
             onChange={(e) => setPlan(e.target.value)}
             className="border rounded px-2 py-1"
             placeholder="plan"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">Branch</span>
-          <input
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-            className="border rounded px-2 py-1"
-            placeholder="main"
           />
         </label>
         <label className="flex flex-col gap-1">

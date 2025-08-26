@@ -8,8 +8,6 @@ interface Command {
 }
 
 const COMMANDS: Command[] = [
-  { cmd: "ws", name: "Workspaces", path: "/workspaces" },
-  { cmd: "sim", name: "Simulation", path: "/preview" },
   { cmd: "trace", name: "Traces", path: "/traces" },
   { cmd: "node:new", name: "New node", path: "/nodes/new" },
 ];
