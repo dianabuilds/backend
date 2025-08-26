@@ -6,6 +6,7 @@ import DataTable from "../components/DataTable";
 import type { Column } from "../components/DataTable.helpers";
 import ErrorBanner from "../components/ErrorBanner";
 import { useToast } from "../components/ToastProvider";
+import JsonCard from "../components/JsonCard";
 
 type Tx = {
   id: string;
@@ -192,16 +193,7 @@ export default function PaymentsTransactions() {
             {
               key: "meta",
               title: "Meta",
-              render: (t) => (
-                <details>
-                  <summary className="text-blue-600 cursor-pointer hover:underline">
-                    Показать
-                  </summary>
-                  <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-xs bg-gray-50 p-2 rounded">
-                    {JSON.stringify(t.meta ?? {}, null, 2)}
-                  </pre>
-                </details>
-              ),
+              render: (t) => <JsonCard data={t.meta ?? {}} />,
             },
           ];
           return (

@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { api } from "../api/client";
+import PeriodStepSelector from "../components/PeriodStepSelector";
 
 interface TraceItem {
   id: string;
@@ -70,6 +71,8 @@ export default function Traces() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [range, setRange] = useState<"1h" | "24h">("1h");
+  const [step, setStep] = useState<60 | 300>(60);
 
   const filters = useMemo<Filters>(
     () => ({
@@ -127,6 +130,16 @@ export default function Traces() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-2">Traces</h1>
+      <PeriodStepSelector
+        range={range}
+        step={step}
+        onRangeChange={setRange}
+        onStepChange={setStep}
+        className="mb-2"
+      />
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+        Search and inspect transition traces. Use filters to narrow results.
+      </p>
 
       <div className="mb-3 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
         <input
