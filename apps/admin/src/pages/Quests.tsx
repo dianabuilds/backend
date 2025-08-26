@@ -49,7 +49,7 @@ async function publishQuest(id: string): Promise<QuestItem> {
 
 export default function Quests() {
   const { addToast } = useToast();
-  const { workspaceId } = useWorkspace();
+  useWorkspace();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [authorRole, setAuthorRole] = useState<string>(""); // any|admin|moderator|user
@@ -131,7 +131,7 @@ export default function Quests() {
         </label>
         <Link
           className="px-3 py-1 rounded bg-blue-600 text-white"
-          to={workspaceId ? `/nodes/new?workspace_id=${workspaceId}` : "/nodes/new"}
+          to="/quests/editor"
         >
           Create quest
         </Link>
