@@ -52,6 +52,7 @@ import { ADMIN_DEV_TOOLS } from "./utils/env";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
 const Worlds = lazy(() => import("./pages/Worlds"));
 const AISettings = lazy(() => import("./pages/AISettings"));
+const AISystemSettings = lazy(() => import("./pages/AISystemSettings"));
 const AIQuestJobDetails = lazy(() => import("./pages/AIQuestJobDetails"));
 const Telemetry = lazy(() => import("./pages/Telemetry"));
 const PremiumPlans = lazy(() => import("./pages/PremiumPlans"));
@@ -129,6 +130,7 @@ export default function App() {
                       />
                       <Route path="ai/worlds" element={<Worlds />} />
                       <Route path="ai/settings" element={<AISettings />} />
+                      <Route path="ai/system" element={<AISystemSettings />} />
                       <Route path="achievements" element={<Achievements />} />
                       <Route path="workspaces" element={<Workspaces />} />
                       <Route
