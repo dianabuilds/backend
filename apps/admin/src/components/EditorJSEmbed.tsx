@@ -20,7 +20,7 @@ export default function EditorJSEmbed({
   value,
   onChange,
   className,
-  minHeight = 220,
+  minHeight = 480,
   placeholder,
   onReady,
 }: Props) {
