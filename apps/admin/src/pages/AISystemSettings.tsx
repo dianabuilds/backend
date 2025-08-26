@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
   Cloud,
-  Cube,
+  Box,
   Wallet,
   Pencil,
   Trash2,
@@ -423,7 +423,7 @@ function SettingsTabs() {
               <div className="bg-white p-4 rounded shadow space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-lg font-semibold">
-                    <Cube className="w-5 h-5" />
+                    <Box className="w-5 h-5" />
                     Models
                   </div>
                   <div className="flex items-center gap-2">
