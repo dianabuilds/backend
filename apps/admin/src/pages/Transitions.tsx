@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { createTransition, updateTransition } from "../api/transitions";
 
 export default function Transitions() {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [searchParams] = useSearchParams();
+  const [from, setFrom] = useState(() => searchParams.get("from_slug") || "");
+  const [to, setTo] = useState(() => searchParams.get("to_slug") || "");
   const [label, setLabel] = useState("");
   const [weight, setWeight] = useState("");
   const [enableId, setEnableId] = useState("");
