@@ -316,13 +316,10 @@ function NodeEditorInner({
     if (!canEdit) return;
     manualRef.current = true;
     await save();
-    const nextId = Number(node.id);
-    const nextPath = Number.isNaN(nextId)
-      ? "/nodes/new"
-      : `/nodes/${nextId + 1}`;
-    navigate(
-      workspaceId ? `${nextPath}?workspace_id=${workspaceId}` : nextPath,
-    );
+    const path = workspaceId
+      ? `/nodes/new?workspace_id=${workspaceId}`
+      : "/nodes/new";
+    navigate(path);
   };
 
   const handleCreate = () => {
@@ -334,6 +331,9 @@ function NodeEditorInner({
   };
 
   const handleClose = () => {
+    if (unsaved && !window.confirm("Discard unsaved changes?")) {
+      return;
+    }
     navigate(workspaceId ? `/nodes?workspace_id=${workspaceId}` : "/nodes");
   };
 
