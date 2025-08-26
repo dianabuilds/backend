@@ -949,7 +949,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                               rel="noopener noreferrer"
                               className="px-2 py-1 border rounded"
                             >
-                              Preview route
+                              Simulation route
                             </a>
                             <a
                               href={`/transitions/trace?start=${encodeURIComponent(n.slug)}&workspace=${workspaceId}`}

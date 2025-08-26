@@ -7,6 +7,7 @@ export interface SimulatePreviewRequest {
   preview_mode?: string;
   role?: string;
   plan?: string;
+  branch?: string;
   seed?: number;
   locale?: string;
   device?: string;

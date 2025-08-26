@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 
-import WorkspaceSelector from "../components/WorkspaceSelector";
-import { simulatePreview, createPreviewLink } from "../api/preview";
 import { setPreviewToken } from "../api/client";
+import { simulatePreview, createPreviewLink } from "../api/preview";
+import WorkspaceSelector from "../components/WorkspaceSelector";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
-export default function Preview() {
+export default function Simulation() {
   const { workspaceId, setWorkspace } = useWorkspace();
 
   const [start, setStart] = useState("");
   const [previewMode, setPreviewMode] = useState("off");
   const [role, setRole] = useState("");
   const [plan, setPlan] = useState("");
+  const [branch, setBranch] = useState("");
   const [seed, setSeed] = useState<string>("");
   const [locale, setLocale] = useState("");
   const [device, setDevice] = useState("");
@@ -23,7 +24,7 @@ export default function Preview() {
   const [reason, setReason] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [autoRunning, setAutoRunning] = useState(false);
-  const [tab, setTab] = useState<"preview" | "trace">("preview");
+  const [tab, setTab] = useState<"simulation" | "trace">("simulation");
   const [sharedMode, setSharedMode] = useState(false);
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export default function Preview() {
         preview_mode: previewMode,
         role: role || undefined,
         plan: plan || undefined,
+        branch: branch || undefined,
         seed: seed ? Number(seed) : undefined,
         locale: locale || undefined,
         device: device || undefined,
@@ -122,7 +124,7 @@ export default function Preview() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Simulation</h1>
       <p className="text-sm text-gray-600">
-        Simulate navigation without affecting real data.
+        Simulate navigation for a specific branch without affecting real data.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
         {!sharedMode && (
@@ -141,7 +143,7 @@ export default function Preview() {
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">Preview mode</span>
+          <span className="text-sm text-gray-600">Simulation mode</span>
           <select
             value={previewMode}
             onChange={(e) => setPreviewMode(e.target.value)}
@@ -169,6 +171,15 @@ export default function Preview() {
             onChange={(e) => setPlan(e.target.value)}
             className="border rounded px-2 py-1"
             placeholder="plan"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm text-gray-600">Branch</span>
+          <input
+            value={branch}
+            onChange={(e) => setBranch(e.target.value)}
+            className="border rounded px-2 py-1"
+            placeholder="main"
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -239,10 +250,12 @@ export default function Preview() {
       <div>
         <div className="flex gap-4 border-b mb-2">
           <button
-            onClick={() => setTab("preview")}
-            className={`pb-1 ${tab === "preview" ? "border-b-2 border-blue-500" : ""}`}
+            onClick={() => setTab("simulation")}
+            className={`pb-1 ${
+              tab === "simulation" ? "border-b-2 border-blue-500" : ""
+            }`}
           >
-            Preview
+            Simulation
           </button>
           <button
             onClick={() => setTab("trace")}
@@ -251,7 +264,7 @@ export default function Preview() {
             Trace
           </button>
         </div>
-        {tab === "preview" ? (
+        {tab === "simulation" ? (
           <div className="space-y-2">
             <div>Path: {path.join(" → ") || "-"}</div>
             {reason && <div className="text-sm text-gray-600">Reason: {reason}</div>}
