@@ -102,10 +102,6 @@ export default function NodeEditor() {
         is_public: node.is_public,
       });
       setNode({ ...node, slug: updated.slug ?? node.slug });
-      const simUrl =
-        node.slug && workspaceId
-          ? `/preview?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`
-          : undefined;
       const traceUrl =
         node.slug && workspaceId
           ? `/transitions/trace?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`
@@ -114,25 +110,15 @@ export default function NodeEditor() {
         title: "Node saved",
         variant: "success",
         description:
-          simUrl && traceUrl ? (
-            <div className="flex gap-2">
-              <a
-                href={simUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                Open in Simulation
-              </a>
-              <a
-                href={traceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                Open Trace
-              </a>
-            </div>
+          traceUrl ? (
+            <a
+              href={traceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Open Trace
+            </a>
           ) : undefined,
       });
       try {
@@ -189,24 +175,14 @@ export default function NodeEditor() {
                   Preview
                 </a>
                 {workspaceId && (
-                  <>
-                    <a
-                      href={`/preview?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2 py-1 border rounded"
-                    >
-                      Simulation route
-                    </a>
-                    <a
-                      href={`/transitions/trace?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2 py-1 border rounded"
-                    >
-                      Trace candidates
-                    </a>
-                  </>
+                  <a
+                    href={`/transitions/trace?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2 py-1 border rounded"
+                  >
+                    Trace candidates
+                  </a>
                 )}
               </>
             )}

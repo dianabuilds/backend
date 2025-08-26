@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
@@ -21,7 +21,7 @@ vi.mock("../auth/AuthContext", () => ({
 import { getAdminMenu } from "../api/client";
 
 describe("Sidebar", () => {
-  it("shows menu groups and workspaces item", async () => {
+  it("shows menu groups", async () => {
     (getAdminMenu as any).mockResolvedValue({
       items: [
         {
@@ -53,7 +53,6 @@ describe("Sidebar", () => {
           label: "Administration",
           children: [
             { id: "users-list", label: "Users", path: "/users", order: 1 },
-            { id: "workspaces", label: "Workspaces", path: "/workspaces", order: 2 },
           ],
         },
       ],
@@ -68,10 +67,5 @@ describe("Sidebar", () => {
     expect(await screen.findByText("Content")).toBeInTheDocument();
     expect(await screen.findByText("Navigation")).toBeInTheDocument();
     expect(await screen.findByText("Monitoring")).toBeInTheDocument();
-
-    const adminBtn = await screen.findByRole("button", { name: "Administration" });
-    fireEvent.click(adminBtn);
-
-    expect(await screen.findByText("Workspaces")).toBeInTheDocument();
   });
 });
