@@ -1,8 +1,9 @@
 /* eslint react-refresh/only-export-components: off */
-import { createContext, type ReactNode, useContext, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
 import { setWorkspaceId as persistWorkspaceId } from "../api/client";
 import type { Workspace } from "../api/types";
+import { safeLocalStorage } from "../utils/safeStorage";
 
 interface WorkspaceContextType {
   workspaceId: string;
@@ -20,17 +21,17 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
 
 export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
   const [workspaceId, setWorkspaceIdState] = useState<string>(() => {
-    if (typeof localStorage === "undefined") return "";
-    const stored = localStorage.getItem("workspaceId") || "";
-    const fallback = localStorage.getItem("defaultWorkspaceId") || "";
-    const initial = stored || fallback;
-    persistWorkspaceId(initial || null);
-    return initial;
+    const stored = safeLocalStorage.getItem("workspaceId") || "";
+    const fallback = safeLocalStorage.getItem("defaultWorkspaceId") || "";
+    return stored || fallback;
   });
 
+  useEffect(() => {
+    persistWorkspaceId(workspaceId || null);
+  }, [workspaceId]);
+
   const [branch, setBranchState] = useState<string>(() => {
-    if (typeof localStorage === "undefined") return "";
-    return localStorage.getItem("branch") || "";
+    return safeLocalStorage.getItem("branch") || "";
   });
 
   const setWorkspace = (ws: Workspace | undefined) => {
@@ -41,10 +42,8 @@ export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
 
   const setBranch = (b: string) => {
     setBranchState(b);
-    if (typeof localStorage !== "undefined") {
-      if (b) localStorage.setItem("branch", b);
-      else localStorage.removeItem("branch");
-    }
+    if (b) safeLocalStorage.setItem("branch", b);
+    else safeLocalStorage.removeItem("branch");
   };
 
   return (

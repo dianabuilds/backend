@@ -3,12 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { createNode, getNode, patchNode } from "../api/nodes";
 import ContentEditor from "../components/content/ContentEditor";
-import { useToast } from "../components/ToastProvider";
 import type { TagOut } from "../components/tags/TagPicker";
-import type { OutputData } from "../types/editorjs";
-import PageLayout from "./_shared/PageLayout";
+import { useToast } from "../components/ToastProvider";
 import WorkspaceSelector from "../components/WorkspaceSelector";
+import type { OutputData } from "../types/editorjs";
+import { safeLocalStorage } from "../utils/safeStorage";
 import { useWorkspace } from "../workspace/WorkspaceContext";
+import PageLayout from "./_shared/PageLayout";
 
 interface NodeEditorData {
   id: string;
@@ -96,10 +97,10 @@ export default function NodeEditor() {
         premium_only: node.is_premium_only,
       });
       addToast({ title: "Node saved", variant: "success" });
-      if (typeof localStorage !== "undefined") {
-         try {
-           localStorage.removeItem(`node-content-${node.id}`);
-         } catch { /* ignore */ }
+      try {
+        safeLocalStorage.removeItem(`node-content-${node.id}`);
+      } catch {
+        /* ignore */
       }
     } catch (e) {
       addToast({

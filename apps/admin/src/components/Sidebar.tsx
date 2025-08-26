@@ -2,22 +2,23 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import { type AdminMenuItem, getAdminMenu } from "../api/client";
-import { getIconComponent } from "../icons/registry";
 import { useAuth } from "../auth/AuthContext";
+import { getIconComponent } from "../icons/registry";
 import { ADMIN_DEV_TOOLS } from "../utils/env";
+import { safeLocalStorage } from "../utils/safeStorage";
 
 function useExpandedState() {
   const KEY = "adminSidebarExpanded";
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     try {
-      const raw = localStorage.getItem(KEY);
+      const raw = safeLocalStorage.getItem(KEY);
       return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
     } catch {
       return {};
     }
   });
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(expanded));
+    safeLocalStorage.setItem(KEY, JSON.stringify(expanded));
   }, [expanded]);
   const toggle = useCallback((id: string) => {
     setExpanded((s) => ({ ...s, [id]: !s[id] }));

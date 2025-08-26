@@ -1,51 +1,40 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ADMIN_DEV_TOOLS } from "../utils/env";
+import { safeLocalStorage, safeSessionStorage } from "../utils/safeStorage";
 
-let csrfTokenMem: string | null =
-  typeof sessionStorage !== "undefined" ? sessionStorage.getItem("csrfToken") : null;
+let csrfTokenMem: string | null = safeSessionStorage.getItem("csrfToken");
 
 // Храним access_token для Bearer, если cookie недоступны/не прикрепились
-let accessTokenMem: string | null =
-  typeof sessionStorage !== "undefined" ? sessionStorage.getItem("accessToken") : null;
+let accessTokenMem: string | null = safeSessionStorage.getItem("accessToken");
 
 // Храним текущий workspace_id для админских запросов
-let workspaceIdMem: string | null =
-  typeof localStorage !== "undefined" ? localStorage.getItem("workspaceId") : null;
+let workspaceIdMem: string | null = safeLocalStorage.getItem("workspaceId");
 
 // Токен превью-сессии для доступа без авторизации
-let previewTokenMem: string | null =
-  typeof sessionStorage !== "undefined" ? sessionStorage.getItem("previewToken") : null;
+let previewTokenMem: string | null = safeSessionStorage.getItem("previewToken");
 
 export function setCsrfToken(token: string | null) {
   csrfTokenMem = token || null;
-  if (typeof sessionStorage !== "undefined") {
-    if (token) sessionStorage.setItem("csrfToken", token);
-    else sessionStorage.removeItem("csrfToken");
-  }
+  if (token) safeSessionStorage.setItem("csrfToken", token);
+  else safeSessionStorage.removeItem("csrfToken");
 }
 
 export function setAccessToken(token: string | null) {
   accessTokenMem = token || null;
-  if (typeof sessionStorage !== "undefined") {
-    if (token) sessionStorage.setItem("accessToken", token);
-    else sessionStorage.removeItem("accessToken");
-  }
+  if (token) safeSessionStorage.setItem("accessToken", token);
+  else safeSessionStorage.removeItem("accessToken");
 }
 
 export function setWorkspaceId(id: string | null) {
   workspaceIdMem = id || null;
-  if (typeof localStorage !== "undefined") {
-    if (id) localStorage.setItem("workspaceId", id);
-    else localStorage.removeItem("workspaceId");
-  }
+  if (id) safeLocalStorage.setItem("workspaceId", id);
+  else safeLocalStorage.removeItem("workspaceId");
 }
 
 export function setPreviewToken(token: string | null) {
   previewTokenMem = token || null;
-  if (typeof sessionStorage !== "undefined") {
-    if (token) sessionStorage.setItem("previewToken", token);
-    else sessionStorage.removeItem("previewToken");
-  }
+  if (token) safeSessionStorage.setItem("previewToken", token);
+  else safeSessionStorage.removeItem("previewToken");
 }
 
 function applyWorkspace(u: string, method?: string): string {
@@ -447,22 +436,22 @@ const MENU_ETAG_KEY = `adminMenuEtag:${MENU_CACHE_VERSION}`;
 const MENU_CACHE_KEY = `adminMenuCache:${MENU_CACHE_VERSION}`;
 
 export async function getAdminMenu(): Promise<AdminMenuResponse> {
-  const etag = typeof localStorage !== "undefined" ? localStorage.getItem(MENU_ETAG_KEY) : null;
+  const etag = safeLocalStorage.getItem(MENU_ETAG_KEY);
   try {
     const res = await api.get<AdminMenuResponse>("/admin/menu", { etag, acceptNotModified: true });
     if (res.status === 304) {
-      const cached = typeof localStorage !== "undefined" ? localStorage.getItem(MENU_CACHE_KEY) : null;
+      const cached = safeLocalStorage.getItem(MENU_CACHE_KEY);
       if (cached) return JSON.parse(cached) as AdminMenuResponse;
       const res2 = await api.get<AdminMenuResponse>("/admin/menu");
-      if (res2.etag && typeof localStorage !== "undefined") localStorage.setItem(MENU_ETAG_KEY, res2.etag);
-      if (res2.data && typeof localStorage !== "undefined") localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(res2.data));
+      if (res2.etag) safeLocalStorage.setItem(MENU_ETAG_KEY, res2.etag);
+      if (res2.data) safeLocalStorage.setItem(MENU_CACHE_KEY, JSON.stringify(res2.data));
       return res2.data as AdminMenuResponse;
     }
-    if (res.etag && typeof localStorage !== "undefined") localStorage.setItem(MENU_ETAG_KEY, res.etag);
-    if (res.data && typeof localStorage !== "undefined") localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(res.data));
+    if (res.etag) safeLocalStorage.setItem(MENU_ETAG_KEY, res.etag);
+    if (res.data) safeLocalStorage.setItem(MENU_CACHE_KEY, JSON.stringify(res.data));
     return res.data as AdminMenuResponse;
   } catch (e) {
-    const cached = typeof localStorage !== "undefined" ? localStorage.getItem(MENU_CACHE_KEY) : null;
+    const cached = safeLocalStorage.getItem(MENU_CACHE_KEY);
     if (cached) return JSON.parse(cached) as AdminMenuResponse;
     throw e;
   }

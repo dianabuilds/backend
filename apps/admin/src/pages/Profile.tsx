@@ -4,17 +4,15 @@ import { useState } from "react";
 import { api } from "../api/client";
 import type { Workspace } from "../api/types";
 import { useToast } from "../components/ToastProvider";
+import { safeLocalStorage } from "../utils/safeStorage";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 import PageLayout from "./_shared/PageLayout";
 
 export default function Profile() {
   const { addToast } = useToast();
   const { setWorkspace } = useWorkspace();
-  const [defaultWs, setDefaultWs] = useState<string>(
-    () =>
-      (typeof localStorage !== "undefined" &&
-        localStorage.getItem("defaultWorkspaceId")) ||
-      "",
+  const [defaultWs, setDefaultWs] = useState<string>(() =>
+    safeLocalStorage.getItem("defaultWorkspaceId") || "",
   );
 
   const { data } = useQuery({
@@ -30,9 +28,7 @@ export default function Profile() {
   });
 
   const save = () => {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem("defaultWorkspaceId", defaultWs);
-    }
+    safeLocalStorage.setItem("defaultWorkspaceId", defaultWs);
     setWorkspace(data?.find((ws) => ws.id === defaultWs));
     addToast({ title: "Default workspace saved", variant: "success" });
   };
