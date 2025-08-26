@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 import time
-from typing import Dict, List, Tuple, Set, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.admin.infrastructure.models.feature_flag import FeatureFlag
 
 _CACHE_TTL = 30  # seconds
-_cache: Tuple[float, Dict[str, bool]] | None = None
+_cache: tuple[float, dict[str, bool]] | None = None
 
 # Predefined feature flags available in the system with optional descriptions.
-KNOWN_FLAGS: Dict[str, str] = {
+KNOWN_FLAGS: dict[str, str] = {
     "moderation.enabled": "Enable moderation section in admin UI",
     "payments": "Enable payments module",
+    "ai.validation": "Enable AI-based validation for nodes",
 }
 
 
@@ -22,9 +22,9 @@ def _now() -> float:
     return time.time()
 
 
-async def _load_flags(db: AsyncSession) -> Dict[str, bool]:
+async def _load_flags(db: AsyncSession) -> dict[str, bool]:
     res = await db.execute(select(FeatureFlag))
-    items: List[FeatureFlag] = list(res.scalars().all())
+    items: list[FeatureFlag] = list(res.scalars().all())
     return {it.key: bool(it.value) for it in items}
 
 
@@ -42,7 +42,7 @@ async def ensure_known_flags(db: AsyncSession) -> None:
         invalidate_cache()
 
 
-async def get_flags_map(db: AsyncSession) -> Dict[str, bool]:
+async def get_flags_map(db: AsyncSession) -> dict[str, bool]:
     global _cache
     if _cache and _cache[0] > _now():
         return _cache[1]
@@ -51,16 +51,14 @@ async def get_flags_map(db: AsyncSession) -> Dict[str, bool]:
     return data
 
 
-def parse_preview_flags(header_val: Optional[str]) -> Set[str]:
+def parse_preview_flags(header_val: str | None) -> set[str]:
     if not header_val:
         return set()
     vals = [p.strip() for p in header_val.split(",") if p.strip()]
     return set(vals)
 
 
-async def get_effective_flags(
-    db: AsyncSession, preview_header: Optional[str]
-) -> Set[str]:
+async def get_effective_flags(db: AsyncSession, preview_header: str | None) -> set[str]:
     base = await get_flags_map(db)
     active = {k for k, v in base.items() if v}
     preview = parse_preview_flags(preview_header)
@@ -70,9 +68,9 @@ async def get_effective_flags(
 async def set_flag(
     db: AsyncSession,
     key: str,
-    value: Optional[bool] = None,
-    description: Optional[str] = None,
-    updated_by: Optional[str] = None,
+    value: bool | None = None,
+    description: str | None = None,
+    updated_by: str | None = None,
 ) -> FeatureFlag:
     existing = await db.get(FeatureFlag, key)
     if existing is None:

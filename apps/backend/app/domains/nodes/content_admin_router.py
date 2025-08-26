@@ -1,12 +1,13 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_preview_context
 from app.core.db.session import get_db
+from app.core.feature_flags import get_effective_flags
 from app.core.preview import PreviewContext
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
@@ -16,8 +17,10 @@ from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.models import NodeItem
 from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.users.infrastructure.models.user import User
+from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
 from app.schemas.nodes_common import NodeType
 from app.schemas.quest_editor import SimulateIn
+from app.schemas.workspaces import WorkspaceSettings
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
 
 router = APIRouter(
@@ -162,6 +165,17 @@ async def validate_node_item_ai(
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
+    flags = await get_effective_flags(db, None)
+    if "ai.validation" not in flags:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    workspace = await WorkspaceDAO.get(db, workspace_id)
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    settings = WorkspaceSettings.model_validate(workspace.settings_json)
+    if not settings.features.get("ai.validation"):
+        raise HTTPException(status_code=404, detail="Not found")
+
     svc = NodeService(db, navcache, InAppNotificationPort(db))
     report = await svc.validate_with_ai(workspace_id, node_type, node_id)
     blocking = [item for item in report.items if item.level == "error"]

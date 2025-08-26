@@ -31,6 +31,7 @@ class WorkspaceSettings(BaseModel):
             "compass_calls": 0,
         }
     )
+    features: dict[str, bool] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -40,6 +41,7 @@ class WorkspaceSettings(BaseModel):
         self.limits.setdefault("ai_tokens", 0)
         self.limits.setdefault("notif_per_day", 0)
         self.limits.setdefault("compass_calls", 0)
+        self.features = self.features or {}
         return self
 
 
