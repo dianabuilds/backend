@@ -49,20 +49,7 @@ export default function NodeEditor() {
   useEffect(() => {
     if (!workspaceId) return;
     const load = async () => {
-      if (!id) return;
-      if (id === "new") {
-        try {
-          const n = await createNode("quest");
-          const path = workspaceId
-            ? `/nodes/${n.id}?workspace_id=${workspaceId}`
-            : `/nodes/${n.id}`;
-          navigate(path, { replace: true });
-        } catch (e) {
-          setError(e instanceof Error ? e.message : String(e));
-          setLoading(false);
-        }
-        return;
-      }
+      if (!id || id === "new") return;
       try {
         const n = await getNode(id);
         const raw = n as Record<string, unknown>;
@@ -132,7 +119,7 @@ export default function NodeEditor() {
       }
     };
     void load();
-  }, [id, navigate, workspaceId]);
+  }, [id, workspaceId]);
 
   if (!workspaceId) {
     return (
@@ -141,6 +128,10 @@ export default function NodeEditor() {
         <WorkspaceSelector />
       </div>
     );
+  }
+
+  if (id === "new") {
+    return <NodeCreate workspaceId={workspaceId} />;
   }
 
   if (loading) {
@@ -160,6 +151,95 @@ export default function NodeEditor() {
   if (!node) return null;
 
   return <NodeEditorInner initialNode={node} workspaceId={workspaceId} />;
+}
+
+function NodeCreate({ workspaceId }: { workspaceId: string }) {
+  const navigate = useNavigate();
+  const [title, setTitle] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      const n = await createNode({ node_type: "quest", title });
+      const path = workspaceId
+        ? `/nodes/${n.id}?workspace_id=${workspaceId}`
+        : `/nodes/${n.id}`;
+      navigate(path, { replace: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setCreating(false);
+    }
+  };
+
+  const handleClose = () => {
+    navigate(workspaceId ? `/nodes?workspace_id=${workspaceId}` : "/nodes");
+  };
+
+  return (
+    <div className="flex h-full flex-col">
+      {error ? (
+        <ErrorBanner
+          message={error}
+          onClose={() => setError(null)}
+          className="m-4"
+        />
+      ) : null}
+      <div className="border-b p-4">
+        <nav className="mb-2 text-sm text-gray-600 dark:text-gray-300">
+          <ol className="flex flex-wrap items-center gap-1">
+            <li>
+              <Link to="/" className="hover:underline">
+                Workspace
+              </Link>
+            </li>
+            <li className="flex items-center gap-1">
+              <span>/</span>
+              <Link
+                to={workspaceId ? `/nodes?workspace_id=${workspaceId}` : "/nodes"}
+                className="hover:underline"
+              >
+                Nodes
+              </Link>
+            </li>
+            <li className="flex items-center gap-1">
+              <span>/</span>
+              <span>New node</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">New node</h1>
+          <div className="flex items-center gap-2 text-sm">
+            <button
+              type="button"
+              className="px-2 py-1 border rounded"
+              disabled={!title.trim() || creating}
+              onClick={handleCreate}
+            >
+              Create
+            </button>
+            <button
+              type="button"
+              className="px-2 py-1 border rounded"
+              onClick={handleClose}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 overflow-auto p-4 space-y-6">
+        <GeneralTab title={title} onTitleChange={setTitle} titleRef={titleRef} />
+      </div>
+    </div>
+  );
 }
 
 function NodeEditorInner({
