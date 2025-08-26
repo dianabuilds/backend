@@ -12,6 +12,9 @@ export default function GeneralTab({
   is_premium_only = false,
   cover_url = null,
   summary = "",
+  titleError = null,
+  summaryError = null,
+  coverError = null,
   onTitleChange,
   titleRef,
   onTagsChange,
@@ -23,12 +26,25 @@ export default function GeneralTab({
 }: GeneralTabProps) {
   return (
     <div className="space-y-4">
-      <FieldTitle ref={titleRef} value={title} onChange={onTitleChange} />
+      <FieldTitle
+        ref={titleRef}
+        value={title}
+        onChange={onTitleChange}
+        error={titleError}
+      />
       {onSummaryChange ? (
-        <FieldSummary value={summary} onChange={onSummaryChange} />
+        <FieldSummary
+          value={summary}
+          onChange={onSummaryChange}
+          error={summaryError}
+        />
       ) : null}
       {onCoverChange ? (
-        <FieldCover value={cover_url} onChange={onCoverChange} />
+        <FieldCover
+          value={cover_url}
+          onChange={onCoverChange}
+          error={coverError}
+        />
       ) : null}
       {onTagsChange ? <FieldTags value={tags} onChange={onTagsChange} /> : null}
       {onIsPublicChange ? (
