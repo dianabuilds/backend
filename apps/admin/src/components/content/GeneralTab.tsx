@@ -13,6 +13,7 @@ export default function GeneralTab({
   cover_url = null,
   summary = "",
   onTitleChange,
+  titleRef,
   onTagsChange,
   onIsPublicChange,
   onAllowCommentsChange,
@@ -22,7 +23,7 @@ export default function GeneralTab({
 }: GeneralTabProps) {
   return (
     <div className="space-y-4">
-      <FieldTitle value={title} onChange={onTitleChange} />
+      <FieldTitle ref={titleRef} value={title} onChange={onTitleChange} />
       {onSummaryChange ? (
         <FieldSummary value={summary} onChange={onSummaryChange} />
       ) : null}
