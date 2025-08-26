@@ -32,6 +32,7 @@ interface NodeEditorData {
   allow_comments: boolean;
   is_premium_only: boolean;
   is_public: boolean;
+  published_at: string | null;
   contentData: OutputData;
   node_type: string;
 }
@@ -101,6 +102,12 @@ export default function NodeEditor() {
             typeof raw.is_public === "boolean"
               ? (raw.is_public as boolean)
               : Boolean(raw.isPublic),
+          published_at:
+            typeof raw.published_at === "string"
+              ? (raw.published_at as string)
+              : typeof raw.publishedAt === "string"
+                ? (raw.publishedAt as string)
+                : null,
           contentData: (n.content as OutputData) || {
             time: Date.now(),
             blocks: [],
@@ -172,6 +179,7 @@ function NodeEditorInner({
             premium_only: data.is_premium_only,
             tags: data.tags.map((t) => t.slug),
             is_public: data.is_public,
+            published_at: data.published_at,
             cover_url: data.cover_url,
             cover_asset_id: data.cover_asset_id,
             cover_meta: data.cover_meta,
@@ -388,6 +396,7 @@ function NodeEditorInner({
             created_at: node.created_at,
             updated_at: node.updated_at,
             is_public: node.is_public,
+            published_at: node.published_at,
             node_type: node.node_type,
             cover_url: node.cover_url,
             cover_asset_id: node.cover_asset_id,
@@ -405,6 +414,20 @@ function NodeEditorInner({
               cover_alt: c.alt,
               cover_meta: c.meta,
             })
+          }
+          onStatusChange={(is_public, updated) =>
+            setData((prev) => ({
+              ...prev,
+              is_public,
+              updated_at: updated ?? prev.updated_at,
+            }))
+          }
+          onScheduleChange={(published_at, updated) =>
+            setData((prev) => ({
+              ...prev,
+              published_at,
+              updated_at: updated ?? prev.updated_at,
+            }))
           }
         />
       </div>
