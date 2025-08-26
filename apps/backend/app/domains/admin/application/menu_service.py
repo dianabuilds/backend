@@ -249,6 +249,50 @@ BASE_MENU: list[dict] = [
             },
         ],
     },
+    {
+        "id": "global-settings",
+        "label": "Global settings",
+        "icon": "settings",
+        "order": 5,
+        "roles": ["admin"],
+        "children": [
+            {
+                "id": "global-authentication",
+                "label": "Authentication",
+                "path": "/settings/authentication",
+                "icon": "lock",
+                "order": 1,
+            },
+            {
+                "id": "global-payments",
+                "label": "Payments",
+                "path": "/settings/payments",
+                "icon": "credit-card",
+                "order": 2,
+            },
+            {
+                "id": "global-integrations",
+                "label": "Integrations",
+                "path": "/settings/integrations",
+                "icon": "plug",
+                "order": 3,
+            },
+            {
+                "id": "global-metrics",
+                "label": "Metrics",
+                "path": "/settings/metrics",
+                "icon": "activity",
+                "order": 4,
+            },
+            {
+                "id": "global-feature-flags",
+                "label": "Feature flags",
+                "path": "/settings/feature-flags",
+                "icon": "flag",
+                "order": 5,
+            },
+        ],
+    },
 ]
 
 CACHE_TTL = 45  # seconds
