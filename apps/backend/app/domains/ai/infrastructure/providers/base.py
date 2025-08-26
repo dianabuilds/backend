@@ -20,6 +20,7 @@ class LLMServerError(LLMError):
 class LLMUsage:
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    latency: float = 0.0
 
     @property
     def total_tokens(self) -> int:
@@ -48,4 +49,14 @@ class LLMProvider(Protocol):
         timeout: float = 30.0,
         json_mode: bool = False,
     ) -> LLMResult:
+        ...
+
+    async def count_tokens(
+        self,
+        *,
+        model: str,
+        prompt: str,
+        system: Optional[str] = None,
+    ) -> Optional[int]:
+        """Return number of tokens in the prompt if provider supports it."""
         ...

@@ -2,11 +2,18 @@ from __future__ import annotations
 
 import os
 import asyncio
+import time
 from typing import Optional, Dict, Any
 
 import httpx
 
-from app.domains.ai.providers.base import LLMProvider, LLMResult, LLMUsage, LLMRateLimit, LLMServerError  # type: ignore
+from app.domains.ai.providers.base import (
+    LLMProvider,
+    LLMResult,
+    LLMUsage,
+    LLMRateLimit,
+    LLMServerError,
+)
 
 
 class AnthropicProvider(LLMProvider):
@@ -48,7 +55,9 @@ class AnthropicProvider(LLMProvider):
         async with httpx.AsyncClient(timeout=req_timeout) as client:
             for attempt in range(1, max_attempts + 1):
                 try:
+                    t0 = time.perf_counter()
                     resp = await client.post(url, headers=headers, json=body)
+                    dt = time.perf_counter() - t0
                     if resp.status_code == 429:
                         raise LLMRateLimit(resp.text)
                     if resp.status_code >= 500:
@@ -69,6 +78,7 @@ class AnthropicProvider(LLMProvider):
                         usage=LLMUsage(
                             prompt_tokens=int(usage_raw.get("input_tokens", 0)),
                             completion_tokens=int(usage_raw.get("output_tokens", 0)),
+                            latency=dt,
                         ),
                         raw=data,
                     )
@@ -86,3 +96,29 @@ class AnthropicProvider(LLMProvider):
         if last_exc:
             raise last_exc
         raise RuntimeError("AnthropicProvider: unexpected state")
+
+    async def count_tokens(
+        self,
+        *,
+        model: str,
+        prompt: str,
+        system: Optional[str] = None,
+    ) -> Optional[int]:
+        url = f"{self.base_url}/v1/messages/tokens"
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+        }
+        body: Dict[str, Any] = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+        if system:
+            body["messages"].insert(0, {"role": "system", "content": system})
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(url, headers=headers, json=body)
+                resp.raise_for_status()
+                data = resp.json()
+                tok = data.get("input_tokens") or data.get("tokens")
+                return int(tok) if tok is not None else None
+        except Exception:
+            return None
