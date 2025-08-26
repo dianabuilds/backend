@@ -38,20 +38,27 @@ def create_async_redis(
     # Connection-specific kwargs
     conn_kwargs: dict[str, Any] = {
         "socket_connect_timeout": connect_timeout,
+        "socket_timeout": connect_timeout,  # не даём операциям зависать
     }
 
     scheme = url.split(":", 1)[0].lower()
     if scheme == "rediss":
+        # Явно включаем TLS на соединении (redis-py учитывает rediss в from_url,
+        # но явная установка устраняет неоднозначности в разных версиях).
+        conn_kwargs["ssl"] = True
         verify = os.getenv("REDIS_SSL_VERIFY", "true").lower() in {
             "1",
             "true",
             "yes",
             "on",
         }
-        # conn_kwargs["ssl"] = True
         if not verify:
             conn_kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
             conn_kwargs["ssl_check_hostname"] = False
+        # Пользователь может указать кастомный корневой сертификат
+        ca_file = os.getenv("REDIS_SSL_CA")
+        if ca_file:
+            conn_kwargs["ssl_ca_certs"] = ca_file
 
     pool = redis.BlockingConnectionPool.from_url(
         url,
