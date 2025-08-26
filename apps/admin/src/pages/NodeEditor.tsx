@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { createNode, getNode, patchNode } from "../api/nodes";
 import ContentEditor from "../components/content/ContentEditor";
+import type { TagOut } from "../components/tags/TagPicker";
 import { useToast } from "../components/ToastProvider";
 import WorkspaceSelector from "../components/WorkspaceSelector";
 import type { OutputData } from "../types/editorjs";
@@ -14,8 +15,10 @@ interface NodeEditorData {
   id: string;
   title: string;
   slug: string;
+  tags: TagOut[];
   allow_comments: boolean;
   is_premium_only: boolean;
+  is_public: boolean;
   contentData: OutputData;
   node_type: string;
 }
@@ -25,16 +28,6 @@ export default function NodeEditor() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { workspaceId } = useWorkspace();
-
-  if (!workspaceId) {
-    return (
-      <PageLayout>
-        <p className="mb-4">Выберите воркспейс, чтобы создать контент</p>
-        <WorkspaceSelector />
-      </PageLayout>
-    );
-  }
-
   const [node, setNode] = useState<NodeEditorData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -56,18 +49,27 @@ export default function NodeEditor() {
       }
       try {
         const n = await getNode(id);
+        const raw = n as Record<string, unknown>;
         setNode({
           id: n.id,
           title: n.title ?? "",
           slug: n.slug ?? "",
+          tags: Array.isArray(n.tags)
+            ? n.tags.map((slug) => ({ id: slug, slug, name: slug }))
+            : [],
           allow_comments: n.allow_feedback ?? true,
           is_premium_only: n.premium_only ?? false,
+          is_public:
+            typeof raw.is_public === "boolean"
+              ? (raw.is_public as boolean)
+              : Boolean(raw.isPublic),
           contentData: (n.content as OutputData) || {
             time: Date.now(),
             blocks: [],
             version: "2.30.7",
           },
-          node_type: (n as any).type ?? (n as any).node_type ?? "node",
+          node_type:
+            (raw.type as string) ?? (raw.node_type as string) ?? "node",
         });
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -78,6 +80,15 @@ export default function NodeEditor() {
     load();
   }, [id, navigate, workspaceId]);
 
+  if (!workspaceId) {
+    return (
+      <PageLayout>
+        <p className="mb-4">Выберите воркспейс, чтобы создать контент</p>
+        <WorkspaceSelector />
+      </PageLayout>
+    );
+  }
+
   const handleSave = async () => {
     if (!node) return;
     setSaving(true);
@@ -87,6 +98,8 @@ export default function NodeEditor() {
         content: node.contentData,
         allow_feedback: node.allow_comments,
         premium_only: node.is_premium_only,
+        tags: node.tags.map((t) => t.slug),
+        is_public: node.is_public,
       });
       setNode({ ...node, slug: updated.slug ?? node.slug });
       const simUrl =
@@ -160,7 +173,7 @@ export default function NodeEditor() {
         nodeId={node.id}
         node_type={node.node_type}
         title={node.title || "Node"}
-        statuses={["draft"]}
+        statuses={[node.is_public ? "published" : "draft"]}
         versions={[1]}
         onSave={handleSave}
         toolbar={
@@ -207,12 +220,15 @@ export default function NodeEditor() {
             </button>
           </div>
         }
-        slug={node.slug}
         general={{
           title: node.title,
+          tags: node.tags,
+          is_public: node.is_public,
           allow_comments: node.allow_comments,
           is_premium_only: node.is_premium_only,
           onTitleChange: (v) => setNode({ ...node, title: v }),
+          onTagsChange: (t) => setNode({ ...node, tags: t }),
+          onIsPublicChange: (v) => setNode({ ...node, is_public: v }),
           onAllowCommentsChange: (v) =>
             setNode({ ...node, allow_comments: v }),
           onPremiumOnlyChange: (v) =>
