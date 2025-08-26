@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { api } from "../api/client";
 
@@ -7,7 +7,6 @@ import { api } from "../api/client";
 type Provider = any;
 type Model = any;
 type Price = any;
-type Bundle = any;
 
 type Defaults = {
   provider_id?: string | null;
@@ -16,41 +15,15 @@ type Defaults = {
 };
 
 export default function AISystemSettings() {
-  const [tab, setTab] = useState<"providers" | "bundles" | "defaults">(
-    "providers",
-  );
-
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">AI System Settings</h1>
-      <div className="flex gap-4 mb-4">
-        <button
-          className={`px-3 py-1 rounded ${tab === "providers" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-          onClick={() => setTab("providers")}
-        >
-          Providers
-        </button>
-        <button
-          className={`px-3 py-1 rounded ${tab === "bundles" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-          onClick={() => setTab("bundles")}
-        >
-          Bundles
-        </button>
-        <button
-          className={`px-3 py-1 rounded ${tab === "defaults" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-          onClick={() => setTab("defaults")}
-        >
-          Defaults
-        </button>
-      </div>
-      {tab === "providers" && <ProvidersTab />}
-      {tab === "bundles" && <BundlesTab />}
-      {tab === "defaults" && <DefaultsTab />}
+      <SettingsTab />
     </div>
   );
 }
 
-function ProvidersTab() {
+function SettingsTab() {
   const qc = useQueryClient();
   const providers = useQuery({
     queryKey: ["ai", "providers"],
@@ -67,10 +40,30 @@ function ProvidersTab() {
     queryFn: async () =>
       (await api.get<Price[]>("/admin/ai/system/prices")).data || [],
   });
+  const defaults = useQuery({
+    queryKey: ["ai", "defaults"],
+    queryFn: async () =>
+      (await api.get<Defaults>("/admin/ai/system/defaults")).data || {},
+  });
 
   const [providerDraft, setProviderDraft] = useState<Partial<Provider>>({});
   const [modelDraft, setModelDraft] = useState<Partial<Model>>({});
   const [priceDraft, setPriceDraft] = useState<Partial<Price>>({});
+
+  const setDefaultProvider = async (id: string) => {
+    await api.put("/admin/ai/system/defaults", {
+      ...(defaults.data || {}),
+      provider_id: id,
+    });
+    await qc.invalidateQueries({ queryKey: ["ai", "defaults"] });
+  };
+  const setDefaultModel = async (id: string) => {
+    await api.put("/admin/ai/system/defaults", {
+      ...(defaults.data || {}),
+      model_id: id,
+    });
+    await qc.invalidateQueries({ queryKey: ["ai", "defaults"] });
+  };
 
   const saveProvider = async () => {
     if (providerDraft.id) {
@@ -143,6 +136,7 @@ function ProvidersTab() {
               <th className="p-1">ID</th>
               <th className="p-1">Code</th>
               <th className="p-1">Health</th>
+              <th className="p-1">Default</th>
               <th className="p-1">Actions</th>
             </tr>
           </thead>
@@ -152,6 +146,18 @@ function ProvidersTab() {
                 <td className="p-1">{p.id}</td>
                 <td className="p-1">{p.code || p.name}</td>
                 <td className="p-1">{p.health || p.health_status || "?"}</td>
+                <td className="p-1">
+                  {defaults.data?.provider_id === p.id ? (
+                    <span className="text-green-600">default</span>
+                  ) : (
+                    <button
+                      className="text-blue-600"
+                      onClick={() => setDefaultProvider(p.id)}
+                    >
+                      make default
+                    </button>
+                  )}
+                </td>
                 <td className="p-1 space-x-2">
                   <button
                     className="text-blue-600"
@@ -211,6 +217,7 @@ function ProvidersTab() {
               <th className="p-1">ID</th>
               <th className="p-1">Provider</th>
               <th className="p-1">Name</th>
+              <th className="p-1">Default</th>
               <th className="p-1">Actions</th>
             </tr>
           </thead>
@@ -220,6 +227,18 @@ function ProvidersTab() {
                 <td className="p-1">{m.id}</td>
                 <td className="p-1">{m.provider_id}</td>
                 <td className="p-1">{m.name || m.code}</td>
+                <td className="p-1">
+                  {defaults.data?.model_id === m.id ? (
+                    <span className="text-green-600">default</span>
+                  ) : (
+                    <button
+                      className="text-blue-600"
+                      onClick={() => setDefaultModel(m.id)}
+                    >
+                      make default
+                    </button>
+                  )}
+                </td>
                 <td className="p-1 space-x-2">
                   <button
                     className="text-blue-600"
@@ -352,143 +371,6 @@ function ProvidersTab() {
           </button>
         </div>
       </section>
-    </div>
-  );
-}
-
-function BundlesTab() {
-  const qc = useQueryClient();
-  const bundles = useQuery({
-    queryKey: ["ai", "bundles"],
-    queryFn: async () =>
-      (await api.get<Bundle[]>("/admin/ai/system/bundles")).data || [],
-  });
-  const [draft, setDraft] = useState<Partial<Bundle>>({});
-
-  const save = async () => {
-    if (draft.id) {
-      await api.put(
-        `/admin/ai/system/bundles/${encodeURIComponent(draft.id)}`,
-        draft,
-      );
-    } else {
-      await api.post("/admin/ai/system/bundles", draft);
-    }
-    setDraft({});
-    await qc.invalidateQueries({ queryKey: ["ai", "bundles"] });
-  };
-  const remove = async (id: string) => {
-    if (!confirm("Delete bundle?")) return;
-    await api.del(`/admin/ai/system/bundles/${encodeURIComponent(id)}`);
-    await qc.invalidateQueries({ queryKey: ["ai", "bundles"] });
-  };
-
-  return (
-    <div className="space-y-8">
-      <table className="min-w-full text-sm mb-2">
-        <thead>
-          <tr className="text-left">
-            <th className="p-1">ID</th>
-            <th className="p-1">Code</th>
-            <th className="p-1">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bundles.data?.map((b: any) => (
-            <tr key={b.id} className="border-t">
-              <td className="p-1">{b.id}</td>
-              <td className="p-1">{b.code || b.name}</td>
-              <td className="p-1 space-x-2">
-                <button className="text-blue-600" onClick={() => setDraft(b)}>
-                  edit
-                </button>
-                <button
-                  className="text-red-600"
-                  onClick={() => remove(b.id)}
-                >
-                  del
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="border rounded p-2 max-w-md space-y-2">
-        <h3 className="font-semibold">Edit bundle</h3>
-        <input
-          className="border rounded px-2 py-1 w-full"
-          placeholder="code"
-          value={draft.code || ""}
-          onChange={(e) => setDraft((s) => ({ ...s, code: e.target.value }))}
-        />
-        <button
-          className="px-3 py-1 rounded bg-blue-600 text-white"
-          onClick={save}
-        >
-          Save
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function DefaultsTab() {
-  const [defaults, setDefaults] = useState<Defaults>({});
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.get<Defaults>("/admin/ai/system/defaults");
-        setDefaults(res.data || {});
-      } catch {
-        // ignore
-      }
-    })();
-  }, []);
-
-  const save = async () => {
-    await api.put("/admin/ai/system/defaults", defaults);
-    alert("Saved");
-  };
-
-  return (
-    <div className="space-y-4 max-w-md">
-      <div className="flex flex-col gap-1">
-        <label className="text-sm text-gray-600">Default provider</label>
-        <input
-          className="border rounded px-2 py-1"
-          value={defaults.provider_id || ""}
-          onChange={(e) =>
-            setDefaults((s) => ({ ...s, provider_id: e.target.value }))
-          }
-        />
-      </div>
-      <div className="flex flex-col gap-1">
-        <label className="text-sm text-gray-600">Default model</label>
-        <input
-          className="border rounded px-2 py-1"
-          value={defaults.model_id || ""}
-          onChange={(e) =>
-            setDefaults((s) => ({ ...s, model_id: e.target.value }))
-          }
-        />
-      </div>
-      <div className="flex flex-col gap-1">
-        <label className="text-sm text-gray-600">Default bundle</label>
-        <input
-          className="border rounded px-2 py-1"
-          value={defaults.bundle_id || ""}
-          onChange={(e) =>
-            setDefaults((s) => ({ ...s, bundle_id: e.target.value }))
-          }
-        />
-      </div>
-      <button
-        className="px-3 py-1 rounded bg-blue-600 text-white"
-        onClick={save}
-      >
-        Save
-      </button>
     </div>
   );
 }
