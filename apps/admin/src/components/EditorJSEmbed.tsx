@@ -2,6 +2,7 @@ import type EditorJS from "@editorjs/editorjs";
 import { useEffect, useRef } from "react";
 
 import { api } from "../api/client";
+import { compressImage } from "../utils/compressImage";
 import type { OutputData } from "../types/editorjs";
 
 interface Props {
@@ -119,8 +120,9 @@ export default function EditorJSEmbed({
               uploader: {
                 async uploadByFile(file: File): Promise<ImageUploadResult> {
                   try {
+                    const compressed = await compressImage(file);
                     const form = new FormData();
-                    form.append("file", file);
+                    form.append("file", compressed);
                     const res = await api.request<unknown>("/admin/media", {
                       method: "POST",
                       body: form,

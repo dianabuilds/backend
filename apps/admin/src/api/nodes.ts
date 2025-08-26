@@ -31,12 +31,12 @@ export async function getNode(id: string): Promise<NodeOut> {
 export async function patchNode(
   id: string,
   patch: Record<string, unknown>,
-  opts: { force?: boolean } = {},
+  opts: { force?: boolean; signal?: AbortSignal } = {},
 ): Promise<NodeOut> {
   const res = await api.patch<NodeOut>(
     `/admin/nodes/${encodeURIComponent(id)}`,
     patch,
-    opts.force ? { params: { force: 1 } } : undefined,
+    opts.force ? { params: { force: 1 }, signal: opts.signal } : { signal: opts.signal },
   );
   return res.data!;
 }

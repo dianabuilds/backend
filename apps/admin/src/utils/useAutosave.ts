@@ -10,7 +10,7 @@ import { safeLocalStorage } from "./safeStorage";
  */
 export function useAutosave<T>(
   initial: T,
-  onSave?: (data: T) => Promise<void> | void,
+  onSave?: (data: T, signal?: AbortSignal) => Promise<void> | void,
   delay = 1000,
   storageKey?: string,
 ) {
@@ -30,16 +30,23 @@ export function useAutosave<T>(
   const [saving, setSaving] = useState(false);
   const timer = useRef<number | null>(null);
   const latest = useRef<T>(initial);
+  const abortRef = useRef<AbortController | null>(null);
 
   const save = useCallback(async () => {
     if (!onSave) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setSaving(true);
     try {
-      await onSave(latest.current);
+      await onSave(latest.current, controller.signal);
       if (storageKey) {
         safeLocalStorage.removeItem(storageKey);
       }
+    } catch (e: any) {
+      if (e?.name !== "AbortError") throw e;
     } finally {
+      abortRef.current = null;
       setSaving(false);
     }
   }, [onSave, storageKey]);
@@ -66,6 +73,12 @@ export function useAutosave<T>(
       if (timer.current) window.clearTimeout(timer.current);
     };
   }, [data, delay, onSave, save, storageKey]);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (storageKey && onSave) {

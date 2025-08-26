@@ -15,6 +15,7 @@ export function useEditorNode(id: string, autoSaveDelay = 1000) {
   const [dirty, setDirty] = useState(false);
   const baseRef = useRef<NodeOut | null>(null);
   const timer = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useUnsavedChanges(dirty);
 
@@ -57,13 +58,19 @@ export function useEditorNode(id: string, autoSaveDelay = 1000) {
       setDirty(false);
       return;
     }
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setSaving(true);
     try {
-      const updated = await patchNode(id, patch);
+      const updated = await patchNode(id, patch, { signal: controller.signal });
       setData(updated);
       baseRef.current = updated;
       setDirty(false);
+    } catch (e: any) {
+      if (e?.name !== "AbortError") throw e;
     } finally {
+      abortRef.current = null;
       setSaving(false);
     }
   }, [computePatch, data, id]);
@@ -87,6 +94,12 @@ export function useEditorNode(id: string, autoSaveDelay = 1000) {
     setDirty(isDirty);
     if (isDirty) scheduleSave();
   }, [data, scheduleSave]);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   return { data, update, loading, saving, dirty, save, reload: load };
 }

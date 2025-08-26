@@ -2,6 +2,7 @@ import Cropper, { type Area } from "react-easy-crop";
 import { useAuth } from "../auth/AuthContext";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
+import { compressImage } from "../utils/compressImage";
 import { listFlags } from "../api/flags";
 import { patchNode, recomputeNodeEmbedding, validateNode } from "../api/nodes";
 import type { ValidateResult } from "../openapi";
@@ -123,14 +124,16 @@ export default function NodeSidebar({
       }
       const img = new Image();
       img.onload = async () => {
+        URL.revokeObjectURL(img.src);
         if (img.width < 960 || img.height < 540) {
           setUploadError("Минимальное разрешение 960×540");
           return;
         }
         setUploadError(null);
-        const form = new FormData();
-        form.append("file", file);
         try {
+          const compressed = await compressImage(file);
+          const form = new FormData();
+          form.append("file", compressed);
           const res = await api.request("/admin/media/assets", {
             method: "POST",
             body: form,
@@ -155,6 +158,7 @@ export default function NodeSidebar({
         }
       };
       img.onerror = () => {
+        URL.revokeObjectURL(img.src);
         setUploadError("Не удалось прочитать изображение");
       };
       img.src = URL.createObjectURL(file);
