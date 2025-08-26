@@ -12,6 +12,7 @@ type Props<T> = {
   loading?: boolean;
   skeletonRows?: number;
   onRowClick?: (row: T) => void;
+  rowClassName?: string;
 };
 
 export default function DataTable<T>({
@@ -23,6 +24,7 @@ export default function DataTable<T>({
   loading = false,
   skeletonRows = 3,
   onRowClick,
+  rowClassName,
 }: Props<T>) {
   return (
     <div className={className || ""}>
@@ -45,7 +47,11 @@ export default function DataTable<T>({
           <tbody>
             {loading
               ? Array.from({ length: skeletonRows }).map((_, i) => (
-                  <tr key={`skeleton-${i}`} className="border-t" role="row">
+                  <tr
+                    key={`skeleton-${i}`}
+                    className={`border-t ${rowClassName || ""}`}
+                    role="row"
+                  >
                     {columns.map((c) => (
                       <td key={c.key} className="px-2 py-1">
                         <Skeleton className="h-4 w-full" />
@@ -56,7 +62,7 @@ export default function DataTable<T>({
               : (rows || []).map((row) => (
                   <tr
                     key={rowKey(row)}
-                    className="border-t"
+                    className={`border-t ${rowClassName || ""}`}
                     role="row"
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                   >
