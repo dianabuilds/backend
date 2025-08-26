@@ -1,9 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { createNode, getNode, patchNode } from "../api/nodes";
 import { useAuth } from "../auth/AuthContext";
-import Breadcrumbs from "../components/Breadcrumbs";
 import ContentTab from "../components/content/ContentTab";
 import GeneralTab from "../components/content/GeneralTab";
 import SidePanels from "../components/content/SidePanels";
@@ -160,6 +159,7 @@ function NodeEditorInner({
             setData((prev) => ({ ...prev, slug: updated.slug ?? prev.slug }));
           }
           setSavedAt(new Date());
+          setUnsaved(false);
           if (manualRef.current) {
             addToast({
               title: "Node saved",
@@ -212,7 +212,7 @@ function NodeEditorInner({
   };
 
   const handleClose = () => {
-    navigate("/nodes");
+    navigate(workspaceId ? `/nodes?workspace_id=${workspaceId}` : "/nodes");
   };
 
   return (
@@ -225,8 +225,29 @@ function NodeEditorInner({
         />
       ) : null}
       <div className="border-b p-4">
-        <Breadcrumbs />
-        <div className="mt-2 flex items-center justify-between">
+        <nav className="mb-2 text-sm text-gray-600 dark:text-gray-300">
+          <ol className="flex flex-wrap items-center gap-1">
+            <li>
+              <Link to="/" className="hover:underline">
+                Workspace
+              </Link>
+            </li>
+            <li className="flex items-center gap-1">
+              <span>/</span>
+              <Link
+                to={workspaceId ? `/nodes?workspace_id=${workspaceId}` : "/nodes"}
+                className="hover:underline"
+              >
+                Nodes
+              </Link>
+            </li>
+            <li className="flex items-center gap-1">
+              <span>/</span>
+              <span>{node.title || "Node"}</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold">{node.title || "Node"}</h1>
             <StatusBadge status={node.is_public ? "published" : "draft"} />
@@ -246,7 +267,7 @@ function NodeEditorInner({
               <button
                 type="button"
                 className="px-2 py-1 border rounded"
-                disabled={saving}
+                disabled={saving || !unsaved}
                 onClick={handleSave}
               >
                 Save
@@ -256,7 +277,7 @@ function NodeEditorInner({
               <button
                 type="button"
                 className="px-2 py-1 border rounded"
-                disabled={saving}
+                disabled={saving || !unsaved}
                 onClick={handleSaveNext}
               >
                 Save & Next
@@ -272,6 +293,15 @@ function NodeEditorInner({
                 Preview
               </a>
             )}
+            {canEdit && (
+              <button
+                type="button"
+                className="px-2 py-1 border rounded"
+                onClick={() => {}}
+              >
+                More
+              </button>
+            )}
             <button
               type="button"
               className="px-2 py-1 border rounded"
@@ -283,9 +313,11 @@ function NodeEditorInner({
               <span className="ml-2 text-gray-500">
                 {saving
                   ? "Saving..."
-                  : savedAt
-                    ? `Saved ${savedAt.toLocaleTimeString()}`
-                    : null}
+                  : unsaved
+                    ? "Unsaved changes"
+                    : savedAt
+                      ? `Autosaved ${savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                      : null}
               </span>
             )}
           </div>
