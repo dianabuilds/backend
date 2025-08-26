@@ -201,8 +201,8 @@ export default function EditorJSEmbed({
         #${holderId.current} .ce-block__content,
         #${holderId.current} .ce-toolbar__content { max-width: 100%; }
 
-        /* Изображения не выходят за границы */
-        #${holderId.current} img { max-width: 100%; height: auto; }
+        /* Изображения не выходят за границы и ограничены по высоте */
+        #${holderId.current} img { max-width: 100%; max-height: 380px; object-fit: contain; }
 
         /* Смещаем тулбар («плюсик») внутрь контейнера */
         #${holderId.current} .ce-toolbar { left: 8px !important; }
