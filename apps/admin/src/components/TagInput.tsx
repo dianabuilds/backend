@@ -1,17 +1,20 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type InputHTMLAttributes } from "react";
 
 import { getSuggestions, mergeTags } from "../utils/tagManager";
 
-interface TagInputProps {
+interface TagInputProps
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> {
   value?: string[];
   onChange?: (tags: string[]) => void;
-  placeholder?: string;
 }
 
 export default function TagInput({
   value = [],
   onChange,
   placeholder = "Добавьте теги и нажмите Enter",
+  id,
+  className,
+  ...rest
 }: TagInputProps) {
   const [tags, setTags] = useState<string[]>(mergeTags(value));
   const [input, setInput] = useState("");
@@ -36,7 +39,9 @@ export default function TagInput({
   };
 
   return (
-    <div className="border rounded px-2 py-1 flex items-center flex-wrap gap-1">
+    <div
+      className={`border rounded px-2 py-1 flex items-center flex-wrap gap-1 ${className || ""}`}
+    >
       {tags.map((t, i) => (
         <span
           key={`${t}-${i}`}
@@ -54,6 +59,7 @@ export default function TagInput({
       ))}
       <input
         ref={inputRef}
+        id={id}
         className="flex-1 min-w-[140px] py-1 outline-none"
         placeholder={placeholder}
         list="tag-suggestions"
@@ -77,6 +83,7 @@ export default function TagInput({
             removeAt(tags.length - 1);
           }
         }}
+        {...rest}
       />
       <datalist id="tag-suggestions">
         {getSuggestions(input).map((s) => (

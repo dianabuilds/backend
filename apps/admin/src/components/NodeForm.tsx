@@ -3,17 +3,16 @@ import FieldTitle from "./fields/FieldTitle";
 import FieldTags from "./fields/FieldTags";
 import FieldSummary from "./fields/FieldSummary";
 import type { OutputData } from "../types/editorjs";
-import type { TagOut } from "./tags/TagPicker";
 import { useId, type Ref } from "react";
 
 interface NodeFormProps {
   title: string;
   content: OutputData;
-  tags: TagOut[];
+  tags: string[];
   summary: string;
   onTitleChange: (value: string) => void;
   onContentChange: (data: OutputData) => void;
-  onTagsChange: (tags: TagOut[]) => void;
+  onTagsChange: (tags: string[]) => void;
   onSummaryChange: (value: string) => void;
   titleRef?: Ref<HTMLInputElement>;
 }
@@ -54,7 +53,7 @@ export default function NodeForm({
           aria-describedby={contentDesc}
           className="mt-1"
         >
-          <EditorJSEmbed value={content} onChange={onContentChange} />
+          <EditorJSEmbed value={content} onChange={onContentChange} minHeight={400} />
         </div>
         <p id={contentDesc} className="mt-1 text-xs text-gray-600">
           Main body of the node with text and images.
