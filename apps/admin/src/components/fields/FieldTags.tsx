@@ -1,10 +1,10 @@
-import { useId, type SelectHTMLAttributes } from "react";
+import { useId, type InputHTMLAttributes } from "react";
 
-import TagPicker, { type TagOut } from "../tags/TagPicker";
+import TagInput from "../TagInput";
 
-interface Props extends SelectHTMLAttributes<HTMLSelectElement> {
-  value: TagOut[];
-  onChange: (tags: TagOut[]) => void;
+interface Props extends InputHTMLAttributes<HTMLInputElement> {
+  value: string[];
+  onChange: (tags: string[]) => void;
   description?: string;
 }
 
@@ -23,12 +23,12 @@ export default function FieldTags({
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-900">
         Tags
       </label>
-      <TagPicker
+      <TagInput
         id={inputId}
         aria-describedby={descId}
         value={value}
         onChange={onChange}
-        className="mt-1 w-full rounded border px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="mt-1 w-full"
         {...rest}
       />
       {description ? (

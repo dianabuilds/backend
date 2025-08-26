@@ -141,6 +141,7 @@ class Settings(ProjectSettings):
             "Content-Type",
             "X-CSRF-Token",
             "X-Requested-With",
+            "X-Workspace-Id",
         ],
         validation_alias=AliasChoices(
             "APP_CORS_ALLOW_HEADERS",
