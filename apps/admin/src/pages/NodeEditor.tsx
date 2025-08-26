@@ -166,6 +166,15 @@ function NodeEditorInner({
                     data.slug,
                   )}&workspace=${workspaceId}`
                 : undefined;
+            const previewUrl =
+              updated.slug || data.slug
+                ? `/nodes/${encodeURIComponent(
+                    updated.slug ?? data.slug,
+                  )}`
+                : undefined;
+            if (previewUrl) {
+              window.open(previewUrl, "_blank", "noopener,noreferrer");
+            }
             addToast({
               title: "Node saved",
               variant: "success",
@@ -213,7 +222,8 @@ function NodeEditorInner({
   const handleSaveNext = async () => {
     manualRef.current = true;
     await save();
-    navigate("/nodes/new");
+    const nextId = Number(node.id);
+    navigate(Number.isNaN(nextId) ? "/nodes/new" : `/nodes/${nextId + 1}`);
   };
 
   const handleCreate = () => {
