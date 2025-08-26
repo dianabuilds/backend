@@ -16,7 +16,6 @@ import ContentDashboard from "./pages/ContentDashboard";
 import Dashboard from "./pages/Dashboard";
 import Echo from "./pages/Echo";
 import FeatureFlagsPage from "./pages/FeatureFlags";
-import Health from "./pages/Health";
 import Authentication from "./pages/Authentication";
 import Integrations from "./pages/Integrations";
 import Metrics from "./pages/Metrics";
@@ -41,13 +40,11 @@ import TagMerge from "./pages/TagMerge";
 import Tags from "./pages/Tags";
 import Traces from "./pages/Traces";
 import Transitions from "./pages/Transitions";
-import TransitionsTrace from "./pages/TransitionsTrace";
 import Users from "./pages/Users";
 import Workspaces from "./pages/Workspaces";
 import WorkspaceSettings from "./pages/WorkspaceSettings";
 import ValidationReport from "./pages/ValidationReport";
 import { WorkspaceBranchProvider } from "./workspace/WorkspaceContext";
-import WorkspaceMetrics from "./pages/WorkspaceMetrics";
 import Limits from "./pages/Limits";
 import Alerts from "./pages/Alerts";
 import AIUsage from "./pages/AIUsage";
@@ -95,9 +92,6 @@ export default function App() {
                       <Route path="tags" element={<Tags />} />
                       <Route path="tags/merge" element={<TagMerge />} />
                       <Route path="transitions" element={<Transitions />} />
-                      {ADMIN_DEV_TOOLS && (
-                        <Route path="transitions/trace" element={<TransitionsTrace />} />
-                      )}
                       <Route path="moderation" element={<ModerationInbox />} />
                       <Route
                         path="moderation/cases/:id"
@@ -187,10 +181,6 @@ export default function App() {
                       />
                       <Route path="tools/monitoring" element={<Monitoring />} />
                       <Route
-                        path="tools/workspace-metrics"
-                        element={<WorkspaceMetrics />}
-                      />
-                      <Route
                         path="tools/restrictions"
                         element={<Restrictions />}
                       />
@@ -210,7 +200,6 @@ export default function App() {
                       />
                       <Route path="ops/alerts" element={<Alerts />} />
                       <Route path="ops/ai-usage" element={<AIUsage />} />
-                      <Route path="system/health" element={<Health />} />
                       <Route path="payments" element={<PaymentsGateways />} />
                       <Route path="*" element={<NotFound />} />
                     </Route>

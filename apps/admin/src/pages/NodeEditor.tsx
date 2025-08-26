@@ -135,69 +135,27 @@ function NodeEditorInner({
   const { addToast } = useToast();
   const manualRef = useRef(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
-  const titleRef = useRef<HTMLInputElement>(null);
-  const [unsaved, setUnsaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const { data: node, update, save, saving, setData } =
-    useAutosave<NodeEditorData>(
-      initialNode,
-      async (data) => {
-        try {
-          const updated = await patchNode(data.id, {
-            title: data.title,
-            content: data.contentData,
-            allow_feedback: data.allow_comments,
-            premium_only: data.is_premium_only,
-            tags: data.tags.map((t) => t.slug),
-            is_public: data.is_public,
-            cover_url: data.cover_url,
-            summary: data.summary,
-          });
-          if (updated.slug && updated.slug !== data.slug) {
-            setData((prev) => ({ ...prev, slug: updated.slug ?? prev.slug }));
-          }
-          setSavedAt(new Date());
-          setUnsaved(false);
-          setSaveError(null);
-          if (manualRef.current) {
-            const traceUrl =
-              data.slug && workspaceId
-                ? `/transitions/trace?start=${encodeURIComponent(
-                    data.slug,
-                  )}&workspace=${workspaceId}`
-                : undefined;
-            const previewUrl =
-              updated.slug || data.slug
-                ? `/nodes/${encodeURIComponent(
-                    updated.slug ?? data.slug,
-                  )}`
-                : undefined;
-            if (previewUrl) {
-              window.open(previewUrl, "_blank", "noopener,noreferrer");
-            }
-            addToast({
-              title: "Node saved",
-              variant: "success",
-              description: traceUrl ? (
-                <a
-                  href={traceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  Open Trace
-                </a>
-              ) : undefined,
-            });
-          }
-          safeLocalStorage.removeItem(`node-content-${data.id}`);
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          setSaveError(msg);
+  const { data: node, update: setNode, save, saving, setData } =
+    useAutosave<NodeEditorData>(initialNode, async (data) => {
+      try {
+        const updated = await patchNode(data.id, {
+          title: data.title,
+          content: data.contentData,
+          allow_feedback: data.allow_comments,
+          premium_only: data.is_premium_only,
+          tags: data.tags.map((t) => t.slug),
+          is_public: data.is_public,
+          cover_url: data.cover_url,
+          summary: data.summary,
+        });
+        if (updated.slug && updated.slug !== data.slug) {
+          setData((prev) => ({ ...prev, slug: updated.slug ?? prev.slug }));
+        }
+        setSavedAt(new Date());
+        if (manualRef.current) {
           addToast({
-            title: "Failed to save node",
-            description: msg,
-            variant: "error",
+            title: "Node saved",
+            variant: "success",
           });
         } finally {
           manualRef.current = false;
