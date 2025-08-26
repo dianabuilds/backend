@@ -9,6 +9,9 @@ export interface GeneralTabProps {
   is_premium_only?: boolean;
   cover_url?: string | null;
   summary?: string;
+  titleError?: string | null;
+  summaryError?: string | null;
+  coverError?: string | null;
   onTitleChange: (v: string) => void;
   titleRef?: Ref<HTMLInputElement>;
   onTagsChange?: (tags: TagOut[]) => void;

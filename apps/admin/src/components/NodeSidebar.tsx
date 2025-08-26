@@ -35,6 +35,7 @@ interface NodeSidebarProps {
   onScheduleChange?: (published_at: string | null, updated_at?: string) => void;
   onHiddenChange?: (hidden: boolean, updated_at?: string) => void;
   hasChanges?: boolean;
+  onValidation?: (res: ValidateResult) => void;
 }
 
 export default function NodeSidebar({
@@ -45,6 +46,7 @@ export default function NodeSidebar({
   onScheduleChange,
   onHiddenChange,
   hasChanges,
+  onValidation,
 }: NodeSidebarProps) {
   const { user } = useAuth();
   const role = user?.role;
@@ -183,8 +185,10 @@ export default function NodeSidebar({
     try {
       const res = await validateNode(node.id);
       setValidation(res);
+      onValidation?.(res);
     } catch {
       setValidation(null);
+      onValidation?.({ ok: false, errors: ["Validation failed"], warnings: [] });
     } finally {
       setValidating(false);
     }
@@ -196,6 +200,7 @@ export default function NodeSidebar({
       if (checked) {
         const res = await validateNode(node.id);
         setValidation(res);
+        onValidation?.(res);
         if (!res.ok) {
           setStatusSaving(false);
           return;

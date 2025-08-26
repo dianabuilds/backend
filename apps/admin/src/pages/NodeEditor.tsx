@@ -15,6 +15,7 @@ import type { OutputData } from "../types/editorjs";
 import { useAutosave } from "../utils/useAutosave";
 import { useUnsavedChanges } from "../utils/useUnsavedChanges";
 import { useWorkspace } from "../workspace/WorkspaceContext";
+import type { ValidateResult } from "../openapi";
 
 interface NodeEditorData {
   id: string;
@@ -272,6 +273,11 @@ function NodeEditorInner({
   const [staleOpen, setStaleOpen] = useState(false);
 
   const [node, setNode] = useState<NodeEditorData>(initialNode);
+  const [fieldErrors, setFieldErrors] = useState<{
+    title: string | null;
+    summary: string | null;
+    cover: string | null;
+  }>({ title: null, summary: null, cover: null });
   const draftInitial: NodeDraft = {
     id: initialNode.id,
     title: initialNode.title,
@@ -336,6 +342,41 @@ function NodeEditorInner({
     setNode((prev) => ({ ...prev, ...patch }));
     updateDraft({ ...draft, ...patch });
     setUnsaved(true);
+  };
+
+  const handleTitleChange = canEdit
+    ? (v: string) => {
+        handleDraftChange({ title: v });
+        setFieldErrors((e) => ({
+          ...e,
+          title: !v.trim()
+            ? "Title is required"
+            : v.trim().length > 200
+              ? "Max 200 characters"
+              : null,
+        }));
+      }
+    : undefined;
+
+  const handleSummaryChange = canEdit
+    ? (v: string) => {
+        handleDraftChange({ summary: v });
+        setFieldErrors((e) => ({
+          ...e,
+          summary: v.length > 300 ? "Max 300 characters" : null,
+        }));
+      }
+    : undefined;
+
+  const handleValidation = (res: ValidateResult) => {
+    const errs = { title: null, summary: null, cover: null };
+    for (const msg of res.errors) {
+      const m = msg.toLowerCase();
+      if (m.includes("title")) errs.title = msg;
+      if (m.includes("summary")) errs.summary = msg;
+      if (m.includes("cover")) errs.cover = msg;
+    }
+    setFieldErrors((e) => ({ ...e, ...errs }));
   };
 
   useEffect(() => {
@@ -539,12 +580,8 @@ function NodeEditorInner({
             is_public={node.is_public}
             allow_comments={node.allow_comments}
             is_premium_only={node.is_premium_only}
-            onTitleChange={
-              canEdit ? (v) => handleDraftChange({ title: v }) : undefined
-            }
-            onSummaryChange={
-              canEdit ? (v) => handleDraftChange({ summary: v }) : undefined
-            }
+            onTitleChange={handleTitleChange}
+            onSummaryChange={handleSummaryChange}
             onTagsChange={
               canEdit ? (t) => handleDraftChange({ tags: t }) : undefined
             }
@@ -557,6 +594,9 @@ function NodeEditorInner({
             onPremiumOnlyChange={
               canEdit ? (v) => setNode({ ...node, is_premium_only: v }) : undefined
             }
+            titleError={fieldErrors.title}
+            summaryError={fieldErrors.summary}
+            coverError={fieldErrors.cover}
           />
           <ContentTab
             value={node.contentData}
@@ -615,6 +655,7 @@ function NodeEditorInner({
             }))
           }
           hasChanges={unsaved || saving}
+          onValidation={handleValidation}
         />
       </div>
       {staleOpen && (
