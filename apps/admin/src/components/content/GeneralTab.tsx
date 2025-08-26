@@ -1,5 +1,7 @@
 import FieldTags from "../fields/FieldTags";
 import FieldTitle from "../fields/FieldTitle";
+import FieldCover from "../fields/FieldCover";
+import FieldSummary from "../fields/FieldSummary";
 import type { GeneralTabProps } from "./GeneralTab.helpers";
 
 export default function GeneralTab({
@@ -8,15 +10,25 @@ export default function GeneralTab({
   is_public = false,
   allow_comments = true,
   is_premium_only = false,
+  cover_url = null,
+  summary = "",
   onTitleChange,
   onTagsChange,
   onIsPublicChange,
   onAllowCommentsChange,
   onPremiumOnlyChange,
+  onCoverChange,
+  onSummaryChange,
 }: GeneralTabProps) {
   return (
     <div className="space-y-4">
       <FieldTitle value={title} onChange={onTitleChange} />
+      {onSummaryChange ? (
+        <FieldSummary value={summary} onChange={onSummaryChange} />
+      ) : null}
+      {onCoverChange ? (
+        <FieldCover value={cover_url} onChange={onCoverChange} />
+      ) : null}
       {onTagsChange ? <FieldTags value={tags} onChange={onTagsChange} /> : null}
       {onIsPublicChange ? (
         <label className="flex items-center gap-2 text-sm">

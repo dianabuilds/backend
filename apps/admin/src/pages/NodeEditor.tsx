@@ -18,6 +18,8 @@ interface NodeEditorData {
   id: string;
   title: string;
   slug: string;
+  cover_url: string | null;
+  summary: string;
   tags: TagOut[];
   allow_comments: boolean;
   is_premium_only: boolean;
@@ -55,6 +57,14 @@ export default function NodeEditor() {
           id: n.id,
           title: n.title ?? "",
           slug: n.slug ?? "",
+          cover_url:
+            typeof raw.cover_url === "string"
+              ? (raw.cover_url as string)
+              : typeof raw.coverUrl === "string"
+                ? (raw.coverUrl as string)
+                : null,
+          summary:
+            typeof raw.summary === "string" ? (raw.summary as string) : "",
           tags: Array.isArray(n.tags)
             ? n.tags.map((slug) => ({ id: slug, slug, name: slug }))
             : [],
@@ -130,6 +140,8 @@ function NodeEditorInner({
           premium_only: data.is_premium_only,
           tags: data.tags.map((t) => t.slug),
           is_public: data.is_public,
+          cover_url: data.cover_url,
+          summary: data.summary,
         });
         if (updated.slug && updated.slug !== data.slug) {
           setData((prev) => ({ ...prev, slug: updated.slug ?? prev.slug }));
@@ -249,11 +261,14 @@ function NodeEditorInner({
       <div className="flex-1 overflow-auto p-4 space-y-6">
         <GeneralTab
           title={node.title}
+          cover_url={node.cover_url}
+          summary={node.summary}
           tags={node.tags}
           is_public={node.is_public}
           allow_comments={node.allow_comments}
           is_premium_only={node.is_premium_only}
           onTitleChange={(v) => setNode({ ...node, title: v })}
+          onSummaryChange={(v) => setNode({ ...node, summary: v })}
           onTagsChange={(t) => setNode({ ...node, tags: t })}
           onIsPublicChange={(v) => setNode({ ...node, is_public: v })}
           onAllowCommentsChange={(v) =>
@@ -262,6 +277,7 @@ function NodeEditorInner({
           onPremiumOnlyChange={(v) =>
             setNode({ ...node, is_premium_only: v })
           }
+          onCoverChange={(url) => setNode({ ...node, cover_url: url })}
         />
         <ContentTab
           initial={node.contentData}
