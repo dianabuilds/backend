@@ -1,15 +1,11 @@
 import { type ReactNode, useEffect } from "react";
 
+import type { OutputData } from "../../types/editorjs";
 import StatusBadge from "../StatusBadge";
 import VersionBadge from "../VersionBadge";
-import TabRouter, { type TabPlugin } from "../TabRouter";
+import ContentTab from "./ContentTab";
 import GeneralTab from "./GeneralTab";
 import type { GeneralTabProps } from "./GeneralTab.helpers";
-import ContentTab from "./ContentTab";
-import ValidationTab from "./ValidationTab";
-import PublishingTab from "./PublishingTab";
-import RelationsTab from "./relations/RelationsTab";
-import type { OutputData } from "../../types/editorjs";
 
 interface ContentTabProps {
   initial?: OutputData;
@@ -21,7 +17,6 @@ interface ContentEditorProps {
   nodeId?: string;
   node_type?: string;
   title: string;
-  slug?: string;
   status?: string;
   statuses?: string[];
   version?: number;
@@ -36,7 +31,6 @@ export default function ContentEditor({
   nodeId,
   node_type,
   title,
-  slug,
   status,
   statuses,
   version,
@@ -46,18 +40,6 @@ export default function ContentEditor({
   toolbar,
   onSave,
 }: ContentEditorProps) {
-  const plugins: TabPlugin[] = [
-    { name: "General", render: () => <GeneralTab {...general} /> },
-    { name: "Content", render: () => <ContentTab {...content} /> },
-    {
-      name: "Relations",
-      render: () => (
-        <RelationsTab nodeId={nodeId} slug={slug} nodeType={node_type} />
-      ),
-    },
-    { name: "Validation", render: () => <ValidationTab /> },
-    { name: "Publishing", render: () => <PublishingTab /> },
-  ];
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -90,7 +72,10 @@ export default function ContentEditor({
         </div>
         {toolbar}
       </div>
-      <TabRouter plugins={plugins} />
+      <div className="flex-1 overflow-auto p-4 space-y-6">
+        <GeneralTab {...general} />
+        <ContentTab {...content} />
+      </div>
     </div>
   );
 }
