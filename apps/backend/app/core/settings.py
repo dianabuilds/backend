@@ -289,10 +289,14 @@ class Settings(ProjectSettings):
     def effective_origins(self) -> dict[str, list[str] | str]:
         """Return kwargs for CORSMiddleware based on configuration."""
         if self.cors_allow_origins:
-            return {"allow_origins": self.cors_allow_origins}
+            result: dict[str, list[str] | str] = {"allow_origins": self.cors_allow_origins}
+            if not self.is_production:
+                # Разрешаем любые http-origin'ы в dev/test для удобства разработки
+                result["allow_origin_regex"] = r"http://[^/]+"
+            return result
         if self.is_production:
             return {"allow_origins": []}
-        return {"allow_origin_regex": r"https?://[^/]+"}
+        return {"allow_origin_regex": r"http://[^/]+"}
 
 
 def validate_settings(settings: Settings) -> None:
