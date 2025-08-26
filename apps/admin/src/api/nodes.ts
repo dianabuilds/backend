@@ -16,8 +16,10 @@ export async function listNodes(
   return res.data ?? [];
 }
 
-export async function createNode(type: string): Promise<NodeOut> {
-  const res = await api.post<NodeOut>(`/admin/nodes/${encodeURIComponent(type)}`);
+export async function createNode(
+  body: { node_type: string; title?: string },
+): Promise<NodeOut> {
+  const res = await api.post<NodeOut>("/admin/nodes", body);
   return res.data!;
 }
 
