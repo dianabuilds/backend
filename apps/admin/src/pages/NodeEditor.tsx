@@ -157,10 +157,11 @@ function NodeEditorInner({
             title: "Node saved",
             variant: "success",
           });
-        } finally {
-          manualRef.current = false;
         }
-      },
+      } finally {
+        manualRef.current = false;
+      }
+    },
       2500,
     );
   const setNode = (next: NodeEditorData) => {
