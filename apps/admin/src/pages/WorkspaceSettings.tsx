@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 
 import { api } from "../api/client";
 import {
@@ -33,7 +33,11 @@ const TABS = [
 
 export default function WorkspaceSettings() {
   const { id } = useParams<{ id: string }>();
-  const [tab, setTab] = useState<string>(TABS[0]);
+  const [params] = useSearchParams();
+  const initialTab = params.get("tab");
+  const [tab, setTab] = useState<string>(
+    initialTab && TABS.includes(initialTab as any) ? initialTab : TABS[0],
+  );
   const { addToast } = useToast();
 
   const { data, isLoading, error } = useQuery({
