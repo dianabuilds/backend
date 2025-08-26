@@ -21,6 +21,7 @@ interface ContentEditorProps {
   nodeId?: string;
   node_type?: string;
   title: string;
+  slug?: string;
   status?: string;
   statuses?: string[];
   version?: number;
@@ -35,6 +36,7 @@ export default function ContentEditor({
   nodeId,
   node_type,
   title,
+  slug,
   status,
   statuses,
   version,
@@ -50,7 +52,7 @@ export default function ContentEditor({
     {
       name: "Relations",
       render: () => (
-        <RelationsTab nodeId={nodeId} slug={general.slug} nodeType={node_type} />
+        <RelationsTab nodeId={nodeId} slug={slug} nodeType={node_type} />
       ),
     },
     { name: "Validation", render: () => <ValidationTab /> },

@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { createNode, getNode, patchNode } from "../api/nodes";
 import ContentEditor from "../components/content/ContentEditor";
-import type { TagOut } from "../components/tags/TagPicker";
 import { useToast } from "../components/ToastProvider";
 import WorkspaceSelector from "../components/WorkspaceSelector";
 import type { OutputData } from "../types/editorjs";
@@ -15,8 +14,6 @@ interface NodeEditorData {
   id: string;
   title: string;
   slug: string;
-  cover_url: string | null;
-  tags: TagOut[];
   allow_comments: boolean;
   is_premium_only: boolean;
   contentData: OutputData;
@@ -63,8 +60,6 @@ export default function NodeEditor() {
           id: n.id,
           title: n.title ?? "",
           slug: n.slug ?? "",
-          cover_url: n.coverUrl ?? null,
-          tags: (n.tags || []).map((t) => ({ id: t, slug: t, name: t, count: 0 })),
           allow_comments: n.allow_feedback ?? true,
           is_premium_only: n.premium_only ?? false,
           contentData: (n.content as OutputData) || {
@@ -87,15 +82,13 @@ export default function NodeEditor() {
     if (!node) return;
     setSaving(true);
     try {
-      await patchNode(node.id, {
+      const updated = await patchNode(node.id, {
         title: node.title,
-        slug: node.slug,
-        coverUrl: node.cover_url,
-        tags: node.tags.map((t) => t.slug),
         content: node.contentData,
         allow_feedback: node.allow_comments,
         premium_only: node.is_premium_only,
       });
+      setNode({ ...node, slug: updated.slug ?? node.slug });
       const simUrl =
         node.slug && workspaceId
           ? `/preview?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`
@@ -214,15 +207,16 @@ export default function NodeEditor() {
             </button>
           </div>
         }
+        slug={node.slug}
         general={{
           title: node.title,
-          slug: node.slug,
-          tags: node.tags,
-          cover: node.cover_url,
+          allow_comments: node.allow_comments,
+          is_premium_only: node.is_premium_only,
           onTitleChange: (v) => setNode({ ...node, title: v }),
-          onSlugChange: (v) => setNode({ ...node, slug: v }),
-          onTagsChange: (t) => setNode({ ...node, tags: t }),
-          onCoverChange: (url) => setNode({ ...node, cover_url: url }),
+          onAllowCommentsChange: (v) =>
+            setNode({ ...node, allow_comments: v }),
+          onPremiumOnlyChange: (v) =>
+            setNode({ ...node, is_premium_only: v }),
         }}
         content={{
           initial: node.contentData,
