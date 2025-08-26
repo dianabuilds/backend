@@ -11,6 +11,7 @@ export interface Page<T> extends ListResponse<T> {
 export interface Workspace {
   id: string;
   name: string;
+  slug: string;
   role?: string;
   type: "personal" | "team" | "global";
 }

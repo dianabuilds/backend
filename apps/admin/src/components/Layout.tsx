@@ -6,10 +6,8 @@ import HotfixBanner from "./HotfixBanner";
 import EnvBanner from "./EnvBanner";
 import Sidebar from "./Sidebar";
 import WorkspaceSelector from "./WorkspaceSelector";
-import BranchSelector from "./BranchSelector";
 import SystemStatus from "./SystemStatus";
 import Breadcrumbs from "./Breadcrumbs";
-import CommandPalette from "./CommandPalette";
 import AlertsBadge from "./AlertsBadge";
 
 export default function Layout() {
@@ -19,11 +17,9 @@ export default function Layout() {
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
       <Sidebar />
       <main className="flex-1 p-6 overflow-y-auto">
-        <CommandPalette />
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <WorkspaceSelector />
-            <BranchSelector />
             {workspaceId && (
               <span className="px-1 py-0.5 rounded bg-blue-100 text-blue-700 text-xs">
                 active

@@ -23,12 +23,12 @@ describe("WorkspaceSelector", () => {
     safeLocalStorage.clear();
     safeLocalStorage.setItem("workspaceId", "ws1");
     queryData.data = [
-      { id: "ws1", name: "Workspace One" },
-      { id: "ws2", name: "Workspace Two" },
+      { id: "ws1", name: "Workspace One", slug: "one", role: "owner" },
+      { id: "ws2", name: "Workspace Two", slug: "two", role: "editor" },
     ];
   });
 
-  it("supports quick switch", async () => {
+  it("switches workspace via keyboard", async () => {
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <WorkspaceBranchProvider>
@@ -36,9 +36,14 @@ describe("WorkspaceSelector", () => {
         </WorkspaceBranchProvider>
       </MemoryRouter>,
     );
-    const switchBtn = screen.getByTitle("Quick switch workspace");
-    fireEvent.click(switchBtn);
-
+    fireEvent.keyDown(document, { key: "k", ctrlKey: true });
+    await waitFor(() => screen.getByPlaceholderText("Search workspace..."));
+    fireEvent.keyDown(screen.getByPlaceholderText("Search workspace..."), {
+      key: "ArrowDown",
+    });
+    fireEvent.keyDown(screen.getByPlaceholderText("Search workspace..."), {
+      key: "Enter",
+    });
     await waitFor(() => {
       const link = screen.getByTitle("Settings for Workspace Two");
       expect(link).toHaveAttribute("href", "/workspaces/ws2");
