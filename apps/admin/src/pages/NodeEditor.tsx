@@ -287,7 +287,7 @@ function NodeEditorInner({
   };
 
   const saveCallback = canEdit
-    ? async (data: NodeDraft) => {
+    ? async (data: NodeDraft, signal?: AbortSignal) => {
         try {
           const updated = await patchNode(data.id, {
             title: data.title,
@@ -295,7 +295,7 @@ function NodeEditorInner({
             tags: data.tags.map((t) => t.slug),
             summary: data.summary,
             updated_at: node.updated_at,
-          });
+          }, { signal });
           setNode((prev) => ({
             ...prev,
             ...data,
