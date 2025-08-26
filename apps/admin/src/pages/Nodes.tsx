@@ -6,6 +6,7 @@ import StatusBadge from "../components/StatusBadge";
 import type { TagOut } from "../components/tags/TagPicker";
 import { useToast } from "../components/ToastProvider";
 import WorkspaceSelector from "../components/WorkspaceSelector";
+import WorkspaceControlPanel from "../components/WorkspaceControlPanel";
 import type { OutputData } from "../types/editorjs";
 import { confirmWithEnv } from "../utils/env";
 import { safeLocalStorage } from "../utils/safeStorage";
@@ -539,6 +540,8 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       <div className="flex-1">
         <h1 className="text-2xl font-bold mb-4">Nodes</h1>
 
+        <WorkspaceControlPanel />
+
         {/* Панель поиска и применения изменений */}
         <div className="mb-3 flex items-center gap-2">
           <input
@@ -928,19 +931,37 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                           ? new Date(n.updated_at).toLocaleString()
                           : "-"}
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 space-x-2">
                         {n.slug ? (
-                          <a
-                            href={`/nodes/${n.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2 py-1 border rounded"
-                            title="Просмотреть ноду"
-                          >
-                            View
-                          </a>
+                          <>
+                            <a
+                              href={`/nodes/${n.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-1 border rounded"
+                              title="Просмотреть ноду"
+                            >
+                              View
+                            </a>
+                            <a
+                              href={`/preview?start=${encodeURIComponent(n.slug)}&workspace=${workspaceId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-1 border rounded"
+                            >
+                              Preview route
+                            </a>
+                            <a
+                              href={`/transitions/trace?start=${encodeURIComponent(n.slug)}&workspace=${workspaceId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-1 border rounded"
+                            >
+                              Trace candidates
+                            </a>
+                          </>
                         ) : (
-                          <span className="text-gray-400">View</span>
+                          <span className="text-gray-400">Actions</span>
                         )}
                       </td>
                     </tr>
