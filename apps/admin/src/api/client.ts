@@ -142,7 +142,9 @@ export async function apiFetch(
     headers["X-Preview-Token"] = previewTokenMem;
   }
 
-  if (workspaceIdMem) {
+  // Не добавляем заголовок рабочего пространства для /auth/* и безопасных методов,
+  // чтобы избежать лишних CORS preflight-запросов
+  if (workspaceIdMem && !isAuthCall && !isSafeMethod) {
     headers["X-Workspace-Id"] = workspaceIdMem;
   }
 
