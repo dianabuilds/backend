@@ -35,65 +35,46 @@ export default defineConfig(({ mode, command }) => {
     {},
   );
 
-  // Точечные админские API (не перехватываем корневой /admin, чтобы SPA работала)
-  proxy["/admin/echo"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/navigation"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/users"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/menu"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/dashboard"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/cache"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/ratelimit"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/restrictions"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/audit"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/metrics"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/notifications"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/ai"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/quests"] = {
-    target: proxyTarget,
-    changeOrigin: true,
-    bypass(req) {
-      const accept = req.headers["accept"] || "";
-      if (typeof accept === "string" && accept.includes("text/html")) {
-        return "/admin/index.html";
-      }
-    },
+  // Admin API endpoints that share paths with the SPA. For HTML navigation requests
+  // we need to serve the SPA index instead of proxying to the backend.
+  const adminPrefixes = [
+    "echo",
+    "navigation",
+    "users",
+    "menu",
+    "dashboard",
+    "cache",
+    "ratelimit",
+    "restrictions",
+    "audit",
+    "metrics",
+    "notifications",
+    "ai",
+    "quests",
+    "tags",
+    "transitions",
+    "traces",
+    "flags",
+    "nodes",
+    "achievements",
+    "moderation",
+  ];
+
+  const htmlBypass = (req: { headers: Record<string, string | undefined> }) => {
+    const accept = req.headers["accept"] || "";
+    if (typeof accept === "string" && accept.includes("text/html")) {
+      return "/admin/index.html";
+    }
   };
 
-  proxy["/admin/tags"] = {
-    target: proxyTarget,
-    changeOrigin: true,
-    bypass(req) {
-      const accept = req.headers["accept"] || "";
-      if (typeof accept === "string" && accept.includes("text/html")) {
-        return "/admin/index.html";
-      }
-    },
-  };
-  proxy["/admin/transitions"] = {
-    target: proxyTarget,
-    changeOrigin: true,
-    bypass(req) {
-      const accept = req.headers["accept"] || "";
-      // Для навигации по SPA возвращаем индекс, а для JSON-запросов проксируем на backend
-      if (typeof accept === "string" && accept.includes("text/html")) {
-        return "/admin/index.html";
-      }
-    },
-  };
-  proxy["/admin/traces"] = {
-    target: proxyTarget,
-    changeOrigin: true,
-    bypass(req) {
-      const accept = req.headers["accept"] || "";
-      if (typeof accept === "string" && accept.includes("text/html")) {
-        return "/admin/index.html";
-      }
-    },
-  };
-  proxy["/admin/flags"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/nodes"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/achievements"] = { target: proxyTarget, changeOrigin: true };
-  proxy["/admin/moderation"] = { target: proxyTarget, changeOrigin: true };
+  adminPrefixes.forEach((p) => {
+    proxy[`/admin/${p}`] = {
+      target: proxyTarget,
+      changeOrigin: true,
+      ...(p === "notifications" ? { ws: true } : {}),
+      bypass: htmlBypass,
+    };
+  });
 
   // В dev base="/" (модули и /@vite/client отдаются с корня), в build — "/admin/"
   const base = command === "build" ? "/admin/" : "/";
