@@ -5,6 +5,7 @@ import { createNode, getNode, patchNode } from "../api/nodes";
 import Breadcrumbs from "../components/Breadcrumbs";
 import ContentTab from "../components/content/ContentTab";
 import GeneralTab from "../components/content/GeneralTab";
+import SidePanels from "../components/content/SidePanels";
 import StatusBadge from "../components/StatusBadge";
 import type { TagOut } from "../components/tags/TagPicker";
 import { useToast } from "../components/ToastProvider";
@@ -18,6 +19,7 @@ interface NodeEditorData {
   id: string;
   title: string;
   slug: string;
+  author_id: string;
   cover_url: string | null;
   summary: string;
   tags: TagOut[];
@@ -57,6 +59,7 @@ export default function NodeEditor() {
           id: n.id,
           title: n.title ?? "",
           slug: n.slug ?? "",
+          author_id: n.authorId,
           cover_url:
             typeof raw.cover_url === "string"
               ? (raw.cover_url as string)
@@ -258,31 +261,42 @@ function NodeEditorInner({
           </div>
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-4 space-y-6">
-        <GeneralTab
-          title={node.title}
-          cover_url={node.cover_url}
-          summary={node.summary}
-          tags={node.tags}
-          is_public={node.is_public}
-          allow_comments={node.allow_comments}
-          is_premium_only={node.is_premium_only}
-          onTitleChange={(v) => setNode({ ...node, title: v })}
-          onSummaryChange={(v) => setNode({ ...node, summary: v })}
-          onTagsChange={(t) => setNode({ ...node, tags: t })}
-          onIsPublicChange={(v) => setNode({ ...node, is_public: v })}
-          onAllowCommentsChange={(v) =>
-            setNode({ ...node, allow_comments: v })
-          }
-          onPremiumOnlyChange={(v) =>
-            setNode({ ...node, is_premium_only: v })
-          }
-          onCoverChange={(url) => setNode({ ...node, cover_url: url })}
-        />
-        <ContentTab
-          initial={node.contentData}
-          onSave={(d) => setNode({ ...node, contentData: d })}
-          storageKey={`node-content-${node.id}`}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 overflow-auto p-4 space-y-6">
+          <GeneralTab
+            title={node.title}
+            cover_url={node.cover_url}
+            summary={node.summary}
+            tags={node.tags}
+            is_public={node.is_public}
+            allow_comments={node.allow_comments}
+            is_premium_only={node.is_premium_only}
+            onTitleChange={(v) => setNode({ ...node, title: v })}
+            onSummaryChange={(v) => setNode({ ...node, summary: v })}
+            onTagsChange={(t) => setNode({ ...node, tags: t })}
+            onIsPublicChange={(v) => setNode({ ...node, is_public: v })}
+            onAllowCommentsChange={(v) =>
+              setNode({ ...node, allow_comments: v })
+            }
+            onPremiumOnlyChange={(v) =>
+              setNode({ ...node, is_premium_only: v })
+            }
+            onCoverChange={(url) => setNode({ ...node, cover_url: url })}
+          />
+          <ContentTab
+            initial={node.contentData}
+            onSave={(d) => setNode({ ...node, contentData: d })}
+            storageKey={`node-content-${node.id}`}
+          />
+        </div>
+        <SidePanels
+          node={{
+            id: node.id,
+            slug: node.slug,
+            author_id: node.author_id,
+            is_public: node.is_public,
+            node_type: node.node_type,
+          }}
         />
       </div>
     </div>
