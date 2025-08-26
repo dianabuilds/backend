@@ -7,6 +7,8 @@ import { useToast } from "../components/ToastProvider";
 import type { TagOut } from "../components/tags/TagPicker";
 import type { OutputData } from "../types/editorjs";
 import PageLayout from "./_shared/PageLayout";
+import WorkspaceSelector from "../components/WorkspaceSelector";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 
 interface NodeEditorData {
   id: string;
@@ -24,6 +26,16 @@ export default function NodeEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { workspaceId } = useWorkspace();
+
+  if (!workspaceId) {
+    return (
+      <PageLayout>
+        <p className="mb-4">Выберите воркспейс, чтобы создать контент</p>
+        <WorkspaceSelector />
+      </PageLayout>
+    );
+  }
 
   const [node, setNode] = useState<NodeEditorData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +43,7 @@ export default function NodeEditor() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!workspaceId) return;
     const load = async () => {
       if (!id) return;
       if (id === "new") {
@@ -67,7 +80,7 @@ export default function NodeEditor() {
       }
     };
     load();
-  }, [id, navigate]);
+  }, [id, navigate, workspaceId]);
 
   const handleSave = async () => {
     if (!node) return;

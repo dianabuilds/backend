@@ -74,11 +74,13 @@ async def list_nodes(
 @router.post("", response_model=dict, summary="Create node")
 async def create_node(
     payload: NodeCreate,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(ensure_can_post),
     db: AsyncSession = Depends(get_db),
-    _: object = Depends(require_ws_viewer),
 ):
+    if workspace_id is None:
+        raise HTTPException(status_code=400, detail="workspace_id is required")
+    await require_ws_viewer(workspace_id=workspace_id, user=current_user, db=db)
     repo = NodeRepository(db)
     node = await repo.create(payload, current_user.id, workspace_id)
     await get_event_bus().publish(

@@ -47,8 +47,14 @@ export function setPreviewToken(token: string | null) {
   }
 }
 
-function applyWorkspace(u: string): string {
-  if (!workspaceIdMem || !u.startsWith("/")) return u;
+function applyWorkspace(u: string, method?: string): string {
+  if (!u.startsWith("/")) return u;
+  if (!workspaceIdMem) {
+    if (method === "POST" || method === "PUT") {
+      throw new Error("workspaceId is required for write requests");
+    }
+    return u;
+  }
   try {
     const url = new URL(u, "http://d");
     if (!url.searchParams.get("workspace_id")) {
@@ -146,7 +152,7 @@ export async function apiFetch(
   const toUrl = (u: RequestInfo): RequestInfo => {
     if (typeof u !== "string") return u;
     if (!u.startsWith("/")) return u;
-    u = applyWorkspace(u);
+    u = applyWorkspace(u, method);
     try {
       const envBase = (
         import.meta as ImportMeta & { env?: Record<string, string | undefined> }

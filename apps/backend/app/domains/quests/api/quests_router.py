@@ -100,12 +100,14 @@ async def get_quest(
 @router.post("", response_model=QuestOut, summary="Create quest")
 async def create_quest(
     payload: QuestCreate,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     preview: PreviewContext = Depends(get_preview_context),
 ):
     """Create a new quest owned by the current user."""
+    if workspace_id is None:
+        raise HTTPException(status_code=400, detail="workspace_id is required")
     # Квота на создание историй (stories/month) по тарифу
     from app.domains.premium.quotas import check_and_consume_quota
 
