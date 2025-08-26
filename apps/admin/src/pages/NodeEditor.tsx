@@ -96,7 +96,39 @@ export default function NodeEditor() {
         allow_feedback: node.allow_comments,
         premium_only: node.is_premium_only,
       });
-      addToast({ title: "Node saved", variant: "success" });
+      const simUrl =
+        node.slug && workspaceId
+          ? `/preview?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`
+          : undefined;
+      const traceUrl =
+        node.slug && workspaceId
+          ? `/transitions/trace?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`
+          : undefined;
+      addToast({
+        title: "Node saved",
+        variant: "success",
+        description:
+          simUrl && traceUrl ? (
+            <div className="flex gap-2">
+              <a
+                href={simUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Open in Simulation
+              </a>
+              <a
+                href={traceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Open Trace
+              </a>
+            </div>
+          ) : undefined,
+      });
       try {
         safeLocalStorage.removeItem(`node-content-${node.id}`);
       } catch {
@@ -141,14 +173,36 @@ export default function NodeEditor() {
         toolbar={
           <div className="flex gap-2">
             {node.slug && (
-              <a
-                href={`/nodes/${node.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-2 py-1 border rounded"
-              >
-                Preview
-              </a>
+              <>
+                <a
+                  href={`/nodes/${node.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2 py-1 border rounded"
+                >
+                  Preview
+                </a>
+                {workspaceId && (
+                  <>
+                    <a
+                      href={`/preview?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2 py-1 border rounded"
+                    >
+                      Preview route
+                    </a>
+                    <a
+                      href={`/transitions/trace?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2 py-1 border rounded"
+                    >
+                      Trace candidates
+                    </a>
+                  </>
+                )}
+              </>
             )}
             <button
               type="button"

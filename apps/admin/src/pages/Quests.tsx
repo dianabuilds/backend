@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 
 import { api } from "../api/client";
 import { useToast } from "../components/ToastProvider";
+import WorkspaceControlPanel from "../components/WorkspaceControlPanel";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 
 interface QuestItem {
   id: string;
@@ -47,6 +49,7 @@ async function publishQuest(id: string): Promise<QuestItem> {
 
 export default function Quests() {
   const { addToast } = useToast();
+  const { workspaceId } = useWorkspace();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [authorRole, setAuthorRole] = useState<string>(""); // any|admin|moderator|user
@@ -91,6 +94,8 @@ export default function Quests() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Quests</h1>
+
+      <WorkspaceControlPanel />
 
       <div className="mb-4 flex items-end gap-2">
         <input
@@ -165,6 +170,22 @@ export default function Quests() {
                     : "-"}
                 </td>
                 <td className="p-2 space-x-2">
+                  <a
+                    href={`/preview?start=${encodeURIComponent(q.id)}&workspace=${workspaceId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2 py-1 border rounded"
+                  >
+                    Preview route
+                  </a>
+                  <a
+                    href={`/transitions/trace?start=${encodeURIComponent(q.id)}&workspace=${workspaceId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2 py-1 border rounded"
+                  >
+                    Trace candidates
+                  </a>
                   {q.is_draft && (
                     <>
                       <button
