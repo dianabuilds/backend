@@ -8,9 +8,13 @@ export default function Breadcrumbs() {
     return null;
   }
 
+  const segmentMap: Record<string, string> = {
+    preview: "Simulation",
+  };
+
   const items = pathnames.map((segment, index) => {
     const to = "/" + pathnames.slice(0, index + 1).join("/");
-    const label = segment.replace(/-/g, " ");
+    const label = segmentMap[segment] || segment.replace(/-/g, " ");
     const text = label.charAt(0).toUpperCase() + label.slice(1);
     return { to, text };
   });

@@ -100,6 +100,7 @@ BASE_MENU: list[dict] = [
                 "path": "/echo",
                 "icon": "echo",
                 "order": 3,
+                "featureFlag": "ADMIN_DEV_TOOLS",
             },
             {
                 "id": "nav-preview",
@@ -107,17 +108,19 @@ BASE_MENU: list[dict] = [
                 "path": "/preview",
                 "icon": "navigation",
                 "order": 4,
+                "featureFlag": "ADMIN_DEV_TOOLS",
             },
             {
                 "id": "debug",
                 "label": "Debug",
                 "icon": "navigation",
                 "order": 5,
+                "featureFlag": "ADMIN_DEV_TOOLS",
                 "children": [
                     {
                         "id": "transitions-trace",
                         "label": "Transitions Trace",
-                        "path": "/debug/transitions-trace",
+                        "path": "/transitions/trace",
                         "icon": "navigation",
                         "order": 1,
                     }
