@@ -1,20 +1,13 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, Response
 
 from app.core.policy import policy
 
 router = APIRouter(tags=["admin-spa"])
 
 DIST_DIR = Path(__file__).resolve().parent.parent.parent.parent / "admin" / "dist"
-
-
-@router.get("/admin/debug/transitions-trace", include_in_schema=False)
-@router.get("/admin/debug/transitions-trace/", include_in_schema=False)
-async def _redirect_transitions_trace() -> Response:
-    """Redirect legacy transitions trace path to the new location."""
-    return RedirectResponse("/admin/transitions/trace", status_code=302)
 
 
 @router.get("/admin", include_in_schema=False)

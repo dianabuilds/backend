@@ -424,6 +424,8 @@ export interface AdminMenuItem {
   external?: boolean | null;
   divider?: boolean | null;
   roles?: string[] | null;
+  featureFlag?: string | null;
+  hidden?: boolean | null;
 }
 
 export interface AdminMenuResponse {

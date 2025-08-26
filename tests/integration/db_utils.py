@@ -48,12 +48,48 @@ CREATE TABLE IF NOT EXISTS user_tokens (
 )
 """
 
+CREATE_USER_RESTRICTIONS_TABLE = """
+CREATE TABLE IF NOT EXISTS user_restrictions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP,
+    issued_by TEXT
+)
+"""
+
 # Индексы для таблицы users
 USER_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
     "CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)",
     "CREATE INDEX IF NOT EXISTS idx_users_wallet ON users(wallet_address)"
 ]
+
+CREATE_WORKSPACES_TABLE = """
+CREATE TABLE IF NOT EXISTS workspaces (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    owner_user_id TEXT NOT NULL,
+    settings_json TEXT DEFAULT '{}',
+    type TEXT NOT NULL DEFAULT 'team',
+    is_system INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+"""
+
+CREATE_WORKSPACE_MEMBERS_TABLE = """
+CREATE TABLE IF NOT EXISTS workspace_members (
+    workspace_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    permissions_json TEXT DEFAULT '{}',
+    PRIMARY KEY (workspace_id, user_id)
+)
+"""
 
 
 def setup_test_db():
@@ -73,6 +109,9 @@ def setup_test_db():
     # Создаем таблицу users
     cursor.execute(CREATE_USERS_TABLE)
     cursor.execute(CREATE_USER_TOKENS_TABLE)
+    cursor.execute(CREATE_USER_RESTRICTIONS_TABLE)
+    cursor.execute(CREATE_WORKSPACES_TABLE)
+    cursor.execute(CREATE_WORKSPACE_MEMBERS_TABLE)
 
     # Создаем индексы
     for index_sql in USER_INDEXES:
