@@ -1,3 +1,5 @@
+import { useAuth } from "../../auth/AuthContext";
+
 interface SidePanelsProps {
   node: {
     id: string;
@@ -6,16 +8,31 @@ interface SidePanelsProps {
     is_public: boolean;
     node_type: string;
   };
+  onSlugChange?: (slug: string) => void;
 }
 
-export default function SidePanels({ node }: SidePanelsProps) {
+export default function SidePanels({ node, onSlugChange }: SidePanelsProps) {
+  const { user } = useAuth();
+  const role = user?.role;
+  const canModerate = role === "admin" || role === "moderator";
+  const canEditSlug = role === "admin";
   return (
     <div className="w-64 border-l p-4 overflow-y-auto space-y-4">
       <details open>
         <summary className="cursor-pointer font-semibold">Metadata</summary>
         <div className="mt-2 space-y-1 text-sm">
           <div>ID: {node.id}</div>
-          <div>Slug: {node.slug || "-"}</div>
+          <div>
+            Slug: {canEditSlug && onSlugChange ? (
+              <input
+                className="w-full border rounded px-1 py-0.5 text-xs"
+                value={node.slug}
+                onChange={(e) => onSlugChange(e.target.value)}
+              />
+            ) : (
+              node.slug || "-"
+            )}
+          </div>
           <div>Author: {node.author_id || "-"}</div>
         </div>
       </details>
@@ -34,12 +51,14 @@ export default function SidePanels({ node }: SidePanelsProps) {
         <summary className="cursor-pointer font-semibold">Validation</summary>
         <div className="mt-2 text-sm text-gray-500">No validation errors.</div>
       </details>
-      <details>
-        <summary className="cursor-pointer font-semibold">Advanced</summary>
-        <div className="mt-2 space-y-1 text-sm">
-          <div>Type: {node.node_type}</div>
-        </div>
-      </details>
+      {canModerate ? (
+        <details>
+          <summary className="cursor-pointer font-semibold">Advanced</summary>
+          <div className="mt-2 space-y-1 text-sm">
+            <div>Type: {node.node_type}</div>
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }
