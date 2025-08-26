@@ -2,6 +2,7 @@ import Cropper, { type Area } from "react-easy-crop";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../api/client";
 import { listFlags } from "../api/flags";
+import { patchNode } from "../api/nodes";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface CoverChange {
@@ -16,6 +17,8 @@ interface NodeSidebarProps {
     id: string;
     slug: string;
     author_id: string;
+    created_at: string;
+    updated_at: string;
     is_public: boolean;
     node_type: string;
     cover_url: string | null;
@@ -23,7 +26,7 @@ interface NodeSidebarProps {
     cover_alt: string;
     cover_meta: any | null;
   };
-  onSlugChange?: (slug: string) => void;
+  onSlugChange?: (slug: string, updated_at?: string) => void;
   onCoverChange?: (data: CoverChange) => void;
 }
 
@@ -61,6 +64,11 @@ export default function NodeSidebar({
       ? { x: node.cover_meta.focalX, y: node.cover_meta.focalY }
       : { x: 0.5, y: 0.5 },
   );
+
+  const [slugModal, setSlugModal] = useState(false);
+  const [slugDraft, setSlugDraft] = useState(node.slug);
+  const [slugSaving, setSlugSaving] = useState(false);
+  const [slugError, setSlugError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!editing) return;
@@ -143,6 +151,31 @@ export default function NodeSidebar({
       meta: { focalX: focal.x, focalY: focal.y, crop: cropMeta },
     });
     setEditing(false);
+  };
+
+  const copy = (v: string) => {
+    if (typeof navigator !== "undefined") {
+      void navigator.clipboard?.writeText(v);
+    }
+  };
+
+  const openSlugModal = () => {
+    setSlugDraft(node.slug);
+    setSlugError(null);
+    setSlugModal(true);
+  };
+
+  const saveSlug = async () => {
+    setSlugSaving(true);
+    try {
+      const res = await patchNode(node.id, { slug: slugDraft });
+      onSlugChange?.(res.slug ?? slugDraft, res.updatedAt);
+      setSlugModal(false);
+    } catch (e) {
+      setSlugError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSlugSaving(false);
+    }
   };
 
   return (
@@ -233,19 +266,58 @@ export default function NodeSidebar({
       <details open>
         <summary className="cursor-pointer font-semibold">Metadata</summary>
         <div className="mt-2 space-y-1 text-sm">
-          <div>ID: {node.id}</div>
           <div>
-            Slug: {canEditSlug && onSlugChange ? (
+            <div className="text-xs mb-1">ID</div>
+            <div className="flex gap-1">
               <input
                 className="w-full border rounded px-1 py-0.5 text-xs"
-                value={node.slug}
-                onChange={(e) => onSlugChange(e.target.value)}
+                readOnly
+                value={node.id}
               />
-            ) : (
-              node.slug || "-"
-            )}
+              <button
+                type="button"
+                className="text-xs px-2 py-0.5 border rounded"
+                onClick={() => copy(node.id)}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs mb-1 flex items-center justify-between">
+              <span>Slug</span>
+              {canEditSlug ? (
+                <button
+                  type="button"
+                  className="text-xs underline"
+                  onClick={openSlugModal}
+                >
+                  Edit slug
+                </button>
+              ) : null}
+            </div>
+            <div className="flex gap-1">
+              <input
+                className="w-full border rounded px-1 py-0.5 text-xs"
+                readOnly
+                value={node.slug}
+              />
+              <button
+                type="button"
+                className="text-xs px-2 py-0.5 border rounded"
+                onClick={() => copy(node.slug)}
+              >
+                Copy
+              </button>
+            </div>
           </div>
           <div>Author: {node.author_id || "-"}</div>
+          <div>
+            Created: {node.created_at ? new Date(node.created_at).toLocaleString() : "-"}
+          </div>
+          <div>
+            Updated: {node.updated_at ? new Date(node.updated_at).toLocaleString() : "-"}
+          </div>
         </div>
       </details>
       <details open>
@@ -270,6 +342,42 @@ export default function NodeSidebar({
             <div>Type: {node.node_type}</div>
           </div>
         </details>
+      ) : null}
+
+      {slugModal ? (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded shadow-lg w-80">
+            <div className="text-sm mb-2">
+              Changing slug may break existing links.
+            </div>
+            <input
+              className="w-full border rounded px-2 py-1 text-sm"
+              value={slugDraft}
+              onChange={(e) => setSlugDraft(e.target.value)}
+            />
+            {slugError && (
+              <div className="text-xs text-red-600 mt-1">{slugError}</div>
+            )}
+            <div className="mt-4 flex justify-end gap-2 text-sm">
+              <button
+                type="button"
+                className="px-2 py-1 border rounded"
+                onClick={() => setSlugModal(false)}
+                disabled={slugSaving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-2 py-1 border rounded"
+                onClick={saveSlug}
+                disabled={slugSaving}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {editing && node.cover_url ? (

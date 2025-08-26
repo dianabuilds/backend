@@ -21,6 +21,8 @@ interface NodeEditorData {
   title: string;
   slug: string;
   author_id: string;
+  created_at: string;
+  updated_at: string;
   cover_url: string | null;
   cover_asset_id: string | null;
   cover_meta: any | null;
@@ -67,6 +69,8 @@ export default function NodeEditor() {
           title: n.title ?? "",
           slug: n.slug ?? "",
           author_id: n.authorId,
+          created_at: n.createdAt,
+          updated_at: n.updatedAt,
           cover_url:
             typeof raw.cover_url === "string"
               ? (raw.cover_url as string)
@@ -174,9 +178,11 @@ function NodeEditorInner({
             cover_alt: data.cover_alt,
             summary: data.summary,
           });
-          if (updated.slug && updated.slug !== data.slug) {
-            setData((prev) => ({ ...prev, slug: updated.slug ?? prev.slug }));
-          }
+          setData((prev) => ({
+            ...prev,
+            slug: updated.slug ?? prev.slug,
+            updated_at: updated.updatedAt ?? prev.updated_at,
+          }));
           setSavedAt(new Date());
           setUnsaved(false);
           if (manualRef.current) {
@@ -379,6 +385,8 @@ function NodeEditorInner({
             id: node.id,
             slug: node.slug,
             author_id: node.author_id,
+            created_at: node.created_at,
+            updated_at: node.updated_at,
             is_public: node.is_public,
             node_type: node.node_type,
             cover_url: node.cover_url,
@@ -386,7 +394,9 @@ function NodeEditorInner({
             cover_alt: node.cover_alt,
             cover_meta: node.cover_meta,
           }}
-          onSlugChange={(slug) => setNode({ ...node, slug })}
+          onSlugChange={(slug, updated) =>
+            setNode({ ...node, slug, updated_at: updated ?? node.updated_at })
+          }
           onCoverChange={(c) =>
             setNode({
               ...node,
