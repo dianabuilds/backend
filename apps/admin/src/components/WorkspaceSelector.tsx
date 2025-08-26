@@ -38,6 +38,17 @@ export default function WorkspaceSelector() {
     setWorkspace(next);
   }, [data, workspaceId, setWorkspace]);
 
+  if (data && data.length === 0) {
+    return (
+      <Link
+        to="/admin/workspaces"
+        className="text-blue-600 hover:underline"
+      >
+        Создать воркспейс
+      </Link>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2 mr-4">
       <SelectBase<Workspace>

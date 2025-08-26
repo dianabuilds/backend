@@ -7,6 +7,8 @@ import { useToast } from "../components/ToastProvider";
 import StatusBadge from "../components/StatusBadge";
 import type { TagOut } from "../components/tags/TagPicker";
 import type { OutputData } from "../types/editorjs";
+import WorkspaceSelector from "../components/WorkspaceSelector";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 
 type NodeItem = {
   id: string;
@@ -103,6 +105,16 @@ interface NodesProps {
 
 export default function Nodes({ initialType = "" }: NodesProps = {}) {
   const { addToast } = useToast();
+  const { workspaceId } = useWorkspace();
+
+  if (!workspaceId) {
+    return (
+      <div className="p-4">
+        <p className="mb-4">Выберите воркспейс, чтобы создать контент</p>
+        <WorkspaceSelector />
+      </div>
+    );
+  }
 
   // Пагинация/поиск
   const [q, setQ] = useState("");
@@ -310,9 +322,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   };
 
   useEffect(() => {
+    if (!workspaceId) return;
     load(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, workspaceId]);
 
   // Локальные изменения без немедленного вызова API.
   // Для is_visible используем модерационные ручки (hide с причиной / restore) — без staging.
