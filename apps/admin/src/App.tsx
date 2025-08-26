@@ -47,6 +47,7 @@ import { WorkspaceBranchProvider } from "./workspace/WorkspaceContext";
 import WorkspaceMetrics from "./pages/WorkspaceMetrics";
 import Limits from "./pages/Limits";
 import Alerts from "./pages/Alerts";
+import AIUsage from "./pages/AIUsage";
 import NotFound from "./pages/NotFound";
 import { ADMIN_DEV_TOOLS } from "./utils/env";
 const AIQuests = lazy(() => import("./pages/AIQuests"));
@@ -185,6 +186,7 @@ export default function App() {
                         element={<ReliabilityDashboard />}
                       />
                       <Route path="ops/alerts" element={<Alerts />} />
+                      <Route path="ops/ai-usage" element={<AIUsage />} />
                       <Route path="system/health" element={<Health />} />
                       <Route path="payments" element={<PaymentsGateways />} />
                       <Route path="*" element={<NotFound />} />

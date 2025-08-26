@@ -91,6 +91,21 @@ CREATE TABLE IF NOT EXISTS workspace_members (
 )
 """
 
+CREATE_AI_USAGE_TABLE = """
+CREATE TABLE IF NOT EXISTS ai_usage (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    user_id TEXT,
+    ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    provider TEXT,
+    model TEXT,
+    prompt_tokens INTEGER DEFAULT 0,
+    completion_tokens INTEGER DEFAULT 0,
+    total_tokens INTEGER DEFAULT 0,
+    cost REAL
+)
+"""
+
 
 def setup_test_db():
     """
@@ -112,6 +127,7 @@ def setup_test_db():
     cursor.execute(CREATE_USER_RESTRICTIONS_TABLE)
     cursor.execute(CREATE_WORKSPACES_TABLE)
     cursor.execute(CREATE_WORKSPACE_MEMBERS_TABLE)
+    cursor.execute(CREATE_AI_USAGE_TABLE)
 
     # Создаем индексы
     for index_sql in USER_INDEXES:

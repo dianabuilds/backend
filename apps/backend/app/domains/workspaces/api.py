@@ -28,9 +28,22 @@ from app.security import (
     auth_user,
     require_ws_editor,
     require_ws_owner,
+    require_ws_viewer,
 )
 from app.schemas.notification_rules import NotificationRules
 from app.domains.notifications.validation import validate_notification_rules
+from app.domains.ai.infrastructure.repositories.usage_repository import AIUsageRepository
+from app.domains.notifications.application.notify_service import NotifyService
+from app.domains.notifications.infrastructure.repositories.notification_repository import (
+    NotificationRepository,
+)
+from app.domains.notifications.infrastructure.transports.websocket import (
+    WebsocketPusher,
+    manager as ws_manager,
+)
+from app.domains.notifications.infrastructure.models.notification_models import (
+    NotificationType,
+)
 
 router = APIRouter(
     prefix="/admin/workspaces",
@@ -287,3 +300,53 @@ async def put_limits(
     await db.commit()
     await db.refresh(workspace)
     return settings.limits
+
+
+@router.get(
+    "/{workspace_id}/usage",
+    summary="Get workspace AI usage",
+)
+async def get_workspace_usage(
+    workspace_id: UUID,
+    user: User = Depends(auth_user),
+    _: WorkspaceMember | None = Depends(require_ws_viewer),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    repo = AIUsageRepository(db)
+    totals = await repo.workspace_totals(workspace_id)
+    workspace = await WorkspaceDAO.get(db, workspace_id)
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    settings = WorkspaceSettings.model_validate(workspace.settings_json)
+    limit = int(settings.limits.get("ai_tokens", 0))
+    tokens = int(totals["tokens"])
+    progress = tokens / limit if limit else 0
+    alert: str | None = None
+    if limit:
+        ratio = tokens / limit
+        if ratio >= 1:
+            alert = "quota_exceeded"
+        elif ratio >= 0.8:
+            alert = "quota_warning"
+    if alert:
+        try:
+            notify = NotifyService(
+                NotificationRepository(db), WebsocketPusher(ws_manager)
+            )
+            await notify.create_notification(
+                workspace_id=workspace_id,
+                user_id=user.id,
+                title="AI quota alert",
+                message=f"AI token usage {tokens}/{limit}",
+                type=NotificationType.system,
+            )
+        except Exception:
+            pass
+    return {
+        "workspace_id": workspace_id,
+        "tokens": tokens,
+        "cost": float(totals["cost"]),
+        "limit": limit,
+        "progress": progress,
+        "alert": alert,
+    }
