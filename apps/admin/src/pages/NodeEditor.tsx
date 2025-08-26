@@ -297,6 +297,7 @@ function NodeEditorInner({
             is_public: node.is_public,
             node_type: node.node_type,
           }}
+          onSlugChange={(slug) => setNode({ ...node, slug })}
         />
       </div>
     </div>
