@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { safeLocalStorage } from "./safeStorage";
+
 /**
  * Generic hook to manage editor state with auto-save capability.
  * @param initial - initial data
@@ -13,8 +15,8 @@ export function useAutosave<T>(
   storageKey?: string,
 ) {
   const [data, setData] = useState<T>(() => {
-    if (storageKey && typeof localStorage !== "undefined") {
-      const raw = localStorage.getItem(storageKey);
+    if (storageKey) {
+      const raw = safeLocalStorage.getItem(storageKey);
       if (raw) {
         try {
           return JSON.parse(raw) as T;
@@ -34,8 +36,8 @@ export function useAutosave<T>(
     setSaving(true);
     try {
       await onSave(latest.current);
-      if (storageKey && typeof localStorage !== "undefined") {
-        localStorage.removeItem(storageKey);
+      if (storageKey) {
+        safeLocalStorage.removeItem(storageKey);
       }
     } finally {
       setSaving(false);
@@ -48,9 +50,9 @@ export function useAutosave<T>(
 
   useEffect(() => {
     latest.current = data;
-    if (storageKey && typeof localStorage !== "undefined") {
+    if (storageKey) {
       try {
-        localStorage.setItem(storageKey, JSON.stringify(data));
+        safeLocalStorage.setItem(storageKey, JSON.stringify(data));
       } catch {
         /* ignore */
       }

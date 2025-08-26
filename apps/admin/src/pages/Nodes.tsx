@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { confirmWithEnv } from "../utils/env";
 
 import { api } from "../api/client";
 import ContentEditor from "../components/content/ContentEditor";
-import { useToast } from "../components/ToastProvider";
 import StatusBadge from "../components/StatusBadge";
 import type { TagOut } from "../components/tags/TagPicker";
-import type { OutputData } from "../types/editorjs";
+import { useToast } from "../components/ToastProvider";
 import WorkspaceSelector from "../components/WorkspaceSelector";
+import type { OutputData } from "../types/editorjs";
+import { confirmWithEnv } from "../utils/env";
+import { safeLocalStorage } from "../utils/safeStorage";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
 type NodeItem = {
@@ -149,14 +150,12 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   // Модалка создания ноды
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState<NodeEditorData>(() => {
-    if (typeof localStorage !== "undefined") {
-      const raw = localStorage.getItem("node-draft");
-      if (raw) {
-        try {
-          return JSON.parse(raw) as NodeEditorData;
-        } catch {
-          /* ignore */
-        }
+    const raw = safeLocalStorage.getItem("node-draft");
+    if (raw) {
+      try {
+        return JSON.parse(raw) as NodeEditorData;
+      } catch {
+        /* ignore */
       }
     }
     return makeDraft();
@@ -164,9 +163,8 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   const canSave = useMemo(() => !!draft.title.trim(), [draft.title]);
 
   useEffect(() => {
-    if (typeof localStorage === "undefined") return;
     try {
-      localStorage.setItem("node-draft", JSON.stringify(draft));
+      safeLocalStorage.setItem("node-draft", JSON.stringify(draft));
     } catch {
       /* ignore */
     }
@@ -503,13 +501,11 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     creatingRef.current = true;
     try {
       const created = await doCreate();
-      if (typeof localStorage !== "undefined") {
-        try {
-          localStorage.removeItem("node-draft");
-          localStorage.removeItem("node-draft-content");
-        } catch {
-          /* ignore */
-        }
+      try {
+        safeLocalStorage.removeItem("node-draft");
+        safeLocalStorage.removeItem("node-draft-content");
+      } catch {
+        /* ignore */
       }
       if (action === "next") {
         setDraft(makeDraft());

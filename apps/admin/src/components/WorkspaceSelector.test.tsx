@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { safeLocalStorage } from "../utils/safeStorage";
 import { WorkspaceBranchProvider } from "../workspace/WorkspaceContext";
 import WorkspaceSelector from "./WorkspaceSelector";
 
@@ -19,8 +20,8 @@ vi.mock("../api/client", () => ({
 
 describe("WorkspaceSelector", () => {
   beforeEach(() => {
-    localStorage.clear();
-    localStorage.setItem("workspaceId", "ws1");
+    safeLocalStorage.clear();
+    safeLocalStorage.setItem("workspaceId", "ws1");
     queryData.data = [
       { id: "ws1", name: "Workspace One" },
       { id: "ws2", name: "Workspace Two" },
