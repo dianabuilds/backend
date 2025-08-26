@@ -1,9 +1,10 @@
 import Cropper, { type Area } from "react-easy-crop";
 import { useAuth } from "../auth/AuthContext";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { listFlags } from "../api/flags";
-import { patchNode } from "../api/nodes";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { patchNode, validateNode } from "../api/nodes";
+import type { ValidateResult } from "../openapi";
 
 interface CoverChange {
   assetId: string | null;
@@ -20,6 +21,7 @@ interface NodeSidebarProps {
     created_at: string;
     updated_at: string;
     is_public: boolean;
+    published_at: string | null;
     node_type: string;
     cover_url: string | null;
     cover_asset_id: string | null;
@@ -28,12 +30,16 @@ interface NodeSidebarProps {
   };
   onSlugChange?: (slug: string, updated_at?: string) => void;
   onCoverChange?: (data: CoverChange) => void;
+  onStatusChange?: (is_public: boolean, updated_at?: string) => void;
+  onScheduleChange?: (published_at: string | null, updated_at?: string) => void;
 }
 
 export default function NodeSidebar({
   node,
   onSlugChange,
   onCoverChange,
+  onStatusChange,
+  onScheduleChange,
 }: NodeSidebarProps) {
   const { user } = useAuth();
   const role = user?.role;
@@ -69,6 +75,18 @@ export default function NodeSidebar({
   const [slugDraft, setSlugDraft] = useState(node.slug);
   const [slugSaving, setSlugSaving] = useState(false);
   const [slugError, setSlugError] = useState<string | null>(null);
+
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [scheduleValue, setScheduleValue] = useState(
+    node.published_at ? node.published_at.slice(0, 16) : "",
+  );
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [validation, setValidation] = useState<ValidateResult | null>(null);
+  const [validating, setValidating] = useState(false);
+
+  useEffect(() => {
+    setScheduleValue(node.published_at ? node.published_at.slice(0, 16) : "");
+  }, [node.published_at]);
 
   useEffect(() => {
     if (!editing) return;
@@ -151,6 +169,52 @@ export default function NodeSidebar({
       meta: { focalX: focal.x, focalY: focal.y, crop: cropMeta },
     });
     setEditing(false);
+  };
+
+  const runValidation = async () => {
+    setValidating(true);
+    try {
+      const res = await validateNode(node.id);
+      setValidation(res);
+    } catch {
+      setValidation(null);
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  const handleStatusChange = async (checked: boolean) => {
+    setStatusSaving(true);
+    try {
+      if (checked) {
+        const res = await validateNode(node.id);
+        setValidation(res);
+        if (!res.ok) {
+          setStatusSaving(false);
+          return;
+        }
+      }
+      const res = await patchNode(node.id, { is_public: checked });
+      const updated = (res as any).updatedAt ?? (res as any).updated_at;
+      const published = (res as any).isPublic ?? checked;
+      onStatusChange?.(published, updated);
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const handleScheduleChange = async (value: string) => {
+    setScheduleValue(value);
+    setScheduleSaving(true);
+    try {
+      const iso = value ? new Date(value).toISOString() : null;
+      const res = await patchNode(node.id, { published_at: iso });
+      const updated = (res as any).updatedAt ?? (res as any).updated_at;
+      const publishedAt = (res as any).published_at ?? (res as any).publishedAt ?? iso;
+      onScheduleChange?.(publishedAt, updated);
+    } finally {
+      setScheduleSaving(false);
+    }
   };
 
   const copy = (v: string) => {
@@ -326,14 +390,62 @@ export default function NodeSidebar({
       </details>
       <details open>
         <summary className="cursor-pointer font-semibold">Publication</summary>
-        <div className="mt-2 space-y-1 text-sm">
-          <div>Status: {node.is_public ? "Published" : "Draft"}</div>
-          <div>Scheduling: —</div>
+        <div className="mt-2 space-y-2 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={node.is_public}
+              onChange={(e) => handleStatusChange(e.target.checked)}
+              disabled={statusSaving}
+            />
+            Published
+          </label>
+          {node.updated_at !== node.created_at ? (
+            <div>
+              <div className="text-xs mb-1">Schedule</div>
+              <input
+                type="datetime-local"
+                className="w-full border rounded px-1 py-0.5 text-xs"
+                value={scheduleValue}
+                onChange={(e) => handleScheduleChange(e.target.value)}
+                disabled={scheduleSaving}
+              />
+            </div>
+          ) : null}
         </div>
       </details>
       <details open>
         <summary className="cursor-pointer font-semibold">Validation</summary>
-        <div className="mt-2 text-sm text-gray-500">No validation errors.</div>
+        <div className="mt-2 space-y-2 text-sm">
+          <button
+            type="button"
+            className="px-2 py-1 border rounded text-xs"
+            onClick={runValidation}
+            disabled={validating}
+          >
+            {validating ? "Validating…" : "Run validation"}
+          </button>
+          {validation ? (
+            validation.ok ? (
+              <div className="text-xs text-green-600">No validation errors.</div>
+            ) : (
+              <div className="space-y-1">
+                {validation.errors.map((err, i) => (
+                  <div key={i} className="text-xs text-red-600">
+                    {err}
+                  </div>
+                ))}
+                {validation.warnings.map((w, i) => (
+                  <div key={i} className="text-xs text-yellow-600">
+                    {w}
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="text-sm text-gray-500">No validation run.</div>
+          )}
+        </div>
       </details>
       {canModerate ? (
         <details>
