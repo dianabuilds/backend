@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, Tuple, Optional
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -20,6 +21,7 @@ from app.domains.ai.providers import (
 )
 from app.domains.ai.logs import save_stage_log
 from app.domains.ai.application.pricing_service import estimate_cost_usd
+from app.domains.ai.application.usage_recorder import record_usage
 from app.domains.telemetry.application.metrics_registry import llm_metrics
 from app.domains.telemetry.application.ports.llm_metrics_port import LLMCallLabels
 from app.domains.ai.application.circuit_service import llm_circuit
@@ -70,6 +72,26 @@ def _build_fallback_chain(preferred: Optional[str] = None, ai: Optional[AISettin
     return providers
 
 
+async def _estimate_cost_pre_call(
+    providers,
+    *,
+    model: str,
+    prompt: str,
+    system: str,
+    max_tokens: int,
+):
+    if not providers:
+        return None
+    prov = providers[0]
+    try:
+        tokens = await prov.count_tokens(model=model, prompt=prompt, system=system)
+        if tokens is not None:
+            return estimate_cost_usd(model, tokens, max_tokens)
+    except Exception:
+        pass
+    return None
+
+
 async def _call_with_fallback(
     *,
     prompt: str,
@@ -79,10 +101,12 @@ async def _call_with_fallback(
     preferred_provider: Optional[str],
     ai_settings: Optional[AISettings],
     max_tokens: int = 2048,
+    providers: Optional[list] = None,
 ):
     last_err: Exception | None = None
     rate_skipped_any = False
-    for prov in _build_fallback_chain(preferred_provider, ai_settings):
+    chain = providers or _build_fallback_chain(preferred_provider, ai_settings)
+    for prov in chain:
         pname = getattr(prov, "name", "unknown")
         if not llm_circuit.allow(pname):
             try:
@@ -148,6 +172,11 @@ async def _call_with_fallback(
 
 async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str, Any]:
     params = job.params or {}
+    workspace_id_raw = params.get("workspace_id")
+    try:
+        workspace_uuid = UUID(str(workspace_id_raw)) if workspace_id_raw else None
+    except Exception:
+        workspace_uuid = None
     world_template_id = params.get("world_template_id")
     structure = params.get("structure", "vn_branching")
     length = params.get("length", "short")
@@ -208,6 +237,16 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     # Stage 1: beats
     system_beats = f"You are narrative planner. Locale: {locale}. Use the provided world slice. Output JSON with 12-15 beats.\nWorld slice: {world_ctx}"
     prompt_beats = f"Structure={structure}; Length={length}; Tone={tone}; Genre={genre}"
+    providers = _build_fallback_chain(preferred_provider, ai_settings)
+    est = await _estimate_cost_pre_call(
+        providers,
+        model=model_beats,
+        prompt=prompt_beats,
+        system=system_beats,
+        max_tokens=maxtok_beats,
+    )
+    if budget_usd > 0 and est is not None and (total_cost + est) > budget_usd:
+        raise RuntimeError(f"budget_exceeded:{(total_cost + est):.4f}>{budget_usd:.4f}")
     prov, res = await _call_with_fallback(
         prompt=prompt_beats,
         system=system_beats,
@@ -216,8 +255,19 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         preferred_provider=preferred_provider,
         ai_settings=ai_settings,
         max_tokens=maxtok_beats,
+        providers=providers,
     )
     cost = estimate_cost_usd(res.model, res.usage.prompt_tokens, res.usage.completion_tokens)
+    if workspace_uuid:
+        await record_usage(
+            db,
+            workspace_id=workspace_uuid,
+            user_id=job.created_by,
+            provider=getattr(prov, "name", "?"),
+            model=res.model,
+            usage=res.usage,
+            cost=cost,
+        )
     if budget_usd > 0 and (total_cost + cost) > budget_usd:
         try:
             labels = LLMCallLabels(provider=getattr(prov, "name", "?"), model=res.model, stage="beats")
@@ -252,6 +302,16 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     # Stage 2: chapters
     system_ch = f"You expand beats into chapters with entry/exit. Locale: {locale}. Keep consistency with world slice.\nWorld slice: {world_ctx}\nOutput JSON with entries/exits."
     prompt_ch = f"Beats JSON:\n{beats_json}\nConstraints: structure={structure}"
+    providers = _build_fallback_chain(preferred_provider, ai_settings)
+    est = await _estimate_cost_pre_call(
+        providers,
+        model=model_chapters,
+        prompt=prompt_ch,
+        system=system_ch,
+        max_tokens=maxtok_chapters,
+    )
+    if budget_usd > 0 and est is not None and (total_cost + est) > budget_usd:
+        raise RuntimeError(f"budget_exceeded:{(total_cost + est):.4f}>{budget_usd:.4f}")
     prov, res = await _call_with_fallback(
         prompt=prompt_ch,
         system=system_ch,
@@ -260,8 +320,19 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         preferred_provider=preferred_provider,
         ai_settings=ai_settings,
         max_tokens=maxtok_chapters,
+        providers=providers,
     )
     cost = estimate_cost_usd(res.model, res.usage.prompt_tokens, res.usage.completion_tokens)
+    if workspace_uuid:
+        await record_usage(
+            db,
+            workspace_id=workspace_uuid,
+            user_id=job.created_by,
+            provider=getattr(prov, "name", "?"),
+            model=res.model,
+            usage=res.usage,
+            cost=cost,
+        )
     if budget_usd > 0 and (total_cost + cost) > budget_usd:
         try:
             labels = LLMCallLabels(provider=getattr(prov, "name", "?"), model=res.model, stage="chapters")
@@ -296,6 +367,16 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     # Stage 3: nodes
     system_nodes = f"You write narrative nodes with choices. Locale: {locale}. Maintain coherence with world slice.\nWorld slice: {world_ctx}\nOutput JSON graph nodes/edges."
     prompt_nodes = f"Chapters JSON:\n{chapters_json}"
+    providers = _build_fallback_chain(preferred_provider, ai_settings)
+    est = await _estimate_cost_pre_call(
+        providers,
+        model=model_nodes,
+        prompt=prompt_nodes,
+        system=system_nodes,
+        max_tokens=maxtok_nodes,
+    )
+    if budget_usd > 0 and est is not None and (total_cost + est) > budget_usd:
+        raise RuntimeError(f"budget_exceeded:{(total_cost + est):.4f}>{budget_usd:.4f}")
     prov, res = await _call_with_fallback(
         prompt=prompt_nodes,
         system=system_nodes,
@@ -304,14 +385,26 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         preferred_provider=preferred_provider,
         ai_settings=ai_settings,
         max_tokens=maxtok_nodes,
+        providers=providers,
     )
     cost = estimate_cost_usd(res.model, res.usage.prompt_tokens, res.usage.completion_tokens)
+    if workspace_uuid:
+        await record_usage(
+            db,
+            workspace_id=workspace_uuid,
+            user_id=job.created_by,
+            provider=getattr(prov, "name", "?"),
+            model=res.model,
+            usage=res.usage,
+            cost=cost,
+        )
     if budget_usd > 0 and (total_cost + cost) > budget_usd:
         try:
             labels = LLMCallLabels(provider=getattr(prov, "name", "?"), model=res.model, stage="nodes")
             llm_metrics.inc_error(labels, "budget_exceeded", 1)
         except Exception:
             pass
+    
         raise RuntimeError(f"budget_exceeded:{(total_cost + cost):.4f}>{budget_usd:.4f}")
     try:
         stage_labels = LLMCallLabels(provider=getattr(prov, "name", "?"), model=res.model, stage="nodes")
