@@ -108,10 +108,7 @@ _cors_kwargs = {
     "max_age": settings.cors_max_age,
 }
 _effective = settings.effective_origins()
-if "allow_origins" in _effective:
-    _cors_kwargs["allow_origins"] = _effective["allow_origins"]
-else:
-    _cors_kwargs["allow_origin_regex"] = _effective["allow_origin_regex"]  # type: ignore[index]
+_cors_kwargs.update(_effective)
 app.add_middleware(CORSMiddleware, **_cors_kwargs)
 if settings.rate_limit.enabled:
     app.add_middleware(
