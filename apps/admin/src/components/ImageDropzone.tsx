@@ -101,17 +101,19 @@ export default function ImageDropzone({
           <div className="absolute top-2 right-2 flex gap-2">
             <button
               type="button"
-              className="text-xs px-2 py-1 rounded bg-white/90 border"
+              className="text-xs px-2 py-1 rounded bg-white/90 border focus:outline-none focus:ring-2 focus:ring-blue-500"
               onClick={() => onChange?.(null)}
               title="Remove"
+              aria-label="Remove image"
             >
               Remove
             </button>
             <button
               type="button"
-              className="text-xs px-2 py-1 rounded bg-white/90 border"
+              className="text-xs px-2 py-1 rounded bg-white/90 border focus:outline-none focus:ring-2 focus:ring-blue-500"
               onClick={onClick}
               title="Replace"
+              aria-label="Replace image"
             >
               Replace
             </button>
@@ -119,7 +121,7 @@ export default function ImageDropzone({
         </div>
       ) : (
         <div
-          className={`rounded border-2 border-dashed ${dragOver ? "border-blue-400 bg-blue-50" : "border-gray-300"} cursor-pointer flex items-center justify-center text-sm text-gray-600`}
+          className={`rounded border-2 border-dashed ${dragOver ? "border-blue-400 bg-blue-50" : "border-gray-300"} cursor-pointer flex items-center justify-center text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500`}
           style={{ height }}
           onDragOver={(e) => {
             e.preventDefault();
@@ -128,11 +130,20 @@ export default function ImageDropzone({
           onDragLeave={() => setDragOver(false)}
           onDrop={onDrop}
           onClick={onClick}
+          role="button"
+          tabIndex={0}
+          aria-label="Upload image"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onClick();
+            }
+          }}
         >
           <div className="text-center px-3">
             <div className="mx-auto mb-2 text-3xl">🖼️</div>
             <div className="font-medium mb-0.5">Перетащите изображение</div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-600">
               или нажмите, чтобы выбрать файл
             </div>
             {error && <div className="mt-2 text-xs text-red-600">{error}</div>}

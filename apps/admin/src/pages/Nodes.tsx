@@ -990,11 +990,13 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                 statuses={["draft"]}
                 versions={[1]}
                 onSave={() => handleCommit("save")}
+                onClose={() => setEditorOpen(false)}
                 toolbar={
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      className="px-2 py-1 border rounded"
+                      aria-label="Save"
+                      className="px-2 py-1 border rounded bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       disabled={!canSave || creatingRef.current}
                       onClick={() => handleCommit("save")}
                     >
@@ -1002,7 +1004,8 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                     </button>
                     <button
                       type="button"
-                      className="px-2 py-1 border rounded"
+                      aria-label="Save and Next"
+                      className="px-2 py-1 border rounded bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       disabled={!canSave || creatingRef.current}
                       onClick={() => handleCommit("next")}
                     >
@@ -1010,7 +1013,8 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                     </button>
                     <button
                       type="button"
-                      className="px-2 py-1 border rounded"
+                      aria-label="Close editor"
+                      className="px-2 py-1 border rounded bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       onClick={() => setEditorOpen(false)}
                     >
                       Close

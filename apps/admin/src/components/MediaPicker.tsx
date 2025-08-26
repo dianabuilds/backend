@@ -79,8 +79,9 @@ export default function MediaPicker({
       <ImageDropzone value={value} onChange={onChange} height={height} />
       <button
         type="button"
-        className="mt-2 text-xs px-2 py-1 rounded border"
+        className="mt-2 text-xs px-2 py-1 rounded border bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         onClick={() => setOpen(true)}
+        aria-label="Browse media"
       >
         Browse
       </button>
@@ -116,8 +117,9 @@ export default function MediaPicker({
             </div>
             <button
               type="button"
-              className="mt-4 px-2 py-1 border rounded text-sm"
+              className="mt-4 px-2 py-1 border rounded text-sm bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               onClick={() => setOpen(false)}
+              aria-label="Close media picker"
             >
               Close
             </button>

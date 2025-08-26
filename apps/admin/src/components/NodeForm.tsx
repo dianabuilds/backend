@@ -4,7 +4,7 @@ import FieldTags from "./fields/FieldTags";
 import FieldSummary from "./fields/FieldSummary";
 import type { OutputData } from "../types/editorjs";
 import type { TagOut } from "./tags/TagPicker";
-import type { Ref } from "react";
+import { useId, type Ref } from "react";
 
 interface NodeFormProps {
   title: string;
@@ -29,28 +29,44 @@ export default function NodeForm({
   onSummaryChange,
   titleRef,
 }: NodeFormProps) {
+  const contentId = useId();
+  const contentDesc = `${contentId}-desc`;
   return (
     <div className="flex flex-col gap-4 p-3">
       <div>
-        <FieldTitle ref={titleRef} value={title} onChange={onTitleChange} />
-        <p className="mt-1 text-xs text-gray-500">
-          Short and descriptive title.
-        </p>
+        <FieldTitle
+          ref={titleRef}
+          value={title}
+          onChange={onTitleChange}
+          description="Short and descriptive title."
+        />
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Content</label>
-        <EditorJSEmbed value={content} onChange={onContentChange} />
-        <p className="mt-1 text-xs text-gray-500">
+        <label
+          htmlFor={contentId}
+          className="block text-sm font-medium text-gray-900"
+        >
+          Content
+        </label>
+        <div
+          id={contentId}
+          aria-describedby={contentDesc}
+          className="mt-1"
+        >
+          <EditorJSEmbed value={content} onChange={onContentChange} />
+        </div>
+        <p id={contentDesc} className="mt-1 text-xs text-gray-600">
           Main body of the node with text and images.
         </p>
       </div>
 
       <div>
-        <FieldTags value={tags} onChange={onTagsChange} />
-        <p className="mt-1 text-xs text-gray-500">
-          Add tags to help categorize the node.
-        </p>
+          <FieldTags
+            value={tags}
+            onChange={onTagsChange}
+            description="Add tags to help categorize the node."
+          />
       </div>
 
       <FieldSummary value={summary} onChange={onSummaryChange} />

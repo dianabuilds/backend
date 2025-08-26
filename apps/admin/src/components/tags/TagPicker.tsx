@@ -6,12 +6,13 @@ import MultiSelectBase from "../ui/MultiSelectBase";
 
 export type TagOut = TagOutBase & { id: string };
 
-interface TagPickerProps {
+interface TagPickerProps
+  extends React.SelectHTMLAttributes<HTMLSelectElement> {
   value: TagOut[];
   onChange: (val: TagOut[]) => void;
 }
 
-export default function TagPicker({ value, onChange }: TagPickerProps) {
+export default function TagPicker({ value, onChange, ...rest }: TagPickerProps) {
   const { data: tags = [] } = useQuery<TagOut[]>({
     queryKey: ["admin-tags"],
     queryFn: async () => {
@@ -27,6 +28,7 @@ export default function TagPicker({ value, onChange }: TagPickerProps) {
       onChange={onChange}
       getKey={(t) => t.slug}
       getLabel={(t) => t.name}
+      {...rest}
     />
   );
 }
