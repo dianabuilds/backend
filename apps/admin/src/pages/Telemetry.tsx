@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { api } from "../api/client";
 import { LineChart, StackedBars } from "../components/Charts";
 import SummaryCard from "../components/SummaryCard";
+import PeriodStepSelector from "../components/PeriodStepSelector";
+import JsonCard from "../components/JsonCard";
 
 type RumEvent = { event: string; ts?: number; url?: string; data?: any };
 type RumSummary = {
@@ -106,24 +108,12 @@ export default function Telemetry() {
     <div className="p-4 space-y-4">
       <div className="flex items-center gap-2">
         <h1 className="text-lg font-semibold">Telemetry — RUM</h1>
-        <label className="text-sm">Range:</label>
-        <select
-          value={range}
-          onChange={(e) => setRange(e.target.value as any)}
-          className="border rounded px-2 py-1 text-sm"
-        >
-          <option value="1h">1h</option>
-          <option value="24h">24h</option>
-        </select>
-        <label className="text-sm">Step:</label>
-        <select
-          value={step}
-          onChange={(e) => setStep(Number(e.target.value) as any)}
-          className="border rounded px-2 py-1 text-sm"
-        >
-          <option value={60}>1m</option>
-          <option value={300}>5m</option>
-        </select>
+        <PeriodStepSelector
+          range={range}
+          step={step}
+          onRangeChange={setRange}
+          onStepChange={setStep}
+        />
         <button
           onClick={reload}
           className="ml-auto text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
@@ -131,6 +121,9 @@ export default function Telemetry() {
           Обновить
         </button>
       </div>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Real user monitoring events. Use range and step to adjust aggregation.
+      </p>
 
       <section className="space-y-2">
         <div className="flex items-center justify-between">
@@ -227,14 +220,7 @@ export default function Telemetry() {
                     <td className="px-2 py-1">{ev.event}</td>
                     <td className="px-2 py-1">{ev.url || "-"}</td>
                     <td className="px-2 py-1">
-                      <details>
-                        <summary className="text-blue-600 cursor-pointer hover:underline">
-                          Показать
-                        </summary>
-                        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-xs bg-gray-50 p-2 rounded">
-                          {JSON.stringify(ev.data ?? {}, null, 2)}
-                        </pre>
-                      </details>
+                      <JsonCard data={ev.data ?? {}} />
                     </td>
                   </tr>
                 ))}
