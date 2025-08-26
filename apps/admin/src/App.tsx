@@ -26,7 +26,7 @@ import Navigation from "./pages/Navigation";
 import Nodes from "./pages/Nodes";
 import NotificationCampaignEditor from "./pages/NotificationCampaignEditor";
 import Notifications from "./pages/Notifications";
-import Preview from "./pages/Preview";
+import Simulation from "./pages/Simulation";
 import Profile from "./pages/Profile";
 import QuestsList from "./pages/QuestsList";
 import NodeEditor from "./pages/NodeEditor";
@@ -106,7 +106,9 @@ export default function App() {
                         element={<ModerationCase />}
                       />
                       <Route path="navigation" element={<Navigation />} />
-                      {ADMIN_DEV_TOOLS && <Route path="preview" element={<Preview />} />}
+                      {ADMIN_DEV_TOOLS && (
+                        <Route path="preview" element={<Simulation />} />
+                      )}
                       {ADMIN_DEV_TOOLS && <Route path="echo" element={<Echo />} />}
                       <Route path="traces" element={<Traces />} />
                       <Route path="notifications" element={<Notifications />} />

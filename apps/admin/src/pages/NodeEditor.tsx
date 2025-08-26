@@ -190,7 +190,7 @@ export default function NodeEditor() {
                       rel="noopener noreferrer"
                       className="px-2 py-1 border rounded"
                     >
-                      Preview route
+                      Simulation route
                     </a>
                     <a
                       href={`/transitions/trace?start=${encodeURIComponent(node.slug)}&workspace=${workspaceId}`}
