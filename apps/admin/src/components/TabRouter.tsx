@@ -1,5 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { type ReactNode, useState } from "react";
 
 export interface TabPlugin {
   name: string;
@@ -11,24 +10,7 @@ interface Props {
 }
 
 export default function TabRouter({ plugins }: Props) {
-  const [params, setParams] = useSearchParams();
-  const initial = params.get("tab") || plugins[0]?.name;
-  const [active, setActive] = useState(initial);
-
-  useEffect(() => {
-    const tab = params.get("tab");
-    if (tab && plugins.some((p) => p.name === tab) && tab !== active) {
-      setActive(tab);
-    }
-  }, [params, plugins, active]);
-
-  useEffect(() => {
-    setParams((p) => {
-      const next = new URLSearchParams(p);
-      if (active) next.set("tab", active);
-      return next;
-    });
-  }, [active, setParams]);
+  const [active, setActive] = useState(plugins[0]?.name);
 
   const current = plugins.find((p) => p.name === active);
 
