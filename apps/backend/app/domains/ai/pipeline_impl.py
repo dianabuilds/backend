@@ -96,72 +96,87 @@ async def _call_with_fallback(
     *,
     prompt: str,
     system: str,
-    model: str,
+    model: str | list[str],
     json_mode: bool,
     preferred_provider: Optional[str],
     ai_settings: Optional[AISettings],
     max_tokens: int = 2048,
     providers: Optional[list] = None,
 ):
+    models = [model] if isinstance(model, str) else list(model)
     last_err: Exception | None = None
     rate_skipped_any = False
-    chain = providers or _build_fallback_chain(preferred_provider, ai_settings)
-    for prov in chain:
-        pname = getattr(prov, "name", "unknown")
-        if not llm_circuit.allow(pname):
-            try:
-                labels = LLMCallLabels(provider=pname, model=model, stage="unknown")
-                llm_metrics.inc("skipped", labels, 1)
-            except Exception:
-                pass
-            logger.info("Skipping provider %s due to open circuit", pname)
-            continue
+    for m in models:
+        chain = providers or _build_fallback_chain(preferred_provider, ai_settings)
+        for prov in chain:
+            pname = getattr(prov, "name", "unknown")
+            if not llm_circuit.allow(pname):
+                try:
+                    labels = LLMCallLabels(provider=pname, model=m, stage="unknown")
+                    llm_metrics.inc("skipped", labels, 1)
+                except Exception:
+                    pass
+                logger.info("Skipping provider %s due to open circuit", pname)
+                continue
 
-        # Rate limit: сперва по модели (если задан), затем по провайдеру
-        from app.domains.ai.rate_limit import try_acquire_for
-        allowed = True
-        reason = None
-        try:
-            allowed, reason = await try_acquire_for(pname, model, amount=1)
-        except Exception:
-            allowed, reason = True, None  # в случае ошибки лимитера не блокируем вызов
-        if not allowed:
-            rate_skipped_any = True
-            try:
-                labels = LLMCallLabels(provider=pname, model=model, stage="unknown")
-                llm_metrics.inc("skipped", labels, 1)
-                if reason == "model":
-                    llm_metrics.inc_error(labels, "rate_limit_model", 1)
-                else:
-                    llm_metrics.inc_error(labels, "rate_limit_provider", 1)
-            except Exception:
-                pass
-            logger.info("Skipping provider %s due to local rate-limit (%s)", pname, reason or "provider")
-            continue
+            # Rate limit: сперва по модели (если задан), затем по провайдеру
+            from app.domains.ai.rate_limit import try_acquire_for
 
-        try:
-            res = await prov.complete(
-                model=model, prompt=prompt, system=system, json_mode=json_mode, max_tokens=max_tokens, timeout=60.0
-            )
-            llm_circuit.on_success(pname)
-            return prov, res
-        except Exception as e:
-            from app.domains.ai.providers.base import LLMRateLimit, LLMServerError  # lazy import to avoid cycles
-            logger.warning("Provider %s failed (%s), trying next...", pname, e)
-            llm_circuit.on_failure(pname)
+            allowed = True
+            reason = None
             try:
-                labels = LLMCallLabels(provider=pname, model=model, stage="unknown")
-                llm_metrics.inc("failure", labels, 1)
-                if isinstance(e, LLMRateLimit):
-                    llm_metrics.inc_error(labels, "rate_limit", 1)
-                elif isinstance(e, LLMServerError):
-                    llm_metrics.inc_error(labels, "server", 1)
-                else:
-                    llm_metrics.inc_error(labels, "other", 1)
+                allowed, reason = await try_acquire_for(pname, m, amount=1)
             except Exception:
-                pass
-            last_err = e
-            continue
+                allowed, reason = True, None  # в случае ошибки лимитера не блокируем вызов
+            if not allowed:
+                rate_skipped_any = True
+                try:
+                    labels = LLMCallLabels(provider=pname, model=m, stage="unknown")
+                    llm_metrics.inc("skipped", labels, 1)
+                    if reason == "model":
+                        llm_metrics.inc_error(labels, "rate_limit_model", 1)
+                    else:
+                        llm_metrics.inc_error(labels, "rate_limit_provider", 1)
+                except Exception:
+                    pass
+                logger.info(
+                    "Skipping provider %s due to local rate-limit (%s)",
+                    pname,
+                    reason or "provider",
+                )
+                continue
+
+            try:
+                res = await prov.complete(
+                    model=m,
+                    prompt=prompt,
+                    system=system,
+                    json_mode=json_mode,
+                    max_tokens=max_tokens,
+                    timeout=60.0,
+                )
+                llm_circuit.on_success(pname)
+                return prov, res
+            except Exception as e:
+                from app.domains.ai.providers.base import (
+                    LLMRateLimit,
+                    LLMServerError,
+                )  # lazy import to avoid cycles
+                logger.warning("Provider %s failed (%s), trying next...", pname, e)
+                llm_circuit.on_failure(pname)
+                try:
+                    labels = LLMCallLabels(provider=pname, model=m, stage="unknown")
+                    llm_metrics.inc("failure", labels, 1)
+                    if isinstance(e, LLMRateLimit):
+                        llm_metrics.inc_error(labels, "rate_limit", 1)
+                    elif isinstance(e, LLMServerError):
+                        llm_metrics.inc_error(labels, "server", 1)
+                    else:
+                        llm_metrics.inc_error(labels, "other", 1)
+                except Exception:
+                    pass
+                last_err = e
+                continue
     if last_err:
         raise last_err
     if rate_skipped_any:
@@ -193,11 +208,28 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         logger.warning("Failed to load AISettings: %s", _e)
 
     # models per stage
-    model_default = (job.model or (ai_settings.model if ai_settings and ai_settings.model else os.getenv("AI_MODEL")) or "gpt-4o-mini").strip()
+    allowed_models = (
+        [str(m) for m in params.get("allowed_models", [])]
+        if isinstance(params.get("allowed_models"), list)
+        else []
+    )
+    model_default = (
+        job.model
+        or (ai_settings.model if ai_settings and ai_settings.model else os.getenv("AI_MODEL"))
+        or "gpt-4o-mini"
+    ).strip()
+    if allowed_models and model_default not in allowed_models:
+        model_default = allowed_models[0]
     models_param = (params.get("models") or {}) if isinstance(params.get("models"), dict) else {}
-    model_beats = (models_param.get("beats") or os.getenv("AI_MODEL_BEATS") or model_default).strip()
-    model_chapters = (models_param.get("chapters") or os.getenv("AI_MODEL_CHAPTERS") or model_default).strip()
-    model_nodes = (models_param.get("nodes") or os.getenv("AI_MODEL_NODES") or model_default).strip()
+    model_beats = (
+        models_param.get("beats") or os.getenv("AI_MODEL_BEATS") or model_default
+    ).strip()
+    model_chapters = (
+        models_param.get("chapters") or os.getenv("AI_MODEL_CHAPTERS") or model_default
+    ).strip()
+    model_nodes = (
+        models_param.get("nodes") or os.getenv("AI_MODEL_NODES") or model_default
+    ).strip()
 
     preferred_provider = (getattr(job, "provider", None) or (ai_settings.provider if ai_settings and ai_settings.provider else os.getenv("AI_PROVIDER")) or "openai").strip()
     maxtok_beats = int(os.getenv("AI_MAXTOK_BEATS", "1200"))
@@ -250,7 +282,7 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     prov, res = await _call_with_fallback(
         prompt=prompt_beats,
         system=system_beats,
-        model=model_beats,
+        model=[model_beats] + [m for m in allowed_models if m != model_beats],
         json_mode=True,
         preferred_provider=preferred_provider,
         ai_settings=ai_settings,
@@ -315,7 +347,7 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     prov, res = await _call_with_fallback(
         prompt=prompt_ch,
         system=system_ch,
-        model=model_chapters,
+        model=[model_chapters] + [m for m in allowed_models if m != model_chapters],
         json_mode=True,
         preferred_provider=preferred_provider,
         ai_settings=ai_settings,
@@ -380,7 +412,7 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     prov, res = await _call_with_fallback(
         prompt=prompt_nodes,
         system=system_nodes,
-        model=model_nodes,
+        model=[model_nodes] + [m for m in allowed_models if m != model_nodes],
         json_mode=True,
         preferred_provider=preferred_provider,
         ai_settings=ai_settings,

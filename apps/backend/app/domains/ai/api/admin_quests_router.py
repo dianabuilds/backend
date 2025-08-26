@@ -87,7 +87,7 @@ async def generate_ai_quest(
     res = await db.execute(select(AISettings).limit(1))
     settings = res.scalar_one_or_none()
     provider = settings.provider if settings and settings.provider else None
-    model = settings.model if settings and settings.model else None
+    model = body.model or (settings.model if settings and settings.model else None)
 
     job = await enqueue_generation_job(
         db,
@@ -95,9 +95,17 @@ async def generate_ai_quest(
         params=params,
         provider=provider,
         model=model,
+        workspace_id=body.workspace_id,
         reuse=reuse,
         preview=preview,
     )
+    if body.remember and getattr(current, "id", None) and body.model:
+        from app.domains.ai.infrastructure.repositories.user_pref_repository import (
+            UserAIPrefRepository,
+        )
+
+        repo = UserAIPrefRepository(db)
+        await repo.set(current.id, body.model)
     await db.commit()
     return GenerationEnqueued(job_id=job.id)
 

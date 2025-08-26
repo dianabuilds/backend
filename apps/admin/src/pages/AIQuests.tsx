@@ -6,6 +6,7 @@ import { confirmWithEnv } from "../utils/env";
 import { api } from "../api/client";
 import { createDraft } from "../api/questEditor";
 import CursorPager from "../components/CursorPager";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 
 type WorldTemplate = {
   id: string;
@@ -65,6 +66,9 @@ export default function AIQuests() {
   const [tone, setTone] = useState<"light" | "dark" | "ironic">("light");
   const [genre, setGenre] = useState<string>("fantasy");
   const [locale, setLocale] = useState<string>("");
+  const [model, setModel] = useState<string>("");
+  const [remember, setRemember] = useState<boolean>(false);
+  const [allowedModels, setAllowedModels] = useState<string[]>([]);
 
   // management state
   const [mgmtOpen, setMgmtOpen] = useState<boolean>(false);
@@ -85,6 +89,8 @@ export default function AIQuests() {
     has_api_key: false,
   });
   const [aiSecret, setAISecret] = useState<string>("");
+
+  const { workspaceId } = useWorkspace();
 
   // Источник истины — React Query
   const queryClient = useQueryClient();
@@ -114,6 +120,39 @@ export default function AIQuests() {
   useEffect(() => {
     setTemplates(templatesData ?? []);
   }, [templatesData]);
+
+  const loadUserPref = async () => {
+    try {
+      const res = await api.get<{ model?: string }>("/admin/ai/user-pref");
+      if (res.data?.model) setModel(res.data.model);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const loadAllowedModels = async () => {
+    if (!workspaceId) return;
+    try {
+      const res = await api.get<any>(
+        `/admin/workspaces/${workspaceId}/settings/ai-presets`
+      );
+      const arr = Array.isArray(res.data?.allowed_models)
+        ? (res.data.allowed_models as string[])
+        : [];
+      setAllowedModels(arr);
+      if (!model && arr.length) setModel(arr[0]);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  useEffect(() => {
+    loadUserPref().catch(() => void 0);
+  }, []);
+
+  useEffect(() => {
+    loadAllowedModels().catch(() => void 0);
+  }, [workspaceId]);
 
   // загрузка первой страницы jobs
   const loadJobsFirst = useCallback(async () => {
@@ -250,6 +289,9 @@ export default function AIQuests() {
         genre,
         locale: locale || null,
         extras: {},
+        model: model || null,
+        remember,
+        workspace_id: workspaceId || null,
       });
       await load();
     } catch (e) {
@@ -573,6 +615,31 @@ export default function AIQuests() {
               value={locale}
               onChange={(e) => setLocale(e.target.value)}
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="w-32 text-sm text-gray-600">Model</label>
+            <select
+              className="border rounded px-2 py-1 flex-1"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+            >
+              {allowedModels.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+              {!allowedModels.includes(model) && model && (
+                <option value={model}>{model}</option>
+              )}
+            </select>
+            <label className="text-sm flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
+              Remember for me
+            </label>
           </div>
         </div>
         <div className="mt-3 flex items-center gap-3">

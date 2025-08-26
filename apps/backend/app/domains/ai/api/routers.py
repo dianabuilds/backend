@@ -17,6 +17,7 @@ from app.domains.ai.api.settings_router import (  # noqa: E402
     router as admin_ai_settings_router,
     compat_router as admin_ai_settings_compat_router,
 )
+from app.domains.ai.api.user_pref_router import router as admin_ai_user_pref_router  # noqa: E402
 
 # Временные доменные обёртки над legacy-ручками до полного переноса реализации
 # Основной роутер AI-квестов
@@ -44,3 +45,4 @@ if admin_ai_validation_router is not None:
 router.include_router(admin_embedding_router)
 router.include_router(admin_ai_settings_router)
 router.include_router(admin_ai_settings_compat_router)
+router.include_router(admin_ai_user_pref_router)
