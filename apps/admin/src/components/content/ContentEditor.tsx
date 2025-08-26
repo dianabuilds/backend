@@ -43,9 +43,33 @@ export default function ContentEditor({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "Enter")) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+
+      if (e.key === "s") {
         e.preventDefault();
         onSave?.();
+        return;
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const btn = Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(
+          (b) => b.textContent?.trim() === "Save & Next",
+        );
+        btn?.click();
+        return;
+      }
+
+      if (e.shiftKey && (e.key === "I" || e.key === "i")) {
+        e.preventDefault();
+        const plus = document.querySelector<HTMLButtonElement>(".ce-toolbar__plus");
+        plus?.click();
+        window.setTimeout(() => {
+          const image = document.querySelector<HTMLElement>(
+            '.ce-popover-item[data-tool="image"]',
+          );
+          image?.click();
+        }, 0);
       }
     };
     window.addEventListener("keydown", handler);
