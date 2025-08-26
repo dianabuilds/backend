@@ -933,25 +933,15 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                       </td>
                       <td className="p-2 space-x-2">
                         {n.slug ? (
-                          <>
-                            <a
-                              href={`/nodes/${n.slug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-2 py-1 border rounded"
-                              title="Просмотреть ноду"
-                            >
-                              View
-                            </a>
-                            <a
-                              href={`/transitions/trace?start=${encodeURIComponent(n.slug)}&workspace=${workspaceId}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-2 py-1 border rounded"
-                            >
-                              Trace candidates
-                            </a>
-                          </>
+                          <a
+                            href={`/nodes/${n.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-1 border rounded"
+                            title="Просмотреть ноду"
+                          >
+                            View
+                          </a>
                         ) : (
                           <span className="text-gray-400">Actions</span>
                         )}

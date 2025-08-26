@@ -170,14 +170,6 @@ export default function Quests() {
                     : "-"}
                 </td>
                 <td className="p-2 space-x-2">
-                  <a
-                    href={`/transitions/trace?start=${encodeURIComponent(q.id)}&workspace=${workspaceId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2 py-1 border rounded"
-                  >
-                    Trace candidates
-                  </a>
                   {q.is_draft && (
                     <>
                       <button

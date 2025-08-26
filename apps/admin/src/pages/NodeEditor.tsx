@@ -151,23 +151,9 @@ function NodeEditorInner({
         }
         setSavedAt(new Date());
         if (manualRef.current) {
-          const traceUrl =
-            data.slug && workspaceId
-              ? `/transitions/trace?start=${encodeURIComponent(data.slug)}&workspace=${workspaceId}`
-              : undefined;
           addToast({
             title: "Node saved",
             variant: "success",
-            description: traceUrl ? (
-              <a
-                href={traceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                Open Trace
-              </a>
-            ) : undefined,
           });
         }
         safeLocalStorage.removeItem(`node-content-${data.id}`);
