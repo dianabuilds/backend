@@ -650,7 +650,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const first = Array.from(selected)[0];
       if (e.key === "e" || e.key === "E") {
-        if (first) navigate(`/admin/nodes/${first}`);
+        if (first) navigate(`/nodes/${first}`);
       } else if (e.key === "p" || e.key === "P") {
         if (first) void previewSelected(first);
       } else if (e.key === "Delete") {
@@ -1103,7 +1103,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                         <button
                           type="button"
                           className="px-2 py-1 border rounded"
-                          onClick={() => navigate(`/admin/nodes/${n.id}`)}
+                          onClick={() => navigate(`/nodes/${n.id}`)}
                         >
                           Edit
                         </button>
