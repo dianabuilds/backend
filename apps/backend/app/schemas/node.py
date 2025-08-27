@@ -111,7 +111,6 @@ class NodeOut(NodeBase):
     id: UUID
     slug: str
     author_id: UUID
-    node_type: str | None = Field(default=None, alias="node_type")
     created_by_user_id: UUID | None = None
     updated_by_user_id: UUID | None = None
     views: int
@@ -119,7 +118,6 @@ class NodeOut(NodeBase):
     created_at: datetime
     updated_at: datetime
     popularity_score: float
-    quest_data: dict[str, Any] | None = None
 
     model_config = {"from_attributes": True}
 
@@ -157,23 +155,6 @@ class NodeOut(NodeBase):
         except Exception:
             self.popularity_score = 0.0
         return self
-
-    @field_validator("quest_data", mode="before")
-    @classmethod
-    def _parse_quest_data(cls, v: Any) -> dict[str, Any] | None:  # noqa: ANN001
-        if v is None:
-            return None
-        if isinstance(v, dict):
-            return v
-        if isinstance(v, str):
-            import json
-
-            try:
-                parsed = json.loads(v)
-            except Exception:
-                return None
-            return parsed if isinstance(parsed, dict) else None
-        return None
 
 
 class ReactionUpdate(BaseModel):

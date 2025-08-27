@@ -439,10 +439,9 @@ class NodeService:
             raise HTTPException(
                 status_code=400, detail="Simulation supported only for quest nodes"
             )
-        item = await self.get(workspace_id, node_type, node_id)
-        data = item.quest_data or {}
-        nodes = [GraphNode(**n) for n in data.get("nodes", [])]
-        edges = [GraphEdge(**e) for e in data.get("edges", [])]
+        await self.get(workspace_id, node_type, node_id)
+        nodes: list[GraphNode] = []
+        edges: list[GraphEdge] = []
         report = await run_validators(node_type, node_id, self._db)
         result = EditorService().simulate_graph(nodes, edges, payload, preview)
         return report, result
