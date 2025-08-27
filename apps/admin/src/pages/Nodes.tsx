@@ -600,6 +600,73 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     }
   };
 
+  const previewSelected = async (id: string) => {
+    if (!workspaceId) return;
+    const node = items.find((n) => n.id === id);
+    if (!node) return;
+    try {
+      const { url } = await createPreviewLink(workspaceId);
+      window.open(node.slug ? `${url}/nodes/${node.slug}` : url, "_blank");
+    } catch (e) {
+      addToast({
+        title: "Preview failed",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
+    }
+  };
+
+  const deleteSelected = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (!confirmWithEnv(`Delete ${ids.length} node${ids.length === 1 ? "" : "s"}?`))
+      return;
+    try {
+      for (const id of ids) {
+        await api.delete(`/admin/nodes/${encodeURIComponent(id)}`);
+      }
+      setItems((prev) => prev.filter((n) => !selected.has(n.id)));
+      setSelected(new Set());
+      addToast({ title: "Deleted", variant: "success" });
+    } catch (e) {
+      addToast({
+        title: "Delete failed",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
+    }
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLElement &&
+        (e.target.tagName === "INPUT" ||
+          e.target.tagName === "TEXTAREA" ||
+          e.target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const first = Array.from(selected)[0];
+      if (e.key === "e" || e.key === "E") {
+        if (first) navigate(`/admin/nodes/${first}`);
+      } else if (e.key === "p" || e.key === "P") {
+        if (first) void previewSelected(first);
+      } else if (e.key === "Delete") {
+        e.preventDefault();
+        void deleteSelected();
+      } else if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        void applyChanges();
+      } else if (e.key === "Escape") {
+        setSelected(new Set());
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected, items, workspaceId, navigate, applyChanges]);
+
   // Moderation actions by slug (hide/restore) удалены вместе с боковой панелью.
 
   return (
