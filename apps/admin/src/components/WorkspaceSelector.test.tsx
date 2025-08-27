@@ -21,6 +21,7 @@ describe("WorkspaceSelector", () => {
   beforeEach(() => {
     safeLocalStorage.clear();
     safeLocalStorage.setItem("workspaceId", "ws1");
+    queryData.error = null;
     queryData.data = [
       { id: "ws1", name: "Workspace One", slug: "one", role: "owner" },
       { id: "ws2", name: "Workspace Two", slug: "two", role: "editor" },
@@ -60,5 +61,20 @@ describe("WorkspaceSelector", () => {
     );
     const link = screen.getByText("Создать воркспейс");
     expect(link).toHaveAttribute("href", "/admin/workspaces");
+  });
+
+  it("shows login banner on error", () => {
+    queryData.error = new Error("fail");
+    queryData.data = undefined as any;
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <WorkspaceBranchProvider>
+          <WorkspaceSelector />
+        </WorkspaceBranchProvider>
+      </MemoryRouter>,
+    );
+    screen.getByText("Не удалось загрузить список воркспейсов.");
+    const link = screen.getByText("Авторизоваться");
+    expect(link).toHaveAttribute("href", "/login");
   });
 });
