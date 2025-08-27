@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { api } from "../api/client";
@@ -21,6 +21,7 @@ function ensureArray(data: unknown): Workspace[] {
 
 export default function Workspaces() {
   const { addToast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["workspaces-list"],
@@ -47,6 +48,71 @@ export default function Workspaces() {
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: ["workspaces-list"] });
+
+  const handleCreate = async () => {
+    const name = prompt("Workspace name?");
+    if (!name) return;
+    const slug =
+      prompt("Slug?", name.toLowerCase().replace(/[^a-z0-9]+/g, "-")) || "";
+    const type =
+      (prompt("Type (team/personal/global)?", "team") as
+        | "team"
+        | "personal"
+        | "global"
+        | null) || "team";
+    try {
+      await api.post("/admin/workspaces", { name, slug, type });
+      refresh();
+      addToast({ title: "Workspace created", variant: "success" });
+    } catch (e) {
+      addToast({
+        title: "Failed to create workspace",
+        description: String(e),
+        variant: "error",
+      });
+    }
+  };
+
+  const handleEdit = async (ws: Workspace) => {
+    const name = prompt("Workspace name?", ws.name);
+    if (!name) return;
+    const slug = prompt("Slug?", ws.slug) || ws.slug;
+    const type =
+      (prompt("Type (team/personal/global)?", ws.type) as
+        | "team"
+        | "personal"
+        | "global"
+        | null) || ws.type;
+    try {
+      await api.patch(`/admin/workspaces/${ws.id}`, { name, slug, type });
+      refresh();
+      addToast({ title: "Workspace updated", variant: "success" });
+    } catch (e) {
+      addToast({
+        title: "Failed to update workspace",
+        description: String(e),
+        variant: "error",
+      });
+    }
+  };
+
+  const handleDelete = async (ws: Workspace) => {
+    if (!confirm(`Delete workspace "${ws.name}"?`)) return;
+    try {
+      await api.del(`/admin/workspaces/${ws.id}`);
+      refresh();
+      addToast({ title: "Workspace deleted", variant: "success" });
+    } catch (e) {
+      addToast({
+        title: "Failed to delete workspace",
+        description: String(e),
+        variant: "error",
+      });
+    }
+  };
 
   const filtered = (data || [])
     .filter(
@@ -85,6 +151,12 @@ export default function Workspaces() {
           <option value="personal">personal</option>
           <option value="global">global</option>
         </select>
+        <button
+          className="px-2 py-1 bg-blue-500 text-white rounded"
+          onClick={handleCreate}
+        >
+          New workspace
+        </button>
       </div>
       {isLoading && <div>Loading...</div>}
       {!isLoading && !error && (
@@ -94,6 +166,7 @@ export default function Workspaces() {
               <th className="p-2 text-left">Name</th>
               <th className="p-2 text-left">Type</th>
               <th className="p-2 text-left">Participants</th>
+              <th className="p-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -102,6 +175,20 @@ export default function Workspaces() {
                 <td className="p-2">{ws.name}</td>
                 <td className="p-2 capitalize">{ws.type}</td>
                 <td className="p-2">{memberCounts[ws.id] ?? "-"}</td>
+                <td className="p-2">
+                  <button
+                    className="text-blue-600 hover:underline mr-2"
+                    onClick={() => handleEdit(ws)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="text-red-600 hover:underline"
+                    onClick={() => handleDelete(ws)}
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

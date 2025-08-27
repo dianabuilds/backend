@@ -28,7 +28,10 @@ os.environ["JWT__SECRET"] = "test-secret-key"
 os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
 os.environ["AUTH__REDIS_URL"] = "fakeredis://"
 os.environ["CORS_ALLOW_ORIGINS"] = '["https://example.com", "http://client.example"]'
-os.environ['CORS_ALLOW_HEADERS'] = '["X-Custom-Header", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With", "Workspace-Id"]'
+os.environ["CORS_ALLOW_HEADERS"] = (
+    '["X-Custom-Header", "Authorization", "Content-Type", "X-CSRF-Token", '
+    '"X-CSRFToken", "X-Requested-With", "Workspace-Id"]'
+)
 
 
 # Импортируем только то, что нам нужно

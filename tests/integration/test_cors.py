@@ -98,6 +98,24 @@ async def test_cors_preflight_allows_workspace_header(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+async def test_cors_preflight_allows_csrf_token_header(client: AsyncClient) -> None:
+    origin = "http://client.example"
+    response = await client.options(
+        "/auth/login",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "X-CSRFToken",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 200
+    allow_headers = response.headers.get("access-control-allow-headers", "").lower()
+    assert "x-csrftoken" in allow_headers
+    assert response.headers.get("access-control-allow-origin") == origin
+
+
+@pytest.mark.asyncio
 async def test_options_no_redirect(client: AsyncClient) -> None:
     origin = "http://client.example"
     response = await client.options(
@@ -110,4 +128,3 @@ async def test_options_no_redirect(client: AsyncClient) -> None:
     )
     assert response.status_code == 200
     assert not 300 <= response.status_code < 400
-
