@@ -214,6 +214,15 @@ class Settings(ProjectSettings):
             if getattr(self, field) in (None, ""):
                 setattr(self, field, value)
 
+        # Ensure essential CORS methods are always allowed. Some environments
+        # may override ``APP_CORS_ALLOW_METHODS`` without including ``POST`` or
+        # ``OPTIONS`` which breaks cross‑origin requests like workspace
+        # creation. Guarantee these methods are present so the admin UI can
+        # perform write operations.
+        for required in ("POST", "OPTIONS"):
+            if required not in self.cors_allow_methods:
+                self.cors_allow_methods.append(required)
+
         # --- Redis URL normalization -------------------------------------------------
         # Берём REDIS_URL из окружения, если в секции cache пусто
         if self.cache.redis_url in (None, ""):
