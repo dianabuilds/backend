@@ -287,6 +287,9 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
         limit: String(limit),
         offset: String(pageIndex * limit),
       };
+      // обязательный контекст воркспейса
+      params.workspace_id = String(workspaceId);
+
       if (q) params.q = q;
       if (nodeType) params.node_type = nodeType;
       if (status !== "all") params.status = status;
