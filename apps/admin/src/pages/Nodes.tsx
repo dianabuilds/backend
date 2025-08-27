@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { wsApi } from "../api/wsApi";
 import { createPreviewLink } from "../api/preview";
+import { createNode, patchNode } from "../api/nodes";
 import ContentEditor from "../components/content/ContentEditor";
 import StatusBadge from "../components/StatusBadge";
 import FlagsCell from "../components/FlagsCell";
@@ -530,37 +531,14 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     if (draft.cover_url || media.length)
       payload.cover_url = draft.cover_url || media[0];
 
-    const created: any = await wsApi.post("/nodes", payload);
-    const nodeId = String(created?.id ?? created?.uuid ?? created?._id ?? "");
-    const tags = Array.isArray(draft.tags)
-      ? draft.tags.map((t) => t.slug).filter(Boolean)
-      : [];
-
-    if (nodeId && tags.length > 0) {
-      const body = { tags };
-      // Пытаемся использовать доступные варианты эндпоинтов
-      try {
-        await wsApi.request(`/nodes/${encodeURIComponent(nodeId)}/tags`, {
-          method: "PUT",
-          json: body,
-        });
-      } catch {
-        try {
-          await wsApi.post(`/nodes/${encodeURIComponent(nodeId)}/tags`, body);
-        } catch {
-          try {
-            await wsApi.post(
-              `/admin/nodes/${encodeURIComponent(nodeId)}/tags`,
-              body,
-            );
-          } catch {
-            // если все варианты недоступны — тихо продолжаем, чтобы не ломать флоу создания
-          }
-        }
-      }
-    }
-
-    return created as any;
+    const created = await createNode({
+      node_type: draft.node_type || "node",
+      title: draft.title.trim() || undefined,
+    });
+    const nodeType = (created as any).node_type || draft.node_type || "node";
+    const nodeId = String((created as any)?.id ?? (created as any)?.uuid ?? (created as any)?._id ?? "");
+    await patchNode(nodeType, nodeId, payload);
+    return { ...created, id: nodeId } as any;
   };
 
   const handleCommit = async (action: "save" | "next") => {

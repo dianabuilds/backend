@@ -1,7 +1,7 @@
 import type EditorJS from "@editorjs/editorjs";
 import { useEffect, useRef } from "react";
 
-import { api } from "../api/client";
+import { wsApi } from "../api/wsApi";
 import { compressImage } from "../utils/compressImage";
 import type { OutputData } from "../types/editorjs";
 
@@ -123,9 +123,10 @@ export default function EditorJSEmbed({
                     const compressed = await compressImage(file);
                     const form = new FormData();
                     form.append("file", compressed);
-                    const res = await api.request<unknown>("/admin/media", {
+                    const res = await wsApi.request<unknown>("/admin/media", {
                       method: "POST",
                       body: form,
+                      raw: true,
                     });
                     const rawUrl = extractUrl(res?.data);
                     const url = resolveUrl(rawUrl);
