@@ -20,7 +20,7 @@ class NodeFilterSpec:
     created_to: Optional[datetime] = None
     updated_from: Optional[datetime] = None
     updated_to: Optional[datetime] = None
-    sort: Optional[str] = None  # created_desc | created_asc | views_desc | reactions_desc
+    sort: Optional[str] = "updated_desc"  # updated_desc | created_desc | created_asc | views_desc | reactions_desc
     q: Optional[str] = None
     min_views: Optional[int] = None
     min_reactions: Optional[int] = None

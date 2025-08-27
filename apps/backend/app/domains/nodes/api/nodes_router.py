@@ -63,6 +63,10 @@ async def list_nodes(
     if_none_match: str | None = Header(None, alias="If-None-Match"),
     tags: str | None = Query(None),
     match: str = Query("any", pattern="^(any|all)$"),
+    sort: str = Query(
+        "updated_desc",
+        pattern="^(updated_desc|created_desc|created_asc|views_desc|reactions_desc)$",
+    ),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     workspace_dep: object = Depends(optional_workspace),
@@ -70,7 +74,7 @@ async def list_nodes(
 ) -> List[NodeOut]:
     workspace_id = _ensure_workspace_id(request, workspace_id)
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
-    spec = NodeFilterSpec(tags=tag_list, match=match, workspace_id=workspace_id)
+    spec = NodeFilterSpec(tags=tag_list, match=match, workspace_id=workspace_id, sort=sort)
     ctx = QueryContext(user=current_user, is_admin=False)
     service = NodeQueryAdapter(db)
     page = PageRequest()
