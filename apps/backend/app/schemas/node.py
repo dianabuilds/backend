@@ -190,3 +190,23 @@ class NodeBulkOperation(BaseModel):
         "toggle_premium",
         "toggle_recommendable",
     ]
+
+
+class NodeBulkPatchChanges(BaseModel):
+    """Changes to apply in bulk operations."""
+
+    is_visible: bool | None = None
+    is_public: bool | None = None
+    premium_only: bool | None = Field(
+        default=None, validation_alias=AliasChoices("premium_only", "is_premium_only")
+    )
+    is_recommendable: bool | None = None
+    workspace_id: UUID | None = None
+    delete: bool | None = None
+
+
+class NodeBulkPatch(BaseModel):
+    """Payload for bulk node patch operations."""
+
+    ids: list[UUID]
+    changes: NodeBulkPatchChanges
