@@ -1,5 +1,6 @@
-import react from "@vitejs/plugin-react";
 import process from "node:process";
+
+import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type ProxyOptions } from "vite";
 
 export default defineConfig(({ mode, command }) => {
@@ -58,6 +59,8 @@ export default defineConfig(({ mode, command }) => {
     "nodes",
     "achievements",
     "moderation",
+    "ops",
+    "workspaces",
   ];
 
   const htmlBypass = (req: { headers: Record<string, string | undefined> }) => {
