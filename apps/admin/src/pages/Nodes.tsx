@@ -16,6 +16,7 @@ import { useWorkspace } from "../workspace/WorkspaceContext";
 
 type NodeItem = {
   id: string;
+  title?: string;
   slug?: string;
   status?: string;
   is_visible: boolean;
@@ -44,6 +45,7 @@ function normalizeNode(raw: any): NodeItem {
   return {
     ...n,
     id: String(n.id ?? n.uuid ?? n._id),
+    title: n.title ?? n.name ?? undefined,
     slug: n.slug,
     status: n.status ?? n.state ?? undefined,
     is_visible:
@@ -111,6 +113,12 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   const { addToast } = useToast();
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
+
+  const copySlug = (slug: string) => {
+    if (typeof navigator !== "undefined" && slug) {
+      void navigator.clipboard?.writeText(slug);
+    }
+  };
 
   if (!workspaceId) {
     return (
@@ -857,7 +865,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                     />
                   </th>
                   <th className="p-2">ID</th>
-                  <th className="p-2">Slug</th>
+                  <th className="p-2">Title</th>
                   <th className="p-2">Status</th>
                   <th className="p-2">Visible</th>
                   <th className="p-2">Public</th>
@@ -891,7 +899,25 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                         />
                       </td>
                       <td className="p-2 font-mono">{n.id ?? "-"}</td>
-                      <td className="p-2">{n.slug ?? n.name ?? "-"}</td>
+                      <td className="p-2">
+                        <div className="relative group pr-16">
+                          <div className="font-bold">
+                            {n.title?.trim() || "Untitled"}
+                          </div>
+                          <div className="text-gray-500 text-xs font-mono">
+                            {n.slug ?? "-"}
+                          </div>
+                          {n.slug && (
+                            <button
+                              type="button"
+                              className="absolute top-0 right-0 text-xs text-blue-600 opacity-0 group-hover:opacity-100"
+                              onClick={() => copySlug(n.slug ?? "")}
+                            >
+                              Copy slug
+                            </button>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-2">
                         {n.status ? <StatusBadge status={n.status} /> : "-"}
                       </td>
