@@ -48,8 +48,20 @@ export async function syncCsrfFromResponse(resp: Response): Promise<void> {
 }
 
 function getCsrfToken(): string {
-  const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
-  if (match) return decodeURIComponent(match[1]);
+  // Пытаемся найти токен в наиболее распространённых именах cookie
+  const cookies = document.cookie || "";
+  const tryNames = [
+    "XSRF-TOKEN",
+    "xsrf-token",
+    "csrf_token",
+    "csrftoken",
+    "CSRF-TOKEN",
+  ];
+  for (const name of tryNames) {
+    const re = new RegExp(`(?:^|;\\s*)${name}=([^;]+)`);
+    const m = cookies.match(re);
+    if (m) return decodeURIComponent(m[1]);
+  }
   return csrfTokenMem || "";
 }
 

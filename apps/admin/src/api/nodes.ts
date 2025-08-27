@@ -40,7 +40,7 @@ export async function listNodes(
     }
   }
   const res = await wsApi.get<NodeOut[]>(
-    `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ""}`,
+    `/admin/nodes/all${qs.toString() ? `?${qs.toString()}` : ""}`,
   );
   return res ?? [];
 }
@@ -50,7 +50,9 @@ export async function createNode(
 ): Promise<NodeOut> {
   // Актуальный backend-роут: POST /admin/nodes/{node_type}
   const type = encodeURIComponent(body.node_type);
-  const res = await wsApi.post<undefined, NodeOut>(`/admin/nodes/${type}`);
+  // Передаём тело (минимум title), wsApi автоматически добавит workspace_id в query
+  const payload = body.title ? { title: body.title } : undefined;
+  const res = await wsApi.post<typeof payload, NodeOut>(`/admin/nodes/${type}`, payload);
   return res;
 }
 

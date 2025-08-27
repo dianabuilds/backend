@@ -57,9 +57,39 @@ export default function NodeEditor() {
   useEffect(() => {
     if (!workspaceId) return;
     const load = async () => {
-      if (!id || id === "new" || !type) return;
+      if (!id || id === "new") return;
+
+      // 1) Определяем кандидатов типов: если пришёл валидный type — пробуем его первым,
+      // иначе пробуем оба по очереди (article, затем quest)
+      const candidates: Array<"article" | "quest"> = [];
+      if (type === "article" || type === "quest") {
+        candidates.push(type);
+        candidates.push(type === "article" ? "quest" : "article");
+      } else {
+        candidates.push("article", "quest");
+      }
+
+      let fetched: { n: Awaited<ReturnType<typeof getNode>>; usedType: "article" | "quest" } | null = null;
+      let lastErr: unknown = null;
+
+      for (const t of candidates) {
+        try {
+          const n = await getNode(t, id);
+          fetched = { n, usedType: t };
+          break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!fetched) {
+        setError(lastErr instanceof Error ? lastErr.message : String(lastErr));
+        setLoading(false);
+        return;
+      }
+
       try {
-        const n = await getNode(type, id);
+        const n = fetched.n;
         const raw = n as Record<string, unknown>;
         setNode({
           id: n.id,
@@ -116,8 +146,14 @@ export default function NodeEditor() {
             version: "2.30.7",
           },
           node_type:
-            (raw.type as string) ?? (raw.node_type as string) ?? type,
+            (raw.type as string) ?? (raw.node_type as string) ?? fetched.usedType,
         });
+
+        // Если тип из URL отсутствовал или был неверный — перепишем адресную строку на корректный
+        if (fetched.usedType !== type) {
+          const qs = workspaceId ? `?workspace_id=${workspaceId}` : "";
+          navigate(`/nodes/${fetched.usedType}/${id}${qs}`, { replace: true });
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -125,7 +161,7 @@ export default function NodeEditor() {
       }
     };
     void load();
-  }, [id, workspaceId]);
+  }, [id, workspaceId, type, navigate]);
 
   if (!workspaceId) {
     return (
@@ -179,10 +215,11 @@ function NodeCreate({
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const n = await createNode({ node_type: nodeType, title });
+      const t = nodeType === "article" || nodeType === "quest" ? nodeType : "quest";
+      const n = await createNode({ node_type: t, title });
       const path = workspaceId
-        ? `/nodes/${nodeType}/${n.id}?workspace_id=${workspaceId}`
-        : `/nodes/${nodeType}/${n.id}`;
+        ? `/nodes/${t}/${n.id}?workspace_id=${workspaceId}`
+        : `/nodes/${t}/${n.id}`;
       navigate(path, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
