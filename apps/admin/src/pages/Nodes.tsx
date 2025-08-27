@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { api } from "../api/client";
+import { wsApi } from "../api/wsApi";
 import { createPreviewLink } from "../api/preview";
 import ContentEditor from "../components/content/ContentEditor";
 import StatusBadge from "../components/StatusBadge";
@@ -260,7 +260,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       (async () => {
         try {
           setModBusy(true);
-          await api.post(
+          await wsApi.post(
             `/admin/moderation/nodes/${encodeURIComponent(String(node.slug))}/restore`,
           );
           // Оптимистично обновляем строку и baseline
@@ -303,7 +303,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     }
     try {
       setModBusy(true);
-      await api.post(
+      await wsApi.post(
         `/admin/moderation/nodes/${encodeURIComponent(String(modTarget.slug))}/hide`,
         { reason: modReason || "" },
       );
@@ -360,8 +360,8 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       if (premium !== "all") params.premium_only = premium;
       if (recommendable !== "all") params.recommendable = recommendable;
       const qs = new URLSearchParams(params).toString();
-      const res = await api.get(`/admin/nodes?${qs}`);
-      const raw = ensureArray<any>(res.data) as any[];
+      const res = await wsApi.get(`/admin/nodes?${qs}`);
+      const raw = ensureArray<any>(res) as any[];
       const arr: NodeItem[] = raw.map((x) => normalizeNode(x));
       setItems(arr);
       setHasMore(arr.length === limit);
@@ -464,7 +464,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       for (const [op, ids] of Object.entries(ops)) {
         if (ids.length === 0) continue;
         any = true;
-        await api.post(`/admin/nodes/bulk`, { ids, op });
+        await wsApi.post(`/admin/nodes/bulk`, { ids, op });
         results.push(`${op}: ${ids.length}`);
       }
       if (any) {
@@ -530,8 +530,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     if (draft.cover_url || media.length)
       payload.cover_url = draft.cover_url || media[0];
 
-    const res = await api.post("/nodes", payload);
-    const created: any = res.data;
+    const created: any = await wsApi.post("/nodes", payload);
     const nodeId = String(created?.id ?? created?.uuid ?? created?._id ?? "");
     const tags = Array.isArray(draft.tags)
       ? draft.tags.map((t) => t.slug).filter(Boolean)
@@ -541,16 +540,16 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       const body = { tags };
       // Пытаемся использовать доступные варианты эндпоинтов
       try {
-        await api.request(`/nodes/${encodeURIComponent(nodeId)}/tags`, {
+        await wsApi.request(`/nodes/${encodeURIComponent(nodeId)}/tags`, {
           method: "PUT",
           json: body,
         });
       } catch {
         try {
-          await api.post(`/nodes/${encodeURIComponent(nodeId)}/tags`, body);
+          await wsApi.post(`/nodes/${encodeURIComponent(nodeId)}/tags`, body);
         } catch {
           try {
-            await api.post(
+            await wsApi.post(
               `/admin/nodes/${encodeURIComponent(nodeId)}/tags`,
               body,
             );
@@ -623,7 +622,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       return;
     try {
       for (const id of ids) {
-        await api.delete(`/admin/nodes/${encodeURIComponent(id)}`);
+        await wsApi.delete(`/admin/nodes/${encodeURIComponent(id)}`);
       }
       setItems((prev) => prev.filter((n) => !selected.has(n.id)));
       setSelected(new Set());
