@@ -61,16 +61,14 @@ BASE_MENU: list[dict] = [
                 "path": "/ai/quests",
                 "icon": "ai",
                 "order": 5,
-                "children": [
-                    {
-                        "id": "achievements",
-                        "label": "Achievements",
-                        "path": "/achievements",
-                        "icon": "achievements",
-                        "order": 1,
-                    }
-                ],
             },
+            {
+                "id": "achievements",
+                "label": "Achievements",
+                "path": "/achievements",
+                "icon": "achievements",
+                "order": 6,
+            }
         ],
     },
     {
@@ -95,25 +93,26 @@ BASE_MENU: list[dict] = [
                 "order": 2,
             },
             {
-                "id": "global-integrations",
-                "label": "Integrations",
-                "path": "/settings/integrations",
-                "icon": "plug",
-                "order": 3,
-            },
-            {
                 "id": "global-metrics",
                 "label": "Metrics",
                 "path": "/settings/metrics",
                 "icon": "activity",
-                "order": 4,
+                "order": 3,
             },
             {
                 "id": "global-feature-flags",
                 "label": "Feature flags",
                 "path": "/settings/feature-flags",
                 "icon": "flag",
+                "order": 4,
+            },
+            {
+                "id": "ai-system-settings",
+                "label": "AI Settings",
+                "path": "/ai/system",
+                "icon": "settings",
                 "order": 5,
+                "roles": ["admin"],
             },
         ],
     },
@@ -155,37 +154,21 @@ BASE_MENU: list[dict] = [
                 "roles": ["admin"],
             },
             {
-                "id": "flags",
-                "label": "Feature flags",
-                "path": "/tools/flags",
-                "icon": "flags",
+                "id": "moderation",
+                "label": "Moderation",
+                "path": "/admin/moderation",
+                "icon": "shield",
                 "order": 5,
-                "roles": ["admin"],
-            },
-            {
-                "id": "ai-system-settings",
-                "label": "AI Settings",
-                "path": "/ai/system",
-                "icon": "settings",
-                "order": 6,
-                "roles": ["admin"],
+                "roles": ["admin", "moderator"],
+                "featureFlag": "moderation.enabled",
             },
         ],
-    },
-    {
-        "id": "moderation",
-        "label": "Moderation",
-        "path": "/moderation",
-        "icon": "shield",
-        "order": 5,
-        "roles": ["admin", "moderator"],
-        "featureFlag": "moderation.enabled",
     },
     {
         "id": "navigation",
         "label": "Navigation",
         "icon": "navigation",
-        "order": 6,
+        "order": 5,
         "children": [
             {
                 "id": "navigation-main",
@@ -221,7 +204,7 @@ BASE_MENU: list[dict] = [
         "id": "monitoring",
         "label": "Monitoring",
         "icon": "activity",
-        "order": 7,
+        "order": 6,
         "children": [
             {
                 "id": "rum",
@@ -272,7 +255,7 @@ _menu_cache: dict[tuple[str, tuple[str, ...]], tuple[float, MenuResponse, str]] 
 
 
 def _filter_and_convert(
-    items: list[dict], role: str, flags: set[str]
+        items: list[dict], role: str, flags: set[str]
 ) -> list[MenuItem]:
     result: list[MenuItem] = []
     for raw in items:
