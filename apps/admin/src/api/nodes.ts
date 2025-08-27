@@ -65,10 +65,13 @@ export async function createNode(
   return res;
 }
 
-export async function getNode(type: string, id: string): Promise<NodeOut> {
-  const res = await wsApi.get<NodeOut>(
-    `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
-  );
+export async function getNode(id: string): Promise<NodeOut>;
+export async function getNode(type: string, id: string): Promise<NodeOut>;
+export async function getNode(a: string, b?: string): Promise<NodeOut> {
+  const url = b
+    ? `/admin/nodes/${encodeURIComponent(a)}/${encodeURIComponent(b)}`
+    : `/admin/nodes/${encodeURIComponent(a)}`;
+  const res = await wsApi.get<NodeOut>(url);
   return res!;
 }
 

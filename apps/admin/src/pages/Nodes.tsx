@@ -630,7 +630,16 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
         if (first) {
           const item = baseline.get(first);
           if (item)
-            navigate(`/nodes/${item.type}/${first}?workspace_id=${workspaceId}`);
+            {
+              const usedType =
+                (item as any).type ||
+                (item as any).node_type ||
+                nodeType ||
+                "quest";
+              navigate(
+                `/nodes/${encodeURIComponent(usedType)}/${first}?workspace_id=${workspaceId}`,
+              );
+            }
         }
       } else if (e.key === "p" || e.key === "P") {
         if (first) void previewSelected(first);

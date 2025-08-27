@@ -47,7 +47,7 @@ interface NodeDraft {
 }
 
 export default function NodeEditor() {
-  const { type, id } = useParams<{ type: string; id: string }>();
+  const { type, id } = useParams<{ type?: string; id: string }>();
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const [node, setNode] = useState<NodeEditorData | null>(null);
@@ -59,32 +59,24 @@ export default function NodeEditor() {
     const load = async () => {
       if (!id || id === "new") return;
 
-      const candidates: Array<"article" | "quest"> =
-        type === "article" || type === "quest"
-          ? [type, type === "article" ? "quest" : "article"]
-          : ["article", "quest"];
-
-      let fetched: { n: Awaited<ReturnType<typeof getNode>>; usedType: "article" | "quest" } | null = null;
-      let lastErr: unknown = null;
-
-      for (const t of candidates) {
-        try {
-          const n = await getNode(t, id);
-          fetched = { n, usedType: t };
-          break;
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-
-      if (!fetched) {
-        setError(lastErr instanceof Error ? lastErr.message : String(lastErr));
-        setLoading(false);
-        return;
-      }
-
       try {
-        const n = fetched.n;
+        let nodeType = type;
+        let n: Awaited<ReturnType<typeof getNode>>;
+        if (nodeType) {
+          n = await getNode(nodeType, id);
+        } else {
+          n = await getNode(id);
+          const raw = n as Record<string, unknown>;
+          nodeType =
+            (raw["type"] as string) ??
+            (raw["node_type"] as string) ??
+            undefined;
+          if (nodeType) {
+            const qs = workspaceId ? `?workspace_id=${workspaceId}` : "";
+            navigate(`/nodes/${nodeType}/${id}${qs}`, { replace: true });
+          }
+        }
+
         const raw = n as Record<string, unknown>;
         setNode({
           id: n.id,
@@ -141,14 +133,8 @@ export default function NodeEditor() {
             version: "2.30.7",
           },
           node_type:
-            (raw.type as string) ?? (raw.node_type as string) ?? fetched.usedType,
+            (raw.type as string) ?? (raw.node_type as string) ?? nodeType!,
         });
-
-        // Если тип из URL отсутствовал или был неверный — перепишем адресную строку на корректный
-        if (fetched.usedType !== type) {
-          const qs = workspaceId ? `?workspace_id=${workspaceId}` : "";
-          navigate(`/nodes/${fetched.usedType}/${id}${qs}`, { replace: true });
-        }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
