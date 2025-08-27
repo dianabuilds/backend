@@ -2,28 +2,30 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import Any
 from uuid import UUID
 
 
 @dataclass
 class NodeFilterSpec:
-    tags: Optional[List[str]] = None
+    tags: list[str] | None = None
     match: str = "any"
-    author_id: Optional[UUID] = None
-    workspace_id: Optional[UUID] = None
-    is_public: Optional[bool] = None
-    is_visible: Optional[bool] = True
-    premium_only: Optional[bool] = None
-    recommendable: Optional[bool] = None
-    created_from: Optional[datetime] = None
-    created_to: Optional[datetime] = None
-    updated_from: Optional[datetime] = None
-    updated_to: Optional[datetime] = None
-    sort: Optional[str] = "updated_desc"  # updated_desc | created_desc | created_asc | views_desc | reactions_desc
-    q: Optional[str] = None
-    min_views: Optional[int] = None
-    min_reactions: Optional[int] = None
+    author_id: UUID | None = None
+    workspace_id: UUID | None = None
+    is_public: bool | None = None
+    is_visible: bool | None = True
+    premium_only: bool | None = None
+    recommendable: bool | None = None
+    node_type: str | None = None
+    created_from: datetime | None = None
+    created_to: datetime | None = None
+    updated_from: datetime | None = None
+    updated_to: datetime | None = None
+    # updated_desc | created_desc | created_asc | views_desc | reactions_desc
+    sort: str | None = "updated_desc"
+    q: str | None = None
+    min_views: int | None = None
+    min_reactions: int | None = None
 
 
 @dataclass

@@ -109,6 +109,7 @@ class NodeOut(NodeBase):
     id: UUID
     slug: str
     author_id: UUID
+    node_type: str | None = Field(default=None, alias="node_type")
     created_by_user_id: UUID | None = None
     updated_by_user_id: UUID | None = None
     views: int

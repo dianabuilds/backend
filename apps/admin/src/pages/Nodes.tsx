@@ -66,7 +66,7 @@ function normalizeNode(raw: any): NodeItem {
           : true,
     created_at: n.created_at ?? n.createdAt ?? undefined,
     updated_at: n.updated_at ?? n.updatedAt ?? undefined,
-    type: n.type ?? n.node_type ?? undefined,
+    type: n.node_type ?? n.nodeType ?? n.type ?? undefined,
   };
 }
 
