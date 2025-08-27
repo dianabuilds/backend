@@ -2,7 +2,7 @@ export interface RequestOptions extends RequestInit {
   json?: unknown;
 }
 
-async function request<T = unknown>(url: string, opts: RequestOptions = {}): Promise<T> {
+export async function request<T = unknown>(url: string, opts: RequestOptions = {}): Promise<T> {
   const { json, ...rest } = opts;
   const headers: Record<string, string> = {
     Accept: "application/json",
