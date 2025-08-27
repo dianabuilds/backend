@@ -1,5 +1,5 @@
 import { safeLocalStorage } from "../utils/safeStorage";
-import { request as baseRequest, type RequestOptions } from "./baseApi";
+import { api, type RequestOptions as ApiRequestOptions } from "./client";
 
 function getWorkspaceId(): string {
   return safeLocalStorage.getItem("workspaceId") || "";
@@ -18,38 +18,65 @@ function ensureWorkspaceId(): string {
   return id;
 }
 
-async function request<T = unknown>(url: string, opts: RequestOptions = {}): Promise<T> {
+export interface WsRequestOptions extends ApiRequestOptions {
+  params?: Record<string, unknown>;
+}
+
+async function request<T = unknown>(
+  url: string,
+  opts: WsRequestOptions = {},
+): Promise<T> {
+  const { params, headers: optHeaders, ...rest } = opts;
   const workspaceId = ensureWorkspaceId();
   const headers: Record<string, string> = {
-    ...(opts.headers as Record<string, string> | undefined),
+    ...(optHeaders as Record<string, string> | undefined),
     "X-Workspace-Id": workspaceId,
   };
-  return baseRequest<T>(url, { ...opts, headers });
+
+  let finalUrl = url;
+  if (params && Object.keys(params).length > 0) {
+    const qs = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null) continue;
+      if (Array.isArray(value)) {
+        for (const v of value) qs.append(key, String(v));
+      } else {
+        qs.set(key, String(value));
+      }
+    }
+    const qsStr = qs.toString();
+    if (qsStr) {
+      finalUrl += (finalUrl.includes("?") ? "&" : "?") + qsStr;
+    }
+  }
+
+  const res = await api.request<T>(finalUrl, { ...rest, headers });
+  return res.data as T;
 }
 
 export const wsApi = {
   request,
-  get: <T = unknown>(url: string, opts?: RequestOptions) =>
+  get: <T = unknown>(url: string, opts?: WsRequestOptions) =>
     request<T>(url, { ...opts, method: "GET" }),
   post: <TReq = unknown, TRes = unknown>(
     url: string,
     json?: TReq,
-    opts?: RequestOptions,
+    opts?: WsRequestOptions,
   ) => request<TRes>(url, { ...opts, method: "POST", json }),
   put: <TReq = unknown, TRes = unknown>(
     url: string,
     json?: TReq,
-    opts?: RequestOptions,
+    opts?: WsRequestOptions,
   ) => request<TRes>(url, { ...opts, method: "PUT", json }),
   patch: <TReq = unknown, TRes = unknown>(
     url: string,
     json?: TReq,
-    opts?: RequestOptions,
+    opts?: WsRequestOptions,
   ) => request<TRes>(url, { ...opts, method: "PATCH", json }),
-  del: <T = unknown>(url: string, opts?: RequestOptions) =>
+  del: <T = unknown>(url: string, opts?: WsRequestOptions) =>
     request<T>(url, { ...opts, method: "DELETE" }),
-  delete: <T = unknown>(url: string, opts?: RequestOptions) =>
+  delete: <T = unknown>(url: string, opts?: WsRequestOptions) =>
     request<T>(url, { ...opts, method: "DELETE" }),
 };
 
-export type { RequestOptions as WsRequestOptions };
+export type { WsRequestOptions };
