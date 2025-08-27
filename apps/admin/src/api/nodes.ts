@@ -1,6 +1,15 @@
 import type { NodeOut, ValidateResult } from "../openapi";
 import { wsApi } from "./wsApi";
 
+// The admin nodes list endpoint returns additional metadata compared to the
+// public NodeOut model.  In particular it includes the `node_type` of each
+// item and its `status`.  We extend the generated `NodeOut` type to capture
+// these fields for stronger typing inside the admin UI.
+export interface AdminNodeItem extends NodeOut {
+  node_type: string;
+  status: string;
+}
+
 function normalizeTags(payload: Record<string, unknown>): Record<string, unknown> {
   if (!payload || typeof payload !== "object") return payload;
   const p = { ...payload };
@@ -32,15 +41,15 @@ function normalizeTags(payload: Record<string, unknown>): Record<string, unknown
 
 export async function listNodes(
   params: Record<string, unknown> = {},
-): Promise<NodeOut[]> {
+): Promise<AdminNodeItem[]> {
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null) {
       qs.set(key, String(value));
     }
   }
-  const res = await wsApi.get<NodeOut[]>(
-    `/admin/nodes/all${qs.toString() ? `?${qs.toString()}` : ""}`,
+  const res = await wsApi.get<AdminNodeItem[]>(
+    `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ""}`,
   );
   return res ?? [];
 }

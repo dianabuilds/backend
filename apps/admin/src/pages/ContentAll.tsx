@@ -5,7 +5,7 @@ import { listNodes } from "../api/nodes";
 
 interface NodeItem {
   id: string;
-  type: string;
+  node_type: string;
   status: string;
 }
 
@@ -18,7 +18,7 @@ export default function ContentAll() {
     queryKey: ["nodes", "all", type, status, tag],
     queryFn: async () => {
       const items = await listNodes({
-        content_type: type || undefined,
+        node_type: type || undefined,
         status: status || undefined,
         tag: tag || undefined,
       });
@@ -52,7 +52,7 @@ export default function ContentAll() {
       <ul className="space-y-1">
         {data?.map((item) => (
           <li key={item.id} className="text-sm">
-            {item.type} – {item.status} – {item.id}
+            {item.node_type} – {item.status} – {item.id}
           </li>
         ))}
       </ul>

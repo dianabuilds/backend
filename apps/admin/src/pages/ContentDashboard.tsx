@@ -10,7 +10,7 @@ import KpiCard from "../components/KpiCard";
 
 interface NodeItem {
   id: string;
-  type: string;
+  node_type: string;
   status: string;
   updated_at?: string;
   updatedAt?: string;
@@ -61,7 +61,7 @@ export default function ContentDashboard() {
   });
 
   const nodesCount = nodes.length;
-  const questsCount = nodes.filter((n) => n.type === "quest").length;
+  const questsCount = nodes.filter((n) => n.node_type === "quest").length;
   const tagsCount = tags.length;
 
   const latestEdits = [...nodes]
@@ -150,7 +150,7 @@ export default function ContentDashboard() {
               <ul className="list-disc pl-5">
                 {latestEdits.map((n) => (
                   <li key={n.id}>
-                    {n.type} – {n.status}
+                    {n.node_type} – {n.status}
                   </li>
                 ))}
               </ul>
