@@ -7,9 +7,6 @@ let csrfTokenMem: string | null = safeSessionStorage.getItem("csrfToken");
 // Храним access_token для Bearer, если cookie недоступны/не прикрепились
 let accessTokenMem: string | null = safeSessionStorage.getItem("accessToken");
 
-// Храним текущий workspace_id для админских запросов
-let workspaceIdMem: string | null = safeLocalStorage.getItem("workspaceId");
-
 // Токен превью-сессии для доступа без авторизации
 let previewTokenMem: string | null = safeSessionStorage.getItem("previewToken");
 
@@ -25,35 +22,10 @@ export function setAccessToken(token: string | null) {
   else safeSessionStorage.removeItem("accessToken");
 }
 
-export function setWorkspaceId(id: string | null) {
-  workspaceIdMem = id || null;
-  if (id) safeLocalStorage.setItem("workspaceId", id);
-  else safeLocalStorage.removeItem("workspaceId");
-}
-
 export function setPreviewToken(token: string | null) {
   previewTokenMem = token || null;
   if (token) safeSessionStorage.setItem("previewToken", token);
   else safeSessionStorage.removeItem("previewToken");
-}
-
-function applyWorkspace(u: string, method?: string): string {
-  if (!u.startsWith("/")) return u;
-  if (!workspaceIdMem) {
-    if (method === "POST" || method === "PUT") {
-      throw new Error("workspaceId is required for write requests");
-    }
-    return u;
-  }
-  try {
-    const url = new URL(u, "http://d");
-    if (!url.searchParams.get("workspace_id")) {
-      url.searchParams.set("workspace_id", workspaceIdMem);
-    }
-    return url.pathname + url.search;
-  } catch {
-    return u;
-  }
 }
 
 // Пытаемся вытащить csrf_token из JSON-ответа и сохранить его
@@ -142,12 +114,6 @@ export async function apiFetch(
     headers["X-Preview-Token"] = previewTokenMem;
   }
 
-  // Не добавляем заголовок рабочего пространства для /auth/* и безопасных методов,
-  // чтобы избежать лишних CORS preflight-запросов
-  if (workspaceIdMem && !isAuthCall && !isSafeMethod) {
-    headers["X-Workspace-Id"] = workspaceIdMem;
-  }
-
   // Формируем конечный URL:
   // - Если задан VITE_API_BASE — используем его (например, https://api.example.com)
   // - Иначе: если dev‑сервер фронта на 5173–5176, по умолчанию шлём на http://<hostname>:8000
@@ -155,7 +121,6 @@ export async function apiFetch(
   const toUrl = (u: RequestInfo): RequestInfo => {
     if (typeof u !== "string") return u;
     if (!u.startsWith("/")) return u;
-    u = applyWorkspace(u, method);
     try {
       const envBase = (
         import.meta as ImportMeta & { env?: Record<string, string | undefined> }
