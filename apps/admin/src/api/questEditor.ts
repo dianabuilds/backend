@@ -6,6 +6,7 @@ import type {
   VersionGraphInput,
   VersionGraphOutput,
 } from "../openapi";
+export type { VersionGraphOutput as VersionGraph } from "../openapi";
 import { api } from "./client";
 
 export async function createQuest(title: string): Promise<string> {
