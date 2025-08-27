@@ -1,6 +1,7 @@
 /* eslint react-refresh/only-export-components: off */
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
+import { api } from "../api/client";
 import type { Workspace } from "../api/types";
 import { safeLocalStorage } from "../utils/safeStorage";
 
@@ -43,17 +44,40 @@ export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
     }
   });
 
+  const setWorkspace = useCallback((ws: Workspace | undefined) => {
+    const id = ws?.id ?? "";
+    setWorkspaceIdState(id);
+    persistWorkspaceId(id || null);
+    updateUrl(id);
+  }, []);
+
   useEffect(() => {
     persistWorkspaceId(workspaceId || null);
     updateUrl(workspaceId);
   }, [workspaceId]);
 
-  const setWorkspace = (ws: Workspace | undefined) => {
-    const id = ws?.id ?? "";
-    setWorkspaceIdState(id);
-    persistWorkspaceId(id || null);
-    updateUrl(id);
-  };
+  useEffect(() => {
+    if (workspaceId) return;
+    (async () => {
+      try {
+        const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
+          "/admin/workspaces",
+        );
+        const payload = Array.isArray(res.data)
+          ? res.data
+          : res.data?.workspaces || [];
+        const globalWs = payload.find(
+          (ws) => ws.type === "global" || ws.slug === "global",
+        );
+        if (globalWs) {
+          setWorkspace(globalWs);
+          safeLocalStorage.setItem("defaultWorkspaceId", globalWs.id);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+  }, [workspaceId, setWorkspace]);
 
   return (
     <WorkspaceContext.Provider value={{ workspaceId, setWorkspace }}>
