@@ -7,9 +7,10 @@ import {
   publishVersion,
   putGraph,
   validateVersion,
+  getQuestMeta,
+  updateQuestMeta,
   type VersionGraph,
 } from "../api/questEditor";
-import { getQuestMeta, updateQuestMeta } from "../api/questEditor";
 import CollapsibleSection from "../components/CollapsibleSection";
 import ContentEditor from "../components/content/ContentEditor";
 import GraphCanvas from "../components/GraphCanvas";
@@ -91,7 +92,7 @@ export default function QuestVersionEditor() {
         try {
           const m = await getQuestMeta(v.version.quest_id);
           setMeta({
-            title: m.title,
+            title: m.title ?? "",
             subtitle: m.subtitle ?? "",
             description: m.description ?? "",
             cover_image: m.cover_image ?? null,
@@ -136,10 +137,13 @@ export default function QuestVersionEditor() {
     const typeToUse: "start" | "normal" | "end" =
       graph.nodes.length === 0 ? "start" : nodeType;
     // Разрешаем пустой title как черновик
-    setGraph({
-      ...graph,
-      nodes: [...graph.nodes, { key, title: nodeTitle || "", type: typeToUse }],
-    });
+      setGraph({
+        ...graph,
+        nodes: [
+          ...graph.nodes,
+          { key, title: nodeTitle || "", type: typeToUse, content: null, rewards: null },
+        ],
+      });
     setNodeKey("");
     setNodeTitle("");
     setNodeType("normal");
@@ -161,7 +165,10 @@ export default function QuestVersionEditor() {
     }
     setGraph({
       ...graph,
-      edges: [...graph.edges, { from_node_key: edgeFrom, to_node_key: edgeTo }],
+      edges: [
+        ...graph.edges,
+        { from_node_key: edgeFrom, to_node_key: edgeTo, label: null, condition: null },
+      ],
     });
     setEdgeFrom("");
     setEdgeTo("");
@@ -903,7 +910,12 @@ export default function QuestVersionEditor() {
                       ...g,
                       edges: [
                         ...g.edges,
-                        { from_node_key: from, to_node_key: to },
+                        {
+                          from_node_key: from,
+                          to_node_key: to,
+                          label: null,
+                          condition: null,
+                        },
                       ],
                     };
                   });
@@ -945,45 +957,37 @@ export default function QuestVersionEditor() {
               general={{
                 title: editorNode.title,
                 slug: editorNode.slug,
-                tags: editorNode.tags,
+                tags: editorNode.tags.map((t) => t.slug),
                 cover: editorNode.cover_url,
                 onTitleChange: (v) =>
                   setEditorNode((p) => (p ? { ...p, title: v } : p)),
-                onSlugChange: (v) =>
+                onSlugChange: (v: string) =>
                   setEditorNode((p) => (p ? { ...p, slug: v } : p)),
-                onTagsChange: (t) =>
-                  setEditorNode((p) => (p ? { ...p, tags: t } : p)),
+                onTagsChange: (t: string[]) =>
+                  setEditorNode((p) =>
+                    p
+                      ? {
+                          ...p,
+                          tags: t.map((s) => ({
+                            id: s,
+                            slug: s,
+                            name: s,
+                            count: 0,
+                          })),
+                        }
+                      : p,
+                  ),
                 onCoverChange: (url) =>
                   setEditorNode((p) => (p ? { ...p, cover_url: url } : p)),
               }}
-              renderContent={() => (
-                <textarea
-                  className="w-full h-40 border rounded p-2"
-                  placeholder="Node content..."
-                  value={
-                    editorNode.contentData?.blocks?.[0]?.data?.text ?? ""
-                  }
-                  onChange={(e) =>
+                content={{
+                  initial: editorNode.contentData,
+                  onSave: (d) =>
                     setEditorNode((p) =>
-                      p
-                        ? {
-                            ...p,
-                            contentData: {
-                              ...p.contentData,
-                              blocks: [
-                                {
-                                  type: "paragraph",
-                                  data: { text: e.target.value },
-                                },
-                              ],
-                            },
-                          }
-                        : p,
-                    )
-                  }
-                />
-              )}
-            />
+                      p ? { ...p, contentData: d } : p,
+                    ),
+                }}
+              />
           </div>
         </div>
       )}
