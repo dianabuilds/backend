@@ -8,6 +8,11 @@ function getWorkspaceId(): string {
 function ensureWorkspaceId(): string {
   const id = getWorkspaceId();
   if (!id) {
+    try {
+      window.dispatchEvent(new Event("workspace-missing"));
+    } catch {
+      // ignore
+    }
     throw new Error("Workspace is not selected");
   }
   return id;

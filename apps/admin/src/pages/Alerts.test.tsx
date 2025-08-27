@@ -4,8 +4,13 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { vi } from "vitest";
 
-import { api } from "../api/client";
+import { getAlerts, resolveAlert } from "../api/alerts";
 import Alerts from "./Alerts";
+
+vi.mock("../api/alerts", () => ({
+  getAlerts: vi.fn(),
+  resolveAlert: vi.fn(),
+}));
 
 function renderPage() {
   const qc = new QueryClient();
@@ -22,22 +27,18 @@ describe("Alerts page", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("renders alert entries and resolves them", async () => {
-    vi.spyOn(api, "get").mockResolvedValue({
-      data: {
-        alerts: [
-          {
-            id: "1",
-            startsAt: "2024-01-01T00:00:00Z",
-            description: "boom",
-            url: "http://example.com",
-            type: "system",
-            severity: "critical",
-            status: "active",
-          },
-        ],
+    vi.mocked(getAlerts).mockResolvedValue([
+      {
+        id: "1",
+        startsAt: "2024-01-01T00:00:00Z",
+        description: "boom",
+        url: "http://example.com",
+        type: "system",
+        severity: "critical",
+        status: "active",
       },
-    } as any);
-    const postSpy = vi.spyOn(api, "post").mockResolvedValue({} as any);
+    ]);
+    const postSpy = vi.mocked(resolveAlert).mockResolvedValue();
     renderPage();
     await waitFor(() => screen.getByText("boom"));
     expect(screen.getByText("boom")).toBeInTheDocument();

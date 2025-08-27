@@ -1,5 +1,5 @@
 import type { NodeOut, ValidateResult } from "../openapi";
-import { api } from "./client";
+import { wsApi } from "./wsApi";
 
 function normalizeTags(payload: Record<string, unknown>): Record<string, unknown> {
   if (!payload || typeof payload !== "object") return payload;
@@ -39,10 +39,10 @@ export async function listNodes(
       qs.set(key, String(value));
     }
   }
-  const res = await api.get<NodeOut[]>(
+  const res = await wsApi.get<NodeOut[]>(
     `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ""}`,
   );
-  return res.data ?? [];
+  return res ?? [];
 }
 
 export async function createNode(
@@ -50,13 +50,15 @@ export async function createNode(
 ): Promise<NodeOut> {
   // Актуальный backend-роут: POST /admin/nodes/{node_type}
   const type = encodeURIComponent(body.node_type);
-  const res = await api.post<NodeOut>(`/admin/nodes/${type}`);
-  return res.data!;
+  const res = await wsApi.post<undefined, NodeOut>(`/admin/nodes/${type}`);
+  return res;
 }
 
 export async function getNode(id: string): Promise<NodeOut> {
-  const res = await api.get<NodeOut>(`/admin/nodes/${encodeURIComponent(id)}`);
-  return res.data!;
+  const res = await wsApi.get<NodeOut>(
+    `/admin/nodes/${encodeURIComponent(id)}`,
+  );
+  return res!;
 }
 
 export async function patchNode(
@@ -67,45 +69,45 @@ export async function patchNode(
   const params: Record<string, number> = {};
   if (opts.force) params.force = 1;
   if (opts.next) params.next = 1;
-  const res = await api.patch<NodeOut>(
+  const res = await wsApi.patch<Record<string, unknown>, NodeOut>(
     `/admin/nodes/${encodeURIComponent(id)}`,
     normalizeTags(patch),
     { params, signal: opts.signal },
   );
-  return res.data!;
+  return res!;
 }
 
 export async function publishNode(
   id: string,
   body: Record<string, unknown> | undefined = undefined,
 ): Promise<NodeOut> {
-  const res = await api.post<NodeOut>(
+  const res = await wsApi.post<Record<string, unknown> | undefined, NodeOut>(
     `/admin/nodes/${encodeURIComponent(id)}/publish`,
     body,
   );
-  return res.data!;
+  return res!;
 }
 
 export async function validateNode(id: string): Promise<ValidateResult> {
-  const res = await api.post<ValidateResult>(
+  const res = await wsApi.post<undefined, ValidateResult>(
     `/admin/nodes/${encodeURIComponent(id)}/validate`,
   );
-  return res.data!;
+  return res!;
 }
 
 export async function simulateNode(
   id: string,
   payload: Record<string, unknown>,
 ): Promise<any> {
-  const res = await api.post(
+  const res = await wsApi.post<Record<string, unknown>, any>(
     `/admin/nodes/${encodeURIComponent(id)}/simulate`,
     payload,
   );
-  return res.data;
+  return res;
 }
 
 export async function recomputeNodeEmbedding(id: string): Promise<void> {
-  await api.post(
+  await wsApi.post(
     `/admin/ai/nodes/${encodeURIComponent(id)}/embedding/recompute`,
   );
 }

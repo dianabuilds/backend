@@ -1,9 +1,13 @@
 /* eslint react-refresh/only-export-components: off */
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
-import { setWorkspaceId as persistWorkspaceId } from "../api/client";
 import type { Workspace } from "../api/types";
 import { safeLocalStorage } from "../utils/safeStorage";
+
+function persistWorkspaceId(id: string | null) {
+  if (id) safeLocalStorage.setItem("workspaceId", id);
+  else safeLocalStorage.removeItem("workspaceId");
+}
 
 interface WorkspaceContextType {
   workspaceId: string;
