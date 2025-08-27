@@ -109,6 +109,23 @@ def register_domain_routers(app: FastAPI) -> None:
     try:
         from app.domains.media.api.routers import router as media_router
         app.include_router(media_router)
+        app.include_router(media_router, prefix="/workspaces/{workspace_id}")
+    except Exception:
+        pass
+
+    # Lists
+    try:
+        from app.api.lists import router as lists_router  # type: ignore
+        app.include_router(lists_router)
+        app.include_router(lists_router, prefix="/workspaces/{workspace_id}")
+    except Exception:
+        pass
+
+    # Graph
+    try:
+        from app.api.graph import router as graph_router  # type: ignore
+        app.include_router(graph_router)
+        app.include_router(graph_router, prefix="/workspaces/{workspace_id}")
     except Exception:
         pass
 
@@ -147,6 +164,7 @@ def register_domain_routers(app: FastAPI) -> None:
     try:
         from app.domains.nodes.api.nodes_router import router as nodes_router
         app.include_router(nodes_router)
+        app.include_router(nodes_router, prefix="/workspaces/{workspace_id}")
     except Exception:
         pass
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 from typing import Optional
 
-from fastapi import Request, Depends, HTTPException
+from fastapi import Header, Request, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
@@ -13,9 +13,16 @@ from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMem
 from app.domains.workspaces.infrastructure.models import Workspace
 
 
-def get_workspace_id(request: Request) -> Optional[UUID]:
-    """Extract workspace identifier from request headers or query params."""
-    wid = request.headers.get("X-Workspace-Id") or request.query_params.get("workspace_id")
+def get_workspace_id(request: Request, header_wid: UUID | str | None = None) -> Optional[UUID]:
+    """Extract workspace identifier from path params, headers or query params."""
+    if not isinstance(header_wid, (str, UUID, type(None))):
+        header_wid = None
+    wid = (
+        request.path_params.get("workspace_id")
+        or header_wid
+        or request.headers.get("X-Workspace-Id")
+        or request.query_params.get("workspace_id")
+    )
     if not wid:
         return None
     try:
@@ -42,10 +49,13 @@ async def resolve_workspace(
 
 async def require_workspace(
     request: Request,
+    workspace_header: UUID | None = Header(
+        None, alias="X-Workspace-Id", deprecated=True
+    ),
     user: User = Depends(auth_user),
     db: AsyncSession = Depends(get_db),
 ) -> Workspace:
-    workspace_id = get_workspace_id(request)
+    workspace_id = get_workspace_id(request, workspace_header)
     if workspace_id is None:
         raise HTTPException(status_code=400, detail="workspace_id required")
     workspace = await resolve_workspace(workspace_id, user, db)
@@ -56,10 +66,13 @@ async def require_workspace(
 
 async def optional_workspace(
     request: Request,
+    workspace_header: UUID | None = Header(
+        None, alias="X-Workspace-Id", deprecated=True
+    ),
     user: User = Depends(auth_user),
     db: AsyncSession = Depends(get_db),
 ) -> Optional[Workspace]:
-    workspace_id = get_workspace_id(request)
+    workspace_id = get_workspace_id(request, workspace_header)
     if workspace_id is None:
         return None
     workspace = await resolve_workspace(workspace_id, user, db)

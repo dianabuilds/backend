@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, Header
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -46,10 +46,20 @@ router = APIRouter(prefix="/nodes", tags=["nodes"])
 navcache = NavigationCacheService(CoreCacheAdapter())
 
 
+def _ensure_workspace_id(request: Request, workspace_id: UUID | None) -> UUID:
+    if workspace_id is not None:
+        return workspace_id
+    wid = getattr(request.state, "workspace_id", None)
+    if wid is None:
+        raise HTTPException(status_code=400, detail="workspace_id is required")
+    return UUID(str(wid))
+
+
 @router.get("", response_model=List[NodeOut], summary="List nodes")
 async def list_nodes(
+    request: Request,
     response: Response,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     if_none_match: str | None = Header(None, alias="If-None-Match"),
     tags: str | None = Query(None),
     match: str = Query("any", pattern="^(any|all)$"),
@@ -58,6 +68,7 @@ async def list_nodes(
     workspace_dep: object = Depends(optional_workspace),
     _: object = Depends(require_ws_guest),
 ) -> List[NodeOut]:
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
     spec = NodeFilterSpec(tags=tag_list, match=match, workspace_id=workspace_id)
     ctx = QueryContext(user=current_user, is_admin=False)
@@ -75,14 +86,14 @@ async def list_nodes(
 
 @router.post("", response_model=dict, summary="Create node")
 async def create_node(
+    request: Request,
     payload: NodeCreate,
     workspace_id: UUID | None = None,
     current_user: User = Depends(ensure_can_post),
     db: AsyncSession = Depends(get_db),
     _workspace: object = Depends(require_workspace),
 ):
-    if workspace_id is None:
-        raise HTTPException(status_code=400, detail="workspace_id is required")
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     await require_ws_viewer(workspace_id=workspace_id, user=current_user, db=db)
     repo = NodeRepository(db)
     node = await repo.create(payload, current_user.id, workspace_id)
@@ -94,13 +105,15 @@ async def create_node(
 
 @router.get("/{slug}", response_model=NodeOut, summary="Get node")
 async def read_node(
+    request: Request,
     slug: str,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     workspace_dep: object = Depends(optional_workspace),
     _: object = Depends(require_ws_guest),
 ):
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, workspace_id)
     if not node:
@@ -118,14 +131,16 @@ async def read_node(
 
 @router.post("/{node_id}/tags", response_model=NodeOut, summary="Set node tags")
 async def set_node_tags(
+    request: Request,
     node_id: UUID,
     payload: NodeTagsUpdate,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ):
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
     node = await repo.get_by_id(node_id, workspace_id)
     if not node:
@@ -145,14 +160,16 @@ async def set_node_tags(
 
 @router.patch("/{slug}", response_model=NodeOut, summary="Update node")
 async def update_node(
+    request: Request,
     slug: str,
     payload: NodeUpdate,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ):
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, workspace_id)
     if not node:
@@ -182,13 +199,15 @@ async def update_node(
 
 @router.delete("/{slug}", summary="Delete node")
 async def delete_node(
+    request: Request,
     slug: str,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ):
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, workspace_id)
     if not node:
@@ -206,9 +225,10 @@ async def delete_node(
 
 @router.post("/{slug}/reactions", response_model=dict, summary="Update reactions")
 async def update_reactions(
+    request: Request,
     slug: str,
     payload: ReactionUpdate,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _workspace: object = Depends(require_workspace),
@@ -217,6 +237,7 @@ async def update_reactions(
     from app.domains.nodes.application.reaction_service import ReactionService
     from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
     service = ReactionService(NodeRepositoryAdapter(db), navcache)
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     return await service.update_reactions_by_slug(
         db,
         slug,
@@ -233,13 +254,15 @@ async def update_reactions(
     summary="Get node notification settings",
 )
 async def get_node_notification_settings(
+    request: Request,
     node_id: UUID,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     workspace_dep: object = Depends(optional_workspace),
     _: object = Depends(require_ws_viewer),
 ) -> NodeNotificationSettingsOut:
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
     node = await repo.get_by_id(node_id, workspace_id)
     if not node:
@@ -257,14 +280,16 @@ async def get_node_notification_settings(
     summary="Update node notification settings",
 )
 async def update_node_notification_settings(
+    request: Request,
     node_id: UUID,
     payload: NodeNotificationSettingsUpdate,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ) -> NodeNotificationSettingsOut:
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
     node = await repo.get_by_id(node_id, workspace_id)
     if not node:
@@ -278,8 +303,9 @@ async def update_node_notification_settings(
 
 @router.get("/{slug}/feedback", response_model=List[FeedbackOut], summary="List feedback")
 async def list_feedback(
+    request: Request,
     slug: str,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     workspace_dep: object = Depends(optional_workspace),
@@ -287,15 +313,17 @@ async def list_feedback(
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     service = FeedbackService(NodeRepositoryAdapter(db))
     return await service.list_feedback(db, slug, current_user, workspace_id)
 
 
 @router.post("/{slug}/feedback", response_model=FeedbackOut, summary="Create feedback")
 async def create_feedback(
+    request: Request,
     slug: str,
     payload: FeedbackCreate,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _workspace: object = Depends(require_workspace),
@@ -308,15 +336,19 @@ async def create_feedback(
     from app.domains.notifications.infrastructure.transports.websocket import WebsocketPusher, manager as ws_manager
 
     notifier = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     service = FeedbackService(NodeRepositoryAdapter(db), notifier)
-    return await service.create_feedback(db, slug, payload.content, payload.is_anonymous, current_user, workspace_id)
+    return await service.create_feedback(
+        db, slug, payload.content, payload.is_anonymous, current_user, workspace_id
+    )
 
 
 @router.delete("/{slug}/feedback/{feedback_id}", response_model=dict, summary="Delete feedback")
 async def delete_feedback(
+    request: Request,
     slug: str,
     feedback_id: UUID,
-    workspace_id: UUID,
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _workspace: object = Depends(require_workspace),
@@ -324,5 +356,6 @@ async def delete_feedback(
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
+    workspace_id = _ensure_workspace_id(request, workspace_id)
     service = FeedbackService(NodeRepositoryAdapter(db))
     return await service.delete_feedback(db, slug, feedback_id, current_user, workspace_id)
