@@ -143,6 +143,13 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception:
         pass
 
+    # Nodes
+    try:
+        from app.domains.nodes.api.nodes_router import router as nodes_router
+        app.include_router(nodes_router)
+    except Exception:
+        pass
+
     # Tags
     try:
         from app.domains.tags.api.routers import router as tags_router
