@@ -6,6 +6,7 @@ from uuid import UUID
 
 from app.api.deps import get_current_user
 from app.core.db.session import get_db
+from app.core.workspace_context import require_workspace
 from app.domains.users.infrastructure.models.user import User
 from app.domains.navigation.policies.transition_policy import TransitionPolicy
 from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
@@ -23,6 +24,7 @@ async def delete_transition(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
 ):
     """Delete a specific manual transition between nodes."""
     repo = TransitionRepository(db)

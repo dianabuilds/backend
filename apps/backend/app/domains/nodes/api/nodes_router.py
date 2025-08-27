@@ -9,6 +9,7 @@ from sqlalchemy.future import select
 
 from app.api.deps import get_current_user, get_current_user_optional, ensure_can_post, require_premium
 from app.security import require_ws_viewer, require_ws_guest
+from app.core.workspace_context import require_workspace, optional_workspace
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
     PageRequest,
@@ -54,6 +55,7 @@ async def list_nodes(
     match: str = Query("any", pattern="^(any|all)$"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    workspace_dep: object = Depends(optional_workspace),
     _: object = Depends(require_ws_guest),
 ) -> List[NodeOut]:
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
@@ -77,6 +79,7 @@ async def create_node(
     workspace_id: UUID | None = None,
     current_user: User = Depends(ensure_can_post),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
 ):
     if workspace_id is None:
         raise HTTPException(status_code=400, detail="workspace_id is required")
@@ -95,6 +98,7 @@ async def read_node(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    workspace_dep: object = Depends(optional_workspace),
     _: object = Depends(require_ws_guest),
 ):
     repo = NodeRepository(db)
@@ -119,6 +123,7 @@ async def set_node_tags(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ):
     repo = NodeRepository(db)
@@ -145,6 +150,7 @@ async def update_node(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ):
     repo = NodeRepository(db)
@@ -180,6 +186,7 @@ async def delete_node(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ):
     repo = NodeRepository(db)
@@ -204,6 +211,7 @@ async def update_reactions(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.reaction_service import ReactionService
@@ -229,6 +237,7 @@ async def get_node_notification_settings(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    workspace_dep: object = Depends(optional_workspace),
     _: object = Depends(require_ws_viewer),
 ) -> NodeNotificationSettingsOut:
     repo = NodeRepository(db)
@@ -253,6 +262,7 @@ async def update_node_notification_settings(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ) -> NodeNotificationSettingsOut:
     repo = NodeRepository(db)
@@ -272,6 +282,7 @@ async def list_feedback(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    workspace_dep: object = Depends(optional_workspace),
     _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
@@ -287,6 +298,7 @@ async def create_feedback(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
@@ -307,6 +319,7 @@ async def delete_feedback(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
     _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
