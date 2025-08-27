@@ -142,6 +142,7 @@ class Settings(ProjectSettings):
             "X-CSRF-Token",
             "X-Requested-With",
             "X-Workspace-Id",
+            "Workspace-Id",
         ],
         validation_alias=AliasChoices(
             "APP_CORS_ALLOW_HEADERS",
@@ -296,13 +297,7 @@ class Settings(ProjectSettings):
     def effective_origins(self) -> dict[str, list[str] | str]:
         """Return kwargs for CORSMiddleware based on configuration."""
         if self.cors_allow_origins:
-            result: dict[str, list[str] | str] = {
-                "allow_origins": self.cors_allow_origins
-            }
-            if not self.is_production:
-                # Разрешаем любые http/https origin'ы в dev/test для удобства разработки
-                result["allow_origin_regex"] = r"https?://[^/]+"
-            return result
+            return {"allow_origins": self.cors_allow_origins}
         if self.is_production:
             return {"allow_origins": []}
         return {"allow_origin_regex": r"https?://[^/]+"}
