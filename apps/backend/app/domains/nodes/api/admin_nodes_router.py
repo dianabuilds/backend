@@ -20,7 +20,7 @@ from app.domains.nodes.application.query_models import (
     QueryContext,
 )
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.nodes.schemas.node import NodeBulkOperation, NodeOut
+from app.domains.nodes.schemas.node import NodeBulkOperation, NodeBulkPatch, NodeOut
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.workspaces import WorkspaceType
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
@@ -136,3 +136,57 @@ async def bulk_node_operation(
         await navcache.invalidate_compass_all()
         cache_invalidate("comp", reason="node_bulk")
     return {"updated": [str(n.id) for n in nodes]}
+
+
+@router.patch("/bulk", summary="Bulk update nodes")
+async def bulk_patch_nodes(
+    payload: NodeBulkPatch,
+    workspace_id: UUID,
+    current_user=Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    result = await db.execute(
+        select(Node).where(Node.id.in_(payload.ids), Node.workspace_id == workspace_id)
+    )
+    nodes = result.scalars().all()
+    updated_ids: list[str] = []
+    deleted_ids: list[str] = []
+    invalidate_slugs: list[str] = []
+    for node in nodes:
+        changes = payload.changes
+        if changes.delete:
+            invalidate_slugs.append(node.slug)
+            deleted_ids.append(str(node.id))
+            await db.delete(node)
+            continue
+        was_public = node.is_public
+        was_visible = node.is_visible
+        if changes.is_visible is not None:
+            node.is_visible = changes.is_visible
+        if changes.is_public is not None:
+            node.is_public = changes.is_public
+        if changes.premium_only is not None:
+            node.premium_only = changes.premium_only
+        if changes.is_recommendable is not None:
+            node.is_recommendable = changes.is_recommendable
+        if changes.workspace_id is not None:
+            node.workspace_id = changes.workspace_id
+        node.updated_at = datetime.utcnow()
+        node.updated_by_user_id = current_user.id
+        updated_ids.append(str(node.id))
+        if (
+            (changes.is_visible is not None and changes.is_visible != was_visible)
+            or (changes.is_public is not None and changes.is_public != was_public)
+            or changes.workspace_id is not None
+        ):
+            invalidate_slugs.append(node.slug)
+    await db.commit()
+    for slug in invalidate_slugs:
+        await navcache.invalidate_navigation_by_node(slug)
+        await navcache.invalidate_modes_by_node(slug)
+        cache_invalidate("nav", reason="node_bulk_patch", key=slug)
+        cache_invalidate("navm", reason="node_bulk_patch", key=slug)
+    if invalidate_slugs:
+        await navcache.invalidate_compass_all()
+        cache_invalidate("comp", reason="node_bulk_patch")
+    return {"updated": updated_ids, "deleted": deleted_ids}
