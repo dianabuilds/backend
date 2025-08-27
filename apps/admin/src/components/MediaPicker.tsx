@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { api } from "../api/client";
+import { wsApi } from "../api/wsApi";
 import { addToCatalog } from "../utils/tagManager";
 import ImageDropzone from "./ImageDropzone";
 import TagInput from "./TagInput";
@@ -49,8 +49,7 @@ export default function MediaPicker({
     }
     (async () => {
       try {
-        const res = await api.get("/admin/media");
-        const data = (res.data as ApiMediaAsset[]) || [];
+        const data = (await wsApi.get<ApiMediaAsset[]>("/admin/media")) || [];
         const mapped = data.map((d) => ({
           id: d.id,
           url: resolveBackendUrl(d.url) || d.url,

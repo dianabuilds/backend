@@ -20,13 +20,16 @@ function ensureWorkspaceId(): string {
 
 export interface WsRequestOptions extends ApiRequestOptions {
   params?: Record<string, unknown>;
+  raw?: boolean;
 }
 
 async function request<T = unknown>(
   url: string,
   opts: WsRequestOptions = {},
 ): Promise<T> {
-  const { params, headers: optHeaders, ...rest } = opts;
+  const { params, headers: optHeaders, raw, ...rest } = opts as WsRequestOptions & {
+    raw?: boolean;
+  };
   const workspaceId = ensureWorkspaceId();
   const headers: Record<string, string> = {
     ...(optHeaders as Record<string, string> | undefined),
@@ -57,7 +60,7 @@ async function request<T = unknown>(
   }
 
   const res = await api.request<T>(finalUrl, { ...rest, headers });
-  return res.data as T;
+  return raw ? res : (res.data as T);
 }
 
 export const wsApi = {
