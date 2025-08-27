@@ -147,6 +147,7 @@ class Settings(ProjectSettings):
             "X-Feature-Flags",
             "X-Preview-Token",
             "X-Request-ID",
+            "X-BlockSketch-Workspace-Id",
             "X-Client-Platform",
             "X-XSRF-Token",
             "X-Client-Language",
