@@ -144,6 +144,8 @@ class Settings(ProjectSettings):
             "X-Requested-With",
             "X-Workspace-Id",
             "Workspace-Id",
+            "X-Feature-Flags",
+            "X-Preview-Token",
             "X-Request-ID",
             "X-Client-Platform",
             "X-XSRF-Token",
