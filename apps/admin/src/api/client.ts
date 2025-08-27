@@ -39,6 +39,8 @@ export async function syncCsrfFromResponse(resp: Response): Promise<void> {
         | null;
       const token = data && (data.csrf_token || data.csrfToken || data.csrf);
       if (typeof token === "string" && token) setCsrfToken(token);
+      const access = data && (data.access_token || data.accessToken);
+      if (typeof access === "string" && access) setAccessToken(access);
     }
   } catch {
     // игнорируем
