@@ -41,6 +41,10 @@ async def list_nodes_admin(
     author: UUID | None = None,
     tags: str | None = Query(None),
     match: str = Query("any", pattern="^(any|all)$"),
+    sort: str = Query(
+        "updated_desc",
+        pattern="^(updated_desc|created_desc|created_asc|views_desc|reactions_desc)$",
+    ),
     is_public: bool | None = None,
     visible: bool | None = None,
     premium_only: bool | None = None,
@@ -70,6 +74,7 @@ async def list_nodes_admin(
         created_from=date_from,
         created_to=date_to,
         q=q,
+        sort=sort,
     )
     ctx = QueryContext(user=current_user, is_admin=True)
     svc = NodeQueryService(db)

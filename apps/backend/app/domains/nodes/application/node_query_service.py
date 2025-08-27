@@ -59,7 +59,10 @@ class NodeQueryService:
         except Exception:
             pass
         uid = getattr(getattr(ctx, "user", None), "id", None)
-        payload = f"{cnt}:{uid or 'anon'}:{spec.tags or []}:{spec.match}:{page.offset}:{page.limit}:{spec.sort or ''}:{max_updated or ''}:{spec.author_id or ''}:{spec.q or ''}:{spec.min_views or ''}:{spec.min_reactions or ''}"
+        sort = getattr(spec, "sort", "updated_desc") or "updated_desc"
+        payload = (
+            f"{cnt}:{uid or 'anon'}:{spec.tags or []}:{spec.match}:{page.offset}:{page.limit}:{sort}:{max_updated or ''}:{spec.author_id or ''}:{spec.q or ''}:{spec.min_views or ''}:{spec.min_reactions or ''}"
+        )
         return hashlib.sha256(payload.encode()).hexdigest()
 
     async def list_nodes(self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext) -> List[Node]:
@@ -101,7 +104,7 @@ class NodeQueryService:
                 stmt = stmt.group_by(Node.id).having(func.count(Tag.id) == len(spec.tags))
             else:
                 stmt = stmt.distinct()
-        sort = getattr(spec, "sort", None)
+        sort = getattr(spec, "sort", "updated_desc") or "updated_desc"
         if sort == "created_desc":
             stmt = stmt.order_by(desc(Node.created_at))
         elif sort == "created_asc":
@@ -110,6 +113,8 @@ class NodeQueryService:
             stmt = stmt.order_by(desc(Node.views))
         elif sort == "reactions_desc" and hasattr(Node, "reactions"):
             stmt = stmt.order_by(desc(Node.reactions))
+        else:
+            stmt = stmt.order_by(desc(Node.updated_at))
         stmt = stmt.offset(getattr(page, "offset", 0)).limit(getattr(page, "limit", 50))
         res = await self._db.execute(stmt)
         return list(res.scalars().all())
