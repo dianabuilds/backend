@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { createPreviewLink } from "../api/preview";
 import ContentEditor from "../components/content/ContentEditor";
 import StatusBadge from "../components/StatusBadge";
+import FlagsCell from "../components/FlagsCell";
 import type { TagOut } from "../components/tags/TagPicker";
 import { useToast } from "../components/ToastProvider";
 import WorkspaceSelector from "../components/WorkspaceSelector";
@@ -867,10 +868,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                   <th className="p-2">ID</th>
                   <th className="p-2">Title</th>
                   <th className="p-2">Status</th>
-                  <th className="p-2">Visible</th>
-                  <th className="p-2">Public</th>
-                  <th className="p-2">Premium</th>
-                  <th className="p-2">Recommendable</th>
+                  <th className="p-2">Flags</th>
                   <th className="p-2">Created</th>
                   <th className="p-2">Updated</th>
                   <th className="p-2">Actions</th>
@@ -922,35 +920,15 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                         {n.status ? <StatusBadge status={n.status} /> : "-"}
                       </td>
                       <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={!!n.is_visible}
-                          onChange={() => toggleField(n.id, "is_visible")}
-                          disabled={applying || loading || modBusy}
-                          title={
-                            n.is_visible ? "Hide (with reason)" : "Restore"
-                          }
-                        />
-                      </td>
-                      <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={!!n.is_public}
-                          onChange={() => toggleField(n.id, "is_public")}
-                        />
-                      </td>
-                      <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={!!n.premium_only}
-                          onChange={() => toggleField(n.id, "premium_only")}
-                        />
-                      </td>
-                      <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={!!n.is_recommendable}
-                          onChange={() => toggleField(n.id, "is_recommendable")}
+                        <FlagsCell
+                          value={{
+                            is_visible: n.is_visible,
+                            is_public: n.is_public,
+                            premium_only: n.premium_only,
+                            is_recommendable: n.is_recommendable,
+                          }}
+                          onToggle={(f) => toggleField(n.id, f)}
+                          disabledVisible={applying || loading || modBusy}
                         />
                       </td>
                       <td className="p-2">
@@ -1000,7 +978,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                 })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="p-4 text-center text-gray-500">
+                    <td colSpan={8} className="p-4 text-center text-gray-500">
                       No nodes found
                     </td>
                   </tr>
