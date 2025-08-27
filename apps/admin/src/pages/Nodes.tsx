@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
+import { createPreviewLink } from "../api/preview";
 import ContentEditor from "../components/content/ContentEditor";
 import StatusBadge from "../components/StatusBadge";
 import type { TagOut } from "../components/tags/TagPicker";
@@ -108,6 +110,7 @@ interface NodesProps {
 export default function Nodes({ initialType = "" }: NodesProps = {}) {
   const { addToast } = useToast();
   const { workspaceId } = useWorkspace();
+  const navigate = useNavigate();
 
   if (!workspaceId) {
     return (
@@ -935,19 +938,36 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                           : "-"}
                       </td>
                       <td className="p-2 space-x-2">
-                        {n.slug ? (
-                          <a
-                            href={`/nodes/${n.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2 py-1 border rounded"
-                            title="Просмотреть ноду"
-                          >
-                            View
-                          </a>
-                        ) : (
-                          <span className="text-gray-400">Actions</span>
-                        )}
+                        <button
+                          type="button"
+                          className="px-2 py-1 border rounded"
+                          onClick={() => navigate(`/admin/nodes/${n.id}`)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="px-2 py-1 border rounded"
+                          onClick={async () => {
+                            if (!workspaceId) return;
+                            try {
+                              const { url } = await createPreviewLink(workspaceId);
+                              window.open(
+                                n.slug ? `${url}/nodes/${n.slug}` : url,
+                                "_blank",
+                              );
+                            } catch (e) {
+                              addToast({
+                                title: "Preview failed",
+                                description:
+                                  e instanceof Error ? e.message : String(e),
+                                variant: "error",
+                              });
+                            }
+                          }}
+                        >
+                          Preview
+                        </button>
                       </td>
                     </tr>
                   );
