@@ -1,4 +1,4 @@
-import { baseApi } from "./baseApi";
+import { api } from "./client";
 
 export interface AlertItem {
   id?: string;
@@ -11,10 +11,11 @@ export interface AlertItem {
 }
 
 export async function getAlerts(): Promise<AlertItem[]> {
-  const res = await baseApi.get<any>("/admin/ops/alerts");
-  const list: any[] = Array.isArray(res)
-    ? res
-    : res?.alerts || res?.data || [];
+  const res = await api.get<any>("/admin/ops/alerts");
+  const raw = res.data;
+  const list: any[] = Array.isArray(raw)
+    ? raw
+    : raw?.alerts || raw?.data || [];
   return list.map((a, i) => ({
     id: a.id || a.fingerprint || a.labels?.alertname || String(i),
     startsAt: a.startsAt || a.starts_at || a.activeAt || a.active_at,
@@ -40,5 +41,5 @@ export async function getAlerts(): Promise<AlertItem[]> {
 }
 
 export async function resolveAlert(id: string): Promise<void> {
-  await baseApi.post(`/admin/ops/alerts/${id}/resolve`, {});
+  await api.post(`/admin/ops/alerts/${id}/resolve`, {});
 }
