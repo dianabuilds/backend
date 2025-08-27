@@ -98,6 +98,26 @@ async def test_cors_preflight_allows_workspace_header(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+async def test_cors_preflight_allows_blocksketch_workspace_header(
+    client: AsyncClient,
+) -> None:
+    origin = "http://client.example"
+    response = await client.options(
+        "/auth/login",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "X-BlockSketch-Workspace-Id",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 200
+    allow_headers = response.headers.get("access-control-allow-headers", "").lower()
+    assert "x-blocksketch-workspace-id" in allow_headers
+    assert response.headers.get("access-control-allow-origin") == origin
+
+
+@pytest.mark.asyncio
 async def test_cors_preflight_allows_csrf_token_header(client: AsyncClient) -> None:
     origin = "http://client.example"
     response = await client.options(
