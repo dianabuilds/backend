@@ -103,13 +103,14 @@ async def db_session():
 
 
 async def run_migrations() -> None:
-    if not Path("alembic").exists():
-        raise FileNotFoundError("alembic directory not found")
+    cfg = Config("alembic.ini")
+    script_location = Path(cfg.get_main_option("script_location", "alembic"))
+    if not script_location.exists():
+        raise FileNotFoundError(f"{script_location} directory not found")
 
     loop = asyncio.get_running_loop()
 
     def _upgrade() -> None:
-        cfg = Config("alembic.ini")
         cfg.set_main_option(
             "sqlalchemy.url", settings.database_url.replace("asyncpg", "psycopg2")
         )
