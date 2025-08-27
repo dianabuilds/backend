@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import { addToCatalog } from "../utils/tagManager";
 import ImageDropzone from "./ImageDropzone";
 import TagInput from "./TagInput";
+import { resolveBackendUrl } from "../utils/url";
 
 interface Props {
   value?: string | null;
@@ -52,7 +53,7 @@ export default function MediaPicker({
         const data = (res.data as ApiMediaAsset[]) || [];
         const mapped = data.map((d) => ({
           id: d.id,
-          url: d.url,
+          url: resolveBackendUrl(d.url) || d.url,
           type: d.type,
           tags: d.metadata_json?.tags ?? [],
           name: d.metadata_json?.name ?? "",

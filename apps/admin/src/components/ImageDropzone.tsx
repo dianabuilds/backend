@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "../api/client";
+import { extractUrlFromUploadResponse, resolveBackendUrl } from "../utils/url";
 
 interface ImageDropzoneProps {
   value?: string | null;
@@ -19,34 +20,14 @@ export default function ImageDropzone({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const resolveUrl = (data: any, headers: Headers): string | null => {
-    let u: string | null =
-      (data && (data.url || data.path || data.location)) ??
-      (typeof data === "string" ? data : null) ??
-      headers.get("Location");
-    if (!u) return null;
-
-    // Если путь относительный — префиксуем базой API, иначе Vite (517x) пойдёт на фронт и получит 404.
-    const envBase = (import.meta as any)?.env?.VITE_API_BASE as
-      | string
-      | undefined;
-    const backendBase =
-      envBase ||
-      (typeof window !== "undefined" &&
-      ["5173", "5174", "5175", "5176"].includes(window.location.port || "")
-        ? `${window.location.protocol}//${window.location.hostname}:8000`
-        : "");
-
-    if (u.startsWith("//")) u = window.location.protocol + u;
-    else if (/^https?:\/\//i.test(u)) {
-      // абсолютный — используем как есть
-    } else if (u.startsWith("/")) {
-      u = (backendBase || "") + u;
-    } else {
-      u = (backendBase || "") + "/" + u.replace(/^\.?\//, "");
-    }
-    return u;
-  };
+  // Локальный URL для мгновенного превью после загрузки
+  const [internalUrl, setInternalUrl] = useState<string | null>(
+    resolveBackendUrl(value) ?? null,
+  );
+  // Синхронизация при внешнем изменении value
+  useEffect(() => {
+    setInternalUrl(resolveBackendUrl(value) ?? null);
+  }, [value]);
 
   const handleFiles = useCallback(
     async (files: FileList | null) => {
@@ -64,11 +45,13 @@ export default function ImageDropzone({
           method: "POST",
           body: form,
         });
-        const url = resolveUrl(res.data, res.response.headers);
+        const url = extractUrlFromUploadResponse(res.data, res.response.headers);
         if (!url) {
           setError("Сервер не вернул URL загруженного файла");
           return;
         }
+        // Обновляем локальное превью и поднимаем значение наверх
+        setInternalUrl(url);
         onChange?.(url);
       } catch (e) {
         setError(
@@ -87,12 +70,15 @@ export default function ImageDropzone({
 
   const onClick = () => inputRef.current?.click();
 
+  const displaySrc =
+    resolveBackendUrl(internalUrl || value || null) || undefined;
+
   return (
     <div className={className}>
-      {value ? (
+      {displaySrc ? (
         <div className="relative">
           <img
-            src={value}
+            src={displaySrc}
             alt=""
             className="w-full rounded border object-cover"
             style={{ height }}
@@ -102,7 +88,10 @@ export default function ImageDropzone({
             <button
               type="button"
               className="text-xs px-2 py-1 rounded bg-white/90 border focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onClick={() => onChange?.(null)}
+              onClick={() => {
+                setInternalUrl(null);
+                onChange?.(null);
+              }}
               title="Remove"
               aria-label="Remove image"
             >

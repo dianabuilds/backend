@@ -49,10 +49,10 @@ def _serialize(item: NodeItem) -> dict:
     }
 
 
-@router.get("", summary="List nodes")
+@router.get("/{node_type}", summary="List nodes by type")
 async def list_nodes(
     workspace_id: UUID,
-    node_type: NodeType = Query(..., alias="type"),  # noqa: B008
+    node_type: NodeType,
     page: int = 1,
     per_page: int = 10,
     q: str | None = None,

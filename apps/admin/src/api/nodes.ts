@@ -1,6 +1,35 @@
 import type { NodeOut, ValidateResult } from "../openapi";
 import { api } from "./client";
 
+function normalizeTags(payload: Record<string, unknown>): Record<string, unknown> {
+  if (!payload || typeof payload !== "object") return payload;
+  const p = { ...payload };
+  const tags = p["tags"] as unknown;
+  if (Array.isArray(tags)) {
+    const normalized = tags
+      .map((t) => {
+        if (typeof t === "string") return t.trim();
+        if (t && typeof t === "object") {
+          const anyT = t as any;
+          return (
+            (typeof anyT.slug === "string" && anyT.slug) ||
+            (typeof anyT.name === "string" && anyT.name) ||
+            (typeof anyT.label === "string" && anyT.label) ||
+            null
+          );
+        }
+        return null;
+      })
+      .filter((v): v is string => typeof v === "string" && v.length > 0);
+    p["tags"] = normalized;
+    if (normalized.length === 0) {
+      // чтобы не отправлять пустое поле, если оно не нужно
+      delete p["tags"];
+    }
+  }
+  return p;
+}
+
 export async function listNodes(
   params: Record<string, unknown> = {},
 ): Promise<NodeOut[]> {
@@ -19,7 +48,9 @@ export async function listNodes(
 export async function createNode(
   body: { node_type: string; title?: string },
 ): Promise<NodeOut> {
-  const res = await api.post<NodeOut>("/admin/nodes", body);
+  // Актуальный backend-роут: POST /admin/nodes/{node_type}
+  const type = encodeURIComponent(body.node_type);
+  const res = await api.post<NodeOut>(`/admin/nodes/${type}`);
   return res.data!;
 }
 
@@ -38,7 +69,7 @@ export async function patchNode(
   if (opts.next) params.next = 1;
   const res = await api.patch<NodeOut>(
     `/admin/nodes/${encodeURIComponent(id)}`,
-    patch,
+    normalizeTags(patch),
     { params, signal: opts.signal },
   );
   return res.data!;
