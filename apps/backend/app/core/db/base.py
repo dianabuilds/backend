@@ -32,5 +32,6 @@ else:
     from app.domains.tags.infrastructure.models.tag_models import TagAlias  # noqa
     from app.domains.tags.models import ContentTag, Tag  # noqa
     from app.domains.users.infrastructure.models.user import User  # noqa
+    from app.models import quests as _quests  # noqa: F401
 
 # Add all other models here
