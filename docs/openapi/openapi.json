@@ -13674,6 +13674,22 @@
             }
           },
           {
+            "name": "node_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Node Type"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
