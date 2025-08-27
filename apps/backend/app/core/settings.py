@@ -326,6 +326,8 @@ class Settings(ProjectSettings):
         """Return kwargs for CORSMiddleware based on configuration."""
         if self.cors_allow_origins:
             return {"allow_origins": self.cors_allow_origins}
+        if self.cors_allow_origin_regex:
+            return {"allow_origin_regex": self.cors_allow_origin_regex}
         if self.is_production:
             return {"allow_origins": []}
         return {"allow_origin_regex": r"https?://[^/]+"}

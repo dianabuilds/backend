@@ -23,11 +23,30 @@ for (const line of raw.split(/\r?\n/)) {
   env[key] = value;
 }
 
+const getEnv = (...keys: string[]) => {
+  for (const key of keys) {
+    const val = env[key];
+    if (val !== undefined) return val;
+  }
+  return undefined;
+};
+
+const parseList = (value: string | undefined) =>
+  value?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+
 const cors = {
-  allowOrigins: env.APP_CORS_ALLOW_ORIGINS?.split(",").map((s) => s.trim()).filter(Boolean) ?? [],
-  allowCredentials: /^true$/i.test(env.APP_CORS_ALLOW_CREDENTIALS ?? ""),
-  allowMethods: env.APP_CORS_ALLOW_METHODS?.split(",").map((s) => s.trim()).filter(Boolean) ?? [],
-  allowHeaders: env.APP_CORS_ALLOW_HEADERS?.split(",").map((s) => s.trim()).filter(Boolean) ?? [],
+  allowOrigins: parseList(
+    getEnv("APP_CORS_ALLOW_ORIGINS", "CORS_ALLOW_ORIGINS", "CORS_ALLOWED_ORIGINS"),
+  ),
+  allowCredentials: /^true$/i.test(
+    getEnv("APP_CORS_ALLOW_CREDENTIALS", "CORS_ALLOW_CREDENTIALS") ?? "",
+  ),
+  allowMethods: parseList(
+    getEnv("APP_CORS_ALLOW_METHODS", "CORS_ALLOW_METHODS", "CORS_ALLOWED_METHODS"),
+  ),
+  allowHeaders: parseList(
+    getEnv("APP_CORS_ALLOW_HEADERS", "CORS_ALLOW_HEADERS", "CORS_ALLOWED_HEADERS"),
+  ),
 };
 
 const formatArray = (arr: string[]) => `[${arr.map((v) => JSON.stringify(v)).join(", ")}]`;

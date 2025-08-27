@@ -170,16 +170,15 @@ UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 # Static file app for uploads
 uploads_static = StaticFiles(directory=UPLOADS_DIR)
 # Wrap with CORS middleware because mounted apps bypass the main app middlewares
-uploads_static = CORSMiddleware(
-    uploads_static,
-    allow_origins=settings.cors_allow_origins,
-    allow_origin_regex=settings.cors_allow_origin_regex,
-    allow_credentials=settings.cors_allow_credentials,
-    allow_methods=settings.cors_allow_methods,
-    allow_headers=settings.cors_allow_headers,
-    expose_headers=settings.cors_expose_headers,
-    max_age=settings.cors_max_age,
-)
+_uploads_cors = {
+    **settings.effective_origins(),
+    "allow_credentials": settings.cors_allow_credentials,
+    "allow_methods": settings.cors_allow_methods,
+    "allow_headers": settings.cors_allow_headers,
+    "expose_headers": settings.cors_expose_headers,
+    "max_age": settings.cors_max_age,
+}
+uploads_static = CORSMiddleware(uploads_static, **_uploads_cors)
 # Inject CORP so admin can load images cross-origin
 from app.web.header_injector import HeaderInjector
 

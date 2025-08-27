@@ -14,13 +14,18 @@ def test_cors_allows_post(monkeypatch):
     monkeypatch.setenv("DATABASE__USERNAME", "user")
     monkeypatch.setenv("DATABASE__PASSWORD", "pass")
     monkeypatch.setenv("DATABASE__NAME", "test")
+    # Ensure origin is allowed and not affected by other tests
+    monkeypatch.delenv("CORS_ALLOW_ORIGINS", raising=False)
+    monkeypatch.setenv("APP_CORS_ALLOW_ORIGINS", '["http://example.com"]')
 
     # Reload settings and app to apply new environment
     sys.path.append(str(pathlib.Path(__file__).resolve().parents[2] / "apps/backend"))
 
     import app.core.settings as settings_module
+    import app.core.config as config_module
 
     importlib.reload(settings_module)
+    importlib.reload(config_module)
     import app.main as main_module
 
     importlib.reload(main_module)
