@@ -140,6 +140,7 @@ class Settings(ProjectSettings):
             "Authorization",
             "Content-Type",
             "X-CSRF-Token",
+            "X-CSRFToken",
             "X-Requested-With",
             "X-Workspace-Id",
             "Workspace-Id",
