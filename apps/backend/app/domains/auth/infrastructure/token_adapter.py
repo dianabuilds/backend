@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from app.domains.auth.application.ports.token_port import ITokenService
-from app.core.security import create_access_token, create_refresh_token, verify_access_token
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    verify_access_token,
+    verify_refresh_token,
+)
 
 
 class CoreTokenAdapter(ITokenService):
@@ -14,5 +19,11 @@ class CoreTokenAdapter(ITokenService):
     def verify_access_token(self, token: str) -> str | None:
         try:
             return verify_access_token(token)
+        except Exception:
+            return None
+
+    def verify_refresh_token(self, token: str) -> str | None:
+        try:
+            return verify_refresh_token(token)
         except Exception:
             return None

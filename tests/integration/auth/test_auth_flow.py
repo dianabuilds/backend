@@ -70,3 +70,18 @@ async def test_login_form_success(client: AsyncClient, test_user):
     data = response.json()
     assert "access_token" in data
     assert data["ok"] is True
+
+
+@pytest.mark.asyncio
+async def test_refresh_renews_tokens(client: AsyncClient, test_user):
+    login_data = {"username": "testuser", "password": "Password123"}
+    resp = await client.post("/auth/login", json=login_data)
+    assert resp.status_code == 200
+    old_access = resp.json()["access_token"]
+    assert resp.cookies.get("refresh_token") is not None
+
+    resp2 = await client.post("/auth/refresh")
+    assert resp2.status_code == 200
+    data = resp2.json()
+    assert "access_token" in data
+    assert resp2.cookies.get("refresh_token") is not None

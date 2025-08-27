@@ -1,6 +1,6 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Header, Query, Request
+from fastapi import APIRouter, Body, Depends, Header, Query, Request, Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -71,14 +71,50 @@ _svc = AuthService(_tokens, _verification_store, _nonce_store)
 async def login(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
+    response: Response,
 ) -> LoginResponse:
     payload = await LoginSchema.from_request(request)
-    return await _svc.login(db, payload)
+    tokens = await _svc.login(db, payload)
+    response.set_cookie(
+        "access_token",
+        tokens.access_token,
+        max_age=settings.jwt.expiration,
+        path="/",
+    )
+    if tokens.refresh_token:
+        response.set_cookie(
+            "refresh_token",
+            tokens.refresh_token,
+            max_age=settings.jwt.refresh_expiration,
+            path="/",
+        )
+    return tokens
 
 
 @router.post("/refresh", response_model=LoginResponse)
-async def refresh(payload: Token) -> LoginResponse:
-    return await _svc.refresh(payload)
+async def refresh(
+    request: Request,
+    response: Response,
+    payload: Token = Body(default=Token()),
+) -> LoginResponse:
+    token = payload.token or request.cookies.get("refresh_token")
+    if not token:
+        raise http_error(401, "Invalid refresh token")
+    result = await _svc.refresh(Token(token=token))
+    response.set_cookie(
+        "access_token",
+        result.access_token,
+        max_age=settings.jwt.expiration,
+        path="/",
+    )
+    if result.refresh_token:
+        response.set_cookie(
+            "refresh_token",
+            result.refresh_token,
+            max_age=settings.jwt.refresh_expiration,
+            path="/",
+        )
+    return result
 
 
 @router.post("/signup", dependencies=[Depends(_rate.dependency("signup"))])
