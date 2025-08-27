@@ -13,9 +13,8 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: () => queryData,
 }));
 
-vi.mock("../api/client", () => ({
-  api: { get: vi.fn() },
-  setWorkspaceId: vi.fn(),
+vi.mock("../api/baseApi", () => ({
+  baseApi: { get: vi.fn() },
 }));
 
 describe("WorkspaceSelector", () => {

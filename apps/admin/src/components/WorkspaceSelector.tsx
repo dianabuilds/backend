@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { api } from "../api/client";
+import { baseApi } from "../api/baseApi";
 import type { Workspace } from "../api/types";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
@@ -12,12 +12,11 @@ export default function WorkspaceSelector() {
   const { data } = useQuery({
     queryKey: ["workspaces"],
     queryFn: async () => {
-      const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
+      const res = await baseApi.get<Workspace[] | { workspaces: Workspace[] }>(
         "/admin/workspaces",
       );
-      const payload = res.data;
-      if (Array.isArray(payload)) return payload;
-      return payload?.workspaces ?? [];
+      if (Array.isArray(res)) return res;
+      return res?.workspaces ?? [];
     },
   });
 
@@ -27,9 +26,9 @@ export default function WorkspaceSelector() {
 
   useEffect(() => {
     if (!workspaceId && data && data.length > 0) {
-      setWorkspace(data[0]);
+      setOpen(true);
     }
-  }, [workspaceId, data, setWorkspace]);
+  }, [workspaceId, data]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -41,8 +40,13 @@ export default function WorkspaceSelector() {
         setOpen(false);
       }
     };
+    const onMissing = () => setOpen(true);
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("workspace-missing", onMissing);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("workspace-missing", onMissing);
+    };
   }, []);
 
   const selected = data?.find((ws) => ws.id === workspaceId);
