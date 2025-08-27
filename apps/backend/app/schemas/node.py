@@ -92,7 +92,9 @@ class NodeUpdate(BaseModel):
     cover_url: str | None = None
     tags: list[str] | None = None
     is_public: bool | None = None
-    is_visible: bool | None = None
+    is_visible: bool | None = Field(
+        default=None, validation_alias=AliasChoices("hidden", "is_visible")
+    )
     allow_feedback: bool | None = Field(
         default=None, validation_alias=AliasChoices("allow_feedback", "allow_comments")
     )

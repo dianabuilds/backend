@@ -227,11 +227,18 @@ export default function NodeSidebar({
     setHiddenSaving(true);
     try {
       const res = await patchNode(node.node_type, node.id, {
-        hidden: checked,
+        is_visible: !checked,
         updated_at: node.updated_at,
       });
       const updated = (res as any).updatedAt ?? (res as any).updated_at;
-      const hidden = (res as any).hidden ?? checked;
+      const hidden =
+        typeof (res as any).hidden === "boolean"
+          ? (res as any).hidden
+          : typeof (res as any).is_visible === "boolean"
+            ? !(res as any).is_visible
+            : typeof (res as any).isVisible === "boolean"
+              ? !(res as any).isVisible
+              : checked;
       onHiddenChange?.(hidden, updated);
     } finally {
       setHiddenSaving(false);
