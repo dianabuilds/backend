@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import hashlib
-from typing import List
 
-from sqlalchemy import func, select, desc, asc, and_, or_, cast, String
+from sqlalchemy import String, and_, asc, cast, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.nodes.application.query_models import NodeFilterSpec, PageRequest, QueryContext
+from app.domains.nodes.application.query_models import (
+    NodeFilterSpec,
+    PageRequest,
+    QueryContext,
+)
 from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.nodes.models import NodeItem
 from app.domains.tags.models import Tag
 
 
@@ -15,8 +19,12 @@ class NodeQueryService:
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def compute_nodes_etag(self, spec: NodeFilterSpec, ctx: QueryContext, page: PageRequest) -> str:
-        base = select(func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at))
+    async def compute_nodes_etag(
+        self, spec: NodeFilterSpec, ctx: QueryContext, page: PageRequest
+    ) -> str:
+        base = select(
+            func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at)
+        ).join(NodeItem, NodeItem.id == Node.id, isouter=True)
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
@@ -32,6 +40,8 @@ class NodeQueryService:
             clauses.append(Node.author_id == spec.author_id)
         if spec.workspace_id is not None:
             clauses.append(Node.workspace_id == spec.workspace_id)
+        if spec.node_type is not None:
+            clauses.append(NodeItem.type == spec.node_type)
         if spec.created_from:
             clauses.append(Node.created_at >= spec.created_from)
         if spec.created_to:
@@ -42,7 +52,11 @@ class NodeQueryService:
             clauses.append(Node.updated_at <= spec.updated_to)
         if spec.q:
             pattern = f"%{spec.q.strip()}%"
-            clauses.append(or_(Node.title.ilike(pattern), cast(Node.content, String).ilike(pattern)))
+            clauses.append(
+                or_(
+                    Node.title.ilike(pattern), cast(Node.content, String).ilike(pattern)
+                )
+            )
         if spec.min_views and hasattr(Node, "views"):
             clauses.append(Node.views >= int(spec.min_views))
         if spec.min_reactions and hasattr(Node, "reactions"):
@@ -51,7 +65,9 @@ class NodeQueryService:
         if spec.tags:
             base = base.join(Node.tags).where(Tag.slug.in_(spec.tags))
             if spec.match == "all":
-                base = base.group_by(Node.id).having(func.count(Tag.id) == len(spec.tags))
+                base = base.group_by(Node.id).having(
+                    func.count(Tag.id) == len(spec.tags)
+                )
         res = await self._db.execute(base)
         cnt, max_updated = (0, None)
         try:
@@ -61,12 +77,19 @@ class NodeQueryService:
         uid = getattr(getattr(ctx, "user", None), "id", None)
         sort = getattr(spec, "sort", "updated_desc") or "updated_desc"
         payload = (
-            f"{cnt}:{uid or 'anon'}:{spec.tags or []}:{spec.match}:{page.offset}:{page.limit}:{sort}:{max_updated or ''}:{spec.author_id or ''}:{spec.q or ''}:{spec.min_views or ''}:{spec.min_reactions or ''}"
+            f"{cnt}:{uid or 'anon'}:{spec.tags or []}:{spec.match}:"
+            f"{page.offset}:{page.limit}:{sort}:{max_updated or ''}:"
+            f"{spec.author_id or ''}:{spec.q or ''}:{spec.min_views or ''}:"
+            f"{spec.min_reactions or ''}:{spec.node_type or ''}"
         )
         return hashlib.sha256(payload.encode()).hexdigest()
 
-    async def list_nodes(self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext) -> List[Node]:
-        stmt = select(Node)
+    async def list_nodes(
+        self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext
+    ) -> list[Node]:
+        stmt = select(Node, NodeItem.type.label("node_type")).join(
+            NodeItem, NodeItem.id == Node.id, isouter=True
+        )
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
@@ -82,6 +105,8 @@ class NodeQueryService:
             clauses.append(Node.author_id == spec.author_id)
         if spec.workspace_id is not None:
             clauses.append(Node.workspace_id == spec.workspace_id)
+        if spec.node_type is not None:
+            clauses.append(NodeItem.type == spec.node_type)
         if spec.created_from:
             clauses.append(Node.created_at >= spec.created_from)
         if spec.created_to:
@@ -92,7 +117,11 @@ class NodeQueryService:
             clauses.append(Node.updated_at <= spec.updated_to)
         if spec.q:
             pattern = f"%{spec.q.strip()}%"
-            clauses.append(or_(Node.title.ilike(pattern), cast(Node.content, String).ilike(pattern)))
+            clauses.append(
+                or_(
+                    Node.title.ilike(pattern), cast(Node.content, String).ilike(pattern)
+                )
+            )
         if spec.min_views and hasattr(Node, "views"):
             clauses.append(Node.views >= int(spec.min_views))
         if spec.min_reactions and hasattr(Node, "reactions"):
@@ -101,7 +130,9 @@ class NodeQueryService:
         if spec.tags:
             stmt = stmt.join(Node.tags).where(Tag.slug.in_(spec.tags))
             if spec.match == "all":
-                stmt = stmt.group_by(Node.id).having(func.count(Tag.id) == len(spec.tags))
+                stmt = stmt.group_by(Node.id).having(
+                    func.count(Tag.id) == len(spec.tags)
+                )
             else:
                 stmt = stmt.distinct()
         sort = getattr(spec, "sort", "updated_desc") or "updated_desc"
@@ -117,4 +148,8 @@ class NodeQueryService:
             stmt = stmt.order_by(desc(Node.updated_at))
         stmt = stmt.offset(getattr(page, "offset", 0)).limit(getattr(page, "limit", 50))
         res = await self._db.execute(stmt)
-        return list(res.scalars().all())
+        items: list[Node] = []
+        for node, node_type in res.all():
+            node.node_type = node_type
+            items.append(node)
+        return items
