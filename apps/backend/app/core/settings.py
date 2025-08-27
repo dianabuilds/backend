@@ -3,6 +3,7 @@ import os
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -90,6 +91,35 @@ _ENV_DEFAULTS: dict[EnvMode, dict[str, object]] = {
 }
 
 
+DEFAULT_CORS_METHODS = [
+    "GET",
+    "POST",
+    "PUT",
+    "DELETE",
+    "OPTIONS",
+    "PATCH",
+]
+
+DEFAULT_CORS_HEADERS = [
+    "Authorization",
+    "Content-Type",
+    "X-CSRF-Token",
+    "X-CSRFToken",
+    "X-Requested-With",
+    "X-Workspace-Id",
+    "Workspace-Id",
+    "X-Feature-Flags",
+    "X-Preview-Token",
+    "X-Request-ID",
+    "X-BlockSketch-Workspace-Id",
+    "X-Client-Platform",
+    "X-XSRF-Token",
+    "X-Client-Language",
+    "X-Client-Version",
+    "X-User-Timezone",
+]
+
+
 class Settings(ProjectSettings):
     env_mode: EnvMode = Field(
         default=EnvMode.development,
@@ -121,14 +151,7 @@ class Settings(ProjectSettings):
         ),
     )
     cors_allow_methods: list[str] = Field(
-        default_factory=lambda: [
-            "GET",
-            "POST",
-            "PUT",
-            "DELETE",
-            "OPTIONS",
-            "PATCH",
-        ],
+        default_factory=lambda: DEFAULT_CORS_METHODS.copy(),
         validation_alias=AliasChoices(
             "APP_CORS_ALLOW_METHODS",
             "CORS_ALLOW_METHODS",
@@ -136,24 +159,7 @@ class Settings(ProjectSettings):
         ),
     )
     cors_allow_headers: list[str] = Field(
-        default_factory=lambda: [
-            "Authorization",
-            "Content-Type",
-            "X-CSRF-Token",
-            "X-CSRFToken",
-            "X-Requested-With",
-            "X-Workspace-Id",
-            "Workspace-Id",
-            "X-Feature-Flags",
-            "X-Preview-Token",
-            "X-Request-ID",
-            "X-BlockSketch-Workspace-Id",
-            "X-Client-Platform",
-            "X-XSRF-Token",
-            "X-Client-Language",
-            "X-Client-Version",
-            "X-User-Timezone",
-        ],
+        default_factory=lambda: DEFAULT_CORS_HEADERS.copy(),
         validation_alias=AliasChoices(
             "APP_CORS_ALLOW_HEADERS",
             "CORS_ALLOW_HEADERS",
@@ -208,20 +214,22 @@ class Settings(ProjectSettings):
     observability: ObservabilitySettings = ObservabilitySettings()
     auth: AuthSettings = AuthSettings()
 
-    def model_post_init(self, __context: dict) -> None:  # type: ignore[override]
+    def model_post_init(self, __context: dict[str, Any]) -> None:  # type: ignore[override]
         defaults = _ENV_DEFAULTS.get(self.env_mode, {})
         for field, value in defaults.items():
             if getattr(self, field) in (None, ""):
                 setattr(self, field, value)
 
-        # Ensure essential CORS methods are always allowed. Some environments
-        # may override ``APP_CORS_ALLOW_METHODS`` without including ``POST`` or
-        # ``OPTIONS`` which breaks cross‑origin requests like workspace
-        # creation. Guarantee these methods are present so the admin UI can
-        # perform write operations.
-        for required in ("POST", "OPTIONS"):
-            if required not in self.cors_allow_methods:
-                self.cors_allow_methods.append(required)
+        # Ensure essential CORS methods and headers are always included
+        self.cors_allow_methods = list(
+            {m.upper() for m in DEFAULT_CORS_METHODS}.union(
+                m.upper() for m in self.cors_allow_methods
+            )
+        )
+        base_headers = {h.lower(): h for h in DEFAULT_CORS_HEADERS}
+        user_headers = {h.lower(): h for h in self.cors_allow_headers}
+        base_headers.update(user_headers)
+        self.cors_allow_headers = list(base_headers.values())
 
         # --- Redis URL normalization -------------------------------------------------
         # Берём REDIS_URL из окружения, если в секции cache пусто
