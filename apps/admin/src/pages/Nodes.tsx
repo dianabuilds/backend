@@ -650,7 +650,11 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const first = Array.from(selected)[0];
       if (e.key === "e" || e.key === "E") {
-        if (first) navigate(`/nodes/${first}`);
+        if (first) {
+          const item = baseline.get(first);
+          if (item)
+            navigate(`/nodes/${item.type}/${first}?workspace_id=${workspaceId}`);
+        }
       } else if (e.key === "p" || e.key === "P") {
         if (first) void previewSelected(first);
       } else if (e.key === "Delete") {
@@ -1103,7 +1107,11 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                         <button
                           type="button"
                           className="px-2 py-1 border rounded"
-                          onClick={() => navigate(`/nodes/${n.id}`)}
+                          onClick={() =>
+                            navigate(
+                              `/nodes/${n.type}/${n.id}?workspace_id=${workspaceId}`,
+                            )
+                          }
                         >
                           Edit
                         </button>

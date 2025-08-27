@@ -28,14 +28,14 @@ function diffObjects(a: any, b: any, prefix = ""): string[] {
 }
 
 export default function NodeDiff() {
-  const { id } = useParams<{ id: string }>();
+  const { type, id } = useParams<{ type: string; id: string }>();
   const [remote, setRemote] = useState<any | null>(null);
   const [local, setLocal] = useState<any | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !type) return;
     (async () => {
-      const node = await getNode(id);
+      const node = await getNode(type, id);
       const localRaw = localStorage.getItem(`node-draft-${id}`);
       const localData = localRaw ? JSON.parse(localRaw) : null;
       const remoteData = {
@@ -47,9 +47,9 @@ export default function NodeDiff() {
       setLocal(localData);
       setRemote(remoteData);
     })();
-  }, [id]);
+  }, [id, type]);
 
-  if (!id) {
+  if (!id || !type) {
     return <div className="p-4">No id provided</div>;
   }
 

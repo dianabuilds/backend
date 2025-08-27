@@ -81,18 +81,20 @@ export default function ContentDashboard() {
     )[0];
 
   const createQuest = async () => {
-    const n = await createNode({ node_type: "quest" });
+    const type = "quest";
+    const n = await createNode({ node_type: type });
     const path = workspaceId
-      ? `/nodes/${n.id}?workspace_id=${workspaceId}`
-      : `/nodes/${n.id}`;
+      ? `/nodes/${type}/${n.id}?workspace_id=${workspaceId}`
+      : `/nodes/${type}/${n.id}`;
     navigate(path);
   };
 
   const createGenericNode = async () => {
-    const n = await createNode({ node_type: "other" });
+    const type = "other";
+    const n = await createNode({ node_type: type });
     const path = workspaceId
-      ? `/nodes/${n.id}?workspace_id=${workspaceId}`
-      : `/nodes/${n.id}`;
+      ? `/nodes/${type}/${n.id}?workspace_id=${workspaceId}`
+      : `/nodes/${type}/${n.id}`;
     navigate(path);
   };
 

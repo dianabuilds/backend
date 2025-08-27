@@ -47,7 +47,7 @@ interface NodeDraft {
 }
 
 export default function NodeEditor() {
-  const { id } = useParams<{ id: string }>();
+  const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const [node, setNode] = useState<NodeEditorData | null>(null);
@@ -57,9 +57,9 @@ export default function NodeEditor() {
   useEffect(() => {
     if (!workspaceId) return;
     const load = async () => {
-      if (!id || id === "new") return;
+      if (!id || id === "new" || !type) return;
       try {
-        const n = await getNode(id);
+        const n = await getNode(type, id);
         const raw = n as Record<string, unknown>;
         setNode({
           id: n.id,
@@ -116,7 +116,7 @@ export default function NodeEditor() {
             version: "2.30.7",
           },
           node_type:
-            (raw.type as string) ?? (raw.node_type as string) ?? "node",
+            (raw.type as string) ?? (raw.node_type as string) ?? type,
         });
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -137,7 +137,7 @@ export default function NodeEditor() {
   }
 
   if (id === "new") {
-    return <NodeCreate workspaceId={workspaceId} />;
+    return <NodeCreate workspaceId={workspaceId} nodeType={type || "quest"} />;
   }
 
   if (loading) {
@@ -159,7 +159,13 @@ export default function NodeEditor() {
   return <NodeEditorInner initialNode={node} workspaceId={workspaceId} />;
 }
 
-function NodeCreate({ workspaceId }: { workspaceId: string }) {
+function NodeCreate({
+  workspaceId,
+  nodeType,
+}: {
+  workspaceId: string;
+  nodeType: string;
+}) {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [creating, setCreating] = useState(false);
@@ -173,10 +179,10 @@ function NodeCreate({ workspaceId }: { workspaceId: string }) {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const n = await createNode({ node_type: "quest", title });
+      const n = await createNode({ node_type: nodeType, title });
       const path = workspaceId
-        ? `/nodes/${n.id}?workspace_id=${workspaceId}`
-        : `/nodes/${n.id}`;
+        ? `/nodes/${nodeType}/${n.id}?workspace_id=${workspaceId}`
+        : `/nodes/${nodeType}/${n.id}`;
       navigate(path, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -280,6 +286,7 @@ function NodeCreate({ workspaceId }: { workspaceId: string }) {
       async (patch, signal) => {
         try {
           const updated = await patchNode(
+            nodeRef.current.node_type,
             nodeRef.current.id,
             { ...patch, updated_at: nodeRef.current.updated_at },
             { signal },
@@ -372,16 +379,16 @@ function NodeCreate({ workspaceId }: { workspaceId: string }) {
     if (!canEdit) return;
     await flush();
     const path = workspaceId
-      ? `/nodes/new?workspace_id=${workspaceId}`
-      : "/nodes/new";
+      ? `/nodes/${node.node_type}/new?workspace_id=${workspaceId}`
+      : `/nodes/${node.node_type}/new`;
     navigate(path);
   };
 
   const handleCreate = () => {
     if (!canEdit) return;
     const path = workspaceId
-      ? `/nodes/new?workspace_id=${workspaceId}`
-      : "/nodes/new";
+      ? `/nodes/${node.node_type}/new?workspace_id=${workspaceId}`
+      : `/nodes/${node.node_type}/new`;
     navigate(path);
   };
 

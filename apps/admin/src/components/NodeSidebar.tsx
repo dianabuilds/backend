@@ -187,7 +187,7 @@ export default function NodeSidebar({
   const runValidation = async () => {
     setValidating(true);
     try {
-      const res = await validateNode(node.id);
+      const res = await validateNode(node.node_type, node.id);
       setValidation(res);
       onValidation?.(res);
     } catch {
@@ -202,7 +202,7 @@ export default function NodeSidebar({
     setStatusSaving(true);
     try {
       if (checked) {
-        const res = await validateNode(node.id);
+        const res = await validateNode(node.node_type, node.id);
         setValidation(res);
         onValidation?.(res);
         if (!res.ok) {
@@ -210,7 +210,7 @@ export default function NodeSidebar({
           return;
         }
       }
-      const res = await patchNode(node.id, {
+      const res = await patchNode(node.node_type, node.id, {
         is_public: checked,
         updated_at: node.updated_at,
       });
@@ -225,7 +225,7 @@ export default function NodeSidebar({
   const handleHiddenChange = async (checked: boolean) => {
     setHiddenSaving(true);
     try {
-      const res = await patchNode(node.id, {
+      const res = await patchNode(node.node_type, node.id, {
         hidden: checked,
         updated_at: node.updated_at,
       });
@@ -242,7 +242,7 @@ export default function NodeSidebar({
     setScheduleSaving(true);
     try {
       const iso = value ? new Date(value).toISOString() : null;
-      const res = await patchNode(node.id, {
+      const res = await patchNode(node.node_type, node.id, {
         published_at: iso,
         updated_at: node.updated_at,
       });
@@ -278,7 +278,7 @@ export default function NodeSidebar({
   const saveSlug = async () => {
     setSlugSaving(true);
     try {
-      const res = await patchNode(node.id, {
+      const res = await patchNode(node.node_type, node.id, {
         slug: slugDraft,
         updated_at: node.updated_at,
       });
