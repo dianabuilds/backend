@@ -50,6 +50,12 @@ async function request<T = unknown>(
     }
   }
 
+  if (!finalUrl.includes("workspace_id=")) {
+    finalUrl +=
+      (finalUrl.includes("?") ? "&" : "?") +
+      `workspace_id=${encodeURIComponent(workspaceId)}`;
+  }
+
   const res = await api.request<T>(finalUrl, { ...rest, headers });
   return res.data as T;
 }

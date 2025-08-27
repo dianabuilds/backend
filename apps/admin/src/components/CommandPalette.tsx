@@ -11,7 +11,7 @@ interface Command {
 
 const COMMANDS: Command[] = [
   { cmd: "trace", name: "Traces", path: "/traces" },
-  { cmd: "node:new", name: "New node", path: "/nodes/new" },
+  { cmd: "node:new", name: "New node", path: "/nodes/quest/new" },
 ];
 
 export default function CommandPalette() {

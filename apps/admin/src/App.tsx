@@ -146,8 +146,8 @@ export default function App() {
                         path="nodes/:type/:id/validate"
                         element={<ValidationReport />}
                       />
-                      <Route path="nodes/:id" element={<NodeEditor />} />
-                      <Route path="nodes/:id/diff" element={<NodeDiff />} />
+                      <Route path="nodes/:type/:id" element={<NodeEditor />} />
+                      <Route path="nodes/:type/:id/diff" element={<NodeDiff />} />
                       <Route
                         path="search"
                         element={<ComingSoon title="Search" />}

@@ -54,14 +54,15 @@ export async function createNode(
   return res;
 }
 
-export async function getNode(id: string): Promise<NodeOut> {
+export async function getNode(type: string, id: string): Promise<NodeOut> {
   const res = await wsApi.get<NodeOut>(
-    `/admin/nodes/${encodeURIComponent(id)}`,
+    `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
   );
   return res!;
 }
 
 export async function patchNode(
+  type: string,
   id: string,
   patch: Record<string, unknown>,
   opts: { force?: boolean; signal?: AbortSignal; next?: boolean } = {},
@@ -70,7 +71,7 @@ export async function patchNode(
   if (opts.force) params.force = 1;
   if (opts.next) params.next = 1;
   const res = await wsApi.patch<Record<string, unknown>, NodeOut>(
-    `/admin/nodes/${encodeURIComponent(id)}`,
+    `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
     normalizeTags(patch),
     { params, signal: opts.signal },
   );
@@ -78,29 +79,34 @@ export async function patchNode(
 }
 
 export async function publishNode(
+  type: string,
   id: string,
   body: Record<string, unknown> | undefined = undefined,
 ): Promise<NodeOut> {
   const res = await wsApi.post<Record<string, unknown> | undefined, NodeOut>(
-    `/admin/nodes/${encodeURIComponent(id)}/publish`,
+    `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/publish`,
     body,
   );
   return res!;
 }
 
-export async function validateNode(id: string): Promise<ValidateResult> {
+export async function validateNode(
+  type: string,
+  id: string,
+): Promise<ValidateResult> {
   const res = await wsApi.post<undefined, ValidateResult>(
-    `/admin/nodes/${encodeURIComponent(id)}/validate`,
+    `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
   );
   return res!;
 }
 
 export async function simulateNode(
+  type: string,
   id: string,
   payload: Record<string, unknown>,
 ): Promise<any> {
   const res = await wsApi.post<Record<string, unknown>, any>(
-    `/admin/nodes/${encodeURIComponent(id)}/simulate`,
+    `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/simulate`,
     payload,
   );
   return res;
