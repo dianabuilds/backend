@@ -215,6 +215,14 @@ def register_domain_routers(app: FastAPI) -> None:
         app.include_router(admin_workspaces_router)
     except Exception:
         pass
+    # Admin nodes content
+    try:
+        from app.domains.nodes.content_admin_router import (
+            router as admin_nodes_content_router,
+        )
+        app.include_router(admin_nodes_content_router)
+    except Exception:
+        pass
     # Admin nodes
     try:
         from app.domains.nodes.api.admin_nodes_router import router as admin_nodes_router
