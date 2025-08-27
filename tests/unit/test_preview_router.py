@@ -9,7 +9,8 @@ from types import SimpleNamespace
 from typing import Optional
 
 import pytest
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -133,6 +134,31 @@ def test_dry_run_seed_and_no_side_effects(monkeypatch):
             assert len(uas) == 0
 
     asyncio.run(_run())
+
+
+def test_preview_link_endpoint_accessible(monkeypatch):
+    monkeypatch.setenv("DATABASE__USERNAME", "x")
+    monkeypatch.setenv("DATABASE__PASSWORD", "x")
+    monkeypatch.setenv("DATABASE__HOST", "x")
+    monkeypatch.setenv("DATABASE__NAME", "x")
+
+    from app.domains.navigation.api.preview_router import router as preview_router
+
+    app = FastAPI()
+    app.include_router(preview_router)
+
+    admin_dep = None
+    for route in preview_router.routes:
+        if route.path == "/admin/preview/link":
+            admin_dep = route.dependant.dependencies[0].call
+            break
+    assert admin_dep is not None
+    app.dependency_overrides[admin_dep] = lambda: None
+
+    client = TestClient(app)
+    res = client.post("/admin/preview/link", json={"workspace_id": str(uuid.uuid4())})
+    assert res.status_code == 200
+    assert "url" in res.json()
 
 
 def test_read_only_renders_route_without_transition(monkeypatch):
