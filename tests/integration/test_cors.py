@@ -80,6 +80,24 @@ async def test_cors_preflight_allows_custom_header(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_cors_preflight_allows_workspace_header(client: AsyncClient) -> None:
+    origin = "http://client.example"
+    response = await client.options(
+        "/auth/login",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "Workspace-Id",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 200
+    allow_headers = response.headers.get("access-control-allow-headers", "").lower()
+    assert "workspace-id" in allow_headers
+    assert response.headers.get("access-control-allow-origin") == origin
+
+
+@pytest.mark.asyncio
 async def test_options_no_redirect(client: AsyncClient) -> None:
     origin = "http://client.example"
     response = await client.options(
