@@ -15,7 +15,7 @@ from app.domains.quests.infrastructure.models.quest_version_models import (
     QuestGraphNode,
     QuestGraphEdge,
 )
-from app.schemas.quest import QuestCreate, QuestUpdate
+from app.domains.quests.schemas import QuestCreate, QuestUpdate
 from app.domains.users.infrastructure.models.user import User
 from app.domains.quests.versions import release_latest, ValidationFailed
 from uuid import UUID
