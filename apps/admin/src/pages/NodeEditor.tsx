@@ -262,6 +262,9 @@ function NodeCreate({ workspaceId }: { workspaceId: string }) {
     const [savedAt, setSavedAt] = useState<Date | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
     const titleRef = useRef<HTMLInputElement>(null);
+    const titleEditRef = useRef<HTMLInputElement>(null);
+    const [editingTitle, setEditingTitle] = useState(false);
+    const [titleBackup, setTitleBackup] = useState("");
     const [node, setNode] = useState<NodeEditorData>(initialNode);
     const nodeRef = useRef(node);
     useEffect(() => {
@@ -306,6 +309,17 @@ function NodeCreate({ workspaceId }: { workspaceId: string }) {
     const handleDraftChange = (patch: Partial<NodeDraft>) => {
       setNode((prev) => ({ ...prev, ...patch }));
       enqueue(patch);
+    };
+
+    const startTitleEdit = () => {
+      if (!canEdit) return;
+      setTitleBackup(node.title);
+      setEditingTitle(true);
+      setTimeout(() => titleEditRef.current?.focus(), 0);
+    };
+
+    const stopTitleEdit = () => {
+      setEditingTitle(false);
     };
 
   const handleTitleChange = canEdit
@@ -378,6 +392,19 @@ function NodeCreate({ workspaceId }: { workspaceId: string }) {
     navigate(workspaceId ? `/nodes?workspace_id=${workspaceId}` : "/nodes");
   };
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!canEdit) return;
+      if (e.key === "Enter" && e.ctrlKey) {
+        e.preventDefault();
+        if (e.shiftKey) void handleSaveNext();
+        else void handleSave();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canEdit, handleSave, handleSaveNext]);
+
   return (
     <div className="flex h-full flex-col">
       {saveError ? (
@@ -412,7 +439,36 @@ function NodeCreate({ workspaceId }: { workspaceId: string }) {
         </nav>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold">{node.title || "Node"}</h1>
+            {editingTitle ? (
+              <input
+                ref={titleEditRef}
+                value={node.title}
+                onChange={(e) => handleTitleChange?.(e.target.value)}
+                onBlur={stopTitleEdit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    stopTitleEdit();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    handleTitleChange?.(titleBackup);
+                    stopTitleEdit();
+                  }
+                }}
+                className={`text-xl font-semibold border-b px-1 focus:outline-none ${
+                  fieldErrors.title ? "border-red-500" : "border-transparent"
+                }`}
+              />
+            ) : (
+              <h1
+                className={`text-xl font-semibold ${
+                  fieldErrors.title ? "text-red-600" : ""
+                }`}
+                onDoubleClick={startTitleEdit}
+              >
+                {node.title || "Node"}
+              </h1>
+            )}
             <StatusBadge status={node.is_public ? "published" : "draft"} />
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
