@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import ErrorBanner from "./ErrorBanner";
+
 import { api } from "../api/client";
 import type { Workspace } from "../api/types";
 import { useWorkspace } from "../workspace/WorkspaceContext";
@@ -81,9 +83,12 @@ export default function WorkspaceSelector() {
 
   if (error) {
     return (
-      <Link to="/login" className="text-blue-600 hover:underline">
-        Авторизоваться
-      </Link>
+      <ErrorBanner message="Не удалось загрузить список воркспейсов.">
+        <span>Возможно, вы не авторизованы. </span>
+        <Link to="/login" className="text-blue-600 hover:underline">
+          Авторизоваться
+        </Link>
+      </ErrorBanner>
     );
   }
 
