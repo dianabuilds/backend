@@ -11,10 +11,10 @@ import ErrorBanner from "../components/ErrorBanner";
 import { useToast } from "../components/ToastProvider";
 import WorkspaceSelector from "../components/WorkspaceSelector";
 import type { OutputData } from "../types/editorjs";
-import { useAutosave } from "../utils/useAutosave";
 import { useUnsavedChanges } from "../utils/useUnsavedChanges";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 import type { ValidateResult } from "../openapi";
+import { usePatchQueue } from "../utils/usePatchQueue";
 
 interface NodeEditorData {
   id: string;
@@ -248,104 +248,65 @@ function NodeCreate({ workspaceId }: { workspaceId: string }) {
   );
 }
 
-function NodeEditorInner({
-  initialNode,
-  workspaceId,
-}: {
-  initialNode: NodeEditorData;
-  workspaceId: string;
-}) {
-  const navigate = useNavigate();
-  const { addToast } = useToast();
-  const manualRef = useRef(false);
-  const saveNextRef = useRef(false);
-  const { user } = useAuth();
-  const canEdit = user?.role === "admin";
-  const [savedAt, setSavedAt] = useState<Date | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [unsaved, setUnsaved] = useState(false);
-  const titleRef = useRef<HTMLInputElement>(null);
-  const retryRef = useRef<number | null>(null);
-  const saveRef = useRef<() => Promise<void>>();
-  const [staleDraft, setStaleDraft] = useState<NodeDraft | null>(null);
-  const [staleOpen, setStaleOpen] = useState(false);
+  function NodeEditorInner({
+    initialNode,
+    workspaceId,
+  }: {
+    initialNode: NodeEditorData;
+    workspaceId: string;
+  }) {
+    const navigate = useNavigate();
+    const { addToast } = useToast();
+    const { user } = useAuth();
+    const canEdit = user?.role === "admin";
+    const [savedAt, setSavedAt] = useState<Date | null>(null);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const titleRef = useRef<HTMLInputElement>(null);
+    const [node, setNode] = useState<NodeEditorData>(initialNode);
+    const nodeRef = useRef(node);
+    useEffect(() => {
+      nodeRef.current = node;
+    }, [node]);
+    const [fieldErrors, setFieldErrors] = useState<{
+      title: string | null;
+      summary: string | null;
+      cover: string | null;
+    }>({ title: null, summary: null, cover: null });
 
-  const [node, setNode] = useState<NodeEditorData>(initialNode);
-  const [fieldErrors, setFieldErrors] = useState<{
-    title: string | null;
-    summary: string | null;
-    cover: string | null;
-  }>({ title: null, summary: null, cover: null });
-  const draftInitial: NodeDraft = {
-    id: initialNode.id,
-    title: initialNode.title,
-    summary: initialNode.summary,
-    tags: initialNode.tags,
-    contentData: initialNode.contentData,
-  };
-
-  const saveCallback = canEdit
-    ? async (data: NodeDraft, signal?: AbortSignal) => {
+    const { enqueue, flush, saving, pending } = usePatchQueue(
+      async (patch, signal) => {
         try {
           const updated = await patchNode(
-            data.id,
-            {
-              title: data.title,
-              content: data.contentData,
-              tags: data.tags,
-              summary: data.summary,
-              updated_at: node.updated_at,
-            },
-            { signal, next: saveNextRef.current },
+            nodeRef.current.id,
+            { ...patch, updated_at: nodeRef.current.updated_at },
+            { signal },
           );
           setNode((prev) => ({
             ...prev,
-            ...data,
+            ...patch,
             slug: updated.slug ?? prev.slug,
             updated_at: updated.updatedAt ?? prev.updated_at,
           }));
           setSavedAt(new Date());
-          setUnsaved(false);
           setSaveError(null);
-          if (retryRef.current) {
-            window.clearTimeout(retryRef.current);
-            retryRef.current = null;
-          }
-          if (manualRef.current) {
-            addToast({ title: "Node saved", variant: "success" });
-          }
         } catch (e: any) {
           if (e?.response?.status === 409) {
-            setStaleDraft(data);
-            setStaleOpen(true);
             setSaveError("Conflict: node was updated elsewhere");
-            return;
+          } else {
+            setSaveError(e instanceof Error ? e.message : String(e));
           }
-          setSaveError(e instanceof Error ? e.message : String(e));
-          retryRef.current = window.setTimeout(() => {
-            if (saveRef.current) void saveRef.current();
-          }, 10000);
           throw e;
-        } finally {
-          manualRef.current = false;
-          saveNextRef.current = false;
         }
-      }
-    : undefined;
+      },
+      800,
+    );
 
-  const { data: draft, update: updateDraft, save, saving } = useAutosave<NodeDraft>(
-    draftInitial,
-    saveCallback,
-    2500,
-    `node-draft-${initialNode.id}`,
-  );
-  saveRef.current = save;
+    const unsaved = pending > 0 || saving;
 
-  const handleDraftChange = (patch: Partial<NodeDraft>) => {
-    setNode((prev) => ({ ...prev, ...patch }));
-    updateDraft({ ...draft, ...patch });
-    setUnsaved(true);
-  };
+    const handleDraftChange = (patch: Partial<NodeDraft>) => {
+      setNode((prev) => ({ ...prev, ...patch }));
+      enqueue(patch);
+    };
 
   const handleTitleChange = canEdit
     ? (v: string) => {
@@ -382,68 +343,20 @@ function NodeEditorInner({
     setFieldErrors((e) => ({ ...e, ...errs }));
   };
 
-  useEffect(() => {
-    setNode((prev) => ({ ...prev, ...draft }));
-  }, [draft]);
-
   useUnsavedChanges(unsaved);
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
 
-  const overwrite = async () => {
-    if (!staleDraft) return;
-    try {
-      const updated = await patchNode(staleDraft.id, {
-        title: staleDraft.title,
-        content: staleDraft.contentData,
-        tags: staleDraft.tags,
-        summary: staleDraft.summary,
-        updated_at: node.updated_at,
-      }, { force: true });
-      setNode((prev) => ({
-        ...prev,
-        ...staleDraft,
-        slug: updated.slug ?? prev.slug,
-        updated_at: updated.updatedAt ?? prev.updated_at,
-      }));
-      setSavedAt(new Date());
-      setUnsaved(false);
-      setSaveError(null);
-      setStaleDraft(null);
-      setStaleOpen(false);
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const openCurrent = () => {
-    window.location.reload();
-  };
-
-  const openDiff = () => {
-    navigate(`/nodes/${node.id}/diff`);
-  };
-
   const handleSave = async () => {
     if (!canEdit) return;
-    manualRef.current = true;
-    try {
-      await save();
-    } catch {
-      /* ignore */
-    }
+    await flush();
+    addToast({ title: "Сохранено", variant: "success" });
   };
 
   const handleSaveNext = async () => {
     if (!canEdit) return;
-    manualRef.current = true;
-    saveNextRef.current = true;
-    try {
-      await save();
-    } catch {
-      /* ignore */
-    }
+    await flush();
     const path = workspaceId
       ? `/nodes/new?workspace_id=${workspaceId}`
       : "/nodes/new";
@@ -561,13 +474,11 @@ function NodeEditorInner({
             </button>
             {canEdit && (
               <span className="ml-2 text-gray-500">
-                {saving
-                  ? "Saving..."
-                  : unsaved
-                    ? "Unsaved changes"
-                    : savedAt
-                      ? `Autosaved ${savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                      : null}
+                {unsaved
+                  ? "несохранённые изменения"
+                  : savedAt
+                    ? `сохранено ${savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                    : null}
               </span>
             )}
           </div>
@@ -658,49 +569,10 @@ function NodeEditorInner({
               updated_at: updated ?? prev.updated_at,
             }))
           }
-          hasChanges={unsaved || saving}
+          hasChanges={unsaved}
           onValidation={handleValidation}
         />
       </div>
-      {staleOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-4 rounded shadow max-w-sm space-y-3">
-            <p className="text-sm">
-              Эта версия устарела. Что вы хотите сделать?
-            </p>
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                className="px-2 py-1 border rounded"
-                onClick={openCurrent}
-              >
-                Открыть актуальную
-              </button>
-              <button
-                type="button"
-                className="px-2 py-1 border rounded"
-                onClick={overwrite}
-              >
-                Перезаписать
-              </button>
-              <button
-                type="button"
-                className="px-2 py-1 border rounded"
-                onClick={openDiff}
-              >
-                Сравнить diff
-              </button>
-              <button
-                type="button"
-                className="px-2 py-1 border rounded"
-                onClick={() => setStaleOpen(false)}
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
