@@ -23,16 +23,19 @@ from app.domains.quests.infrastructure.models.quest_version_models import (
 )
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.nodes_common import Status
+from app.domains.quests.schemas import (
+    QuestGraphIn,
+    QuestGraphOut,
+    QuestStep,
+    QuestTransition,
+    QuestVersionOut,
+)
 from app.schemas.quest_editor import (
-    GraphEdge,
-    GraphNode,
     QuestCreateIn,
     QuestSummary,
     SimulateIn,
     SimulateResult,
     ValidateResult,
-    VersionGraph,
-    VersionSummary,
 )
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -100,7 +103,7 @@ async def get_quest(
         slug=quest.slug,
         title=quest.title,
         current_version_id=None,
-        versions=[VersionSummary.model_validate(v) for v in versions],
+        versions=[QuestVersionOut.model_validate(v) for v in versions],
     )
 
 
@@ -147,7 +150,7 @@ async def create_draft(
 
 
 @router.get(
-    "/versions/{version_id}", response_model=VersionGraph, summary="Get version graph"
+    "/versions/{version_id}", response_model=QuestGraphOut, summary="Get version graph"
 )
 async def get_version(
     version_id: UUID,
@@ -175,8 +178,8 @@ async def get_version(
         .scalars()
         .all()
     )
-    return VersionGraph(
-        version=VersionSummary(
+    return QuestGraphOut(
+        version=QuestVersionOut(
             id=v.id,
             quest_id=v.quest_id,
             number=v.number,
@@ -184,8 +187,8 @@ async def get_version(
             created_at=v.created_at,
             released_at=v.released_at,
         ),
-        nodes=[
-            GraphNode(
+        steps=[
+            QuestStep(
                 key=n.key,
                 title=n.title,
                 type=n.type,
@@ -194,8 +197,8 @@ async def get_version(
             )
             for n in nodes
         ],
-        edges=[
-            GraphEdge(
+        transitions=[
+            QuestTransition(
                 from_node_key=e.from_node_key,
                 to_node_key=e.to_node_key,
                 label=e.label,
@@ -209,7 +212,7 @@ async def get_version(
 @router.put("/versions/{version_id}/graph", summary="Replace graph of the version")
 async def put_graph(
     version_id: UUID,
-    payload: VersionGraph,
+    payload: QuestGraphIn,
     request: Request,
     current_user: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
@@ -228,7 +231,7 @@ async def put_graph(
     )
     await db.flush()
 
-    for n in payload.nodes:
+    for n in payload.steps:
         db.add(
             QuestGraphNode(
                 version_id=version_id,
@@ -239,7 +242,7 @@ async def put_graph(
                 rewards=n.rewards,
             )
         )
-    for e in payload.edges:
+    for e in payload.transitions:
         db.add(
             QuestGraphEdge(
                 version_id=version_id,
@@ -256,7 +259,7 @@ async def put_graph(
         action="quest_graph_put",
         resource_type="quest_version",
         resource_id=str(version_id),
-        after={"nodes": len(payload.nodes), "edges": len(payload.edges)},
+        after={"steps": len(payload.steps), "transitions": len(payload.transitions)},
         request=request,
     )
     await db.commit()
@@ -300,7 +303,7 @@ async def validate_version(
     )
     res = EditorService().validate_graph(
         [
-            GraphNode(
+            QuestStep(
                 key=n.key,
                 title=n.title,
                 type=n.type,
@@ -310,7 +313,7 @@ async def validate_version(
             for n in nodes
         ],
         [
-            GraphEdge(
+            QuestTransition(
                 from_node_key=e.from_node_key,
                 to_node_key=e.to_node_key,
                 label=e.label,
@@ -484,7 +487,7 @@ async def publish_version(
     )
     res = EditorService().validate_graph(
         [
-            GraphNode(
+            QuestStep(
                 key=n.key,
                 title=n.title,
                 type=n.type,
@@ -494,7 +497,7 @@ async def publish_version(
             for n in nodes
         ],
         [
-            GraphEdge(
+            QuestTransition(
                 from_node_key=e.from_node_key,
                 to_node_key=e.to_node_key,
                 label=e.label,
@@ -595,7 +598,7 @@ async def simulate_version(
     )
     return EditorService().simulate_graph(
         [
-            GraphNode(
+            QuestStep(
                 key=n.key,
                 title=n.title,
                 type=n.type,
@@ -605,7 +608,7 @@ async def simulate_version(
             for n in nodes
         ],
         [
-            GraphEdge(
+            QuestTransition(
                 from_node_key=e.from_node_key,
                 to_node_key=e.to_node_key,
                 label=e.label,

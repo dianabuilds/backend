@@ -25,7 +25,7 @@ from app.domains.quests.infrastructure.models.quest_models import (
 )
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.node import NodeOut
-from app.schemas.quest import (
+from app.domains.quests.schemas import (
     QuestBuyIn,
     QuestCreate,
     QuestOut,

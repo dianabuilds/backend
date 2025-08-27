@@ -3,18 +3,13 @@ from __future__ import annotations
 from typing import Dict, List, Set
 
 from app.core.preview import PreviewContext
-from app.schemas.quest_editor import (
-    GraphEdge,
-    GraphNode,
-    SimulateIn,
-    SimulateResult,
-    ValidateResult,
-)
+from app.domains.quests.schemas import QuestStep, QuestTransition
+from app.schemas.quest_editor import SimulateIn, SimulateResult, ValidateResult
 
 
 class EditorService:
     def validate_graph(
-        self, nodes: List[GraphNode], edges: List[GraphEdge]
+        self, nodes: List[QuestStep], edges: List[QuestTransition]
     ) -> ValidateResult:
         errors: List[str] = []
         warnings: List[str] = []
@@ -73,8 +68,8 @@ class EditorService:
 
     def simulate_graph(
         self,
-        nodes: List[GraphNode],
-        edges: List[GraphEdge],
+        nodes: List[QuestStep],
+        edges: List[QuestTransition],
         payload: SimulateIn,
         preview: PreviewContext | None = None,
     ) -> SimulateResult:
