@@ -140,6 +140,7 @@ class Settings(ProjectSettings):
             "Authorization",
             "Content-Type",
             "X-CSRF-Token",
+            "X-CSRFToken",
             "X-Requested-With",
             "X-Workspace-Id",
             "Workspace-Id",
@@ -216,6 +217,7 @@ class Settings(ProjectSettings):
                 return url
             try:
                 from urllib.parse import urlparse, urlunparse
+
                 parsed = urlparse(url)
                 tls_hint = os.getenv("REDIS_SSL") or os.getenv("REDIS_TLS")
                 tls_enabled = str(tls_hint).lower() in {"1", "true", "yes", "on"}
