@@ -90,7 +90,7 @@ export default function ContentDashboard() {
   };
 
   const createGenericNode = async () => {
-    const type = "other";
+    const type = "article";
     const n = await createNode({ node_type: type });
     const path = workspaceId
       ? `/nodes/${type}/${n.id}?workspace_id=${workspaceId}`
@@ -257,4 +257,3 @@ export default function ContentDashboard() {
     </div>
   );
 }
-

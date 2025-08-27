@@ -57,20 +57,29 @@ export async function listNodes(
 export async function createNode(
   body: { node_type: string; title?: string },
 ): Promise<NodeOut> {
-  // Актуальный backend-роут: POST /admin/nodes/{node_type}
-  const type = encodeURIComponent(body.node_type);
-  // Передаём тело (минимум title), wsApi автоматически добавит workspace_id в query
+  // Для изолированных нод используем новый алиас /admin/articles
+  const t = String(body.node_type);
   const payload = body.title ? { title: body.title } : undefined;
-  const res = await wsApi.post<typeof payload, NodeOut>(`/admin/nodes/${type}`, payload);
+  let res: NodeOut;
+  if (t === "article") {
+    res = await wsApi.post<typeof payload, NodeOut>(`/admin/articles`, payload);
+  } else {
+    const type = encodeURIComponent(t);
+    res = await wsApi.post<typeof payload, NodeOut>(`/admin/nodes/${type}`, payload);
+  }
   return res;
 }
 
 export async function getNode(id: string): Promise<NodeOut>;
 export async function getNode(type: string, id: string): Promise<NodeOut>;
 export async function getNode(a: string, b?: string): Promise<NodeOut> {
-  const url = b
-    ? `/admin/nodes/${encodeURIComponent(a)}/${encodeURIComponent(b)}`
-    : `/admin/nodes/${encodeURIComponent(a)}`;
+  let url: string;
+  if (b) {
+    if (a === "article") url = `/admin/articles/${encodeURIComponent(b)}`;
+    else url = `/admin/nodes/${encodeURIComponent(a)}/${encodeURIComponent(b)}`;
+  } else {
+    url = `/admin/nodes/${encodeURIComponent(a)}`;
+  }
   const res = await wsApi.get<NodeOut>(url);
   return res!;
 }
@@ -85,7 +94,9 @@ export async function patchNode(
   if (opts.force) params.force = 1;
   if (opts.next) params.next = 1;
   const res = await wsApi.patch<Record<string, unknown>, NodeOut>(
-    `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
+    type === "article"
+      ? `/admin/articles/${encodeURIComponent(id)}`
+      : `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
     normalizeTags(patch),
     { params, signal: opts.signal },
   );
@@ -98,7 +109,9 @@ export async function publishNode(
   body: Record<string, unknown> | undefined = undefined,
 ): Promise<NodeOut> {
   const res = await wsApi.post<Record<string, unknown> | undefined, NodeOut>(
-    `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/publish`,
+    type === "article"
+      ? `/admin/articles/${encodeURIComponent(id)}/publish`
+      : `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/publish`,
     body,
   );
   return res!;
@@ -109,7 +122,9 @@ export async function validateNode(
   id: string,
 ): Promise<ValidateResult> {
   const res = await wsApi.post<undefined, ValidateResult>(
-    `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
+    type === "article"
+      ? `/admin/articles/${encodeURIComponent(id)}/validate`
+      : `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
   );
   return res!;
 }

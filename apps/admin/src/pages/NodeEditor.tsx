@@ -60,22 +60,18 @@ export default function NodeEditor() {
       if (!id || id === "new") return;
 
       try {
-        let nodeType = type;
+        // Treat literal 'undefined'/'null' from malformed URLs as missing
+        let nodeType =
+          type && type !== "undefined" && type !== "null" && type.trim() !== ""
+            ? type
+            : "article";
         let n: Awaited<ReturnType<typeof getNode>>;
-        if (nodeType) {
-          n = await getNode(nodeType, id);
-        } else {
-          n = await getNode(id);
-          const raw = n as Record<string, unknown>;
-          nodeType =
-            (raw["type"] as string) ??
-            (raw["node_type"] as string) ??
-            undefined;
-          if (nodeType) {
-            const qs = workspaceId ? `?workspace_id=${workspaceId}` : "";
-            navigate(`/nodes/${nodeType}/${id}${qs}`, { replace: true });
-          }
+        // Normalize URL if we had to assume the type
+        if (!type || type === "undefined" || type === "null" || type.trim() === "") {
+          const qs = workspaceId ? `?workspace_id=${workspaceId}` : "";
+          navigate(`/nodes/${nodeType}/${id}${qs}`, { replace: true });
         }
+        n = await getNode(nodeType, id);
 
         const raw = n as Record<string, unknown>;
         setNode({
@@ -154,7 +150,7 @@ export default function NodeEditor() {
   }
 
   if (id === "new") {
-    return <NodeCreate workspaceId={workspaceId} nodeType={type || "quest"} />;
+    return <NodeCreate workspaceId={workspaceId} nodeType={type || "article"} />;
   }
 
   if (loading) {
@@ -196,7 +192,7 @@ function NodeCreate({
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const t = nodeType === "article" || nodeType === "quest" ? nodeType : "quest";
+      const t = nodeType === "article" || nodeType === "quest" ? nodeType : "article";
       const n = await createNode({ node_type: t, title });
       const path = workspaceId
         ? `/nodes/${t}/${n.id}?workspace_id=${workspaceId}`
@@ -657,4 +653,3 @@ function NodeCreate({
     </div>
   );
 }
-

@@ -76,9 +76,16 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 name in request.cookies for name in session_cookies
             )
 
-            if not has_session_cookie and not (
-                has_bearer and settings.csrf.require_for_bearer
-            ):
+            # If Authorization Bearer is present and CSRF is not explicitly
+            # required for bearer flows, skip CSRF protection, even if cookies
+            # are also set. This avoids false positives when both cookie and
+            # bearer auth are present in the browser.
+            if has_bearer and not settings.csrf.require_for_bearer:
+                return await call_next(request)
+
+            # If there is no session cookie, and either there is no bearer or
+            # bearer explicitly requires CSRF, then skip unless cookie auth is used.
+            if not has_session_cookie and not (has_bearer and settings.csrf.require_for_bearer):
                 return await call_next(request)
 
             if not self._is_same_origin(request):

@@ -40,6 +40,14 @@ def register_domain_routers(app: FastAPI) -> None:
         app.include_router(quests_admin_router)
     except Exception:
         pass
+    # Quest nodes admin (alias with quest context)
+    try:
+        from app.domains.quests.api.quest_nodes_admin_router import (
+            router as quest_nodes_admin_router,
+        )
+        app.include_router(quest_nodes_admin_router)
+    except Exception:
+        pass
 
     # Moderation
     try:
@@ -239,6 +247,14 @@ def register_domain_routers(app: FastAPI) -> None:
             router as admin_nodes_content_router,
         )
         app.include_router(admin_nodes_content_router)
+    except Exception:
+        pass
+    # Admin articles (isolated nodes)
+    try:
+        from app.domains.nodes.api.articles_admin_router import (
+            router as admin_articles_router,
+        )
+        app.include_router(admin_articles_router)
     except Exception:
         pass
     # Admin nodes

@@ -1,4 +1,5 @@
 from typing import Annotated, Any
+from secrets import token_urlsafe
 
 from fastapi import APIRouter, Body, Depends, Header, Query, Request, Response
 from pydantic import BaseModel
@@ -75,6 +76,7 @@ async def login(
 ) -> LoginResponse:
     payload = await LoginSchema.from_request(request)
     tokens = await _svc.login(db, payload)
+    # Issue authentication cookies for browser flows
     response.set_cookie(
         "access_token",
         tokens.access_token,
@@ -88,6 +90,24 @@ async def login(
             max_age=settings.jwt.refresh_expiration,
             path="/",
         )
+    # Also issue a non-HttpOnly CSRF cookie so SPA can read it and send header
+    # Double-submit cookie name/header are configurable in settings.csrf
+    try:
+        csrf_value = token_urlsafe(32)
+        response.set_cookie(
+            settings.csrf.cookie_name,
+            csrf_value,
+            max_age=settings.jwt.expiration,
+            path="/",
+            httponly=False,
+            samesite="Lax",
+            secure=settings.is_production,
+        )
+        # Include token in JSON for clients that sync it from response body
+        tokens.csrf_token = csrf_value
+    except Exception:
+        # If something goes wrong, do not break login flow
+        pass
     return tokens
 
 
@@ -114,6 +134,21 @@ async def refresh(
             max_age=settings.jwt.refresh_expiration,
             path="/",
         )
+    # Rotate CSRF token alongside access refresh to keep things in sync
+    try:
+        csrf_value = token_urlsafe(32)
+        response.set_cookie(
+            settings.csrf.cookie_name,
+            csrf_value,
+            max_age=settings.jwt.expiration,
+            path="/",
+            httponly=False,
+            samesite="Lax",
+            secure=settings.is_production,
+        )
+        result.csrf_token = csrf_value
+    except Exception:
+        pass
     return result
 
 

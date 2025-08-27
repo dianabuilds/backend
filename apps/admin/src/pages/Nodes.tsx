@@ -532,10 +532,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       payload.cover_url = draft.cover_url || media[0];
 
     const created = await createNode({
-      node_type: draft.node_type || "node",
+      node_type: (nodeType && ["article", "quest"].includes(nodeType)) ? nodeType : "article",
       title: draft.title.trim() || undefined,
     });
-    const nodeType = (created as any).node_type || draft.node_type || "node";
+    const nodeType = (created as any).node_type || nodeType || "article";
     const nodeId = String((created as any)?.id ?? (created as any)?.uuid ?? (created as any)?._id ?? "");
     await patchNode(nodeType, nodeId, payload);
     return { ...created, id: nodeId } as any;
@@ -1093,11 +1093,16 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                         <button
                           type="button"
                           className="px-2 py-1 border rounded"
-                          onClick={() =>
+                          onClick={() => {
+                            const usedType =
+                              (n as any).type ||
+                              (n as any).node_type ||
+                              nodeType ||
+                              "article";
                             navigate(
-                              `/nodes/${n.type}/${n.id}?workspace_id=${workspaceId}`,
-                            )
-                          }
+                              `/nodes/${encodeURIComponent(usedType)}/${n.id}?workspace_id=${workspaceId}`,
+                            );
+                          }}
                         >
                           Edit
                         </button>
