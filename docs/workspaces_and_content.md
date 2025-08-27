@@ -105,7 +105,25 @@ Content-Type: application/json
 
 ### Nodes
 
-All node routes expect `workspace_id` as a query parameter.
+Most node routes require a workspace context. It can be provided in three ways:
+
+| Mode | Syntax | Example |
+|------|--------|---------|
+| Query parameter | `?workspace_id=<id>` | `GET /admin/nodes?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e` |
+| Path prefix | `/admin/workspaces/{workspace_id}` | `GET /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes` |
+| Header (deprecated) | `X-Workspace-Id: <id>` | `GET /admin/nodes` with header |
+
+Common endpoints and their context modes:
+
+| Operation | Query | Path | Header |
+|-----------|-------|------|--------|
+| List nodes | `/admin/nodes?workspace_id={id}` | `/admin/workspaces/{id}/nodes` | `GET /admin/nodes` + header |
+| List all nodes | `/admin/nodes/all?workspace_id={id}` | `/admin/workspaces/{id}/nodes/all` | `GET /admin/nodes/all` + header |
+| Create node | `POST /admin/nodes/{type}?workspace_id={id}` | `POST /admin/workspaces/{id}/nodes/{type}` | `POST /admin/nodes/{type}` + header |
+| Get node | `GET /admin/nodes/{type}/{id}?workspace_id={id}` | `/admin/workspaces/{id}/nodes/{type}/{id}` | `GET /admin/nodes/{type}/{id}` + header |
+| Update node | `PATCH /admin/nodes/{type}/{id}?workspace_id={id}` | `/admin/workspaces/{id}/nodes/{type}/{id}` | `PATCH /admin/nodes/{type}/{id}` + header |
+| Publish node | `POST /admin/nodes/{type}/{id}/publish?workspace_id={id}` | `/admin/workspaces/{id}/nodes/{type}/{id}/publish` | `POST /admin/nodes/{type}/{id}/publish` + header |
+| Validate node | `POST /admin/nodes/{type}/{id}/validate?workspace_id={id}` | `/admin/workspaces/{id}/nodes/{type}/{id}/validate` | `POST /admin/nodes/{type}/{id}/validate` + header |
 
 - `GET /admin/nodes` – dashboard with counts of drafts, reviews and published
   items.
