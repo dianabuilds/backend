@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
 from app.api.deps import get_current_user, get_db
+from app.core.workspace_context import require_workspace
 from app.domains.navigation.application.echo_service import EchoService
 from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
@@ -32,6 +33,7 @@ async def record_visit(
     channel: str | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
 ):
     repo = NodeRepositoryAdapter(db)
     from_node = await repo.get_by_slug(slug, workspace_id)
@@ -55,6 +57,7 @@ async def create_transition(
     workspace_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
 ):
     repo = NodeRepositoryAdapter(db)
     from_node = await repo.get_by_slug(slug, workspace_id)

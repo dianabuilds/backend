@@ -5,6 +5,7 @@ import io
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.api.deps import get_current_user
+from app.core.workspace_context import require_workspace
 from app.core.deps import get_storage
 from app.core.log_events import (
     node_cover_upload_fail,
@@ -22,6 +23,7 @@ async def upload_media(
     file: UploadFile = File(...),  # noqa: B008
     user=Depends(get_current_user),  # noqa: B008
     storage: IStorageGateway = Depends(get_storage),  # noqa: B008
+    _workspace: object = Depends(require_workspace),
 ):
     """Accept an uploaded image and return its public URL."""
     node_cover_upload_start(str(getattr(user, "id", None)))

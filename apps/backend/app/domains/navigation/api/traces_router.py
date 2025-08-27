@@ -9,6 +9,7 @@ from sqlalchemy import or_
 
 from app.core.db.session import get_db
 from app.api.deps import get_current_user
+from app.core.workspace_context import require_workspace, optional_workspace
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.navigation.infrastructure.models.transition_models import NodeTrace, NodeTraceVisibility
 from app.domains.users.infrastructure.models.user import User
@@ -22,6 +23,7 @@ async def create_trace(
     payload: NodeTraceCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _workspace: object = Depends(require_workspace),
 ):
     node = await db.get(Node, payload.node_id)
     if not node:
@@ -46,6 +48,7 @@ async def list_traces(
     visible_to: str = Query("all", pattern="^(all|me)$"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    workspace_dep: object = Depends(optional_workspace),
 ):
     stmt = select(NodeTrace).where(NodeTrace.node_id == node_id)
     if visible_to == "me":
