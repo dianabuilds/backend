@@ -8,13 +8,13 @@ import { safeLocalStorage } from "../utils/safeStorage";
 import { WorkspaceBranchProvider } from "../workspace/WorkspaceContext";
 import WorkspaceSelector from "./WorkspaceSelector";
 
-const queryData = { data: [] as any[] };
+const queryData = { data: [] as any[], error: null };
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => queryData,
 }));
 
-vi.mock("../api/baseApi", () => ({
-  baseApi: { get: vi.fn() },
+vi.mock("../api/client", () => ({
+  api: { get: vi.fn() },
 }));
 
 describe("WorkspaceSelector", () => {

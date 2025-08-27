@@ -2,21 +2,22 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { baseApi } from "../api/baseApi";
+import { api } from "../api/client";
 import type { Workspace } from "../api/types";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
 export default function WorkspaceSelector() {
   const { workspaceId, setWorkspace } = useWorkspace();
 
-  const { data } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ["workspaces"],
     queryFn: async () => {
-      const res = await baseApi.get<Workspace[] | { workspaces: Workspace[] }>(
+      const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
         "/admin/workspaces",
       );
-      if (Array.isArray(res)) return res;
-      return res?.workspaces ?? [];
+      const data = res.data;
+      if (Array.isArray(data)) return data;
+      return data?.workspaces ?? [];
     },
   });
 
@@ -77,6 +78,14 @@ export default function WorkspaceSelector() {
       if (ws) onSelect(ws);
     }
   };
+
+  if (error) {
+    return (
+      <Link to="/login" className="text-blue-600 hover:underline">
+        Авторизоваться
+      </Link>
+    );
+  }
 
   if (data && data.length === 0) {
     return (
