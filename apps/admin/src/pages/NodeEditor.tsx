@@ -59,15 +59,10 @@ export default function NodeEditor() {
     const load = async () => {
       if (!id || id === "new") return;
 
-      // 1) Определяем кандидатов типов: если пришёл валидный type — пробуем его первым,
-      // иначе пробуем оба по очереди (article, затем quest)
-      const candidates: Array<"article" | "quest"> = [];
-      if (type === "article" || type === "quest") {
-        candidates.push(type);
-        candidates.push(type === "article" ? "quest" : "article");
-      } else {
-        candidates.push("article", "quest");
-      }
+      const candidates: Array<"article" | "quest"> =
+        type === "article" || type === "quest"
+          ? [type, type === "article" ? "quest" : "article"]
+          : ["article", "quest"];
 
       let fetched: { n: Awaited<ReturnType<typeof getNode>>; usedType: "article" | "quest" } | null = null;
       let lastErr: unknown = null;
