@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
-import { baseApi } from "../api/baseApi";
+import { api } from "../api/client";
 import type { Workspace } from "../api/types";
 import type { WorkspaceMemberOut } from "../openapi";
 import { useToast } from "../components/ToastProvider";
@@ -26,10 +26,10 @@ export default function Workspaces() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["workspaces-list"],
     queryFn: async () => {
-      const res = await baseApi.get<Workspace[] | { workspaces: Workspace[] }>(
+      const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
         "/admin/workspaces",
       );
-      return ensureArray(res);
+      return ensureArray(res.data);
     },
   });
 
@@ -38,10 +38,10 @@ export default function Workspaces() {
     if (!data) return;
     Promise.all(
       data.map(async (ws) => {
-        const res = await baseApi.get<WorkspaceMemberOut[]>(
+        const res = await api.get<WorkspaceMemberOut[]>(
           `/admin/workspaces/${ws.id}/members`,
         );
-        return [ws.id, res.length] as [string, number];
+        return [ws.id, (res.data ?? []).length] as [string, number];
       }),
     ).then((entries) => setMemberCounts(Object.fromEntries(entries)));
   }, [data]);
@@ -64,7 +64,7 @@ export default function Workspaces() {
         | "global"
         | null) || "team";
     try {
-      await baseApi.post("/admin/workspaces", { name, slug, type });
+      await api.post("/admin/workspaces", { name, slug, type });
       refresh();
       addToast({ title: "Workspace created", variant: "success" });
     } catch (e) {
@@ -87,7 +87,7 @@ export default function Workspaces() {
         | "global"
         | null) || ws.type;
     try {
-      await baseApi.patch(`/admin/workspaces/${ws.id}`, { name, slug, type });
+      await api.patch(`/admin/workspaces/${ws.id}`, { name, slug, type });
       refresh();
       addToast({ title: "Workspace updated", variant: "success" });
     } catch (e) {
@@ -102,7 +102,7 @@ export default function Workspaces() {
   const handleDelete = async (ws: Workspace) => {
     if (!confirm(`Delete workspace "${ws.name}"?`)) return;
     try {
-      await baseApi.del(`/admin/workspaces/${ws.id}`);
+      await api.del(`/admin/workspaces/${ws.id}`);
       refresh();
       addToast({ title: "Workspace deleted", variant: "success" });
     } catch (e) {
