@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { api } from "../api/client";
 import { createPreviewLink } from "../api/preview";
@@ -114,6 +114,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   const { addToast } = useToast();
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const copySlug = (slug: string) => {
     if (typeof navigator !== "undefined" && slug) {
@@ -131,14 +132,36 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   }
 
   // Пагинация/поиск
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(() => searchParams.get("q") || "");
   const [visibility, setVisibility] = useState<"all" | "visible" | "hidden">(
-    "all",
+    () => {
+      const vis = searchParams.get("visible");
+      return vis === "true" ? "visible" : vis === "false" ? "hidden" : "all";
+    },
   );
-  const [nodeType, setNodeType] = useState(initialType);
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(0);
-  const [limit, setLimit] = useState(20);
+  const [nodeType, setNodeType] = useState(
+    () => searchParams.get("type") || initialType,
+  );
+  const [status, setStatus] = useState(
+    () => searchParams.get("status") || "all",
+  );
+  const [isPublic, setIsPublic] = useState<"all" | "true" | "false">(
+    () => searchParams.get("is_public") ?? "all",
+  );
+  const [premium, setPremium] = useState<"all" | "true" | "false">(
+    () => searchParams.get("premium_only") ?? "all",
+  );
+  const [recommendable, setRecommendable] = useState<
+    "all" | "true" | "false"
+  >(() => searchParams.get("recommendable") ?? "all");
+  const [page, setPage] = useState(() => {
+    const p = Number(searchParams.get("page") || "1");
+    return p > 0 ? p - 1 : 0;
+  });
+  const [limit, setLimit] = useState(() => {
+    const l = Number(searchParams.get("limit") || "20");
+    return Number.isFinite(l) && l > 0 ? l : 20;
+  });
 
   // Данные
   const [items, setItems] = useState<NodeItem[]>([]);
@@ -182,6 +205,32 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       /* ignore */
     }
   }, [draft]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (nodeType) params.set("type", nodeType);
+    if (status !== "all") params.set("status", status);
+    if (visibility !== "all")
+      params.set("visible", visibility === "visible" ? "true" : "false");
+    if (isPublic !== "all") params.set("is_public", isPublic);
+    if (premium !== "all") params.set("premium_only", premium);
+    if (recommendable !== "all") params.set("recommendable", recommendable);
+    if (limit !== 20) params.set("limit", String(limit));
+    if (page > 0) params.set("page", String(page + 1));
+    setSearchParams(params);
+  }, [
+    q,
+    nodeType,
+    status,
+    visibility,
+    isPublic,
+    premium,
+    recommendable,
+    page,
+    limit,
+    setSearchParams,
+  ]);
 
   // Модерация: скрытие с причиной / восстановление
   const [modOpen, setModOpen] = useState(false);
@@ -307,6 +356,9 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       if (status !== "all") params.status = status;
       if (visibility !== "all")
         params.visible = visibility === "visible" ? "true" : "false";
+      if (isPublic !== "all") params.is_public = isPublic;
+      if (premium !== "all") params.premium_only = premium;
+      if (recommendable !== "all") params.recommendable = recommendable;
       const qs = new URLSearchParams(params).toString();
       const res = await api.get(`/admin/nodes?${qs}`);
       const raw = ensureArray<any>(res.data) as any[];
@@ -562,7 +614,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by slug..."
+            placeholder="Search by title or slug..."
             className="border rounded px-2 py-1"
           />
           <input
@@ -603,6 +655,45 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
             <option value="all">all</option>
             <option value="visible">visible</option>
             <option value="hidden">hidden</option>
+          </select>
+          <select
+            className="border rounded px-2 py-1"
+            value={isPublic}
+            onChange={(e) => {
+              setIsPublic(e.target.value as any);
+              setPage(0);
+              setTimeout(() => load(0));
+            }}
+          >
+            <option value="all">all</option>
+            <option value="true">public</option>
+            <option value="false">private</option>
+          </select>
+          <select
+            className="border rounded px-2 py-1"
+            value={premium}
+            onChange={(e) => {
+              setPremium(e.target.value as any);
+              setPage(0);
+              setTimeout(() => load(0));
+            }}
+          >
+            <option value="all">all</option>
+            <option value="true">premium</option>
+            <option value="false">free</option>
+          </select>
+          <select
+            className="border rounded px-2 py-1"
+            value={recommendable}
+            onChange={(e) => {
+              setRecommendable(e.target.value as any);
+              setPage(0);
+              setTimeout(() => load(0));
+            }}
+          >
+            <option value="all">all</option>
+            <option value="true">recommendable</option>
+            <option value="false">not recommendable</option>
           </select>
           <button
             type="button"
