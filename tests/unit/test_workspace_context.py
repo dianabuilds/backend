@@ -109,3 +109,48 @@ async def test_optional_workspace_no_id_returns_none() -> None:
         res = await optional_workspace(request=req, user=user, db=session)
         assert res is None
         assert not hasattr(req.state, "workspace")
+
+
+def test_get_workspace_id_invalid_uuid() -> None:
+    """An invalid workspace id in header should raise an error."""
+    req = _make_request([(b"x-workspace-id", b"not-a-uuid")])
+    with pytest.raises(HTTPException) as exc:
+        get_workspace_id(req)
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_require_workspace_without_id_errors() -> None:
+    """require_workspace should error when no workspace id provided."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(User.__table__.create)
+        await conn.run_sync(Workspace.__table__.create)
+        await conn.run_sync(WorkspaceMember.__table__.create)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with async_session() as session:
+        user = SimpleNamespace(id=uuid.uuid4(), role="user")
+        req = _make_request()
+        with pytest.raises(HTTPException) as exc:
+            await require_workspace(request=req, user=user, db=session)
+        assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_resolve_workspace_allows_admin_without_membership() -> None:
+    """Admin users can resolve workspaces without membership."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(User.__table__.create)
+        await conn.run_sync(Workspace.__table__.create)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with async_session() as session:
+        ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=uuid.uuid4())
+        session.add(ws)
+        await session.commit()
+
+        admin_user = SimpleNamespace(id=uuid.uuid4(), role="admin")
+        w = await resolve_workspace(ws.id, user=admin_user, db=session)
+        assert w.id == ws.id
