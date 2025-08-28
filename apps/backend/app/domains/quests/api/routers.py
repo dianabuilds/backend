@@ -13,10 +13,14 @@ from app.domains.quests.api.admin_versions_router import (
     router as admin_versions_router,  # noqa: E402
 )
 from app.domains.quests.api.quests_router import router as quests_router  # noqa: E402
+from app.domains.quests.api.versions_router import (
+    router as versions_router,  # noqa: E402
+)
 
 router = APIRouter()
 
 router.include_router(quests_router)
+router.include_router(versions_router)
 router.include_router(admin_versions_router)
 router.include_router(admin_validation_router)
 router.include_router(deprecated_admin_router)
