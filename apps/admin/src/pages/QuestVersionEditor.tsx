@@ -8,15 +8,13 @@ import {
   putGraph,
   validateVersion,
   getQuestMeta,
-  updateQuestMeta,
   type VersionGraph,
 } from "../api/questEditor";
 import CollapsibleSection from "../components/CollapsibleSection";
 import ContentEditor from "../components/content/ContentEditor";
 import GraphCanvas from "../components/GraphCanvas";
-import MediaPicker from "../components/MediaPicker";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { useToast } from "../components/ToastProvider";
-import TagPicker, { type TagOut } from "../components/tags/TagPicker";
 import type { OutputData } from "../types/editorjs";
 import PageLayout from "./_shared/PageLayout";
 
@@ -26,7 +24,7 @@ interface NodeEditorData {
   slug: string;
   subtitle: string;
   cover_url: string | null;
-  tags: TagOut[];
+  tags: string[];
   allow_comments: boolean;
   is_premium_only: boolean;
   contentData: OutputData;
@@ -62,7 +60,7 @@ export default function QuestVersionEditor() {
   const [edgesPage, setEdgesPage] = useState(1);
   const [edgesPageSize, setEdgesPageSize] = useState(30);
 
-  // Quest meta
+  // Quest meta (read-only)
   const [meta, setMeta] = useState<{
     title: string;
     subtitle?: string | null;
@@ -71,9 +69,8 @@ export default function QuestVersionEditor() {
     price?: number | null;
     is_premium_only?: boolean;
     allow_comments?: boolean;
-    tags?: TagOut[];
+    tags?: string[];
   } | null>(null);
-  const [savingMeta, setSavingMeta] = useState(false);
 
   // Modal editor state
   const [editorOpen, setEditorOpen] = useState(false);
@@ -99,9 +96,7 @@ export default function QuestVersionEditor() {
             price: m.price ?? null,
             is_premium_only: !!m.is_premium_only,
             allow_comments: !!m.allow_comments,
-            tags: Array.isArray(m.tags)
-              ? m.tags.map((t) => ({ id: t, slug: t, name: t, count: 0 }))
-              : [],
+            tags: Array.isArray(m.tags) ? m.tags : [],
           });
         } catch (e) {
           console.warn("Failed to load quest meta:", e);
@@ -130,7 +125,10 @@ export default function QuestVersionEditor() {
     if (!key) return; // ключ обязателен
     // запрет дублей
     if (graph.nodes.some((n) => n.key === key)) {
-      alert(`Node key "${key}" already exists`);
+      addToast({
+        title: `Node key "${key}" already exists`,
+        variant: "error",
+      });
       return;
     }
     // первая нода всегда стартовая
@@ -152,7 +150,10 @@ export default function QuestVersionEditor() {
   const addEdge = () => {
     if (!graph || !edgeFrom || !edgeTo) return;
     if (edgeFrom === edgeTo) {
-      alert("Нельзя создавать петлю (из узла в самого себя)");
+      addToast({
+        title: "Нельзя создавать петлю (из узла в самого себя)",
+        variant: "error",
+      });
       return;
     }
     if (
@@ -160,7 +161,7 @@ export default function QuestVersionEditor() {
         (e) => e.from_node_key === edgeFrom && e.to_node_key === edgeTo,
       )
     ) {
-      alert("Такое ребро уже есть");
+      addToast({ title: "Такое ребро уже есть", variant: "error" });
       return;
     }
     setGraph({
@@ -279,36 +280,23 @@ export default function QuestVersionEditor() {
     if (!graph || !id) return;
     setSavingGraph(true);
     try {
-      // 1) Сохраняем метаданные квеста (title/cover/description/price/flags/tags)
-      if (meta) {
-        try {
-          await updateQuestMeta(graph.version.quest_id, {
-            title: meta.title,
-            subtitle: meta.subtitle,
-            description: meta.description,
-            cover_image: meta.cover_image,
-            price: meta.price ?? null,
-            is_premium_only: meta.is_premium_only,
-            allow_comments: meta.allow_comments,
-            tags: meta.tags ? meta.tags.map((t) => t.slug) : [],
-          });
-        } catch (e) {
-          // не валим общий флоу, покажем сообщение и продолжим
-          console.warn("updateQuestMeta failed:", e);
-        }
-      }
-      // 2) Сохраняем граф
       await putGraph(id, graph);
-      // 3) Валидируем
       const res = await validateVersion(id);
       setValidate(res);
       const ts = new Date().toLocaleTimeString();
       setLastSavedAt(ts);
       if (!res.ok) {
-        alert("Validation failed: " + res.errors.join("; "));
+        addToast({
+          title: "Validation failed",
+          description: res.errors.join("; "),
+          variant: "error",
+        });
       }
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
+      addToast({
+        title: e instanceof Error ? e.message : String(e),
+        variant: "error",
+      });
     } finally {
       setSavingGraph(false);
     }
@@ -336,37 +324,13 @@ export default function QuestVersionEditor() {
     });
   };
 
-  const onSaveMeta = async () => {
-    if (!graph || !meta) return;
-    setSavingMeta(true);
-    try {
-      const questId = graph.version.quest_id;
-      await updateQuestMeta(questId, {
-        title: meta.title,
-        subtitle: meta.subtitle,
-        description: meta.description,
-        cover_image: meta.cover_image,
-        price: meta.price ?? null,
-        is_premium_only: meta.is_premium_only,
-        allow_comments: meta.allow_comments,
-        tags: meta.tags ? meta.tags.map((t) => t.slug) : [],
-      });
-      alert("Quest meta saved");
-    } catch (e) {
-      alert(
-        `Failed to save meta: ${e instanceof Error ? e.message : String(e)}`,
-      );
-    } finally {
-      setSavingMeta(false);
-    }
-  };
-
   return (
-    <PageLayout
-      title="Quest Version Editor"
-      subtitle={id || ""}
-      actions={
-        <div className="flex items-center gap-3">
+    <ErrorBoundary>
+      <PageLayout
+        title="Quest Version Editor"
+        subtitle={id || ""}
+        actions={
+          <div className="flex items-center gap-3">
           {lastSavedAt && (
             <span className="text-xs text-gray-500">Saved {lastSavedAt}</span>
           )}
@@ -380,7 +344,10 @@ export default function QuestVersionEditor() {
                 const res = await validateVersion(id);
                 setValidate(res);
               } catch (e) {
-                alert(e instanceof Error ? e.message : String(e));
+                addToast({
+                  title: e instanceof Error ? e.message : String(e),
+                  variant: "error",
+                });
               }
             }}
           >
@@ -413,99 +380,77 @@ export default function QuestVersionEditor() {
               {!meta ? (
                 <div className="text-sm text-gray-500">Loading meta…</div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="md:col-span-2 space-y-2">
-                    <input
-                      className="w-full text-2xl font-bold mb-2 outline-none border-b pb-2 bg-transparent"
-                      placeholder="Title"
-                      value={meta.title}
-                      onChange={(e) =>
-                        setMeta({ ...meta, title: e.target.value })
-                      }
-                    />
-                    <input
-                      className="w-full text-base mb-2 outline-none border-b pb-2 bg-transparent"
-                      placeholder="Subtitle (optional)"
-                      value={meta.subtitle || ""}
-                      onChange={(e) =>
-                        setMeta({ ...meta, subtitle: e.target.value })
-                      }
-                    />
-                    <textarea
-                      className="w-full border rounded px-2 py-1"
-                      placeholder="Description / Annotation"
-                      rows={4}
-                      value={meta.description || ""}
-                      onChange={(e) =>
-                        setMeta({ ...meta, description: e.target.value })
-                      }
-                    />
-                    <TagPicker
-                      value={meta.tags || []}
-                      onChange={(tags) => setMeta({ ...meta, tags })}
-                    />
-                    <div className="flex items-center gap-6">
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={!!meta.allow_comments}
-                          onChange={(e) =>
-                            setMeta({
-                              ...meta,
-                              allow_comments: e.target.checked,
-                            })
-                          }
+                <>
+                  <div className="p-2 rounded bg-yellow-50 text-sm text-gray-700 mb-2">
+                    Quest fields are read-only. Use the quest editor to modify them.
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="md:col-span-2 space-y-2">
+                      <input
+                        className="w-full text-2xl font-bold mb-2 outline-none border-b pb-2 bg-transparent"
+                        value={meta.title}
+                        readOnly
+                      />
+                      <input
+                        className="w-full text-base mb-2 outline-none border-b pb-2 bg-transparent"
+                        value={meta.subtitle || ""}
+                        readOnly
+                      />
+                      <textarea
+                        className="w-full border rounded px-2 py-1"
+                        rows={4}
+                        value={meta.description || ""}
+                        readOnly
+                      />
+                      {meta.tags && meta.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {meta.tags.map((t) => (
+                            <span
+                              key={t}
+                              className="px-2 py-1 text-sm rounded bg-gray-200"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-6">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={!!meta.allow_comments} readOnly />
+                          <span>💬 Allow comments</span>
+                        </label>
+                        <label className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={!!meta.is_premium_only} readOnly />
+                          <span>⭐ Premium only</span>
+                        </label>
+                        <label className="flex items-center gap-2 text-sm">
+                          <span>💰 Price</span>
+                          <input
+                            type="number"
+                            min={0}
+                            className="border rounded px-2 py-1 w-32"
+                            value={meta.price ?? 0}
+                            readOnly
+                          />
+                        </label>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Cover</h4>
+                      {meta.cover_image ? (
+                        <img
+                          src={meta.cover_image}
+                          alt="cover"
+                          className="w-[180px] h-[240px] object-cover rounded"
                         />
-                        <span>💬 Allow comments</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={!!meta.is_premium_only}
-                          onChange={(e) =>
-                            setMeta({
-                              ...meta,
-                              is_premium_only: e.target.checked,
-                            })
-                          }
-                        />
-                        <span>⭐ Premium only</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-sm">
-                        <span>💰 Price</span>
-                        <input
-                          type="number"
-                          min={0}
-                          className="border rounded px-2 py-1 w-32"
-                          value={meta.price ?? 0}
-                          onChange={(e) =>
-                            setMeta({ ...meta, price: Number(e.target.value) })
-                          }
-                        />
-                      </label>
+                      ) : (
+                        <div className="w-[180px] h-[240px] border rounded flex items-center justify-center text-xs text-gray-500">
+                          No cover
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Cover</h4>
-                    <MediaPicker
-                      value={meta.cover_image || null}
-                      onChange={(url) =>
-                        setMeta({ ...meta, cover_image: url || null })
-                      }
-                      height={240}
-                      className="w-[180px]"
-                    />
-                  </div>
-                  <div className="md:col-span-3 flex justify-end">
-                    <button
-                      className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
-                      onClick={onSaveMeta}
-                      disabled={savingMeta}
-                    >
-                      {savingMeta ? "Saving…" : "Save meta"}
-                    </button>
-                  </div>
-                </div>
+                </>
               )}
             </CollapsibleSection>
           </div>
@@ -832,7 +777,10 @@ export default function QuestVersionEditor() {
                       const res = await validateVersion(id);
                       setValidate(res);
                     } catch (e) {
-                      alert(e instanceof Error ? e.message : String(e));
+                      addToast({
+                        title: e instanceof Error ? e.message : String(e),
+                        variant: "error",
+                      });
                     }
                   }}
                 >
@@ -991,6 +939,7 @@ export default function QuestVersionEditor() {
           </div>
         </div>
       )}
-    </PageLayout>
+      </PageLayout>
+    </ErrorBoundary>
   );
 }
