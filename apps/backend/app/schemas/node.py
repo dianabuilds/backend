@@ -53,6 +53,13 @@ class NodeBase(BaseModel):
             return parsed if isinstance(parsed, dict) else {}
         return {}
 
+    @model_validator(mode="before")
+    @classmethod
+    def _no_quest_data(cls, data: dict) -> dict:
+        from app.validation.quest_data import forbid_quest_data
+
+        return forbid_quest_data(data)
+
     @model_validator(mode="after")
     def _normalize_editorjs_and_validate(self) -> NodeBase:
         # Приводим контент к Editor.js JSON: допускаем строковый JSON
@@ -104,6 +111,13 @@ class NodeUpdate(BaseModel):
     )
     nft_required: str | None = None
     ai_generated: bool | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _no_quest_data(cls, data: dict) -> dict:
+        from app.validation.quest_data import forbid_quest_data
+
+        return forbid_quest_data(data)
 
 
 class NodeOut(NodeBase):
