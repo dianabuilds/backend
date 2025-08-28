@@ -91,9 +91,9 @@
   ```bash
   http POST :8000/admin/workspaces/123e4567-e89b-12d3-a456-426614174000 name=Demo slug=demo
   ```
-- Все запросы к контенту требуют `workspace_id`:
+- Все запросы к контенту выполняются через префикс рабочего пространства:
   ```bash
-  http GET :8000/admin/nodes/all workspace_id==123e4567-e89b-12d3-a456-426614174000
+  http GET :8000/admin/workspaces/123e4567-e89b-12d3-a456-426614174000/nodes/all
   ```
 - Лимиты запросов настраиваются переменными `RATE_LIMIT_*` в `.env`.
 - Импортируйте коллекцию `docs/postman_collection.json` или используйте `docs/httpie_examples.sh` для быстрого теста API.

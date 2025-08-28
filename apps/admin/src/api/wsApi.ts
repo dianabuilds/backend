@@ -33,10 +33,15 @@ async function request<T = unknown>(
   const workspaceId = ensureWorkspaceId();
   const headers: Record<string, string> = {
     ...(optHeaders as Record<string, string> | undefined),
-    "X-Workspace-Id": workspaceId,
   };
 
   let finalUrl = url;
+  if (finalUrl.startsWith("/admin/") && !finalUrl.startsWith("/admin/workspaces/")) {
+    finalUrl = `/admin/workspaces/${encodeURIComponent(workspaceId)}${finalUrl.slice(
+      "/admin".length,
+    )}`;
+  }
+
   if (params && Object.keys(params).length > 0) {
     const qs = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
@@ -51,12 +56,6 @@ async function request<T = unknown>(
     if (qsStr) {
       finalUrl += (finalUrl.includes("?") ? "&" : "?") + qsStr;
     }
-  }
-
-  if (!finalUrl.includes("workspace_id=")) {
-    finalUrl +=
-      (finalUrl.includes("?") ? "&" : "?") +
-      `workspace_id=${encodeURIComponent(workspaceId)}`;
   }
 
   const res = await api.request<T>(finalUrl, { ...rest, headers });

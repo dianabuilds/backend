@@ -28,7 +28,7 @@ http GET :8000/admin/workspaces
 http POST :8000/admin/workspaces/123e4567-e89b-12d3-a456-426614174000 name=Demo slug=demo
 
 # List nodes within a workspace
-http GET :8000/admin/nodes/all workspace_id==123e4567-e89b-12d3-a456-426614174000 node_type==article
+http GET :8000/admin/workspaces/123e4567-e89b-12d3-a456-426614174000/nodes/all node_type==article
 ```
 
 ## Postman

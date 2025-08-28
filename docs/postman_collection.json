@@ -33,7 +33,7 @@
       "request": {
         "method": "GET",
         "url": {
-          "raw": "{{baseUrl}}/admin/nodes/all?workspace_id={{workspace_id}}&node_type=article"
+          "raw": "{{baseUrl}}/admin/workspaces/{{workspace_id}}/nodes/all?node_type=article"
         }
       }
     }
