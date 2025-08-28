@@ -24,6 +24,7 @@ from app.domains.quests.schemas import (
     QuestGraphOut,
     QuestVersionOut,
 )
+from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.quest_editor import SimulateIn, SimulateResult, ValidateResult
 
@@ -212,6 +213,7 @@ async def validate_version(
 ):
     await _ensure_version_access(db, version_id, workspace_id, current_user)
     svc = EditorService()
+    event_metrics.inc("quest.validate", str(workspace_id))
     return await svc.validate_version(db, version_id)
 
 

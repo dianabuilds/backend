@@ -33,3 +33,29 @@ groups:
           summary: Spike in quota hits
           description: >-
             Over 100 quota hits recorded in the last 5 minutes.
+
+      - alert: High5xxErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+          sum(rate(http_requests_total[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: High 5xx error rate
+          description: >-
+            More than 5% of requests are returning 5xx errors.
+
+      - alert: HighRequestLatency
+        expr: |
+          sum(rate(http_request_duration_ms_sum[5m]))
+            /
+          sum(rate(http_request_duration_ms_count[5m])) > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: High average request latency
+          description: >-
+            Average request latency over the last 5 minutes exceeds 1s.
