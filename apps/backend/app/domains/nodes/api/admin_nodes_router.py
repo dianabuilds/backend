@@ -5,6 +5,7 @@ from typing import Literal, TypedDict
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Path, Query, Response
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -16,12 +17,14 @@ from app.domains.navigation.application.navigation_cache_service import (
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.application.node_query_service import NodeQueryService
+from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
     PageRequest,
     QueryContext,
 )
 from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.nodes.models import NodeItem
 from app.domains.nodes.schemas.node import NodeBulkOperation, NodeBulkPatch, NodeOut
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.workspaces import WorkspaceType
@@ -36,6 +39,22 @@ admin_required = require_admin_role()
 
 navcache = NavigationCacheService(CoreCacheAdapter())
 navsvc = NavigationService()
+
+
+class NodeCreateIn(BaseModel):
+    node_type: str
+
+
+def _serialize(item: NodeItem) -> dict:
+    return {
+        "id": str(item.id),
+        "workspace_id": str(item.workspace_id),
+        "node_type": item.type,
+        "slug": item.slug,
+        "title": item.title,
+        "summary": item.summary,
+        "status": item.status.value,
+    }
 
 
 class AdminNodeListParams(TypedDict, total=False):
@@ -64,7 +83,7 @@ class AdminNodeListParams(TypedDict, total=False):
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin)")
 async def list_nodes_admin(
     response: Response,
-    workspace_id: UUID = Path(...),
+    workspace_id: UUID = Path(...),  # noqa: B008
     if_none_match: str | None = Header(None, alias="If-None-Match"),
     author: UUID | None = None,
     tags: str | None = Query(None),
@@ -125,10 +144,22 @@ async def list_nodes_admin(
     return nodes
 
 
+@router.post("", summary="Create node (admin)")
+async def create_node_admin(
+    payload: NodeCreateIn,
+    workspace_id: UUID = Path(...),  # noqa: B008
+    current_user=Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    svc = NodeService(db)
+    item = await svc.create(workspace_id, payload.node_type, actor_id=current_user.id)
+    return _serialize(item)
+
+
 @router.post("/bulk", summary="Bulk node operations")
 async def bulk_node_operation(
     payload: NodeBulkOperation,
-    workspace_id: UUID = Path(...),
+    workspace_id: UUID = Path(...),  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
@@ -179,7 +210,7 @@ async def bulk_node_operation(
 @router.patch("/bulk", summary="Bulk update nodes")
 async def bulk_patch_nodes(
     payload: NodeBulkPatch,
-    workspace_id: UUID = Path(...),
+    workspace_id: UUID = Path(...),  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
