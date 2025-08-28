@@ -393,7 +393,7 @@ async def publish_version(
         ],
     )
     if not res.ok:
-        raise HTTPException(status_code=400, detail="Validation failed")
+        raise HTTPException(status_code=400, detail=res.errors)
 
     v.status = "released"
     v.released_at = datetime.utcnow()

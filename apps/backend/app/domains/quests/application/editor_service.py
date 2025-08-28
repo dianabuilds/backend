@@ -164,12 +164,14 @@ class EditorService:
         warnings: List[str] = []
 
         node_keys: Set[str] = set()
+        node_map: Dict[str, QuestStep] = {}
         start_count = 0
         end_count = 0
         for n in nodes:
             if n.key in node_keys:
                 errors.append(f"Duplicate node key: {n.key}")
             node_keys.add(n.key)
+            node_map[n.key] = n
             if n.type == "start":
                 start_count += 1
             if n.type == "end":
@@ -178,9 +180,10 @@ class EditorService:
         if start_count != 1:
             errors.append("There must be exactly one start node")
         if end_count < 1:
-            warnings.append("There is no explicit end node")
+            errors.append("There must be at least one end node")
 
         adj: Dict[str, List[str]] = {}
+        adj_edges: Dict[str, List[QuestTransition]] = {}
         incoming: Dict[str, int] = {k: 0 for k in node_keys}
         for e in edges:
             if e.from_node_key not in node_keys:
@@ -190,6 +193,7 @@ class EditorService:
                 errors.append(f"Edge to unknown node: {e.to_node_key}")
                 continue
             adj.setdefault(e.from_node_key, []).append(e.to_node_key)
+            adj_edges.setdefault(e.from_node_key, []).append(e)
             incoming[e.to_node_key] = incoming.get(e.to_node_key, 0) + 1
 
         start_key = next((n.key for n in nodes if n.type == "start"), None)
@@ -206,11 +210,77 @@ class EditorService:
                         stack.append(nx)
             for k in node_keys:
                 if k not in seen:
-                    warnings.append(f"Unreachable node: {k}")
+                    if node_map[k].type == "end":
+                        errors.append(f"End node not reachable: {k}")
+                    else:
+                        errors.append(f"Unreachable node: {k}")
+
+        for k in node_keys:
+            if incoming.get(k, 0) == 0 and len(adj.get(k, [])) == 0:
+                errors.append(f"Isolated node: {k}")
 
         for n in nodes:
-            if n.type != "end" and len(adj.get(n.key, [])) == 0:
+            outs = adj_edges.get(n.key, [])
+            if n.type != "end" and len(outs) == 0:
                 warnings.append(f"Node has no outgoing edges: {n.key}")
+            if len([e for e in outs if e.condition is None]) > 1:
+                errors.append(f"Multiple unconditional transitions from node: {n.key}")
+
+        # Detect unconditional cycles (including self-loops)
+        index = 0
+        stack: List[str] = []
+        indices: Dict[str, int] = {}
+        lowlink: Dict[str, int] = {}
+        onstack: Set[str] = set()
+        sccs: List[List[str]] = []
+
+        def strongconnect(v: str) -> None:
+            nonlocal index
+            indices[v] = index
+            lowlink[v] = index
+            index += 1
+            stack.append(v)
+            onstack.add(v)
+            for e in adj_edges.get(v, []):
+                w = e.to_node_key
+                if w not in indices:
+                    strongconnect(w)
+                    lowlink[v] = min(lowlink[v], lowlink[w])
+                elif w in onstack:
+                    lowlink[v] = min(lowlink[v], indices[w])
+            if lowlink[v] == indices[v]:
+                comp: List[str] = []
+                while True:
+                    w = stack.pop()
+                    onstack.remove(w)
+                    comp.append(w)
+                    if w == v:
+                        break
+                sccs.append(comp)
+
+        for v in node_keys:
+            if v not in indices:
+                strongconnect(v)
+
+        for comp in sccs:
+            edges_in_comp = [
+                e
+                for e in edges
+                if e.from_node_key in comp and e.to_node_key in comp
+            ]
+            if len(comp) == 1:
+                if any(
+                    e.from_node_key == comp[0]
+                    and e.to_node_key == comp[0]
+                    and e.condition is None
+                    for e in edges_in_comp
+                ):
+                    errors.append(f"Unconditional loop at node: {comp[0]}")
+            elif edges_in_comp and all(e.condition is None for e in edges_in_comp):
+                errors.append(
+                    "Unconditional loop between nodes: "
+                    + ", ".join(sorted(comp))
+                )
 
         ok = len([e for e in errors if e]) == 0
         return ValidateResult(ok=ok, errors=errors, warnings=warnings)
