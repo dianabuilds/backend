@@ -12,6 +12,7 @@ from app.domains.users.infrastructure.models.user import User
 from app.domains.quests.infrastructure.node_read_adapter import QuestNodeReadAdapter
 from app.schemas.nodes_common import NodeType
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
+from app.domains.nodes.service import publish_content
 
 router = APIRouter(
     prefix="/admin/nodes",
@@ -165,6 +166,12 @@ async def publish_node(
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
         cover=(payload.cover if payload else None),
+    )
+    await publish_content(
+        node_id=item.id,
+        slug=item.slug,
+        author_id=current_user.id,
+        workspace_id=workspace_id,
     )
     return _serialize(item)
 

@@ -4,51 +4,44 @@ import json
 from typing import Dict, Optional, Set, List
 from uuid import UUID
 
+from app.core.cache_keys import cache_key, node_key
 from app.core.config import settings
 from app.core.log_events import cache_hit, cache_miss, cache_invalidate
 
 from app.domains.navigation.application.ports.cache_port import IKeyValueCache
 
 
-def _k_nav(user_id: str, slug: str, mode: str, v: str | None = None) -> str:
-    version = v or settings.cache.key_version
+def _k_nav(user_id: str, slug: str, mode: str) -> str:
     m = mode or "auto"
-    return f"{version}:nav:{user_id}:{slug}:{m}"
+    return cache_key("navigation", slug, user_id, m)
 
 
-def _k_navm(user_id: str, slug: str, v: str | None = None) -> str:
-    version = v or settings.cache.key_version
-    return f"{version}:navm:{user_id}:{slug}"
+def _k_navm(user_id: str, slug: str) -> str:
+    return cache_key("navigation", slug, "modes", user_id)
 
 
-def _k_comp(user_id: str, phash: str, v: str | None = None) -> str:
-    version = v or settings.cache.key_version
-    return f"{version}:comp:{user_id}:{phash}"
+def _k_comp(user_id: str, phash: str) -> str:
+    return cache_key("compass", user_id, phash)
 
 
-def _idx_node_nav(slug: str, v: str | None = None) -> str:
-    version = v or settings.cache.key_version
-    return f"{version}:idx:node->nav:{slug}"
+def _idx_node_nav(slug: str) -> str:
+    return f"{node_key(slug)}:nav"
 
 
-def _idx_node_navm(slug: str, v: str | None = None) -> str:
-    version = v or settings.cache.key_version
-    return f"{version}:idx:node->navm:{slug}"
+def _idx_node_navm(slug: str) -> str:
+    return f"{node_key(slug)}:navm"
 
 
-def _idx_user_nav(uid: str, v: str | None = None) -> str:
-    version = v or settings.cache.key_version
-    return f"{version}:idx:user->nav:{uid}"
+def _idx_user_nav(uid: str) -> str:
+    return cache_key("user", uid, "nav")
 
 
-def _idx_user_comp(uid: str, v: str | None = None) -> str:
-    version = v or settings.cache.key_version
-    return f"{version}:idx:user->comp:{uid}"
+def _idx_user_comp(uid: str) -> str:
+    return cache_key("user", uid, "comp")
 
 
-def _idx_node_comp(slug: str, v: str | None = None) -> str:
-    version = v or settings.cache.key_version
-    return f"{version}:idx:node->comp:{slug}"
+def _idx_node_comp(slug: str) -> str:
+    return f"{node_key(slug)}:comp"
 
 
 class NavigationCacheService:
@@ -132,10 +125,19 @@ class NavigationCacheService:
             cache_invalidate("nav", reason="by_user", key=uid)
 
     async def invalidate_navigation_all(self) -> None:
-        pattern = f"{settings.cache.key_version}:nav*"
+        pattern = f"{settings.cache.key_version}:navigation*"
         keys = await self._cache.scan(pattern)
         if keys:
             await self._cache.delete(*keys)
+        idx_patterns = [
+            f"{settings.cache.key_version}:node:*:nav*",
+            f"{settings.cache.key_version}:user:*:nav",
+        ]
+        for p in idx_patterns:
+            idx_keys = await self._cache.scan(p)
+            for idx in idx_keys:
+                await self._del_set_key(idx)
+        if keys:
             cache_invalidate("nav", reason="all")
 
     # Modes -------------------------------------------------------------
@@ -203,11 +205,13 @@ class NavigationCacheService:
             cache_invalidate("comp", reason="by_node", key=node_slug)
 
     async def invalidate_compass_all(self) -> None:
-        pattern = f"{settings.cache.key_version}:comp*"
+        pattern = f"{settings.cache.key_version}:compass*"
         keys = await self._cache.scan(pattern)
         if keys:
             await self._cache.delete(*keys)
-        idx_keys = await self._cache.scan(f"{settings.cache.key_version}:idx:user->comp:*")
+        idx_keys = await self._cache.scan(
+            f"{settings.cache.key_version}:user:*:comp"
+        )
         for idx in idx_keys:
             await self._del_set_key(idx)
         if keys:

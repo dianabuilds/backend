@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domains.navigation.application.cache_singleton import navcache
 from app.domains.quests.infrastructure.models.navigation_cache_models import NavigationCache
 from app.domains.quests.infrastructure.models.quest_version_models import (
     QuestGraphEdge,
@@ -104,6 +105,11 @@ class QuestGraphService:
         """Remove all navigation cache rows."""
         await db.execute(delete(NavigationCache))
         await db.flush()
+        try:
+            await navcache.invalidate_navigation_all()
+            await navcache.invalidate_compass_all()
+        except Exception:
+            pass
 
     async def generate_navigation_cache(
         self, db: AsyncSession, version_id: UUID
