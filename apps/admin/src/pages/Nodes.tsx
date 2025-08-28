@@ -517,7 +517,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     });
   };
 
-  // Создание ноды + явная установка тегов
+  // Создание ноды
   const doCreate = async () => {
     if (!canSave) return;
     const payload: Record<string, any> = {
@@ -525,8 +525,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       content: draft.contentData,
       allow_comments: draft.allow_comments,
       is_premium_only: draft.is_premium_only,
-      // передаем на случай, если backend уже поддерживает теги в /nodes
-      tags: Array.isArray(draft.tags) ? draft.tags.map((t) => t.slug) : [],
+      tags: draft.tags.map((t) => t.slug),
     };
     const blocks = Array.isArray(draft.contentData?.blocks)
       ? draft.contentData.blocks

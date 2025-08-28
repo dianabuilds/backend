@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException
@@ -18,14 +18,8 @@ from app.schemas.nodes_common import NodeType, Status, Visibility
 class NodeService:
     """Service layer for managing content items."""
 
-    def __init__(self, db: AsyncSession, *args: Any, **kwargs: Any) -> None:
-        """Initialize service.
-
-        Extra positional or keyword arguments are ignored.  Older call sites pass
-        additional dependencies such as navigation cache or notification ports;
-        accepting ``*args``/``**kwargs`` keeps this service compatible while the
-        parameters are unused here.
-        """
+    def __init__(self, db: AsyncSession) -> None:
+        """Initialize service."""
 
         self._db = db
         self._allowed_types = {NodeType.article.value}
