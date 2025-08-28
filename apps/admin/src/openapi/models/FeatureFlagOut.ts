@@ -5,8 +5,8 @@
 export type FeatureFlagOut = {
     key: string;
     value: boolean;
-    description: (string | null);
-    updated_at: (string | null);
-    updated_by: (string | null);
+    description?: (string | null);
+    updated_at?: (string | null);
+    updated_by?: (string | null);
 };
 

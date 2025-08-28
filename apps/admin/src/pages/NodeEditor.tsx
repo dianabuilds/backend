@@ -13,29 +13,15 @@ import WorkspaceSelector from "../components/WorkspaceSelector";
 import type { OutputData } from "../types/editorjs";
 import { useUnsavedChanges } from "../utils/useUnsavedChanges";
 import { useWorkspace } from "../workspace/WorkspaceContext";
-import type { ValidateResult } from "../openapi";
+import type { NodeOut, ValidateResult } from "../openapi";
 import { usePatchQueue } from "../utils/usePatchQueue";
 
-interface NodeEditorData {
-  id: string;
-  title: string;
-  slug: string;
-  author_id: string;
-  created_at: string;
-  updated_at: string;
-  cover_url: string | null;
-  cover_asset_id: string | null;
-  cover_meta: any | null;
-  cover_alt: string;
+interface NodeEditorData extends NodeOut {
+  coverAssetId: string | null;
+  coverMeta: any | null;
+  coverAlt: string;
   summary: string;
-  tags: string[];
-  allow_comments: boolean;
-  is_premium_only: boolean;
-  is_public: boolean;
-  hidden: boolean;
-  published_at: string | null;
-  contentData: OutputData;
-  node_type: string;
+  publishedAt: string | null;
 }
 
 interface NodeDraft {
@@ -43,7 +29,7 @@ interface NodeDraft {
   title: string;
   summary: string;
   tags: string[];
-  contentData: OutputData;
+  content: OutputData;
 }
 
 export default function NodeEditor() {
@@ -73,63 +59,18 @@ export default function NodeEditor() {
         }
         n = await getNode(nodeType, id);
 
-        const raw = n as Record<string, unknown>;
         setNode({
-          id: n.id,
-          title: n.title ?? "",
-          slug: n.slug ?? "",
-          author_id: n.authorId,
-          created_at: n.createdAt,
-          updated_at: n.updatedAt,
-          cover_url:
-            typeof raw.cover_url === "string"
-              ? (raw.cover_url as string)
-              : typeof raw.coverUrl === "string"
-                ? (raw.coverUrl as string)
-                : null,
-          cover_asset_id:
-            typeof raw.cover_asset_id === "string"
-              ? (raw.cover_asset_id as string)
-              : typeof raw.coverAssetId === "string"
-                ? (raw.coverAssetId as string)
-                : null,
-          cover_meta: (raw.cover_meta as any) ?? (raw.coverMeta as any) ?? null,
-          cover_alt:
-            typeof raw.cover_alt === "string"
-              ? (raw.cover_alt as string)
-              : typeof raw.coverAlt === "string"
-                ? (raw.coverAlt as string)
-                : "",
-          summary:
-            typeof raw.summary === "string" ? (raw.summary as string) : "",
-          tags: Array.isArray(n.tags) ? n.tags : [],
-          allow_comments: n.allow_feedback ?? true,
-          is_premium_only: n.premium_only ?? false,
-          is_public:
-            typeof raw.is_public === "boolean"
-              ? (raw.is_public as boolean)
-              : Boolean(raw.isPublic),
-          hidden:
-            typeof raw.hidden === "boolean"
-              ? (raw.hidden as boolean)
-              : typeof raw.is_visible === "boolean"
-                ? !(raw.is_visible as boolean)
-                : typeof raw.isVisible === "boolean"
-                  ? !(raw.isVisible as boolean)
-                  : false,
-          published_at:
-            typeof raw.published_at === "string"
-              ? (raw.published_at as string)
-              : typeof raw.publishedAt === "string"
-                ? (raw.publishedAt as string)
-                : null,
-          contentData: (n.content as OutputData) || {
+          ...n,
+          coverAssetId: (n as any).coverAssetId ?? null,
+          coverMeta: (n as any).coverMeta ?? null,
+          coverAlt: (n as any).coverAlt ?? "",
+          summary: (n as any).summary ?? "",
+          publishedAt: (n as any).publishedAt ?? null,
+          content: (n.content as OutputData) || {
             time: Date.now(),
             blocks: [],
             version: "2.30.7",
           },
-          node_type:
-            (raw.type as string) ?? (raw.node_type as string) ?? nodeType!,
         });
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -300,16 +241,16 @@ function NodeCreate({
       async (patch, signal) => {
         try {
           const updated = await patchNode(
-            nodeRef.current.node_type,
+            nodeRef.current.nodeType!,
             nodeRef.current.id,
-            { ...patch, updated_at: nodeRef.current.updated_at },
+            { ...patch, updatedAt: nodeRef.current.updatedAt },
             { signal },
           );
           setNode((prev) => ({
             ...prev,
             ...patch,
             slug: updated.slug ?? prev.slug,
-            updated_at: updated.updatedAt ?? prev.updated_at,
+            updatedAt: updated.updatedAt ?? prev.updatedAt,
           }));
           setSavedAt(new Date());
           setSaveError(null);
@@ -393,16 +334,16 @@ function NodeCreate({
     if (!canEdit) return;
     await flush();
     const path = workspaceId
-      ? `/nodes/${node.node_type}/new?workspace_id=${workspaceId}`
-      : `/nodes/${node.node_type}/new`;
+      ? `/nodes/${node.nodeType}/new?workspace_id=${workspaceId}`
+      : `/nodes/${node.nodeType}/new`;
     navigate(path);
   };
 
   const handleCreate = () => {
     if (!canEdit) return;
     const path = workspaceId
-      ? `/nodes/${node.node_type}/new?workspace_id=${workspaceId}`
-      : `/nodes/${node.node_type}/new`;
+      ? `/nodes/${node.nodeType}/new?workspace_id=${workspaceId}`
+      : `/nodes/${node.nodeType}/new`;
     navigate(path);
   };
 
@@ -490,7 +431,7 @@ function NodeCreate({
                 {node.title || "Node"}
               </h1>
             )}
-            <StatusBadge status={node.is_public ? "published" : "draft"} />
+          <StatusBadge status={node.isPublic ? "published" : "draft"} />
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             {canEdit && (
@@ -566,34 +507,34 @@ function NodeCreate({
           <GeneralTab
             title={node.title}
             titleRef={titleRef}
-            cover_url={node.cover_url}
+            coverUrl={node.coverUrl}
             summary={node.summary}
             tags={node.tags}
-            is_public={node.is_public}
-            allow_comments={node.allow_comments}
-            is_premium_only={node.is_premium_only}
+            isPublic={node.isPublic}
+            allowFeedback={node.allowFeedback}
+            premiumOnly={node.premiumOnly}
             onTitleChange={handleTitleChange}
             onSummaryChange={handleSummaryChange}
             onTagsChange={
               canEdit ? (t) => handleDraftChange({ tags: t }) : undefined
             }
             onIsPublicChange={
-              canEdit ? (v) => setNode({ ...node, is_public: v }) : undefined
+              canEdit ? (v) => setNode({ ...node, isPublic: v }) : undefined
             }
-            onAllowCommentsChange={
-              canEdit ? (v) => setNode({ ...node, allow_comments: v }) : undefined
+            onAllowFeedbackChange={
+              canEdit ? (v) => setNode({ ...node, allowFeedback: v }) : undefined
             }
             onPremiumOnlyChange={
-              canEdit ? (v) => setNode({ ...node, is_premium_only: v }) : undefined
+              canEdit ? (v) => setNode({ ...node, premiumOnly: v }) : undefined
             }
             titleError={fieldErrors.title}
             summaryError={fieldErrors.summary}
             coverError={fieldErrors.cover}
           />
           <ContentTab
-            value={node.contentData}
+            value={node.content as OutputData}
             onChange={
-              canEdit ? (d) => handleDraftChange({ contentData: d }) : undefined
+              canEdit ? (d) => handleDraftChange({ content: d }) : undefined
             }
           />
         </div>
@@ -601,49 +542,49 @@ function NodeCreate({
           node={{
             id: node.id,
             slug: node.slug,
-            author_id: node.author_id,
-            created_at: node.created_at,
-            updated_at: node.updated_at,
-            is_public: node.is_public,
-            hidden: node.hidden,
-            published_at: node.published_at,
-            node_type: node.node_type,
-            cover_url: node.cover_url,
-            cover_asset_id: node.cover_asset_id,
-            cover_alt: node.cover_alt,
-            cover_meta: node.cover_meta,
+            authorId: node.authorId,
+            createdAt: node.createdAt,
+            updatedAt: node.updatedAt,
+            isPublic: node.isPublic,
+            isVisible: node.isVisible,
+            publishedAt: node.publishedAt,
+            nodeType: node.nodeType!,
+            coverUrl: node.coverUrl,
+            coverAssetId: node.coverAssetId,
+            coverAlt: node.coverAlt,
+            coverMeta: node.coverMeta,
           }}
           onSlugChange={(slug, updated) =>
-            setNode({ ...node, slug, updated_at: updated ?? node.updated_at })
+            setNode({ ...node, slug, updatedAt: updated ?? node.updatedAt })
           }
           onCoverChange={(c) =>
             setNode({
               ...node,
-              cover_asset_id: c.assetId,
-              cover_url: c.url,
-              cover_alt: c.alt,
-              cover_meta: c.meta,
+              coverAssetId: c.assetId,
+              coverUrl: c.url,
+              coverAlt: c.alt,
+              coverMeta: c.meta,
             })
           }
-          onStatusChange={(is_public, updated) =>
+          onStatusChange={(isPublic, updated) =>
             setNode((prev) => ({
               ...prev,
-              is_public,
-              updated_at: updated ?? prev.updated_at,
+              isPublic,
+              updatedAt: updated ?? prev.updatedAt,
             }))
           }
-          onScheduleChange={(published_at, updated) =>
+          onScheduleChange={(publishedAt, updated) =>
             setNode((prev) => ({
               ...prev,
-              published_at,
-              updated_at: updated ?? prev.updated_at,
+              publishedAt,
+              updatedAt: updated ?? prev.updatedAt,
             }))
           }
           onHiddenChange={(hidden, updated) =>
             setNode((prev) => ({
               ...prev,
-              hidden,
-              updated_at: updated ?? prev.updated_at,
+              isVisible: !hidden,
+              updatedAt: updated ?? prev.updatedAt,
             }))
           }
           hasChanges={unsaved}

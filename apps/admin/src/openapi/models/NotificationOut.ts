@@ -10,5 +10,6 @@ export type NotificationOut = {
     created_at: string;
     read_at: (string | null);
     type: NotificationType;
+    is_preview: boolean;
 };
 

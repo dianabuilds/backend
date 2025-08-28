@@ -4,6 +4,6 @@
 /* eslint-disable */
 export type TraceUser = {
     id: string;
-    username: (string | null);
+    username?: (string | null);
 };
 

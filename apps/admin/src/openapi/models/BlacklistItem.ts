@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type BlacklistItem = {
     slug: string;
-    reason: (string | null);
+    reason?: (string | null);
     created_at: string;
 };
 

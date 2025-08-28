@@ -18,23 +18,23 @@ interface NodeSidebarProps {
   node: {
     id: string;
     slug: string;
-    author_id: string;
-    created_at: string;
-    updated_at: string;
-    is_public: boolean;
-    hidden: boolean;
-    published_at: string | null;
-    node_type: string;
-    cover_url: string | null;
-    cover_asset_id: string | null;
-    cover_alt: string;
-    cover_meta: any | null;
+    authorId: string;
+    createdAt: string;
+    updatedAt: string;
+    isPublic: boolean;
+    isVisible: boolean;
+    publishedAt: string | null;
+    nodeType: string;
+    coverUrl: string | null;
+    coverAssetId: string | null;
+    coverAlt: string;
+    coverMeta: any | null;
   };
-  onSlugChange?: (slug: string, updated_at?: string) => void;
+  onSlugChange?: (slug: string, updatedAt?: string) => void;
   onCoverChange?: (data: CoverChange) => void;
-  onStatusChange?: (is_public: boolean, updated_at?: string) => void;
-  onScheduleChange?: (published_at: string | null, updated_at?: string) => void;
-  onHiddenChange?: (hidden: boolean, updated_at?: string) => void;
+  onStatusChange?: (isPublic: boolean, updatedAt?: string) => void;
+  onScheduleChange?: (publishedAt: string | null, updatedAt?: string) => void;
+  onHiddenChange?: (hidden: boolean, updatedAt?: string) => void;
   hasChanges?: boolean;
   onValidation?: (res: ValidateResult) => void;
 }
@@ -74,8 +74,8 @@ export default function NodeSidebar({
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [focal, setFocal] = useState<{ x: number; y: number }>(
-    node.cover_meta && typeof node.cover_meta.focalX === "number"
-      ? { x: node.cover_meta.focalX, y: node.cover_meta.focalY }
+    node.coverMeta && typeof node.coverMeta.focalX === "number"
+      ? { x: node.coverMeta.focalX, y: node.coverMeta.focalY }
       : { x: 0.5, y: 0.5 },
   );
 
@@ -87,7 +87,7 @@ export default function NodeSidebar({
   const [statusSaving, setStatusSaving] = useState(false);
   const [hiddenSaving, setHiddenSaving] = useState(false);
   const [scheduleValue, setScheduleValue] = useState(
-    node.published_at ? node.published_at.slice(0, 16) : "",
+    node.publishedAt ? node.publishedAt.slice(0, 16) : "",
   );
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [validation, setValidation] = useState<ValidateResult | null>(null);
@@ -95,8 +95,8 @@ export default function NodeSidebar({
   const [recomputing, setRecomputing] = useState(false);
 
   useEffect(() => {
-    setScheduleValue(node.published_at ? node.published_at.slice(0, 16) : "");
-  }, [node.published_at]);
+    setScheduleValue(node.publishedAt ? node.publishedAt.slice(0, 16) : "");
+  }, [node.publishedAt]);
 
   useEffect(() => {
     if (!editing) return;
@@ -104,11 +104,11 @@ export default function NodeSidebar({
     setZoom(1);
     setCroppedArea(null);
     setFocal(
-      node.cover_meta && typeof node.cover_meta.focalX === "number"
-        ? { x: node.cover_meta.focalX, y: node.cover_meta.focalY }
+      node.coverMeta && typeof node.coverMeta.focalX === "number"
+        ? { x: node.coverMeta.focalX, y: node.coverMeta.focalY }
         : { x: 0.5, y: 0.5 },
     );
-  }, [editing, node.cover_meta]);
+  }, [editing, node.coverMeta]);
 
   const handleFiles = useCallback(
     (files: FileList | null) => {
@@ -149,7 +149,7 @@ export default function NodeSidebar({
           onCoverChange?.({
             assetId: id,
             url,
-            alt: node.cover_alt,
+            alt: node.coverAlt,
             meta: { focalX: 0.5, focalY: 0.5, crop: { x: 0, y: 0, width: 1, height: 1 } },
           });
         } catch (e) {
@@ -164,7 +164,7 @@ export default function NodeSidebar({
       };
       img.src = URL.createObjectURL(file);
     },
-    [node.cover_alt, onCoverChange],
+    [node.coverAlt, onCoverChange],
   );
 
   const applyMeta = () => {
@@ -177,9 +177,9 @@ export default function NodeSidebar({
         }
       : { x: 0, y: 0, width: 1, height: 1 };
     onCoverChange?.({
-      assetId: node.cover_asset_id,
-      url: node.cover_url,
-      alt: node.cover_alt,
+      assetId: node.coverAssetId,
+      url: node.coverUrl,
+      alt: node.coverAlt,
       meta: { focalX: focal.x, focalY: focal.y, crop: cropMeta },
     });
     setEditing(false);
@@ -188,7 +188,7 @@ export default function NodeSidebar({
   const runValidation = async () => {
     setValidating(true);
     try {
-      const res = await validateNode(node.node_type, node.id);
+      const res = await validateNode(node.nodeType, node.id);
       setValidation(res);
       onValidation?.(res);
     } catch {
@@ -203,7 +203,7 @@ export default function NodeSidebar({
     setStatusSaving(true);
     try {
       if (checked) {
-        const res = await validateNode(node.node_type, node.id);
+        const res = await validateNode(node.nodeType, node.id);
         setValidation(res);
         onValidation?.(res);
         if (!res.ok) {
@@ -211,12 +211,12 @@ export default function NodeSidebar({
           return;
         }
       }
-      const res = await patchNode(node.node_type, node.id, {
-        is_public: checked,
-        updated_at: node.updated_at,
+      const res = await patchNode(node.nodeType, node.id, {
+        isPublic: checked,
+        updatedAt: node.updatedAt,
       });
-      const updated = (res as any).updatedAt ?? (res as any).updated_at;
-      const published = (res as any).isPublic ?? checked;
+      const updated = res.updatedAt ?? node.updatedAt;
+      const published = res.isPublic ?? checked;
       onStatusChange?.(published, updated);
     } finally {
       setStatusSaving(false);
@@ -226,19 +226,12 @@ export default function NodeSidebar({
   const handleHiddenChange = async (checked: boolean) => {
     setHiddenSaving(true);
     try {
-      const res = await patchNode(node.node_type, node.id, {
-        is_visible: !checked,
-        updated_at: node.updated_at,
+      const res = await patchNode(node.nodeType, node.id, {
+        isVisible: !checked,
+        updatedAt: node.updatedAt,
       });
-      const updated = (res as any).updatedAt ?? (res as any).updated_at;
-      const hidden =
-        typeof (res as any).hidden === "boolean"
-          ? (res as any).hidden
-          : typeof (res as any).is_visible === "boolean"
-            ? !(res as any).is_visible
-            : typeof (res as any).isVisible === "boolean"
-              ? !(res as any).isVisible
-              : checked;
+      const updated = res.updatedAt ?? node.updatedAt;
+      const hidden = res.isVisible !== undefined ? !res.isVisible : checked;
       onHiddenChange?.(hidden, updated);
     } finally {
       setHiddenSaving(false);
@@ -250,12 +243,12 @@ export default function NodeSidebar({
     setScheduleSaving(true);
     try {
       const iso = value ? new Date(value).toISOString() : null;
-      const res = await patchNode(node.node_type, node.id, {
-        published_at: iso,
-        updated_at: node.updated_at,
+      const res = await patchNode(node.nodeType, node.id, {
+        publishedAt: iso,
+        updatedAt: node.updatedAt,
       });
-      const updated = (res as any).updatedAt ?? (res as any).updated_at;
-      const publishedAt = (res as any).published_at ?? (res as any).publishedAt ?? iso;
+      const updated = res.updatedAt ?? node.updatedAt;
+      const publishedAt = res.publishedAt ?? iso;
       onScheduleChange?.(publishedAt, updated);
     } finally {
       setScheduleSaving(false);
@@ -286,9 +279,9 @@ export default function NodeSidebar({
   const saveSlug = async () => {
     setSlugSaving(true);
     try {
-      const res = await patchNode(node.node_type, node.id, {
+      const res = await patchNode(node.nodeType, node.id, {
         slug: slugDraft,
-        updated_at: node.updated_at,
+        updatedAt: node.updatedAt,
       });
       onSlugChange?.(res.slug ?? slugDraft, res.updatedAt);
       setSlugModal(false);
@@ -305,11 +298,11 @@ export default function NodeSidebar({
         <details open>
           <summary className="cursor-pointer font-semibold">Cover</summary>
           <div className="mt-2 space-y-2 text-sm">
-            {node.cover_url ? (
+            {node.coverUrl ? (
               <div className="relative">
                 <img
-                  src={node.cover_url}
-                  alt={node.cover_alt || ""}
+                  src={node.coverUrl}
+                  alt={node.coverAlt || ""}
                   className="w-full rounded border object-cover aspect-video"
                 />
                 <div className="absolute top-2 right-2 flex gap-1">
@@ -354,18 +347,18 @@ export default function NodeSidebar({
                 Upload cover
               </div>
             )}
-            {node.cover_url ? (
+            {node.coverUrl ? (
               <input
                 type="text"
                 className="w-full border rounded px-2 py-1 text-xs"
                 placeholder="Alt text"
-                value={node.cover_alt}
+                value={node.coverAlt}
                 onChange={(e) =>
                   onCoverChange?.({
-                    assetId: node.cover_asset_id,
-                    url: node.cover_url,
+                    assetId: node.coverAssetId,
+                    url: node.coverUrl,
                     alt: e.target.value,
-                    meta: node.cover_meta,
+                    meta: node.coverMeta,
                   })
                 }
               />
@@ -432,12 +425,12 @@ export default function NodeSidebar({
               </button>
             </div>
           </div>
-          <div>Author: {node.author_id || "-"}</div>
+          <div>Author: {node.authorId || "-"}</div>
           <div>
-            Created: {node.created_at ? new Date(node.created_at).toLocaleString() : "-"}
+            Created: {node.createdAt ? new Date(node.createdAt).toLocaleString() : "-"}
           </div>
           <div>
-            Updated: {node.updated_at ? new Date(node.updated_at).toLocaleString() : "-"}
+            Updated: {node.updatedAt ? new Date(node.updatedAt).toLocaleString() : "-"}
           </div>
         </div>
       </details>
@@ -451,13 +444,13 @@ export default function NodeSidebar({
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={node.is_public}
+              checked={node.isPublic}
               onChange={(e) => handleStatusChange(e.target.checked)}
               disabled={statusSaving}
             />
             Published
           </label>
-          {node.updated_at !== node.created_at ? (
+          {node.updatedAt !== node.createdAt ? (
             <div>
               <div className="text-xs mb-1">Schedule</div>
               <input
@@ -511,7 +504,7 @@ export default function NodeSidebar({
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={node.hidden}
+                checked={!node.isVisible}
                 onChange={(e) => handleHiddenChange(e.target.checked)}
                 disabled={hiddenSaving}
               />
@@ -525,7 +518,7 @@ export default function NodeSidebar({
             >
               {recomputing ? "Recomputing..." : "Recompute embedding"}
             </button>
-            <div>Type: {node.node_type}</div>
+            <div>Type: {node.nodeType}</div>
           </div>
         </details>
       ) : null}
@@ -566,7 +559,7 @@ export default function NodeSidebar({
         </div>
       ) : null}
 
-      {editing && node.cover_url ? (
+      {editing && node.coverUrl ? (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white dark:bg-gray-800 p-4 rounded shadow-lg">
             <div
@@ -580,7 +573,7 @@ export default function NodeSidebar({
               }}
             >
               <Cropper
-                image={node.cover_url}
+                image={node.coverUrl}
                 crop={crop}
                 zoom={zoom}
                 aspect={16 / 9}

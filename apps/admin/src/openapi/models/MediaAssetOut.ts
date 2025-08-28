@@ -7,6 +7,6 @@ export type MediaAssetOut = {
     workspace_id: string;
     url: string;
     type: string;
-    metadata_json: (Record<string, any> | null);
+    metadata_json?: (Record<string, any> | null);
 };
 

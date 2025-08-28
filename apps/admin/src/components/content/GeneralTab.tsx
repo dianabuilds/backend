@@ -7,10 +7,10 @@ import type { GeneralTabProps } from "./GeneralTab.helpers";
 export default function GeneralTab({
   title,
   tags = [],
-  is_public = false,
-  allow_comments = true,
-  is_premium_only = false,
-  cover_url = null,
+  isPublic = false,
+  allowFeedback = true,
+  premiumOnly = false,
+  coverUrl = null,
   summary = "",
   titleError = null,
   summaryError = null,
@@ -19,7 +19,7 @@ export default function GeneralTab({
   titleRef,
   onTagsChange,
   onIsPublicChange,
-  onAllowCommentsChange,
+  onAllowFeedbackChange,
   onPremiumOnlyChange,
   onCoverChange,
   onSummaryChange,
@@ -40,29 +40,25 @@ export default function GeneralTab({
         />
       ) : null}
       {onCoverChange ? (
-        <FieldCover
-          value={cover_url}
-          onChange={onCoverChange}
-          error={coverError}
-        />
+        <FieldCover value={coverUrl} onChange={onCoverChange} error={coverError} />
       ) : null}
       {onTagsChange ? <FieldTags value={tags} onChange={onTagsChange} /> : null}
       {onIsPublicChange ? (
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            checked={is_public}
+            checked={isPublic}
             onChange={(e) => onIsPublicChange(e.target.checked)}
           />
           Published
         </label>
       ) : null}
-      {onAllowCommentsChange ? (
+      {onAllowFeedbackChange ? (
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            checked={allow_comments}
-            onChange={(e) => onAllowCommentsChange(e.target.checked)}
+            checked={allowFeedback}
+            onChange={(e) => onAllowFeedbackChange(e.target.checked)}
           />
           Allow comments
         </label>
@@ -71,7 +67,7 @@ export default function GeneralTab({
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            checked={is_premium_only}
+            checked={premiumOnly}
             onChange={(e) => onPremiumOnlyChange(e.target.checked)}
           />
           Premium only

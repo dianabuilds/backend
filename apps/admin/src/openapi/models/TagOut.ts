@@ -5,6 +5,6 @@
 export type TagOut = {
     slug: string;
     name: string;
-    count: number;
+    count?: number;
 };
 

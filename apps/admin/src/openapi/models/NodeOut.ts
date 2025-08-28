@@ -3,24 +3,27 @@
 /* tslint:disable */
 /* eslint-disable */
 export type NodeOut = {
-    title: (string | null);
+    title?: (string | null);
     content: any;
-    media: (Array<string> | null);
-    coverUrl: (string | null);
-    tags: Array<string>;
-    isPublic: boolean;
-    isVisible: boolean;
-    meta: Record<string, any>;
-    premium_only: (boolean | null);
-    nftRequired: (string | null);
-    aiGenerated: (boolean | null);
-    allow_feedback: boolean;
-    isRecommendable: boolean;
+    media?: (Array<string> | null);
+    coverUrl?: (string | null);
+    tags?: Array<string>;
+    isPublic?: boolean;
+    isVisible?: boolean;
+    meta?: Record<string, any>;
+    premiumOnly?: (boolean | null);
+    nftRequired?: (string | null);
+    aiGenerated?: (boolean | null);
+    allowFeedback?: boolean;
+    isRecommendable?: boolean;
     id: string;
     slug: string;
     authorId: string;
+    createdByUserId?: (string | null);
+    updatedByUserId?: (string | null);
+    nodeType?: (string | null);
     views: number;
-    reactions: Record<string, number>;
+    reactions?: Record<string, number>;
     createdAt: string;
     updatedAt: string;
     popularityScore: number;
