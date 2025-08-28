@@ -89,26 +89,26 @@ class NodeRepositoryAdapter(INodeRepository):
         )
         self._db.add(node)
         await self._db.flush()
-        if payload.tags:
-            await self.set_tags(node, payload.tags, author_id)
+        if payload.tags is not None:
+            await self._apply_tags(node, payload.tags, author_id)
         await self._db.commit()
-        await self._db.refresh(node, attribute_names=["tags"])
-        return node
+        loaded = await self.get_by_id(node.id, workspace_id)
+        return loaded  # type: ignore[return-value]
 
     async def update(self, node: Node, payload: NodeUpdate, actor_id: UUID) -> Node:
         if self._repo:
             return await self._repo.update(node, payload, actor_id)
         for field, value in payload.model_dump(exclude_unset=True).items():
-            if field == "tags" or value is None:
+            if field == "tags":
                 continue
             setattr(node, field, value)
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = actor_id
         if payload.tags is not None:
-            await self.set_tags(node, payload.tags, actor_id)
+            await self._apply_tags(node, payload.tags, actor_id)
         await self._db.commit()
-        await self._db.refresh(node, attribute_names=["tags"])
-        return node
+        loaded = await self.get_by_id(node.id, node.workspace_id)
+        return loaded  # type: ignore[return-value]
 
     async def delete(self, node: Node) -> None:
         if self._repo:
@@ -120,6 +120,12 @@ class NodeRepositoryAdapter(INodeRepository):
     async def set_tags(self, node: Node, tags: list[str], actor_id: UUID) -> Node:
         if self._repo:
             return await self._repo.set_tags(node, tags, actor_id)
+        await self._apply_tags(node, tags, actor_id)
+        await self._db.commit()
+        loaded = await self.get_by_id(node.id, node.workspace_id)
+        return loaded  # type: ignore[return-value]
+
+    async def _apply_tags(self, node: Node, tags: list[str], actor_id: UUID) -> None:
         from app.domains.tags.models import Tag
         tag_ids: list[UUID] = []
         for slug in tags:
@@ -136,23 +142,20 @@ class NodeRepositoryAdapter(INodeRepository):
                 tag = Tag(slug=slug_norm, name=slug_norm, workspace_id=node.workspace_id)
                 self._db.add(tag)
                 await self._db.flush()
-                await self._db.refresh(tag)
             tag_ids.append(tag.id)
         await self._db.execute(delete(NodeTag).where(NodeTag.node_id == node.id))
         for tid in tag_ids:
             self._db.add(NodeTag(node_id=node.id, tag_id=tid))
         node.updated_by_user_id = actor_id
-        await self._db.commit()
-        await self._db.refresh(node, attribute_names=["tags"])
-        return node
+        await self._db.flush()
 
     async def increment_views(self, node: Node) -> Node:
         if self._repo:
             return await self._repo.increment_views(node)
         node.views = int(node.views or 0) + 1
         await self._db.commit()
-        await self._db.refresh(node, attribute_names=["tags"])
-        return node
+        loaded = await self.get_by_id(node.id, node.workspace_id)
+        return loaded  # type: ignore[return-value]
 
     async def update_reactions(
         self, node: Node, reaction: str, action: str, actor_id: UUID | None = None
@@ -178,8 +181,8 @@ class NodeRepositoryAdapter(INodeRepository):
         if actor_id:
             node.updated_by_user_id = actor_id
         await self._db.commit()
-        await self._db.refresh(node, attribute_names=["tags"])
-        return node
+        loaded = await self.get_by_id(node.id, node.workspace_id)
+        return loaded  # type: ignore[return-value]
 
     # ------------------------------------------------------------------
     # Bulk operations used by admin services
