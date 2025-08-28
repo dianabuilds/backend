@@ -34,6 +34,27 @@ const getEnv = (...keys: string[]) => {
 const parseList = (value: string | undefined) =>
   value?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
 
+const extractPythonList = (name: string) => {
+  const settingsPath = resolve(rootDir, "apps/backend/app/core/settings.py");
+  const src = readFileSync(settingsPath, "utf-8");
+  const regex = new RegExp(`${name}\\s*=\\s*\\[(.*?)\\]`, "s");
+  const match = src.match(regex);
+  if (!match) return [] as string[];
+  return match[1]
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/#.*/, ""))
+    .map((line) => line.replace(/[",]/g, ""))
+    .map((line) => line.trim())
+    .filter(Boolean);
+};
+
+const unique = <T,>(arr: T[]) => Array.from(new Set(arr));
+
+const defaultMethods = extractPythonList("DEFAULT_CORS_METHODS");
+const defaultHeaders = extractPythonList("DEFAULT_CORS_HEADERS");
+
 const cors = {
   allowOrigins: parseList(
     getEnv("APP_CORS_ALLOW_ORIGINS", "CORS_ALLOW_ORIGINS", "CORS_ALLOWED_ORIGINS"),
@@ -41,12 +62,18 @@ const cors = {
   allowCredentials: /^true$/i.test(
     getEnv("APP_CORS_ALLOW_CREDENTIALS", "CORS_ALLOW_CREDENTIALS") ?? "",
   ),
-  allowMethods: parseList(
-    getEnv("APP_CORS_ALLOW_METHODS", "CORS_ALLOW_METHODS", "CORS_ALLOWED_METHODS"),
-  ),
-  allowHeaders: parseList(
-    getEnv("APP_CORS_ALLOW_HEADERS", "CORS_ALLOW_HEADERS", "CORS_ALLOWED_HEADERS"),
-  ),
+  allowMethods: unique([
+    ...defaultMethods,
+    ...parseList(
+      getEnv("APP_CORS_ALLOW_METHODS", "CORS_ALLOW_METHODS", "CORS_ALLOWED_METHODS"),
+    ),
+  ]),
+  allowHeaders: unique([
+    ...defaultHeaders,
+    ...parseList(
+      getEnv("APP_CORS_ALLOW_HEADERS", "CORS_ALLOW_HEADERS", "CORS_ALLOWED_HEADERS"),
+    ),
+  ]),
 };
 
 const formatArray = (arr: string[]) => `[${arr.map((v) => JSON.stringify(v)).join(", ")}]`;
