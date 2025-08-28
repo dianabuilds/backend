@@ -218,7 +218,9 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     if (recommendable !== "all") params.set("recommendable", recommendable);
     if (limit !== 20) params.set("limit", String(limit));
     if (page > 0) params.set("page", String(page + 1));
-    setSearchParams(params);
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params);
+    }
   }, [
     q,
     nodeType,
@@ -229,6 +231,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     recommendable,
     page,
     limit,
+    searchParams,
     setSearchParams,
   ]);
 
