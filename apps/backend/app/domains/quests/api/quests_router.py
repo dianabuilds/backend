@@ -20,7 +20,6 @@ from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
-from app.domains.quests.application.editor_service import EditorService
 from app.domains.quests.infrastructure.models.quest_models import (
     Quest,
     QuestPurchase,
@@ -28,13 +27,10 @@ from app.domains.quests.infrastructure.models.quest_models import (
 from app.domains.quests.schemas import (
     QuestBuyIn,
     QuestCreate,
-    QuestGraphOut,
     QuestOut,
     QuestProgressOut,
     QuestUpdate,
-    QuestVersionOut,
 )
-from app.domains.quests.versions import latest_version
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.node import NodeOut
 
@@ -100,17 +96,7 @@ async def get_quest(
     except PermissionError:
         raise HTTPException(status_code=403, detail="No access") from None
 
-    quest_out = QuestOut.model_validate(quest, from_attributes=True)
-    ver = await latest_version(db, quest_id=quest.id)
-    if ver:
-        svc = EditorService()
-        _, steps, transitions = await svc.get_version_graph(db, ver.id)
-        quest_out.quest_data = QuestGraphOut(
-            version=QuestVersionOut.model_validate(ver, from_attributes=True),
-            steps=steps,
-            transitions=transitions,
-        )
-    return quest_out
+    return QuestOut.model_validate(quest, from_attributes=True)
 
 
 @router.post("", response_model=QuestOut, summary="Create quest")
