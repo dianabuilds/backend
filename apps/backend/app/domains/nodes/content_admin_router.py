@@ -107,6 +107,12 @@ async def update_node(
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
+    if "quest_data" in payload:
+        raise HTTPException(
+            status_code=422,
+            detail="quest_data is not supported here; use /quests/*",
+        )
+
     svc = NodeService(db, navcache, InAppNotificationPort(db))
     item = await svc.update(
         workspace_id,

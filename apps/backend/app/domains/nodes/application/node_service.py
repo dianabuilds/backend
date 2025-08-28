@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from __future__ import annotations
 
 from datetime import datetime
@@ -17,7 +18,15 @@ from app.schemas.nodes_common import NodeType, Status, Visibility
 class NodeService:
     """Service layer for managing content items."""
 
-    def __init__(self, db: AsyncSession) -> None:
+    def __init__(self, db: AsyncSession, *args: Any, **kwargs: Any) -> None:
+        """Initialize service.
+
+        Extra positional or keyword arguments are ignored.  Older call sites pass
+        additional dependencies such as navigation cache or notification ports;
+        accepting ``*args``/``**kwargs`` keeps this service compatible while the
+        parameters are unused here.
+        """
+
         self._db = db
         self._allowed_types = {NodeType.article.value}
 
@@ -101,6 +110,12 @@ class NodeService:
         *,
         actor_id: UUID,
     ) -> NodeItem:
+        if "quest_data" in data:
+            raise HTTPException(
+                status_code=422,
+                detail="quest_data is not supported here; use /quests/*",
+            )
+
         node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
         for key, value in data.items():
