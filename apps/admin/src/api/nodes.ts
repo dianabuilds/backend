@@ -13,35 +13,6 @@ export interface AdminNodeItem extends NodeOut {
 
 const listCache = new Map<string, { etag: string | null; data: AdminNodeItem[] }>();
 
-function normalizeTags<T extends { tags?: unknown }>(payload: T): T {
-  if (!payload || typeof payload !== "object") return payload;
-  const p = { ...payload } as Record<string, unknown>;
-  const tags = p["tags"] as unknown;
-  if (Array.isArray(tags)) {
-    const normalized = tags
-      .map((t) => {
-        if (typeof t === "string") return t.trim();
-        if (t && typeof t === "object") {
-          const anyT = t as any;
-          return (
-            (typeof anyT.slug === "string" && anyT.slug) ||
-            (typeof anyT.name === "string" && anyT.name) ||
-            (typeof anyT.label === "string" && anyT.label) ||
-            null
-          );
-        }
-        return null;
-      })
-      .filter((v): v is string => typeof v === "string" && v.length > 0);
-    (p as any)["tags"] = normalized;
-    if (normalized.length === 0) {
-      // чтобы не отправлять пустое поле, если оно не нужно
-      delete (p as any)["tags"];
-    }
-  }
-  return p as T;
-}
-
 export interface NodeListParams {
   author?: string;
   tags?: string;
@@ -156,7 +127,7 @@ export async function patchNode(
     type === "article"
       ? `/admin/articles/${encodeURIComponent(id)}`
       : `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
-    normalizeTags(patch),
+    patch,
     { params, signal: opts.signal },
   );
   return res!;
