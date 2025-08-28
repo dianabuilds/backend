@@ -3,7 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from .graph import QuestGraphOut
 
 
 class QuestBase(BaseModel):
@@ -27,11 +29,24 @@ class QuestBase(BaseModel):
     cost_generation: int | None = None
 
 
-class QuestCreate(QuestBase):
+class QuestInputBase(QuestBase):
+    """Base class for quest input models forbidding quest_data usage."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _no_quest_data(cls, data: dict) -> dict:
+        if isinstance(data, dict) and "quest_data" in data:
+            raise ValueError("quest_data field is read-only; use quest graph APIs")
+        return data
+
+
+class QuestCreate(QuestInputBase):
     title: str
 
 
-class QuestUpdate(QuestBase):
+class QuestUpdate(QuestInputBase):
     pass
 
 
@@ -44,6 +59,7 @@ class QuestOut(QuestBase):
     created_at: datetime
     created_by_user_id: UUID | None = None
     updated_by_user_id: UUID | None = None
+    quest_data: QuestGraphOut | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
