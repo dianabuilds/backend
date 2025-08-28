@@ -63,6 +63,6 @@ async def navigation(
 ):
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
-    if not node or not node.is_visible:
+    if not node or not node.is_visible or not node.is_public:
         raise HTTPException(status_code=404, detail="Node not found")
     return await NavigationService().get_navigation(db, node, user, preview)
