@@ -15,6 +15,8 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
+domains_module = importlib.import_module("apps.backend.app.domains")
+sys.modules.setdefault("app.domains", domains_module)
 
 from app.core.db.session import get_db  # noqa: E402
 from app.domains.nodes.application.node_service import NodeService  # noqa: E402
@@ -28,7 +30,7 @@ security_stub.ADMIN_AUTH_RESPONSES = {}
 security_stub.bearer_scheme = None
 security_stub.auth_user = lambda: User(id=uuid.uuid4(), is_premium=False, role="user")
 security_stub.require_ws_editor = lambda workspace_id=None: None
-sys.modules.setdefault("app.security", security_stub)
+sys.modules["app.security"] = security_stub
 
 from app.domains.nodes.content_admin_router import router as nodes_router  # noqa: E402
 

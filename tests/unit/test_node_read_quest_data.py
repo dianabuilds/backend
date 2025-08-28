@@ -15,6 +15,8 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
+domains_module = importlib.import_module("apps.backend.app.domains")
+sys.modules.setdefault("app.domains", domains_module)
 security_stub = types.ModuleType("app.security")
 security_stub.ADMIN_AUTH_RESPONSES = {}
 security_stub.bearer_scheme = lambda: None
@@ -97,7 +99,8 @@ async def test_read_node_returns_quest_data(app_and_session):
         )
         session.add(node)
         item = NodeItem(
-            id=node_id,
+            id=uuid.uuid4(),
+            node_id=node_id,
             workspace_id=ws.id,
             type="quest",
             slug=slug,

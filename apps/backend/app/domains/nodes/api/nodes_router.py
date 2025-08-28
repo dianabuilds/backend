@@ -5,6 +5,7 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -52,6 +53,7 @@ from app.schemas.notification_settings import (
     NodeNotificationSettingsUpdate,
 )
 from app.security import require_ws_guest, require_ws_viewer
+from app.schemas.nodes_common import Status
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -136,10 +138,20 @@ async def read_node(
     node = await repo.get_by_slug(slug, workspace_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    item = await db.get(NodeItem, node.id)
+    res = await db.execute(
+        select(NodeItem)
+        .where(
+            NodeItem.node_id == node.id,
+            NodeItem.status == Status.published,
+        )
+        .order_by(NodeItem.version.desc())
+        .limit(1)
+    )
+    item = res.scalar_one_or_none()
     if item:
         node.node_type = item.type
-        node.quest_data = item.quest_data
+        if item.type == "quest":
+            node.quest_data = item.quest_data
     NodePolicy.ensure_can_view(node, current_user)
     if node.premium_only:
         await require_premium(current_user)
