@@ -8,7 +8,12 @@ import { useUnsavedChanges } from "./useUnsavedChanges";
  * Hook for editing a node with auto‑save and dirty state tracking.
  * Handles loading, manual saving and debounced auto‑saving.
  */
-export function useEditorNode(type: string, id: string, autoSaveDelay = 1000) {
+export function useEditorNode(
+  workspaceId: string,
+  type: string,
+  id: string,
+  autoSaveDelay = 1000,
+) {
   const [data, setData] = useState<NodeOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,14 +27,14 @@ export function useEditorNode(type: string, id: string, autoSaveDelay = 1000) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const node = await getNode(type, id);
+      const node = await getNode(workspaceId, type, id);
       setData(node);
       baseRef.current = node;
       setDirty(false);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, workspaceId]);
 
   useEffect(() => {
     void load();
@@ -63,7 +68,9 @@ export function useEditorNode(type: string, id: string, autoSaveDelay = 1000) {
     abortRef.current = controller;
     setSaving(true);
     try {
-      const updated = await patchNode(type, id, patch, { signal: controller.signal });
+      const updated = await patchNode(workspaceId, type, id, patch, {
+        signal: controller.signal,
+      });
       setData(updated);
       baseRef.current = updated;
       setDirty(false);
@@ -73,7 +80,7 @@ export function useEditorNode(type: string, id: string, autoSaveDelay = 1000) {
       abortRef.current = null;
       setSaving(false);
     }
-  }, [computePatch, data, id, type]);
+  }, [computePatch, data, id, type, workspaceId]);
 
   const scheduleSave = useCallback(() => {
     if (timer.current) window.clearTimeout(timer.current);

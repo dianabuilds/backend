@@ -48,8 +48,8 @@ export default function ContentDashboard() {
     refetch,
     isLoading,
   } = useQuery<NodeItem[]>({
-    queryKey: ["content", "dashboard", "nodes"],
-    queryFn: async () => await listNodes(),
+    queryKey: ["content", "dashboard", "nodes", workspaceId],
+    queryFn: async () => (workspaceId ? await listNodes(workspaceId) : []),
   });
 
   const { data: tags = [] } = useQuery<{ id: string }[]>({
@@ -82,7 +82,7 @@ export default function ContentDashboard() {
 
   const createQuest = async () => {
     const type = "quest";
-    const n = await createNode({ node_type: type });
+    const n = await createNode(workspaceId, { node_type: type });
     const path = workspaceId
       ? `/nodes/${type}/${n.id}?workspace_id=${workspaceId}`
       : `/nodes/${type}/${n.id}`;
@@ -91,7 +91,7 @@ export default function ContentDashboard() {
 
   const createGenericNode = async () => {
     const type = "article";
-    const n = await createNode({ node_type: type });
+    const n = await createNode(workspaceId, { node_type: type });
     const path = workspaceId
       ? `/nodes/${type}/${n.id}?workspace_id=${workspaceId}`
       : `/nodes/${type}/${n.id}`;

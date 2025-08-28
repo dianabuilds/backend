@@ -121,8 +121,7 @@ async def test_bulk_patch_updates_flags(app_and_session):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.patch(
-            "/admin/nodes/bulk",
-            params={"workspace_id": str(ws.id)},
+            f"/admin/workspaces/{ws.id}/nodes/bulk",
             json={
                 "ids": ids,
                 "changes": {
@@ -171,8 +170,7 @@ async def test_bulk_patch_delete(app_and_session):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.patch(
-            "/admin/nodes/bulk",
-            params={"workspace_id": str(ws.id)},
+            f"/admin/workspaces/{ws.id}/nodes/bulk",
             json={"ids": [node_id], "changes": {"delete": True}},
         )
     assert resp.status_code == 200

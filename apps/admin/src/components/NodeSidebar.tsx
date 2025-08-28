@@ -30,6 +30,7 @@ interface NodeSidebarProps {
     coverAlt: string;
     coverMeta: any | null;
   };
+  workspaceId: string;
   onSlugChange?: (slug: string, updatedAt?: string) => void;
   onCoverChange?: (data: CoverChange) => void;
   onStatusChange?: (isPublic: boolean, updatedAt?: string) => void;
@@ -41,6 +42,7 @@ interface NodeSidebarProps {
 
 export default function NodeSidebar({
   node,
+  workspaceId,
   onSlugChange,
   onCoverChange,
   onStatusChange,
@@ -188,7 +190,7 @@ export default function NodeSidebar({
   const runValidation = async () => {
     setValidating(true);
     try {
-      const res = await validateNode(node.nodeType, node.id);
+      const res = await validateNode(workspaceId, node.nodeType, node.id);
       setValidation(res);
       onValidation?.(res);
     } catch {
@@ -203,7 +205,7 @@ export default function NodeSidebar({
     setStatusSaving(true);
     try {
       if (checked) {
-        const res = await validateNode(node.nodeType, node.id);
+      const res = await validateNode(workspaceId, node.nodeType, node.id);
         setValidation(res);
         onValidation?.(res);
         if (!res.ok) {
@@ -211,7 +213,7 @@ export default function NodeSidebar({
           return;
         }
       }
-      const res = await patchNode(node.nodeType, node.id, {
+      const res = await patchNode(workspaceId, node.nodeType, node.id, {
         isPublic: checked,
         updatedAt: node.updatedAt,
       });
@@ -226,7 +228,7 @@ export default function NodeSidebar({
   const handleHiddenChange = async (checked: boolean) => {
     setHiddenSaving(true);
     try {
-      const res = await patchNode(node.nodeType, node.id, {
+      const res = await patchNode(workspaceId, node.nodeType, node.id, {
         isVisible: !checked,
         updatedAt: node.updatedAt,
       });
@@ -243,7 +245,7 @@ export default function NodeSidebar({
     setScheduleSaving(true);
     try {
       const iso = value ? new Date(value).toISOString() : null;
-      const res = await patchNode(node.nodeType, node.id, {
+      const res = await patchNode(workspaceId, node.nodeType, node.id, {
         publishedAt: iso,
         updatedAt: node.updatedAt,
       });
@@ -279,7 +281,7 @@ export default function NodeSidebar({
   const saveSlug = async () => {
     setSlugSaving(true);
     try {
-      const res = await patchNode(node.nodeType, node.id, {
+      const res = await patchNode(workspaceId, node.nodeType, node.id, {
         slug: slugDraft,
         updatedAt: node.updatedAt,
       });

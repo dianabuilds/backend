@@ -57,7 +57,7 @@ export default function NodeEditor() {
           const qs = workspaceId ? `?workspace_id=${workspaceId}` : "";
           navigate(`/nodes/${nodeType}/${id}${qs}`, { replace: true });
         }
-        n = await getNode(nodeType, id);
+        n = await getNode(workspaceId, nodeType, id);
 
         setNode({
           ...n,
@@ -134,7 +134,7 @@ function NodeCreate({
     setCreating(true);
     try {
       const t = nodeType === "article" || nodeType === "quest" ? nodeType : "article";
-      const n = await createNode({ node_type: t, title });
+      const n = await createNode(workspaceId, { node_type: t, title });
       const path = workspaceId
         ? `/nodes/${t}/${n.id}?workspace_id=${workspaceId}`
         : `/nodes/${t}/${n.id}`;
@@ -241,6 +241,7 @@ function NodeCreate({
       async (patch, signal) => {
         try {
           const updated = await patchNode(
+            workspaceId,
             nodeRef.current.nodeType!,
             nodeRef.current.id,
             { ...patch, updatedAt: nodeRef.current.updatedAt },
@@ -554,6 +555,7 @@ function NodeCreate({
             coverAlt: node.coverAlt,
             coverMeta: node.coverMeta,
           }}
+          workspaceId={workspaceId}
           onSlugChange={(slug, updated) =>
             setNode({ ...node, slug, updatedAt: updated ?? node.updatedAt })
           }

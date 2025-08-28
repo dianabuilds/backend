@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { listNodes, type AdminNodeItem } from "../api/nodes";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 
 interface ContentPickerProps {
   onSelect: (item: AdminNodeItem) => void;
@@ -9,16 +10,19 @@ interface ContentPickerProps {
 }
 
 export default function ContentPicker({ onSelect, onClose }: ContentPickerProps) {
+  const { workspaceId } = useWorkspace();
   const [search, setSearch] = useState("");
   const [tag, setTag] = useState("");
 
   const { data: items = [] } = useQuery({
-    queryKey: ["content-picker", search, tag],
+    queryKey: ["content-picker", workspaceId, search, tag],
     queryFn: async () =>
-      listNodes({
-        q: search || undefined,
-        tags: tag || undefined,
-      }),
+      workspaceId
+        ? listNodes(workspaceId, {
+            q: search || undefined,
+            tags: tag || undefined,
+          })
+        : [],
   });
 
   return (

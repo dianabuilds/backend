@@ -62,6 +62,7 @@ export interface NodeSimulatePayload {
 }
 
 export async function listNodes(
+  workspaceId: string,
   params: NodeListParams = {},
 ): Promise<AdminNodeItem[]> {
   const qs = new URLSearchParams();
@@ -70,7 +71,9 @@ export async function listNodes(
       qs.set(key, String(value));
     }
   }
-  const url = `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ""}`;
+  const url = `/admin/workspaces/${encodeURIComponent(
+    workspaceId,
+  )}/nodes${qs.toString() ? `?${qs.toString()}` : ""}`;
   const cacheKey = url;
   const cached = listCache.get(cacheKey);
   const res = (await wsApi.get(url, {
@@ -85,6 +88,7 @@ export async function listNodes(
 }
 
 export async function createNode(
+  workspaceId: string,
   body: { node_type: string; title?: string },
 ): Promise<NodeOut> {
   // Для изолированных нод используем новый алиас /admin/articles
@@ -92,29 +96,34 @@ export async function createNode(
   const payload = body.title ? { title: body.title } : undefined;
   let res: NodeOut;
   if (t === "article") {
-    res = await wsApi.post<typeof payload, NodeOut>(`/admin/articles`, payload);
+    res = await wsApi.post<typeof payload, NodeOut>(
+      `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles`,
+      payload,
+    );
   } else {
     const type = encodeURIComponent(t);
-    res = await wsApi.post<typeof payload, NodeOut>(`/admin/nodes/${type}`, payload);
+    res = await wsApi.post<typeof payload, NodeOut>(
+      `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${type}`,
+      payload,
+    );
   }
   return res;
 }
-
-export async function getNode(id: string): Promise<NodeOut>;
-export async function getNode(type: string, id: string): Promise<NodeOut>;
-export async function getNode(a: string, b?: string): Promise<NodeOut> {
-  let url: string;
-  if (b) {
-    if (a === "article") url = `/admin/articles/${encodeURIComponent(b)}`;
-    else url = `/admin/nodes/${encodeURIComponent(a)}/${encodeURIComponent(b)}`;
-  } else {
-    url = `/admin/nodes/${encodeURIComponent(a)}`;
-  }
+export async function getNode(
+  workspaceId: string,
+  type: string,
+  id: string,
+): Promise<NodeOut> {
+  const url =
+    type === "article"
+      ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}`
+      : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`;
   const res = await wsApi.get<NodeOut>(url);
   return res!;
 }
 
 export async function patchNode(
+  workspaceId: string,
   type: string,
   id: string,
   patch: NodePatchParams,
@@ -125,8 +134,8 @@ export async function patchNode(
   if (opts.next) params.next = 1;
   const res = await wsApi.patch<NodePatchParams, NodeOut, NodePatchQuery>(
     type === "article"
-      ? `/admin/articles/${encodeURIComponent(id)}`
-      : `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
+      ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}`
+      : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
     patch,
     { params, signal: opts.signal },
   );
@@ -134,38 +143,41 @@ export async function patchNode(
 }
 
 export async function publishNode(
+  workspaceId: string,
   type: string,
   id: string,
   body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
   const res = await wsApi.post<NodePublishParams | undefined, NodeOut>(
     type === "article"
-      ? `/admin/articles/${encodeURIComponent(id)}/publish`
-      : `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/publish`,
+      ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}/publish`
+      : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/publish`,
     body,
   );
   return res!;
 }
 
 export async function validateNode(
+  workspaceId: string,
   type: string,
   id: string,
 ): Promise<ValidateResult> {
   const res = await wsApi.post<undefined, ValidateResult>(
     type === "article"
-      ? `/admin/articles/${encodeURIComponent(id)}/validate`
-      : `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
+      ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}/validate`
+      : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
   );
   return res!;
 }
 
 export async function simulateNode(
+  workspaceId: string,
   type: string,
   id: string,
   payload: NodeSimulatePayload,
 ): Promise<any> {
   const res = await wsApi.post<NodeSimulatePayload, any>(
-    `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/simulate`,
+    `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/simulate`,
     payload,
   );
   return res;

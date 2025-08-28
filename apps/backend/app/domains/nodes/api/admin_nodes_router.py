@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal, TypedDict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query, Response
+from fastapi import APIRouter, Depends, Header, Path, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -28,7 +28,9 @@ from app.schemas.workspaces import WorkspaceType
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
-    prefix="/admin/nodes", tags=["admin"], responses=ADMIN_AUTH_RESPONSES
+    prefix="/admin/workspaces/{workspace_id}/nodes",
+    tags=["admin"],
+    responses=ADMIN_AUTH_RESPONSES,
 )
 admin_required = require_admin_role()
 
@@ -62,7 +64,7 @@ class AdminNodeListParams(TypedDict, total=False):
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin)")
 async def list_nodes_admin(
     response: Response,
-    workspace_id: UUID,
+    workspace_id: UUID = Path(...),
     if_none_match: str | None = Header(None, alias="If-None-Match"),
     author: UUID | None = None,
     tags: str | None = Query(None),
@@ -126,7 +128,7 @@ async def list_nodes_admin(
 @router.post("/bulk", summary="Bulk node operations")
 async def bulk_node_operation(
     payload: NodeBulkOperation,
-    workspace_id: UUID,
+    workspace_id: UUID = Path(...),
     current_user=Depends(admin_required),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
@@ -177,7 +179,7 @@ async def bulk_node_operation(
 @router.patch("/bulk", summary="Bulk update nodes")
 async def bulk_patch_nodes(
     payload: NodeBulkPatch,
-    workspace_id: UUID,
+    workspace_id: UUID = Path(...),
     current_user=Depends(admin_required),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
