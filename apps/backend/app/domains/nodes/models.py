@@ -15,6 +15,7 @@ class NodeItem(Base):
     __tablename__ = "content_items"
 
     id = sa.Column(UUID(), primary_key=True, default=uuid4)
+    node_id = sa.Column(UUID(), sa.ForeignKey("nodes.id"), nullable=True, index=True)
     workspace_id = sa.Column(UUID(), sa.ForeignKey("workspaces.id"), nullable=False)
     type = sa.Column(sa.String, nullable=False)
     status = sa.Column(
