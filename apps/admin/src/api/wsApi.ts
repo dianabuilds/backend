@@ -22,30 +22,48 @@ export interface WsRequestOptions<P extends Record<string, unknown> = Record<str
   extends ApiRequestOptions {
   params?: P;
   raw?: boolean;
+  /**
+   * Configure workspace ID handling. By default the workspace ID is injected
+   * into the URL path. Set to `false` to skip any automatic workspace handling
+   * or to `"query"` to append the ID as `workspace_id` query parameter.
+   */
+  workspace?: "path" | "query" | false;
 }
 
 async function request<
   T = unknown,
   P extends Record<string, unknown> = Record<string, never>,
 >(url: string, opts: WsRequestOptions<P> = {}): Promise<T> {
-  const { params, headers: optHeaders, raw, ...rest } = opts as WsRequestOptions<P> & {
+  const { params, headers: optHeaders, raw, workspace = "path", ...rest } = opts as WsRequestOptions<P> & {
     raw?: boolean;
   };
-  const workspaceId = ensureWorkspaceId();
+
+  let workspaceId: string | undefined;
+  if (workspace !== false) {
+    workspaceId = ensureWorkspaceId();
+  }
   const headers: Record<string, string> = {
     ...(optHeaders as Record<string, string> | undefined),
   };
 
   let finalUrl = url;
-  if (finalUrl.startsWith("/admin/") && !finalUrl.startsWith("/admin/workspaces/")) {
-    finalUrl = `/admin/workspaces/${encodeURIComponent(workspaceId)}${finalUrl.slice(
-      "/admin".length,
-    )}`;
+  const finalParams: Record<string, unknown> = { ...(params || {}) };
+
+  if (workspaceId && workspace === "path") {
+    if (finalUrl.startsWith("/admin/") && !finalUrl.startsWith("/admin/workspaces/")) {
+      finalUrl = `/admin/workspaces/${encodeURIComponent(workspaceId)}${finalUrl.slice(
+        "/admin".length,
+      )}`;
+    }
+  } else if (workspaceId && workspace === "query") {
+    if (finalParams.workspace_id === undefined) {
+      finalParams.workspace_id = workspaceId;
+    }
   }
 
-  if (params && Object.keys(params).length > 0) {
+  if (Object.keys(finalParams).length > 0) {
     const qs = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
+    for (const [key, value] of Object.entries(finalParams)) {
       if (value === undefined || value === null) continue;
       if (Array.isArray(value)) {
         for (const v of value) qs.append(key, String(v));
