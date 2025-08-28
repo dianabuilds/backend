@@ -31,6 +31,11 @@ jobs:
         working-directory: apps/admin
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
+      - name: Generate OpenAPI types
+        working-directory: apps/admin
+        run: |
+          npm run generate:types
+          git diff --exit-code
       - name: Cache ESLint results
         uses: actions/cache@v4
         with:

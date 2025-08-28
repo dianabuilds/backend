@@ -86,6 +86,18 @@ export default function QuestVersionEditor() {
   const [dirty, setDirty] = useState(false);
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
 
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, VersionGraph["nodes"][number]>();
+    graph?.nodes.forEach((n) => map.set(n.key, n));
+    return map;
+  }, [graph]);
+
+  const edgeMap = useMemo(() => {
+    const map = new Map<string, VersionGraph["edges"][number]>();
+    graph?.edges.forEach((e) => map.set(`${e.from_node_key}:${e.to_node_key}`, e));
+    return map;
+  }, [graph]);
+
   const load = async () => {
     if (!id) return;
     setErr(null);
@@ -194,11 +206,7 @@ export default function QuestVersionEditor() {
       });
       return;
     }
-    if (
-      graph.edges.some(
-        (e) => e.from_node_key === edgeFrom && e.to_node_key === edgeTo,
-      )
-    ) {
+    if (edgeMap.has(`${edgeFrom}:${edgeTo}`)) {
       addToast({ title: "Такое ребро уже есть", variant: "error" });
       return;
     }
@@ -214,8 +222,7 @@ export default function QuestVersionEditor() {
   };
 
   const startEditNode = (k: string) => {
-    if (!graph) return;
-    const n = graph.nodes.find((x) => x.key === k);
+    const n = nodeMap.get(k);
     if (!n) return;
     const data: NodeEditorData = {
       id: n.key,
