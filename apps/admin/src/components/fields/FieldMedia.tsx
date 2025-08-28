@@ -4,12 +4,12 @@ import TagInput from "../TagInput";
 
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
   value: string[];
-  onChange: (tags: string[]) => void;
+  onChange: (media: string[]) => void;
   error?: string | null;
   description?: string;
 }
 
-export default function FieldTags({
+export default function FieldMedia({
   value,
   onChange,
   id,
@@ -23,7 +23,7 @@ export default function FieldTags({
   return (
     <div>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-900">
-        Tags
+        Media
       </label>
       <TagInput
         id={inputId}
@@ -34,9 +34,13 @@ export default function FieldTags({
         {...rest}
       />
       {error ? (
-        <p id={descId} className="mt-1 text-xs text-red-600">{error}</p>
+        <p id={descId} className="mt-1 text-xs text-red-600">
+          {error}
+        </p>
       ) : description ? (
-        <p id={descId} className="mt-1 text-xs text-gray-600">{description}</p>
+        <p id={descId} className="mt-1 text-xs text-gray-600">
+          {description}
+        </p>
       ) : null}
     </div>
   );
