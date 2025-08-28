@@ -120,6 +120,8 @@ class _Handlers:
         except Exception:
             pass
         try:
+            await navcache.invalidate_navigation_by_node(event.slug)
+            await navcache.invalidate_modes_by_node(event.slug)
             await navcache.invalidate_compass_all()
         except Exception:
             pass
