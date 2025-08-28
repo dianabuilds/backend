@@ -44,10 +44,10 @@ Before promoting a draft to `published`:
 
 - Title and slug are unique within the workspace.
 - Required tags are assigned and follow the taxonomy rules.
-- `POST /admin/nodes/{type}/{id}/validate` returns no blocking issues.
+- `POST /admin/workspaces/{workspace_id}/nodes/{type}/{id}/validate` returns no blocking issues.
 - Cover media and other mandatory fields are set.
 - Peer review is completed (`in_review`).
-- Publish via `POST /admin/nodes/{type}/{id}/publish` and verify in the
+- Publish via `POST /admin/workspaces/{workspace_id}/nodes/{type}/{id}/publish` and verify in the
   dashboard.
 
 ## API routes
@@ -105,41 +105,38 @@ Content-Type: application/json
 
 ### Nodes
 
-Most node routes require a workspace context. It can be provided in three ways:
+Most node routes are namespaced by workspace and use the path prefix
+`/admin/workspaces/{workspace_id}`.
 
-| Mode | Syntax | Example |
-|------|--------|---------|
-| Query parameter | `?workspace_id=<id>` | `GET /admin/nodes?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e` |
-| Path prefix | `/admin/workspaces/{workspace_id}` | `GET /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes` |
-| Header (deprecated) | `X-Workspace-Id: <id>` | `GET /admin/nodes` with header |
+Common endpoints:
 
-Common endpoints and their context modes:
+| Operation | Path |
+|-----------|------|
+| List nodes | `/admin/workspaces/{id}/nodes` |
+| List all nodes | `/admin/workspaces/{id}/nodes/all` |
+| Create node | `POST /admin/workspaces/{id}/nodes/{type}` |
+| Get node | `/admin/workspaces/{id}/nodes/{type}/{id}` |
+| Update node | `/admin/workspaces/{id}/nodes/{type}/{id}` |
+| Publish node | `/admin/workspaces/{id}/nodes/{type}/{id}/publish` |
+| Validate node | `/admin/workspaces/{id}/nodes/{type}/{id}/validate` |
 
-| Operation | Query | Path | Header |
-|-----------|-------|------|--------|
-| List nodes | `/admin/nodes?workspace_id={id}` | `/admin/workspaces/{id}/nodes` | `GET /admin/nodes` + header |
-| List all nodes | `/admin/nodes/all?workspace_id={id}` | `/admin/workspaces/{id}/nodes/all` | `GET /admin/nodes/all` + header |
-| Create node | `POST /admin/nodes/{type}?workspace_id={id}` | `POST /admin/workspaces/{id}/nodes/{type}` | `POST /admin/nodes/{type}` + header |
-| Get node | `GET /admin/nodes/{type}/{id}?workspace_id={id}` | `/admin/workspaces/{id}/nodes/{type}/{id}` | `GET /admin/nodes/{type}/{id}` + header |
-| Update node | `PATCH /admin/nodes/{type}/{id}?workspace_id={id}` | `/admin/workspaces/{id}/nodes/{type}/{id}` | `PATCH /admin/nodes/{type}/{id}` + header |
-| Publish node | `POST /admin/nodes/{type}/{id}/publish?workspace_id={id}` | `/admin/workspaces/{id}/nodes/{type}/{id}/publish` | `POST /admin/nodes/{type}/{id}/publish` + header |
-| Validate node | `POST /admin/nodes/{type}/{id}/validate?workspace_id={id}` | `/admin/workspaces/{id}/nodes/{type}/{id}/validate` | `POST /admin/nodes/{type}/{id}/validate` + header |
-
-- `GET /admin/nodes` – dashboard with counts of drafts, reviews and published
-  items.
-- `GET /admin/nodes/all` – list nodes with optional filters
+- `GET /admin/workspaces/{id}/nodes` – dashboard with counts of drafts, reviews
+  and published items.
+- `GET /admin/workspaces/{id}/nodes/all` – list nodes with optional filters
   (`node_type`, `status`, `tag`).
-- `POST /admin/nodes/{type}` – create a new item of a given `type`.
-- `GET /admin/nodes/{type}/{id}` – fetch a single node item.
-- `PATCH /admin/nodes/{type}/{id}` – update an item.
-- `POST /admin/nodes/{type}/{id}/publish` – mark the item as published.
-- `POST /admin/nodes/{type}/{id}/validate` – run validators and return a
-  report.
+- `POST /admin/workspaces/{id}/nodes/{type}` – create a new item of a given
+  `type`.
+- `GET /admin/workspaces/{id}/nodes/{type}/{id}` – fetch a single node item.
+- `PATCH /admin/workspaces/{id}/nodes/{type}/{id}` – update an item.
+- `POST /admin/workspaces/{id}/nodes/{type}/{id}/publish` – mark the item as
+  published.
+- `POST /admin/workspaces/{id}/nodes/{type}/{id}/validate` – run validators and
+  return a report.
 
 Example listing and creation:
 
 ```bash
-GET /admin/nodes/all?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e&node_type=article
+GET /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/all?node_type=article
 ```
 
 ```json
@@ -158,7 +155,7 @@ GET /admin/nodes/all?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e&node_type
 ```
 
 ```bash
-POST /admin/nodes/article?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e
+POST /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article
 Content-Type: application/json
 
 { "title": "Hello world", "slug": "hello-world" }
@@ -177,7 +174,7 @@ Content-Type: application/json
 Publishing:
 
 ```bash
-POST /admin/nodes/article/42/publish?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7c8de4e
+POST /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article/42/publish
 ```
 
 ```json
@@ -189,11 +186,11 @@ POST /admin/nodes/article/42/publish?workspace_id=8b112b04-1769-44ef-abc6-3c7ce7
 The admin UI communicates with these routes:
 
 - **Workspace selection** – `WorkspaceSelector` fetches `/admin/workspaces` and
-  stores the chosen ID in session storage. The API client automatically appends
-  `workspace_id` to subsequent calls.
-- **Dashboard** – `ContentDashboard` calls `/admin/nodes` to show counts of
+  stores the chosen ID in session storage. The API client automatically
+  prefixes requests with `/admin/workspaces/{id}`.
+- **Dashboard** – `ContentDashboard` calls `/admin/workspaces/{id}/nodes` to show counts of
   drafts, reviews and published items.
-- **Content list** – `ContentAll` uses `/admin/nodes/all` with filters for type,
+- **Content list** – `ContentAll` uses `/admin/workspaces/{id}/nodes/all` with filters for type,
   status and tag.
 - **Tag management** – `TagMerge` and other components operate on tags using the
   standard admin tag endpoints.

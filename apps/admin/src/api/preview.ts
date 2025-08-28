@@ -30,9 +30,12 @@ export interface SimulatePreviewResponse {
 export async function simulatePreview(
   body: SimulatePreviewRequest,
 ): Promise<SimulatePreviewResponse> {
+  const { workspace_id, ...payload } = body;
   const res = await api.post<SimulatePreviewResponse>(
-    "/admin/preview/transitions/simulate",
-    body,
+    `/admin/workspaces/${encodeURIComponent(
+      workspace_id,
+    )}/preview/transitions/simulate`,
+    payload,
   );
   return res.data ?? {};
 }
@@ -44,9 +47,10 @@ export interface PreviewLinkResponse {
 export async function createPreviewLink(
   workspace_id: string,
 ): Promise<PreviewLinkResponse> {
-  const res = await api.post<PreviewLinkResponse>("/admin/preview/link", {
-    workspace_id,
-  });
+  const res = await api.post<PreviewLinkResponse>(
+    `/admin/workspaces/${encodeURIComponent(workspace_id)}/preview/link`,
+    {},
+  );
   return res.data as PreviewLinkResponse;
 }
 
