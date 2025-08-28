@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import {
@@ -15,6 +15,8 @@ import ContentEditor from "../components/content/ContentEditor";
 import GraphCanvas from "../components/GraphCanvas";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { useToast } from "../components/ToastProvider";
+import ContentPicker from "../components/ContentPicker";
+import PlaythroughPanel from "../components/PlaythroughPanel";
 import type { OutputData } from "../types/editorjs";
 import PageLayout from "./_shared/PageLayout";
 
@@ -31,7 +33,8 @@ interface NodeEditorData {
 }
 
 export default function QuestVersionEditor() {
-  const { id } = useParams<{ id: string }>();
+  const { id: questId, versionId: id } =
+    useParams<{ id: string; versionId: string }>();
   const [graph, setGraph] = useState<VersionGraph | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [nodeKey, setNodeKey] = useState("");
@@ -78,6 +81,11 @@ export default function QuestVersionEditor() {
   const [savingNode, setSavingNode] = useState(false);
   const { addToast } = useToast();
 
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [showSim, setShowSim] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
+
   const load = async () => {
     if (!id) return;
     setErr(null);
@@ -85,9 +93,10 @@ export default function QuestVersionEditor() {
       const v = await getVersion(id);
       setGraph(v);
       // подгружаем мету квеста
-      if (v.version.quest_id) {
+      const qid = questId || v.version.quest_id;
+      if (qid) {
         try {
-          const m = await getQuestMeta(v.version.quest_id);
+          const m = await getQuestMeta(qid);
           setMeta({
             title: m.title ?? "",
             subtitle: m.subtitle ?? "",
@@ -110,6 +119,35 @@ export default function QuestVersionEditor() {
   useEffect(() => {
     load();
   }, [id]);
+
+  useEffect(() => {
+    if (!graph || !id) return;
+    setDirty(true);
+    if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+    autoSaveRef.current = setTimeout(async () => {
+      try {
+        await putGraph(id, graph);
+        setLastSavedAt(new Date().toLocaleTimeString());
+        setDirty(false);
+      } catch (e) {
+        console.warn("Auto-save failed", e);
+      }
+    }, 2000);
+    return () => {
+      if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+    };
+  }, [graph, id]);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   const slugify = (s: string) =>
     s
@@ -285,6 +323,7 @@ export default function QuestVersionEditor() {
       setValidate(res);
       const ts = new Date().toLocaleTimeString();
       setLastSavedAt(ts);
+      setDirty(false);
       if (!res.ok) {
         addToast({
           title: "Validation failed",
@@ -359,6 +398,12 @@ export default function QuestVersionEditor() {
             disabled={savingGraph}
           >
             {savingGraph ? "Saving…" : "Save & Validate"}
+          </button>
+          <button
+            className="px-3 py-1 rounded border"
+            onClick={() => setShowSim((v) => !v)}
+          >
+            {showSim ? "Close Sim" : "Simulate"}
           </button>
           <button
             className="px-3 py-1 rounded bg-green-600 text-white"
@@ -533,6 +578,12 @@ export default function QuestVersionEditor() {
                   value={nodeTitle}
                   onChange={(e) => setNodeTitle(e.target.value)}
                 />
+                <button
+                  className="px-3 py-1 rounded border"
+                  onClick={() => setPickerOpen(true)}
+                >
+                  Pick
+                </button>
                 <select
                   className="border rounded px-2 py-1"
                   value={graph && graph.nodes.length === 0 ? "start" : nodeType}
@@ -871,6 +922,28 @@ export default function QuestVersionEditor() {
                 height={520}
               />
             </div>
+          </div>
+          {showSim && (
+            <div className="col-span-3">
+              <PlaythroughPanel
+                graph={graph}
+                onOpenNode={(k) => startEditNode(k)}
+              />
+            </div>
+          )}
+        </div>
+      )}
+      {pickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white w-full max-w-lg">
+            <ContentPicker
+              onSelect={(item) => {
+                setNodeKey(item.slug);
+                setNodeTitle(item.title || item.slug);
+                setPickerOpen(false);
+              }}
+              onClose={() => setPickerOpen(false)}
+            />
           </div>
         </div>
       )}

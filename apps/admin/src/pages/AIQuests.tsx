@@ -332,7 +332,7 @@ export default function AIQuests() {
     async (questId: string) => {
       try {
         const ver = await createDraft(questId);
-        nav(`/quests/version/${ver}`);
+        nav(`/quests/${questId}/versions/${ver}`);
       } catch (e) {
         alert(e instanceof Error ? e.message : String(e));
       }

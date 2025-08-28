@@ -198,9 +198,9 @@ export default function AIQuestJobDetails() {
                 ) : null}
               </div>
               <div className="mt-3 flex gap-2">
-                {data.job.result_version_id ? (
+                {data.job.result_version_id && data.job.result_quest_id ? (
                   <Link
-                    to={`/quests/version/${data.job.result_version_id}`}
+                    to={`/quests/${data.job.result_quest_id}/versions/${data.job.result_version_id}`}
                     className="text-sm px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
                   >
                     Открыть версию

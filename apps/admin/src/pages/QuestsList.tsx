@@ -128,7 +128,7 @@ export default function QuestsList() {
       }
       // Обновим список квестов и сразу откроем редактор
       await refetch();
-      nav(`/quests/version/${ver}`);
+      nav(`/quests/${id}/versions/${ver}`);
     } catch (e) {
       console.error("New quest flow failed:", e);
       const msg = e instanceof Error ? e.message : String(e);
@@ -146,7 +146,7 @@ export default function QuestsList() {
         );
         return;
       }
-      nav(`/quests/version/${ver}`);
+      nav(`/quests/${id}/versions/${ver}`);
     } catch (e) {
       console.error("Create draft failed:", e);
       alert(

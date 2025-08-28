@@ -31,6 +31,7 @@ import Notifications from "./pages/Notifications";
 import Simulation from "./pages/Simulation";
 import Profile from "./pages/Profile";
 import Quests from "./pages/Quests";
+import QuestEditor from "./pages/QuestEditor";
 import NodeEditor from "./pages/NodeEditor";
 import NodeDiff from "./pages/NodeDiff";
 import QuestVersionEditor from "./pages/QuestVersionEditor";
@@ -138,8 +139,9 @@ export default function App() {
                       />
                       <Route path="profile" element={<Profile />} />
                       <Route path="quests" element={<Quests />} />
+                      <Route path="quests/:id" element={<QuestEditor />} />
                       <Route
-                        path="quests/version/:id"
+                        path="quests/:id/versions/:versionId"
                         element={<QuestVersionEditor />}
                       />
                       <Route
