@@ -5,6 +5,7 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -54,6 +55,7 @@ from app.schemas.notification_settings import (
 )
 from app.security import require_ws_guest, require_ws_viewer
 from app.schemas.nodes_common import Status
+from app.core.feature_flags import get_effective_flags
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -151,6 +153,14 @@ async def read_node(
     if item:
         node.node_type = item.type
         if item.type == "quest":
+            flags = await get_effective_flags(
+                db, request.headers.get("X-Preview-Flags")
+            )
+            if "quests.nodes_redirect" in flags:
+                return RedirectResponse(
+                    url=f"/quests/{node.id}/versions/current?workspace_id={workspace_id}",
+                    status_code=307,
+                )
             node.quest_data = item.quest_data
     NodePolicy.ensure_can_view(node, current_user)
     if node.premium_only:
