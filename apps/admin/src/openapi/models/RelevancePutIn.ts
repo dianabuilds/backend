@@ -2,9 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { RelevancePayloadInput } from './RelevancePayloadInput';
+import type { RelevancePayload } from './RelevancePayload';
 export type RelevancePutIn = {
-    payload: RelevancePayloadInput;
+    payload: RelevancePayload;
     dryRun?: boolean;
     sample?: Array<string>;
     comment?: (string | null);

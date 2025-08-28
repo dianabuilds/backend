@@ -2,10 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { RelevancePayloadOutput } from './RelevancePayloadOutput';
+import type { RelevancePayload } from './RelevancePayload';
 export type RelevanceGetOut = {
     version: number;
-    payload: RelevancePayloadOutput;
+    payload: RelevancePayload;
     updated_at: string;
 };
 

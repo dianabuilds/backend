@@ -10,5 +10,8 @@ export type GenerateQuestIn = {
     genre: string;
     locale?: (string | null);
     extras?: (Record<string, any> | null);
+    model?: (string | null);
+    remember?: boolean;
+    workspace_id?: (string | null);
 };
 

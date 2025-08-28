@@ -1,18 +1,13 @@
-// @ts-nocheck
 import { memo, useEffect, useMemo } from "react";
+import type { NodeCreate } from "../openapi";
 import EditorJSEmbed from "./EditorJSEmbed";
 import ImageDropzone from "./ImageDropzone";
 import TagInput from "./TagInput";
 
-export interface NodeEditorData {
+export interface NodeEditorData extends Partial<NodeCreate> {
   id: string;
-  title: string;
   subtitle?: string;
-  cover_url?: string | null;
-  tags?: string[];
-  allow_comments?: boolean;
-  is_premium_only?: boolean;
-  contentData: any;
+  content: any;
 }
 
 interface Props {
@@ -97,8 +92,8 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
               <div>
                 <h4 className="font-semibold mb-2">Изображение</h4>
                 <ImageDropzone
-                  value={node.cover_url || null}
-                  onChange={(url) => onChange({ cover_url: url })}
+                  value={node.coverUrl || null}
+                  onChange={(url) => onChange({ coverUrl: url })}
                   height={160}
                 />
               </div>
@@ -112,16 +107,16 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={!!node.allow_comments}
-                  onChange={(e) => onChange({ allow_comments: e.target.checked })}
+                  checked={!!node.allowFeedback}
+                  onChange={(e) => onChange({ allowFeedback: e.target.checked })}
                 />
                 <span>💬 Разрешить комментарии</span>
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={!!node.is_premium_only}
-                  onChange={(e) => onChange({ is_premium_only: e.target.checked })}
+                  checked={!!node.premiumOnly}
+                  onChange={(e) => onChange({ premiumOnly: e.target.checked })}
                 />
                 <span>⭐ Только для премиум</span>
               </label>
@@ -133,8 +128,8 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
             <h3 className="font-semibold mb-3">Контент</h3>
             <EditorJSEmbed
               key={node.id}
-              value={node.contentData}
-              onChange={(data) => onChange({ contentData: data })}
+              value={node.content}
+              onChange={(data) => onChange({ content: data })}
               className="border rounded"
               minHeight={480}
               placeholder="Напишите описание, легенду или сценарий пещеры…"

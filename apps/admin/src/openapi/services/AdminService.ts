@@ -2,12 +2,15 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AchievementAdminOut } from '../models/AchievementAdminOut';
+import type { AchievementCreateIn } from '../models/AchievementCreateIn';
+import type { AchievementUpdateIn } from '../models/AchievementUpdateIn';
 import type { AdminEchoTraceOut } from '../models/AdminEchoTraceOut';
 import type { AdminTransitionOut } from '../models/AdminTransitionOut';
 import type { AdminUserOut } from '../models/AdminUserOut';
+import type { app__domains__navigation__api__admin_transitions_simulate__SimulateRequest } from '../models/app__domains__navigation__api__admin_transitions_simulate__SimulateRequest';
+import type { app__domains__navigation__api__preview_router__SimulateRequest } from '../models/app__domains__navigation__api__preview_router__SimulateRequest';
 import type { AuditLogOut } from '../models/AuditLogOut';
-import type { AutofixReport } from '../models/AutofixReport';
-import type { AutofixRequest } from '../models/AutofixRequest';
 import type { Body_embedding_test_admin_embedding_test_post } from '../models/Body_embedding_test_admin_embedding_test_post';
 import type { BroadcastCreate } from '../models/BroadcastCreate';
 import type { BulkIds } from '../models/BulkIds';
@@ -21,16 +24,25 @@ import type { GenerationEnqueued } from '../models/GenerationEnqueued';
 import type { GenerationJobOut } from '../models/GenerationJobOut';
 import type { InvalidatePatternRequest } from '../models/InvalidatePatternRequest';
 import type { MetricsSummary } from '../models/MetricsSummary';
+import type { NavigationCacheInvalidateRequest } from '../models/NavigationCacheInvalidateRequest';
+import type { NavigationCacheSetRequest } from '../models/NavigationCacheSetRequest';
+import type { NavigationRunRequest } from '../models/NavigationRunRequest';
 import type { NodeBulkOperation } from '../models/NodeBulkOperation';
+import type { NodeBulkPatch } from '../models/NodeBulkPatch';
 import type { NodeOut } from '../models/NodeOut';
+import type { NodePatchCreate } from '../models/NodePatchCreate';
+import type { NodePatchDiffOut } from '../models/NodePatchDiffOut';
+import type { NodePatchOut } from '../models/NodePatchOut';
 import type { NodeTransitionType } from '../models/NodeTransitionType';
 import type { NodeTransitionUpdate } from '../models/NodeTransitionUpdate';
+import type { NodeType } from '../models/NodeType';
 import type { PopularityRecomputeRequest } from '../models/PopularityRecomputeRequest';
-import type { PublishRequest } from '../models/PublishRequest';
+import type { PreviewLinkRequest } from '../models/PreviewLinkRequest';
+import type { PublishIn } from '../models/PublishIn';
 import type { QuestCreateIn } from '../models/QuestCreateIn';
-import type { QuestOut } from '../models/QuestOut';
+import type { QuestGraphIn } from '../models/QuestGraphIn';
+import type { QuestGraphOut } from '../models/QuestGraphOut';
 import type { QuestSummary } from '../models/QuestSummary';
-import type { QuestUpdate } from '../models/QuestUpdate';
 import type { RateLimitDisablePayload } from '../models/RateLimitDisablePayload';
 import type { RelevanceApplyOut } from '../models/RelevanceApplyOut';
 import type { RelevanceGetOut } from '../models/RelevanceGetOut';
@@ -46,23 +58,92 @@ import type { SimulateResult } from '../models/SimulateResult';
 import type { SubscriptionPlanIn } from '../models/SubscriptionPlanIn';
 import type { SubscriptionPlanOut } from '../models/SubscriptionPlanOut';
 import type { TransitionDisableRequest } from '../models/TransitionDisableRequest';
+import type { UserIdIn } from '../models/UserIdIn';
 import type { UserPremiumUpdate } from '../models/UserPremiumUpdate';
 import type { UserRoleUpdate } from '../models/UserRoleUpdate';
 import type { ValidateResult } from '../models/ValidateResult';
-import type { ValidationReport } from '../models/ValidationReport';
-import type { VersionGraphInput } from '../models/VersionGraphInput';
-import type { VersionGraphOutput } from '../models/VersionGraphOutput';
-import type { WorkspaceIn } from '../models/WorkspaceIn';
-import type { WorkspaceMemberIn } from '../models/WorkspaceMemberIn';
-import type { WorkspaceMemberOut } from '../models/WorkspaceMemberOut';
-import type { WorkspaceOut } from '../models/WorkspaceOut';
-import type { WorkspaceUpdate } from '../models/WorkspaceUpdate';
 import type { WorldTemplateIn } from '../models/WorldTemplateIn';
 import type { WorldTemplateOut } from '../models/WorldTemplateOut';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AdminService {
+    /**
+     * Get Cors Config
+     * Return CORS configuration used by the application.
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getCorsConfigAdminOpsCorsGet(): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/ops/cors',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+            },
+        });
+    }
+    /**
+     * Get Alerts
+     * Return active alerts for operational dashboard.
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getAlertsAdminOpsAlertsGet(): CancelablePromise<Record<string, Array<Record<string, any>>>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/ops/alerts',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+            },
+        });
+    }
+    /**
+     * Get Status
+     * @param workspaceId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getStatusAdminOpsStatusGet(
+        workspaceId?: (string | null),
+    ): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/ops/status',
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Limits
+     * @param workspaceId
+     * @returns number Successful Response
+     * @throws ApiError
+     */
+    public static getLimitsAdminOpsLimitsGet(
+        workspaceId?: (string | null),
+    ): CancelablePromise<Record<string, number>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/ops/limits',
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * List world templates
      * @returns any Successful Response
@@ -407,16 +488,21 @@ export class AdminService {
     }
     /**
      * Create a quest (skeleton)
+     * @param workspaceId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
     public static createQuestAdminQuestsCreatePost(
+        workspaceId: string,
         requestBody: QuestCreateIn,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/quests/create',
+            query: {
+                'workspace_id': workspaceId,
+            },
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -429,17 +515,22 @@ export class AdminService {
     /**
      * Quest with versions
      * @param questId
+     * @param workspaceId
      * @returns QuestSummary Successful Response
      * @throws ApiError
      */
     public static getQuestAdminQuestsQuestIdGet(
         questId: string,
+        workspaceId: string,
     ): CancelablePromise<QuestSummary> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/quests/{quest_id}',
             path: {
                 'quest_id': questId,
+            },
+            query: {
+                'workspace_id': workspaceId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -451,17 +542,22 @@ export class AdminService {
     /**
      * Create a draft version
      * @param questId
+     * @param workspaceId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static createDraftAdminQuestsQuestIdDraftPost(
         questId: string,
+        workspaceId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/quests/{quest_id}/draft',
             path: {
                 'quest_id': questId,
+            },
+            query: {
+                'workspace_id': workspaceId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -473,12 +569,12 @@ export class AdminService {
     /**
      * Get version graph
      * @param versionId
-     * @returns VersionGraphOutput Successful Response
+     * @returns QuestGraphOut Successful Response
      * @throws ApiError
      */
     public static getVersionAdminQuestsVersionsVersionIdGet(
         versionId: string,
-    ): CancelablePromise<VersionGraphOutput> {
+    ): CancelablePromise<QuestGraphOut> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/quests/versions/{version_id}',
@@ -495,17 +591,22 @@ export class AdminService {
     /**
      * Delete draft version
      * @param versionId
+     * @param workspaceId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static deleteDraftAdminQuestsVersionsVersionIdDelete(
         versionId: string,
+        workspaceId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/admin/quests/versions/{version_id}',
             path: {
                 'version_id': versionId,
+            },
+            query: {
+                'workspace_id': workspaceId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -523,7 +624,7 @@ export class AdminService {
      */
     public static putGraphAdminQuestsVersionsVersionIdGraphPut(
         versionId: string,
-        requestBody: VersionGraphInput,
+        requestBody: QuestGraphIn,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PUT',
@@ -543,17 +644,22 @@ export class AdminService {
     /**
      * Validate graph
      * @param versionId
+     * @param workspaceId
      * @returns ValidateResult Successful Response
      * @throws ApiError
      */
     public static validateVersionAdminQuestsVersionsVersionIdValidatePost(
         versionId: string,
+        workspaceId: string,
     ): CancelablePromise<ValidateResult> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/quests/versions/{version_id}/validate',
             path: {
                 'version_id': versionId,
+            },
+            query: {
+                'workspace_id': workspaceId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -587,17 +693,22 @@ export class AdminService {
     /**
      * Publish version
      * @param versionId
+     * @param workspaceId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static publishVersionAdminQuestsVersionsVersionIdPublishPost(
         versionId: string,
+        workspaceId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/quests/versions/{version_id}/publish',
             path: {
                 'version_id': versionId,
+            },
+            query: {
+                'workspace_id': workspaceId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -631,12 +742,14 @@ export class AdminService {
     /**
      * Simulate run
      * @param versionId
+     * @param workspaceId
      * @param requestBody
      * @returns SimulateResult Successful Response
      * @throws ApiError
      */
     public static simulateVersionAdminQuestsVersionsVersionIdSimulatePost(
         versionId: string,
+        workspaceId: string,
         requestBody: SimulateIn,
     ): CancelablePromise<SimulateResult> {
         return __request(OpenAPI, {
@@ -645,6 +758,9 @@ export class AdminService {
             path: {
                 'version_id': versionId,
             },
+            query: {
+                'workspace_id': workspaceId,
+            },
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -655,209 +771,253 @@ export class AdminService {
         });
     }
     /**
-     * Admin list quests with filters
-     * @param workspaceId
-     * @param q
-     * @param authorRole
-     * @param authorId
-     * @param draft
-     * @param deleted
-     * @param freeOnly
-     * @param premiumOnly
-     * @param length
-     * @param createdFrom
-     * @param createdTo
-     * @param sortBy
-     * @param page
-     * @param perPage
-     * @returns QuestOut Successful Response
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
      * @throws ApiError
      */
-    public static adminListQuestsAdminQuestsGet(
-        workspaceId: string,
-        q?: (string | null),
-        authorRole?: (string | null),
-        authorId?: (string | null),
-        draft?: (boolean | null),
-        deleted?: (boolean | null),
-        freeOnly: boolean = false,
-        premiumOnly: boolean = false,
-        length?: (string | null),
-        createdFrom?: (string | null),
-        createdTo?: (string | null),
-        sortBy: string = 'new',
-        page: number = 1,
-        perPage: number = 20,
-    ): CancelablePromise<Array<QuestOut>> {
+    public static redirectQuestsAdminQuestsPathPatch(
+        path: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/admin/quests/{path}',
+            path: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPathPatch1(
+        path: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/admin/quests/{path}',
+            path: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPathPatch2(
+        path: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/admin/quests/{path}',
+            path: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPathPatch3(
+        path: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/quests/{path}',
+            path: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPathPatch4(
+        path: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'OPTIONS',
+            url: '/admin/quests/{path}',
+            path: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPathPatch5(
+        path: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/quests/{path}',
+            path: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPatch(
+        path: string = '',
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/admin/quests',
+            query: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPatch1(
+        path: string = '',
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/admin/quests',
+            query: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPatch2(
+        path: string = '',
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/admin/quests',
+            query: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPatch3(
+        path: string = '',
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/quests',
+            query: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPatch4(
+        path: string = '',
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'OPTIONS',
+            url: '/admin/quests',
+            query: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Redirect Quests
+     * Redirect legacy quest admin requests to node endpoints.
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static redirectQuestsAdminQuestsPatch5(
+        path: string = '',
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/quests',
             query: {
-                'workspace_id': workspaceId,
-                'q': q,
-                'author_role': authorRole,
-                'author_id': authorId,
-                'draft': draft,
-                'deleted': deleted,
-                'free_only': freeOnly,
-                'premium_only': premiumOnly,
-                'length': length,
-                'created_from': createdFrom,
-                'created_to': createdTo,
-                'sort_by': sortBy,
-                'page': page,
-                'per_page': perPage,
+                'path': path,
             },
             errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get quest metadata
-     * @param questId
-     * @param workspaceId
-     * @returns QuestOut Successful Response
-     * @throws ApiError
-     */
-    public static getQuestMetaAdminQuestsQuestIdMetaGet(
-        questId: string,
-        workspaceId: string,
-    ): CancelablePromise<QuestOut> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/admin/quests/{quest_id}/meta',
-            path: {
-                'quest_id': questId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update quest metadata
-     * @param questId
-     * @param workspaceId
-     * @param requestBody
-     * @returns QuestOut Successful Response
-     * @throws ApiError
-     */
-    public static patchQuestMetaAdminQuestsQuestIdMetaPatch(
-        questId: string,
-        workspaceId: string,
-        requestBody: QuestUpdate,
-    ): CancelablePromise<QuestOut> {
-        return __request(OpenAPI, {
-            method: 'PATCH',
-            url: '/admin/quests/{quest_id}/meta',
-            path: {
-                'quest_id': questId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Validate quest
-     * @param questId
-     * @param workspaceId
-     * @returns ValidationReport Successful Response
-     * @throws ApiError
-     */
-    public static getQuestValidationAdminQuestsQuestIdValidationGet(
-        questId: string,
-        workspaceId: string,
-    ): CancelablePromise<ValidationReport> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/admin/quests/{quest_id}/validation',
-            path: {
-                'quest_id': questId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Apply autofix to quest
-     * @param questId
-     * @param workspaceId
-     * @param requestBody
-     * @returns AutofixReport Successful Response
-     * @throws ApiError
-     */
-    public static postQuestAutofixAdminQuestsQuestIdAutofixPost(
-        questId: string,
-        workspaceId: string,
-        requestBody: AutofixRequest,
-    ): CancelablePromise<AutofixReport> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/admin/quests/{quest_id}/autofix',
-            path: {
-                'quest_id': questId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Publish quest
-     * @param questId
-     * @param workspaceId
-     * @param requestBody
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static postQuestPublishAdminQuestsQuestIdPublishPost(
-        questId: string,
-        workspaceId: string,
-        requestBody: PublishRequest,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/admin/quests/{quest_id}/publish',
-            path: {
-                'quest_id': questId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
                 422: `Validation Error`,
             },
         });
@@ -1147,6 +1307,294 @@ export class AdminService {
         });
     }
     /**
+     * List achievements (admin)
+     * @param workspaceId
+     * @returns AchievementAdminOut Successful Response
+     * @throws ApiError
+     */
+    public static listAchievementsAdminAdminAchievementsGet(
+        workspaceId: string,
+    ): CancelablePromise<Array<AchievementAdminOut>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/achievements',
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create achievement
+     * @param workspaceId
+     * @param requestBody
+     * @returns AchievementAdminOut Successful Response
+     * @throws ApiError
+     */
+    public static createAchievementAdminAdminAchievementsPost(
+        workspaceId: string,
+        requestBody: AchievementCreateIn,
+    ): CancelablePromise<AchievementAdminOut> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/achievements',
+            query: {
+                'workspace_id': workspaceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update achievement
+     * @param achievementId
+     * @param workspaceId
+     * @param requestBody
+     * @returns AchievementAdminOut Successful Response
+     * @throws ApiError
+     */
+    public static updateAchievementAdminAdminAchievementsAchievementIdPatch(
+        achievementId: string,
+        workspaceId: string,
+        requestBody: AchievementUpdateIn,
+    ): CancelablePromise<AchievementAdminOut> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/admin/achievements/{achievement_id}',
+            path: {
+                'achievement_id': achievementId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete achievement
+     * @param achievementId
+     * @param workspaceId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deleteAchievementAdminAdminAchievementsAchievementIdDelete(
+        achievementId: string,
+        workspaceId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/admin/achievements/{achievement_id}',
+            path: {
+                'achievement_id': achievementId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Grant achievement to user
+     * @param achievementId
+     * @param workspaceId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static grantAchievementAdminAchievementsAchievementIdGrantPost(
+        achievementId: string,
+        workspaceId: string,
+        requestBody: UserIdIn,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/achievements/{achievement_id}/grant',
+            path: {
+                'achievement_id': achievementId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Revoke achievement from user
+     * @param achievementId
+     * @param workspaceId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static revokeAchievementAdminAchievementsAchievementIdRevokePost(
+        achievementId: string,
+        workspaceId: string,
+        requestBody: UserIdIn,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/achievements/{achievement_id}/revoke',
+            path: {
+                'achievement_id': achievementId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Run navigation generation
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static runNavigationAdminNavigationRunPost(
+        requestBody: NavigationRunRequest,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/navigation/run',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Set navigation cache
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static setCacheAdminNavigationCacheSetPost(
+        requestBody: NavigationCacheSetRequest,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/navigation/cache/set',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Invalidate navigation cache
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static invalidateCacheAdminNavigationCacheInvalidatePost(
+        requestBody: NavigationCacheInvalidateRequest,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/navigation/cache/invalidate',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * pgvector status
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static pgvectorStatusAdminNavigationPgvectorStatusGet(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/navigation/pgvector/status',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+            },
+        });
+    }
+    /**
+     * Create Preview Link
+     * @param requestBody
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static createPreviewLinkAdminPreviewLinkPost(
+        requestBody: PreviewLinkRequest,
+    ): CancelablePromise<Record<string, string>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/preview/link',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Simulate transitions with preview
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static simulateTransitionsAdminPreviewTransitionsSimulatePost(
+        requestBody: app__domains__navigation__api__preview_router__SimulateRequest,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/preview/transitions/simulate',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get admin menu
      * @returns any Successful Response
      * @throws ApiError
@@ -1269,6 +1717,93 @@ export class AdminService {
         });
     }
     /**
+     * List node patches
+     * @param nodeId
+     * @returns NodePatchDiffOut Successful Response
+     * @throws ApiError
+     */
+    public static listPatchesAdminHotfixPatchesGet(
+        nodeId?: (string | null),
+    ): CancelablePromise<Array<NodePatchDiffOut>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/hotfix/patches',
+            query: {
+                'node_id': nodeId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create node patch
+     * @param requestBody
+     * @returns NodePatchOut Successful Response
+     * @throws ApiError
+     */
+    public static createPatchAdminHotfixPatchesPost(
+        requestBody: NodePatchCreate,
+    ): CancelablePromise<NodePatchOut> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/hotfix/patches',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Revert patch
+     * @param patchId
+     * @returns NodePatchOut Successful Response
+     * @throws ApiError
+     */
+    public static revertPatchAdminHotfixPatchesPatchIdRevertPost(
+        patchId: string,
+    ): CancelablePromise<NodePatchOut> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/hotfix/patches/{patch_id}/revert',
+            path: {
+                'patch_id': patchId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get patch
+     * @param patchId
+     * @returns NodePatchDiffOut Successful Response
+     * @throws ApiError
+     */
+    public static getPatchAdminHotfixPatchesPatchIdGet(
+        patchId: string,
+    ): CancelablePromise<NodePatchDiffOut> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/hotfix/patches/{patch_id}',
+            path: {
+                'patch_id': patchId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * List users
      * @param q
      * @param role
@@ -1358,34 +1893,34 @@ export class AdminService {
         });
     }
     /**
-     * List workspaces
-     * @returns WorkspaceOut Successful Response
+     * List nodes by type
+     * @param nodeType
+     * @param workspaceId
+     * @param page
+     * @param perPage
+     * @param q
+     * @returns any Successful Response
      * @throws ApiError
      */
-    public static listWorkspacesAdminWorkspacesGet(): CancelablePromise<Array<WorkspaceOut>> {
+    public static listNodesAdminNodesNodeTypeGet(
+        nodeType: NodeType,
+        workspaceId: string,
+        page: number = 1,
+        perPage: number = 10,
+        q?: (string | null),
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
+            url: '/admin/nodes/{node_type}',
+            path: {
+                'node_type': nodeType,
             },
-        });
-    }
-    /**
-     * Create workspace
-     * @param requestBody
-     * @returns WorkspaceOut Successful Response
-     * @throws ApiError
-     */
-    public static createWorkspaceAdminWorkspacesPost(
-        requestBody: WorkspaceIn,
-    ): CancelablePromise<WorkspaceOut> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/admin/workspaces',
-            body: requestBody,
-            mediaType: 'application/json',
+            query: {
+                'workspace_id': workspaceId,
+                'page': page,
+                'per_page': perPage,
+                'q': q,
+            },
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
@@ -1394,18 +1929,53 @@ export class AdminService {
         });
     }
     /**
-     * Get workspace
+     * Create node item
+     * @param nodeType
      * @param workspaceId
-     * @returns WorkspaceOut Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
-    public static getWorkspaceAdminWorkspacesWorkspaceIdGet(
+    public static createNodeAdminNodesNodeTypePost(
+        nodeType: NodeType,
         workspaceId: string,
-    ): CancelablePromise<WorkspaceOut> {
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/nodes/{node_type}',
+            path: {
+                'node_type': nodeType,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get node item
+     * @param nodeType
+     * @param nodeId
+     * @param workspaceId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getNodeAdminNodesNodeTypeNodeIdGet(
+        nodeType: NodeType,
+        nodeId: string,
+        workspaceId: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}',
+            url: '/admin/nodes/{node_type}/{node_id}',
             path: {
+                'node_type': nodeType,
+                'node_id': nodeId,
+            },
+            query: {
                 'workspace_id': workspaceId,
             },
             errors: {
@@ -1416,21 +1986,32 @@ export class AdminService {
         });
     }
     /**
-     * Update workspace
+     * Update node item
+     * @param nodeType
+     * @param nodeId
      * @param workspaceId
      * @param requestBody
-     * @returns WorkspaceOut Successful Response
+     * @param next
+     * @returns any Successful Response
      * @throws ApiError
      */
-    public static updateWorkspaceAdminWorkspacesWorkspaceIdPatch(
+    public static updateNodeAdminNodesNodeTypeNodeIdPatch(
+        nodeType: NodeType,
+        nodeId: string,
         workspaceId: string,
-        requestBody: WorkspaceUpdate,
-    ): CancelablePromise<WorkspaceOut> {
+        requestBody: Record<string, any>,
+        next?: number,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/admin/workspaces/{workspace_id}',
+            url: '/admin/nodes/{node_type}/{node_id}',
             path: {
+                'node_type': nodeType,
+                'node_id': nodeId,
+            },
+            query: {
                 'workspace_id': workspaceId,
+                'next': next,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -1442,100 +2023,32 @@ export class AdminService {
         });
     }
     /**
-     * Delete workspace
-     * @param workspaceId
-     * @returns void
-     * @throws ApiError
-     */
-    public static deleteWorkspaceAdminWorkspacesWorkspaceIdDelete(
-        workspaceId: string,
-    ): CancelablePromise<void> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/admin/workspaces/{workspace_id}',
-            path: {
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Add workspace member
+     * Publish node item
+     * @param nodeType
+     * @param nodeId
      * @param workspaceId
      * @param requestBody
-     * @returns WorkspaceMemberOut Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
-    public static addMemberAdminWorkspacesWorkspaceIdMembersPost(
+    public static publishNodeAdminNodesNodeTypeNodeIdPublishPost(
+        nodeType: NodeType,
+        nodeId: string,
         workspaceId: string,
-        requestBody: WorkspaceMemberIn,
-    ): CancelablePromise<WorkspaceMemberOut> {
+        requestBody?: (PublishIn | null),
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/members',
+            url: '/admin/nodes/{node_type}/{node_id}/publish',
             path: {
+                'node_type': nodeType,
+                'node_id': nodeId,
+            },
+            query: {
                 'workspace_id': workspaceId,
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update workspace member
-     * @param workspaceId
-     * @param userId
-     * @param requestBody
-     * @returns WorkspaceMemberOut Successful Response
-     * @throws ApiError
-     */
-    public static updateMemberAdminWorkspacesWorkspaceIdMembersUserIdPatch(
-        workspaceId: string,
-        userId: string,
-        requestBody: WorkspaceMemberIn,
-    ): CancelablePromise<WorkspaceMemberOut> {
-        return __request(OpenAPI, {
-            method: 'PATCH',
-            url: '/admin/workspaces/{workspace_id}/members/{user_id}',
-            path: {
-                'workspace_id': workspaceId,
-                'user_id': userId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Remove workspace member
-     * @param workspaceId
-     * @param userId
-     * @returns void
-     * @throws ApiError
-     */
-    public static removeMemberAdminWorkspacesWorkspaceIdMembersUserIdDelete(
-        workspaceId: string,
-        userId: string,
-    ): CancelablePromise<void> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/admin/workspaces/{workspace_id}/members/{user_id}',
-            path: {
-                'workspace_id': workspaceId,
-                'user_id': userId,
-            },
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
@@ -1545,13 +2058,16 @@ export class AdminService {
     }
     /**
      * List nodes (admin)
+     * @param workspaceId
      * @param author
      * @param tags
      * @param match
+     * @param sort
      * @param isPublic
      * @param visible
      * @param premiumOnly
      * @param recommendable
+     * @param nodeType
      * @param limit
      * @param offset
      * @param dateFrom
@@ -1562,9 +2078,11 @@ export class AdminService {
      * @throws ApiError
      */
     public static listNodesAdminAdminNodesGet(
+        workspaceId: string,
         author?: (string | null),
         tags?: (string | null),
         match: string = 'any',
+        sort: string = 'updated_desc',
         isPublic?: (boolean | null),
         visible?: (boolean | null),
         premiumOnly?: (boolean | null),
@@ -1584,9 +2102,11 @@ export class AdminService {
                 'If-None-Match': ifNoneMatch,
             },
             query: {
+                'workspace_id': workspaceId,
                 'author': author,
                 'tags': tags,
                 'match': match,
+                'sort': sort,
                 'is_public': isPublic,
                 'visible': visible,
                 'premium_only': premiumOnly,
@@ -1607,16 +2127,47 @@ export class AdminService {
     }
     /**
      * Bulk node operations
+     * @param workspaceId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
     public static bulkNodeOperationAdminNodesBulkPost(
+        workspaceId: string,
         requestBody: NodeBulkOperation,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/nodes/bulk',
+            query: {
+                'workspace_id': workspaceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Bulk update nodes
+     * @param workspaceId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static bulkPatchNodesAdminNodesBulkPatch(
+        workspaceId: string,
+        requestBody: NodeBulkPatch,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/admin/nodes/bulk',
+            query: {
+                'workspace_id': workspaceId,
+            },
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -1733,6 +2284,27 @@ export class AdminService {
         });
     }
     /**
+     * Simulate transitions
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static simulateTransitionsAdminTransitionsSimulatePost(
+        requestBody: app__domains__navigation__api__admin_transitions_simulate__SimulateRequest,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/transitions/simulate',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * List rate limit rules
      * @returns any Successful Response
      * @throws ApiError
@@ -1809,6 +2381,7 @@ export class AdminService {
      * @param actorId
      * @param action
      * @param resource
+     * @param workspaceId
      * @param dateFrom
      * @param dateTo
      * @param page
@@ -1820,6 +2393,7 @@ export class AdminService {
         actorId?: (string | null),
         action?: (string | null),
         resource?: (string | null),
+        workspaceId?: (string | null),
         dateFrom?: (string | null),
         dateTo?: (string | null),
         page: number = 1,
@@ -1832,6 +2406,7 @@ export class AdminService {
                 'actor_id': actorId,
                 'action': action,
                 'resource': resource,
+                'workspace_id': workspaceId,
                 'date_from': dateFrom,
                 'date_to': dateTo,
                 'page': page,
@@ -1941,6 +2516,36 @@ export class AdminService {
                 401: `Unauthorized`,
                 403: `Forbidden`,
                 422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Metrics Transitions
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static metricsTransitionsAdminMetricsTransitionsGet(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/metrics/transitions',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+            },
+        });
+    }
+    /**
+     * Metrics Events
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static metricsEventsAdminMetricsEventsGet(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/metrics/events',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
             },
         });
     }

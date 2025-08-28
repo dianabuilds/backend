@@ -11,15 +11,20 @@ export class TracesService {
     /**
      * Create trace
      * @param requestBody
+     * @param xWorkspaceId
      * @returns NodeTraceOut Successful Response
      * @throws ApiError
      */
     public static createTraceTracesPost(
         requestBody: NodeTraceCreate,
+        xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeTraceOut> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/traces',
+            headers: {
+                'X-Workspace-Id': xWorkspaceId,
+            },
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -31,16 +36,21 @@ export class TracesService {
      * List traces
      * @param nodeId
      * @param visibleTo
+     * @param xWorkspaceId
      * @returns NodeTraceOut Successful Response
      * @throws ApiError
      */
     public static listTracesTracesGet(
         nodeId: string,
         visibleTo: string = 'all',
+        xWorkspaceId?: (string | null),
     ): CancelablePromise<Array<NodeTraceOut>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/traces',
+            headers: {
+                'X-Workspace-Id': xWorkspaceId,
+            },
             query: {
                 'node_id': nodeId,
                 'visible_to': visibleTo,

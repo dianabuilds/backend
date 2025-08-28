@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type ValidateResult = {
     ok: boolean;
-    errors: Array<string>;
-    warnings: Array<string>;
+    errors?: Array<string>;
+    warnings?: Array<string>;
 };
 

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
 
@@ -15,26 +15,34 @@ class NodeBase(BaseModel):
     # - is_premium_only -> premium_only
     title: str | None = None
     # Контент всегда Editor.js JSON, поле формата нам не нужно
-    content: Any = Field(..., validation_alias=AliasChoices("nodes", "contentData"))
+    content: Any = Field(
+        ..., alias="content", validation_alias=AliasChoices("nodes", "contentData")
+    )
     media: list[str] | None = None
-    cover_url: str | None = None
+    cover_url: str | None = Field(default=None, alias="coverUrl")
     tags: list[str] | None = None
-    is_public: bool = False
-    is_visible: bool = True
+    is_public: bool = Field(default=False, alias="isPublic")
+    is_visible: bool = Field(default=True, alias="isVisible")
     meta: dict = Field(default_factory=dict)
     premium_only: bool | None = Field(
-        default=None, validation_alias=AliasChoices("premium_only", "is_premium_only")
+        default=None,
+        alias="premiumOnly",
+        validation_alias=AliasChoices(
+            "premium_only", "is_premium_only", "premiumOnly"
+        ),
     )
-    nft_required: str | None = None
-    ai_generated: bool | None = None
+    nft_required: str | None = Field(default=None, alias="nftRequired")
+    ai_generated: bool | None = Field(default=None, alias="aiGenerated")
     allow_feedback: bool = Field(
-        default=True, validation_alias=AliasChoices("allow_feedback", "allow_comments")
+        default=True,
+        alias="allowFeedback",
+        validation_alias=AliasChoices(
+            "allow_feedback", "allow_comments", "allowFeedback"
+        ),
     )
-    is_recommendable: bool = True
+    is_recommendable: bool = Field(default=True, alias="isRecommendable")
 
-    class Config:
-        alias_generator = to_camel
-        populate_by_name = True  # позволяем заполнять по исходным именам и алиасам
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     @field_validator("meta", mode="before")
     @classmethod
@@ -86,41 +94,57 @@ class NodeCreate(NodeBase):
 class NodeUpdate(BaseModel):
     title: str | None = None
     content: Any | None = Field(
-        default=None, validation_alias=AliasChoices("nodes", "contentData")
+        default=None,
+        alias="content",
+        validation_alias=AliasChoices("nodes", "contentData", "content"),
     )
     media: list[str] | None = None
-    cover_url: str | None = None
+    cover_url: str | None = Field(default=None, alias="coverUrl")
     tags: list[str] | None = None
-    is_public: bool | None = None
+    is_public: bool | None = Field(default=None, alias="isPublic")
     is_visible: bool | None = Field(
-        default=None, validation_alias=AliasChoices("hidden", "is_visible")
+        default=None,
+        alias="isVisible",
+        validation_alias=AliasChoices("hidden", "is_visible", "isVisible"),
     )
     allow_feedback: bool | None = Field(
-        default=None, validation_alias=AliasChoices("allow_feedback", "allow_comments")
+        default=None,
+        alias="allowFeedback",
+        validation_alias=AliasChoices(
+            "allow_feedback", "allow_comments", "allowFeedback"
+        ),
     )
-    is_recommendable: bool | None = None
+    is_recommendable: bool | None = Field(default=None, alias="isRecommendable")
     premium_only: bool | None = Field(
-        default=None, validation_alias=AliasChoices("premium_only", "is_premium_only")
+        default=None,
+        alias="premiumOnly",
+        validation_alias=AliasChoices(
+            "premium_only", "is_premium_only", "premiumOnly"
+        ),
     )
-    nft_required: str | None = None
-    ai_generated: bool | None = None
+    nft_required: str | None = Field(default=None, alias="nftRequired")
+    ai_generated: bool | None = Field(default=None, alias="aiGenerated")
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class NodeOut(NodeBase):
-    tags: list[str] = Field(default_factory=list, validation_alias="tag_slugs")
+    tags: list[str] = Field(default_factory=list, alias="tags", validation_alias="tag_slugs")
     id: UUID
     slug: str
-    author_id: UUID
-    created_by_user_id: UUID | None = None
-    updated_by_user_id: UUID | None = None
-    node_type: str | None = None
+    author_id: UUID = Field(alias="authorId")
+    created_by_user_id: UUID | None = Field(default=None, alias="createdByUserId")
+    updated_by_user_id: UUID | None = Field(default=None, alias="updatedByUserId")
+    node_type: str | None = Field(default=None, alias="nodeType")
     views: int
     reactions: dict[str, int] = Field(default_factory=dict)
-    created_at: datetime
-    updated_at: datetime
-    popularity_score: float
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+    popularity_score: float = Field(alias="popularityScore")
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
 
     @field_validator("reactions", mode="before")
     @classmethod
@@ -162,6 +186,8 @@ class ReactionUpdate(BaseModel):
     reaction: str
     action: Literal["add", "remove"]
 
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
 
 class NodeBulkOperation(BaseModel):
     """Payload for bulk node admin operations."""
@@ -176,18 +202,26 @@ class NodeBulkOperation(BaseModel):
         "toggle_recommendable",
     ]
 
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
 
 class NodeBulkPatchChanges(BaseModel):
     """Changes to apply in bulk operations."""
 
-    is_visible: bool | None = None
-    is_public: bool | None = None
+    is_visible: bool | None = Field(default=None, alias="isVisible")
+    is_public: bool | None = Field(default=None, alias="isPublic")
     premium_only: bool | None = Field(
-        default=None, validation_alias=AliasChoices("premium_only", "is_premium_only")
+        default=None,
+        alias="premiumOnly",
+        validation_alias=AliasChoices(
+            "premium_only", "is_premium_only", "premiumOnly"
+        ),
     )
-    is_recommendable: bool | None = None
-    workspace_id: UUID | None = None
+    is_recommendable: bool | None = Field(default=None, alias="isRecommendable")
+    workspace_id: UUID | None = Field(default=None, alias="workspaceId")
     delete: bool | None = None
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class NodeBulkPatch(BaseModel):
@@ -195,3 +229,5 @@ class NodeBulkPatch(BaseModel):
 
     ids: list[UUID]
     changes: NodeBulkPatchChanges
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)

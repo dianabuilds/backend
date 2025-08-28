@@ -7,7 +7,7 @@ export type MergeReport = {
     to: Record<string, any>;
     content_touched: number;
     aliases_moved: number;
-    warnings: Array<string>;
-    errors: Array<string>;
+    warnings?: Array<string>;
+    errors?: Array<string>;
 };
 
