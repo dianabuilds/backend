@@ -1,7 +1,6 @@
 import FieldTags from "../fields/FieldTags";
 import FieldTitle from "../fields/FieldTitle";
 import FieldCover from "../fields/FieldCover";
-import FieldSummary from "../fields/FieldSummary";
 import type { GeneralTabProps } from "./GeneralTab.helpers";
 
 export default function GeneralTab({
@@ -11,9 +10,10 @@ export default function GeneralTab({
   allowFeedback = true,
   premiumOnly = false,
   coverUrl = null,
-  summary = "",
+  // Summary удалён из интерфейса формы: оставляем значения в пропсах, но не используем
+  summary: _summary = "",
   titleError = null,
-  summaryError = null,
+  summaryError: _summaryError = null,
   coverError = null,
   onTitleChange,
   titleRef,
@@ -22,7 +22,7 @@ export default function GeneralTab({
   onAllowFeedbackChange,
   onPremiumOnlyChange,
   onCoverChange,
-  onSummaryChange,
+  onSummaryChange: _onSummaryChange,
 }: GeneralTabProps) {
   return (
     <div className="space-y-4">
@@ -32,13 +32,6 @@ export default function GeneralTab({
         onChange={onTitleChange}
         error={titleError}
       />
-      {onSummaryChange ? (
-        <FieldSummary
-          value={summary}
-          onChange={onSummaryChange}
-          error={summaryError}
-        />
-      ) : null}
       {onCoverChange ? (
         <FieldCover value={coverUrl} onChange={onCoverChange} error={coverError} />
       ) : null}

@@ -64,6 +64,31 @@ export function usePatchQueue(
     }
   }, [process]);
 
+  // Немедленное сохранение: если есть очередь — flush, иначе "touch" пустым патчем
+  const saveNow = useCallback(async () => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (queueRef.current.length > 0 || processingRef.current) {
+      await flush();
+      return;
+    }
+    // Пустой патч: сервер обновит updated_at/updated_by, UI покажет "Сохранено"
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setSaving(true);
+    try {
+      await onPatch({}, controller.signal);
+    } catch {
+      // swallow; ошибки обработаются в onPatch
+    } finally {
+      setSaving(false);
+      abortRef.current = null;
+    }
+  }, [flush, onPatch]);
+
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
@@ -71,5 +96,5 @@ export function usePatchQueue(
     };
   }, []);
 
-  return { enqueue, flush, saving, pending };
+  return { enqueue, flush, saving, pending, saveNow };
 }

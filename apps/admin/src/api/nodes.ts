@@ -92,24 +92,13 @@ export async function createNode(
   workspaceId: string,
   body: { node_type: string; title?: string },
 ): Promise<NodeOut> {
-  // Для изолированных нод используем новый алиас /admin/articles
-  const t = String(body.node_type);
+  const t = encodeURIComponent(String(body.node_type));
   const payload = body.title ? { title: body.title } : undefined;
-  let res: NodeOut;
-  if (t === "article") {
-    res = await wsApi.post<typeof payload, NodeOut>(
-      `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles`,
-      payload,
-      { workspace: false },
-    );
-  } else {
-    const type = encodeURIComponent(t);
-    res = await wsApi.post<typeof payload, NodeOut>(
-      `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${type}`,
-      payload,
-      { workspace: false },
-    );
-  }
+  const res = await wsApi.post<typeof payload, NodeOut>(
+    `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${t}`,
+    payload,
+    { workspace: false },
+  );
   return res;
 }
 export async function getNode(
@@ -117,10 +106,9 @@ export async function getNode(
   type: string,
   id: string,
 ): Promise<NodeOut> {
-  const url =
-    type === "article"
-      ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}`
-      : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`;
+  const url = `/admin/workspaces/${encodeURIComponent(
+    workspaceId,
+  )}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`;
   const res = await wsApi.get<NodeOut>(url);
   return res!;
 }
@@ -136,9 +124,7 @@ export async function patchNode(
   if (opts.force) params.force = 1;
   if (opts.next) params.next = 1;
   const res = await wsApi.patch<NodePatchParams, NodeOut, NodePatchQuery>(
-    type === "article"
-      ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}`
-      : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
+    `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
     patch,
     { params, signal: opts.signal, workspace: false },
   );
@@ -152,9 +138,7 @@ export async function publishNode(
   body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
   const res = await wsApi.post<NodePublishParams | undefined, NodeOut>(
-    type === "article"
-      ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}/publish`
-      : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/publish`,
+    `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/publish`,
     body,
     { workspace: false },
   );
@@ -167,9 +151,7 @@ export async function validateNode(
   id: string,
 ): Promise<ValidateResult> {
   const res = await wsApi.post<undefined, ValidateResult>(
-    type === "article"
-      ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}/validate`
-      : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
+    `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
     undefined,
     { workspace: false },
   );

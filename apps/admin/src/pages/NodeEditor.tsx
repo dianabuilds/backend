@@ -64,6 +64,7 @@ export default function NodeEditor() {
           coverAssetId: (n as any).coverAssetId ?? null,
           coverMeta: (n as any).coverMeta ?? null,
           coverAlt: (n as any).coverAlt ?? "",
+          coverUrl: (n as any).coverUrl ?? null,
           summary: (n as any).summary ?? "",
           publishedAt: (n as any).publishedAt ?? null,
           content: (n.content as OutputData) || {
@@ -237,7 +238,7 @@ function NodeCreate({
       cover: string | null;
     }>({ title: null, summary: null, cover: null });
 
-    const { enqueue, flush, saving, pending } = usePatchQueue(
+    const { enqueue, flush, saving, pending, saveNow } = usePatchQueue(
       async (patch, signal) => {
         try {
           const updated = await patchNode(
@@ -309,6 +310,14 @@ function NodeCreate({
       }
     : undefined;
 
+  // Обработчик обложки: шлём PATCH { coverUrl }
+  const handleCoverChange = canEdit
+    ? (url: string | null) => {
+        handleDraftChange({ coverUrl: url });
+        setFieldErrors((e) => ({ ...e, cover: null }));
+      }
+    : undefined;
+
   const handleValidation = (res: ValidateResult) => {
     const errs = { title: null, summary: null, cover: null };
     for (const msg of res.errors) {
@@ -327,13 +336,13 @@ function NodeCreate({
 
   const handleSave = async () => {
     if (!canEdit) return;
-    await flush();
+    await saveNow();
     addToast({ title: "Сохранено", variant: "success" });
   };
 
   const handleSaveNext = async () => {
     if (!canEdit) return;
-    await flush();
+    await saveNow();
     const path = workspaceId
       ? `/nodes/${node.nodeType}/new?workspace_id=${workspaceId}`
       : `/nodes/${node.nodeType}/new`;
@@ -354,6 +363,13 @@ function NodeCreate({
     }
     navigate(workspaceId ? `/nodes?workspace_id=${workspaceId}` : "/nodes");
   };
+
+  // изменения контента из EditorJS → в очередь PATCH
+  const handleContentChange = canEdit
+    ? (data: OutputData) => {
+        handleDraftChange({ content: data });
+      }
+    : undefined;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -591,6 +607,7 @@ function NodeCreate({
           }
           hasChanges={unsaved}
           onValidation={handleValidation}
+          onChange={handleContentChange}
         />
       </div>
     </div>

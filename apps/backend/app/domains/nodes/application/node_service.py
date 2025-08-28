@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.inspection import inspect as sa_inspect
 
 from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
 from app.domains.nodes.infrastructure.models.node import Node
@@ -22,13 +23,50 @@ class NodeService:
         """Initialize service."""
 
         self._db = db
-        self._allowed_types = {NodeType.article.value}
+        # Разрешаем все известные типы NodeType, кроме "quest" (для него есть отдельные эндпоинты)
+        types = {t.value for t in NodeType}
+        if "quest" in types:
+            types.remove("quest")
+        self._allowed_types = types
 
     # ------------------------------------------------------------------
     def _normalize_type(self, node_type: str | NodeType) -> str:
-        value = node_type.value if isinstance(node_type, NodeType) else node_type
-        if value not in self._allowed_types:
+        # Нормализуем вход: поддерживаем Enum, строки и распространённые алиасы
+        value = node_type.value if isinstance(node_type, NodeType) else str(node_type)
+        value = value.strip().lower()
+
+        # Распространённые варианты синонимов и множественного числа
+        aliases = {
+            "articles": "article",
+            "article": "article",
+            "index": "article",
+            "page": "article",
+            "pages": "article",
+            "post": "article",
+            "posts": "article",
+            "story": "article",
+            "stories": "article",
+            "blog": "article",
+            "blogs": "article",
+            "news": "article",
+            "quests": "quest",
+        }
+        # Сначала подставим алиас, если он известен
+        value = aliases.get(value, value)
+
+        # Обработка общего случая множественного числа, если вдруг прилетит новый тип
+        if value.endswith("s") and value[:-1] in self._allowed_types:
+            value = value[:-1]
+
+        # Жёстко запрещаем quest для этих эндпоинтов
+        if value in ("quest", "quests"):
             raise HTTPException(status_code=400, detail="Unsupported node type")
+
+        # Безопасный фолбэк: любые неизвестные значения трактуем как article,
+        # чтобы не блокировать работу админки различиями терминов.
+        if value not in self._allowed_types:
+            value = "article"
+
         return value
 
     # Queries -----------------------------------------------------------------
@@ -84,6 +122,8 @@ class NodeService:
         self, workspace_id: UUID, node_type: str | NodeType, *, actor_id: UUID
     ) -> NodeItem:
         node_type = self._normalize_type(node_type)
+        # Явно задаём значения, которые в БД имеют server_default,
+        # чтобы не провоцировать ленивую подгрузку и MissingGreenlet при сериализации.
         item = await NodeItemDAO.create(
             self._db,
             workspace_id=workspace_id,
@@ -91,7 +131,29 @@ class NodeService:
             slug=f"{node_type}-{uuid4().hex[:8]}",
             title=f"New {node_type}",
             created_by_user_id=actor_id,
+            status=Status.draft,
+            visibility=Visibility.private,
+            version=1,
         )
+
+        # Синхронно создаём запись в таблице nodes с тем же идентификатором/slug,
+        # чтобы элемент сразу отображался в админ-списках, работающих по таблице nodes.
+        node = Node(
+            id=item.id,  # связываем 1:1 по идентификатору
+            workspace_id=workspace_id,
+            slug=item.slug,
+            title=item.title,
+            content={},  # минимальная заготовка содержимого
+            author_id=actor_id,
+            status=Status.draft,
+            visibility=Visibility.private,
+            created_by_user_id=actor_id,
+            updated_by_user_id=actor_id,
+        )
+        self._db.add(node)
+        # Проставляем ссылку из контентной записи на node
+        item.node_id = node.id
+
         await self._db.commit()
         return item
 
@@ -106,15 +168,75 @@ class NodeService:
     ) -> NodeItem:
         node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
+
+        # Разрешаем обновлять только простые поля-колонки у контент-элемента,
+        # чтобы не триггерить lazy-load отношений.
+        allowed_updates: set[str] = {
+            "slug",
+            "title",
+            "summary",
+            "cover_media_id",
+            "primary_tag_id",
+        }
         for key, value in data.items():
-            if hasattr(item, key):
+            if key in allowed_updates:
                 setattr(item, key, value)
+
+        # Сохраняем контент и флаги во "внешнюю" таблицу nodes
+        node = await self._db.get(Node, item.id)
+        if node is None:
+            # На случай старых записей, созданных до появления связанного Node
+            node = Node(
+                id=item.id,
+                workspace_id=item.workspace_id,
+                slug=item.slug,
+                title=item.title,
+                content={},
+                author_id=item.created_by_user_id or actor_id,
+                status=item.status,
+                visibility=item.visibility,
+                created_by_user_id=item.created_by_user_id,
+                updated_by_user_id=actor_id,
+            )
+            self._db.add(node)
+
+        # Маппинг полей из payload -> Node
+        if "content" in data and data["content"] is not None:
+            node.content = data["content"]  # Editor.js OutputData
+        if "contentData" in data and data["contentData"] is not None:
+            node.content = data["contentData"]  # на случай другого имени поля
+        if "allow_comments" in data:
+            node.allow_feedback = bool(data["allow_comments"])
+        if "premium_only" in data:
+            node.premium_only = bool(data["premium_only"])
+        if "is_public" in data:
+            node.is_public = bool(data["is_public"])
+        if "is_visible" in data:
+            node.is_visible = bool(data["is_visible"])
+        # обложка может прийти как cover_url (snake) или coverUrl (camel) с фронта
+        if "cover_url" in data and data["cover_url"] is not None:
+            node.cover_url = str(data["cover_url"])
+        if "coverUrl" in data and data["coverUrl"] is not None:
+            node.cover_url = str(data["coverUrl"])
+        # синхронизируем заголовок, если он менялся
+        if "title" in data and data["title"]:
+            node.title = str(data["title"])
+
+        # Любое редактирование опубликованной записи переводит её в черновик
         if item.status == Status.published:
             item.status = Status.draft
             item.visibility = Visibility.private
             item.published_at = None
+            # согласуем видимость и статус в Node
+            node.visibility = Visibility.private
+            node.is_public = False
+            node.status = Status.draft
+
+        node.updated_by_user_id = actor_id
+        node.updated_at = datetime.utcnow()
         item.updated_by_user_id = actor_id
         item.updated_at = datetime.utcnow()
+
         await self._db.commit()
         return item
 
@@ -131,6 +253,8 @@ class NodeService:
         node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
         validate_transition(item.status, Status.published)
+
+        # Обновляем состояние контентного элемента
         if access == "early_access":
             item.visibility = Visibility.unlisted
         else:
@@ -138,16 +262,35 @@ class NodeService:
         item.status = Status.published
         item.published_at = datetime.utcnow()
         item.updated_by_user_id = actor_id
-        node = await self._db.get(Node, node_id)
-        if node:
-            node.premium_only = access == "premium_only"
-            node.is_public = access != "early_access"
-            node.visibility = (
-                Visibility.unlisted if access == "early_access" else Visibility.public
+
+        # Ищем/создаём инфраструктурную запись в nodes по id контента
+        node = await self._db.get(Node, item.id)
+        if node is None:
+            node = Node(
+                id=item.id,
+                workspace_id=item.workspace_id,
+                slug=item.slug,
+                title=item.title,
+                content={},  # Заполним пустым контентом, если ещё нет
+                author_id=item.created_by_user_id or actor_id,
+                status=item.status,
+                visibility=item.visibility,
+                created_by_user_id=item.created_by_user_id,
+                updated_by_user_id=actor_id,
             )
-            if cover is not None:
-                node.cover_url = cover
-            node.updated_by_user_id = actor_id
-            node.updated_at = datetime.utcnow()
+            self._db.add(node)
+            item.node_id = node.id
+
+        # Проставляем флаги доступа и прочие поля
+        node.premium_only = access == "premium_only"
+        node.is_public = access != "early_access"
+        node.visibility = (
+            Visibility.unlisted if access == "early_access" else Visibility.public
+        )
+        if cover is not None:
+            node.cover_url = cover
+        node.updated_by_user_id = actor_id
+        node.updated_at = datetime.utcnow()
+
         await self._db.commit()
         return item

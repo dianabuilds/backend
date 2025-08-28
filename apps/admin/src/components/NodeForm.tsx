@@ -1,8 +1,8 @@
 import EditorJSEmbed from "./EditorJSEmbed";
 import FieldTitle from "./fields/FieldTitle";
 import FieldTags from "./fields/FieldTags";
-import FieldSummary from "./fields/FieldSummary";
 import FieldMedia from "./fields/FieldMedia";
+import FieldCover from "./fields/FieldCover";
 import type { OutputData } from "../types/editorjs";
 import { useEffect, useId, useState, type Ref } from "react";
 import { z } from "zod";
@@ -12,12 +12,14 @@ interface NodeFormProps {
   content: OutputData;
   tags: string[];
   media: string[];
-  summary: string;
+  summary: string; // оставлено в типе для совместимости, но не используется
+  coverUrl?: string | null;
   onTitleChange: (value: string) => void;
   onContentChange: (data: OutputData) => void;
   onTagsChange: (tags: string[]) => void;
   onMediaChange: (media: string[]) => void;
-  onSummaryChange: (value: string) => void;
+  onSummaryChange: (value: string) => void; // оставлено для совместимости
+  onCoverChange?: (url: string | null) => void;
   titleRef?: Ref<HTMLInputElement>;
 }
 
@@ -26,12 +28,14 @@ export default function NodeForm({
   content,
   tags,
   media,
-  summary,
+  summary: _summary,
+  coverUrl,
   onTitleChange,
   onContentChange,
   onTagsChange,
   onMediaChange,
-  onSummaryChange,
+  onSummaryChange: _onSummaryChange,
+  onCoverChange,
   titleRef,
 }: NodeFormProps) {
   const contentId = useId();
@@ -123,6 +127,12 @@ export default function NodeForm({
         />
       </div>
 
+      {onCoverChange ? (
+        <div>
+          <FieldCover value={coverUrl ?? null} onChange={onCoverChange} />
+        </div>
+      ) : null}
+
       <div>
         <label
           htmlFor={contentId}
@@ -170,8 +180,6 @@ export default function NodeForm({
           error={errors.media}
         />
       </div>
-
-      <FieldSummary value={summary} onChange={onSummaryChange} />
     </div>
   );
 }

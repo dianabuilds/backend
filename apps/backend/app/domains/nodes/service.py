@@ -15,7 +15,8 @@ from app.schemas.nodes_common import Status
 from .dao import NodePatchDAO
 
 ALLOWED_TRANSITIONS: dict[Status, set[Status]] = {
-    Status.draft: {Status.in_review},
+    # Разрешаем публиковать напрямую из черновика, чтобы админ мог сразу публиковать
+    Status.draft: {Status.in_review, Status.published},
     Status.in_review: {Status.published},
     Status.published: set(),
     Status.archived: set(),

@@ -10,7 +10,7 @@ from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import publish_content
 from app.domains.users.infrastructure.models.user import User
-from app.schemas.nodes_common import NodeType
+from app.domains.nodes.infrastructure.models.node import Node
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
 
 router = APIRouter(
@@ -25,7 +25,7 @@ class PublishIn(BaseModel):
     cover: str | None = None
 
 
-def _serialize(item: NodeItem) -> dict:
+def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     return {
         "id": str(item.id),
         "workspace_id": str(item.workspace_id),
@@ -34,12 +34,15 @@ def _serialize(item: NodeItem) -> dict:
         "title": item.title,
         "summary": item.summary,
         "status": item.status.value,
+        # admin editor expects content and coverUrl in payload
+        "content": (node.content if node is not None else None),
+        "coverUrl": (node.cover_url if node is not None else None),
     }
 
 
 @router.get("/{node_type}", summary="List nodes by type")
 async def list_nodes(
-    node_type: NodeType,
+    node_type: str,
     workspace_id: UUID = Path(...),
     page: int = 1,
     per_page: int = 10,
@@ -47,7 +50,7 @@ async def list_nodes(
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    if node_type == NodeType.quest:
+    if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
@@ -64,43 +67,45 @@ async def list_nodes(
 
 @router.post("/{node_type}", summary="Create node item")
 async def create_node(
-    node_type: NodeType,
+    node_type: str,
     workspace_id: UUID = Path(...),
     _: object = Depends(require_ws_editor),  # noqa: B008
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    if node_type == NodeType.quest:
+    if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
     svc = NodeService(db)
     item = await svc.create(workspace_id, node_type, actor_id=current_user.id)
-    return _serialize(item)
+    node = await db.get(Node, item.id)
+    return _serialize(item, node)
 
 
 @router.get("/{node_type}/{node_id}", summary="Get node item")
 async def get_node(
-    node_type: NodeType,
+    node_type: str,
     node_id: UUID,
     workspace_id: UUID = Path(...),
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    if node_type == NodeType.quest:
+    if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
     svc = NodeService(db)
     item = await svc.get(workspace_id, node_type, node_id)
-    return _serialize(item)
+    node = await db.get(Node, item.id)
+    return _serialize(item, node)
 
 
 @router.patch("/{node_type}/{node_id}", summary="Update node item")
 async def update_node(
-    node_type: NodeType,
+    node_type: str,
     node_id: UUID,
     payload: dict,
     workspace_id: UUID = Path(...),
@@ -109,7 +114,7 @@ async def update_node(
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    if node_type == NodeType.quest:
+    if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
@@ -127,12 +132,13 @@ async def update_node(
         from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 
         ux_metrics.inc_save_next()
-    return _serialize(item)
+    node = await db.get(Node, item.id)
+    return _serialize(item, node)
 
 
 @router.post("/{node_type}/{node_id}/publish", summary="Publish node item")
 async def publish_node(
-    node_type: NodeType,
+    node_type: str,
     node_id: UUID,
     workspace_id: UUID = Path(...),
     payload: PublishIn | None = None,
@@ -140,7 +146,7 @@ async def publish_node(
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    if node_type == NodeType.quest:
+    if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
@@ -160,4 +166,40 @@ async def publish_node(
         author_id=current_user.id,
         workspace_id=workspace_id,
     )
-    return _serialize(item)
+    node = await db.get(Node, item.id)
+    return _serialize(item, node)
+
+
+# PATCH-алиас на случай, если фронт отправляет PATCH вместо POST
+@router.patch("/{node_type}/{node_id}/publish", summary="Publish node item (PATCH alias)")
+async def publish_node_patch(
+    node_type: str,
+    node_id: UUID,
+    workspace_id: UUID = Path(...),
+    payload: PublishIn | None = None,
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    current_user: User = Depends(auth_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    if str(node_type).lower() in ("quest", "quests"):
+        raise HTTPException(
+            status_code=422,
+            detail="quest nodes are read-only; use /quests/*",
+        )
+    svc = NodeService(db)
+    item = await svc.publish(
+        workspace_id,
+        node_type,
+        node_id,
+        actor_id=current_user.id,
+        access=(payload.access if payload else "everyone"),
+        cover=(payload.cover if payload else None),
+    )
+    await publish_content(
+        node_id=item.id,
+        slug=item.slug,
+        author_id=current_user.id,
+        workspace_id=workspace_id,
+    )
+    node = await db.get(Node, item.id)
+    return _serialize(item, node)
