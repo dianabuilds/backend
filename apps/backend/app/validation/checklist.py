@@ -13,7 +13,6 @@ from .base import validator
 
 
 @validator(NodeType.article.value)
-@validator(NodeType.quest.value)
 async def checklist_validator(db: AsyncSession, node_id: UUID) -> ValidationReport:
     item = await db.get(NodeItem, node_id)
     if not item:
