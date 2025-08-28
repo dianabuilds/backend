@@ -18,6 +18,7 @@ from app.core.workspace_context import optional_workspace, require_workspace
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
+from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.navigation.application.traces_service import TracesService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.application.query_models import (
@@ -54,6 +55,7 @@ from app.security import require_ws_guest, require_ws_viewer
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 navcache = NavigationCacheService(CoreCacheAdapter())
+navsvc = NavigationService()
 
 
 def _ensure_workspace_id(request: Request, workspace_id: UUID | None) -> UUID:
@@ -199,6 +201,7 @@ async def update_node(
     was_visible = node.is_visible
     node = await repo.update(node, payload, current_user.id)
     if was_public != node.is_public or was_visible != node.is_visible:
+        await navsvc.invalidate_navigation_cache(db, node)
         await navcache.invalidate_navigation_by_node(slug)
         await navcache.invalidate_modes_by_node(slug)
         await navcache.invalidate_compass_all()
@@ -234,6 +237,7 @@ async def delete_node(
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(node, current_user)
     await repo.delete(node)
+    await navsvc.invalidate_navigation_cache(db, node)
     await navcache.invalidate_navigation_by_node(slug)
     await navcache.invalidate_modes_by_node(slug)
     await navcache.invalidate_compass_all()
