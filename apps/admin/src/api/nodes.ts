@@ -80,6 +80,7 @@ export async function listNodes(
     etag: cached?.etag ?? undefined,
     acceptNotModified: true,
     raw: true,
+    workspace: false,
   })) as ApiResponse<AdminNodeItem[]>;
   if (res.status === 304 && cached) return cached.data;
   const data = Array.isArray(res.data) ? res.data : [];
@@ -99,12 +100,14 @@ export async function createNode(
     res = await wsApi.post<typeof payload, NodeOut>(
       `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles`,
       payload,
+      { workspace: false },
     );
   } else {
     const type = encodeURIComponent(t);
     res = await wsApi.post<typeof payload, NodeOut>(
       `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${type}`,
       payload,
+      { workspace: false },
     );
   }
   return res;
@@ -137,7 +140,7 @@ export async function patchNode(
       ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}`
       : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
     patch,
-    { params, signal: opts.signal },
+    { params, signal: opts.signal, workspace: false },
   );
   return res!;
 }
@@ -153,6 +156,7 @@ export async function publishNode(
       ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}/publish`
       : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/publish`,
     body,
+    { workspace: false },
   );
   return res!;
 }
@@ -166,6 +170,8 @@ export async function validateNode(
     type === "article"
       ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/articles/${encodeURIComponent(id)}/validate`
       : `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
+    undefined,
+    { workspace: false },
   );
   return res!;
 }
@@ -179,6 +185,7 @@ export async function simulateNode(
   const res = await wsApi.post<NodeSimulatePayload, any>(
     `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/simulate`,
     payload,
+    { workspace: false },
   );
   return res;
 }
