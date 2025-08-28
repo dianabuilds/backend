@@ -89,7 +89,20 @@ async def test_get_next_nodes_respects_access(app_and_session):
             premium_only=False,
             is_recommendable=True,
         )
-        session.add_all([public, private])
+        premium = Node(
+            id=uuid.uuid4(),
+            workspace_id=ws.id,
+            slug="prem",
+            title="Prem",
+            content={},
+            media=[],
+            author_id=uuid.uuid4(),
+            is_visible=True,
+            is_public=True,
+            premium_only=True,
+            is_recommendable=True,
+        )
+        session.add_all([public, private, premium])
         await session.commit()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -99,4 +112,55 @@ async def test_get_next_nodes_respects_access(app_and_session):
 
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp_err = await ac.get(f"/nodes/{private.slug}/next")
+    assert resp_err.status_code == 404
+
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp_premium = await ac.get(f"/nodes/{premium.slug}/next")
+    assert resp_premium.status_code == 200
+    assert resp_premium.json()["mode"] == "auto"
+
+
+@pytest.mark.asyncio
+async def test_get_next_modes_checks_visibility(app_and_session):
+    app, async_session = app_and_session
+    async with async_session() as session:
+        ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=uuid.uuid4())
+        session.add(ws)
+        await session.commit()
+        public = Node(
+            id=uuid.uuid4(),
+            workspace_id=ws.id,
+            slug="pub",
+            title="Pub",
+            content={},
+            media=[],
+            author_id=uuid.uuid4(),
+            is_visible=True,
+            is_public=True,
+            premium_only=False,
+            is_recommendable=True,
+        )
+        private = Node(
+            id=uuid.uuid4(),
+            workspace_id=ws.id,
+            slug="priv",
+            title="Priv",
+            content={},
+            media=[],
+            author_id=uuid.uuid4(),
+            is_visible=True,
+            is_public=False,
+            premium_only=False,
+            is_recommendable=True,
+        )
+        session.add_all([public, private])
+        await session.commit()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp_ok = await ac.get(f"/nodes/{public.slug}/next_modes")
+    assert resp_ok.status_code == 200
+    assert resp_ok.json()["default_mode"] == "compass"
+
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp_err = await ac.get(f"/nodes/{private.slug}/next_modes")
     assert resp_err.status_code == 404
