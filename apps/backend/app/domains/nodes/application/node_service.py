@@ -110,12 +110,6 @@ class NodeService:
         *,
         actor_id: UUID,
     ) -> NodeItem:
-        if "quest_data" in data:
-            raise HTTPException(
-                status_code=422,
-                detail="quest_data is not supported here; use /quests/*",
-            )
-
         node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
         for key, value in data.items():

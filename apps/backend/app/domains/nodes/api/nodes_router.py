@@ -161,7 +161,6 @@ async def read_node(
                     url=f"/quests/{node.id}/versions/current?workspace_id={workspace_id}",
                     status_code=307,
                 )
-            node.quest_data = item.quest_data
     NodePolicy.ensure_can_view(node, current_user)
     if node.premium_only:
         await require_premium(current_user)

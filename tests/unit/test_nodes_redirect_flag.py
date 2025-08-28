@@ -1,7 +1,7 @@
+import importlib
 import sys
 import types
 import uuid
-import importlib
 from pathlib import Path
 
 import pytest
@@ -26,17 +26,20 @@ security_stub.auth_user = lambda: None
 sys.modules["app.security"] = security_stub
 
 from app.core import policy as core_policy  # noqa: E402
+
 core_policy.policy.allow_write = False
 import app.domains.navigation.application.traces_service as traces_service  # noqa: E402
 from app.api import deps as api_deps  # noqa: E402
 from app.core.db.session import get_db  # noqa: E402
 from app.core.workspace_context import optional_workspace  # noqa: E402
+from app.domains.admin.infrastructure.models.feature_flag import (  # noqa: E402
+    FeatureFlag,
+)
 from app.domains.nodes.api.nodes_router import router as nodes_router  # noqa: E402
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
 from app.domains.nodes.models import NodeItem  # noqa: E402
 from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
 from app.domains.tags.models import Tag  # noqa: E402
-from app.domains.admin.infrastructure.models.feature_flag import FeatureFlag  # noqa: E402
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 from app.schemas.nodes_common import Status, Visibility  # noqa: E402
@@ -69,6 +72,7 @@ async def app_and_session():
 
     async def _noop(self, db, node, user, chance=0.3):
         return None
+
     traces_service.TracesService.maybe_add_auto_trace = _noop  # type: ignore[assignment]
 
     return app, async_session, user
@@ -106,7 +110,6 @@ async def test_nodes_redirect_flag(app_and_session):
             status=Status.published,
             visibility=Visibility.public,
             created_by_user_id=user.id,
-            quest_data={"steps": [1]},
         )
         session.add(item)
         session.add(FeatureFlag(key="quests.nodes_redirect", value=True))
@@ -116,4 +119,7 @@ async def test_nodes_redirect_flag(app_and_session):
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.get(f"/nodes/{slug}", params={"workspace_id": str(ws.id)})
     assert resp.status_code == 307
-    assert resp.headers["location"] == f"/quests/{node_id}/versions/current?workspace_id={ws.id}"
+    assert (
+        resp.headers["location"]
+        == f"/quests/{node_id}/versions/current?workspace_id={ws.id}"
+    )
