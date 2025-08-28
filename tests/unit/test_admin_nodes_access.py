@@ -33,7 +33,7 @@ users_table = NodeItem.__table__.metadata.tables["users"]
 
 
 @pytest.mark.asyncio
-async def test_validate_node_respects_workspace() -> None:
+async def test_get_node_respects_workspace() -> None:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
         await conn.run_sync(users_table.create)
@@ -64,11 +64,11 @@ async def test_validate_node_respects_workspace() -> None:
         await session.commit()
 
         svc = NodeService(session)
-        report = await svc.validate(ws1.id, NodeType.article, node.id)
-        assert hasattr(report, "errors")
+        item = await svc.get(ws1.id, NodeType.article, node.id)
+        assert item.id == node.id
 
         with pytest.raises(HTTPException):
-            await svc.validate(ws2.id, NodeType.article, node.id)
+            await svc.get(ws2.id, NodeType.article, node.id)
 
 
 @pytest.mark.asyncio
