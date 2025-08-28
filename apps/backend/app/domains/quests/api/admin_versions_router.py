@@ -15,6 +15,7 @@ from app.domains.audit.application.audit_service import audit_log
 from app.domains.nodes import service as node_service
 from app.domains.nodes.service import validate_transition
 from app.domains.quests.application.editor_service import EditorService
+from app.domains.quests.application.quest_graph_service import QuestGraphService
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.quests.infrastructure.models.quest_version_models import (
     QuestGraphEdge,
@@ -145,7 +146,8 @@ async def get_version(
 ):
     svc = EditorService()
     try:
-        v, steps, transitions = await svc.get_version_graph(db, version_id)
+        svc_q = QuestGraphService()
+        v, steps, transitions = await svc_q.load_graph(db, version_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Version not found")
     return QuestGraphOut(
@@ -174,8 +176,8 @@ async def put_graph(
     if not v:
         raise HTTPException(status_code=404, detail="Version not found")
 
-    svc = EditorService()
-    await svc.replace_graph(db, version_id, payload.steps, payload.transitions)
+    svc = QuestGraphService()
+    await svc.save_graph(db, version_id, payload.steps, payload.transitions)
 
     await audit_log(
         db,

@@ -13,6 +13,7 @@ from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.nodes.application.node_query_service import NodeQueryService
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
@@ -31,6 +32,7 @@ router = APIRouter(
 admin_required = require_admin_role()
 
 navcache = NavigationCacheService(CoreCacheAdapter())
+navsvc = NavigationService()
 
 
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin)")
@@ -126,6 +128,7 @@ async def bulk_node_operation(
             node.is_recommendable = not node.is_recommendable
         if changed:
             invalidate_slugs.append(node.slug)
+            await navsvc.invalidate_navigation_cache(db, node)
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = current_user.id
     await db.commit()
@@ -159,6 +162,7 @@ async def bulk_patch_nodes(
         if changes.delete:
             invalidate_slugs.append(node.slug)
             deleted_ids.append(str(node.id))
+            await navsvc.invalidate_navigation_cache(db, node)
             await db.delete(node)
             continue
         was_public = node.is_public
@@ -182,6 +186,7 @@ async def bulk_patch_nodes(
             or changes.workspace_id is not None
         ):
             invalidate_slugs.append(node.slug)
+            await navsvc.invalidate_navigation_cache(db, node)
     await db.commit()
     for slug in invalidate_slugs:
         await navcache.invalidate_navigation_by_node(slug)

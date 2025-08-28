@@ -16,6 +16,7 @@ from app.api.deps import (
 )
 from app.core.preview import PreviewContext
 from app.domains.quests.application.editor_service import EditorService
+from app.domains.quests.application.quest_graph_service import QuestGraphService
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.quests.infrastructure.models.quest_version_models import QuestVersion
 from app.domains.quests.schemas import (
@@ -138,8 +139,8 @@ async def get_graph(
     db: AsyncSession = Depends(get_db),
 ):
     await _ensure_version_access(db, version_id, workspace_id, current_user)
-    svc = EditorService()
-    v, steps, transitions = await svc.get_version_graph(db, version_id)
+    svc = QuestGraphService()
+    v, steps, transitions = await svc.load_graph(db, version_id)
     return QuestGraphOut(
         version=QuestVersionOut.model_validate(v, from_attributes=True),
         steps=steps,
@@ -159,8 +160,8 @@ async def put_graph(
     db: AsyncSession = Depends(get_db),
 ):
     await _ensure_version_access(db, version_id, workspace_id, current_user)
-    svc = EditorService()
-    await svc.replace_graph(db, version_id, payload.steps, payload.transitions)
+    svc = QuestGraphService()
+    await svc.save_graph(db, version_id, payload.steps, payload.transitions)
     await db.commit()
     return {"ok": True}
 
