@@ -7,6 +7,7 @@ Create Date: 2025-09-02
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 from sqlalchemy.dialects import postgresql
 
 revision = "20250902_user_ai_pref"
@@ -16,12 +17,18 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "user_ai_pref",
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("model", sa.String(), nullable=False),
-    )
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    if not inspector.has_table("user_ai_pref"):
+        op.create_table(
+            "user_ai_pref",
+            sa.Column("user_id", postgresql.UUID(as_uuid=True), primary_key=True),
+            sa.Column("model", sa.String(), nullable=False),
+        )
 
 
 def downgrade() -> None:
-    op.drop_table("user_ai_pref")
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    if inspector.has_table("user_ai_pref"):
+        op.drop_table("user_ai_pref")
