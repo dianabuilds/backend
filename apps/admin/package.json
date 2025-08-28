@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "lint-staged": "lint-staged",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate:types": "npx openapi-typescript-codegen --input ../../docs/openapi/openapi.json --output src/openapi --client fetch"
   },
   "dependencies": {
     "@editorjs/checklist": "^1.6.0",

@@ -358,6 +358,34 @@ async function request<T = unknown>(url: string, opts: RequestOptions = {}): Pro
   return { ok: true, status: resp.status, etag, data: data as T, response: resp };
 }
 
+// Простое кеширование ответов по ETag для GET-запросов
+const responseCache = new Map<string, { etag: string; data: unknown }>();
+
+export async function cachedGet<T = unknown>(
+  url: string,
+  opts: RequestOptions = {},
+): Promise<ApiResponse<T>> {
+  const cached = responseCache.get(url);
+  const res = await request<T>(url, {
+    ...opts,
+    etag: opts.etag ?? cached?.etag ?? null,
+    acceptNotModified: true,
+  });
+  if (res.status === 304 && cached) {
+    return {
+      ok: true,
+      status: 200,
+      etag: cached.etag,
+      data: cached.data as T,
+      response: res.response,
+    };
+  }
+  if (res.etag && res.data !== undefined) {
+    responseCache.set(url, { etag: res.etag, data: res.data });
+  }
+  return res;
+}
+
 export const get = <T = unknown>(
   url: string,
   opts?: RequestOptions,
@@ -389,6 +417,7 @@ export const del = <T = unknown>(
 export const api = {
   request,
   get,
+  cachedGet,
   post,
   put,
   patch,
@@ -424,21 +453,16 @@ const MENU_CACHE_KEY = `adminMenuCache:${MENU_CACHE_VERSION}`;
 
 export async function getAdminMenu(): Promise<AdminMenuResponse> {
   const etag = safeLocalStorage.getItem(MENU_ETAG_KEY);
+  const cached = safeLocalStorage.getItem(MENU_CACHE_KEY);
   try {
-    const res = await api.get<AdminMenuResponse>("/admin/menu", { etag, acceptNotModified: true });
-    if (res.status === 304) {
-      const cached = safeLocalStorage.getItem(MENU_CACHE_KEY);
-      if (cached) return JSON.parse(cached) as AdminMenuResponse;
-      const res2 = await api.get<AdminMenuResponse>("/admin/menu");
-      if (res2.etag) safeLocalStorage.setItem(MENU_ETAG_KEY, res2.etag);
-      if (res2.data) safeLocalStorage.setItem(MENU_CACHE_KEY, JSON.stringify(res2.data));
-      return res2.data as AdminMenuResponse;
+    const res = await api.cachedGet<AdminMenuResponse>("/admin/menu", { etag });
+    if (res.status === 304 && cached) {
+      return JSON.parse(cached) as AdminMenuResponse;
     }
     if (res.etag) safeLocalStorage.setItem(MENU_ETAG_KEY, res.etag);
     if (res.data) safeLocalStorage.setItem(MENU_CACHE_KEY, JSON.stringify(res.data));
-    return res.data as AdminMenuResponse;
+    return (res.data || (cached && JSON.parse(cached))) as AdminMenuResponse;
   } catch (e) {
-    const cached = safeLocalStorage.getItem(MENU_CACHE_KEY);
     if (cached) return JSON.parse(cached) as AdminMenuResponse;
     throw e;
   }
