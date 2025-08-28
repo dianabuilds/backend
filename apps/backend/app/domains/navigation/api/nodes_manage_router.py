@@ -10,10 +10,14 @@ from app.domains.navigation.application.echo_service import EchoService
 from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.users.infrastructure.models.user import User
-from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
-from app.repositories import TransitionRepository
+from app.domains.nodes.infrastructure.repositories.node_repository import (
+    NodeRepositoryAdapter,
+)
+from app.domains.navigation.infrastructure.repositories.transition_repository import (
+    TransitionRepository,
+)
+from app.domains.nodes.policies.node_policy import NodePolicy
 from app.schemas.transition import NodeTransitionCreate
-from app.policies import NodePolicy
 from app.core.log_events import cache_invalidate
 
 router = APIRouter(prefix="/nodes", tags=["nodes-navigation-manage"])
