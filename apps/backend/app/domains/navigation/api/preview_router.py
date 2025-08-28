@@ -61,6 +61,14 @@ async def create_preview_link(payload: PreviewLinkRequest) -> dict[str, str]:
     return {"url": f"/preview?token={token}"}
 
 
+@router.get("/link", dependencies=[Depends(require_admin_role())])
+async def create_preview_link_get(
+    workspace_id: UUID, ttl: int | None = None
+) -> dict[str, str]:
+    payload = PreviewLinkRequest(workspace_id=workspace_id, ttl=ttl)
+    return await create_preview_link(payload)
+
+
 @router.post(
     "/transitions/simulate",
     summary="Simulate transitions with preview",
