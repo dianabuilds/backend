@@ -15,6 +15,7 @@ KNOWN_FLAGS: dict[str, str] = {
     "moderation.enabled": "Enable moderation section in admin UI",
     "payments": "Enable payments module",
     "ai.validation": "Enable AI-based validation for nodes",
+    "quests.nodes_redirect": "Redirect /nodes/:slug to /quests/{id}/versions/current",
 }
 
 

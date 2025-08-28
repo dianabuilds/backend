@@ -91,6 +91,39 @@ async def create_version(
 
 
 @router.get(
+    "/{quest_id}/versions/current",
+    response_model=QuestGraphOut,
+    summary="Get current quest version graph",
+)
+async def get_current_version(
+    quest_id: UUID,
+    workspace_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _ensure_quest_access(db, quest_id, workspace_id, current_user)
+    res = await db.execute(
+        select(QuestVersion)
+        .where(
+            QuestVersion.quest_id == quest_id,
+            QuestVersion.status == "released",
+        )
+        .order_by(QuestVersion.number.desc())
+        .limit(1)
+    )
+    version = res.scalars().first()
+    if not version:
+        raise HTTPException(status_code=404, detail="Released version not found")
+    svc = QuestGraphService()
+    v, steps, transitions = await svc.load_graph(db, version.id)
+    return QuestGraphOut(
+        version=QuestVersionOut.model_validate(v, from_attributes=True),
+        steps=steps,
+        transitions=transitions,
+    )
+
+
+@router.get(
     "/{quest_id}/versions/{version_id}",
     response_model=QuestVersionOut,
     summary="Get quest version",
