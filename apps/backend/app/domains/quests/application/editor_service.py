@@ -8,10 +8,9 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.preview import PreviewContext
-from app.domains.navigation.application.navigation_cache_service import (
-    NavigationCacheService,
+from app.domains.quests.infrastructure.models.navigation_cache_models import (
+    NavigationCache,
 )
-from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.quests.infrastructure.models.quest_version_models import (
     QuestGraphEdge,
     QuestGraphNode,
@@ -23,7 +22,7 @@ from app.schemas.quest_editor import SimulateIn, SimulateResult, ValidateResult
 
 class EditorService:
     def __init__(self) -> None:
-        self._navcache = NavigationCacheService(CoreCacheAdapter())
+        pass
 
     async def create_version(
         self,
@@ -50,7 +49,7 @@ class EditorService:
         )
         db.add(version)
         await db.flush()
-        await self._navcache.invalidate_navigation_all()
+        await self.invalidate_navigation_cache(db)
         return version
 
     async def get_version_graph(
@@ -131,7 +130,8 @@ class EditorService:
             )
 
         await db.flush()
-        await self._navcache.invalidate_navigation_all()
+        await self.invalidate_navigation_cache(db)
+        await self.generate_navigation_cache(db, version_id)
 
     async def delete_version(self, db: AsyncSession, version_id: UUID) -> None:
         version = await db.get(QuestVersion, version_id)
@@ -139,7 +139,7 @@ class EditorService:
             raise ValueError("version_not_found")
         await db.delete(version)
         await db.flush()
-        await self._navcache.invalidate_navigation_all()
+        await self.invalidate_navigation_cache(db)
 
     async def validate_version(
         self, db: AsyncSession, version_id: UUID
@@ -253,3 +253,35 @@ class EditorService:
                 break
 
         return SimulateResult(steps=steps, rewards=rewards)
+
+    async def invalidate_navigation_cache(self, db: AsyncSession) -> None:
+        await db.execute(delete(NavigationCache))
+        await db.flush()
+
+    async def generate_navigation_cache(
+        self, db: AsyncSession, version_id: UUID
+    ) -> None:
+        version, steps, transitions = await self.get_version_graph(db, version_id)
+        await db.execute(delete(NavigationCache))
+        adj: Dict[str, List[str]] = {}
+        for t in transitions:
+            adj.setdefault(t.from_node_key, []).append(t.to_node_key)
+        now = datetime.utcnow().isoformat()
+        for s in steps:
+            data = {
+                "mode": "auto",
+                "transitions": [
+                    {"slug": dst, "title": dst, "source_type": "cached"}
+                    for dst in adj.get(s.key, [])
+                ],
+                "generated_at": now,
+            }
+            db.add(
+                NavigationCache(
+                    node_slug=s.key,
+                    navigation=data,
+                    compass=[],
+                    echo=[],
+                )
+            )
+        await db.flush()

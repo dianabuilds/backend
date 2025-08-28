@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-import uuid
-from collections import Counter
-from datetime import datetime, timedelta
 from typing import List, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.navigation.infrastructure.models.echo_models import EchoTrace
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.navigation.infrastructure.models.transition_models import NodeTrace
 from app.domains.users.infrastructure.models.user import User
 from app.domains.navigation.application.access_policy import has_access_async
 from app.core.preview import PreviewContext
+from app.domains.quests.infrastructure.models.navigation_cache_models import (
+    NavigationCache,
+)
 
 
 class EchoService:
@@ -46,34 +45,16 @@ class EchoService:
         user: Optional[User] = None,
         preview: PreviewContext | None = None,
     ) -> List[Node]:
-        base_now = preview.now if preview and preview.now else datetime.utcnow()
-        cutoff = base_now - timedelta(days=30)
         result = await db.execute(
-            select(EchoTrace).where(
-                EchoTrace.from_node_id == node.id,
-                EchoTrace.created_at >= cutoff,
+            select(NavigationCache.echo).where(
+                NavigationCache.node_slug == node.slug
             )
         )
-        traces = result.scalars().all()
-        counter: Counter = Counter()
-        for tr in traces:
-            counter[str(tr.to_node_id)] += 1
-        if not counter:
-            return []
-        node_ids = [uuid.UUID(node_id) for node_id in counter.keys()]
-        trace_result = await db.execute(
-            select(NodeTrace.node_id, func.count())
-            .where(NodeTrace.node_id.in_(node_ids))
-            .group_by(NodeTrace.node_id)
-        )
-        for nid, tcount in trace_result.all():
-            counter[str(nid)] += tcount
+        slugs = result.scalar_one_or_none() or []
         ordered_nodes: List[Node] = []
-        for node_id, _ in counter.most_common(20):
-            n = await db.get(Node, uuid.UUID(node_id))
-            if not n or not await has_access_async(n, user, preview):
-                continue
-            ordered_nodes.append(n)
-            if len(ordered_nodes) >= limit:
-                break
+        for slug in slugs[:limit]:
+            res = await db.execute(select(Node).where(Node.slug == slug))
+            n = res.scalar_one_or_none()
+            if n and await has_access_async(n, user, preview):
+                ordered_nodes.append(n)
         return ordered_nodes
