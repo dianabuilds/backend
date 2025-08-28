@@ -23,6 +23,7 @@ class NodeItem(ContentBase):
     workspace_id: UUID
     version: Version
     cover_media_id: UUID | None = None
+    quest_data: dict | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
