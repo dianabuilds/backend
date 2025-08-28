@@ -1,7 +1,7 @@
 # ruff: noqa
 from __future__ import annotations
 
-from typing import List
+from typing import List, Literal, TypedDict
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
@@ -62,6 +62,18 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 navsvc = NavigationService()
 
 
+class NodeListParams(TypedDict, total=False):
+    tags: str
+    match: Literal["any", "all"]
+    sort: Literal[
+        "updated_desc",
+        "created_desc",
+        "created_asc",
+        "views_desc",
+        "reactions_desc",
+    ]
+
+
 def _ensure_workspace_id(request: Request, workspace_id: UUID | None) -> UUID:
     if workspace_id is not None:
         return workspace_id
@@ -78,16 +90,23 @@ async def list_nodes(
     workspace_id: UUID | None = None,
     if_none_match: str | None = Header(None, alias="If-None-Match"),
     tags: str | None = Query(None),
-    match: str = Query("any", pattern="^(any|all)$"),
-    sort: str = Query(
+    match: Literal["any", "all"] = Query("any"),
+    sort: Literal[
         "updated_desc",
-        pattern="^(updated_desc|created_desc|created_asc|views_desc|reactions_desc)$",
-    ),
+        "created_desc",
+        "created_asc",
+        "views_desc",
+        "reactions_desc",
+    ] = Query("updated_desc"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     workspace_dep: object = Depends(optional_workspace),
     _: object = Depends(require_ws_guest),
 ) -> List[NodeOut]:
+    """List nodes.
+
+    See :class:`NodeListParams` for available query parameters.
+    """
     workspace_id = _ensure_workspace_id(request, workspace_id)
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
     spec = NodeFilterSpec(

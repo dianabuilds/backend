@@ -20,7 +20,7 @@ export default function ContentAll() {
       const items = await listNodes({
         node_type: type || undefined,
         status: status || undefined,
-        tag: tag || undefined,
+        tags: tag || undefined,
       });
       return items as NodeItem[];
     },

@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { wsApi } from "../api/wsApi";
 import { createPreviewLink } from "../api/preview";
-import { createNode, listNodes, patchNode } from "../api/nodes";
+import { createNode, listNodes, patchNode, type NodeListParams } from "../api/nodes";
 import ContentEditor from "../components/content/ContentEditor";
 import StatusBadge from "../components/StatusBadge";
 import FlagsCell from "../components/FlagsCell";
@@ -357,18 +357,17 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       limit,
     ],
     queryFn: async () => {
-      const params: Record<string, unknown> = {
+      const params: NodeListParams = {
         limit,
         offset: page * limit,
       };
       if (q) params.q = q;
       if (nodeType) params.node_type = nodeType;
       if (status !== "all") params.status = status;
-      if (visibility !== "all")
-        params.visible = visibility === "visible" ? "true" : "false";
-      if (isPublic !== "all") params.is_public = isPublic;
-      if (premium !== "all") params.premium_only = premium;
-      if (recommendable !== "all") params.recommendable = recommendable;
+      if (visibility !== "all") params.visible = visibility === "visible";
+      if (isPublic !== "all") params.is_public = isPublic === "true";
+      if (premium !== "all") params.premium_only = premium === "true";
+      if (recommendable !== "all") params.recommendable = recommendable === "true";
       const res = await listNodes(params);
       const raw = ensureArray<any>(res) as any[];
       return raw.map((x) => normalizeNode(x));

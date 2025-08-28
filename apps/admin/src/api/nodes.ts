@@ -1,4 +1,4 @@
-import type { NodeOut, ValidateResult } from "../openapi";
+import type { NodeOut, ValidateResult, PublishIn } from "../openapi";
 import type { ApiResponse } from "./client";
 import { wsApi } from "./wsApi";
 
@@ -13,9 +13,9 @@ export interface AdminNodeItem extends NodeOut {
 
 const listCache = new Map<string, { etag: string | null; data: AdminNodeItem[] }>();
 
-function normalizeTags(payload: Record<string, unknown>): Record<string, unknown> {
+function normalizeTags<T extends { tags?: unknown }>(payload: T): T {
   if (!payload || typeof payload !== "object") return payload;
-  const p = { ...payload };
+  const p = { ...payload } as Record<string, unknown>;
   const tags = p["tags"] as unknown;
   if (Array.isArray(tags)) {
     const normalized = tags
@@ -33,17 +33,65 @@ function normalizeTags(payload: Record<string, unknown>): Record<string, unknown
         return null;
       })
       .filter((v): v is string => typeof v === "string" && v.length > 0);
-    p["tags"] = normalized;
+    (p as any)["tags"] = normalized;
     if (normalized.length === 0) {
       // чтобы не отправлять пустое поле, если оно не нужно
-      delete p["tags"];
+      delete (p as any)["tags"];
     }
   }
-  return p;
+  return p as T;
+}
+
+export interface NodeListParams {
+  author?: string;
+  tags?: string;
+  match?: "any" | "all";
+  sort?:
+    | "updated_desc"
+    | "created_desc"
+    | "created_asc"
+    | "views_desc"
+    | "reactions_desc";
+  is_public?: boolean;
+  visible?: boolean;
+  premium_only?: boolean;
+  recommendable?: boolean;
+  node_type?: string;
+  limit?: number;
+  offset?: number;
+  date_from?: string;
+  date_to?: string;
+  q?: string;
+  status?: string;
+}
+
+export interface NodePatchParams {
+  title?: string | null;
+  nodes?: null;
+  media?: string[] | null;
+  coverUrl?: string | null;
+  tags?: string[] | null;
+  isPublic?: boolean | null;
+  isVisible?: boolean | null;
+  allow_feedback?: boolean | null;
+  isRecommendable?: boolean | null;
+  premium_only?: boolean | null;
+  nftRequired?: string | null;
+  aiGenerated?: boolean | null;
+  updatedAt?: string | null;
+  publishedAt?: string | null;
+}
+export type NodePublishParams = PublishIn;
+export interface NodePatchQuery {
+  force?: 1;
+  next?: 1;
+}
+export interface NodeSimulatePayload {
+  [key: string]: unknown;
 }
 
 export async function listNodes(
-  params: Record<string, unknown> = {},
+  params: NodeListParams = {},
 ): Promise<AdminNodeItem[]> {
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -98,13 +146,13 @@ export async function getNode(a: string, b?: string): Promise<NodeOut> {
 export async function patchNode(
   type: string,
   id: string,
-  patch: Record<string, unknown>,
+  patch: NodePatchParams,
   opts: { force?: boolean; signal?: AbortSignal; next?: boolean } = {},
 ): Promise<NodeOut> {
-  const params: Record<string, number> = {};
+  const params: NodePatchQuery = {};
   if (opts.force) params.force = 1;
   if (opts.next) params.next = 1;
-  const res = await wsApi.patch<Record<string, unknown>, NodeOut>(
+  const res = await wsApi.patch<NodePatchParams, NodeOut, NodePatchQuery>(
     type === "article"
       ? `/admin/articles/${encodeURIComponent(id)}`
       : `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
@@ -117,9 +165,9 @@ export async function patchNode(
 export async function publishNode(
   type: string,
   id: string,
-  body: Record<string, unknown> | undefined = undefined,
+  body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
-  const res = await wsApi.post<Record<string, unknown> | undefined, NodeOut>(
+  const res = await wsApi.post<NodePublishParams | undefined, NodeOut>(
     type === "article"
       ? `/admin/articles/${encodeURIComponent(id)}/publish`
       : `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/publish`,
@@ -143,9 +191,9 @@ export async function validateNode(
 export async function simulateNode(
   type: string,
   id: string,
-  payload: Record<string, unknown>,
+  payload: NodeSimulatePayload,
 ): Promise<any> {
-  const res = await wsApi.post<Record<string, unknown>, any>(
+  const res = await wsApi.post<NodeSimulatePayload, any>(
     `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/simulate`,
     payload,
   );

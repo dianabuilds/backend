@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal, TypedDict
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Response
@@ -12,8 +13,8 @@ from app.core.log_events import cache_invalidate
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
-from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.navigation.application.navigation_service import NavigationService
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.application.node_query_service import NodeQueryService
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
@@ -35,6 +36,29 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 navsvc = NavigationService()
 
 
+class AdminNodeListParams(TypedDict, total=False):
+    author: UUID
+    tags: str
+    match: Literal["any", "all"]
+    sort: Literal[
+        "updated_desc",
+        "created_desc",
+        "created_asc",
+        "views_desc",
+        "reactions_desc",
+    ]
+    is_public: bool
+    visible: bool
+    premium_only: bool
+    recommendable: bool
+    node_type: str
+    limit: int
+    offset: int
+    date_from: datetime
+    date_to: datetime
+    q: str
+
+
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin)")
 async def list_nodes_admin(
     response: Response,
@@ -42,11 +66,14 @@ async def list_nodes_admin(
     if_none_match: str | None = Header(None, alias="If-None-Match"),
     author: UUID | None = None,
     tags: str | None = Query(None),
-    match: str = Query("any", pattern="^(any|all)$"),
-    sort: str = Query(
+    match: Literal["any", "all"] = Query("any"),
+    sort: Literal[
         "updated_desc",
-        pattern="^(updated_desc|created_desc|created_asc|views_desc|reactions_desc)$",
-    ),
+        "created_desc",
+        "created_asc",
+        "views_desc",
+        "reactions_desc",
+    ] = Query("updated_desc"),
     is_public: bool | None = None,
     visible: bool | None = None,
     premium_only: bool | None = None,
@@ -60,6 +87,10 @@ async def list_nodes_admin(
     current_user=Depends(admin_required),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
+    """List nodes in workspace.
+
+    See :class:`AdminNodeListParams` for available query parameters.
+    """
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
     spec_workspace_id = workspace_id
     workspace = await db.get(Workspace, workspace_id)
