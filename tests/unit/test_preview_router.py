@@ -156,9 +156,14 @@ def test_preview_link_endpoint_accessible(monkeypatch):
     app.dependency_overrides[admin_dep] = lambda: None
 
     client = TestClient(app)
-    res = client.post("/admin/preview/link", json={"workspace_id": str(uuid.uuid4())})
+    ws_id = str(uuid.uuid4())
+    res = client.post("/admin/preview/link", json={"workspace_id": ws_id})
     assert res.status_code == 200
     assert "url" in res.json()
+
+    res_get = client.get("/admin/preview/link", params={"workspace_id": ws_id})
+    assert res_get.status_code == 200
+    assert "url" in res_get.json()
 
 
 def test_read_only_renders_route_without_transition(monkeypatch):
