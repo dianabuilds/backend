@@ -5,12 +5,12 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.nodes_common import Status
+from app.core.preview import PreviewContext
 from app.domains.notifications.application.ports.notifications import (
     INotificationPort,
 )
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
-from app.core.preview import PreviewContext
+from app.schemas.nodes_common import Status
 
 from .dao import NodePatchDAO
 
@@ -44,10 +44,8 @@ async def publish_content(
     from app.domains.system.events import NodePublished, get_event_bus
 
     bus = get_event_bus()
-    await bus.publish(
-        NodePublished(node_id=node_id, slug=slug, author_id=author_id)
-    )
-    event_metrics.inc("publish", str(workspace_id))
+    await bus.publish(NodePublished(node_id=node_id, slug=slug, author_id=author_id))
+    event_metrics.inc("node.publish", str(workspace_id))
     if notifier:
         try:
             await notifier.notify(
@@ -67,9 +65,7 @@ async def update_content(node_id: UUID, slug: str, author_id: UUID) -> None:
     from app.domains.system.events import NodeUpdated, get_event_bus
 
     bus = get_event_bus()
-    await bus.publish(
-        NodeUpdated(node_id=node_id, slug=slug, author_id=author_id)
-    )
+    await bus.publish(NodeUpdated(node_id=node_id, slug=slug, author_id=author_id))
 
 
 async def archive_content(node_id: UUID, slug: str, author_id: UUID) -> None:
@@ -77,9 +73,7 @@ async def archive_content(node_id: UUID, slug: str, author_id: UUID) -> None:
     from app.domains.system.events import NodeArchived, get_event_bus
 
     bus = get_event_bus()
-    await bus.publish(
-        NodeArchived(node_id=node_id, slug=slug, author_id=author_id)
-    )
+    await bus.publish(NodeArchived(node_id=node_id, slug=slug, author_id=author_id))
 
 
 class NodePatchService:

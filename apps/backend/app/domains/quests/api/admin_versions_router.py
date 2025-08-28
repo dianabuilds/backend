@@ -5,7 +5,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_preview_context
@@ -22,8 +22,6 @@ from app.domains.quests.infrastructure.models.quest_version_models import (
     QuestGraphNode,
     QuestVersion,
 )
-from app.domains.users.infrastructure.models.user import User
-from app.schemas.nodes_common import Status
 from app.domains.quests.schemas import (
     QuestGraphIn,
     QuestGraphOut,
@@ -31,6 +29,9 @@ from app.domains.quests.schemas import (
     QuestTransition,
     QuestVersionOut,
 )
+from app.domains.telemetry.application.event_metrics_facade import event_metrics
+from app.domains.users.infrastructure.models.user import User
+from app.schemas.nodes_common import Status
 from app.schemas.quest_editor import (
     QuestCreateIn,
     QuestSummary,
@@ -144,12 +145,11 @@ async def get_version(
     _: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
-    svc = EditorService()
     try:
         svc_q = QuestGraphService()
         v, steps, transitions = await svc_q.load_graph(db, version_id)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Version not found")
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail="Version not found") from err
     return QuestGraphOut(
         version=QuestVersionOut(
             id=v.id,
@@ -210,6 +210,7 @@ async def validate_version(
     if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Version not found")
     svc = EditorService()
+    event_metrics.inc("quest.validate", str(workspace_id))
     return await svc.validate_version(db, version_id)
 
 
