@@ -13,7 +13,10 @@ export type AdminQuest = {
 };
 
 export type PublishAccess = "premium_only" | "everyone" | "early_access";
-export async function listAdminQuests(params?: {
+
+const listCache = new Map<string, { etag: string | null; data: AdminQuest[] }>();
+
+export async function listQuests(params?: {
   q?: string;
   draft?: boolean;
   length?: "short" | "long";
@@ -21,7 +24,7 @@ export async function listAdminQuests(params?: {
   created_to?: string;
   page?: number;
   per_page?: number;
-}): Promise<Page<AdminQuest>> {
+}): Promise<AdminQuest[]> {
   const q = new URLSearchParams();
   if (params?.q) q.set("q", params.q);
   if (typeof params?.draft === "boolean") q.set("draft", String(params.draft));
@@ -31,10 +34,20 @@ export async function listAdminQuests(params?: {
   if (typeof params?.page === "number") q.set("page", String(params.page));
   if (typeof params?.per_page === "number")
     q.set("per_page", String(params.per_page));
-  const res = await api.get<Page<AdminQuest>>(
-    `/admin/quests${q.toString() ? `?${q.toString()}` : ""}`,
-  );
-  return res.data!;
+  const url = `/admin/quests${q.toString() ? `?${q.toString()}` : ""}`;
+  const cached = listCache.get(url);
+  const res = await api.get<Page<AdminQuest>>(url, {
+    etag: cached?.etag ?? undefined,
+    acceptNotModified: true,
+  });
+  if (res.status === 304 && cached) return cached.data;
+  const data = Array.isArray(res.data?.items)
+    ? res.data!.items
+    : Array.isArray(res.data as any)
+      ? (res.data as any)
+      : [];
+  if (res.etag) listCache.set(url, { etag: res.etag, data });
+  return data;
 }
 
 export async function validateQuest(

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { wsApi } from "../api/wsApi";
 import { createPreviewLink } from "../api/preview";
-import { createNode, patchNode } from "../api/nodes";
+import { createNode, listNodes, patchNode } from "../api/nodes";
 import ContentEditor from "../components/content/ContentEditor";
 import StatusBadge from "../components/StatusBadge";
 import FlagsCell from "../components/FlagsCell";
@@ -167,9 +168,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   // Данные
   const [items, setItems] = useState<NodeItem[]>([]);
   const [baseline, setBaseline] = useState<Map<string, NodeItem>>(new Map()); // снимок исходных значений
-  const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Выделение и отложенные изменения
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -278,7 +277,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
           });
           addToast({ title: "Node restored", variant: "success" });
           // Фоновая верификация
-          await load(page);
+          await refetch();
         } catch (e) {
           addToast({
             title: "Restore failed",
@@ -322,7 +321,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
         return m;
       });
       addToast({ title: "Node hidden", variant: "success" });
-      await load(page);
+      await refetch();
     } catch (e) {
       addToast({
         title: "Hide failed",
@@ -336,20 +335,32 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
 
   // Moderation sidebar removed — отдельные состояния/загрузки скрытых нод не нужны
 
-  // Загрузка списка нод
-  const loadingRef = useRef(false);
   const creatingRef = useRef(false);
-  const load = async (pageIndex = page) => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    setLoading(true);
-    setError(null);
-    try {
-      const params: Record<string, string> = {
-        limit: String(limit),
-        offset: String(pageIndex * limit),
+  const {
+    data: nodesData = [],
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useQuery<NodeItem[]>({
+    queryKey: [
+      "nodes",
+      workspaceId,
+      q,
+      nodeType,
+      status,
+      visibility,
+      isPublic,
+      premium,
+      recommendable,
+      page,
+      limit,
+    ],
+    queryFn: async () => {
+      const params: Record<string, unknown> = {
+        limit,
+        offset: page * limit,
       };
-
       if (q) params.q = q;
       if (nodeType) params.node_type = nodeType;
       if (status !== "all") params.status = status;
@@ -358,39 +369,38 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       if (isPublic !== "all") params.is_public = isPublic;
       if (premium !== "all") params.premium_only = premium;
       if (recommendable !== "all") params.recommendable = recommendable;
-      const qs = new URLSearchParams(params).toString();
-      const res = await wsApi.get(`/admin/nodes?${qs}`);
+      const res = await listNodes(params);
       const raw = ensureArray<any>(res) as any[];
-      const arr: NodeItem[] = raw.map((x) => normalizeNode(x));
-      setItems(arr);
-      setHasMore(arr.length === limit);
-      // baseline фиксируем только при полной загрузке, чтобы сравнивать изменения
-      const snap = new Map<string, NodeItem>();
-      arr.forEach((n: NodeItem) => snap.set(n.id, { ...n }));
-      setBaseline(snap);
-      setPending(new Map());
-    } catch (e) {
+      return raw.map((x) => normalizeNode(x));
+    },
+    enabled: !!workspaceId,
+    placeholderData: (prev) => prev,
+    onError: (e) => {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
       addToast({
         title: "Failed to load nodes",
         description: msg,
         variant: "error",
       });
-      setItems([]);
-      setBaseline(new Map());
-      setPending(new Map());
-    } finally {
-      setLoading(false);
-      loadingRef.current = false;
-    }
-  };
+    },
+  });
 
   useEffect(() => {
-    if (!workspaceId) return;
-    load(page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, workspaceId]);
+    const arr = nodesData || [];
+    setItems(arr);
+    setHasMore(arr.length === limit);
+    const snap = new Map<string, NodeItem>();
+    arr.forEach((n: NodeItem) => snap.set(n.id, { ...n }));
+    setBaseline(snap);
+    setPending(new Map());
+  }, [nodesData, limit]);
+
+  const loading = isLoading || isFetching;
+  const errorMsg = error
+    ? error instanceof Error
+      ? error.message
+      : String(error)
+    : null;
 
   // Локальные изменения без немедленного вызова API.
   // Для is_visible используем модерационные ручки (hide с причиной / restore) — без staging.
@@ -477,7 +487,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
         setBaseline(new Map(items.map((n) => [n.id, { ...n }])));
         setPending(new Map());
         // Фоновая верификация серверного состояния
-        await load(page);
+        await refetch();
       } else {
         addToast({ title: "No changes to apply", variant: "info" });
       }
@@ -555,7 +565,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       } else {
         setEditorOpen(false);
       }
-      await load(page);
+      await refetch();
       if (created?.slug) {
         addToast({
           title: "Node created",
@@ -677,7 +687,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
             onChange={(e) => {
               setNodeType(e.target.value);
               setPage(0);
-              setTimeout(() => load(0));
+              setTimeout(() => {
+                setPage(0);
+                void refetch();
+              });
             }}
             placeholder="node type"
             className="border rounded px-2 py-1"
@@ -688,7 +701,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
             onChange={(e) => {
               setStatus(e.target.value);
               setPage(0);
-              setTimeout(() => load(0));
+              setTimeout(() => {
+                setPage(0);
+                void refetch();
+              });
             }}
           >
             <option value="all">all statuses</option>
@@ -704,7 +720,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
               setVisibility(e.target.value as any);
               setPage(0);
               // Подгружаем заново с новым фильтром
-              setTimeout(() => load(0));
+              setTimeout(() => {
+                setPage(0);
+                void refetch();
+              });
             }}
           >
             <option value="all">all</option>
@@ -717,7 +736,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
             onChange={(e) => {
               setIsPublic(e.target.value as any);
               setPage(0);
-              setTimeout(() => load(0));
+              setTimeout(() => {
+                setPage(0);
+                void refetch();
+              });
             }}
           >
             <option value="all">all</option>
@@ -730,7 +752,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
             onChange={(e) => {
               setPremium(e.target.value as any);
               setPage(0);
-              setTimeout(() => load(0));
+              setTimeout(() => {
+                setPage(0);
+                void refetch();
+              });
             }}
           >
             <option value="all">all</option>
@@ -743,7 +768,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
             onChange={(e) => {
               setRecommendable(e.target.value as any);
               setPage(0);
-              setTimeout(() => load(0));
+              setTimeout(() => {
+                setPage(0);
+                void refetch();
+              });
             }}
           >
             <option value="all">all</option>
@@ -754,7 +782,8 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
             type="button"
             onClick={() => {
               setPage(0);
-              load(0);
+              setPage(0);
+              void refetch();
             }}
             className="px-3 py-1 rounded border"
           >
@@ -771,7 +800,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                 setLimit(val);
                 setPage(0);
                 // перегружаем список с новым лимитом
-                setTimeout(() => load(0));
+                setTimeout(() => {
+                  setPage(0);
+                  void refetch();
+                });
               }}
             >
               <option value={10}>10</option>
@@ -814,7 +846,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
         </div>
 
         {loading && <p>Loading...</p>}
-        {error && <p className="text-red-600">{error}</p>}
+        {errorMsg && <p className="text-red-600">{errorMsg}</p>}
 
         {/* Bulk по выделению (по-прежнему доступно) */}
         {selected.size > 0 && (
@@ -991,7 +1023,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
         )}
 
         {/* Таблица нод */}
-        {!loading && !error && (
+        {!loading && !errorMsg && (
           <>
             <table className="min-w-full text-sm text-left">
               <thead>

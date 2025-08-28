@@ -1,4 +1,5 @@
 import type { NodeOut, ValidateResult } from "../openapi";
+import type { ApiResponse } from "./client";
 import { wsApi } from "./wsApi";
 
 // The admin nodes list endpoint returns additional metadata compared to the
@@ -9,6 +10,8 @@ export interface AdminNodeItem extends NodeOut {
   node_type: string;
   status: string;
 }
+
+const listCache = new Map<string, { etag: string | null; data: AdminNodeItem[] }>();
 
 function normalizeTags(payload: Record<string, unknown>): Record<string, unknown> {
   if (!payload || typeof payload !== "object") return payload;
@@ -48,10 +51,18 @@ export async function listNodes(
       qs.set(key, String(value));
     }
   }
-  const res = await wsApi.get<AdminNodeItem[]>(
-    `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ""}`,
-  );
-  return res ?? [];
+  const url = `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ""}`;
+  const cacheKey = url;
+  const cached = listCache.get(cacheKey);
+  const res = (await wsApi.get(url, {
+    etag: cached?.etag ?? undefined,
+    acceptNotModified: true,
+    raw: true,
+  })) as ApiResponse<AdminNodeItem[]>;
+  if (res.status === 304 && cached) return cached.data;
+  const data = Array.isArray(res.data) ? res.data : [];
+  if (res.etag) listCache.set(cacheKey, { etag: res.etag, data });
+  return data;
 }
 
 export async function createNode(
