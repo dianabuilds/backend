@@ -371,7 +371,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       if (isPublic !== "all") params.is_public = isPublic === "true";
       if (premium !== "all") params.premium_only = premium === "true";
       if (recommendable !== "all") params.recommendable = recommendable === "true";
-      const res = await listNodes(params);
+      const res = await listNodes(workspaceId, params);
       const raw = ensureArray<any>(res) as any[];
       return raw.map((x) => normalizeNode(x));
     },
@@ -475,7 +475,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       for (const [op, ids] of Object.entries(ops)) {
         if (ids.length === 0) continue;
         any = true;
-        await wsApi.post(`/admin/nodes/bulk`, { ids, op });
+        await wsApi.post(
+          `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/bulk`,
+          { ids, op },
+        );
         results.push(`${op}: ${ids.length}`);
       }
       if (any) {
@@ -540,13 +543,13 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     if (draft.cover_url || media.length)
       payload.cover_url = draft.cover_url || media[0];
 
-    const created = await createNode({
+    const created = await createNode(workspaceId, {
       node_type: (nodeType && ["article", "quest"].includes(nodeType)) ? nodeType : "article",
       title: draft.title.trim() || undefined,
     });
     const nodeType = (created as any).node_type || nodeType || "article";
     const nodeId = String((created as any)?.id ?? (created as any)?.uuid ?? (created as any)?._id ?? "");
-    await patchNode(nodeType, nodeId, payload);
+    await patchNode(workspaceId, nodeType, nodeId, payload);
     return { ...created, id: nodeId } as any;
   };
 
@@ -609,7 +612,9 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       return;
     try {
       for (const id of ids) {
-        await wsApi.delete(`/admin/nodes/${encodeURIComponent(id)}`);
+        await wsApi.delete(
+          `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(id)}`,
+        );
       }
       setItems((prev) => prev.filter((n) => !selected.has(n.id)));
       setSelected(new Set());

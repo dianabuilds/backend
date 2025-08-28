@@ -2,23 +2,25 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { api } from "../api/client";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 import ValidationReportView from "../components/ValidationReportView";
 import type { ValidationReport as ValidationReportModel } from "../openapi";
 import PageLayout from "./_shared/PageLayout";
 
 export default function ValidationReport() {
   const { type, id } = useParams<{ type: string; id: string }>();
+  const { workspaceId } = useWorkspace();
   const [report, setReport] = useState<ValidationReportModel | null>(null);
   const [loading, setLoading] = useState(false);
   const [aiReport, setAiReport] = useState<ValidationReportModel | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
   const run = async () => {
-    if (!type || !id) return;
+    if (!type || !id || !workspaceId) return;
     setLoading(true);
     try {
       const res = await api.post(
-        `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
+        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
       );
       setReport(res.data?.report ?? null);
     } finally {
@@ -27,11 +29,11 @@ export default function ValidationReport() {
   };
 
   const runAi = async () => {
-    if (!type || !id) return;
+    if (!type || !id || !workspaceId) return;
     setAiLoading(true);
     try {
       const res = await api.post(
-        `/admin/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate_ai`,
+        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate_ai`,
       );
       setAiReport(res.data?.report ?? null);
     } finally {
@@ -42,7 +44,7 @@ export default function ValidationReport() {
   useEffect(() => {
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, id]);
+  }, [type, id, workspaceId]);
 
   return (
     <PageLayout title="Validation report">

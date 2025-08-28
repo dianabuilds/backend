@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { listNodes } from "../api/nodes";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 
 interface NodeItem {
   id: string;
@@ -10,14 +11,16 @@ interface NodeItem {
 }
 
 export default function ContentAll() {
+  const { workspaceId } = useWorkspace();
   const [type, setType] = useState("");
   const [status, setStatus] = useState("");
   const [tag, setTag] = useState("");
 
   const { data } = useQuery({
-    queryKey: ["nodes", "all", type, status, tag],
+    queryKey: ["nodes", "all", workspaceId, type, status, tag],
     queryFn: async () => {
-      const items = await listNodes({
+      if (!workspaceId) return [] as NodeItem[];
+      const items = await listNodes(workspaceId, {
         node_type: type || undefined,
         status: status || undefined,
         tags: tag || undefined,

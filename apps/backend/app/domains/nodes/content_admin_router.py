@@ -1,7 +1,7 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +14,7 @@ from app.schemas.nodes_common import NodeType
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
 
 router = APIRouter(
-    prefix="/admin/nodes",
+    prefix="/admin/workspaces/{workspace_id}/nodes",
     tags=["admin"],
     responses=ADMIN_AUTH_RESPONSES,
 )
@@ -39,8 +39,8 @@ def _serialize(item: NodeItem) -> dict:
 
 @router.get("/{node_type}", summary="List nodes by type")
 async def list_nodes(
-    workspace_id: UUID,
     node_type: NodeType,
+    workspace_id: UUID = Path(...),
     page: int = 1,
     per_page: int = 10,
     q: str | None = None,
@@ -65,7 +65,7 @@ async def list_nodes(
 @router.post("/{node_type}", summary="Create node item")
 async def create_node(
     node_type: NodeType,
-    workspace_id: UUID,
+    workspace_id: UUID = Path(...),
     _: object = Depends(require_ws_editor),  # noqa: B008
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
@@ -84,7 +84,7 @@ async def create_node(
 async def get_node(
     node_type: NodeType,
     node_id: UUID,
-    workspace_id: UUID,
+    workspace_id: UUID = Path(...),
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
@@ -102,8 +102,8 @@ async def get_node(
 async def update_node(
     node_type: NodeType,
     node_id: UUID,
-    workspace_id: UUID,
     payload: dict,
+    workspace_id: UUID = Path(...),
     next: int = Query(0),
     _: object = Depends(require_ws_editor),  # noqa: B008
     current_user: User = Depends(auth_user),  # noqa: B008
@@ -134,7 +134,7 @@ async def update_node(
 async def publish_node(
     node_type: NodeType,
     node_id: UUID,
-    workspace_id: UUID,
+    workspace_id: UUID = Path(...),
     payload: PublishIn | None = None,
     _: object = Depends(require_ws_editor),  # noqa: B008
     current_user: User = Depends(auth_user),  # noqa: B008

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { getNode } from "../api/nodes";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 import type { OutputData } from "../types/editorjs";
 
 function diffObjects(a: any, b: any, prefix = ""): string[] {
@@ -29,13 +30,14 @@ function diffObjects(a: any, b: any, prefix = ""): string[] {
 
 export default function NodeDiff() {
   const { type, id } = useParams<{ type: string; id: string }>();
+  const { workspaceId } = useWorkspace();
   const [remote, setRemote] = useState<any | null>(null);
   const [local, setLocal] = useState<any | null>(null);
 
   useEffect(() => {
-    if (!id || !type) return;
+    if (!id || !type || !workspaceId) return;
     (async () => {
-      const node = await getNode(type, id);
+      const node = await getNode(workspaceId, type, id);
       const localRaw = localStorage.getItem(`node-draft-${id}`);
       const localData = localRaw ? JSON.parse(localRaw) : null;
       const remoteData = {
@@ -47,9 +49,9 @@ export default function NodeDiff() {
       setLocal(localData);
       setRemote(remoteData);
     })();
-  }, [id, type]);
+  }, [id, type, workspaceId]);
 
-  if (!id || !type) {
+  if (!id || !type || !workspaceId) {
     return <div className="p-4">No id provided</div>;
   }
 
