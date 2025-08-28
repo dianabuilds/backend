@@ -120,22 +120,8 @@ async def create_draft(
         raise HTTPException(status_code=404, detail="Quest not found")
     if quest.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Quest not found")
-    max_num = (
-        await db.execute(
-            select(func.max(QuestVersion.number)).where(
-                QuestVersion.quest_id == quest_id
-            )
-        )
-    ).scalar() or 0
-    v = QuestVersion(
-        quest_id=quest_id,
-        number=int(max_num) + 1,
-        status="draft",
-        created_by=current_user.id,
-        created_at=datetime.utcnow(),
-    )
-    db.add(v)
-    await db.flush()
+    svc = EditorService()
+    v = await svc.create_version(db, quest_id, current_user.id)
     await audit_log(
         db,
         actor_id=str(current_user.id),
@@ -157,27 +143,11 @@ async def get_version(
     _: User = Depends(admin_required),
     db: AsyncSession = Depends(get_db),
 ):
-    v = await db.get(QuestVersion, version_id)
-    if not v:
+    svc = EditorService()
+    try:
+        v, steps, transitions = await svc.get_version_graph(db, version_id)
+    except ValueError:
         raise HTTPException(status_code=404, detail="Version not found")
-    nodes = list(
-        (
-            await db.execute(
-                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
-            )
-        )
-        .scalars()
-        .all()
-    )
-    edges = list(
-        (
-            await db.execute(
-                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
-            )
-        )
-        .scalars()
-        .all()
-    )
     return QuestGraphOut(
         version=QuestVersionOut(
             id=v.id,
@@ -187,25 +157,8 @@ async def get_version(
             created_at=v.created_at,
             released_at=v.released_at,
         ),
-        steps=[
-            QuestStep(
-                key=n.key,
-                title=n.title,
-                type=n.type,
-                content=n.content,
-                rewards=n.rewards,
-            )
-            for n in nodes
-        ],
-        transitions=[
-            QuestTransition(
-                from_node_key=e.from_node_key,
-                to_node_key=e.to_node_key,
-                label=e.label,
-                condition=e.condition,
-            )
-            for e in edges
-        ],
+        steps=steps,
+        transitions=transitions,
     )
 
 
@@ -221,37 +174,8 @@ async def put_graph(
     if not v:
         raise HTTPException(status_code=404, detail="Version not found")
 
-    from sqlalchemy import delete
-
-    await db.execute(
-        delete(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
-    )
-    await db.execute(
-        delete(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
-    )
-    await db.flush()
-
-    for n in payload.steps:
-        db.add(
-            QuestGraphNode(
-                version_id=version_id,
-                key=n.key,
-                title=n.title,
-                type=n.type,
-                content=n.content,
-                rewards=n.rewards,
-            )
-        )
-    for e in payload.transitions:
-        db.add(
-            QuestGraphEdge(
-                version_id=version_id,
-                from_node_key=e.from_node_key,
-                to_node_key=e.to_node_key,
-                label=e.label,
-                condition=e.condition,
-            )
-        )
+    svc = EditorService()
+    await svc.replace_graph(db, version_id, payload.steps, payload.transitions)
 
     await audit_log(
         db,
@@ -283,46 +207,8 @@ async def validate_version(
     q = await db.get(Quest, ver.quest_id)
     if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Version not found")
-    nodes = list(
-        (
-            await db.execute(
-                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
-            )
-        )
-        .scalars()
-        .all()
-    )
-    edges = list(
-        (
-            await db.execute(
-                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
-            )
-        )
-        .scalars()
-        .all()
-    )
-    res = EditorService().validate_graph(
-        [
-            QuestStep(
-                key=n.key,
-                title=n.title,
-                type=n.type,
-                content=n.content,
-                rewards=n.rewards,
-            )
-            for n in nodes
-        ],
-        [
-            QuestTransition(
-                from_node_key=e.from_node_key,
-                to_node_key=e.to_node_key,
-                label=e.label,
-                condition=e.condition,
-            )
-            for e in edges
-        ],
-    )
-    return res
+    svc = EditorService()
+    return await svc.validate_version(db, version_id)
 
 
 @router.post("/versions/{version_id}/autofix", summary="Autofix graph (basic)")
@@ -578,47 +464,8 @@ async def simulate_version(
     q = await db.get(Quest, ver.quest_id)
     if not q or q.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Version not found")
-    nodes = list(
-        (
-            await db.execute(
-                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
-            )
-        )
-        .scalars()
-        .all()
-    )
-    edges = list(
-        (
-            await db.execute(
-                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
-            )
-        )
-        .scalars()
-        .all()
-    )
-    return EditorService().simulate_graph(
-        [
-            QuestStep(
-                key=n.key,
-                title=n.title,
-                type=n.type,
-                content=n.content,
-                rewards=n.rewards,
-            )
-            for n in nodes
-        ],
-        [
-            QuestTransition(
-                from_node_key=e.from_node_key,
-                to_node_key=e.to_node_key,
-                label=e.label,
-                condition=e.condition,
-            )
-            for e in edges
-        ],
-        payload,
-        preview,
-    )
+    svc = EditorService()
+    return await svc.simulate_version(db, version_id, payload, preview)
 
 
 @router.delete("/versions/{version_id}", summary="Delete draft version")
@@ -637,7 +484,7 @@ async def delete_draft(
         raise HTTPException(status_code=404, detail="Version not found")
     if v.status != "draft":
         raise HTTPException(status_code=400, detail="Only draft can be deleted")
-
+    svc = EditorService()
     await audit_log(
         db,
         actor_id=str(current_user.id),
@@ -646,6 +493,6 @@ async def delete_draft(
         resource_id=str(version_id),
         request=request,
     )
-    await db.delete(v)
+    await svc.delete_version(db, version_id)
     await db.commit()
     return {"ok": True}
