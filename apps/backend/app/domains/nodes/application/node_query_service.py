@@ -13,6 +13,7 @@ from app.domains.nodes.application.query_models import (
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.tags.models import Tag
+from app.schemas.nodes_common import Status
 
 
 class NodeQueryService:
@@ -24,7 +25,11 @@ class NodeQueryService:
     ) -> str:
         base = select(
             func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at)
-        ).join(NodeItem, NodeItem.node_id == Node.id, isouter=True)
+        ).join(
+            NodeItem,
+            and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
+            isouter=True,
+        )
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
@@ -88,7 +93,9 @@ class NodeQueryService:
         self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext
     ) -> list[Node]:
         stmt = select(Node, NodeItem.type.label("node_type")).join(
-            NodeItem, NodeItem.node_id == Node.id, isouter=True
+            NodeItem,
+            and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
+            isouter=True,
         )
         clauses = []
         if spec.is_visible is not None:
