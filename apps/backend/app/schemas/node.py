@@ -114,9 +114,6 @@ class NodeOut(NodeBase):
     created_by_user_id: UUID | None = None
     updated_by_user_id: UUID | None = None
     node_type: str | None = None
-    quest_data: dict | None = Field(
-        default=None, json_schema_extra={"readOnly": True}
-    )
     views: int
     reactions: dict[str, int] = Field(default_factory=dict)
     created_at: datetime

@@ -22357,18 +22357,6 @@
           "popularityScore": {
             "type": "number",
             "title": "Popularityscore"
-          },
-          "questData": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Questdata"
           }
         },
         "type": "object",
@@ -22420,18 +22408,6 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Data"
-          },
-          "quest_data": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Quest Data"
           },
           "created_at": {
             "type": "string",
@@ -22487,18 +22463,6 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Data"
-          },
-          "quest_data": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Quest Data"
           },
           "created_at": {
             "type": "string",

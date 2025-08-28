@@ -8,11 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db.session import get_db
 from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.models import NodeItem
+from app.domains.nodes.service import publish_content
 from app.domains.users.infrastructure.models.user import User
-from app.domains.quests.infrastructure.node_read_adapter import QuestNodeReadAdapter
 from app.schemas.nodes_common import NodeType
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
-from app.domains.nodes.service import publish_content
 
 router = APIRouter(
     prefix="/admin/nodes",
@@ -49,25 +48,17 @@ async def list_nodes(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     if node_type == NodeType.quest:
-        adapter = QuestNodeReadAdapter(db)
-        if q:
-            items = await adapter.search(
-                workspace_id, q, page=page, per_page=per_page
-            )
-        else:
-            items = await adapter.list(
-                workspace_id, page=page, per_page=per_page
-            )
+        raise HTTPException(
+            status_code=422,
+            detail="quest nodes are read-only; use /quests/*",
+        )
+    svc = NodeService(db)
+    if q:
+        items = await svc.search(
+            workspace_id, node_type, q, page=page, per_page=per_page
+        )
     else:
-        svc = NodeService(db)
-        if q:
-            items = await svc.search(
-                workspace_id, node_type, q, page=page, per_page=per_page
-            )
-        else:
-            items = await svc.list(
-                workspace_id, node_type, page=page, per_page=per_page
-            )
+        items = await svc.list(workspace_id, node_type, page=page, per_page=per_page)
     return {"items": [_serialize(i) for i in items]}
 
 
@@ -98,11 +89,12 @@ async def get_node(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     if node_type == NodeType.quest:
-        adapter = QuestNodeReadAdapter(db)
-        item = await adapter.get(workspace_id, node_id)
-    else:
-        svc = NodeService(db)
-        item = await svc.get(workspace_id, node_type, node_id)
+        raise HTTPException(
+            status_code=422,
+            detail="quest nodes are read-only; use /quests/*",
+        )
+    svc = NodeService(db)
+    item = await svc.get(workspace_id, node_type, node_id)
     return _serialize(item)
 
 
@@ -117,11 +109,6 @@ async def update_node(
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    if "quest_data" in payload:
-        raise HTTPException(
-            status_code=422,
-            detail="quest_data is not supported here; use /quests/*",
-        )
     if node_type == NodeType.quest:
         raise HTTPException(
             status_code=422,
@@ -174,4 +161,3 @@ async def publish_node(
         workspace_id=workspace_id,
     )
     return _serialize(item)
-
