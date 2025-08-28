@@ -113,6 +113,8 @@ class NodeOut(NodeBase):
     author_id: UUID
     created_by_user_id: UUID | None = None
     updated_by_user_id: UUID | None = None
+    node_type: str | None = None
+    quest_data: dict | None = None
     views: int
     reactions: dict[str, int] = Field(default_factory=dict)
     created_at: datetime

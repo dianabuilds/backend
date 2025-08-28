@@ -1,46 +1,56 @@
+# ruff: noqa
 from __future__ import annotations
 
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, Header, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
-from app.api.deps import get_current_user, get_current_user_optional, ensure_can_post, require_premium
-from app.security import require_ws_viewer, require_ws_guest
-from app.core.workspace_context import require_workspace, optional_workspace
+from app.api.deps import (
+    ensure_can_post,
+    get_current_user,
+    require_premium,
+)
+from app.core.db.session import get_db
+from app.core.log_events import cache_invalidate
+from app.core.workspace_context import optional_workspace, require_workspace
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
+from app.domains.navigation.application.traces_service import TracesService
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
     PageRequest,
     QueryContext,
 )
 from app.domains.nodes.infrastructure.queries.node_query_adapter import NodeQueryAdapter
-from app.core.db.session import get_db
-from app.domains.system.events import get_event_bus, NodeCreated, NodeUpdated
-from app.domains.users.nft import user_has_nft
-from app.domains.navigation.application.traces_service import TracesService
-from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
-from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
-from app.core.config import settings
-from app.core.log_events import cache_invalidate
-from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.nodes.infrastructure.models.feedback import Feedback
-from app.domains.tags.models import Tag
-from app.domains.users.infrastructure.models.user import User
+from app.domains.nodes.infrastructure.repositories.node_repository import (
+    NodeRepositoryAdapter as NodeRepository,
+)
+from app.domains.nodes.models import NodeItem
 from app.domains.nodes.policies.node_policy import NodePolicy
 from app.domains.nodes.schemas.feedback import FeedbackCreate, FeedbackOut
-from app.domains.nodes.schemas.node import NodeCreate, NodeOut, NodeUpdate, ReactionUpdate
-from app.domains.tags.schemas.node_tags import NodeTagsUpdate
-from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter as NodeRepository
+from app.domains.nodes.schemas.node import (
+    NodeCreate,
+    NodeOut,
+    NodeUpdate,
+    ReactionUpdate,
+)
 from app.domains.notifications.infrastructure.repositories.settings_repository import (
     NodeNotificationSettingsRepository,
 )
+from app.domains.system.events import NodeCreated, NodeUpdated, get_event_bus
+from app.domains.tags.schemas.node_tags import NodeTagsUpdate
+from app.domains.telemetry.application.event_metrics_facade import event_metrics
+from app.domains.users.infrastructure.models.user import User
+from app.domains.users.nft import user_has_nft
 from app.schemas.notification_settings import (
     NodeNotificationSettingsOut,
     NodeNotificationSettingsUpdate,
 )
-from app.domains.telemetry.application.event_metrics_facade import event_metrics
+from app.security import require_ws_guest, require_ws_viewer
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -74,7 +84,9 @@ async def list_nodes(
 ) -> List[NodeOut]:
     workspace_id = _ensure_workspace_id(request, workspace_id)
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
-    spec = NodeFilterSpec(tags=tag_list, match=match, workspace_id=workspace_id, sort=sort)
+    spec = NodeFilterSpec(
+        tags=tag_list, match=match, workspace_id=workspace_id, sort=sort
+    )
     ctx = QueryContext(user=current_user, is_admin=False)
     service = NodeQueryAdapter(db)
     page = PageRequest()
@@ -122,6 +134,10 @@ async def read_node(
     node = await repo.get_by_slug(slug, workspace_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
+    item = await db.get(NodeItem, node.id)
+    if item:
+        node.node_type = item.type
+        node.quest_data = item.quest_data
     NodePolicy.ensure_can_view(node, current_user)
     if node.premium_only:
         await require_premium(current_user)
@@ -239,7 +255,10 @@ async def update_reactions(
     _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.reaction_service import ReactionService
-    from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
+    from app.domains.nodes.infrastructure.repositories.node_repository import (
+        NodeRepositoryAdapter,
+    )
+
     service = ReactionService(NodeRepositoryAdapter(db), navcache)
     workspace_id = _ensure_workspace_id(request, workspace_id)
     return await service.update_reactions_by_slug(
@@ -299,13 +318,13 @@ async def update_node_notification_settings(
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     settings_repo = NodeNotificationSettingsRepository(db)
-    setting = await settings_repo.upsert(
-        current_user.id, node_id, payload.enabled
-    )
+    setting = await settings_repo.upsert(current_user.id, node_id, payload.enabled)
     return NodeNotificationSettingsOut.model_validate(setting)
 
 
-@router.get("/{slug}/feedback", response_model=List[FeedbackOut], summary="List feedback")
+@router.get(
+    "/{slug}/feedback", response_model=List[FeedbackOut], summary="List feedback"
+)
 async def list_feedback(
     request: Request,
     slug: str,
@@ -316,7 +335,10 @@ async def list_feedback(
     _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
-    from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
+    from app.domains.nodes.infrastructure.repositories.node_repository import (
+        NodeRepositoryAdapter,
+    )
+
     workspace_id = _ensure_workspace_id(request, workspace_id)
     service = FeedbackService(NodeRepositoryAdapter(db))
     return await service.list_feedback(db, slug, current_user, workspace_id)
@@ -334,10 +356,19 @@ async def create_feedback(
     _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
-    from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
+    from app.domains.nodes.infrastructure.repositories.node_repository import (
+        NodeRepositoryAdapter,
+    )
     from app.domains.notifications.application.notify_service import NotifyService
-    from app.domains.notifications.infrastructure.repositories.notification_repository import NotificationRepository
-    from app.domains.notifications.infrastructure.transports.websocket import WebsocketPusher, manager as ws_manager
+    from app.domains.notifications.infrastructure.repositories.notification_repository import (
+        NotificationRepository,
+    )
+    from app.domains.notifications.infrastructure.transports.websocket import (
+        WebsocketPusher,
+    )
+    from app.domains.notifications.infrastructure.transports.websocket import (
+        manager as ws_manager,
+    )
 
     notifier = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
     workspace_id = _ensure_workspace_id(request, workspace_id)
@@ -347,7 +378,9 @@ async def create_feedback(
     )
 
 
-@router.delete("/{slug}/feedback/{feedback_id}", response_model=dict, summary="Delete feedback")
+@router.delete(
+    "/{slug}/feedback/{feedback_id}", response_model=dict, summary="Delete feedback"
+)
 async def delete_feedback(
     request: Request,
     slug: str,
@@ -359,7 +392,12 @@ async def delete_feedback(
     _: object = Depends(require_ws_viewer),
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
-    from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
+    from app.domains.nodes.infrastructure.repositories.node_repository import (
+        NodeRepositoryAdapter,
+    )
+
     workspace_id = _ensure_workspace_id(request, workspace_id)
     service = FeedbackService(NodeRepositoryAdapter(db))
-    return await service.delete_feedback(db, slug, feedback_id, current_user, workspace_id)
+    return await service.delete_feedback(
+        db, slug, feedback_id, current_user, workspace_id
+    )

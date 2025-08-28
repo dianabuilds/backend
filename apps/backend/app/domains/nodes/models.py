@@ -6,7 +6,7 @@ from uuid import uuid4
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
 
-from app.core.db.adapters import UUID
+from app.core.db.adapters import JSONB, UUID
 from app.core.db.base import Base
 from app.schemas.nodes_common import Status, Visibility
 
@@ -32,6 +32,7 @@ class NodeItem(Base):
     slug = sa.Column(sa.String, unique=True, index=True, nullable=False)
     title = sa.Column(sa.String, nullable=False)
     summary = sa.Column(sa.Text, nullable=True)
+    quest_data = sa.Column(JSONB, nullable=True)
     cover_media_id = sa.Column(UUID(), nullable=True)
     primary_tag_id = sa.Column(UUID(), sa.ForeignKey("tags.id"), nullable=True)
     created_by_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=True)
