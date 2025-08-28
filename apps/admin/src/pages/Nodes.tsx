@@ -547,9 +547,9 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       node_type: (nodeType && ["article", "quest"].includes(nodeType)) ? nodeType : "article",
       title: draft.title.trim() || undefined,
     });
-    const nodeType = (created as any).node_type || nodeType || "article";
+    const createdType = (created as any).node_type || nodeType || "article";
     const nodeId = String((created as any)?.id ?? (created as any)?.uuid ?? (created as any)?._id ?? "");
-    await patchNode(workspaceId, nodeType, nodeId, payload);
+    await patchNode(workspaceId, createdType, nodeId, payload);
     return { ...created, id: nodeId } as any;
   };
 
