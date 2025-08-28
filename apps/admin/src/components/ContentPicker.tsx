@@ -17,7 +17,7 @@ export default function ContentPicker({ onSelect, onClose }: ContentPickerProps)
     queryFn: async () =>
       listNodes({
         q: search || undefined,
-        tag: tag || undefined,
+        tags: tag || undefined,
       }),
   });
 

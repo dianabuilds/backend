@@ -18,16 +18,17 @@ function ensureWorkspaceId(): string {
   return id;
 }
 
-export interface WsRequestOptions extends ApiRequestOptions {
-  params?: Record<string, unknown>;
+export interface WsRequestOptions<P extends Record<string, unknown> = Record<string, never>>
+  extends ApiRequestOptions {
+  params?: P;
   raw?: boolean;
 }
 
-async function request<T = unknown>(
-  url: string,
-  opts: WsRequestOptions = {},
-): Promise<T> {
-  const { params, headers: optHeaders, raw, ...rest } = opts as WsRequestOptions & {
+async function request<
+  T = unknown,
+  P extends Record<string, unknown> = Record<string, never>,
+>(url: string, opts: WsRequestOptions<P> = {}): Promise<T> {
+  const { params, headers: optHeaders, raw, ...rest } = opts as WsRequestOptions<P> & {
     raw?: boolean;
   };
   const workspaceId = ensureWorkspaceId();
@@ -64,27 +65,39 @@ async function request<T = unknown>(
 
 export const wsApi = {
   request,
-  get: <T = unknown>(url: string, opts?: WsRequestOptions) =>
-    request<T>(url, { ...opts, method: "GET" }),
-  post: <TReq = unknown, TRes = unknown>(
+  get: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts?: WsRequestOptions<P>) =>
+    request<T, P>(url, { ...opts, method: "GET" }),
+  post: <
+    TReq = unknown,
+    TRes = unknown,
+    P extends Record<string, unknown> = Record<string, never>,
+  >(
     url: string,
     json?: TReq,
-    opts?: WsRequestOptions,
-  ) => request<TRes>(url, { ...opts, method: "POST", json }),
-  put: <TReq = unknown, TRes = unknown>(
+    opts?: WsRequestOptions<P>,
+  ) => request<TRes, P>(url, { ...opts, method: "POST", json }),
+  put: <
+    TReq = unknown,
+    TRes = unknown,
+    P extends Record<string, unknown> = Record<string, never>,
+  >(
     url: string,
     json?: TReq,
-    opts?: WsRequestOptions,
-  ) => request<TRes>(url, { ...opts, method: "PUT", json }),
-  patch: <TReq = unknown, TRes = unknown>(
+    opts?: WsRequestOptions<P>,
+  ) => request<TRes, P>(url, { ...opts, method: "PUT", json }),
+  patch: <
+    TReq = unknown,
+    TRes = unknown,
+    P extends Record<string, unknown> = Record<string, never>,
+  >(
     url: string,
     json?: TReq,
-    opts?: WsRequestOptions,
-  ) => request<TRes>(url, { ...opts, method: "PATCH", json }),
-  del: <T = unknown>(url: string, opts?: WsRequestOptions) =>
-    request<T>(url, { ...opts, method: "DELETE" }),
-  delete: <T = unknown>(url: string, opts?: WsRequestOptions) =>
-    request<T>(url, { ...opts, method: "DELETE" }),
+    opts?: WsRequestOptions<P>,
+  ) => request<TRes, P>(url, { ...opts, method: "PATCH", json }),
+  del: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts?: WsRequestOptions<P>) =>
+    request<T, P>(url, { ...opts, method: "DELETE" }),
+  delete: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts?: WsRequestOptions<P>) =>
+    request<T, P>(url, { ...opts, method: "DELETE" }),
 };
 
 export type { WsRequestOptions };
