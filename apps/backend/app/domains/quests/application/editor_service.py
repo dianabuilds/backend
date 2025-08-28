@@ -1,13 +1,162 @@
 from __future__ import annotations
 
-from typing import Dict, List, Set
+from datetime import datetime
+from typing import Dict, Iterable, List, Set
+from uuid import UUID
+
+from sqlalchemy import delete, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.preview import PreviewContext
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.quests.infrastructure.models.quest_version_models import (
+    QuestGraphEdge,
+    QuestGraphNode,
+    QuestVersion,
+)
 from app.domains.quests.schemas import QuestStep, QuestTransition
 from app.schemas.quest_editor import SimulateIn, SimulateResult, ValidateResult
 
 
 class EditorService:
+    def __init__(self) -> None:
+        self._navcache = NavigationCacheService(CoreCacheAdapter())
+
+    async def create_version(
+        self,
+        db: AsyncSession,
+        quest_id: UUID,
+        actor_id: UUID | None = None,
+    ) -> QuestVersion:
+        """Create a new draft version for the quest."""
+
+        max_num = (
+            await db.execute(
+                select(func.max(QuestVersion.number)).where(
+                    QuestVersion.quest_id == quest_id
+                )
+            )
+        ).scalar() or 0
+
+        version = QuestVersion(
+            quest_id=quest_id,
+            number=int(max_num) + 1,
+            status="draft",
+            created_at=datetime.utcnow(),
+            created_by=actor_id,
+        )
+        db.add(version)
+        await db.flush()
+        await self._navcache.invalidate_navigation_all()
+        return version
+
+    async def get_version_graph(
+        self, db: AsyncSession, version_id: UUID
+    ) -> tuple[QuestVersion, List[QuestStep], List[QuestTransition]]:
+        version = await db.get(QuestVersion, version_id)
+        if not version:
+            raise ValueError("version_not_found")
+
+        nodes: Iterable[QuestGraphNode] = (
+            await db.execute(
+                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
+            )
+        ).scalars().all()
+        edges: Iterable[QuestGraphEdge] = (
+            await db.execute(
+                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+            )
+        ).scalars().all()
+
+        steps = [
+            QuestStep(
+                key=n.key,
+                title=n.title,
+                type=n.type,
+                content=n.content,
+                rewards=n.rewards,
+            )
+            for n in nodes
+        ]
+        transitions = [
+            QuestTransition(
+                from_node_key=e.from_node_key,
+                to_node_key=e.to_node_key,
+                label=e.label,
+                condition=e.condition,
+            )
+            for e in edges
+        ]
+
+        return version, steps, transitions
+
+    async def replace_graph(
+        self,
+        db: AsyncSession,
+        version_id: UUID,
+        steps: List[QuestStep],
+        transitions: List[QuestTransition],
+    ) -> None:
+        await db.execute(
+            delete(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+        )
+        await db.execute(
+            delete(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
+        )
+        await db.flush()
+
+        for s in steps:
+            db.add(
+                QuestGraphNode(
+                    version_id=version_id,
+                    key=s.key,
+                    title=s.title,
+                    type=s.type,
+                    content=s.content,
+                    rewards=s.rewards,
+                )
+            )
+        for t in transitions:
+            db.add(
+                QuestGraphEdge(
+                    version_id=version_id,
+                    from_node_key=t.from_node_key,
+                    to_node_key=t.to_node_key,
+                    label=t.label,
+                    condition=t.condition,
+                )
+            )
+
+        await db.flush()
+        await self._navcache.invalidate_navigation_all()
+
+    async def delete_version(self, db: AsyncSession, version_id: UUID) -> None:
+        version = await db.get(QuestVersion, version_id)
+        if not version:
+            raise ValueError("version_not_found")
+        await db.delete(version)
+        await db.flush()
+        await self._navcache.invalidate_navigation_all()
+
+    async def validate_version(
+        self, db: AsyncSession, version_id: UUID
+    ) -> ValidateResult:
+        _, steps, transitions = await self.get_version_graph(db, version_id)
+        return self.validate_graph(steps, transitions)
+
+    async def simulate_version(
+        self,
+        db: AsyncSession,
+        version_id: UUID,
+        payload: SimulateIn,
+        preview: PreviewContext | None = None,
+    ) -> SimulateResult:
+        _, steps, transitions = await self.get_version_graph(db, version_id)
+        return self.simulate_graph(steps, transitions, payload, preview)
+
     def validate_graph(
         self, nodes: List[QuestStep], edges: List[QuestTransition]
     ) -> ValidateResult:
@@ -74,7 +223,7 @@ class EditorService:
         preview: PreviewContext | None = None,
     ) -> SimulateResult:
         key_to_node = {n.key: n for n in nodes}
-        adj: Dict[str, List[GraphEdge]] = {}
+        adj: Dict[str, List[QuestTransition]] = {}
         for e in edges:
             adj.setdefault(e.from_node_key, []).append(e)
 
