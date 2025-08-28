@@ -7,7 +7,6 @@ class NodeType(str, Enum):
     """Supported node types."""
 
     article = "article"
-    quest = "quest"
 
 
 class Status(str, Enum):

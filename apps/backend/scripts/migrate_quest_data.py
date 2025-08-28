@@ -38,7 +38,7 @@ async def _load_legacy_quests(session: AsyncSession) -> List[Dict[str, Any]]:
         "SELECT id, workspace_id, title, created_by_user_id, quest_data "
         "FROM content_items WHERE type = :t"
     )
-    res = await session.execute(sql, {"t": NodeType.quest.value})
+    res = await session.execute(sql, {"t": "quest"})
     return [dict(r) for r in res.mappings().all()]
 
 

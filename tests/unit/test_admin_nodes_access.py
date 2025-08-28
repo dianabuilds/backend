@@ -55,7 +55,7 @@ async def test_validate_node_respects_workspace() -> None:
         node = NodeItem(
             id=uuid.uuid4(),
             workspace_id=ws1.id,
-            type=NodeType.quest.value,
+            type=NodeType.article.value,
             slug="node-1",
             title="Node",
             created_by_user_id=user_id,
@@ -64,11 +64,11 @@ async def test_validate_node_respects_workspace() -> None:
         await session.commit()
 
         svc = NodeService(session)
-        report = await svc.validate(ws1.id, NodeType.quest, node.id)
+        report = await svc.validate(ws1.id, NodeType.article, node.id)
         assert hasattr(report, "errors")
 
         with pytest.raises(HTTPException):
-            await svc.validate(ws2.id, NodeType.quest, node.id)
+            await svc.validate(ws2.id, NodeType.article, node.id)
 
 
 @pytest.mark.asyncio
