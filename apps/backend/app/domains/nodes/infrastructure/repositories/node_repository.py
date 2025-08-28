@@ -18,6 +18,7 @@ from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.nodes.infrastructure.models.node import Node
@@ -48,7 +49,9 @@ class NodeRepositoryAdapter(INodeRepository):
         if self._repo:
             return await self._repo.get_by_slug(slug, workspace_id=workspace_id)
         res = await self._db.execute(
-            select(Node).where(Node.slug == slug, Node.workspace_id == workspace_id)
+            select(Node)
+            .options(selectinload(Node.tags))
+            .where(Node.slug == slug, Node.workspace_id == workspace_id)
         )
         return res.scalar_one_or_none()
 
@@ -56,7 +59,9 @@ class NodeRepositoryAdapter(INodeRepository):
         if self._repo:
             return await self._repo.get_by_id(node_id, workspace_id=workspace_id)
         res = await self._db.execute(
-            select(Node).where(Node.id == node_id, Node.workspace_id == workspace_id)
+            select(Node)
+            .options(selectinload(Node.tags))
+            .where(Node.id == node_id, Node.workspace_id == workspace_id)
         )
         return res.scalar_one_or_none()
 
@@ -87,7 +92,7 @@ class NodeRepositoryAdapter(INodeRepository):
         if payload.tags:
             await self.set_tags(node, payload.tags, author_id)
         await self._db.commit()
-        await self._db.refresh(node)
+        await self._db.refresh(node, attribute_names=["tags"])
         return node
 
     async def update(self, node: Node, payload: NodeUpdate, actor_id: UUID) -> Node:
@@ -102,7 +107,7 @@ class NodeRepositoryAdapter(INodeRepository):
         if payload.tags is not None:
             await self.set_tags(node, payload.tags, actor_id)
         await self._db.commit()
-        await self._db.refresh(node)
+        await self._db.refresh(node, attribute_names=["tags"])
         return node
 
     async def delete(self, node: Node) -> None:
@@ -138,7 +143,7 @@ class NodeRepositoryAdapter(INodeRepository):
             self._db.add(NodeTag(node_id=node.id, tag_id=tid))
         node.updated_by_user_id = actor_id
         await self._db.commit()
-        await self._db.refresh(node)
+        await self._db.refresh(node, attribute_names=["tags"])
         return node
 
     async def increment_views(self, node: Node) -> Node:
@@ -146,7 +151,7 @@ class NodeRepositoryAdapter(INodeRepository):
             return await self._repo.increment_views(node)
         node.views = int(node.views or 0) + 1
         await self._db.commit()
-        await self._db.refresh(node)
+        await self._db.refresh(node, attribute_names=["tags"])
         return node
 
     async def update_reactions(
@@ -173,7 +178,7 @@ class NodeRepositoryAdapter(INodeRepository):
         if actor_id:
             node.updated_by_user_id = actor_id
         await self._db.commit()
-        await self._db.refresh(node)
+        await self._db.refresh(node, attribute_names=["tags"])
         return node
 
     # ------------------------------------------------------------------
@@ -181,6 +186,7 @@ class NodeRepositoryAdapter(INodeRepository):
     async def list_by_author(self, author_id: UUID, workspace_id: UUID, limit: int = 50, offset: int = 0) -> List[Node]:
         res = await self._db.execute(
             select(Node)
+            .options(selectinload(Node.tags))
             .where(Node.author_id == author_id, Node.workspace_id == workspace_id)
             .order_by(Node.created_at.desc())
             .offset(offset)
