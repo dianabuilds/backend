@@ -24,7 +24,7 @@ class NodeQueryService:
     ) -> str:
         base = select(
             func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at)
-        ).join(NodeItem, NodeItem.id == Node.id, isouter=True)
+        ).join(NodeItem, NodeItem.node_id == Node.id, isouter=True)
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
@@ -88,7 +88,7 @@ class NodeQueryService:
         self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext
     ) -> list[Node]:
         stmt = select(Node, NodeItem.type.label("node_type")).join(
-            NodeItem, NodeItem.id == Node.id, isouter=True
+            NodeItem, NodeItem.node_id == Node.id, isouter=True
         )
         clauses = []
         if spec.is_visible is not None:
