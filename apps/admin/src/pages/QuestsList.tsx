@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 import { createDraft, createQuest } from "../api/questEditor";
 import {
   autofixQuest,
-  listAdminQuests,
+  listQuests,
   publishQuest,
   validateQuest,
   type ValidationReport,
-} from "../api/questsAdmin";
+} from "../api/quests";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 import PageLayout from "./_shared/PageLayout";
 
@@ -27,9 +28,6 @@ interface QuestItem {
 export default function QuestsList() {
   const nav = useNavigate();
   const { workspaceId } = useWorkspace();
-  const [items, setItems] = useState<QuestItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // filters
   const [search, setSearch] = useState("");
@@ -47,40 +45,39 @@ export default function QuestsList() {
   >("everyone");
   const [publishCover, setPublishCover] = useState<string>("");
 
-  const load = async () => {
-    if (!workspaceId) {
-      setItems([]);
-      setError("Select workspace");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const rows = await listAdminQuests({
+  const {
+    data: items = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<QuestItem[]>({
+    queryKey: [
+      "quests",
+      workspaceId,
+      search,
+      draftOnly,
+      lenFilter,
+      createdFrom,
+      createdTo,
+    ],
+    queryFn: async () => {
+      const rows = await listQuests({
         q: search.trim() || undefined,
         draft: draftOnly,
         length: lenFilter || undefined,
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
       });
-      setItems(rows as any);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceId]);
+      return rows as QuestItem[];
+    },
+    enabled: !!workspaceId,
+    placeholderData: (prev) => prev,
+  });
 
   const onApplyFilters = async () => {
     setActiveQuestId(null);
     setReport(null);
-    await load();
+    await refetch();
   };
 
   const onValidate = async (id: string) => {
@@ -104,7 +101,7 @@ export default function QuestsList() {
       setPublishing(false);
       setActiveQuestId(null);
       setReport(null);
-      await load();
+      await refetch();
     } catch (e) {
       setPublishing(false);
       alert(e instanceof Error ? e.message : String(e));
@@ -130,7 +127,7 @@ export default function QuestsList() {
         return;
       }
       // Обновим список квестов и сразу откроем редактор
-      await load();
+      await refetch();
       nav(`/quests/version/${ver}`);
     } catch (e) {
       console.error("New quest flow failed:", e);
@@ -159,8 +156,14 @@ export default function QuestsList() {
   };
 
   const content = (() => {
-    if (loading) return <div className="text-sm text-gray-500">Loading...</div>;
-    if (error) return <div className="text-sm text-red-600">{error}</div>;
+    if (isLoading)
+      return <div className="text-sm text-gray-500">Loading...</div>;
+    if (error)
+      return (
+        <div className="text-sm text-red-600">
+          {error instanceof Error ? error.message : String(error)}
+        </div>
+      );
     return (
       <>
         <table className="min-w-full text-sm">
