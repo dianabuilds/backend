@@ -65,37 +65,70 @@ export async function listNodes(
   workspaceId: string,
   params: NodeListParams = {},
 ): Promise<AdminNodeItem[]> {
+  // Собираем query для cacheKey (те же параметры уйдут в wsApi через opts.params)
+  // Собираем QS один раз
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null) {
       qs.set(key, String(value));
     }
   }
-  const url = `/admin/workspaces/${encodeURIComponent(
+
+  // Helper: запрос с ETag-кэшем по явному URL (без workspace-переписываний)
+  const getWithCache = async (url: string) => {
+    const cached = listCache.get(url);
+    const res = (await wsApi.get(url, {
+      etag: cached?.etag ?? undefined,
+      acceptNotModified: true,
+      raw: true,
+      workspace: false, // критично: ничего не переписываем автоматически
+    })) as ApiResponse<AdminNodeItem[]>;
+    if (res.status === 304 && cached) return cached.data;
+    if (res.status === 404) {
+      const err: any = new Error("Not Found");
+      err.response = { status: 404 };
+      throw err;
+    }
+    const data = Array.isArray(res.data) ? res.data : [];
+    if (res.etag) listCache.set(url, { etag: res.etag, data });
+    return data;
+  };
+
+  // 1) Основной админ-маршрут: /admin/workspaces/{ws}/nodes
+  const adminByPath = `/admin/workspaces/${encodeURIComponent(
     workspaceId,
   )}/nodes${qs.toString() ? `?${qs.toString()}` : ""}`;
-  const cacheKey = url;
-  const cached = listCache.get(cacheKey);
-  const res = (await wsApi.get(url, {
-    etag: cached?.etag ?? undefined,
-    acceptNotModified: true,
-    raw: true,
-    workspace: false,
-  })) as ApiResponse<AdminNodeItem[]>;
-  if (res.status === 304 && cached) return cached.data;
-  const data = Array.isArray(res.data) ? res.data : [];
-  if (res.etag) listCache.set(cacheKey, { etag: res.etag, data });
-  return data;
+  try {
+    return await getWithCache(adminByPath);
+  } catch (e: any) {
+    if (e?.response?.status !== 404) throw e;
+  }
+
+  // 2) Альтернативный админ-маршрут: /admin/nodes?workspace_id={ws}
+  const adminByQuery = `/admin/nodes${
+    qs.toString() ? `?${qs.toString()}&` : "?"
+  }workspace_id=${encodeURIComponent(workspaceId)}`;
+  try {
+    return await getWithCache(adminByQuery);
+  } catch (e: any) {
+    if (e?.response?.status !== 404) throw e;
+  }
+
+  // 3) Публичный список (вернёт только видимые/опубликованные)
+  const publicUrl = `/workspaces/${encodeURIComponent(
+    workspaceId,
+  )}/nodes${qs.toString() ? `?${qs.toString()}` : ""}`;
+  return await getWithCache(publicUrl);
 }
 
 export async function createNode(
   workspaceId: string,
   body: { node_type: string; title?: string },
 ): Promise<NodeOut> {
-  const t = encodeURIComponent(String(body.node_type));
-  const payload = body.title ? { title: body.title } : undefined;
+  const payload: any = { node_type: body.node_type };
+  if (body.title) payload.title = body.title;
   const res = await wsApi.post<typeof payload, NodeOut>(
-    `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${t}`,
+    `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes`,
     payload,
     { workspace: false },
   );

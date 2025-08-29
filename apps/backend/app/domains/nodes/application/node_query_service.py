@@ -33,7 +33,8 @@ class NodeQueryService:
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
-        else:
+        elif not getattr(ctx, "is_admin", False):
+            # Для не-админов по умолчанию показываем только видимые записи
             clauses.append(Node.is_visible == True)  # noqa: E712
         if spec.is_public is not None:
             clauses.append(Node.is_public == bool(spec.is_public))
@@ -100,7 +101,8 @@ class NodeQueryService:
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
-        else:
+        elif not getattr(ctx, "is_admin", False):
+            # Для не-админов по умолчанию показываем только видимые записи
             clauses.append(Node.is_visible == True)  # noqa: E712
         if spec.is_public is not None:
             clauses.append(Node.is_public == bool(spec.is_public))

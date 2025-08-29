@@ -777,6 +777,7 @@ function NodeEditorInner({
                     }}
                     workspaceId={workspaceId}
                     onSlugChange={(slug, updated) => {
+                        if (nodeRef.current.slug === slug) return;
                         handleDraftChange({ slug });
                         setNode((prev) => ({ ...prev, slug, updatedAt: updated ?? prev.updatedAt }));
                     }}
