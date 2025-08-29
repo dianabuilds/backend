@@ -231,7 +231,6 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     recommendable,
     page,
     limit,
-    searchParams,
     setSearchParams,
   ]);
 
