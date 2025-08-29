@@ -226,7 +226,10 @@ async def bulk_patch_nodes(
         if changes.delete:
             invalidate_slugs.append(node.slug)
             deleted_ids.append(str(node.id))
-            await navsvc.invalidate_navigation_cache(db, node)
+            try:
+                await navsvc.invalidate_navigation_cache(db, node)
+            except Exception:
+                pass
             await db.delete(node)
             continue
         was_public = node.is_public
@@ -250,7 +253,10 @@ async def bulk_patch_nodes(
             or changes.workspace_id is not None
         ):
             invalidate_slugs.append(node.slug)
-            await navsvc.invalidate_navigation_cache(db, node)
+            try:
+                await navsvc.invalidate_navigation_cache(db, node)
+            except Exception:
+                pass
     await db.commit()
     for slug in invalidate_slugs:
         await navcache.invalidate_navigation_by_node(slug)

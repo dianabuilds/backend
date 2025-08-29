@@ -14,7 +14,7 @@ from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import validate_transition
-from app.domains.tags.infrastructure.models.tag import Tag
+from app.domains.tags.models import Tag
 from app.schemas.nodes_common import NodeType, Status, Visibility
 
 
