@@ -30,7 +30,7 @@ else:
     from app.domains.nodes.infrastructure.models.node import Node  # noqa
     from app.domains.nodes.models import NodeItem  # noqa
     from app.domains.tags.infrastructure.models.tag_models import TagAlias  # noqa
-    from app.domains.tags.models import ContentTag, Tag  # noqa
+    import app.domains.tags.models  # noqa: F401
     from app.domains.users.infrastructure.models.user import User  # noqa
     from app.models import quests as _quests  # noqa: F401
 
