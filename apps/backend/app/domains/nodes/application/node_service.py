@@ -8,11 +8,13 @@ from uuid import UUID, uuid4
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.inspection import inspect as sa_inspect
+from sqlalchemy.future import select
 
 from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import validate_transition
+from app.domains.tags.infrastructure.models.tag import Tag
 from app.schemas.nodes_common import NodeType, Status, Visibility
 
 
@@ -213,11 +215,43 @@ class NodeService:
             node.is_public = bool(data["is_public"])
         if "is_visible" in data:
             node.is_visible = bool(data["is_visible"])
+
+        # теги: ожидаем список строк-слизгов; создаём недостающие и назначаем связку
+        if "tags" in data and data["tags"] is not None:
+            try:
+                raw_tags = data["tags"] or []
+                incoming_slugs = [str(t).strip() for t in raw_tags if str(t).strip()]
+            except Exception:
+                incoming_slugs = []
+            if incoming_slugs:
+                res = await self._db.execute(
+                    select(Tag).where(Tag.slug.in_(incoming_slugs))
+                )
+                existing = {t.slug: t for t in res.scalars().all()}
+                tag_models: list[Tag] = []
+                for slug in incoming_slugs:
+                    tag = existing.get(slug)
+                    if tag is None:
+                        tag = Tag(slug=slug, name=slug)
+                        self._db.add(tag)
+                        await self._db.flush()  # получим id, чтобы связать
+                        existing[slug] = tag
+                    tag_models.append(tag)
+                node.tags = tag_models
+            else:
+                # пустой список — снимаем все теги
+                node.tags = []
+
         # обложка может прийти как cover_url (snake) или coverUrl (camel) с фронта
-        if "cover_url" in data and data["cover_url"] is not None:
-            node.cover_url = str(data["cover_url"])
-        if "coverUrl" in data and data["coverUrl"] is not None:
-            node.cover_url = str(data["coverUrl"])
+        # Важно: допускаем очистку (null) — тогда устанавливаем None в БД.
+        if "cover_url" in data:
+            node.cover_url = (
+                str(data["cover_url"]) if data["cover_url"] is not None else None
+            )
+        if "coverUrl" in data:
+            node.cover_url = (
+                str(data["coverUrl"]) if data["coverUrl"] is not None else None
+            )
         # синхронизируем заголовок, если он менялся
         if "title" in data and data["title"]:
             node.title = str(data["title"])

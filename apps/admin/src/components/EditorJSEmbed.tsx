@@ -127,6 +127,7 @@ export default function EditorJSEmbed({
                       method: "POST",
                       body: form,
                       raw: true,
+                      workspace: "query",
                     });
                     const rawUrl = extractUrl(res?.data);
                     const url = resolveUrl(rawUrl);

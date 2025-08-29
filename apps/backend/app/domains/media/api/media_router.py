@@ -41,3 +41,16 @@ async def upload_media(
     node_cover_upload_success(str(getattr(user, "id", None)))
     # Совместимый с Editor.js ImageTool формат + поле url для обратной совместимости
     return {"success": 1, "file": {"url": url}, "url": url}
+
+
+# Алиас для админки: поддерживаем POST /admin/media
+@router.post("/admin/media")
+async def upload_media_admin(
+    file: UploadFile = File(...),  # noqa: B008
+    user=Depends(get_current_user),  # noqa: B008
+    storage: IStorageGateway = Depends(get_storage),  # noqa: B008
+    _workspace: object = Depends(require_workspace),
+):
+    return await upload_media(
+        file=file, user=user, storage=storage, _workspace=_workspace
+    )

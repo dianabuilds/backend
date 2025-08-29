@@ -49,7 +49,10 @@ export default function MediaPicker({
     }
     (async () => {
       try {
-        const data = (await wsApi.get<ApiMediaAsset[]>("/admin/media")) || [];
+        const data =
+          (await wsApi.get<ApiMediaAsset[]>("/admin/media", {
+            workspace: "query",
+          })) || [];
         const mapped = data.map((d) => ({
           id: d.id,
           url: resolveBackendUrl(d.url) || d.url,

@@ -45,6 +45,7 @@ export default function ImageDropzone({
           method: "POST",
           body: form,
           raw: true,
+          workspace: "query",
         });
         const url = extractUrlFromUploadResponse(res.data, res.response.headers);
         if (!url) {

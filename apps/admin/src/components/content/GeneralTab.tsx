@@ -32,9 +32,12 @@ export default function GeneralTab({
         onChange={onTitleChange}
         error={titleError}
       />
-      {onCoverChange ? (
-        <FieldCover value={coverUrl} onChange={onCoverChange} error={coverError} />
-      ) : null}
+      {/* Показываем Cover всегда под Title. Если обработчик не передан — noop */}
+      <FieldCover
+        value={coverUrl}
+        onChange={onCoverChange ?? (() => {})}
+        error={coverError}
+      />
       {onTagsChange ? <FieldTags value={tags} onChange={onTagsChange} /> : null}
       {onIsPublicChange ? (
         <label className="flex items-center gap-2 text-sm">
