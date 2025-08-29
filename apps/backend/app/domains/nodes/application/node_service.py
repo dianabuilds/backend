@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.inspection import inspect as sa_inspect
 from sqlalchemy.future import select
 
 from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
@@ -25,7 +24,8 @@ class NodeService:
         """Initialize service."""
 
         self._db = db
-        # Разрешаем все известные типы NodeType, кроме "quest" (для него есть отдельные эндпоинты)
+        # Разрешаем все известные типы NodeType, кроме "quest"
+        # (для него предусмотрены отдельные эндпоинты)
         types = {t.value for t in NodeType}
         if "quest" in types:
             types.remove("quest")
@@ -225,14 +225,21 @@ class NodeService:
                 incoming_slugs = []
             if incoming_slugs:
                 res = await self._db.execute(
-                    select(Tag).where(Tag.slug.in_(incoming_slugs))
+                    select(Tag).where(
+                        Tag.workspace_id == workspace_id,
+                        Tag.slug.in_(incoming_slugs),
+                    )
                 )
                 existing = {t.slug: t for t in res.scalars().all()}
                 tag_models: list[Tag] = []
                 for slug in incoming_slugs:
                     tag = existing.get(slug)
                     if tag is None:
-                        tag = Tag(slug=slug, name=slug)
+                        tag = Tag(
+                            slug=slug,
+                            name=slug,
+                            workspace_id=workspace_id,
+                        )
                         self._db.add(tag)
                         await self._db.flush()  # получим id, чтобы связать
                         existing[slug] = tag
