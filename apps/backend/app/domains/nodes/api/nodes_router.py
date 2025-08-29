@@ -63,7 +63,7 @@ navsvc = NavigationService()
 
 
 class NodeListParams(TypedDict, total=False):
-    tags: str
+    tags: list[str]
     match: Literal["any", "all"]
     sort: Literal[
         "updated_desc",
@@ -89,7 +89,7 @@ async def list_nodes(
     response: Response,
     workspace_id: UUID | None = None,
     if_none_match: str | None = Header(None, alias="If-None-Match"),
-    tags: str | None = Query(None),
+    tags: list[str] = Query(default_factory=list),
     match: Literal["any", "all"] = Query("any"),
     sort: Literal[
         "updated_desc",
@@ -108,7 +108,7 @@ async def list_nodes(
     See :class:`NodeListParams` for available query parameters.
     """
     workspace_id = _ensure_workspace_id(request, workspace_id)
-    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
+    tag_list = [t.strip() for t in tags if t.strip()] or None
     spec = NodeFilterSpec(
         tags=tag_list, match=match, workspace_id=workspace_id, sort=sort
     )

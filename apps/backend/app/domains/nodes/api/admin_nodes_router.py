@@ -59,7 +59,7 @@ def _serialize(item: NodeItem) -> dict:
 
 class AdminNodeListParams(TypedDict, total=False):
     author: UUID
-    tags: str
+    tags: list[str]
     match: Literal["any", "all"]
     sort: Literal[
         "updated_desc",
@@ -86,7 +86,7 @@ async def list_nodes_admin(
     workspace_id: UUID = Path(...),  # noqa: B008
     if_none_match: str | None = Header(None, alias="If-None-Match"),
     author: UUID | None = None,
-    tags: str | None = Query(None),
+    tags: list[str] = Query(default_factory=list),
     match: Literal["any", "all"] = Query("any"),
     sort: Literal[
         "updated_desc",
@@ -112,7 +112,7 @@ async def list_nodes_admin(
 
     See :class:`AdminNodeListParams` for available query parameters.
     """
-    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
+    tag_list = [t.strip() for t in tags if t.strip()] or None
     spec_workspace_id = workspace_id
     workspace = await db.get(Workspace, workspace_id)
     if workspace and workspace.is_system and workspace.type == WorkspaceType.global_:
