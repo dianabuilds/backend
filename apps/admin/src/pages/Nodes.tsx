@@ -32,6 +32,8 @@ type NodeItem = {
   [k: string]: any;
 };
 
+const EMPTY_NODES: NodeItem[] = [];
+
 function ensureArray<T = any>(data: unknown): T[] {
   if (Array.isArray(data)) return data as T[];
   if (data && typeof data === "object") {
@@ -339,7 +341,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
 
   const creatingRef = useRef(false);
   const {
-    data: nodesData = [],
+    data: nodesData = EMPTY_NODES,
     isLoading,
     isFetching,
     error,
