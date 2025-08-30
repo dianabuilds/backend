@@ -18,15 +18,9 @@ repos:
         language_version: python3.12
   - repo: local
     hooks:
-      - id: eslint
-        name: eslint
-        entry: bash -c 'cd admin-frontend && npx --no-install eslint . --max-warnings=0'
+      - id: lint-staged
+        name: lint-staged
+        entry: bash -c 'cd apps/admin && npx lint-staged'
         language: system
-        files: ^admin-frontend/
-        pass_filenames: false
-      - id: tsc
-        name: tsc
-        entry: bash -c 'cd admin-frontend && npx --no-install tsc --noEmit'
-        language: system
-        files: ^admin-frontend/
+        files: ^apps/admin/
         pass_filenames: false
