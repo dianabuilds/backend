@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { useRoutes, RouteObject, useLocation } from "react-router-dom";
+import { useRoutes, useLocation, type RouteObject } from "react-router-dom";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import AdminLayout from "./layouts/AdminLayout";
