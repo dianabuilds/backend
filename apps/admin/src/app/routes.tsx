@@ -43,7 +43,7 @@ const Profile = lazy(() => import("../pages/Profile"));
 const Quests = lazy(() => import("../pages/Quests"));
 const QuestEditor = lazy(() => import("../pages/QuestEditor"));
 const QuestVersionEditor = lazy(() => import("../pages/QuestVersionEditor"));
-const NodeEditor = lazy(() => import("../pages/NodeEditor"));
+const NodeEditor = lazy(() => import("../features/content/pages/NodeEditor"));
 const NodeDiff = lazy(() => import("../pages/NodeDiff"));
 const ValidationReport = lazy(() => import("../pages/ValidationReport"));
 const Authentication = lazy(() => import("../pages/Authentication"));

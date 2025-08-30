@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { nodesApi } from "../api/nodes.api";
 import type { NodeEditorData } from "../model/node";
 
@@ -17,8 +19,12 @@ export function useNodeEditor(workspaceId: string, nodeType: string, id: string)
     id: id === "new" ? undefined : id,
     title: "",
     slug: "",
-    content: "",
+    content: { blocks: [] },
+    coverUrl: null,
+    tags: [],
     isPublic: false,
+    premiumOnly: false,
+    allowComments: true,
   });
 
   useEffect(() => {
@@ -27,31 +33,37 @@ export function useNodeEditor(workspaceId: string, nodeType: string, id: string)
         id: String(data.id),
         title: data.title ?? "",
         slug: (data as any).slug ?? "",
-        content: JSON.stringify((data as any).content ?? ""),
+        content: (data as any).content ?? { blocks: [] },
+        coverUrl: (data as any).cover_url ?? null,
+        tags: (data as any).tags ?? [],
         isPublic: Boolean((data as any).isPublic ?? (data as any).is_public),
+        premiumOnly: Boolean((data as any).premium_only),
+        allowComments: Boolean((data as any).allow_comments ?? true),
       });
     }
   }, [data]);
 
   const mutation = useMutation({
     mutationFn: async (payload: NodeEditorData) => {
-      if (isNew) {
-        return nodesApi.create(workspaceId, {
-          node_type: nodeType,
-          title: payload.title,
-          slug: payload.slug,
-          content: payload.content as any,
-          is_public: payload.isPublic,
-        } as any);
-      }
-      return nodesApi.update(workspaceId, payload.id as string, {
+      const body: any = {
         title: payload.title,
         slug: payload.slug,
         content: payload.content as any,
         is_public: payload.isPublic,
-      } as any);
+        tags: payload.tags,
+        cover_url: payload.coverUrl,
+        premium_only: payload.premiumOnly,
+        allow_comments: payload.allowComments,
+      };
+      if (isNew) {
+        return nodesApi.create(workspaceId, {
+          node_type: nodeType,
+          ...body,
+        } as any);
+      }
+      return nodesApi.update(workspaceId, payload.id as string, body as any);
     },
-    onSuccess: (res) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["node", workspaceId, id] });
     },
   });
