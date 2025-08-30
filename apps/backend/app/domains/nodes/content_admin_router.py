@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.db.session import get_db
 from app.domains.nodes.application.node_service import NodeService
@@ -37,6 +38,8 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         # admin editor expects content and coverUrl in payload
         "content": (node.content if node is not None else None),
         "coverUrl": (node.cover_url if node is not None else None),
+        "tag_slugs": (node.tag_slugs if node is not None else []),
+        "tags": (node.tag_slugs if node is not None else []),
     }
 
 
@@ -80,7 +83,7 @@ async def create_node(
         )
     svc = NodeService(db)
     item = await svc.create(workspace_id, node_type, actor_id=current_user.id)
-    node = await db.get(Node, item.id)
+    node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
 
@@ -99,7 +102,7 @@ async def get_node(
         )
     svc = NodeService(db)
     item = await svc.get(workspace_id, node_type, node_id)
-    node = await db.get(Node, item.id)
+    node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
 
@@ -132,7 +135,7 @@ async def update_node(
         from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 
         ux_metrics.inc_save_next()
-    node = await db.get(Node, item.id)
+    node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
 
