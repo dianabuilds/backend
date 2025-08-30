@@ -45,6 +45,7 @@ const QuestEditor = lazy(() => import("../pages/QuestEditor"));
 const QuestVersionEditor = lazy(() => import("../pages/QuestVersionEditor"));
 const NodeEditor = lazy(() => import("../features/content/pages/NodeEditor"));
 const NodeDiff = lazy(() => import("../pages/NodeDiff"));
+const NodePreview = lazy(() => import("../features/content/pages/NodePreview"));
 const ValidationReport = lazy(() => import("../pages/ValidationReport"));
 const Authentication = lazy(() => import("../pages/Authentication"));
 const PaymentsGateways = lazy(() => import("../pages/PaymentsGateways"));
@@ -110,6 +111,7 @@ const protectedChildren: RouteObject[] = [
   { path: "quests/:id", element: <QuestEditor /> },
   { path: "quests/:id/versions/:versionId", element: <QuestVersionEditor /> },
   { path: "nodes/:type/:id/validate", element: <ValidationReport /> },
+  { path: "nodes/:type/:id/preview", element: <NodePreview /> },
   { path: "nodes/:type/:id", element: <NodeEditor /> },
   { path: "nodes/:type/:id/diff", element: <NodeDiff /> },
   { path: "search", element: <ComingSoon title="Search" /> },
