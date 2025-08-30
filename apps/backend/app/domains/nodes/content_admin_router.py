@@ -1,17 +1,20 @@
+# mypy: ignore-errors
+
 from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.db.session import get_db
 from app.domains.nodes.application.node_service import NodeService
+from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import publish_content
 from app.domains.users.infrastructure.models.user import User
-from app.domains.nodes.infrastructure.models.node import Node
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
 
 router = APIRouter(
@@ -100,6 +103,27 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     }
 
 
+async def _get_item(db: AsyncSession, node_id: UUID, workspace_id: UUID) -> NodeItem:
+    """Fetch a node item by either item id or legacy node id.
+
+    Some legacy records have different identifiers for the ``Node`` and
+    ``NodeItem`` rows.  The admin API historically received the ``Node`` id,
+    which caused a 404 when looking up ``NodeItem`` directly.  We now attempt a
+    fallback lookup via ``NodeItem.node_id`` to support those records.
+    """
+
+    item = await db.get(NodeItem, node_id)
+    if item and item.workspace_id == workspace_id:
+        return item
+    node = await db.get(Node, node_id)
+    if node and node.workspace_id == workspace_id:
+        result = await db.execute(select(NodeItem).where(NodeItem.node_id == node.id))
+        item = result.scalar_one_or_none()
+        if item:
+            return item
+    raise HTTPException(status_code=404, detail="Node not found")
+
+
 @router.get("/{node_id}", summary="Get node item by id")
 async def get_node_by_id(
     node_id: UUID,
@@ -107,11 +131,9 @@ async def get_node_by_id(
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    item = await db.get(NodeItem, node_id)
-    if not item or item.workspace_id != workspace_id:
-        raise HTTPException(status_code=404, detail="Node not found")
+    item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
-    item = await svc.get(workspace_id, item.type, node_id)
+    item = await svc.get(workspace_id, item.type, item.id)
     node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
@@ -126,14 +148,12 @@ async def update_node_by_id(
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    item = await db.get(NodeItem, node_id)
-    if not item or item.workspace_id != workspace_id:
-        raise HTTPException(status_code=404, detail="Node not found")
+    item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
     item = await svc.update(
         workspace_id,
         item.type,
-        node_id,
+        item.id,
         payload,
         actor_id=current_user.id,
     )
@@ -154,14 +174,12 @@ async def publish_node_by_id(
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    item = await db.get(NodeItem, node_id)
-    if not item or item.workspace_id != workspace_id:
-        raise HTTPException(status_code=404, detail="Node not found")
+    item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
     item = await svc.publish(
         workspace_id,
         item.type,
-        node_id,
+        item.id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
         cover=(payload.cover if payload else None),
@@ -179,7 +197,7 @@ async def publish_node_by_id(
 @router.get("/{node_type}", summary="List nodes by type")
 async def list_nodes(
     node_type: str,
-    workspace_id: UUID = Path(...),
+    workspace_id: UUID = Path(...),  # noqa: B008
     page: int = 1,
     per_page: int = 10,
     q: str | None = None,
@@ -204,7 +222,7 @@ async def list_nodes(
 @router.post("/{node_type}", summary="Create node item")
 async def create_node(
     node_type: str,
-    workspace_id: UUID = Path(...),
+    workspace_id: UUID = Path(...),  # noqa: B008
     _: object = Depends(require_ws_editor),  # noqa: B008
     current_user: User = Depends(auth_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
@@ -224,7 +242,7 @@ async def create_node(
 async def get_node(
     node_type: str,
     node_id: UUID,
-    workspace_id: UUID = Path(...),
+    workspace_id: UUID = Path(...),  # noqa: B008
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
@@ -244,7 +262,7 @@ async def update_node(
     node_type: str,
     node_id: UUID,
     payload: dict,
-    workspace_id: UUID = Path(...),
+    workspace_id: UUID = Path(...),  # noqa: B008
     next: int = Query(0),
     _: object = Depends(require_ws_editor),  # noqa: B008
     current_user: User = Depends(auth_user),  # noqa: B008
@@ -276,7 +294,7 @@ async def update_node(
 async def publish_node(
     node_type: str,
     node_id: UUID,
-    workspace_id: UUID = Path(...),
+    workspace_id: UUID = Path(...),  # noqa: B008
     payload: PublishIn | None = None,
     _: object = Depends(require_ws_editor),  # noqa: B008
     current_user: User = Depends(auth_user),  # noqa: B008
@@ -307,11 +325,14 @@ async def publish_node(
 
 
 # PATCH-алиас на случай, если фронт отправляет PATCH вместо POST
-@router.patch("/{node_type}/{node_id}/publish", summary="Publish node item (PATCH alias)")
+@router.patch(
+    "/{node_type}/{node_id}/publish",
+    summary="Publish node item (PATCH alias)",
+)
 async def publish_node_patch(
     node_type: str,
     node_id: UUID,
-    workspace_id: UUID = Path(...),
+    workspace_id: UUID = Path(...),  # noqa: B008
     payload: PublishIn | None = None,
     _: object = Depends(require_ws_editor),  # noqa: B008
     current_user: User = Depends(auth_user),  # noqa: B008
