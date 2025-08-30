@@ -158,13 +158,14 @@ async def read_node(
         if wid is not None:
             workspace_id = UUID(str(wid))
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug, workspace_id)
-    if not node and workspace_id is None:
+    if workspace_id is not None:
+        node = await repo.get_by_slug(slug, workspace_id)
+    else:
         node = await repo.get_by_slug(slug)
-        if node:
-            workspace_id = node.workspace_id
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
+    if workspace_id is None:
+        workspace_id = node.workspace_id
     if workspace_id is None:
         raise HTTPException(status_code=400, detail="workspace_id is required")
     request.state.workspace_id = str(workspace_id)
