@@ -69,16 +69,22 @@ async def test_tags_persisted_and_returned(app_client):
     assert resp.status_code == 200
     node_id = resp.json()["id"]
 
-    # update tags
+    # update tags using id-only endpoint
     resp = await client.patch(
-        f"/admin/workspaces/{ws_id}/nodes/article/{node_id}",
+        f"/admin/workspaces/{ws_id}/nodes/{node_id}",
         json={"tags": ["one", "two"]},
     )
     assert resp.status_code == 200
     data = resp.json()
     assert set(data["tag_slugs"]) == {"one", "two"}
 
-    # fetch node
+    # fetch node via new id-based route
+    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert set(data["tag_slugs"]) == {"one", "two"}
+
+    # legacy route still works
     resp = await client.get(
         f"/admin/workspaces/{ws_id}/nodes/article/{node_id}",
     )

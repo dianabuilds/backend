@@ -27,20 +27,153 @@ class PublishIn(BaseModel):
 
 
 def _serialize(item: NodeItem, node: Node | None = None) -> dict:
+    """Serialize node/item pair into a JSON-friendly dict.
+
+    The redesigned admin UI expects a richer payload than the legacy editor,
+    including various flags and timestamps.  We expose both camelCase and
+    snake_case keys for backwards compatibility.
+    """
+
+    node_data = node or Node(
+        id=item.id,
+        workspace_id=item.workspace_id,
+        slug=item.slug,
+        title=item.title,
+        content={},
+        author_id=item.created_by_user_id,
+        is_public=False,
+        is_visible=True,
+        allow_feedback=True,
+        is_recommendable=True,
+        premium_only=False,
+        nft_required=None,
+        ai_generated=False,
+        meta={},
+        media=[],
+        views=0,
+        reactions={},
+        popularity_score=0.0,
+        created_by_user_id=item.created_by_user_id,
+        updated_by_user_id=item.updated_by_user_id,
+    )
+
     return {
         "id": str(item.id),
         "workspace_id": str(item.workspace_id),
-        "type": item.type,
+        "nodeType": item.type,
+        "type": item.type,  # legacy
         "slug": item.slug,
         "title": item.title,
         "summary": item.summary,
         "status": item.status.value,
+        "publishedAt": item.published_at.isoformat() if item.published_at else None,
+        "createdAt": item.created_at.isoformat() if item.created_at else None,
+        "updatedAt": item.updated_at.isoformat() if item.updated_at else None,
         # admin editor expects content and coverUrl in payload
-        "content": (node.content if node is not None else None),
-        "coverUrl": (node.cover_url if node is not None else None),
-        "tag_slugs": (node.tag_slugs if node is not None else []),
-        "tags": (node.tag_slugs if node is not None else []),
+        "content": node_data.content,
+        "coverUrl": node_data.cover_url,
+        "media": node_data.media,
+        "isPublic": node_data.is_public,
+        "isVisible": node_data.is_visible,
+        "allowFeedback": node_data.allow_feedback,
+        "isRecommendable": node_data.is_recommendable,
+        "premiumOnly": node_data.premium_only,
+        "nftRequired": node_data.nft_required,
+        "aiGenerated": node_data.ai_generated,
+        "meta": node_data.meta,
+        "authorId": str(node_data.author_id) if node_data.author_id else None,
+        "createdByUserId": (
+            str(node_data.created_by_user_id)
+            if node_data.created_by_user_id
+            else (str(item.created_by_user_id) if item.created_by_user_id else None)
+        ),
+        "updatedByUserId": (
+            str(node_data.updated_by_user_id)
+            if node_data.updated_by_user_id
+            else (str(item.updated_by_user_id) if item.updated_by_user_id else None)
+        ),
+        "views": node_data.views,
+        "reactions": node_data.reactions or {},
+        "popularityScore": node_data.popularity_score,
+        "tag_slugs": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
+        "tags": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
     }
+
+
+@router.get("/{node_id}", summary="Get node item by id")
+async def get_node_by_id(
+    node_id: UUID,
+    workspace_id: UUID = Path(...),  # noqa: B008
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    item = await db.get(NodeItem, node_id)
+    if not item or item.workspace_id != workspace_id:
+        raise HTTPException(status_code=404, detail="Node not found")
+    svc = NodeService(db)
+    item = await svc.get(workspace_id, item.type, node_id)
+    node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
+    return _serialize(item, node)
+
+
+@router.patch("/{node_id}", summary="Update node item by id")
+async def update_node_by_id(
+    node_id: UUID,
+    payload: dict,
+    workspace_id: UUID = Path(...),  # noqa: B008
+    next: int = Query(0),
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    current_user: User = Depends(auth_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    item = await db.get(NodeItem, node_id)
+    if not item or item.workspace_id != workspace_id:
+        raise HTTPException(status_code=404, detail="Node not found")
+    svc = NodeService(db)
+    item = await svc.update(
+        workspace_id,
+        item.type,
+        node_id,
+        payload,
+        actor_id=current_user.id,
+    )
+    if next:
+        from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
+
+        ux_metrics.inc_save_next()
+    node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
+    return _serialize(item, node)
+
+
+@router.post("/{node_id}/publish", summary="Publish node item by id")
+async def publish_node_by_id(
+    node_id: UUID,
+    workspace_id: UUID = Path(...),  # noqa: B008
+    payload: PublishIn | None = None,
+    _: object = Depends(require_ws_editor),  # noqa: B008
+    current_user: User = Depends(auth_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    item = await db.get(NodeItem, node_id)
+    if not item or item.workspace_id != workspace_id:
+        raise HTTPException(status_code=404, detail="Node not found")
+    svc = NodeService(db)
+    item = await svc.publish(
+        workspace_id,
+        item.type,
+        node_id,
+        actor_id=current_user.id,
+        access=(payload.access if payload else "everyone"),
+        cover=(payload.cover if payload else None),
+    )
+    await publish_content(
+        node_id=item.id,
+        slug=item.slug,
+        author_id=current_user.id,
+        workspace_id=workspace_id,
+    )
+    node = await db.get(Node, item.id)
+    return _serialize(item, node)
 
 
 @router.get("/{node_type}", summary="List nodes by type")
