@@ -10,6 +10,7 @@ import {
 } from "../api/notifications";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/ToastProvider";
+import { ensureArray } from "../shared/utils";
 
 interface NotificationItem {
   id: string;
@@ -18,16 +19,6 @@ interface NotificationItem {
   type?: string | null;
   read_at?: string | null;
   created_at: string;
-}
-
-function ensureArray<T = any>(data: unknown): T[] {
-  if (Array.isArray(data)) return data as T[];
-  if (data && typeof data === "object") {
-    const obj = data as any;
-    if (Array.isArray(obj.items)) return obj.items as T[];
-    if (Array.isArray(obj.data)) return obj.data as T[];
-  }
-  return [];
 }
 
 async function fetchMyNotifications(): Promise<NotificationItem[]> {

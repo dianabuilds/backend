@@ -6,18 +6,7 @@ import type { Workspace } from "../api/types";
 import type { WorkspaceMemberOut } from "../openapi";
 import { useToast } from "../components/ToastProvider";
 import PageLayout from "./_shared/PageLayout";
-
-function ensureArray(data: unknown): Workspace[] {
-  if (Array.isArray(data)) return data as Workspace[];
-  if (
-    data &&
-    typeof data === "object" &&
-    Array.isArray((data as any).workspaces)
-  ) {
-    return (data as any).workspaces as Workspace[];
-  }
-  return [];
-}
+import { ensureArray } from "../shared/utils";
 
 export default function Workspaces() {
   const { addToast } = useToast();

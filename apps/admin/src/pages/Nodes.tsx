@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { wsApi } from "../api/wsApi";
 import { createPreviewLink } from "../api/preview";
 import { createNode, listNodes, patchNode, type NodeListParams } from "../api/nodes";
-import ContentEditor from "../components/content/ContentEditor";
 import StatusBadge from "../components/StatusBadge";
 import FlagsCell from "../components/FlagsCell";
 import type { TagOut } from "../components/tags/TagPicker";
@@ -14,6 +13,7 @@ import WorkspaceSelector from "../components/WorkspaceSelector";
 import WorkspaceControlPanel from "../components/WorkspaceControlPanel";
 import type { OutputData } from "../types/editorjs";
 import { confirmWithEnv } from "../utils/env";
+import { ensureArray } from "../shared/utils";
 import { safeLocalStorage } from "../utils/safeStorage";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
@@ -33,16 +33,6 @@ type NodeItem = {
 };
 
 const EMPTY_NODES: NodeItem[] = [];
-
-function ensureArray<T = any>(data: unknown): T[] {
-  if (Array.isArray(data)) return data as T[];
-  if (data && typeof data === "object") {
-    const obj = data as any;
-    if (Array.isArray(obj.items)) return obj.items as T[];
-    if (Array.isArray(obj.data)) return obj.data as T[];
-  }
-  return [];
-}
 
 // Нормализуем поля ответа API (camelCase -> snake_case) и приводим тип
 function normalizeNode(raw: any): NodeItem {

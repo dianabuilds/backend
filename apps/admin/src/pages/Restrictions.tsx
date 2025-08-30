@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { api } from "../api/client";
+import { ensureArray } from "../shared/utils";
 
 interface Restriction {
   id: string;
@@ -11,16 +12,6 @@ interface Restriction {
   expires_at?: string | null;
   issued_by?: string | null;
   created_at: string;
-}
-
-function ensureArray<T = any>(data: unknown): T[] {
-  if (Array.isArray(data)) return data as T[];
-  if (data && typeof data === "object") {
-    const obj = data as any;
-    if (Array.isArray(obj.items)) return obj.items as T[];
-    if (Array.isArray(obj.data)) return obj.data as T[];
-  }
-  return [];
 }
 
 async function fetchRestrictions(): Promise<Restriction[]> {
