@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
@@ -64,22 +63,19 @@ const PaymentsTransactions = lazy(() => import("./pages/PaymentsTransactions"));
 const PaymentsGateways = lazy(() => import("./pages/PaymentsGateways"));
 const AIRateLimits = lazy(() => import("./pages/AIRateLimits"));
 
-const queryClient = new QueryClient();
-
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <WorkspaceBranchProvider>
-          <ToastProvider>
-            <BrowserRouter basename="/admin">
-              <ErrorBoundary>
-                <Suspense
-                  fallback={
-                    <div className="p-4 text-sm text-gray-500">Loading…</div>
-                  }
-                >
-                  <Routes>
+    <AuthProvider>
+      <WorkspaceBranchProvider>
+        <ToastProvider>
+          <BrowserRouter basename="/admin">
+            <ErrorBoundary>
+              <Suspense
+                fallback={
+                  <div className="p-4 text-sm text-gray-500">Loading…</div>
+                }
+              >
+                <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route
                       element={
@@ -210,6 +206,5 @@ export default function App() {
           </ToastProvider>
         </WorkspaceBranchProvider>
       </AuthProvider>
-    </QueryClientProvider>
   );
 }
