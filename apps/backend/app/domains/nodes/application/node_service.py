@@ -249,8 +249,9 @@ class NodeService:
                 # пустой список — снимаем все теги
                 node.tags = []
 
-        # обложка может прийти как cover_url (snake) или coverUrl (camel) с фронта
-        # Важно: допускаем очистку (null) — тогда устанавливаем None в БД.
+        # обложка может прийти как cover_url (snake), coverUrl (camel) или cover
+        # (устаревший ключ) с фронта. Важно: допускаем очистку (null) — тогда
+        # устанавливаем None в БД.
         if "cover_url" in data:
             node.cover_url = (
                 str(data["cover_url"]) if data["cover_url"] is not None else None
@@ -258,6 +259,10 @@ class NodeService:
         if "coverUrl" in data:
             node.cover_url = (
                 str(data["coverUrl"]) if data["coverUrl"] is not None else None
+            )
+        if "cover" in data:
+            node.cover_url = (
+                str(data["cover"]) if data["cover"] is not None else None
             )
         # синхронизируем заголовок, если он менялся
         if "title" in data and data["title"]:
