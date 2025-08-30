@@ -1,78 +1,86 @@
-import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { PageLayout, Button } from "../../../shared/ui";
+
+import EditorJSEmbed from "../../../components/EditorJSEmbed";
+import FieldCover from "../../../components/fields/FieldCover";
+import FieldTags from "../../../components/fields/FieldTags";
+import { Button } from "../../../shared/ui";
 import { useWorkspace } from "../../../workspace/WorkspaceContext";
 import NodeSidebar from "../components/NodeSidebar";
-import ContentTab from "../components/ContentTab";
-import GeneralTab from "../components/GeneralTab";
-import NodeEditorModal from "../components/NodeEditorModal";
 import useNodeEditor from "../hooks/useNodeEditor";
 
 export default function NodeEditorPage() {
   const { type = "article", id = "new" } = useParams<{ type?: string; id?: string }>();
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
-  const { node, update, save, loading, error, isSaving, isNew } = useNodeEditor(
+  const { node, update, save, loading, error, isSaving } = useNodeEditor(
     workspaceId || "",
     type,
     id,
   );
-  const [tab, setTab] = useState<"content" | "general">("content");
 
   if (!workspaceId) return <div>Workspace not selected</div>;
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error loading node</div>;
 
   const handleSave = async () => {
-    const res = await save();
-    if (isNew && res) {
+    const res = (await save()) as { id?: string } | undefined;
+    if (id === "new" && res?.id) {
       navigate(`/nodes/${type}/${res.id}?workspace_id=${workspaceId}`);
     }
   };
 
-  if (isNew) {
-    return (
-      <NodeEditorModal
-        open={true}
-        node={node}
-        onChange={update}
-        onSave={handleSave}
-        onClose={() => navigate(-1)}
-      />
-    );
-  }
-
   return (
-    <PageLayout
-      title="Node editor"
-      actions={<Button onClick={handleSave} disabled={isSaving}>Save</Button>}
-    >
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <div className="mb-4 flex gap-4 border-b">
-            <button
-              className={`px-2 py-1 ${tab === "content" ? "border-b-2" : ""}`}
-              onClick={() => setTab("content")}
+    <div className="flex h-screen bg-gray-100">
+      <main className="flex-1 flex flex-col">
+        <header className="sticky top-0 bg-white border-b flex justify-between items-center px-6 py-3 z-10">
+          <div className="flex items-center space-x-3">
+            <input
+              value={node.title}
+              onChange={(e) => update({ title: e.target.value })}
+              className="text-lg font-bold bg-transparent focus:outline-none"
+              placeholder="Untitled"
+            />
+            <span
+              className={`px-2 py-1 text-xs rounded ${
+                node.isPublic ? "bg-green-200 text-green-800" : "bg-yellow-200 text-yellow-800"
+              }`}
             >
-              Content
-            </button>
-            <button
-              className={`px-2 py-1 ${tab === "general" ? "border-b-2" : ""}`}
-              onClick={() => setTab("general")}
-            >
-              General
-            </button>
+              {node.isPublic ? "Published" : "Draft"}
+            </span>
           </div>
-          {tab === "content" ? (
-            <ContentTab node={node} onChange={update} />
-          ) : (
-            <GeneralTab node={node} onChange={update} />
-          )}
+          <div className="space-x-2">
+            <Button onClick={() => navigate(-1)}>Close</Button>
+            <Button>Preview</Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-green-500 text-white border-green-500"
+            >
+              Save
+            </Button>
+          </div>
+        </header>
+
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+            <FieldCover
+              value={node.coverUrl ?? null}
+              onChange={(url) => update({ coverUrl: url })}
+            />
+            <FieldTags value={node.tags} onChange={(tags) => update({ tags })} />
+            <div className="border rounded bg-white">
+              <EditorJSEmbed
+                value={node.content}
+                onChange={(data) => update({ content: data })}
+                minHeight={400}
+              />
+            </div>
+          </div>
+          <aside className="w-72 bg-gray-50 border-l p-4 space-y-4 overflow-y-auto">
+            <NodeSidebar node={node} onChange={update} />
+          </aside>
         </div>
-        <div className="w-64">
-          <NodeSidebar node={node} onChange={update} />
-        </div>
-      </div>
-    </PageLayout>
+      </main>
+    </div>
   );
 }
