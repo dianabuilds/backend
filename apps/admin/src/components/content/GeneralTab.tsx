@@ -6,9 +6,6 @@ import type { GeneralTabProps } from "./GeneralTab.helpers";
 export default function GeneralTab({
   title,
   tags = [],
-  isPublic = false,
-  allowFeedback = true,
-  premiumOnly = false,
   coverUrl = null,
   // Summary удалён из интерфейса формы: оставляем значения в пропсах, но не используем
   summary: _summary = "",
@@ -18,9 +15,6 @@ export default function GeneralTab({
   onTitleChange,
   titleRef,
   onTagsChange,
-  onIsPublicChange,
-  onAllowFeedbackChange,
-  onPremiumOnlyChange,
   onCoverChange,
   onSummaryChange: _onSummaryChange,
 }: GeneralTabProps) {
@@ -39,36 +33,6 @@ export default function GeneralTab({
         error={coverError}
       />
       {onTagsChange ? <FieldTags value={tags} onChange={onTagsChange} /> : null}
-      {onIsPublicChange ? (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={isPublic}
-            onChange={(e) => onIsPublicChange(e.target.checked)}
-          />
-          Published
-        </label>
-      ) : null}
-      {onAllowFeedbackChange ? (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={allowFeedback}
-            onChange={(e) => onAllowFeedbackChange(e.target.checked)}
-          />
-          Allow comments
-        </label>
-      ) : null}
-      {onPremiumOnlyChange ? (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={premiumOnly}
-            onChange={(e) => onPremiumOnlyChange(e.target.checked)}
-          />
-          Premium only
-        </label>
-      ) : null}
     </div>
   );
 }

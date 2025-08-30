@@ -29,6 +29,8 @@ interface NodeSidebarProps {
     coverAssetId: string | null;
     coverAlt: string;
     coverMeta: any | null;
+    allowFeedback: boolean;
+    premiumOnly: boolean;
   };
   workspaceId: string;
   onSlugChange?: (slug: string, updatedAt?: string) => void;
@@ -36,6 +38,8 @@ interface NodeSidebarProps {
   onStatusChange?: (isPublic: boolean, updatedAt?: string) => void;
   onScheduleChange?: (publishedAt: string | null, updatedAt?: string) => void;
   onHiddenChange?: (hidden: boolean, updatedAt?: string) => void;
+  onAllowFeedbackChange?: (allow: boolean, updatedAt?: string) => void;
+  onPremiumOnlyChange?: (premium: boolean, updatedAt?: string) => void;
   hasChanges?: boolean;
   onValidation?: (res: ValidateResult) => void;
 }
@@ -48,6 +52,8 @@ export default function NodeSidebar({
   onStatusChange,
   onScheduleChange,
   onHiddenChange,
+  onAllowFeedbackChange,
+  onPremiumOnlyChange,
   hasChanges,
   onValidation,
 }: NodeSidebarProps) {
@@ -88,6 +94,8 @@ export default function NodeSidebar({
 
   const [statusSaving, setStatusSaving] = useState(false);
   const [hiddenSaving, setHiddenSaving] = useState(false);
+  const [allowSaving, setAllowSaving] = useState(false);
+  const [premiumSaving, setPremiumSaving] = useState(false);
   const [scheduleValue, setScheduleValue] = useState(
     node.publishedAt ? node.publishedAt.slice(0, 16) : "",
   );
@@ -237,6 +245,36 @@ export default function NodeSidebar({
       onHiddenChange?.(hidden, updated);
     } finally {
       setHiddenSaving(false);
+    }
+  };
+
+  const handleAllowFeedbackChange = async (checked: boolean) => {
+    setAllowSaving(true);
+    try {
+      const res = await patchNode(workspaceId, node.nodeType, node.id, {
+        allowFeedback: checked,
+        updatedAt: node.updatedAt,
+      });
+      const updated = res.updatedAt ?? node.updatedAt;
+      const allow = (res as any).allowFeedback ?? checked;
+      onAllowFeedbackChange?.(allow, updated);
+    } finally {
+      setAllowSaving(false);
+    }
+  };
+
+  const handlePremiumOnlyChange = async (checked: boolean) => {
+    setPremiumSaving(true);
+    try {
+      const res = await patchNode(workspaceId, node.nodeType, node.id, {
+        premiumOnly: checked,
+        updatedAt: node.updatedAt,
+      });
+      const updated = res.updatedAt ?? node.updatedAt;
+      const premium = (res as any).premiumOnly ?? checked;
+      onPremiumOnlyChange?.(premium, updated);
+    } finally {
+      setPremiumSaving(false);
     }
   };
 
@@ -451,6 +489,24 @@ export default function NodeSidebar({
               disabled={statusSaving}
             />
             Published
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={node.allowFeedback}
+              onChange={(e) => handleAllowFeedbackChange(e.target.checked)}
+              disabled={allowSaving}
+            />
+            Allow comments
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={node.premiumOnly}
+              onChange={(e) => handlePremiumOnlyChange(e.target.checked)}
+              disabled={premiumSaving}
+            />
+            Premium only
           </label>
           {node.updatedAt !== node.createdAt ? (
             <div>

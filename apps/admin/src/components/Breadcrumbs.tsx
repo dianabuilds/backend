@@ -12,12 +12,15 @@ export default function Breadcrumbs() {
     preview: "Simulation",
   };
 
-  const items = pathnames.map((segment, index) => {
-    const to = "/" + pathnames.slice(0, index + 1).join("/");
-    const label = segmentMap[segment] || segment.replace(/-/g, " ");
-    const text = label.charAt(0).toUpperCase() + label.slice(1);
-    return { to, text };
-  });
+  const items = pathnames
+    .map((segment, index) => {
+      const to = "/" + pathnames.slice(0, index + 1).join("/");
+      const label = segmentMap[segment] || segment.replace(/-/g, " ");
+      const text = label.charAt(0).toUpperCase() + label.slice(1);
+      return { to, text };
+    })
+    // Remove duplicated segments to avoid repeated breadcrumbs
+    .filter((item, index, arr) => index === 0 || item.text !== arr[index - 1].text);
 
   return (
     <nav className="mb-4 text-sm text-gray-600 dark:text-gray-300">
