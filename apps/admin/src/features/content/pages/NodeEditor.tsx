@@ -50,7 +50,17 @@ export default function NodeEditorPage() {
           </div>
           <div className="space-x-2">
             <Button onClick={() => navigate(-1)}>Close</Button>
-            <Button>Preview</Button>
+            <Button
+              onClick={() =>
+                window.open(
+                  `/admin/nodes/${type}/${id}/preview?workspace_id=${workspaceId}`,
+                  "_blank",
+                )
+              }
+              disabled={id === "new"}
+            >
+              Preview
+            </Button>
             <Button
               onClick={handleSave}
               disabled={isSaving}
