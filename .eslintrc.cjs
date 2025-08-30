@@ -13,5 +13,8 @@ module.exports = {
   ],
   rules: {
     'no-unused-vars': 'warn',
+    'no-restricted-imports': ['error', {
+      patterns: ['**/features/content/components/GeneralTab']
+    }],
   },
 };

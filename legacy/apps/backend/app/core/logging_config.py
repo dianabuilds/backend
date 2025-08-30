@@ -1,3 +1,4 @@
+# DEPRECATED: use app.core.logging_configuration.configure_logging instead
 """Compatibility wrapper for the main logging configuration module.
 
 Historically tests imported :func:`configure_logging` from this module.

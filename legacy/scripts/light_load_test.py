@@ -1,3 +1,4 @@
+# DEPRECATED: legacy script, use dedicated load testing tools
 """Asynchronous lightweight load tester.
 
 Usage:
