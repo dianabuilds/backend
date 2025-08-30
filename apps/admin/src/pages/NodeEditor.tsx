@@ -8,7 +8,6 @@ import GeneralTab from "../components/content/GeneralTab";
 import NodeSidebar from "../components/NodeSidebar";
 import StatusBadge from "../components/StatusBadge";
 import ErrorBanner from "../components/ErrorBanner";
-import {useToast} from "../components/ToastProvider";
 import WorkspaceSelector from "../components/WorkspaceSelector";
 import type {OutputData} from "../types/editorjs";
 import {useUnsavedChanges} from "../utils/useUnsavedChanges";
@@ -346,7 +345,6 @@ function NodeEditorInner({
     workspaceId: string;
 }) {
     const navigate = useNavigate();
-    const {addToast} = useToast();
     const {user} = useAuth();
     const canEdit = user?.role === "admin";
     const [savedAt, setSavedAt] = useState<Date | null>(null);
@@ -366,7 +364,7 @@ function NodeEditorInner({
         cover: string | null;
     }>({title: null, cover: null});
 
-    const {enqueue, saving, pending, saveNow} = usePatchQueue(
+    const {enqueue, saving, pending} = usePatchQueue(
         async (patch, signal) => {
             try {
                 const updated = await patchNode(
@@ -557,21 +555,6 @@ function NodeEditorInner({
         };
     }, []);
 
-    const handleSave = async () => {
-        if (!canEdit) return;
-        await saveNow();
-        addToast({title: "Сохранено", variant: "success"});
-    };
-
-    const handleSaveNext = async () => {
-        if (!canEdit) return;
-        await saveNow();
-        const path = workspaceId
-            ? `/nodes/${node.nodeType}/new?workspace_id=${workspaceId}`
-            : `/nodes/${node.nodeType}/new`;
-        navigate(path);
-    };
-
     const handleCreate = () => {
         if (!canEdit) return;
         const path = workspaceId
@@ -588,24 +571,6 @@ function NodeEditorInner({
     };
 
     // изменения контента из EditorJS → в очередь PATCH
-    const handleContentChange = canEdit
-        ? (data: OutputData) => {
-            handleDraftChange({content: data});
-        }
-        : undefined;
-
-    useEffect(() => {
-        const onKey = (e: KeyboardEvent) => {
-            if (!canEdit) return;
-            if (e.key === "Enter" && e.ctrlKey) {
-                e.preventDefault();
-                if (e.shiftKey) void handleSaveNext();
-                else void handleSave();
-            }
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, [canEdit, handleSave, handleSaveNext]);
 
     return (
         <div className="flex h-full flex-col">
@@ -673,62 +638,44 @@ function NodeEditorInner({
                         )}
                         <StatusBadge status={node.isPublic ? "published" : "draft"}/>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-sm">
-                        {canEdit && (
+                    <div className="flex items-center justify-between w-full">
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                            {canEdit && (
+                                <button
+                                    type="button"
+                                    className="px-2 py-1 border rounded"
+                                    disabled={!node.title.trim()}
+                                    onClick={handleCreate}
+                                >
+                                    Create
+                                </button>
+                            )}
+                            {node.slug && (
+                                <a
+                                    href={`/nodes/${node.slug}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-2 py-1 border rounded"
+                                >
+                                    Preview
+                                </a>
+                            )}
                             <button
                                 type="button"
                                 className="px-2 py-1 border rounded"
-                                disabled={!node.title.trim()}
-                                onClick={handleCreate}
+                                onClick={handleClose}
                             >
-                                Create
+                                Close
                             </button>
-                        )}
+                        </div>
                         {canEdit && (
-                            <button
-                                type="button"
-                                className="px-2 py-1 border rounded"
-                                disabled={saving || !unsaved}
-                                onClick={handleSave}
-                            >
-                                Save
-                            </button>
-                        )}
-                        {canEdit && (
-                            <button
-                                type="button"
-                                className="px-2 py-1 border rounded"
-                                disabled={saving || !unsaved}
-                                onClick={handleSaveNext}
-                            >
-                                Save & Next
-                            </button>
-                        )}
-                        {node.slug && (
-                            <a
-                                href={`/nodes/${node.slug}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-2 py-1 border rounded"
-                            >
-                                Preview
-                            </a>
-                        )}
-                        <button
-                            type="button"
-                            className="px-2 py-1 border rounded"
-                            onClick={handleClose}
-                        >
-                            Close
-                        </button>
-                        {canEdit && (
-                            <span className="ml-2 text-gray-500">
-                {unsaved
-                    ? "несохранённые изменения"
-                    : savedAt
-                        ? `сохранено ${savedAt.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}`
-                        : null}
-              </span>
+                            <div className="text-sm text-gray-500">
+                                {unsaved
+                                    ? "несохранённые изменения"
+                                    : savedAt
+                                        ? `сохранено ${savedAt.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}`
+                                        : null}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -740,14 +687,8 @@ function NodeEditorInner({
                         titleRef={titleRef}
                         coverUrl={node.coverUrl}
                         tags={node.tags}
-                        isPublic={node.isPublic}
-                        allowFeedback={node.allowFeedback}
-                        premiumOnly={node.premiumOnly}
                         onTitleChange={handleTitleChange}
                         onTagsChange={canEdit ? (t) => handleDraftChange({ tags: t }) : undefined}
-                        onIsPublicChange={canEdit ? (v) => handleDraftChange({ isPublic: v }) : undefined}
-                        onAllowFeedbackChange={canEdit ? (v) => handleDraftChange({ allowFeedback: v }) : undefined}
-                        onPremiumOnlyChange={canEdit ? (v) => handleDraftChange({ premiumOnly: v }) : undefined}
                         onCoverChange={canEdit ? (url) => handleDraftChange({ coverUrl: url }) : undefined}
                         titleError={fieldErrors.title}
                         coverError={fieldErrors.cover}
@@ -774,6 +715,8 @@ function NodeEditorInner({
                         coverAssetId: node.coverAssetId,
                         coverAlt: node.coverAlt,
                         coverMeta: node.coverMeta,
+                        allowFeedback: node.allowFeedback,
+                        premiumOnly: node.premiumOnly,
                     }}
                     workspaceId={workspaceId}
                     onSlugChange={(slug, updated) => {
@@ -829,9 +772,24 @@ function NodeEditorInner({
                             updatedAt: updated ?? prev.updatedAt,
                         }));
                     }}
+                    onAllowFeedbackChange={(allow, updated) => {
+                        handleDraftChange({ allowFeedback: allow });
+                        setNode((prev) => ({
+                            ...prev,
+                            allowFeedback: allow,
+                            updatedAt: updated ?? prev.updatedAt,
+                        }));
+                    }}
+                    onPremiumOnlyChange={(premium, updated) => {
+                        handleDraftChange({ premiumOnly: premium });
+                        setNode((prev) => ({
+                            ...prev,
+                            premiumOnly: premium,
+                            updatedAt: updated ?? prev.updatedAt,
+                        }));
+                    }}
                     hasChanges={unsaved}
                     onValidation={handleValidation}
-                    onChange={handleContentChange}
                 />
             </div>
         </div>
