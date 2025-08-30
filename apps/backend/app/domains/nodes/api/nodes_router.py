@@ -152,13 +152,23 @@ async def read_node(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     workspace_dep: object = Depends(optional_workspace),
-    _: object = Depends(require_ws_guest),
 ):
-    workspace_id = _ensure_workspace_id(request, workspace_id)
+    if workspace_id is None:
+        wid = getattr(request.state, "workspace_id", None)
+        if wid is not None:
+            workspace_id = UUID(str(wid))
     repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, workspace_id)
+    if not node and workspace_id is None:
+        node = await repo.get_by_slug(slug)
+        if node:
+            workspace_id = node.workspace_id
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
+    if workspace_id is None:
+        raise HTTPException(status_code=400, detail="workspace_id is required")
+    request.state.workspace_id = str(workspace_id)
+    await require_ws_guest(workspace_id=workspace_id, user=current_user, db=db)
     res = await db.execute(
         select(NodeItem)
         .where(

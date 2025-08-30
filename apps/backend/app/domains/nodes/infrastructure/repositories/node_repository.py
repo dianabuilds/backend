@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Concrete implementation of :class:`INodeRepository`.
 
 The original project relied on a legacy repository located in
@@ -12,8 +10,9 @@ current tests using plain SQLAlchemy queries.  If the legacy repository becomes
 available the adapter will delegate to it automatically.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import List
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -45,14 +44,15 @@ class NodeRepositoryAdapter(INodeRepository):
 
     # ------------------------------------------------------------------
     # Basic getters
-    async def get_by_slug(self, slug: str, workspace_id: UUID) -> Node | None:
-        if self._repo:
+    async def get_by_slug(
+        self, slug: str, workspace_id: UUID | None = None
+    ) -> Node | None:
+        if self._repo and workspace_id is not None:
             return await self._repo.get_by_slug(slug, workspace_id=workspace_id)
-        res = await self._db.execute(
-            select(Node)
-            .options(selectinload(Node.tags))
-            .where(Node.slug == slug, Node.workspace_id == workspace_id)
-        )
+        query = select(Node).options(selectinload(Node.tags)).where(Node.slug == slug)
+        if workspace_id is not None:
+            query = query.where(Node.workspace_id == workspace_id)
+        res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
     async def get_by_id(self, node_id: UUID, workspace_id: UUID) -> Node | None:
@@ -67,7 +67,9 @@ class NodeRepositoryAdapter(INodeRepository):
 
     # ------------------------------------------------------------------
     # Mutating operations
-    async def create(self, payload: NodeCreate, author_id: UUID, workspace_id: UUID) -> Node:
+    async def create(
+        self, payload: NodeCreate, author_id: UUID, workspace_id: UUID
+    ) -> Node:
         if self._repo:
             return await self._repo.create(payload, author_id, workspace_id)
         node = Node(
@@ -127,6 +129,7 @@ class NodeRepositoryAdapter(INodeRepository):
 
     async def _apply_tags(self, node: Node, tags: list[str], actor_id: UUID) -> None:
         from app.domains.tags.models import Tag
+
         tag_ids: list[UUID] = []
         for slug in tags:
             slug_norm = (slug or "").strip().lower()
@@ -139,7 +142,9 @@ class NodeRepositoryAdapter(INodeRepository):
             )
             tag = res.scalar_one_or_none()
             if not tag:
-                tag = Tag(slug=slug_norm, name=slug_norm, workspace_id=node.workspace_id)
+                tag = Tag(
+                    slug=slug_norm, name=slug_norm, workspace_id=node.workspace_id
+                )
                 self._db.add(tag)
                 await self._db.flush()
             tag_ids.append(tag.id)
@@ -186,7 +191,9 @@ class NodeRepositoryAdapter(INodeRepository):
 
     # ------------------------------------------------------------------
     # Bulk operations used by admin services
-    async def list_by_author(self, author_id: UUID, workspace_id: UUID, limit: int = 50, offset: int = 0) -> List[Node]:
+    async def list_by_author(
+        self, author_id: UUID, workspace_id: UUID, limit: int = 50, offset: int = 0
+    ) -> list[Node]:
         res = await self._db.execute(
             select(Node)
             .options(selectinload(Node.tags))
@@ -197,7 +204,9 @@ class NodeRepositoryAdapter(INodeRepository):
         )
         return list(res.scalars().all())
 
-    async def bulk_set_visibility(self, node_ids: List[UUID], is_visible: bool, workspace_id: UUID) -> int:
+    async def bulk_set_visibility(
+        self, node_ids: list[UUID], is_visible: bool, workspace_id: UUID
+    ) -> int:
         if not node_ids:
             return 0
         count = 0
@@ -210,7 +219,9 @@ class NodeRepositoryAdapter(INodeRepository):
         await self._db.flush()
         return count
 
-    async def bulk_set_public(self, node_ids: List[UUID], is_public: bool, workspace_id: UUID) -> int:
+    async def bulk_set_public(
+        self, node_ids: list[UUID], is_public: bool, workspace_id: UUID
+    ) -> int:
         if not node_ids:
             return 0
         count = 0
@@ -223,7 +234,9 @@ class NodeRepositoryAdapter(INodeRepository):
         await self._db.flush()
         return count
 
-    async def bulk_set_tags(self, node_ids: List[UUID], tags: list[str], workspace_id: UUID) -> int:
+    async def bulk_set_tags(
+        self, node_ids: list[UUID], tags: list[str], workspace_id: UUID
+    ) -> int:
         if not node_ids:
             return 0
         valid_ids: list[UUID] = []
@@ -234,13 +247,16 @@ class NodeRepositoryAdapter(INodeRepository):
         if not valid_ids:
             return 0
         from app.domains.tags.models import Tag
+
         tag_ids: list[UUID] = []
         for slug in tags:
             slug_norm = (slug or "").strip().lower()
             if not slug_norm:
                 continue
             existing = await self._db.execute(
-                select(Tag).where(Tag.slug == slug_norm, Tag.workspace_id == workspace_id)
+                select(Tag).where(
+                    Tag.slug == slug_norm, Tag.workspace_id == workspace_id
+                )
             )
             tag = existing.scalar_one_or_none()
             if not tag:
@@ -256,7 +272,13 @@ class NodeRepositoryAdapter(INodeRepository):
         await self._db.flush()
         return len(valid_ids)
 
-    async def bulk_set_tags_diff(self, node_ids: List[UUID], add: list[str], remove: list[str], workspace_id: UUID) -> int:
+    async def bulk_set_tags_diff(
+        self,
+        node_ids: list[UUID],
+        add: list[str],
+        remove: list[str],
+        workspace_id: UUID,
+    ) -> int:
         if not node_ids:
             return 0
         valid_ids: list[UUID] = []
@@ -267,13 +289,16 @@ class NodeRepositoryAdapter(INodeRepository):
         if not valid_ids:
             return 0
         from app.domains.tags.models import Tag
+
         add_ids: list[UUID] = []
         for slug in add:
             slug_norm = (slug or "").strip().lower()
             if not slug_norm:
                 continue
             existing = await self._db.execute(
-                select(Tag).where(Tag.slug == slug_norm, Tag.workspace_id == workspace_id)
+                select(Tag).where(
+                    Tag.slug == slug_norm, Tag.workspace_id == workspace_id
+                )
             )
             tag = existing.scalar_one_or_none()
             if not tag:
