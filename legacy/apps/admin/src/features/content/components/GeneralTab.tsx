@@ -1,3 +1,4 @@
+// DEPRECATED: use components/content/GeneralTab instead
 import { TextInput } from "../../../shared/ui";
 import type { NodeEditorData } from "../model/node";
 
