@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { confirmWithEnv } from "../utils/env";
 
-import { api } from "../api/client";
+import { client } from "../shared/api/client";
+import { queryKeys } from "../shared/api/queryKeys";
 
 type WorldTemplate = {
   id: string;
@@ -18,9 +20,8 @@ type Character = {
 };
 
 export default function WorldsPage() {
-  const [worlds, setWorlds] = useState<WorldTemplate[]>([]);
+  const qc = useQueryClient();
   const [selectedWorld, setSelectedWorld] = useState<string>("");
-  const [characters, setCharacters] = useState<Character[]>([]);
 
   const [newWorld, setNewWorld] = useState<{
     title: string;
@@ -33,48 +34,85 @@ export default function WorldsPage() {
     description: string;
   }>({ name: "", role: "", description: "" });
 
-  const loadWorlds = async () => {
-    try {
-      const res = await api.get<WorldTemplate[]>("/admin/ai/quests/worlds");
-      setWorlds(Array.isArray(res.data) ? res.data : []);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const { data: worlds = [] } = useQuery({
+    queryKey: queryKeys.worlds,
+    queryFn: () =>
+      client.get<WorldTemplate[]>("/admin/ai/quests/worlds").then((d) => d || []),
+  });
+  const { data: characters = [] } = useQuery({
+    queryKey: queryKeys.worldCharacters(selectedWorld),
+    queryFn: () =>
+      client
+        .get<Character[]>(
+          `/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`,
+        )
+        .then((d) => d || []),
+    enabled: !!selectedWorld,
+  });
 
-  const loadCharacters = async (wid: string) => {
-    if (!wid) {
-      setCharacters([]);
-      return;
-    }
-    try {
-      const res = await api.get<Character[]>(
-        `/admin/ai/quests/worlds/${encodeURIComponent(wid)}/characters`,
-      );
-      setCharacters(Array.isArray(res.data) ? res.data : []);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const createWorldMutation = useMutation({
+    mutationFn: (payload: {
+      title: string;
+      locale: string;
+      description: string;
+    }) =>
+      client.post(`/admin/ai/quests/worlds`, {
+        title: payload.title,
+        locale: payload.locale || null,
+        description: payload.description || null,
+        meta: null,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.worlds });
+    },
+  });
 
-  useEffect(() => {
-    loadWorlds();
-  }, []);
-  useEffect(() => {
-    loadCharacters(selectedWorld);
-  }, [selectedWorld]);
+  const removeWorldMutation = useMutation({
+    mutationFn: (id: string) =>
+      client.del(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: queryKeys.worlds });
+      qc.removeQueries({ queryKey: queryKeys.worldCharacters(id) });
+    },
+  });
+
+  const addCharacterMutation = useMutation({
+    mutationFn: (payload: {
+      name: string;
+      role: string;
+      description: string;
+    }) =>
+      client.post(
+        `/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`,
+        {
+          name: payload.name,
+          role: payload.role || null,
+          description: payload.description || null,
+          traits: null,
+        },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: queryKeys.worldCharacters(selectedWorld),
+      });
+    },
+  });
+
+  const removeCharacterMutation = useMutation({
+    mutationFn: (id: string) =>
+      client.del(`/admin/ai/quests/characters/${encodeURIComponent(id)}`),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: queryKeys.worldCharacters(selectedWorld),
+      });
+    },
+  });
 
   const createWorld = async () => {
     if (!newWorld.title.trim()) return alert("Введите название мира");
     try {
-      await api.post("/admin/ai/quests/worlds", {
-        title: newWorld.title,
-        locale: newWorld.locale || null,
-        description: newWorld.description || null,
-        meta: null,
-      });
+      await createWorldMutation.mutateAsync(newWorld);
       setNewWorld({ title: "", locale: "", description: "" });
-      await loadWorlds();
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }
@@ -83,14 +121,8 @@ export default function WorldsPage() {
   const removeWorld = async (id: string) => {
     if (!confirmWithEnv("Удалить мир со всеми персонажами?")) return;
     try {
-      await api.request(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      if (id === selectedWorld) {
-        setSelectedWorld("");
-        setCharacters([]);
-      }
-      await loadWorlds();
+      await removeWorldMutation.mutateAsync(id);
+      if (id === selectedWorld) setSelectedWorld("");
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }
@@ -100,17 +132,8 @@ export default function WorldsPage() {
     if (!selectedWorld) return alert("Сначала выберите мир");
     if (!newChar.name.trim()) return alert("Имя персонажа обязательно");
     try {
-      await api.post(
-        `/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`,
-        {
-          name: newChar.name,
-          role: newChar.role || null,
-          description: newChar.description || null,
-          traits: null,
-        },
-      );
+      await addCharacterMutation.mutateAsync(newChar);
       setNewChar({ name: "", role: "", description: "" });
-      await loadCharacters(selectedWorld);
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }
@@ -119,11 +142,7 @@ export default function WorldsPage() {
   const removeCharacter = async (id: string) => {
     if (!confirmWithEnv("Удалить персонажа?")) return;
     try {
-      await api.request(
-        `/admin/ai/quests/characters/${encodeURIComponent(id)}`,
-        { method: "DELETE" },
-      );
-      await loadCharacters(selectedWorld);
+      await removeCharacterMutation.mutateAsync(id);
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }

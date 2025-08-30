@@ -6,6 +6,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./App.tsx";
+import { AppProviders } from "./app/providers";
 
 const routeId = (window as any).__ROUTE_ID__;
 console.log("route_id:", routeId);
@@ -25,6 +26,8 @@ if (import.meta.env.DEV) {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <AppProviders>
+      <App />
+    </AppProviders>
   </StrictMode>,
 );
