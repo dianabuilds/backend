@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Modal, PageLayout, Table, TextInput } from "../shared/ui";
+import {
+  Button,
+  Modal,
+  PageLayout,
+  Table,
+  TextInput,
+  SearchBar,
+} from "../shared/ui";
 import { useModal, usePaginatedList } from "../shared/hooks";
 import { confirmWithEnv } from "../utils/env";
 import {
@@ -71,12 +78,12 @@ export default function Tags() {
   return (
     <PageLayout title="Tags">
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <TextInput
+        <SearchBar
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={setQ}
+          onSearch={handleSearch}
           placeholder="Search by tag name..."
         />
-        <Button onClick={handleSearch}>Search</Button>
         <Button onClick={() => navigate("/tags/merge")}>Merge…</Button>
         <Button onClick={createModal.open}>New tag</Button>
         <div className="ml-auto flex items-center gap-2">

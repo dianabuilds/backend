@@ -16,16 +16,7 @@ interface AuditLogEntry {
 }
 
 import { api } from "../api/client";
-
-function ensureArray<T = any>(data: unknown): T[] {
-  if (Array.isArray(data)) return data as T[];
-  if (data && typeof data === "object") {
-    const obj = data as any;
-    if (Array.isArray(obj.items)) return obj.items as T[];
-    if (Array.isArray(obj.data)) return obj.data as T[];
-  }
-  return [];
-}
+import { ensureArray } from "../shared/utils";
 
 async function fetchAudit(
   params: Record<string, string>,

@@ -1,9 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { confirmWithEnv } from "../utils/env";
 
 import { api } from "../api/client";
 import { useToast } from "../components/ToastProvider";
 import ConditionEditor, { type Condition } from "./_shared/ConditionEditor";
+import {
+  Button,
+  PageLayout,
+  Table,
+  TextInput,
+  SearchBar,
+} from "../shared/ui";
+import { usePaginatedList } from "../shared/hooks";
+import { ensureArray, withQueryParams } from "../shared/utils";
 
 type AchievementAdmin = {
   id: string;
@@ -15,19 +24,15 @@ type AchievementAdmin = {
   condition: Record<string, any>;
 };
 
-function ensureArray<T = any>(data: unknown): T[] {
-  if (Array.isArray(data)) return data as T[];
-  if (data && typeof data === "object") {
-    const obj = data as any;
-    if (Array.isArray(obj.items)) return obj.items as T[];
-    if (Array.isArray(obj.data)) return obj.data as T[];
-  }
-  return [];
-}
-
 // API helpers
-async function listAdminAchievements(): Promise<AchievementAdmin[]> {
-  const res = await api.get<AchievementAdmin[]>("/admin/achievements");
+async function listAdminAchievements(params: {
+  q?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AchievementAdmin[]> {
+  const res = await api.get<AchievementAdmin[]>(
+    withQueryParams("/admin/achievements", params),
+  );
   return ensureArray<AchievementAdmin>(res.data);
 }
 async function createAdminAchievement(
@@ -58,9 +63,28 @@ async function revokeAchievement(id: string, user_id: string) {
 
 export default function Achievements() {
   const { addToast } = useToast();
-  const [items, setItems] = useState<AchievementAdmin[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const [q, setQ] = useState("");
+  const {
+    items,
+    loading,
+    error,
+    limit,
+    setLimit,
+    nextPage,
+    prevPage,
+    hasNext,
+    hasPrev,
+    reset,
+    reload,
+  } = usePaginatedList<AchievementAdmin>((params) =>
+    listAdminAchievements({ ...params, q }),
+  );
+
+  const handleSearch = async () => {
+    reset();
+    await reload();
+  };
 
   // Create form
   const [cCode, setCCode] = useState("");
@@ -83,24 +107,6 @@ export default function Achievements() {
   // Grant/Revoke
   const [userId, setUserId] = useState("");
 
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const rows = await listAdminAchievements();
-      setItems(rows);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
   const onCreate = async () => {
     if (!cCode.trim() || !cTitle.trim()) return;
     try {
@@ -118,7 +124,8 @@ export default function Achievements() {
       setCIcon("");
       setCVisible(true);
       setCCond({ type: "event_count", event: "some_event", count: 1 });
-      setItems((arr) => [created, ...arr]);
+      reset();
+      await reload();
       addToast({ title: "Achievement created", variant: "success" });
     } catch (e) {
       addToast({
@@ -135,8 +142,9 @@ export default function Achievements() {
   ) => {
     try {
       const updated = await updateAdminAchievement(row.id, patch);
-      setItems((arr) => arr.map((x) => (x.id === row.id ? updated : x)));
+      void updated;
       setEditId(null);
+      await reload();
       addToast({ title: "Saved", variant: "success" });
     } catch (e) {
       addToast({
@@ -151,7 +159,7 @@ export default function Achievements() {
     if (!confirmWithEnv(`Delete achievement "${row.title}"?`)) return;
     try {
       await deleteAdminAchievement(row.id);
-      setItems((arr) => arr.filter((x) => x.id !== row.id));
+      await reload();
       addToast({ title: "Deleted", variant: "success" });
     } catch (e) {
       addToast({
@@ -191,9 +199,7 @@ export default function Achievements() {
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Achievements</h1>
-
+    <PageLayout title="Achievements">
       <div className="mb-6 rounded border p-3">
         <h2 className="font-semibold mb-2">Create achievement</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -243,20 +249,41 @@ export default function Achievements() {
         </div>
       </div>
 
-      <div className="mb-4 flex items-center gap-2">
-        <input
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-          placeholder="User ID (UUID) for grant/revoke"
-          className="border rounded px-2 py-1 font-mono w-80"
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <SearchBar
+          value={q}
+          onChange={setQ}
+          onSearch={handleSearch}
+          placeholder="Search achievements..."
         />
+        <div className="ml-auto flex items-center gap-2">
+          <label className="text-sm text-gray-600">Page size</label>
+          <TextInput
+            type="number"
+            min={1}
+            max={1000}
+            value={limit}
+            onChange={(e) =>
+              setLimit(
+                Math.max(1, Math.min(1000, Number(e.target.value) || 1)),
+              )
+            }
+            className="w-20"
+          />
+          <Button disabled={!hasPrev} onClick={prevPage} title="Previous page">
+            ‹ Prev
+          </Button>
+          <Button disabled={!hasNext} onClick={nextPage} title="Next page">
+            Next ›
+          </Button>
+        </div>
       </div>
 
       {loading && <p>Loading…</p>}
       {error && <p className="text-red-600">{error}</p>}
 
       {!loading && !error && (
-        <table className="min-w-full text-sm">
+        <Table className="min-w-full text-sm">
           <thead>
             <tr className="border-b">
               <th className="p-2 text-left">Code</th>
@@ -430,8 +457,20 @@ export default function Achievements() {
               </tr>
             )}
           </tbody>
-        </table>
+        </Table>
       )}
-    </div>
+
+      <div className="mt-6">
+        <h2 className="font-semibold mb-2">Grant/Revoke achievement</h2>
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            className="border rounded px-2 py-1"
+            placeholder="user_id"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+          />
+        </div>
+      </div>
+    </PageLayout>
   );
 }
