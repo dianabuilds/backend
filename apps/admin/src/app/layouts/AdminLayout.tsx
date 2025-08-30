@@ -1,16 +1,16 @@
 import { Link, Outlet } from "react-router-dom";
 
-import { useAuth } from "../auth/AuthContext";
-import { useWorkspace } from "../workspace/WorkspaceContext";
-import HotfixBanner from "./HotfixBanner";
-import EnvBanner from "./EnvBanner";
-import Sidebar from "./Sidebar";
-import WorkspaceSelector from "./WorkspaceSelector";
-import SystemStatus from "./SystemStatus";
-import Breadcrumbs from "./Breadcrumbs";
-import AlertsBadge from "./AlertsBadge";
+import { useAuth } from "../../auth/AuthContext";
+import { useWorkspace } from "../../workspace/WorkspaceContext";
+import HotfixBanner from "../../components/HotfixBanner";
+import EnvBanner from "../../components/EnvBanner";
+import Sidebar from "../../components/Sidebar";
+import WorkspaceSelector from "../../components/WorkspaceSelector";
+import SystemStatus from "../../components/SystemStatus";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import AlertsBadge from "../../components/AlertsBadge";
 
-export default function Layout() {
+export default function AdminLayout() {
   const { user, logout } = useAuth();
   const { workspaceId } = useWorkspace();
   return (
