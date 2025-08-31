@@ -25,7 +25,7 @@ class ContentModeration(Base):
     __tablename__ = "node_moderation"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    node_id = Column(UUID(), ForeignKey("nodes.id"))
+    node_id = Column(UUID(), ForeignKey("nodes.alt_id"))
     reason = Column(Text)
     hidden_by = Column(UUID(), ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -13,7 +13,7 @@ from app.core.db.adapters import UUID, JSONB
 class NodeTag(Base):
     __tablename__ = "node_tags"
 
-    node_id = Column(UUID(), ForeignKey("nodes.id"), primary_key=True)
+    node_id = Column(UUID(), ForeignKey("nodes.alt_id"), primary_key=True)
     tag_id = Column(UUID(), ForeignKey("tags.id"), primary_key=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

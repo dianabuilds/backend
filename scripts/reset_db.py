@@ -253,7 +253,7 @@ async def _ensure_feedback(conn) -> None:
     await conn.execute(sa.text("""
         CREATE TABLE IF NOT EXISTS feedback (
           id uuid PRIMARY KEY,
-          node_id uuid NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+          node_id uuid NOT NULL REFERENCES nodes(alt_id) ON DELETE CASCADE,
           author_id uuid NOT NULL REFERENCES users(id),
           nodes text NOT NULL,
           created_at timestamp DEFAULT now(),
@@ -283,7 +283,7 @@ async def _ensure_tags(conn) -> None:
 
     await conn.execute(sa.text("""
         CREATE TABLE IF NOT EXISTS node_tags (
-          node_id uuid NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+          node_id uuid NOT NULL REFERENCES nodes(alt_id) ON DELETE CASCADE,
           tag_id uuid NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
           created_at timestamp DEFAULT now(),
           PRIMARY KEY (node_id, tag_id)
@@ -295,8 +295,8 @@ async def _ensure_echo_trace(conn) -> None:
     await conn.execute(sa.text("""
         CREATE TABLE IF NOT EXISTS echo_trace (
           id uuid PRIMARY KEY,
-          from_node_id uuid REFERENCES nodes(id),
-          to_node_id uuid REFERENCES nodes(id),
+          from_node_id uuid REFERENCES nodes(alt_id),
+          to_node_id uuid REFERENCES nodes(alt_id),
           user_id uuid REFERENCES users(id),
           source text NULL,
           channel text NULL,
@@ -313,7 +313,7 @@ async def _ensure_node_traces(conn) -> None:
     await conn.execute(sa.text("""
         CREATE TABLE IF NOT EXISTS node_traces (
           id uuid PRIMARY KEY,
-          node_id uuid NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+          node_id uuid NOT NULL REFERENCES nodes(alt_id) ON DELETE CASCADE,
           user_id uuid REFERENCES users(id),
           created_at timestamp NOT NULL DEFAULT now(),
           kind nodetracekind NOT NULL,
@@ -358,7 +358,7 @@ async def _ensure_event_quests(conn) -> None:
         CREATE TABLE IF NOT EXISTS event_quests (
           id uuid PRIMARY KEY,
           title varchar NOT NULL,
-          target_node_id uuid NOT NULL REFERENCES nodes(id),
+          target_node_id uuid NOT NULL REFERENCES nodes(alt_id),
           hints_tags text[] NOT NULL DEFAULT '{}',
           hints_keywords text[] NOT NULL DEFAULT '{}',
           hints_trace uuid[] NOT NULL DEFAULT '{}',
@@ -374,7 +374,7 @@ async def _ensure_event_quests(conn) -> None:
           id uuid PRIMARY KEY,
           quest_id uuid NOT NULL REFERENCES event_quests(id) ON DELETE CASCADE,
           user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          node_id uuid NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+          node_id uuid NOT NULL REFERENCES nodes(alt_id) ON DELETE CASCADE,
           completed_at timestamp NOT NULL DEFAULT now(),
           UNIQUE (quest_id, user_id)
         )
@@ -407,7 +407,7 @@ async def _ensure_roles_and_moderation(conn) -> None:
     await conn.execute(sa.text("""
         CREATE TABLE IF NOT EXISTS node_moderation (
           id uuid PRIMARY KEY,
-          node_id uuid NULL REFERENCES nodes(id),
+          node_id uuid NULL REFERENCES nodes(alt_id),
           reason text NULL,
           hidden_by uuid NULL REFERENCES users(id),
           created_at timestamp NULL

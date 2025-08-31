@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from sqlalchemy import Boolean, Column, DateTime
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy import Float, ForeignKey, Integer, String, BigInteger, Index
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import relationship
 
@@ -24,7 +24,9 @@ def generate_slug() -> str:
 class Node(Base):
     __tablename__ = "nodes"
 
-    id = Column(UUID(), primary_key=True, default=uuid4)
+    id = Column(BigInteger, autoincrement=True, nullable=False)
+    alt_id = Column(UUID(), primary_key=True, default=uuid4, unique=True)
+    __table_args__ = (Index("ux_nodes_id", "id", unique=True),)
     workspace_id = Column(
         UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
     )

@@ -13,7 +13,7 @@ class Feedback(Base):
     __tablename__ = "feedback"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    node_id = Column(UUID(), ForeignKey("nodes.id", ondelete="CASCADE"), nullable=False, index=True)
+    node_id = Column(UUID(), ForeignKey("nodes.alt_id", ondelete="CASCADE"), nullable=False, index=True)
     author_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
