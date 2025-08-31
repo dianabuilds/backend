@@ -9,6 +9,8 @@ export default function Dashboard() {
   });
 
   const kpi = data?.kpi || {};
+  const subsChange = kpi.active_subscriptions_change_pct ?? 0;
+  const subsChangeColor = subsChange >= 0 ? "text-green-600" : "text-red-600";
 
   return (
     <div className="space-y-6">
@@ -33,6 +35,18 @@ export default function Dashboard() {
           <KpiCard title="Active users (24h)" value={kpi.active_users_24h ?? 0} />
           <KpiCard title="New registrations (24h)" value={kpi.new_registrations_24h ?? 0} />
           <KpiCard title="Active premium" value={kpi.active_premium ?? 0} />
+          <KpiCard
+            title="Active subscriptions"
+            value={
+              <>
+                {kpi.active_subscriptions ?? 0}
+                <span className={`ml-1 text-sm ${subsChangeColor}`}>
+                  {subsChange >= 0 ? "+" : ""}
+                  {subsChange.toFixed(1)}%
+                </span>
+              </>
+            }
+          />
           <KpiCard title="Nodes (24h)" value={kpi.nodes_24h ?? 0} />
           <KpiCard title="Quests (24h)" value={kpi.quests_24h ?? 0} />
           <KpiCard
