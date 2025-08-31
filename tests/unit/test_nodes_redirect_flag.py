@@ -20,8 +20,11 @@ sys.modules.setdefault("app.domains", domains_module)
 security_stub = types.ModuleType("app.security")
 security_stub.ADMIN_AUTH_RESPONSES = {}
 security_stub.bearer_scheme = lambda: None
-security_stub.require_ws_guest = lambda workspace_id=None: None
-security_stub.require_ws_viewer = lambda workspace_id=None, user=None, db=None: None
+async def _stub_ws_perm(*args, **kwargs):
+    return None
+
+security_stub.require_ws_guest = _stub_ws_perm
+security_stub.require_ws_viewer = _stub_ws_perm
 security_stub.auth_user = lambda: None
 sys.modules["app.security"] = security_stub
 
@@ -87,6 +90,7 @@ async def test_nodes_redirect_flag(app_and_session):
         node_alt_id = uuid.uuid4()
         slug = "quest-node"
         node = Node(
+            id=1,
             alt_id=node_alt_id,
             workspace_id=ws.id,
             slug=slug,
@@ -100,9 +104,10 @@ async def test_nodes_redirect_flag(app_and_session):
             is_recommendable=True,
         )
         session.add(node)
+        await session.flush()
         item = NodeItem(
             id=uuid.uuid4(),
-            node_id=node_alt_id,
+            node_id=node.id,
             workspace_id=ws.id,
             type="quest",
             slug=slug,
@@ -121,5 +126,5 @@ async def test_nodes_redirect_flag(app_and_session):
     assert resp.status_code == 307
     assert (
         resp.headers["location"]
-        == f"/quests/{node_id}/versions/current?workspace_id={ws.id}"
+        == f"/quests/{node.id}/versions/current?workspace_id={ws.id}"
     )
