@@ -246,6 +246,14 @@ BASE_MENU: list[dict] = [
                 "order": 5,
                 "roles": ["admin"],
             },
+            {
+                "id": "jobs",
+                "label": "Jobs",
+                "path": "/ops/jobs",
+                "icon": "activity",
+                "order": 6,
+                "roles": ["admin"],
+            },
         ],
     },
 ]

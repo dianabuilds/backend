@@ -106,6 +106,17 @@ CREATE TABLE IF NOT EXISTS ai_usage (
 )
 """
 
+CREATE_BACKGROUND_JOB_HISTORY_TABLE = """
+CREATE TABLE IF NOT EXISTS background_job_history (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    status TEXT NOT NULL,
+    log_url TEXT,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    finished_at TIMESTAMP
+)
+"""
+
 
 def setup_test_db():
     """
@@ -128,6 +139,7 @@ def setup_test_db():
     cursor.execute(CREATE_WORKSPACES_TABLE)
     cursor.execute(CREATE_WORKSPACE_MEMBERS_TABLE)
     cursor.execute(CREATE_AI_USAGE_TABLE)
+    cursor.execute(CREATE_BACKGROUND_JOB_HISTORY_TABLE)
 
     # Создаем индексы
     for index_sql in USER_INDEXES:

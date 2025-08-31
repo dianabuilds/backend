@@ -14,6 +14,7 @@ from . import search_config as _search_config  # noqa: F401
 from . import event_counter as _event_counter  # noqa: F401
 from . import ops_incident as _ops_incident  # noqa: F401
 from . import quests as _quests  # noqa: F401
+from . import background_job_history as _background_job_history  # noqa: F401
 
 __all__ = ["Base"]
 
