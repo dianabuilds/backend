@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import func
 
@@ -14,6 +14,7 @@ class QuestStep(Base):
     __tablename__ = "quest_steps"
     __table_args__ = (
         UniqueConstraint("quest_id", "step_key", name="uq_quest_step_key"),
+        UniqueConstraint("quest_id", "order", name="uq_quest_step_order"),
     )
 
     id = Column(UUID(), primary_key=True, default=uuid4)
@@ -26,6 +27,7 @@ class QuestStep(Base):
     key = Column("step_key", String, nullable=False)
     title = Column(String, nullable=False)
     type = Column(String, nullable=False, default="normal")
+    order = Column(Integer, nullable=False)
     content = Column(JSONB, nullable=True)
     rewards = Column(JSONB, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)

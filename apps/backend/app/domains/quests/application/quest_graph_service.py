@@ -44,8 +44,6 @@ class QuestGraphService:
                 key=n.key,
                 title=n.title,
                 type=n.type,
-                content=n.content,
-                rewards=n.rewards,
             )
             for n in nodes
         ]
@@ -83,8 +81,6 @@ class QuestGraphService:
                     key=s.key,
                     title=s.title,
                     type=s.type,
-                    content=s.content,
-                    rewards=s.rewards,
                 )
             )
         for t in transitions:
