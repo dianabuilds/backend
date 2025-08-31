@@ -1,6 +1,15 @@
-import { Card, CardContent } from "../components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import KpiCard from "../components/KpiCard";
+import { api } from "../api/client";
 
 export default function Dashboard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "dashboard"],
+    queryFn: async () => (await api.get("/admin/dashboard")).data,
+  });
+
+  const kpi = data?.kpi || {};
+
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
@@ -18,30 +27,16 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="h-24" />
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardContent className="h-64" />
-        </Card>
-        <Card>
-          <CardContent className="h-64" />
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="h-32" />
-          </Card>
-        ))}
-      </div>
+      {isLoading && <div className="text-sm text-gray-500">Loading…</div>}
+      {!isLoading && (
+        <div className="grid gap-4 md:grid-cols-5">
+          <KpiCard title="Active users (24h)" value={kpi.active_users_24h ?? 0} />
+          <KpiCard title="New registrations (24h)" value={kpi.new_registrations_24h ?? 0} />
+          <KpiCard title="Active premium" value={kpi.active_premium ?? 0} />
+          <KpiCard title="Nodes (24h)" value={kpi.nodes_24h ?? 0} />
+          <KpiCard title="Quests (24h)" value={kpi.quests_24h ?? 0} />
+        </div>
+      )}
     </div>
   );
 }

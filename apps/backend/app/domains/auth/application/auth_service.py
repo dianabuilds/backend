@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
@@ -45,6 +46,9 @@ class AuthService:
             raise http_error(400, "Incorrect username or password")
         if not user.is_active:
             raise http_error(400, "Email not verified")
+        user.last_login_at = datetime.utcnow()
+        db.add(user)
+        await db.commit()
         access = self._tokens.create_access_token(str(user.id))
         refresh = self._tokens.create_refresh_token(str(user.id))
         return LoginResponse(

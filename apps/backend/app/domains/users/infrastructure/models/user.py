@@ -1,13 +1,13 @@
 from __future__ import annotations
-from __future__ import annotations
 
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime, Enum as SAEnum, String, Text
+from sqlalchemy import Boolean, Column, DateTime, String, Text
+from sqlalchemy import Enum as SAEnum
 
-from app.core.db.base import Base
 from app.core.db.adapters import UUID
+from app.core.db.base import Base
 
 
 class User(Base):
@@ -41,9 +41,11 @@ class User(Base):
     bio = Column(Text, nullable=True)
     avatar_url = Column(String, nullable=True)
 
+    # Activity
+    last_login_at = Column(DateTime, nullable=True)
+
     # GDPR
     deleted_at = Column(DateTime, nullable=True)
-# Реэкспорт ORM-модели пользователя для доменного слоя users
-from app.domains.users.infrastructure.models.user import User  # noqa: F401
+
 
 __all__ = ["User"]
