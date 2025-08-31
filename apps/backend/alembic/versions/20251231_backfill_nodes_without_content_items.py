@@ -46,6 +46,7 @@ def upgrade() -> None:
         FROM nodes n
         LEFT JOIN content_items ci ON ci.node_id = n.id
         WHERE ci.id IS NULL
+          AND n.workspace_id IS NOT NULL
         """
     )
 
