@@ -16,7 +16,7 @@ from app.schemas.nodes_common import NodeType, Status, Visibility
 
 
 class NodeService:
-    """Service layer for managing content items."""
+    """Service layer for managing graph nodes."""
 
     def __init__(self, db: AsyncSession) -> None:
         """Initialize service."""
@@ -162,14 +162,10 @@ class NodeService:
         node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
 
-        # Разрешаем обновлять только простые поля-колонки у контент-элемента,
-        # чтобы не триггерить lazy-load отношений.
+        # Разрешаем обновлять только простые поля, связанные с графом
         allowed_updates: set[str] = {
             "slug",
             "title",
-            "summary",
-            "cover_media_id",
-            "primary_tag_id",
         }
         for key, value in data.items():
             if key in allowed_updates:
@@ -193,13 +189,6 @@ class NodeService:
             self._db.add(node)
             item.node_id = node.id
 
-        # Маппинг полей из payload -> Node
-        if "allow_comments" in data:
-            node.allow_feedback = bool(data["allow_comments"])
-        if "premium_only" in data:
-            node.premium_only = bool(data["premium_only"])
-        if "is_visible" in data:
-            node.is_visible = bool(data["is_visible"])
         # синхронизируем заголовок, если он менялся
         if "title" in data and data["title"]:
             node.title = str(data["title"])

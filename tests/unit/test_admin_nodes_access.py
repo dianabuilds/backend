@@ -18,16 +18,17 @@ sys.modules.setdefault("app", app_module)
 
 from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember  # noqa: E402
 from app.domains.nodes.models import NodeItem, NodePatch  # noqa: E402
-from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.nodes.application.node_service import NodeService  # noqa: E402
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
+from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
-from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepositoryAdapter,
-)  # noqa: E402
+from sqlalchemy.orm import relationship
 from app.security import require_ws_editor, require_ws_viewer, require_ws_guest  # noqa: E402
 from app.schemas.nodes_common import NodeType  # noqa: E402
 from app.schemas.workspaces import WorkspaceRole  # noqa: E402
+
+# Ensure Node model has a tags relationship for test mappings
+Node.tags = relationship("Tag", secondary="node_tags", back_populates="nodes")
 
 users_table = NodeItem.__table__.metadata.tables["users"]
 

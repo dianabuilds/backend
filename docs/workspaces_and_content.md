@@ -123,7 +123,7 @@ Common endpoints:
 - `GET /admin/workspaces/{id}/nodes` – dashboard with counts of drafts, reviews
   and published items.
 - `GET /admin/workspaces/{id}/nodes/all` – list nodes with optional filters
-  (`node_type`, `status`, `tag`).
+  (`node_type`, `status`).
 - `POST /admin/workspaces/{id}/nodes/{type}` – create a new item of a given
   `type`.
 - `GET /admin/workspaces/{id}/nodes/{type}/{id}` – fetch a single node item.
@@ -146,8 +146,7 @@ GET /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/all?node_type=a
       "id": "42",
       "node_type": "article",
       "title": "Hello world",
-      "status": "draft",
-      "tags": []
+      "status": "draft"
     }
   ],
   "total": 1
@@ -190,8 +189,8 @@ The admin UI communicates with these routes:
   prefixes requests with `/admin/workspaces/{id}`.
 - **Dashboard** – `ContentDashboard` calls `/admin/workspaces/{id}/nodes` to show counts of
   drafts, reviews and published items.
-- **Content list** – `ContentAll` uses `/admin/workspaces/{id}/nodes/all` with filters for type,
-  status and tag.
+- **Content list** – `ContentAll` uses `/admin/workspaces/{id}/nodes/all` with filters for type
+  and status.
 - **Tag management** – `TagMerge` and other components operate on tags using the
   standard admin tag endpoints.
 
