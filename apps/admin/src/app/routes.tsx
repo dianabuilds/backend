@@ -31,6 +31,7 @@ const Telemetry = lazy(() => import("../pages/Telemetry"));
 const PremiumPlans = lazy(() => import("../pages/PremiumPlans"));
 const PremiumLimits = lazy(() => import("../pages/PremiumLimits"));
 const PaymentsTransactions = lazy(() => import("../pages/PaymentsTransactions"));
+const PaymentsRecent = lazy(() => import("../pages/PaymentsRecent"));
 const AIRateLimits = lazy(() => import("../pages/AIRateLimits"));
 const AIQuests = lazy(() => import("../pages/AIQuests"));
 const AIQuestJobDetails = lazy(() => import("../pages/AIQuestJobDetails"));
@@ -100,6 +101,7 @@ const protectedChildren: RouteObject[] = [
   { path: "premium/plans", element: <PremiumPlans /> },
   { path: "premium/limits", element: <PremiumLimits /> },
   { path: "payments/transactions", element: <PaymentsTransactions /> },
+  { path: "payments/recent", element: <PaymentsRecent /> },
   { path: "ai/rate-limits", element: <AIRateLimits /> },
   { path: "ai/quests", element: <AIQuests /> },
   { path: "ai/quests/jobs/:id", element: <AIQuestJobDetails /> },
