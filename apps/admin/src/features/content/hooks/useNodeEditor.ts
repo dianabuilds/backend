@@ -19,12 +19,6 @@ export function useNodeEditor(workspaceId: string, nodeType: string, id: string)
     id: id === "new" ? undefined : id,
     title: "",
     slug: "",
-    content: { blocks: [] },
-    coverUrl: null,
-    tags: [],
-    isPublic: false,
-    premiumOnly: false,
-    allowComments: true,
   });
 
   useEffect(() => {
@@ -33,17 +27,6 @@ export function useNodeEditor(workspaceId: string, nodeType: string, id: string)
         id: String(data.id),
         title: data.title ?? "",
         slug: (data as any).slug ?? "",
-        content: (data as any).content ?? { blocks: [] },
-        coverUrl: (data as any).coverUrl ?? (data as any).cover_url ?? null,
-        tags: (data as any).tags ?? [],
-        isPublic: Boolean((data as any).isPublic ?? (data as any).is_public),
-        premiumOnly: Boolean((data as any).premiumOnly ?? (data as any).premium_only),
-        allowComments: Boolean(
-          (data as any).allowFeedback ??
-            (data as any).allow_comments ??
-            (data as any).allowComments ??
-            true,
-        ),
       });
     }
   }, [data]);
@@ -53,12 +36,6 @@ export function useNodeEditor(workspaceId: string, nodeType: string, id: string)
       const body: any = {
         title: payload.title,
         slug: payload.slug,
-        content: payload.content as any,
-        is_public: payload.isPublic,
-        tags: payload.tags,
-        cover_url: payload.coverUrl,
-        premium_only: payload.premiumOnly,
-        allow_comments: payload.allowComments,
       };
       if (isNew) {
         return nodesApi.create(workspaceId, {
