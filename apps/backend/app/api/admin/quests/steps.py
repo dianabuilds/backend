@@ -302,11 +302,11 @@ async def create_transition(
             label=payload.label,
             condition=payload.condition,
         )
-    except ValueError as e:
-        if str(e) == "step_not_found":
-            raise HTTPException(status_code=404, detail="Step not found") from None
-        if str(e) in {"invalid_quest_id", "invalid_from_step"}:
-            raise HTTPException(status_code=400, detail=str(e)) from None
+    except ValueError as err:
+        if str(err) == "step_not_found":
+            raise HTTPException(status_code=404, detail="Step not found") from err
+        if str(err) in {"invalid_quest_id", "invalid_from_step"}:
+            raise HTTPException(status_code=400, detail=str(err)) from err
         raise
     await db.commit()
     return QuestTransitionOut.model_validate(tr, from_attributes=True)

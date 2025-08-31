@@ -1,20 +1,22 @@
+# ruff: noqa: B008, E501
 from __future__ import annotations
 
-from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, current_workspace
+from app.api.deps import current_workspace, get_current_user
 from app.core.db.session import get_db
-from app.domains.achievements.application.achievements_service import AchievementsService
+from app.domains.achievements.application.achievements_service import (
+    AchievementsService,
+)
 from app.domains.achievements.application.admin_service import AchievementsAdminService
-from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.achievements.infrastructure.repositories.achievements_repository import (
     AchievementsRepository,
 )
+from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.achievement import AchievementOut
@@ -29,7 +31,6 @@ from app.security import (
     require_ws_editor,
     require_ws_guest,
 )
-
 
 router = APIRouter()
 
@@ -46,20 +47,18 @@ def _admin_svc(db: AsyncSession) -> AchievementsAdminService:
 
 
 def _svc(db: AsyncSession) -> AchievementsService:
-    return AchievementsService(
-        AchievementsRepository(db), InAppNotificationPort(db)
-    )
+    return AchievementsService(AchievementsRepository(db), InAppNotificationPort(db))
 
 
-@user_router.get("", response_model=List[AchievementOut], summary="List achievements")
+@user_router.get("", response_model=list[AchievementOut], summary="List achievements")
 async def list_achievements(
     workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     _: object = Depends(require_ws_guest),
-) -> List[AchievementOut]:
+) -> list[AchievementOut]:
     rows = await _svc(db).list(workspace.id, current_user.id)
-    items: List[AchievementOut] = []
+    items: list[AchievementOut] = []
     for ach, ua in rows:
         items.append(
             AchievementOut(
@@ -75,13 +74,17 @@ async def list_achievements(
     return items
 
 
-@admin_router.get("", response_model=List[AchievementAdminOut], summary="List achievements (admin)")
+@admin_router.get(
+    "",
+    response_model=list[AchievementAdminOut],
+    summary="List achievements (admin)",
+)
 async def list_achievements_admin(
     workspace_id: UUID,
     workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
     _: object = Depends(require_ws_editor),
-) -> List[AchievementAdminOut]:
+) -> list[AchievementAdminOut]:
     rows = await _admin_svc(db).list(workspace.id)
     return [AchievementAdminOut.model_validate(r) for r in rows]
 
@@ -105,15 +108,17 @@ async def create_achievement_admin(
     }
     try:
         item = await _admin_svc(db).create(db, workspace.id, data, current.id)
-    except ValueError as e:
-        if str(e) == "code_conflict":
-            raise HTTPException(status_code=409, detail="Code already exists")
+    except ValueError as err:
+        if str(err) == "code_conflict":
+            raise HTTPException(status_code=409, detail="Code already exists") from err
         raise
     return AchievementAdminOut.model_validate(item)
 
 
 @admin_router.patch(
-    "/{achievement_id}", response_model=AchievementAdminOut, summary="Update achievement"
+    "/{achievement_id}",
+    response_model=AchievementAdminOut,
+    summary="Update achievement",
 )
 async def update_achievement_admin(
     achievement_id: UUID,
@@ -126,10 +131,12 @@ async def update_achievement_admin(
 ) -> AchievementAdminOut:
     data = body.model_dump(exclude_unset=True)
     try:
-        item = await _admin_svc(db).update(db, workspace.id, achievement_id, data, current.id)
-    except ValueError as e:
-        if str(e) == "code_conflict":
-            raise HTTPException(status_code=409, detail="Code already exists")
+        item = await _admin_svc(db).update(
+            db, workspace.id, achievement_id, data, current.id
+        )
+    except ValueError as err:
+        if str(err) == "code_conflict":
+            raise HTTPException(status_code=409, detail="Code already exists") from err
         raise
     if not item:
         raise HTTPException(status_code=404, detail="Not found")
@@ -189,4 +196,3 @@ async def revoke_achievement(
 
 router.include_router(user_router)
 router.include_router(admin_router)
-

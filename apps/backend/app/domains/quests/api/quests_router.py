@@ -91,10 +91,10 @@ async def get_quest(
         quest = await get_for_view(
             db, slug=slug, user=current_user, workspace_id=workspace_id
         )
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Quest not found") from None
-    except PermissionError:
-        raise HTTPException(status_code=403, detail="No access") from None
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail="Quest not found") from err
+    except PermissionError as err:
+        raise HTTPException(status_code=403, detail="No access") from err
 
     return QuestOut.model_validate(quest, from_attributes=True)
 
@@ -150,10 +150,10 @@ async def update_quest(
             payload=payload,
             actor=current_user,
         )
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Quest not found")
-    except PermissionError:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail="Quest not found") from err
+    except PermissionError as err:
+        raise HTTPException(status_code=403, detail="Not authorized") from err
     await navcache.invalidate_compass_by_user(current_user.id)
     return quest
 
@@ -189,11 +189,11 @@ async def publish_quest(
         quest = await release_latest(
             db, quest_id=quest_id, workspace_id=workspace_id, actor=current_user
         )
-    except ValidationFailed as vf:
+    except ValidationFailed as err:
         raise HTTPException(
             status_code=400,
-            detail={"code": "VALIDATION_FAILED", "report": getattr(vf, "report", {})},
-        )
+            detail={"code": "VALIDATION_FAILED", "report": getattr(err, "report", {})},
+        ) from err
     await navcache.invalidate_compass_all()
     return quest
 
@@ -212,10 +212,10 @@ async def delete_quest(
         await delete_quest_soft(
             db, quest_id=quest_id, workspace_id=workspace_id, actor=current_user
         )
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Quest not found")
-    except PermissionError:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail="Quest not found") from err
+    except PermissionError as err:
+        raise HTTPException(status_code=403, detail="Not authorized") from err
     await navcache.invalidate_compass_by_user(current_user.id)
     return {"status": "ok"}
 
@@ -238,10 +238,10 @@ async def start_quest(
         progress = await start_quest_domain(
             db, quest_id=quest_id, workspace_id=workspace_id, user=current_user
         )
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Quest not found")
-    except PermissionError:
-        raise HTTPException(status_code=403, detail="No access")
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail="Quest not found") from err
+    except PermissionError as err:
+        raise HTTPException(status_code=403, detail="No access") from err
     return progress
 
 
@@ -263,8 +263,8 @@ async def get_progress(
         progress = await get_progress_domain(
             db, quest_id=quest_id, workspace_id=workspace_id, user=current_user
         )
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Progress not found")
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail="Progress not found") from err
     return progress
 
 
@@ -286,13 +286,13 @@ async def get_quest_node(
         node = await get_node_domain(
             db, quest_id=quest_id, node_id=node_id, user=current_user
         )
-    except ValueError as e:
-        msg = str(e)
+    except ValueError as err:
+        msg = str(err)
         if "Quest not found" in msg:
-            raise HTTPException(status_code=404, detail="Quest not found")
-        raise HTTPException(status_code=404, detail="Node not found")
-    except PermissionError:
-        raise HTTPException(status_code=403, detail="No access")
+            raise HTTPException(status_code=404, detail="Quest not found") from err
+        raise HTTPException(status_code=404, detail="Node not found") from err
+    except PermissionError as err:
+        raise HTTPException(status_code=403, detail="No access") from err
     return node
 
 
