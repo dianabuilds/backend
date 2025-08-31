@@ -24,13 +24,14 @@ from app.domains.notifications.infrastructure.repositories.settings_repository i
 @pytest.mark.asyncio
 async def test_upsert_and_get_notification_settings() -> None:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    metadata = NodeNotificationSetting.__table__.metadata
+    metadata = sa.MetaData()
     nodes = sa.Table(
         "nodes",
         metadata,
         sa.Column("id", sa.BigInteger, primary_key=True),
         sa.Column("alt_id", sa.String, unique=True, nullable=False),
     )
+    NodeNotificationSetting.__table__.tometadata(metadata)
     node_alt_id = uuid.uuid4()
     async with engine.begin() as conn:
         await conn.run_sync(metadata.create_all)

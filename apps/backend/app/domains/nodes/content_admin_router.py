@@ -118,7 +118,7 @@ async def _get_item(db: AsyncSession, node_id: UUID, workspace_id: UUID) -> Node
     node = await db.scalar(select(Node).where(Node.alt_id == node_id))
     if node and node.workspace_id == workspace_id:
         result = await db.execute(
-            select(NodeItem).where(NodeItem.node_id == node.alt_id)
+            select(NodeItem).where(NodeItem.node_id == node.id)
         )
         item = result.scalar_one_or_none()
         if item:
@@ -136,11 +136,11 @@ async def get_node_by_id(
     item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
     item = await svc.get(workspace_id, item.type, item.id)
-    node = await db.scalar(
-        select(Node)
-        .where(Node.alt_id == (item.node_id or item.id))
-        .options(selectinload(Node.tags))
-    )
+    if item.node_id:
+        node_query = select(Node).where(Node.id == item.node_id)
+    else:
+        node_query = select(Node).where(Node.alt_id == item.id)
+    node = await db.scalar(node_query.options(selectinload(Node.tags)))
     return _serialize(item, node)
 
 

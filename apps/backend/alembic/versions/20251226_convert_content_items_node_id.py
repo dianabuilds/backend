@@ -1,0 +1,73 @@
+"""convert content_items.node_id to integer
+
+Revision ID: 20251226_convert_content_items_node_id
+Revises: 20251225_finalize_node_id_migration
+Create Date: 2025-12-26
+"""
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
+revision = "20251226_convert_content_items_node_id"
+down_revision = "20251225_finalize_node_id_migration"
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    op.drop_constraint("content_items_node_id_fkey", "content_items", type_="foreignkey")
+    op.drop_index("ix_content_items_node_id", table_name="content_items")
+    op.alter_column("content_items", "node_id", new_column_name="node_alt_id")
+    op.add_column(
+        "content_items",
+        sa.Column("node_id", sa.BigInteger(), nullable=True),
+    )
+    op.create_index("ix_content_items_node_id", "content_items", ["node_id"])
+    op.create_foreign_key(
+        "content_items_node_id_fkey",
+        "content_items",
+        "nodes",
+        ["node_id"],
+        ["id"],
+        ondelete="CASCADE",
+    )
+    op.execute(
+        """
+        UPDATE content_items ci
+        SET node_id = n.id
+        FROM nodes n
+        WHERE ci.node_alt_id = n.alt_id
+        """
+    )
+    op.alter_column("content_items", "node_id", nullable=False)
+    op.drop_column("content_items", "node_alt_id")
+
+
+def downgrade() -> None:
+    op.add_column(
+        "content_items",
+        sa.Column("node_alt_id", postgresql.UUID(as_uuid=True), nullable=True),
+    )
+    op.execute(
+        """
+        UPDATE content_items ci
+        SET node_alt_id = n.alt_id
+        FROM nodes n
+        WHERE ci.node_id = n.id
+        """
+    )
+    op.alter_column("content_items", "node_alt_id", nullable=True)
+    op.drop_constraint("content_items_node_id_fkey", "content_items", type_="foreignkey")
+    op.drop_index("ix_content_items_node_id", table_name="content_items")
+    op.drop_column("content_items", "node_id")
+    op.alter_column("content_items", "node_alt_id", new_column_name="node_id")
+    op.create_index("ix_content_items_node_id", "content_items", ["node_id"])
+    op.create_foreign_key(
+        "content_items_node_id_fkey",
+        "content_items",
+        "nodes",
+        ["node_id"],
+        ["alt_id"],
+        ondelete="CASCADE",
+    )
