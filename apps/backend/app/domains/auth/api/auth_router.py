@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from secrets import token_urlsafe
 from typing import Annotated, Any
 
@@ -53,10 +55,20 @@ _verification_store = VerificationTokenStore(
 _svc = AuthService(_tokens, _verification_store, _nonce_store)
 
 
+async def _login_rate_limit(request: Request, response: Response):
+    key = (
+        "login_json"
+        if request.headers.get("content-type", "").startswith("application/json")
+        else "login"
+    )
+    dep = _rate.dependency(key)
+    return await dep(request, response)
+
+
 @router.post(
     "/login",
     response_model=LoginResponse,
-    dependencies=[Depends(_rate.dependency("login"))],
+    dependencies=[Depends(_login_rate_limit)],
     openapi_extra={
         "requestBody": {
             "required": True,
