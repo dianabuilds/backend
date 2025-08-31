@@ -21,7 +21,7 @@ async def test_update_resets_published_node():
         node = NodeItem(
             id=uuid.uuid4(),
             workspace_id=uuid.uuid4(),
-            type=NodeType.article.value,
+            type=NodeType.quest.value,
             slug="slug-1",
             title="Title",
             status=Status.published,
@@ -33,7 +33,7 @@ async def test_update_resets_published_node():
         svc = NodeService(session)
         await svc.update(
             node.workspace_id,
-            NodeType.article,
+            NodeType.quest,
             node.id,
             {"title": "New title"},
             actor_id=node.created_by_user_id,

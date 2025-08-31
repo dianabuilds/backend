@@ -65,7 +65,7 @@ async def app_client():
 async def test_tags_persisted_and_returned(app_client):
     client, ws_id = app_client
     # create node
-    resp = await client.post(f"/admin/workspaces/{ws_id}/nodes/article")
+    resp = await client.post(f"/admin/workspaces/{ws_id}/nodes/quest")
     assert resp.status_code == 200
     node_id = resp.json()["id"]
 
