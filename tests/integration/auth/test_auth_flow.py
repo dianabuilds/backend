@@ -59,6 +59,17 @@ async def test_login_success(client: AsyncClient, test_user):
 
 
 @pytest.mark.asyncio
+async def test_login_returns_tokens(client: AsyncClient, test_user):
+    """Возвращает access и refresh токены для валидного логина."""
+    login_data = {"username": "testuser", "password": "Password123"}
+    response = await client.post("/auth/login", json=login_data)
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("access_token")
+    assert response.cookies.get("refresh_token")
+
+
+@pytest.mark.asyncio
 async def test_login_form_success(client: AsyncClient, test_user):
     """Проверка входа через form-data."""
     login_data = {"username": "testuser", "password": "Password123"}
