@@ -1,8 +1,9 @@
-"""
-Минимальный тест для авторизации, который не зависит от SQLAlchemy ORM.
-"""
+"""Минимальный тест для авторизации, который не зависит от SQLAlchemy ORM."""
+
+from __future__ import annotations
 
 import os
+import types
 
 import pytest
 from httpx import AsyncClient
@@ -85,3 +86,27 @@ async def test_refresh_renews_tokens(client: AsyncClient, test_user):
     data = resp2.json()
     assert "access_token" in data
     assert resp2.cookies.get("refresh_token") is not None
+    assert data["access_token"] != old_access
+
+
+@pytest.mark.asyncio
+async def test_login_uses_json_rate_limit_rule(
+    client: AsyncClient, test_user, monkeypatch
+):
+    used: dict[str, str] = {}
+
+    async def dummy_dep(request, response):  # noqa: ANN001
+        return None
+
+    def fake_dependency(key: str):
+        used["key"] = key
+        return dummy_dep
+
+    from app.domains.auth.api import auth_router
+
+    monkeypatch.setattr(
+        auth_router, "_rate", types.SimpleNamespace(dependency=fake_dependency)
+    )
+    login_data = {"username": "testuser", "password": "Password123"}
+    await client.post("/auth/login", json=login_data)
+    assert used["key"] == "login_json"
