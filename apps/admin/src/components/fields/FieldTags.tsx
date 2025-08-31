@@ -3,14 +3,14 @@ import { useId, type InputHTMLAttributes } from "react";
 import TagInput from "../TagInput";
 
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
-  value: string[];
-  onChange: (tags: string[]) => void;
+  value?: string[];
+  onChange?: (tags: string[]) => void;
   error?: string | null;
   description?: string;
 }
 
 export default function FieldTags({
-  value,
+  value = [],
   onChange,
   id,
   error,

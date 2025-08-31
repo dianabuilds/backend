@@ -1,21 +1,21 @@
 import { forwardRef, useId, type ChangeEventHandler, type InputHTMLAttributes } from "react";
 
 interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> {
-  value: string;
-  onChange: (value: string) => void;
+  value?: string;
+  onChange?: (value: string) => void;
   error?: string | null;
   description?: string;
 }
 
 const FieldTitle = forwardRef<HTMLInputElement, Props>(function FieldTitle(
-  { value, onChange, error, description, id, ...rest },
+  { value = "", onChange, error, description, id, ...rest },
   ref,
 ) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const descId = `${inputId}-desc`;
   const handle: ChangeEventHandler<HTMLInputElement> = (e) =>
-    onChange(e.target.value);
+    onChange?.(e.target.value);
   return (
     <div>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-900">

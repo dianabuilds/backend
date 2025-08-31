@@ -134,15 +134,22 @@ export async function createNode(
   );
   return res;
 }
+export interface NodeResponse extends NodeOut {
+  cover_url?: string | null;
+  tag_slugs?: string[];
+  tagSlugs?: string[];
+  cover?: { url?: string | null; cover_url?: string | null } | null;
+}
+
 export async function getNode(
   workspaceId: string,
   type: string,
   id: string,
-): Promise<NodeOut> {
+): Promise<NodeResponse> {
   const url = `/admin/workspaces/${encodeURIComponent(
     workspaceId,
   )}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`;
-  const res = await wsApi.get<NodeOut>(url);
+  const res = await wsApi.get<NodeResponse>(url);
   return res!;
 }
 

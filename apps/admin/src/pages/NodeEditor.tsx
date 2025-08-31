@@ -83,8 +83,13 @@ function shallowEqual(a: any, b: any): boolean {
 function normalizeCoverUrl(src: any): string | null {
     if (!src) return null;
     if (typeof src === "string") return src;
-    // подхватываем как camelCase, так и snake_case
-    return (src as any).coverUrl ?? (src as any).cover_url ?? null;
+    const obj = (src as any).cover ?? src;
+    return (
+        (obj as any).coverUrl ??
+        (obj as any).cover_url ??
+        (obj as any).url ??
+        null
+    );
 }
 
 function normalizeTags(input: any): string[] {
@@ -101,9 +106,12 @@ function normalizeTags(input: any): string[] {
             )
             .filter(Boolean) as string[];
     }
-    // возможен вариант { tag_slugs: [...] }
+    // возможен вариант { tag_slugs: [...] } или { tagSlugs: [...] }
     if (Array.isArray((input as any).tag_slugs)) {
         return ((input as any).tag_slugs as any[]).map(String);
+    }
+    if (Array.isArray((input as any).tagSlugs)) {
+        return ((input as any).tagSlugs as any[]).map(String);
     }
     return [];
 }
@@ -169,7 +177,11 @@ export default function NodeEditor() {
                 n = await getNode(workspaceId, nodeType, id);
 
                 const normalizedCover = resolveAssetUrl(normalizeCoverUrl(n));
-                const normalizedTags = normalizeTags((n as any).tags ?? (n as any).tag_slugs);
+                const normalizedTags = normalizeTags(
+                    (n as any).tags ??
+                    (n as any).tag_slugs ??
+                    (n as any).tagSlugs
+                );
                 const normalizedType = normalizeNodeType(n) ?? nodeType;
                 const rawContent: unknown = (n as any).content;
                 let normalizedContent: OutputData;
@@ -343,7 +355,7 @@ function NodeCreate({
                     </div>
                 </div>
             </div>
-            <div className="flex-1 overflow-auto p-4 space-y-6">
+            <div className="flex-1 min-w-0 overflow-auto p-4 space-y-6">
                 <GeneralTab title={title} onTitleChange={setTitle} titleRef={titleRef}/>
             </div>
         </div>
@@ -694,7 +706,7 @@ function NodeEditorInner({
                 </div>
             </div>
             <div className="flex flex-1 overflow-hidden">
-                <div className="flex-1 overflow-auto p-4 space-y-6">
+                <div className="flex-1 min-w-0 overflow-auto p-4 space-y-6">
                     <GeneralTab
                         title={node.title}
                         titleRef={titleRef}
