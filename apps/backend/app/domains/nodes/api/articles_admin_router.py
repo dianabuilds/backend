@@ -6,9 +6,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.db.session import get_db
 from app.domains.nodes.application.node_service import NodeService
+from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import publish_content
 from app.schemas.quest_editor import ValidateResult
@@ -28,15 +30,76 @@ class PublishIn(BaseModel):
     cover: str | None = None
 
 
-def _serialize(item: NodeItem) -> dict:
+def _serialize(item: NodeItem, node: Node | None = None) -> dict:
+    """Serialize node item along with infrastructure node data.
+
+    The admin UI expects content, tags and various flags to be included in the
+    response.  Legacy articles might not have a corresponding ``Node`` row, in
+    which case we provide sensible defaults to avoid missing values in the UI.
+    """
+
+    node_data = node or Node(
+        id=item.id,
+        workspace_id=item.workspace_id,
+        slug=item.slug,
+        title=item.title,
+        content={},
+        author_id=item.created_by_user_id,
+        is_public=False,
+        is_visible=True,
+        allow_feedback=True,
+        is_recommendable=True,
+        premium_only=False,
+        nft_required=None,
+        ai_generated=False,
+        meta={},
+        media=[],
+        views=0,
+        reactions={},
+        popularity_score=0.0,
+        created_by_user_id=item.created_by_user_id,
+        updated_by_user_id=item.updated_by_user_id,
+    )
+
     return {
         "id": str(item.id),
         "workspace_id": str(item.workspace_id),
-        "type": item.type,
+        "nodeType": item.type,
+        "type": item.type,  # legacy
         "slug": item.slug,
         "title": item.title,
         "summary": item.summary,
         "status": item.status.value,
+        "publishedAt": item.published_at.isoformat() if item.published_at else None,
+        "createdAt": item.created_at.isoformat() if item.created_at else None,
+        "updatedAt": item.updated_at.isoformat() if item.updated_at else None,
+        "content": node_data.content,
+        "coverUrl": node_data.cover_url,
+        "media": node_data.media,
+        "isPublic": node_data.is_public,
+        "isVisible": node_data.is_visible,
+        "allowFeedback": node_data.allow_feedback,
+        "isRecommendable": node_data.is_recommendable,
+        "premiumOnly": node_data.premium_only,
+        "nftRequired": node_data.nft_required,
+        "aiGenerated": node_data.ai_generated,
+        "meta": node_data.meta,
+        "authorId": str(node_data.author_id) if node_data.author_id else None,
+        "createdByUserId": (
+            str(node_data.created_by_user_id)
+            if node_data.created_by_user_id
+            else (str(item.created_by_user_id) if item.created_by_user_id else None)
+        ),
+        "updatedByUserId": (
+            str(node_data.updated_by_user_id)
+            if node_data.updated_by_user_id
+            else (str(item.updated_by_user_id) if item.updated_by_user_id else None)
+        ),
+        "views": node_data.views,
+        "reactions": node_data.reactions or {},
+        "popularityScore": node_data.popularity_score,
+        "tag_slugs": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
+        "tags": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
     }
 
 
@@ -49,7 +112,10 @@ async def create_article(
 ):
     svc = NodeService(db)
     item = await svc.create(workspace_id, "article", actor_id=current_user.id)
-    return _serialize(item)
+    node = await db.get(
+        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    )
+    return _serialize(item, node)
 
 
 @router.get("/{node_id}", summary="Get article (admin)")
@@ -61,7 +127,10 @@ async def get_article(
 ):
     svc = NodeService(db)
     item = await svc.get(workspace_id, "article", node_id)
-    return _serialize(item)
+    node = await db.get(
+        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    )
+    return _serialize(item, node)
 
 
 @router.patch("/{node_id}", summary="Update article (admin)")
@@ -85,7 +154,10 @@ async def update_article(
         from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 
         ux_metrics.inc_save_next()
-    return _serialize(item)
+    node = await db.get(
+        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    )
+    return _serialize(item, node)
 
 
 @router.post("/{node_id}/publish", summary="Publish article (admin)")
@@ -111,7 +183,10 @@ async def publish_article(
         author_id=current_user.id,
         workspace_id=workspace_id,
     )
-    return _serialize(item)
+    node = await db.get(
+        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    )
+    return _serialize(item, node)
 
 
 @router.post("/{node_id}/validate", summary="Validate article (admin)", response_model=ValidateResult)
