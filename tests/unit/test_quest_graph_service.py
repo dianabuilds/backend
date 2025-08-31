@@ -14,6 +14,13 @@ from app.domains.quests.infrastructure.models.quest_version_models import (
 )
 from app.domains.quests.infrastructure.models.navigation_cache_models import NavigationCache
 from app.domains.quests.schemas import QuestStep, QuestTransition
+from sqlalchemy.orm import relationship
+
+from app.domains.nodes.infrastructure.models.node import Node  # noqa: F401
+from app.domains.tags.models import Tag  # noqa: F401
+from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: F401
+
+Node.tags = relationship("Tag", secondary="node_tags", back_populates="nodes")
 
 
 @pytest.mark.asyncio
