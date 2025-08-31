@@ -19,6 +19,7 @@ from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.users.infrastructure.models.user import User
+from app.models.ops_incident import OpsIncident
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(prefix="/admin", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
@@ -59,6 +60,13 @@ async def admin_dashboard(
     quests_created = (
         await db.execute(
             select(func.count()).select_from(Quest).where(Quest.created_at >= day_ago)
+        )
+    ).scalar() or 0
+    incidents_count = (
+        await db.execute(
+            select(func.count()).select_from(OpsIncident).where(
+                OpsIncident.created_at >= day_ago
+            )
         )
     ).scalar() or 0
 
@@ -107,6 +115,7 @@ async def admin_dashboard(
             "active_premium": active_premium,
             "nodes_24h": nodes_created,
             "quests_24h": quests_created,
+            "incidents_24h": incidents_count,
         },
         "latest_nodes": latest_nodes,
         "latest_restrictions": latest_restrictions,

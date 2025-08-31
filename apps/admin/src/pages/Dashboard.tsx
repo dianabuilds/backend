@@ -35,6 +35,14 @@ export default function Dashboard() {
           <KpiCard title="Active premium" value={kpi.active_premium ?? 0} />
           <KpiCard title="Nodes (24h)" value={kpi.nodes_24h ?? 0} />
           <KpiCard title="Quests (24h)" value={kpi.quests_24h ?? 0} />
+          <KpiCard
+            title="Incidents (24h)"
+            value={
+              <span className={kpi.incidents_24h ? "text-red-600" : ""}>
+                {kpi.incidents_24h ?? 0}
+              </span>
+            }
+          />
         </div>
       )}
     </div>
