@@ -60,11 +60,11 @@ const Monitoring = lazy(() => import("../pages/Monitoring"));
 const Restrictions = lazy(() => import("../pages/Restrictions"));
 const AuditLog = lazy(() => import("../pages/AuditLog"));
 const SearchRelevance = lazy(() => import("../pages/SearchRelevance"));
+const SearchTop = lazy(() => import("../pages/SearchTop"));
 const Limits = lazy(() => import("../pages/Limits"));
 const ReliabilityDashboard = lazy(() => import("../pages/ReliabilityDashboard"));
 const Alerts = lazy(() => import("../pages/Alerts"));
 const AIUsage = lazy(() => import("../pages/AIUsage"));
-const ComingSoon = lazy(() => import("../components/ComingSoon"));
 const Jobs = lazy(() => import("../pages/Jobs"));
 
 function useRouteTelemetry() {
@@ -119,7 +119,7 @@ const protectedChildren: RouteObject[] = [
   { path: "nodes/:type/:id/preview", element: <NodePreview /> },
   { path: "nodes/:type/:id", element: <NodeEditor /> },
   { path: "nodes/:type/:id/diff", element: <NodeDiff /> },
-  { path: "search", element: <ComingSoon title="Search" /> },
+  { path: "search", element: <SearchTop /> },
   { path: "settings/authentication", element: <Authentication /> },
   { path: "settings/payments", element: <PaymentsGateways /> },
   { path: "settings/integrations", element: <Integrations /> },
