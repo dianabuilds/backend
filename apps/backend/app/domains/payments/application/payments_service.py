@@ -24,3 +24,8 @@ class PaymentService:
         except jwt.PyJWTError:
             return False
         return data.get("amount") == amount
+
+
+payment_service = PaymentService()
+
+__all__ = ["PaymentService", "payment_service"]
