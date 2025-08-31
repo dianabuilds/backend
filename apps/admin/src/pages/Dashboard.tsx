@@ -1,12 +1,33 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { listFlags, updateFlag } from '../api/flags';
 import { api } from '../api/client';
+import { useAuth } from '../auth/AuthContext';
 import KpiCard from '../components/KpiCard';
-import { AdminService, type DraftIssueOut } from '../openapi';
+import { AdminService, type DraftIssueOut, type FeatureFlagOut } from '../openapi';
+
+function Toggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      className={`inline-flex items-center rounded px-2 py-1 ${checked ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-800'}`}
+      onClick={() => onChange(!checked)}
+      aria-pressed={checked}
+    >
+      {checked ? 'On' : 'Off'}
+    </button>
+  );
+}
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'dashboard'],
     queryFn: async () => (await api.get('/admin/dashboard')).data,
@@ -34,6 +55,16 @@ export default function Dashboard() {
     queryKey: ['admin', 'drafts', 'issues'],
     queryFn: () => AdminService.listDraftIssuesAdminDraftsIssuesGet(),
   });
+
+  const { data: flags = [], isLoading: flagsLoading } = useQuery<FeatureFlagOut[]>({
+    queryKey: ['admin', 'flags'],
+    queryFn: () => listFlags(),
+  });
+
+  async function onFlagToggle(f: FeatureFlagOut, v: boolean) {
+    await updateFlag(f.key, { value: v });
+    queryClient.invalidateQueries({ queryKey: ['admin', 'flags'] });
+  }
 
   async function approve(id: string) {
     await api.post(`/admin/moderation/queue/${id}/approve`);
@@ -105,6 +136,42 @@ export default function Dashboard() {
           />
         </div>
       )}
+
+      <section>
+        <h2 className="text-xl font-bold">Feature Flags</h2>
+        {flagsLoading && (
+          <div className="text-sm text-gray-500">Loading...</div>
+        )}
+        {!flagsLoading && (
+          <table className="min-w-full text-sm">
+            <thead className="text-left text-gray-500">
+              <tr>
+                <th className="p-1">Key</th>
+                <th className="p-1">Enabled</th>
+              </tr>
+            </thead>
+            <tbody>
+              {flags.map((f) => (
+                <tr key={f.key} className="border-t">
+                  <td className="p-1">{f.key}</td>
+                  <td className="p-1">
+                    {user?.role === 'admin' ? (
+                      <Toggle
+                        checked={!!f.value}
+                        onChange={(v) => onFlagToggle(f, v)}
+                      />
+                    ) : f.value ? (
+                      'On'
+                    ) : (
+                      'Off'
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
 
       <section>
         <h2 className="text-xl font-bold">Drafts with issues</h2>
