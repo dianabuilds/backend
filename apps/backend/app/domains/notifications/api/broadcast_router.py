@@ -81,7 +81,7 @@ async def create_broadcast(
 
 @router.get("", summary="List broadcast campaigns")
 async def list_broadcasts(
-    limit: Annotated[int, Query(50, ge=1, le=200)] = ...,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     stmt = (

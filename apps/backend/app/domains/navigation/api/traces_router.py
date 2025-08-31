@@ -49,7 +49,7 @@ async def create_trace(
 @router.get("", response_model=list[NodeTraceOut], summary="List traces")
 async def list_traces(
     node_id: Annotated[UUID, Query(...)] = ...,
-    visible_to: Annotated[str, Query("all", pattern="^(all|me)$")] = ...,
+    visible_to: Annotated[str, Query(pattern="^(all|me)$")] = "all",
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,

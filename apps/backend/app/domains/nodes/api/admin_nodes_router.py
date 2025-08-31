@@ -80,7 +80,7 @@ class AdminNodeListParams(TypedDict, total=False):
 async def list_nodes_admin(
     response: Response,
     workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
-    if_none_match: Annotated[str | None, Header(None, alias="If-None-Match")] = ...,
+    if_none_match: Annotated[str | None, Header(alias="If-None-Match")] = None,
     author: UUID | None = None,
     sort: Annotated[
         Literal[
@@ -89,14 +89,14 @@ async def list_nodes_admin(
             "created_asc",
             "views_desc",
         ],
-        Query("updated_desc"),
-    ] = ...,
+        Query(),
+    ] = "updated_desc",
     visible: bool | None = None,
     premium_only: bool | None = None,
     recommendable: bool | None = None,
-    node_type: Annotated[str | None, Query(None, alias="node_type")] = ...,
-    limit: Annotated[int, Query(25, ge=1, le=100)] = ...,
-    offset: Annotated[int, Query(0, ge=0)] = ...,
+    node_type: Annotated[str | None, Query(alias="node_type")] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     q: str | None = None,

@@ -18,8 +18,8 @@ router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 async def get_version_validation(
     version_id: str,
     recalc: Annotated[
-        bool, Query(False, description="Пересчитать отчёт принудительно")
-    ] = ...,
+        bool, Query(description="Пересчитать отчёт принудительно")
+    ] = False,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _admin: Annotated[Any, Depends(admin_required)] = ...,
 ) -> dict[str, Any]:

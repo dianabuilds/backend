@@ -35,13 +35,13 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 
 @router.get("", response_model=list[AdminTransitionOut], summary="List transitions")
 async def list_transitions_admin(
-    from_slug: Annotated[str | None, Query(None, alias="from")] = ...,
-    to_slug: Annotated[str | None, Query(None, alias="to")] = ...,
+    from_slug: Annotated[str | None, Query(alias="from")] = None,
+    to_slug: Annotated[str | None, Query(alias="to")] = None,
     type: NodeTransitionType | None = None,
     author: UUID | None = None,
     page: int = 1,
-    page_size: Annotated[int, Query(50, ge=1, le=100)] = ...,
-    current_user=Depends(admin_required),
+    page_size: Annotated[int, Query(ge=1, le=100)] = 50,
+    current_user: Annotated[object, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     spec = TransitionFilterSpec(
@@ -73,7 +73,7 @@ async def list_transitions_admin(
 async def update_transition_admin(
     transition_id: UUID,
     payload: NodeTransitionUpdate,
-    current_user=Depends(admin_required),
+    current_user: Annotated[object, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     transition = await db.get(NodeTransition, transition_id)
@@ -129,7 +129,7 @@ async def update_transition_admin(
 @router.delete("/{transition_id}", summary="Delete transition")
 async def delete_transition_admin(
     transition_id: UUID,
-    current_user=Depends(admin_required),
+    current_user: Annotated[object, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     transition = await db.get(NodeTransition, transition_id)
@@ -148,7 +148,7 @@ async def delete_transition_admin(
 @router.post("/disable_by_node", summary="Disable transitions by node")
 async def disable_transitions_by_node(
     payload: TransitionDisableRequest,
-    current_user=Depends(admin_required),
+    current_user: Annotated[object, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     res = await db.execute(select(Node).where(Node.slug == payload.slug))

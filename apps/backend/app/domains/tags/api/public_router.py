@@ -20,10 +20,10 @@ router = APIRouter(prefix="/tags", tags=["tags"])
 @router.get("/", response_model=list[TagOut], summary="List tags")
 async def list_tags(
     workspace_id: UUID,
-    q: Annotated[str | None, Query(None)] = ...,
-    popular: Annotated[bool, Query(False)] = ...,
-    limit: Annotated[int, Query(10)] = ...,
-    offset: Annotated[int, Query(0, ge=0)] = ...,
+    q: Annotated[str | None, Query()] = None,
+    popular: Annotated[bool, Query()] = False,
+    limit: Annotated[int, Query()] = 10,
+    offset: Annotated[int, Query(ge=0)] = 0,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _: Annotated[object, Depends(require_ws_guest)] = ...,
 ):

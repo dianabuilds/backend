@@ -39,9 +39,9 @@ router = APIRouter(
     summary="List tags with usage",
 )
 async def list_tags(
-    q: Annotated[str | None, Query(None)] = ...,
-    limit: Annotated[int, Query(200, ge=1, le=1000)] = ...,
-    offset: Annotated[int, Query(0, ge=0)] = ...,
+    q: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 200,
+    offset: Annotated[int, Query(ge=0)] = 0,
     _: Annotated[Depends, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> list[TagListItem]:
@@ -124,7 +124,7 @@ async def merge_tags(
     summary="List blacklisted tags",
 )
 async def get_blacklist(
-    q: Annotated[str | None, Query(None)] = ...,
+    q: Annotated[str | None, Query()] = None,
     _: Annotated[Depends, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> list[BlacklistItem]:
