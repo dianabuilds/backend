@@ -171,14 +171,27 @@ export default function NodeEditor() {
                 const normalizedCover = resolveAssetUrl(normalizeCoverUrl(n));
                 const normalizedTags = normalizeTags((n as any).tags ?? (n as any).tag_slugs);
                 const normalizedType = normalizeNodeType(n) ?? nodeType;
-                const normalizedContent: OutputData =
-                    (n.content as OutputData) && typeof (n.content as any) === "object"
-                        ? (n.content as OutputData)
-                        : {
+                const rawContent: unknown = (n as any).content;
+                let normalizedContent: OutputData;
+                if (typeof rawContent === "string") {
+                    try {
+                        normalizedContent = JSON.parse(rawContent) as OutputData;
+                    } catch {
+                        normalizedContent = {
                             time: Date.now(),
                             blocks: [],
                             version: "2.30.7",
                         };
+                    }
+                } else if (rawContent && typeof rawContent === "object") {
+                    normalizedContent = rawContent as OutputData;
+                } else {
+                    normalizedContent = {
+                        time: Date.now(),
+                        blocks: [],
+                        version: "2.30.7",
+                    };
+                }
 
                 setNode({
                     id: String((n as any).id),
