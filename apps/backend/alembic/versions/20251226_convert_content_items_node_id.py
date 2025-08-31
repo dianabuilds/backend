@@ -56,6 +56,10 @@ def upgrade() -> None:
         WHERE ci.node_id IS NULL AND n.alt_id = ci.id
         """
     )
+    # Clean up any rows that still fail to resolve to a node. These "orphaned"
+    # entries would violate the upcoming NOT NULL constraint, so remove them
+    # prior to enforcing it.
+    op.execute("DELETE FROM content_items WHERE node_id IS NULL")
     op.alter_column("content_items", "node_id", nullable=False)
     op.drop_column("content_items", "node_alt_id")
 
