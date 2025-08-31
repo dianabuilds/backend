@@ -29,36 +29,6 @@ export default function NodeSidebar({ node, onChange }: NodeSidebarProps) {
       </section>
 
       <section>
-        <h3 className="font-semibold text-gray-700">Publication</h3>
-        <div className="mt-2 flex flex-col space-y-1 text-sm">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={node.isPublic}
-              onChange={(e) => onChange({ isPublic: e.target.checked })}
-            />
-            <span>Published</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={node.premiumOnly}
-              onChange={(e) => onChange({ premiumOnly: e.target.checked })}
-            />
-            <span>Premium only</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={node.allowComments}
-              onChange={(e) => onChange({ allowComments: e.target.checked })}
-            />
-            <span>Allow comments</span>
-          </label>
-        </div>
-      </section>
-
-      <section>
         <h3 className="font-semibold text-gray-700">Validation</h3>
         <Button className="mt-2 bg-blue-500 text-white">
           Run validation

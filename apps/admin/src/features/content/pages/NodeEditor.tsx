@@ -1,8 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
 
-import EditorJSEmbed from "../../../components/EditorJSEmbed";
-import FieldCover from "../../../components/fields/FieldCover";
-import FieldTags from "../../../components/fields/FieldTags";
 import { Button } from "../../../shared/ui";
 import { useWorkspace } from "../../../workspace/WorkspaceContext";
 import NodeSidebar from "../components/NodeSidebar";
@@ -40,27 +37,9 @@ export default function NodeEditorPage() {
               className="text-lg font-bold bg-transparent focus:outline-none"
               placeholder="Untitled"
             />
-            <span
-              className={`px-2 py-1 text-xs rounded ${
-                node.isPublic ? "bg-green-200 text-green-800" : "bg-yellow-200 text-yellow-800"
-              }`}
-            >
-              {node.isPublic ? "Published" : "Draft"}
-            </span>
           </div>
           <div className="space-x-2">
             <Button onClick={() => navigate(-1)}>Close</Button>
-            <Button
-              onClick={() =>
-                window.open(
-                  `/admin/nodes/${type}/${id}/preview?workspace_id=${workspaceId}`,
-                  "_blank",
-                )
-              }
-              disabled={id === "new"}
-            >
-              Preview
-            </Button>
             <Button
               onClick={handleSave}
               disabled={isSaving}
@@ -72,20 +51,7 @@ export default function NodeEditorPage() {
         </header>
 
         <div className="flex flex-1 overflow-hidden">
-          <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-            <FieldCover
-              value={node.coverUrl ?? null}
-              onChange={(url) => update({ coverUrl: url })}
-            />
-            <FieldTags value={node.tags} onChange={(tags) => update({ tags })} />
-            <div className="border rounded bg-white">
-              <EditorJSEmbed
-                value={node.content}
-                onChange={(data) => update({ content: data })}
-                minHeight={400}
-              />
-            </div>
-          </div>
+          <div className="flex-1 p-6 overflow-y-auto" />
           <aside className="w-72 bg-gray-50 border-l p-4 space-y-4 overflow-y-auto">
             <NodeSidebar node={node} onChange={update} />
           </aside>
