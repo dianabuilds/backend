@@ -152,8 +152,8 @@ router = APIRouter(
 @router.get("", response_model=QuestStepPage, summary="List quest steps")
 async def list_steps(
     quest_id: UUID,
-    limit: Annotated[int, Query(25, ge=1, le=100)] = ...,
-    offset: Annotated[int, Query(0, ge=0)] = ...,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> QuestStepPage:
