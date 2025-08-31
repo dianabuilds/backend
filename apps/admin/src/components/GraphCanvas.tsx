@@ -41,9 +41,9 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[]) {
 
   const byLevel: Record<number, GraphNode[]> = {};
   nodes.forEach((n) => {
-    const l = level.get(n.key) || 0;
-    if (!byLevel[l]) byLevel[l] = [];
-    byLevel[l].push(n);
+    const levelIndex = level.get(n.key) || 0;
+    if (!byLevel[levelIndex]) byLevel[levelIndex] = [];
+    byLevel[levelIndex].push(n);
   });
 
   const positions = new Map<string, { x: number; y: number }>();
@@ -54,12 +54,12 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[]) {
   Object.keys(byLevel)
     .map((k) => Number(k))
     .sort((a, b) => a - b)
-    .forEach((l) => {
-      const arr = byLevel[l];
+    .forEach((levelKey) => {
+      const arr = byLevel[levelKey];
       arr.forEach((n, i) => {
         positions.set(n.key, {
           x: paddingX + i * colWidth,
-          y: paddingY + l * rowHeight,
+          y: paddingY + levelKey * rowHeight,
         });
       });
     });
