@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { Card, CardContent } from '../../components/ui/card';
+import { Link } from 'react-router-dom';
 import { api } from '../../api/client';
 
 interface DraftIssue {
@@ -22,13 +24,21 @@ export default function DraftIssuesWidget({
     refetchInterval: refreshInterval,
   });
   return (
-    <section>
-      <h2 className="mb-2 text-xl font-bold">Drafts with issues</h2>
-      <ul className="mb-2 list-disc pl-5 text-sm">
-        {data.map((d) => (
-          <li key={d.id}>{d.title || d.slug}</li>
-        ))}
-      </ul>
-    </section>
+    <Card>
+      <CardContent className="p-4 space-y-2">
+        <h2 className="font-semibold">Drafts with issues</h2>
+        <ul className="mb-2 list-disc pl-5 text-sm">
+          {data.map((d) => (
+            <li key={d.id}>{d.title || d.slug}</li>
+          ))}
+        </ul>
+        <Link
+          to="/nodes?status=draft"
+          className="mt-2 inline-block rounded bg-gray-200 px-3 py-1 text-sm"
+        >
+          See all drafts
+        </Link>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
+import { Card, CardContent } from '../../components/ui/card';
 import { api } from '../../api/client';
 
 interface QueueItem {
@@ -23,20 +24,32 @@ export default function ModerationQueueWidget({
     refetchInterval: refreshInterval,
   });
   return (
-    <section>
-      <h2 className="mb-2 text-xl font-bold">Moderation queue</h2>
-      <ul className="text-sm space-y-1">
-        {data.map((item) => (
-          <li key={item.id}>
-            <Link
-              to={`/moderation?status=${item.status}`}
-              className="hover:underline"
-            >
-              [{item.type}] {item.reason} - {item.status}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <Card>
+      <CardContent className="p-4 space-y-2">
+        <h2 className="font-semibold">Moderation queue</h2>
+        {data.length === 0 ? (
+          <p className="text-sm text-gray-500">No items</p>
+        ) : (
+          <ul className="text-sm space-y-1">
+            {data.map((item) => (
+              <li key={item.id}>
+                <Link
+                  to={`/moderation?status=${item.status}`}
+                  className="hover:underline"
+                >
+                  [{item.type}] {item.reason} - {item.status}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link
+          to="/moderation"
+          className="mt-2 inline-block rounded bg-blue-500 px-3 py-1 text-sm text-white disabled:opacity-50"
+        >
+          Open moderation
+        </Link>
+      </CardContent>
+    </Card>
   );
 }
