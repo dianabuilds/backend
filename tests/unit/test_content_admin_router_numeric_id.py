@@ -54,36 +54,33 @@ async def app_client():
     async with async_session() as session:
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
         session.add(ws)
-        node_uuid = uuid.uuid4()
-        item_uuid = uuid.uuid4()
         node = Node(
-            alt_id=node_uuid,
+            id=1,
+            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
-            slug="legacy",
-            title="L",
+            slug="n1",
+            title="N1",
             content={},
             author_id=user.id,
         )
-        session.add(node)
-        await session.flush()
         item = NodeItem(
-            id=item_uuid,
+            id=uuid.uuid4(),
             node_id=node.id,
             workspace_id=ws.id,
             type="quest",
-            slug="legacy",
-            title="Legacy",
+            slug="n1",
+            title="N1",
         )
-        session.add(item)
+        session.add_all([node, item])
         await session.commit()
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, ws.id, node_uuid, item_uuid
+        yield client, ws.id, node.id, item.id
 
 
 @pytest.mark.asyncio
-async def test_get_node_by_node_id(app_client):
+async def test_get_node_by_numeric_id(app_client):
     client, ws_id, node_id, item_id = app_client
     resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
     assert resp.status_code == 200

@@ -103,32 +103,43 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     }
 
 
-async def _get_item(db: AsyncSession, node_id: UUID, workspace_id: UUID) -> NodeItem:
-    """Fetch a node item by either item id or legacy node id.
+async def _get_item(
+    db: AsyncSession, node_id: int | UUID, workspace_id: UUID
+) -> NodeItem:
+    """Fetch a node item by numeric id or legacy UUID identifiers.
 
-    Some legacy records have different identifiers for the ``Node`` and
-    ``NodeItem`` rows.  The admin API historically received the ``Node`` id,
-    which caused a 404 when looking up ``NodeItem`` directly.  We now attempt a
-    fallback lookup via ``NodeItem.node_id`` to support those records.
+    The admin API historically accepted a UUID ``Node`` identifier which mapped
+    to ``Node.alt_id``.  Newer records use the integer primary key.  This helper
+    transparently resolves either form to the corresponding ``NodeItem``.
     """
 
-    item = await db.get(NodeItem, node_id)
-    if item and item.workspace_id == workspace_id:
-        return item
-    node = await db.scalar(select(Node).where(Node.alt_id == node_id))
-    if node and node.workspace_id == workspace_id:
+    if isinstance(node_id, int):
         result = await db.execute(
-            select(NodeItem).where(NodeItem.node_id == node.id)
+            select(NodeItem).where(
+                NodeItem.node_id == node_id, NodeItem.workspace_id == workspace_id
+            )
         )
         item = result.scalar_one_or_none()
         if item:
             return item
+    else:
+        item = await db.get(NodeItem, node_id)
+        if item and item.workspace_id == workspace_id:
+            return item
+        node = await db.scalar(select(Node).where(Node.alt_id == node_id))
+        if node and node.workspace_id == workspace_id:
+            result = await db.execute(
+                select(NodeItem).where(NodeItem.node_id == node.id)
+            )
+            item = result.scalar_one_or_none()
+            if item:
+                return item
     raise HTTPException(status_code=404, detail="Node not found")
 
 
 @router.get("/{node_id}", summary="Get node item by id")
 async def get_node_by_id(
-    node_id: UUID,
+    node_id: int | UUID,
     workspace_id: UUID = Path(...),  # noqa: B008
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
@@ -146,7 +157,7 @@ async def get_node_by_id(
 
 @router.patch("/{node_id}", summary="Update node item by id")
 async def update_node_by_id(
-    node_id: UUID,
+    node_id: int | UUID,
     payload: dict,
     workspace_id: UUID = Path(...),  # noqa: B008
     next: int = Query(0),
@@ -177,7 +188,7 @@ async def update_node_by_id(
 
 @router.post("/{node_id}/publish", summary="Publish node item by id")
 async def publish_node_by_id(
-    node_id: UUID,
+    node_id: int | UUID,
     workspace_id: UUID = Path(...),  # noqa: B008
     payload: PublishIn | None = None,
     _: object = Depends(require_ws_editor),  # noqa: B008
@@ -253,7 +264,7 @@ async def create_node(
 @router.get("/{node_type}/{node_id}", summary="Get node item")
 async def get_node(
     node_type: str,
-    node_id: UUID,
+    node_id: int | UUID,
     workspace_id: UUID = Path(...),  # noqa: B008
     _: object = Depends(require_ws_editor),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
@@ -274,7 +285,7 @@ async def get_node(
 @router.patch("/{node_type}/{node_id}", summary="Update node item")
 async def update_node(
     node_type: str,
-    node_id: UUID,
+    node_id: int | UUID,
     payload: dict,
     workspace_id: UUID = Path(...),  # noqa: B008
     next: int = Query(0),
@@ -309,7 +320,7 @@ async def update_node(
 @router.post("/{node_type}/{node_id}/publish", summary="Publish node item")
 async def publish_node(
     node_type: str,
-    node_id: UUID,
+    node_id: int | UUID,
     workspace_id: UUID = Path(...),  # noqa: B008
     payload: PublishIn | None = None,
     _: object = Depends(require_ws_editor),  # noqa: B008
@@ -347,7 +358,7 @@ async def publish_node(
 )
 async def publish_node_patch(
     node_type: str,
-    node_id: UUID,
+    node_id: int | UUID,
     workspace_id: UUID = Path(...),  # noqa: B008
     payload: PublishIn | None = None,
     _: object = Depends(require_ws_editor),  # noqa: B008
