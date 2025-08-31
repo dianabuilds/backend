@@ -47,7 +47,11 @@ export default function Dashboard() {
               </>
             }
           />
-          <KpiCard title="Nodes (24h)" value={kpi.nodes_24h ?? 0} />
+          <KpiCard title="Nodes (7d)" value={kpi.nodes_7d ?? 0} />
+          <KpiCard
+            title="Nodes w/o transitions"
+            value={`${(kpi.nodes_without_outgoing_pct ?? 0).toFixed(1)}%`}
+          />
           <KpiCard title="Quests (24h)" value={kpi.quests_24h ?? 0} />
           <KpiCard
             title="Incidents (24h)"

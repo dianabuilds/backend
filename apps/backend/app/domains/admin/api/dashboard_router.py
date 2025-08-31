@@ -15,6 +15,7 @@ from app.domains.moderation.infrastructure.models.moderation_models import (
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
+from app.domains.navigation.application.stats_service import NavigationStatsService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.quest_models import Quest
@@ -30,6 +31,7 @@ current_user_dep = Depends(admin_required)
 db_dep = Depends(get_db)
 
 navcache = NavigationCacheService(CoreCacheAdapter())
+nav_stats = NavigationStatsService()
 
 
 @router.get("/dashboard", summary="Admin dashboard data")
@@ -39,6 +41,7 @@ async def admin_dashboard(
 ):
     now = datetime.utcnow()
     day_ago = now - timedelta(hours=24)
+    week_ago = now - timedelta(days=7)
 
     new_registrations = (
         await db.execute(
@@ -56,9 +59,10 @@ async def admin_dashboard(
     ).scalar() or 0
     nodes_created = (
         await db.execute(
-            select(func.count()).select_from(Node).where(Node.created_at >= day_ago)
+            select(func.count()).select_from(Node).where(Node.created_at >= week_ago)
         )
     ).scalar() or 0
+    nodes_without_outgoing_pct = await nav_stats.get_nodes_without_outgoing_pct(db)
     quests_created = (
         await db.execute(
             select(func.count()).select_from(Quest).where(Quest.created_at >= day_ago)
@@ -117,7 +121,8 @@ async def admin_dashboard(
             "active_premium": active_premium,
             "active_subscriptions": active_subscriptions,
             "active_subscriptions_change_pct": active_subscriptions_change,
-            "nodes_24h": nodes_created,
+            "nodes_7d": nodes_created,
+            "nodes_without_outgoing_pct": nodes_without_outgoing_pct,
             "quests_24h": quests_created,
             "incidents_24h": incidents_count,
         },
