@@ -80,16 +80,16 @@ async def rum_summary(
         counts[ev] = counts.get(ev, 0) + 1
         if ev == "login_attempt":
             d = it.get("data", {})
-            if isinstance(d, dict) and isinstance(d.get("dur_ms"), (int, float)):
+            if isinstance(d, dict) and isinstance(d.get("dur_ms"), int | float):
                 login_durations.append(float(d["dur_ms"]))
         elif ev == "navigation":
             d = it.get("data", {})
             if isinstance(d, dict):
-                if isinstance(d.get("ttfb"), (int, float)):
+                if isinstance(d.get("ttfb"), int | float):
                     nav_ttfb.append(float(d["ttfb"]))
-                if isinstance(d.get("domContentLoaded"), (int, float)):
+                if isinstance(d.get("domContentLoaded"), int | float):
                     nav_dcl.append(float(d["domContentLoaded"]))
-                if isinstance(d.get("loadEvent"), (int, float)):
+                if isinstance(d.get("loadEvent"), int | float):
                     nav_load.append(float(d["loadEvent"]))
 
     def avg(arr: list[float]) -> float | None:
