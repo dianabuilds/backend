@@ -9,18 +9,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.db.session import get_db
 from app.domains.payments.application.payments_service import PaymentService
+from app.domains.payments.api_admin import router as admin_payments_router
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.payment import PremiumPurchaseIn
 
-router = APIRouter(prefix="/payments", tags=["payments"])
+public_router = APIRouter(prefix="/payments", tags=["payments"])
 
 
-@router.post("/premium", response_model=dict, summary="Buy premium")
+@public_router.post("/premium", response_model=dict, summary="Buy premium")
 async def buy_premium(
     payload: PremiumPurchaseIn,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-):
+) -> dict:
     """Upgrade the current user to premium using a payment token."""
     amount = payload.days  # 1 token per day in this simplified example
     if not await PaymentService().verify(payload.payment_token, amount):
@@ -36,16 +37,8 @@ async def buy_premium(
     return {"status": "ok", "premium_until": current_user.premium_until}
 
 
-from fastapi import APIRouter
-
 router = APIRouter()
-
-from app.api.admin_payments import router as admin_payments_router  # noqa: E402
-from app.api.admin_payments_transactions_cursor import (  # noqa: E402
-    router as admin_payments_transactions_cursor_router,
-)
-from app.api.payments import router as payments_router  # noqa: E402
-
-router.include_router(payments_router)
+router.include_router(public_router)
 router.include_router(admin_payments_router)
-router.include_router(admin_payments_transactions_cursor_router)
+
+__all__ = ["router"]

@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-# Временный адаптер: реэкспортируем существующий роутер из app/api
-from app.api.admin_moderation_cases import router  # type: ignore  # thin domain adapter
+from fastapi import APIRouter
+
+router = APIRouter(
+    prefix="/admin/moderation/cases",
+    tags=["admin-moderation"],
+)
+
+# TODO: implement endpoints for moderation cases
 
 __all__ = ["router"]

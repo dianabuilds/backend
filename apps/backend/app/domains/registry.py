@@ -124,23 +124,6 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception:
         logging.exception("Failed to load media router")
 
-    # Lists
-    try:
-        from app.api.lists import router as lists_router  # type: ignore
-
-        app.include_router(lists_router)
-        app.include_router(lists_router, prefix="/workspaces/{workspace_id}")
-    except Exception:
-        logging.exception("Failed to load lists router")
-
-    # Graph
-    try:
-        from app.api.graph import router as graph_router  # type: ignore
-
-        app.include_router(graph_router)
-        app.include_router(graph_router, prefix="/workspaces/{workspace_id}")
-    except Exception:
-        logging.exception("Failed to load graph router")
 
     # Achievements
     try:

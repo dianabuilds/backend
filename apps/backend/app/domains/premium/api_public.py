@@ -1,9 +1,5 @@
-"""
-Domains.Premium: Public API re-export.
+"""Domains.Premium: Public API re-export."""
 
-from app.domains.premium.api_public import router
-"""
-
-from app.api.premium_limits import router
+from app.domains.premium.api.public_router import router
 
 __all__ = ["router"]

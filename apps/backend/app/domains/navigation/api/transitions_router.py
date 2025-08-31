@@ -18,7 +18,9 @@ from app.domains.nodes.infrastructure.repositories.node_repository import (
     NodeRepositoryAdapter,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.repositories import TransitionRepository
+from app.domains.navigation.infrastructure.repositories.transition_repository import (
+    TransitionRepository,
+)
 
 router = APIRouter(prefix="/transitions", tags=["transitions"])
 navcache = NavigationCacheService(CoreCacheAdapter())
