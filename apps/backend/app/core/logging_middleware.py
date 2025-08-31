@@ -1,14 +1,15 @@
 """Minimal request logging middleware for tests."""
+
 from __future__ import annotations
+
+import logging
+from time import perf_counter
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-import logging
-from time import perf_counter
 
 from app.core.config import settings
-
 
 # Dedicated logger name used in tests and production
 logger = logging.getLogger("app.http")
@@ -30,5 +31,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         level = logging.INFO
         if duration_ms >= settings.logging.slow_request_ms:
             level = logging.WARNING
-        logger.log(level, "%s %s %s", request.method, request.url.path, response.status_code)
+        logger.log(
+            level, "%s %s %s", request.method, request.url.path, response.status_code
+        )
         return response

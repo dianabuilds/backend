@@ -71,7 +71,9 @@ class NodeRepositoryAdapter(INodeRepository):
         if self._repo:
             return await self._repo.get_by_id(node_id, workspace_id=workspace_id)
         res = await self._db.execute(
-            select(Node).where(Node.alt_id == node_id, Node.workspace_id == workspace_id)
+            select(Node).where(
+                Node.alt_id == node_id, Node.workspace_id == workspace_id
+            )
         )
         return res.scalar_one_or_none()
 
@@ -155,4 +157,3 @@ class NodeRepositoryAdapter(INodeRepository):
             count += 1
         await self._db.flush()
         return count
-

@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import jsonschema
 
 from app.domains.quests.validation import validate_version_graph  # noqa: F401
 
-
 # JSON schema describing allowed fields for AI presets that can be configured
 # per workspace. Only the listed keys are permitted and they must have the
 # specified types.
-AI_PRESETS_SCHEMA: Dict[str, Any] = {
+AI_PRESETS_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "model": {"type": "string"},
@@ -32,7 +31,7 @@ AI_PRESETS_SCHEMA: Dict[str, Any] = {
 }
 
 
-def validate_ai_presets(presets: Dict[str, Any]) -> None:
+def validate_ai_presets(presets: dict[str, Any]) -> None:
     """Validate workspace AI presets against :data:`AI_PRESETS_SCHEMA`.
 
     Raises :class:`jsonschema.ValidationError` if presets don't conform to the
@@ -43,4 +42,3 @@ def validate_ai_presets(presets: Dict[str, Any]) -> None:
 
 
 __all__ = ["validate_version_graph", "AI_PRESETS_SCHEMA", "validate_ai_presets"]
-

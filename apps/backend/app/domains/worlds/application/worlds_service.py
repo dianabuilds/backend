@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.worlds.application.ports.worlds_repo import IWorldsRepository
 from app.domains.ai.infrastructure.models.world_models import Character, WorldTemplate
+from app.domains.worlds.application.ports.worlds_repo import IWorldsRepository
 
 
 class WorldsService:
     def __init__(self, repo: IWorldsRepository) -> None:
         self._repo = repo
 
-    async def list_worlds(self, workspace_id: UUID) -> List[WorldTemplate]:
+    async def list_worlds(self, workspace_id: UUID) -> list[WorldTemplate]:
         return await self._repo.list_worlds(workspace_id)
 
     async def create_world(
@@ -30,7 +30,7 @@ class WorldsService:
         world_id: UUID,
         data: dict[str, Any],
         actor_id: UUID,
-    ) -> Optional[WorldTemplate]:
+    ) -> WorldTemplate | None:
         world = await self._repo.get_world(world_id, workspace_id)
         if not world:
             return None
@@ -50,12 +50,17 @@ class WorldsService:
 
     async def list_characters(
         self, world_id: UUID, workspace_id: UUID
-    ) -> List[Character]:
+    ) -> list[Character]:
         return await self._repo.list_characters(world_id, workspace_id)
 
     async def create_character(
-        self, db: AsyncSession, world_id: UUID, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
-    ) -> Optional[Character]:
+        self,
+        db: AsyncSession,
+        world_id: UUID,
+        workspace_id: UUID,
+        data: dict[str, Any],
+        actor_id: UUID,
+    ) -> Character | None:
         world = await self._repo.get_world(world_id, workspace_id)
         if not world:
             return None
@@ -64,8 +69,13 @@ class WorldsService:
         return ch
 
     async def update_character(
-        self, db: AsyncSession, char_id: UUID, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
-    ) -> Optional[Character]:
+        self,
+        db: AsyncSession,
+        char_id: UUID,
+        workspace_id: UUID,
+        data: dict[str, Any],
+        actor_id: UUID,
+    ) -> Character | None:
         ch = await self._repo.get_character(char_id, workspace_id)
         if not ch:
             return None

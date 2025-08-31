@@ -15,7 +15,9 @@ def upgrade() -> None:
         "navigation_cache",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("node_slug", sa.String(), nullable=False, unique=True),
-        sa.Column("navigation", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column(
+            "navigation", postgresql.JSONB(astext_type=sa.Text()), nullable=False
+        ),
         sa.Column("compass", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("echo", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column(

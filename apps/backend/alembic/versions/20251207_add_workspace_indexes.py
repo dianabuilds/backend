@@ -10,12 +10,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_index(
-        "ix_workspaces_owner_user_id", "workspaces", ["owner_user_id"]
-    )
-    op.create_index(
-        "ix_workspaces_created_at", "workspaces", ["created_at"]
-    )
+    op.create_index("ix_workspaces_owner_user_id", "workspaces", ["owner_user_id"])
+    op.create_index("ix_workspaces_created_at", "workspaces", ["created_at"])
     op.create_index(
         "ix_workspace_members_workspace_id_role",
         "workspace_members",

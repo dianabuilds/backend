@@ -5,15 +5,33 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response
+from jsonschema import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from jsonschema import ValidationError
 
 from app.core.db.session import get_db
+from app.domains.ai.infrastructure.repositories.usage_repository import (
+    AIUsageRepository,
+)
+from app.domains.notifications.application.notify_service import NotifyService
+from app.domains.notifications.infrastructure.models.notification_models import (
+    NotificationType,
+)
+from app.domains.notifications.infrastructure.repositories.notification_repository import (
+    NotificationRepository,
+)
+from app.domains.notifications.infrastructure.transports.websocket import (
+    WebsocketPusher,
+)
+from app.domains.notifications.infrastructure.transports.websocket import (
+    manager as ws_manager,
+)
+from app.domains.notifications.validation import validate_notification_rules
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.application.service import WorkspaceService
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
 from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
+from app.schemas.notification_rules import NotificationRules
 from app.schemas.workspaces import (
     WorkspaceIn,
     WorkspaceMemberIn,
@@ -29,20 +47,6 @@ from app.security import (
     require_ws_editor,
     require_ws_owner,
     require_ws_viewer,
-)
-from app.schemas.notification_rules import NotificationRules
-from app.domains.notifications.validation import validate_notification_rules
-from app.domains.ai.infrastructure.repositories.usage_repository import AIUsageRepository
-from app.domains.notifications.application.notify_service import NotifyService
-from app.domains.notifications.infrastructure.repositories.notification_repository import (
-    NotificationRepository,
-)
-from app.domains.notifications.infrastructure.transports.websocket import (
-    WebsocketPusher,
-    manager as ws_manager,
-)
-from app.domains.notifications.infrastructure.models.notification_models import (
-    NotificationType,
 )
 
 router = APIRouter(
@@ -79,9 +83,7 @@ async def list_workspaces(
     for ws, role in result.all():
         data = WorkspaceOut.model_validate(ws, from_attributes=True)
         workspaces.append(
-            WorkspaceWithRoleOut(
-                **data.model_dump(exclude={"role"}), role=role
-            )
+            WorkspaceWithRoleOut(**data.model_dump(exclude={"role"}), role=role)
         )
     return workspaces
 

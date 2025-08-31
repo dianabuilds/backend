@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,9 +20,9 @@ async def get_version_validation(
     recalc: bool = Query(False, description="Пересчитать отчёт принудительно"),
     db: AsyncSession = Depends(get_db),
     _admin: Any = Depends(admin_required),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     res = await db.execute(select(QuestVersion).where(QuestVersion.id == version_id))
-    ver: Optional[QuestVersion] = res.scalars().first()
+    ver: QuestVersion | None = res.scalars().first()
     if not ver:
         raise HTTPException(status_code=404, detail="Version not found")
 

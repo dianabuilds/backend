@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Protocol
+from collections.abc import Callable
+from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +15,7 @@ class Validator(Protocol):
     async def __call__(self, db: AsyncSession, node_id: UUID) -> ValidationReport: ...
 
 
-_registry: Dict[str, List[Validator]] = {}
+_registry: dict[str, list[Validator]] = {}
 
 
 def register(node_type: str, validator: Validator) -> None:

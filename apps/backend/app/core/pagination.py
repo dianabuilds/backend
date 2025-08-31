@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import base64
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import HTTPException

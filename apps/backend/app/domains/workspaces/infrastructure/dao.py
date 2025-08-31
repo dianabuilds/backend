@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from uuid import UUID
-from typing import List
+import builtins
 import logging
+from datetime import UTC, datetime
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -11,7 +11,6 @@ from sqlalchemy.future import select
 from app.schemas.workspaces import WorkspaceRole, WorkspaceSettings
 
 from .models import Workspace, WorkspaceMember
-
 
 logger = logging.getLogger("app.audit.workspace_member")
 
@@ -43,7 +42,7 @@ class WorkspaceDAO:
         return await db.get(Workspace, workspace_id)
 
     @staticmethod
-    async def list_for_user(db: AsyncSession, user_id: UUID) -> List[Workspace]:
+    async def list_for_user(db: AsyncSession, user_id: UUID) -> list[Workspace]:
         stmt = (
             select(Workspace)
             .join(WorkspaceMember)
@@ -93,9 +92,7 @@ class WorkspaceMemberDAO:
     async def add(
         db: AsyncSession, *, workspace_id: UUID, user_id: UUID, role: WorkspaceRole
     ) -> WorkspaceMember:
-        member = WorkspaceMember(
-            workspace_id=workspace_id, user_id=user_id, role=role
-        )
+        member = WorkspaceMember(workspace_id=workspace_id, user_id=user_id, role=role)
         db.add(member)
         await db.flush()
         logger.info(
@@ -104,7 +101,7 @@ class WorkspaceMemberDAO:
                 "workspace_id": str(workspace_id),
                 "user_id": str(user_id),
                 "role": role.value if hasattr(role, "value") else str(role),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
         return member
@@ -129,17 +126,17 @@ class WorkspaceMemberDAO:
                 extra={
                     "workspace_id": str(workspace_id),
                     "user_id": str(user_id),
-                    "old_role": old_role.value if hasattr(old_role, "value") else str(old_role),
+                    "old_role": (
+                        old_role.value if hasattr(old_role, "value") else str(old_role)
+                    ),
                     "new_role": role.value if hasattr(role, "value") else str(role),
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
         return member
 
     @staticmethod
-    async def remove(
-        db: AsyncSession, *, workspace_id: UUID, user_id: UUID
-    ) -> None:
+    async def remove(db: AsyncSession, *, workspace_id: UUID, user_id: UUID) -> None:
         member = await WorkspaceMemberDAO.get(
             db, workspace_id=workspace_id, user_id=user_id
         )
@@ -153,14 +150,14 @@ class WorkspaceMemberDAO:
                     "workspace_id": str(workspace_id),
                     "user_id": str(user_id),
                     "role": role.value if hasattr(role, "value") else str(role),
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
     @staticmethod
     async def list(
         db: AsyncSession, *, workspace_id: UUID
-    ) -> List[WorkspaceMember]:
+    ) -> builtins.list[WorkspaceMember]:
         stmt = select(WorkspaceMember).where(
             WorkspaceMember.workspace_id == workspace_id
         )

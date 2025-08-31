@@ -2,6 +2,7 @@ import uuid
 
 import pytest
 from sqlalchemy import text
+
 from app.domains.registry import register_domain_routers
 
 
@@ -31,7 +32,9 @@ async def _create_workspace(db, ws_id, owner_id):
 @pytest.mark.asyncio
 async def test_usage_by_workspace(client, db_session, auth_headers, test_user):
     register_domain_routers(client._transport.app)  # type: ignore[attr-defined]
-    await db_session.execute(text("UPDATE users SET role='admin' WHERE id=:id"), {"id": test_user.id})
+    await db_session.execute(
+        text("UPDATE users SET role='admin' WHERE id=:id"), {"id": test_user.id}
+    )
     ws_id = str(uuid.uuid4())
     await _create_workspace(db_session, ws_id, test_user.id)
     await db_session.execute(

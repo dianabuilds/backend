@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Set
+from typing import Any
 from uuid import UUID
 
 from fastapi import WebSocket
@@ -12,7 +12,7 @@ class NotificationWSManager:
     """Manages active websocket connections for notifications."""
 
     def __init__(self) -> None:
-        self.connections: Dict[UUID, Set[WebSocket]] = {}
+        self.connections: dict[UUID, set[WebSocket]] = {}
 
     async def connect(self, user_id: UUID, websocket: WebSocket) -> None:
         """Accept connection and store it for a user."""
@@ -28,7 +28,7 @@ class NotificationWSManager:
         if not conns:
             self.connections.pop(user_id, None)
 
-    async def send_notification(self, user_id: UUID, data: Dict[str, Any]) -> None:
+    async def send_notification(self, user_id: UUID, data: dict[str, Any]) -> None:
         """Send JSON data to all connections of a user."""
         conns = self.connections.get(user_id)
         if not conns:
@@ -44,7 +44,7 @@ class WebsocketPusher(INotificationPusher):
     def __init__(self, manager: NotificationWSManager) -> None:
         self._manager = manager
 
-    async def send(self, user_id: UUID, data: Dict[str, Any]) -> None:
+    async def send(self, user_id: UUID, data: dict[str, Any]) -> None:
         await self._manager.send_notification(user_id, data)
 
 

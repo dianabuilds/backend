@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.preview import PreviewContext
+from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.navigation.infrastructure.models.echo_models import EchoTrace
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.users.infrastructure.models.user import User
-from app.domains.navigation.application.access_policy import has_access_async
-from app.core.preview import PreviewContext
 from app.domains.quests.infrastructure.models.navigation_cache_models import (
     NavigationCache,
 )
+from app.domains.users.infrastructure.models.user import User
 
 
 class EchoService:
@@ -21,10 +19,10 @@ class EchoService:
         db: AsyncSession,
         from_node: Node,
         to_node: Node,
-        user: Optional[User],
+        user: User | None,
         *,
-        source: Optional[str] = None,
-        channel: Optional[str] = None,
+        source: str | None = None,
+        channel: str | None = None,
     ) -> None:
         trace = EchoTrace(
             from_node_id=from_node.id,
@@ -42,16 +40,14 @@ class EchoService:
         node: Node,
         limit: int = 3,
         *,
-        user: Optional[User] = None,
+        user: User | None = None,
         preview: PreviewContext | None = None,
-    ) -> List[Node]:
+    ) -> list[Node]:
         result = await db.execute(
-            select(NavigationCache.echo).where(
-                NavigationCache.node_slug == node.slug
-            )
+            select(NavigationCache.echo).where(NavigationCache.node_slug == node.slug)
         )
         slugs = result.scalar_one_or_none() or []
-        ordered_nodes: List[Node] = []
+        ordered_nodes: list[Node] = []
         for slug in slugs[:limit]:
             res = await db.execute(select(Node).where(Node.slug == slug))
             n = res.scalar_one_or_none()

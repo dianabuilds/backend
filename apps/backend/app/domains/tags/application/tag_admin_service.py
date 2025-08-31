@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.tags.application.ports.tag_repo_port import ITagRepository
 from app.domains.telemetry.application.audit_service import AuditService
-from app.domains.telemetry.infrastructure.repositories.audit_repository import AuditLogRepository
+from app.domains.telemetry.infrastructure.repositories.audit_repository import (
+    AuditLogRepository,
+)
 
 
 async def _audit(
@@ -28,7 +30,9 @@ async def _audit(
     ua = None
     try:
         if request is not None and hasattr(request, "headers"):
-            ip = request.headers.get("x-forwarded-for") or getattr(getattr(request, "client", None), "host", None)
+            ip = request.headers.get("x-forwarded-for") or getattr(
+                getattr(request, "client", None), "host", None
+            )
             ua = request.headers.get("user-agent")
     except Exception:
         pass
@@ -61,14 +65,23 @@ class TagAdminService:
         return TagAdminService.normalize_tag_name(alias).lower()
 
     # Queries
-    async def list_tags(self, q: str | None, limit: int, offset: int) -> List[Dict[str, Any]]:
+    async def list_tags(
+        self, q: str | None, limit: int, offset: int
+    ) -> list[dict[str, Any]]:
         return await self._repo.list_with_counters(q, limit, offset)
 
     async def list_aliases(self, tag_id: UUID):
         return await self._repo.list_aliases(tag_id)
 
     # Mutations with audit
-    async def add_alias(self, db: AsyncSession, tag_id: UUID, alias: str, actor_id: str | None, request=None):
+    async def add_alias(
+        self,
+        db: AsyncSession,
+        tag_id: UUID,
+        alias: str,
+        actor_id: str | None,
+        request=None,
+    ):
         alias_norm = self.normalize_alias(alias)
         item = await self._repo.add_alias(tag_id, alias_norm)
         try:
@@ -85,7 +98,14 @@ class TagAdminService:
             pass
         return item
 
-    async def remove_alias(self, db: AsyncSession, alias_id: UUID, actor_id: str | None, tag_id: str | None, request=None):
+    async def remove_alias(
+        self,
+        db: AsyncSession,
+        alias_id: UUID,
+        actor_id: str | None,
+        tag_id: str | None,
+        request=None,
+    ):
         await self._repo.remove_alias(alias_id)
         try:
             await _audit(
@@ -103,7 +123,14 @@ class TagAdminService:
     async def blacklist_list(self, q: str | None):
         return await self._repo.blacklist_list(q)
 
-    async def blacklist_add(self, db: AsyncSession, slug: str, reason: str | None, actor_id: str | None, request=None):
+    async def blacklist_add(
+        self,
+        db: AsyncSession,
+        slug: str,
+        reason: str | None,
+        actor_id: str | None,
+        request=None,
+    ):
         item = await self._repo.blacklist_add(slug, reason)
         try:
             await _audit(
@@ -119,7 +146,9 @@ class TagAdminService:
             pass
         return item
 
-    async def blacklist_delete(self, db: AsyncSession, slug: str, actor_id: str | None, request=None):
+    async def blacklist_delete(
+        self, db: AsyncSession, slug: str, actor_id: str | None, request=None
+    ):
         await self._repo.blacklist_delete(slug)
         try:
             await _audit(
@@ -134,7 +163,9 @@ class TagAdminService:
         except Exception:
             pass
 
-    async def create_tag(self, db: AsyncSession, slug: str, name: str, actor_id: str | None, request=None):
+    async def create_tag(
+        self, db: AsyncSession, slug: str, name: str, actor_id: str | None, request=None
+    ):
         tag = await self._repo.create_tag(slug, name)
         try:
             await _audit(
@@ -150,7 +181,9 @@ class TagAdminService:
             pass
         return tag
 
-    async def delete_tag(self, db: AsyncSession, tag_id: UUID, actor_id: str | None, request=None):
+    async def delete_tag(
+        self, db: AsyncSession, tag_id: UUID, actor_id: str | None, request=None
+    ):
         await self._repo.delete_tag(tag_id)
         try:
             await _audit(
@@ -166,7 +199,7 @@ class TagAdminService:
             pass
 
     # Merge
-    async def dry_run_merge(self, from_id: UUID, to_id: UUID) -> Dict[str, Any]:
+    async def dry_run_merge(self, from_id: UUID, to_id: UUID) -> dict[str, Any]:
         return await self._repo.merge_dry_run(from_id, to_id)
 
     async def apply_merge(
@@ -177,7 +210,7 @@ class TagAdminService:
         actor_id: str | None,
         reason: str | None,
         request=None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         report = await self._repo.merge_apply(from_id, to_id, actor_id, reason)
         if not report.get("errors"):
             try:

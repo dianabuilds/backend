@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, Any, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 
 class HeaderInjector:
@@ -9,11 +10,16 @@ class HeaderInjector:
     Используется для смонтированных приложений (StaticFiles), которые обходят middleware основного приложения.
     """
 
-    def __init__(self, app, headers: Dict[str, str]) -> None:
+    def __init__(self, app, headers: dict[str, str]) -> None:
         self.app = app
         self.headers = headers
 
-    async def __call__(self, scope: Dict[str, Any], receive: Callable[[], Awaitable[dict]], send: Callable[[dict], Awaitable[None]]) -> None:
+    async def __call__(
+        self,
+        scope: dict[str, Any],
+        receive: Callable[[], Awaitable[dict]],
+        send: Callable[[dict], Awaitable[None]],
+    ) -> None:
         async def send_wrapper(message: dict) -> None:
             if message.get("type") == "http.response.start":
                 raw_headers = list(message.get("headers", []))

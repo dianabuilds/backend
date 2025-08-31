@@ -8,11 +8,13 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Enum as SAEnum,
     ForeignKey,
     Integer,
     String,
     UniqueConstraint,
+)
+from sqlalchemy import (
+    Enum as SAEnum,
 )
 from sqlalchemy.ext.mutable import MutableList
 
@@ -30,7 +32,9 @@ class EventQuest(Base):
     __tablename__ = "event_quests"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    workspace_id = Column(
+        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
     title = Column(String, nullable=False)
     target_node_id = Column(UUID(), ForeignKey("nodes.alt_id"), nullable=False)
     hints_tags = Column(MutableList.as_mutable(ARRAY(String)), default=list)
@@ -53,5 +57,7 @@ class EventQuestCompletion(Base):
     quest_id = Column(UUID(), ForeignKey("event_quests.id"), nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
     node_id = Column(UUID(), ForeignKey("nodes.alt_id"), nullable=False)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    workspace_id = Column(
+        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
     completed_at = Column(DateTime, default=datetime.utcnow)

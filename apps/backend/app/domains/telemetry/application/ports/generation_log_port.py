@@ -6,5 +6,7 @@ from app.domains.telemetry.domain.generation import GenerationStageLog
 
 
 class IGenerationLogRepository(Protocol):
-    async def add_stage(self, entry: GenerationStageLog) -> None:  # pragma: no cover - контракт
+    async def add_stage(
+        self, entry: GenerationStageLog
+    ) -> None:  # pragma: no cover - контракт
         ...

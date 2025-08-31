@@ -19,7 +19,15 @@ async def login_action(
     # Ставим HttpOnly cookie с access и refresh токенами
     # SameSite=Lax подходит для same-site (localhost:5173 -> localhost:8000 считается same-site)
     response = RedirectResponse(url="/admin", status_code=303)
-    response.set_cookie("access_token", tokens.access_token, httponly=True, samesite="lax", path="/")
+    response.set_cookie(
+        "access_token", tokens.access_token, httponly=True, samesite="lax", path="/"
+    )
     if getattr(tokens, "refresh_token", None):
-        response.set_cookie("refresh_token", tokens.refresh_token, httponly=True, samesite="lax", path="/")
+        response.set_cookie(
+            "refresh_token",
+            tokens.refresh_token,
+            httponly=True,
+            samesite="lax",
+            path="/",
+        )
     return response

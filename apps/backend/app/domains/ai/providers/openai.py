@@ -1,34 +1,36 @@
 from __future__ import annotations
 
-import os
 import asyncio
+import os
 import time
-from typing import Optional, Dict, Any
+from typing import Any
 
 import httpx
 
 from app.domains.ai.providers.base import (
     LLMProvider,
-    LLMResult,
-    LLMUsage,
     LLMRateLimit,
+    LLMResult,
     LLMServerError,
+    LLMUsage,
 )
 
 
 class OpenAIProvider(LLMProvider):
     name = "openai"
 
-    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
+    def __init__(self, api_key: str | None = None, base_url: str | None = None):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY") or ""
-        self.base_url = (base_url or os.getenv("OPENAI_BASE_URL") or "https://api.openai.com").rstrip("/")
+        self.base_url = (
+            base_url or os.getenv("OPENAI_BASE_URL") or "https://api.openai.com"
+        ).rstrip("/")
 
     async def complete(
         self,
         *,
         model: str,
         prompt: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 1024,
         temperature: float = 0.7,
         timeout: float = 30.0,
@@ -43,7 +45,7 @@ class OpenAIProvider(LLMProvider):
         if system:
             messages.append({"role": "system", "nodes": system})
         messages.append({"role": "user", "nodes": prompt})
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "model": model,
             "messages": messages,
             "temperature": temperature,
@@ -89,7 +91,12 @@ class OpenAIProvider(LLMProvider):
                         raise
                     try:
                         import random
-                        sleep_for = base_backoff * (2 ** (attempt - 1)) * (0.8 + 0.4 * random.random())
+
+                        sleep_for = (
+                            base_backoff
+                            * (2 ** (attempt - 1))
+                            * (0.8 + 0.4 * random.random())
+                        )
                     except Exception:
                         sleep_for = base_backoff * (2 ** (attempt - 1))
                     await asyncio.sleep(sleep_for)
@@ -103,15 +110,15 @@ class OpenAIProvider(LLMProvider):
         *,
         model: str,
         prompt: str,
-        system: Optional[str] = None,
-    ) -> Optional[int]:
+        system: str | None = None,
+    ) -> int | None:
         url = f"{self.base_url}/v1/tokens"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
         text = prompt if not system else f"{system}\n{prompt}"
-        body: Dict[str, Any] = {"model": model, "input": text}
+        body: dict[str, Any] = {"model": model, "input": text}
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(url, headers=headers, json=body)

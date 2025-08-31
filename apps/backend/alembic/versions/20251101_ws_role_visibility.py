@@ -15,11 +15,14 @@ down_revision = "20251010_add_media_assets_table"
 branch_labels = None
 depends_on = None
 
-workspace_role = postgresql.ENUM(
-    "owner", "editor", "viewer", name="workspace_role"
-)
+workspace_role = postgresql.ENUM("owner", "editor", "viewer", name="workspace_role")
 content_status = postgresql.ENUM(
-    "draft", "in_review", "published", "archived", name="content_status", create_type=False
+    "draft",
+    "in_review",
+    "published",
+    "archived",
+    name="content_status",
+    create_type=False,
 )
 content_visibility = postgresql.ENUM(
     "private", "unlisted", "public", name="content_visibility", create_type=False

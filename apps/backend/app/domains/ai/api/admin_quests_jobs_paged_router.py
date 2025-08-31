@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func
 
 from app.api.deps import admin_required
 from app.core.db.session import get_db
@@ -19,10 +19,12 @@ router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 async def list_jobs_paged(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
-    status: Optional[str] = Query(None, pattern="^(queued|running|completed|failed|canceled)$"),
+    status: str | None = Query(
+        None, pattern="^(queued|running|completed|failed|canceled)$"
+    ),
     db: AsyncSession = Depends(get_db),
     _admin: Any = Depends(admin_required),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     base = select(GenerationJob)
     if status:
         base = base.where(GenerationJob.status == status)
@@ -35,7 +37,7 @@ async def list_jobs_paged(
     res = await db.execute(q)
     rows = res.scalars().all()
 
-    items: List[Dict[str, Any]] = []
+    items: list[dict[str, Any]] = []
     for j in rows:
         items.append(
             {
@@ -48,8 +50,12 @@ async def list_jobs_paged(
                 "provider": j.provider,
                 "model": j.model,
                 "params": j.params,
-                "result_quest_id": str(j.result_quest_id) if j.result_quest_id else None,
-                "result_version_id": str(j.result_version_id) if j.result_version_id else None,
+                "result_quest_id": (
+                    str(j.result_quest_id) if j.result_quest_id else None
+                ),
+                "result_version_id": (
+                    str(j.result_version_id) if j.result_version_id else None
+                ),
                 "cost": float(j.cost) if j.cost is not None else None,
                 "token_usage": j.token_usage,
                 "reused": bool(j.reused),

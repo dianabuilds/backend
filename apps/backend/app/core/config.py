@@ -1,4 +1,10 @@
-from .settings import Settings, ProjectSettings, validate_settings, get_settings, settings
+from .settings import (
+    ProjectSettings,
+    Settings,
+    get_settings,
+    settings,
+    validate_settings,
+)
 
 __all__ = [
     "Settings",

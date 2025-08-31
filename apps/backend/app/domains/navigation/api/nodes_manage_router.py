@@ -1,24 +1,27 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_current_user, get_db
+from app.core.log_events import cache_invalidate
 from app.core.workspace_context import require_workspace
 from app.domains.navigation.application.echo_service import EchoService
-from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
-from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
-from app.domains.users.infrastructure.models.user import User
-from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepositoryAdapter,
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
 )
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.navigation.infrastructure.repositories.transition_repository import (
     TransitionRepository,
 )
+from app.domains.nodes.infrastructure.repositories.node_repository import (
+    NodeRepositoryAdapter,
+)
 from app.domains.nodes.policies.node_policy import NodePolicy
+from app.domains.users.infrastructure.models.user import User
 from app.schemas.transition import NodeTransitionCreate
-from app.core.log_events import cache_invalidate
 
 router = APIRouter(prefix="/nodes", tags=["nodes-navigation-manage"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -46,7 +49,9 @@ async def record_visit(
     to_node = await repo.get_by_slug(to_slug, workspace_id)
     if not to_node:
         raise HTTPException(status_code=404, detail="Target node not found")
-    await EchoService().record_echo_trace(db, from_node, to_node, current_user, source=source, channel=channel)
+    await EchoService().record_echo_trace(
+        db, from_node, to_node, current_user, source=source, channel=channel
+    )
     return {"status": "ok"}
 
 

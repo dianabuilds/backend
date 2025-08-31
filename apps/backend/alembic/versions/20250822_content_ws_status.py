@@ -14,7 +14,9 @@ down_revision = "20250822_ws_members"
 branch_labels = None
 depends_on = None
 
-content_status = sa.Enum("draft", "in_review", "published", "archived", name="content_status")
+content_status = sa.Enum(
+    "draft", "in_review", "published", "archived", name="content_status"
+)
 content_visibility = sa.Enum("private", "unlisted", "public", name="content_visibility")
 
 
@@ -25,23 +27,65 @@ def upgrade() -> None:
 
     tables = ["quests", "nodes", "achievements", "notifications"]
     for table in tables:
-        op.add_column(table, sa.Column("workspace_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=True))
-        op.add_column(table, sa.Column("status", content_status, nullable=False, server_default="draft"))
-        op.add_column(table, sa.Column("version", sa.Integer(), nullable=False, server_default="1"))
-        op.add_column(table, sa.Column("visibility", content_visibility, nullable=False, server_default="private"))
-        op.add_column(table, sa.Column("created_by_user_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=True))
-        op.add_column(table, sa.Column("updated_by_user_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=True))
+        op.add_column(
+            table,
+            sa.Column(
+                "workspace_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=True
+            ),
+        )
+        op.add_column(
+            table,
+            sa.Column("status", content_status, nullable=False, server_default="draft"),
+        )
+        op.add_column(
+            table,
+            sa.Column("version", sa.Integer(), nullable=False, server_default="1"),
+        )
+        op.add_column(
+            table,
+            sa.Column(
+                "visibility",
+                content_visibility,
+                nullable=False,
+                server_default="private",
+            ),
+        )
+        op.add_column(
+            table,
+            sa.Column(
+                "created_by_user_id",
+                sa.dialects.postgresql.UUID(as_uuid=True),
+                nullable=True,
+            ),
+        )
+        op.add_column(
+            table,
+            sa.Column(
+                "updated_by_user_id",
+                sa.dialects.postgresql.UUID(as_uuid=True),
+                nullable=True,
+            ),
+        )
 
     # add foreign keys
     for table in tables:
         op.create_foreign_key(None, table, "workspaces", ["workspace_id"], ["id"])
-        op.create_foreign_key(None, table, "users", ["created_by_user_id"], ["id"], ondelete="SET NULL")
-        op.create_foreign_key(None, table, "users", ["updated_by_user_id"], ["id"], ondelete="SET NULL")
+        op.create_foreign_key(
+            None, table, "users", ["created_by_user_id"], ["id"], ondelete="SET NULL"
+        )
+        op.create_foreign_key(
+            None, table, "users", ["updated_by_user_id"], ["id"], ondelete="SET NULL"
+        )
 
     workspace_id = bind.execute(sa.text("SELECT id FROM workspaces LIMIT 1")).scalar()
     if workspace_id:
         for table in tables:
-            bind.execute(sa.text(f"UPDATE {table} SET workspace_id = :id WHERE workspace_id IS NULL"), {"id": workspace_id})
+            bind.execute(
+                sa.text(
+                    f"UPDATE {table} SET workspace_id = :id WHERE workspace_id IS NULL"
+                ),
+                {"id": workspace_id},
+            )
             op.alter_column(table, "workspace_id", nullable=False)
 
 

@@ -1,34 +1,36 @@
 from __future__ import annotations
 
-import os
 import asyncio
+import os
 import time
-from typing import Optional, Dict, Any
+from typing import Any
 
 import httpx
 
 from app.domains.ai.providers.base import (
     LLMProvider,
-    LLMResult,
-    LLMUsage,
     LLMRateLimit,
+    LLMResult,
     LLMServerError,
+    LLMUsage,
 )
 
 
 class AnthropicProvider(LLMProvider):
     name = "anthropic"
 
-    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
+    def __init__(self, api_key: str | None = None, base_url: str | None = None):
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY") or ""
-        self.base_url = (base_url or os.getenv("ANTHROPIC_BASE_URL") or "https://api.anthropic.com").rstrip("/")
+        self.base_url = (
+            base_url or os.getenv("ANTHROPIC_BASE_URL") or "https://api.anthropic.com"
+        ).rstrip("/")
 
     async def complete(
         self,
         *,
         model: str,
         prompt: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 1024,
         temperature: float = 0.7,
         timeout: float = 30.0,
@@ -40,7 +42,7 @@ class AnthropicProvider(LLMProvider):
             "anthropic-version": "2023-06-01",
             "Content-Type": "application/json",
         }
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "model": model,
             "max_tokens": max_tokens,
             "temperature": temperature,
@@ -68,7 +70,13 @@ class AnthropicProvider(LLMProvider):
                     try:
                         blocks = data.get("nodes", [])
                         if blocks and isinstance(blocks, list):
-                            content = "".join([blk.get("text", "") for blk in blocks if isinstance(blk, dict)])
+                            content = "".join(
+                                [
+                                    blk.get("text", "")
+                                    for blk in blocks
+                                    if isinstance(blk, dict)
+                                ]
+                            )
                     except Exception:
                         content = ""
                     usage_raw = data.get("usage", {}) or {}
@@ -88,7 +96,12 @@ class AnthropicProvider(LLMProvider):
                         raise
                     try:
                         import random
-                        sleep_for = base_backoff * (2 ** (attempt - 1)) * (0.8 + 0.4 * random.random())
+
+                        sleep_for = (
+                            base_backoff
+                            * (2 ** (attempt - 1))
+                            * (0.8 + 0.4 * random.random())
+                        )
                     except Exception:
                         sleep_for = base_backoff * (2 ** (attempt - 1))
                     await asyncio.sleep(sleep_for)
@@ -102,15 +115,18 @@ class AnthropicProvider(LLMProvider):
         *,
         model: str,
         prompt: str,
-        system: Optional[str] = None,
-    ) -> Optional[int]:
+        system: str | None = None,
+    ) -> int | None:
         url = f"{self.base_url}/v1/messages/tokens"
         headers = {
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
             "Content-Type": "application/json",
         }
-        body: Dict[str, Any] = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+        body: dict[str, Any] = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+        }
         if system:
             body["messages"].insert(0, {"role": "system", "content": system})
         try:

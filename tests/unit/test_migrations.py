@@ -16,9 +16,7 @@ ALEMBIC_CFG = BASE_DIR / "alembic.ini"
 )
 def test_migrations_up_to_date(tmp_path: Path) -> None:
     """Apply migrations and ensure models match schema."""
-    subprocess.run(
-        ["alembic", "-c", str(ALEMBIC_CFG), "upgrade", "head"], check=True
-    )
+    subprocess.run(["alembic", "-c", str(ALEMBIC_CFG), "upgrade", "head"], check=True)
     result = subprocess.run(
         [
             "alembic",

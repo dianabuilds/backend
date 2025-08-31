@@ -5,6 +5,7 @@ Revises: 20251221_create_ops_incidents
 Create Date: 2025-12-22
 
 """
+
 from __future__ import annotations
 
 from alembic import op

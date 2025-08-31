@@ -2,12 +2,12 @@ import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.rate_limit import recent_429, _parse_rule  # type: ignore
 from app.core.db.session import get_db
+from app.core.rate_limit import _parse_rule, recent_429  # type: ignore
 from app.domains.users.infrastructure.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -54,14 +54,19 @@ class RuleUpdatePayload(BaseModel):
 
 
 @router.patch("/rules", summary="Update single rate limit rule")
-async def update_rule(payload: RuleUpdatePayload, current_user: User = Depends(admin_only)):
+async def update_rule(
+    payload: RuleUpdatePayload, current_user: User = Depends(admin_only)
+):
     attr = _ALLOWED_KEYS.get(payload.key)
     if not attr:
         raise HTTPException(status_code=400, detail="Unknown rule key")
     try:
         _parse_rule(payload.rule)
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid rule format, expected like '5/min', '10/sec', '3/hour'")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid rule format, expected like '5/min', '10/sec', '3/hour'",
+        )
     setattr(settings.rate_limit, attr, payload.rule)
     return {
         "ok": True,

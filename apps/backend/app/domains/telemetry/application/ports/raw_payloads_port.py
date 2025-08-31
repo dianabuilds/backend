@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Optional, Protocol
+from typing import Protocol
 
 
 class IRawPayloadStore(Protocol):
-    def put_text(self, prefix: str, data: str, *, filename_hint: Optional[str] = None) -> str:  # pragma: no cover - контракт
+    def put_text(
+        self, prefix: str, data: str, *, filename_hint: str | None = None
+    ) -> str:  # pragma: no cover - контракт
         ...

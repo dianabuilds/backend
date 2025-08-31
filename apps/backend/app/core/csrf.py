@@ -1,11 +1,11 @@
 import logging
+from urllib.parse import urlparse
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from urllib.parse import urlparse
 
 from app.core.config import settings
-
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,9 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
             # If there is no session cookie, and either there is no bearer or
             # bearer explicitly requires CSRF, then skip unless cookie auth is used.
-            if not has_session_cookie and not (has_bearer and settings.csrf.require_for_bearer):
+            if not has_session_cookie and not (
+                has_bearer and settings.csrf.require_for_bearer
+            ):
                 return await call_next(request)
 
             if not self._is_same_origin(request):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -99,7 +99,7 @@ async def get_limits(
         return json.loads(cached)
 
     settings = WorkspaceSettings.model_validate(ws.settings_json)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     period = now.strftime("%Y%m%d")
     result: dict[str, int] = {}
     for key, limit in settings.limits.items():

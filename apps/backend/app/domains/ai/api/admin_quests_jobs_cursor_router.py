@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,18 +9,18 @@ from sqlalchemy.future import select
 
 from app.api.deps import admin_required
 from app.core.db.session import get_db
-from app.domains.ai.infrastructure.models.generation_models import GenerationJob
 from app.core.pagination import (
-    parse_page_query,
-    extract_filters,
-    apply_filters,
-    apply_sorting,
-    apply_pagination,
-    decode_cursor,
-    build_cursor_for_last_item,
-    fetch_page,
     FilterSpec,
+    apply_filters,
+    apply_pagination,
+    apply_sorting,
+    build_cursor_for_last_item,
+    decode_cursor,
+    extract_filters,
+    fetch_page,
+    parse_page_query,
 )
+from app.domains.ai.infrastructure.models.generation_models import GenerationJob
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 
@@ -31,7 +32,9 @@ async def list_jobs_cursor(
     _admin=Depends(admin_required),
 ):
     params: Mapping[str, str] = dict(request.query_params)
-    pq = parse_page_query(params, allowed_sort=["created_at"], default_sort="created_at")
+    pq = parse_page_query(
+        params, allowed_sort=["created_at"], default_sort="created_at"
+    )
 
     def _status(v: str) -> str:
         allowed = {"queued", "running", "completed", "failed", "canceled"}
@@ -49,12 +52,18 @@ async def list_jobs_cursor(
     stmt = apply_sorting(stmt, model=GenerationJob, sort_field=pq.sort, order=pq.order)
 
     cursor = decode_cursor(pq.cursor) if pq.cursor else None
-    stmt = apply_pagination(stmt, model=GenerationJob, cursor=cursor, sort_field=pq.sort, order=pq.order)
+    stmt = apply_pagination(
+        stmt, model=GenerationJob, cursor=cursor, sort_field=pq.sort, order=pq.order
+    )
 
     items, has_next = await fetch_page(stmt, session=db, limit=pq.limit)
-    next_cursor = build_cursor_for_last_item(items[-1], pq.sort, pq.order) if has_next and items else None
+    next_cursor = (
+        build_cursor_for_last_item(items[-1], pq.sort, pq.order)
+        if has_next and items
+        else None
+    )
 
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for j in items:
         out.append(
             {
@@ -67,8 +76,12 @@ async def list_jobs_cursor(
                 "provider": j.provider,
                 "model": j.model,
                 "params": j.params,
-                "result_quest_id": str(j.result_quest_id) if j.result_quest_id else None,
-                "result_version_id": str(j.result_version_id) if j.result_version_id else None,
+                "result_quest_id": (
+                    str(j.result_quest_id) if j.result_quest_id else None
+                ),
+                "result_version_id": (
+                    str(j.result_version_id) if j.result_version_id else None
+                ),
                 "cost": float(j.cost) if j.cost is not None else None,
                 "token_usage": j.token_usage,
                 "reused": bool(j.reused),

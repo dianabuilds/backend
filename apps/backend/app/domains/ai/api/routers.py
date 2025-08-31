@@ -7,22 +7,42 @@ from fastapi import APIRouter
 router = APIRouter()
 
 # Подключаем доменные административные эндпоинты AI (где доступны)
-from app.domains.ai.api.admin_quests_logs_router import router as admin_ai_quests_logs_router  # noqa: E402
-from app.domains.ai.api.admin_quests_details_router import router as admin_ai_quests_details_router  # noqa: E402
-from app.domains.ai.api.admin_quests_jobs_paged_router import router as admin_ai_quests_jobs_paged_router  # noqa: E402
-from app.domains.ai.api.admin_quests_jobs_cursor_router import router as admin_ai_quests_jobs_cursor_router  # noqa: E402
-from app.domains.ai.api.admin_rate_limits_router import router as admin_ai_rate_limits_router  # noqa: E402
-from app.domains.ai.api.stats_router import router as admin_ai_stats_router  # noqa: E402
-from app.domains.ai.api.settings_router import (  # noqa: E402
-    router as admin_ai_settings_router,
-    compat_router as admin_ai_settings_compat_router,
+from app.domains.ai.api.admin_quests_details_router import (
+    router as admin_ai_quests_details_router,  # noqa: E402
 )
-from app.domains.ai.api.user_pref_router import router as admin_ai_user_pref_router  # noqa: E402
-from app.domains.ai.api.usage_router import router as admin_ai_usage_router  # noqa: E402
+from app.domains.ai.api.admin_quests_jobs_cursor_router import (
+    router as admin_ai_quests_jobs_cursor_router,  # noqa: E402
+)
+from app.domains.ai.api.admin_quests_jobs_paged_router import (
+    router as admin_ai_quests_jobs_paged_router,  # noqa: E402
+)
+from app.domains.ai.api.admin_quests_logs_router import (
+    router as admin_ai_quests_logs_router,  # noqa: E402
+)
 
 # Временные доменные обёртки над legacy-ручками до полного переноса реализации
 # Основной роутер AI-квестов
-from app.domains.ai.api.admin_quests_router import router as admin_ai_quests_router  # noqa: E402
+from app.domains.ai.api.admin_quests_router import (
+    router as admin_ai_quests_router,  # noqa: E402
+)
+from app.domains.ai.api.admin_rate_limits_router import (
+    router as admin_ai_rate_limits_router,  # noqa: E402
+)
+from app.domains.ai.api.settings_router import (
+    compat_router as admin_ai_settings_compat_router,
+)
+from app.domains.ai.api.settings_router import (  # noqa: E402
+    router as admin_ai_settings_router,
+)
+from app.domains.ai.api.stats_router import (
+    router as admin_ai_stats_router,  # noqa: E402
+)
+from app.domains.ai.api.usage_router import (
+    router as admin_ai_usage_router,  # noqa: E402
+)
+from app.domains.ai.api.user_pref_router import (
+    router as admin_ai_user_pref_router,  # noqa: E402
+)
 
 # Ручки валидации могут отсутствовать, поэтому импортируем их опционально
 try:  # noqa: SIM105
@@ -32,7 +52,9 @@ try:  # noqa: SIM105
 except ModuleNotFoundError:  # pragma: no cover - отсутствует в тестовой среде
     admin_ai_validation_router = None
 
-from app.domains.ai.api.embedding_router import router as admin_embedding_router  # noqa: E402
+from app.domains.ai.api.embedding_router import (
+    router as admin_embedding_router,  # noqa: E402
+)
 
 router.include_router(admin_ai_quests_router)
 router.include_router(admin_ai_quests_logs_router)

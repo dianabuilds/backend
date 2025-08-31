@@ -6,7 +6,7 @@ from uuid import uuid4
 from sqlalchemy import Column, DateTime, String
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 
-from app.core.db.adapters import JSONB, UUID, ARRAY
+from app.core.db.adapters import ARRAY, JSONB, UUID
 from app.core.db.base import Base
 
 

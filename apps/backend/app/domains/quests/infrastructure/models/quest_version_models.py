@@ -3,16 +3,25 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
-from app.core.db.base import Base
 from app.core.db.adapters import JSONB, UUID
+from app.core.db.base import Base
 
 
 class QuestVersion(Base):
     __tablename__ = "quest_versions"
-    __table_args__ = (UniqueConstraint("quest_id", "number", name="uq_quest_version_number"),)
+    __table_args__ = (
+        UniqueConstraint("quest_id", "number", name="uq_quest_version_number"),
+    )
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("quests.id"), nullable=False, index=True)
@@ -25,8 +34,12 @@ class QuestVersion(Base):
     parent_version_id = Column(UUID(), nullable=True)
     meta = Column(JSONB, nullable=True)
 
-    nodes = relationship("QuestGraphNode", cascade="all, delete-orphan", back_populates="version")
-    edges = relationship("QuestGraphEdge", cascade="all, delete-orphan", back_populates="version")
+    nodes = relationship(
+        "QuestGraphNode", cascade="all, delete-orphan", back_populates="version"
+    )
+    edges = relationship(
+        "QuestGraphEdge", cascade="all, delete-orphan", back_populates="version"
+    )
 
 
 class QuestGraphNode(Base):
@@ -34,7 +47,12 @@ class QuestGraphNode(Base):
     __table_args__ = (UniqueConstraint("version_id", "key", name="uq_qnode_key"),)
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    version_id = Column(UUID(), ForeignKey("quest_versions.id", ondelete="CASCADE"), nullable=False, index=True)
+    version_id = Column(
+        UUID(),
+        ForeignKey("quest_versions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     key = Column(String, nullable=False)
     title = Column(String, nullable=False)
     type = Column(String, nullable=False, default="normal")
@@ -48,7 +66,12 @@ class QuestGraphEdge(Base):
     __tablename__ = "quest_graph_edges"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    version_id = Column(UUID(), ForeignKey("quest_versions.id", ondelete="CASCADE"), nullable=False, index=True)
+    version_id = Column(
+        UUID(),
+        ForeignKey("quest_versions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     from_node_key = Column(String, nullable=False)
     to_node_key = Column(String, nullable=False)
     label = Column(String, nullable=True)
@@ -61,6 +84,11 @@ class DraftLock(Base):
     __tablename__ = "quest_draft_locks"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    version_id = Column(UUID(), ForeignKey("quest_versions.id", ondelete="CASCADE"), nullable=False, index=True)
+    version_id = Column(
+        UUID(),
+        ForeignKey("quest_versions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     user_id = Column(UUID(), nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)

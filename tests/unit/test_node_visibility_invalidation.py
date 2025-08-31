@@ -8,14 +8,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.db.session import get_db
 from app.api import deps as api_deps
+from app.core.db.session import get_db
 from app.core.workspace_context import require_workspace
-from app.security import require_ws_viewer
-from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.api.nodes_router import router as nodes_router
-from app.domains.quests.infrastructure.models.navigation_cache_models import NavigationCache
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.quests.infrastructure.models.navigation_cache_models import (
+    NavigationCache,
+)
 from app.domains.workspaces.infrastructure.models import Workspace
+from app.security import require_ws_viewer
 
 
 @pytest.mark.asyncio
@@ -68,7 +70,12 @@ async def test_update_node_invalidates_navigation_cache(monkeypatch) -> None:
             [
                 ws,
                 node,
-                NavigationCache(node_slug="n1", navigation={"mode": "auto", "transitions": []}, compass=[], echo=[]),
+                NavigationCache(
+                    node_slug="n1",
+                    navigation={"mode": "auto", "transitions": []},
+                    compass=[],
+                    echo=[],
+                ),
             ]
         )
         await session.commit()
@@ -76,7 +83,7 @@ async def test_update_node_invalidates_navigation_cache(monkeypatch) -> None:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.patch(
-            f"/nodes/n1", params={"workspace_id": str(ws.id)}, json={"is_visible": False}
+            "/nodes/n1", params={"workspace_id": str(ws.id)}, json={"is_visible": False}
         )
         assert resp.status_code == 200
 

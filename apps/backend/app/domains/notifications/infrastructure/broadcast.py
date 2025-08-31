@@ -2,30 +2,37 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy.future import select
 from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from app.core.db.session import db_session
-from app.domains.notifications.infrastructure.models.notification_models import Notification, NotificationType
-from app.domains.notifications.infrastructure.models.campaign_models import NotificationCampaign, CampaignStatus
+from app.domains.notifications.infrastructure.models.campaign_models import (
+    CampaignStatus,
+    NotificationCampaign,
+)
+from app.domains.notifications.infrastructure.models.notification_models import (
+    Notification,
+    NotificationType,
+)
+from app.domains.notifications.infrastructure.transports.websocket import (
+    manager as ws_manager,
+)
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.notification import NotificationOut
-from app.domains.notifications.infrastructure.transports.websocket import manager as ws_manager
-
 
 # Регистр запущенных задач (в памяти)
 _tasks: dict[UUID, asyncio.Task] = {}
 
 
-def _build_user_filter(filters: Dict[str, Any]):
+def _build_user_filter(filters: dict[str, Any]):
     conds = []
     if not filters:
         return conds
-    if (role := filters.get("role")):
+    if role := filters.get("role"):
         conds.append(User.role == role)
     if filters.get("is_active") is True:
         conds.append(User.is_active.is_(True))
@@ -35,14 +42,14 @@ def _build_user_filter(filters: Dict[str, Any]):
         conds.append(User.is_premium.is_(True))
     if filters.get("is_premium") is False:
         conds.append(User.is_premium.is_(False))
-    if (created_from := filters.get("created_from")):
+    if created_from := filters.get("created_from"):
         conds.append(User.created_at >= created_from)
-    if (created_to := filters.get("created_to")):
+    if created_to := filters.get("created_to"):
         conds.append(User.created_at <= created_to)
     return conds
 
 
-async def estimate_recipients(session: AsyncSession, filters: Dict[str, Any]) -> int:
+async def estimate_recipients(session: AsyncSession, filters: dict[str, Any]) -> int:
     stmt = select(User.id)
     conds = _build_user_filter(filters)
     if conds:
@@ -63,7 +70,9 @@ async def _send_ws(user_id: UUID, notif: Notification):
 
 async def run_campaign(campaign_id: UUID, chunk_size: int = 1000):
     async with db_session() as session:
-        camp: Optional[NotificationCampaign] = await session.get(NotificationCampaign, campaign_id)
+        camp: NotificationCampaign | None = await session.get(
+            NotificationCampaign, campaign_id
+        )
         if not camp or camp.status in (CampaignStatus.canceled, CampaignStatus.done):
             return
         camp.status = CampaignStatus.running
@@ -85,16 +94,23 @@ async def run_campaign(campaign_id: UUID, chunk_size: int = 1000):
         try:
             for i in range(0, len(user_ids), chunk_size):
                 # Проверка отмены
-                camp2: Optional[NotificationCampaign] = await session.get(NotificationCampaign, campaign_id)
+                camp2: NotificationCampaign | None = await session.get(
+                    NotificationCampaign, campaign_id
+                )
                 if not camp2 or camp2.status == CampaignStatus.canceled:
                     break
 
-                batch = user_ids[i:i + chunk_size]
+                batch = user_ids[i : i + chunk_size]
                 # Вставка Notifications
                 # (Можно оптимизировать bulk_save_objects, но создадим обычные объекты)
                 notifs = []
                 for uid in batch:
-                    notif = Notification(user_id=uid, title=camp.title, message=camp.message, type=NotificationType(camp.type))
+                    notif = Notification(
+                        user_id=uid,
+                        title=camp.title,
+                        message=camp.message,
+                        type=NotificationType(camp.type),
+                    )
                     session.add(notif)
                     notifs.append((uid, notif))
                 await session.commit()  # получаем id и created_at
@@ -108,13 +124,17 @@ async def run_campaign(campaign_id: UUID, chunk_size: int = 1000):
 
                 await asyncio.sleep(0)  # уступаем цикл
 
-            camp3: Optional[NotificationCampaign] = await session.get(NotificationCampaign, campaign_id)
+            camp3: NotificationCampaign | None = await session.get(
+                NotificationCampaign, campaign_id
+            )
             if camp3 and camp3.status != CampaignStatus.canceled:
                 camp3.status = CampaignStatus.done
                 camp3.finished_at = datetime.utcnow()
                 await session.commit()
         except Exception:
-            camp4: Optional[NotificationCampaign] = await session.get(NotificationCampaign, campaign_id)
+            camp4: NotificationCampaign | None = await session.get(
+                NotificationCampaign, campaign_id
+            )
             if camp4:
                 camp4.status = CampaignStatus.failed
                 camp4.finished_at = datetime.utcnow()

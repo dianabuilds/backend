@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import json
-from typing import Dict, Optional, Set, List
 from uuid import UUID
 
 from app.core.cache_keys import cache_key, node_key
 from app.core.config import settings
-from app.core.log_events import cache_hit, cache_miss, cache_invalidate
-
+from app.core.log_events import cache_hit, cache_invalidate, cache_miss
 from app.domains.navigation.application.ports.cache_port import IKeyValueCache
 
 
@@ -51,17 +49,17 @@ class NavigationCacheService:
         self._cache = cache
 
     # Helpers for JSON-encoded sets of keys (index maintenance)
-    async def _get_set(self, key: str) -> Set[str]:
+    async def _get_set(self, key: str) -> set[str]:
         raw = await self._cache.get(key)
         if not raw:
             return set()
         try:
-            arr: List[str] = json.loads(raw)
+            arr: list[str] = json.loads(raw)
             return {str(x) for x in arr if isinstance(x, str)}
         except Exception:
             return set()
 
-    async def _set_set(self, key: str, s: Set[str]) -> None:
+    async def _set_set(self, key: str, s: set[str]) -> None:
         await self._cache.set(key, json.dumps(sorted(list(s))))
 
     async def _add_to_set(self, key: str, *members: str) -> None:
@@ -75,7 +73,9 @@ class NavigationCacheService:
         await self._cache.delete(key)
 
     # Navigation ---------------------------------------------------------
-    async def get_navigation(self, user_id: UUID | str, node_slug: str, mode: str | None) -> Optional[Dict]:
+    async def get_navigation(
+        self, user_id: UUID | str, node_slug: str, mode: str | None
+    ) -> dict | None:
         uid = str(user_id)
         key = _k_nav(uid, node_slug, mode or "auto")
         data = await self._cache.get(key)
@@ -90,7 +90,7 @@ class NavigationCacheService:
         user_id: UUID | str,
         node_slug: str,
         mode: str | None,
-        payload: Dict,
+        payload: dict,
         ttl_sec: int | None = None,
     ) -> None:
         uid = str(user_id)
@@ -141,7 +141,7 @@ class NavigationCacheService:
             cache_invalidate("nav", reason="all")
 
     # Modes -------------------------------------------------------------
-    async def get_modes(self, user_id: UUID | str, node_slug: str) -> Optional[Dict]:
+    async def get_modes(self, user_id: UUID | str, node_slug: str) -> dict | None:
         uid = str(user_id)
         key = _k_navm(uid, node_slug)
         data = await self._cache.get(key)
@@ -151,7 +151,13 @@ class NavigationCacheService:
         cache_miss("navm", key, user=uid)
         return None
 
-    async def set_modes(self, user_id: UUID | str, node_slug: str, payload: Dict, ttl_sec: int | None = None) -> None:
+    async def set_modes(
+        self,
+        user_id: UUID | str,
+        node_slug: str,
+        payload: dict,
+        ttl_sec: int | None = None,
+    ) -> None:
         uid = str(user_id)
         key = _k_navm(uid, node_slug)
         ttl = ttl_sec or settings.cache.nav_cache_ttl
@@ -168,7 +174,7 @@ class NavigationCacheService:
             cache_invalidate("navm", reason="by_node", key=node_slug)
 
     # Compass -----------------------------------------------------------
-    async def get_compass(self, user_id: UUID | str, params_hash: str) -> Optional[Dict]:
+    async def get_compass(self, user_id: UUID | str, params_hash: str) -> dict | None:
         uid = str(user_id)
         key = _k_comp(uid, params_hash)
         data = await self._cache.get(key)
@@ -178,7 +184,13 @@ class NavigationCacheService:
         cache_miss("comp", key, user=uid)
         return None
 
-    async def set_compass(self, user_id: UUID | str, params_hash: str, payload: Dict, ttl_sec: int | None = None) -> None:
+    async def set_compass(
+        self,
+        user_id: UUID | str,
+        params_hash: str,
+        payload: dict,
+        ttl_sec: int | None = None,
+    ) -> None:
         uid = str(user_id)
         key = _k_comp(uid, params_hash)
         ttl = ttl_sec or settings.cache.compass_cache_ttl
@@ -209,9 +221,7 @@ class NavigationCacheService:
         keys = await self._cache.scan(pattern)
         if keys:
             await self._cache.delete(*keys)
-        idx_keys = await self._cache.scan(
-            f"{settings.cache.key_version}:user:*:comp"
-        )
+        idx_keys = await self._cache.scan(f"{settings.cache.key_version}:user:*:comp")
         for idx in idx_keys:
             await self._del_set_key(idx)
         if keys:

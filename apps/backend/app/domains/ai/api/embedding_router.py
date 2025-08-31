@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import time
 import logging
-from fastapi import APIRouter, Depends, Body
+import time
+
+from fastapi import APIRouter, Body, Depends
+
 from app.core.config import settings
-from app.domains.ai.application.embedding_service import get_embedding, EMBEDDING_DIM
-from app.security import require_admin_role, ADMIN_AUTH_RESPONSES
+from app.domains.ai.application.embedding_service import EMBEDDING_DIM, get_embedding
 from app.domains.users.infrastructure.models.user import User
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 logger = logging.getLogger(__name__)
 

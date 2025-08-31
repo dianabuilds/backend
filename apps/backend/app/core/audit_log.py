@@ -8,19 +8,21 @@ required imports ensures the module loads correctly and admin endpoints are
 registered.
 """
 
-from typing import Any
 import asyncio
 import logging
+from typing import Any
 
-from app.core.log_filters import ip_var, ua_var
 from app.core.db.session import db_session, get_current_session
+from app.core.log_filters import ip_var, ua_var
 from app.domains.admin.infrastructure.models.audit_log import AuditLog
 
 
 class AuditLogHandler(logging.Handler):
     """Logging handler that persists admin actions to the database."""
 
-    def emit(self, record: logging.LogRecord) -> None:  # pragma: no cover - side effects
+    def emit(
+        self, record: logging.LogRecord
+    ) -> None:  # pragma: no cover - side effects
         try:
             if record.msg != "admin_action":
                 return
@@ -107,4 +109,3 @@ async def log_admin_action(
         extra=extra or None,
     )
     session.add(log)
-

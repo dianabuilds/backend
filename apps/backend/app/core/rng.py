@@ -1,9 +1,8 @@
 import os
 import random
 import secrets
-from typing import Optional
 
-_CURRENT_SEED: Optional[int] = None
+_CURRENT_SEED: int | None = None
 _rng = random.Random()
 
 
@@ -35,7 +34,7 @@ def next_seed() -> int:
     return _rng.randrange(1, 2**32)
 
 
-def get_seed() -> Optional[int]:
+def get_seed() -> int | None:
     """Return the seed used to initialise the RNG."""
     return _CURRENT_SEED
 

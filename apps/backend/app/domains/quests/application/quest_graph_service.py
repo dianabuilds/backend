@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Dict, Iterable, List
 from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.navigation.application.cache_singleton import navcache
-from app.domains.quests.infrastructure.models.navigation_cache_models import NavigationCache
+from app.domains.quests.infrastructure.models.navigation_cache_models import (
+    NavigationCache,
+)
 from app.domains.quests.infrastructure.models.quest_version_models import (
     QuestGraphEdge,
     QuestGraphNode,
@@ -22,22 +24,34 @@ class QuestGraphService:
 
     async def load_graph(
         self, db: AsyncSession, version_id: UUID
-    ) -> tuple[QuestVersion, List[QuestStep], List[QuestTransition]]:
+    ) -> tuple[QuestVersion, list[QuestStep], list[QuestTransition]]:
         """Load quest graph for the given version."""
         version = await db.get(QuestVersion, version_id)
         if not version:
             raise ValueError("version_not_found")
 
         nodes: Iterable[QuestGraphNode] = (
-            await db.execute(
-                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
+            (
+                await db.execute(
+                    select(QuestGraphNode).where(
+                        QuestGraphNode.version_id == version_id
+                    )
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         edges: Iterable[QuestGraphEdge] = (
-            await db.execute(
-                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
+            (
+                await db.execute(
+                    select(QuestGraphEdge).where(
+                        QuestGraphEdge.version_id == version_id
+                    )
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         steps = [
             QuestStep(
@@ -62,8 +76,8 @@ class QuestGraphService:
         self,
         db: AsyncSession,
         version_id: UUID,
-        steps: List[QuestStep],
-        transitions: List[QuestTransition],
+        steps: list[QuestStep],
+        transitions: list[QuestTransition],
     ) -> None:
         """Persist quest graph and regenerate navigation cache."""
         await db.execute(
@@ -113,7 +127,7 @@ class QuestGraphService:
         """Generate navigation cache entries from stored graph."""
         _version, steps, transitions = await self.load_graph(db, version_id)
         await db.execute(delete(NavigationCache))
-        adj: Dict[str, List[str]] = {}
+        adj: dict[str, list[str]] = {}
         for t in transitions:
             adj.setdefault(t.from_node_key, []).append(t.to_node_key)
         now = datetime.utcnow().isoformat()

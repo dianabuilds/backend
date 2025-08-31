@@ -4,7 +4,6 @@ import re
 import time
 from collections import deque
 from datetime import datetime
-from typing import Optional
 
 import redis.asyncio as redis
 from fastapi import Depends, Request, Response
@@ -45,7 +44,9 @@ def rate_limit_dep(rule: str):
     """
     times, seconds = _parse_rule(rule)
 
-    async def _callback(request: Request, response: Response, pexpire):  # pragma: no cover
+    async def _callback(
+        request: Request, response: Response, pexpire
+    ):  # pragma: no cover
         ip = get_real_ip(request)
         recent_429.append(
             {
@@ -81,7 +82,9 @@ def rate_limit_dep_key(key: str):
     """
     attr = f"rules_{key}"
 
-    async def _callback(request: Request, response: Response, pexpire):  # pragma: no cover
+    async def _callback(
+        request: Request, response: Response, pexpire
+    ):  # pragma: no cover
         ip = get_real_ip(request)
         rule_str = getattr(settings.rate_limit, attr, "")
         recent_429.append(
@@ -188,7 +191,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         capacity: int,
         fill_rate: float,
         burst: int,
-        redis_client: Optional[redis.Redis] = None,
+        redis_client: redis.Redis | None = None,
         redis_url: str | None = None,
     ) -> None:
         super().__init__(app)
@@ -200,7 +203,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         else:
             redis_url = redis_url or settings.rate_limit.redis_url
             self._redis = create_async_redis(
-                redis_url, decode_responses=True, connect_timeout=2.0, max_connections=100
+                redis_url,
+                decode_responses=True,
+                connect_timeout=2.0,
+                max_connections=100,
             )
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
@@ -247,10 +253,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             else:
                 allowed = False
                 retry = (1 - tokens) / self.fill_rate
-            await self._redis.hset(
-                key, mapping={"tokens": tokens, "timestamp": now}
-            )
-            await self._redis.expire(
-                key, int(max_tokens / self.fill_rate) or 1
-            )
+            await self._redis.hset(key, mapping={"tokens": tokens, "timestamp": now})
+            await self._redis.expire(key, int(max_tokens / self.fill_rate) or 1)
             return allowed, retry

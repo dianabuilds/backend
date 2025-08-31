@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,24 +16,25 @@ _MAX_PROMPT = 8_000
 
 
 async def save_stage_log(
-        db: AsyncSession,
-        *,
-        job_id: Any,
-        stage: str,
-        provider: str,
-        model: str,
-        prompt: str,
-        raw_response: str,
-        usage: Dict[str, int],
-        cost: float,
-        status: str = "ok",
+    db: AsyncSession,
+    *,
+    job_id: Any,
+    stage: str,
+    provider: str,
+    model: str,
+    prompt: str,
+    raw_response: str,
+    usage: dict[str, int],
+    cost: float,
+    status: str = "ok",
 ) -> None:
     try:
         safe_prompt = (prompt or "")[:_MAX_PROMPT]
         full_raw = raw_response or ""
         # Сохраняем полный raw во внешнее хранилище и готовим усечённую копию для БД (доменные слои telemetry)
-        raw_url, truncated = RawPayloadService(RawPayloadStore()).store_large_text(full_raw,
-                                                                                   filename_hint=f"{job_id}-{stage}")
+        raw_url, truncated = RawPayloadService(RawPayloadStore()).store_large_text(
+            full_raw, filename_hint=f"{job_id}-{stage}"
+        )
         # Дополнительно ограничим «страховочную» длину, если ENV лимит больше _MAX_RAW
         safe_raw = truncated[:_MAX_RAW]
 
@@ -53,4 +54,6 @@ async def save_stage_log(
         db.add(log)
         await db.flush()
     except Exception as e:
-        logger.warning("save_stage_log failed for job %s stage %s: %s", job_id, stage, e)
+        logger.warning(
+            "save_stage_log failed for job %s stage %s: %s", job_id, stage, e
+        )

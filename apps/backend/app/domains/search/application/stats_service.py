@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List
 
 
 @dataclass
@@ -14,7 +13,7 @@ class SearchStatsService:
     """In-memory aggregation of search queries."""
 
     def __init__(self) -> None:
-        self._stats: Dict[str, _QueryStat] = {}
+        self._stats: dict[str, _QueryStat] = {}
 
     def record(self, query: str, results: int) -> None:
         """Record a search query and the number of results returned."""
@@ -24,7 +23,7 @@ class SearchStatsService:
         stat.count += 1
         stat.results = results
 
-    def top(self, limit: int = 10) -> List[dict[str, int | str]]:
+    def top(self, limit: int = 10) -> list[dict[str, int | str]]:
         """Return top queries by frequency."""
         items = sorted(self._stats.items(), key=lambda kv: kv[1].count, reverse=True)
         return [

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Optional, Sequence
-from uuid import UUID
+from collections.abc import Sequence
 from datetime import datetime
+from uuid import UUID
 
 
 class IEventQuestsRepository:
@@ -21,5 +21,7 @@ class IEventQuestsRepository:
     ) -> object:  # pragma: no cover - контракт
         ...
 
-    async def count_completions(self, quest_id, workspace_id: UUID) -> int:  # pragma: no cover - контракт
+    async def count_completions(
+        self, quest_id, workspace_id: UUID
+    ) -> int:  # pragma: no cover - контракт
         ...

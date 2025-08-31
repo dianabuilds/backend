@@ -50,7 +50,9 @@ def downgrade():
         try:
             op.add_column(
                 "nodes",
-                sa.Column("content_format", sa.Enum(name="contentformat"), nullable=True),
+                sa.Column(
+                    "content_format", sa.Enum(name="contentformat"), nullable=True
+                ),
             )
         except Exception:
             pass

@@ -1,8 +1,7 @@
-from datetime import datetime, timezone
-
 import importlib
 import os
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -27,7 +26,7 @@ async def _clear():
 async def test_quota_service_updates_counters():
     await _clear()
     qs = QuotaService()
-    now = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2024, 1, 1, tzinfo=UTC)
     preview = PreviewContext(now=now)
 
     res1 = await qs.consume(
@@ -68,8 +67,8 @@ async def test_quota_service_updates_counters():
 async def test_quota_service_resets_periods():
     await _clear()
     qs = QuotaService()
-    day1 = PreviewContext(now=datetime(2024, 1, 1, tzinfo=timezone.utc))
-    day2 = PreviewContext(now=datetime(2024, 1, 2, tzinfo=timezone.utc))
+    day1 = PreviewContext(now=datetime(2024, 1, 1, tzinfo=UTC))
+    day2 = PreviewContext(now=datetime(2024, 1, 2, tzinfo=UTC))
 
     await qs.consume(
         user_id="u1",
@@ -88,8 +87,8 @@ async def test_quota_service_resets_periods():
     assert res_day2["remaining"] == 4
 
     await _clear()
-    month1 = PreviewContext(now=datetime(2024, 1, 15, tzinfo=timezone.utc))
-    month2 = PreviewContext(now=datetime(2024, 2, 15, tzinfo=timezone.utc))
+    month1 = PreviewContext(now=datetime(2024, 1, 15, tzinfo=UTC))
+    month2 = PreviewContext(now=datetime(2024, 2, 15, tzinfo=UTC))
 
     await qs.consume(
         user_id="u1",

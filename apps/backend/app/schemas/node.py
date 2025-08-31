@@ -4,7 +4,14 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 from pydantic.alias_generators import to_camel
 
 
@@ -17,9 +24,7 @@ class NodeBase(BaseModel):
     premium_only: bool | None = Field(
         default=None,
         alias="premiumOnly",
-        validation_alias=AliasChoices(
-            "premium_only", "is_premium_only", "premiumOnly"
-        ),
+        validation_alias=AliasChoices("premium_only", "is_premium_only", "premiumOnly"),
     )
     nft_required: str | None = Field(default=None, alias="nftRequired")
     ai_generated: bool | None = Field(default=None, alias="aiGenerated")
@@ -74,9 +79,7 @@ class NodeUpdate(BaseModel):
     premium_only: bool | None = Field(
         default=None,
         alias="premiumOnly",
-        validation_alias=AliasChoices(
-            "premium_only", "is_premium_only", "premiumOnly"
-        ),
+        validation_alias=AliasChoices("premium_only", "is_premium_only", "premiumOnly"),
     )
     nft_required: str | None = Field(default=None, alias="nftRequired")
     ai_generated: bool | None = Field(default=None, alias="aiGenerated")
@@ -132,9 +135,7 @@ class NodeBulkPatchChanges(BaseModel):
     premium_only: bool | None = Field(
         default=None,
         alias="premiumOnly",
-        validation_alias=AliasChoices(
-            "premium_only", "is_premium_only", "premiumOnly"
-        ),
+        validation_alias=AliasChoices("premium_only", "is_premium_only", "premiumOnly"),
     )
     is_recommendable: bool | None = Field(default=None, alias="isRecommendable")
     workspace_id: UUID | None = Field(default=None, alias="workspaceId")

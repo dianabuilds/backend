@@ -4,5 +4,7 @@ from typing import BinaryIO, Protocol
 
 
 class IStorageGateway(Protocol):
-    def save(self, fileobj: BinaryIO, filename: str, content_type: str) -> str:  # pragma: no cover - контракт
+    def save(
+        self, fileobj: BinaryIO, filename: str, content_type: str
+    ) -> str:  # pragma: no cover - контракт
         ...

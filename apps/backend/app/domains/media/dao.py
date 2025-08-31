@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import List
+import builtins
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import MediaAsset
 from app.domains.workspaces.application.service import scope_by_workspace
+
+from .models import MediaAsset
 
 
 class MediaAssetDAO:
@@ -25,7 +26,7 @@ class MediaAssetDAO:
         workspace_id: UUID,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[MediaAsset]:
+    ) -> builtins.list[MediaAsset]:
         stmt = (
             select(MediaAsset)
             .order_by(MediaAsset.created_at.desc())

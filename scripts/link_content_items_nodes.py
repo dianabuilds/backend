@@ -6,8 +6,8 @@ via migration.
 """
 
 import asyncio
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from sqlalchemy import text
 

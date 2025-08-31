@@ -225,9 +225,8 @@ async def bulk_patch_nodes(
         node.updated_by_user_id = current_user.id
         updated_ids.append(str(node.id))
         if (
-            (changes.is_visible is not None and changes.is_visible != was_visible)
-            or changes.workspace_id is not None
-        ):
+            changes.is_visible is not None and changes.is_visible != was_visible
+        ) or changes.workspace_id is not None:
             invalidate_slugs.append(node.slug)
             try:
                 await navsvc.invalidate_navigation_cache(db, node)

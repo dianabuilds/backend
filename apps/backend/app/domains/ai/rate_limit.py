@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import Optional, Tuple, Dict
 
 from app.core.cache import cache as shared_cache
 
 # Рантайм-оверрайды лимитов (в оперативной памяти процесса)
-_provider_limits_override: Dict[str, int] = {}
-_model_limits_override: Dict[str, int] = {}
+_provider_limits_override: dict[str, int] = {}
+_model_limits_override: dict[str, int] = {}
 
 
-def set_provider_limit(provider: str, rpm: Optional[int]) -> None:
+def set_provider_limit(provider: str, rpm: int | None) -> None:
     """Установить лимит RPM для провайдера (None — удалить оверрайд)."""
     key = (provider or "").strip().lower()
     if not key:
@@ -22,7 +21,7 @@ def set_provider_limit(provider: str, rpm: Optional[int]) -> None:
         _provider_limits_override[key] = max(1, int(rpm))
 
 
-def set_model_limit(model: str, rpm: Optional[int]) -> None:
+def set_model_limit(model: str, rpm: int | None) -> None:
     """Установить лимит RPM для модели (None — удалить оверрайд)."""
     key = (model or "").strip().lower()
     if not key:
@@ -97,13 +96,20 @@ def _limit_for_provider(provider: str) -> int:
         return 60
 
 
-def _limit_for_model(model: str) -> Optional[int]:
+def _limit_for_model(model: str) -> int | None:
     # Сначала рантайм-оверрайд
     key = (model or "").strip().lower()
     if key in _model_limits_override:
         return max(1, int(_model_limits_override[key]))
     # Затем ENV: AI_RATE_MODEL_{MODEL}_RPM
-    key_env = (model or "").upper().replace("/", "_").replace(":", "_").replace(".", "_").replace("-", "_")
+    key_env = (
+        (model or "")
+        .upper()
+        .replace("/", "_")
+        .replace(":", "_")
+        .replace(".", "_")
+        .replace("-", "_")
+    )
     env_key = f"AI_RATE_MODEL_{key_env}_RPM"
     try:
         v = int(os.getenv(env_key) or "")
@@ -130,7 +136,9 @@ async def try_acquire(provider: str, *, amount: int = 1) -> bool:
     return await _incr_with_ttl(key, amount, limit)
 
 
-async def try_acquire_model(provider: str, model: str, *, amount: int = 1) -> Optional[bool]:
+async def try_acquire_model(
+    provider: str, model: str, *, amount: int = 1
+) -> bool | None:
     limit = _limit_for_model(model)
     if limit is None:
         return None
@@ -139,7 +147,9 @@ async def try_acquire_model(provider: str, model: str, *, amount: int = 1) -> Op
     return ok
 
 
-async def try_acquire_for(provider: str, model: str, *, amount: int = 1) -> Tuple[bool, Optional[str]]:
+async def try_acquire_for(
+    provider: str, model: str, *, amount: int = 1
+) -> tuple[bool, str | None]:
     m = await try_acquire_model(provider, model, amount=amount)
     if m is False:
         return False, "model"

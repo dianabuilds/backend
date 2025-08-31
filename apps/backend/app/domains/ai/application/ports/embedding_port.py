@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol, List
+from typing import Protocol
 
 
 class IEmbeddingProvider(Protocol):
@@ -8,5 +8,5 @@ class IEmbeddingProvider(Protocol):
     def dim(self) -> int:  # pragma: no cover - контракт
         ...
 
-    def embed(self, text: str) -> List[float]:  # pragma: no cover - контракт
+    def embed(self, text: str) -> list[float]:  # pragma: no cover - контракт
         ...

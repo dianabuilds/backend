@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import HTTPException, status
+
 from app.domains.users.infrastructure.models.user import User
 
 

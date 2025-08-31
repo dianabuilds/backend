@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from typing import Dict, Tuple
 
 
 @dataclass(frozen=True)
@@ -12,7 +11,7 @@ class ModelPrice:
     completion_per_1k: float
 
 
-_DEFAULT_PRICES: Dict[str, ModelPrice] = {
+_DEFAULT_PRICES: dict[str, ModelPrice] = {
     "gpt-4o-mini": ModelPrice(0.150, 0.600),
     "gpt-4o": ModelPrice(5.000, 15.000),
     "gpt-4.1-mini": ModelPrice(0.300, 1.200),
@@ -23,13 +22,13 @@ _DEFAULT_PRICES: Dict[str, ModelPrice] = {
 }
 
 
-def _load_override() -> Dict[str, ModelPrice]:
+def _load_override() -> dict[str, ModelPrice]:
     raw = os.getenv("AI_PRICING_JSON")
     if not raw:
         return {}
     try:
         data = json.loads(raw)
-        out: Dict[str, ModelPrice] = {}
+        out: dict[str, ModelPrice] = {}
         if isinstance(data, dict):
             for name, cfg in data.items():
                 if not isinstance(cfg, dict):
@@ -43,10 +42,10 @@ def _load_override() -> Dict[str, ModelPrice]:
         return {}
 
 
-_PRICES: Dict[str, ModelPrice] = {**_DEFAULT_PRICES, **_load_override()}
+_PRICES: dict[str, ModelPrice] = {**_DEFAULT_PRICES, **_load_override()}
 
 
-def describe_price(model: str) -> Tuple[float, float]:
+def describe_price(model: str) -> tuple[float, float]:
     mp = _PRICES.get(model)
     if mp:
         return (mp.prompt_per_1k, mp.completion_per_1k)

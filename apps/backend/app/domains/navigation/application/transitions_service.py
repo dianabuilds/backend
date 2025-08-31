@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Optional
+from collections.abc import Iterable
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,11 +8,11 @@ from sqlalchemy.future import select
 
 from app.core.deps.guards import check_transition
 from app.core.preview import PreviewContext
-from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.navigation.infrastructure.models.transition_models import (
     NodeTransition,
     NodeTransitionType,
 )
+from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
 
 
@@ -23,9 +23,9 @@ class TransitionsService:
         node: Node,
         user: User,
         workspace_id: UUID,
-        transition_type: Optional[NodeTransitionType] = None,
+        transition_type: NodeTransitionType | None = None,
         preview: PreviewContext | None = None,
-    ) -> List[NodeTransition]:
+    ) -> list[NodeTransition]:
         query = (
             select(NodeTransition)
             .join(Node, NodeTransition.to_node_id == Node.id)
@@ -38,7 +38,7 @@ class TransitionsService:
             query = query.where(NodeTransition.type == transition_type)
         result = await db.execute(query)
         transitions: Iterable[NodeTransition] = result.scalars().all()
-        allowed: List[NodeTransition] = []
+        allowed: list[NodeTransition] = []
         for t in transitions:
             if check_transition(t, user, preview):
                 allowed.append(t)

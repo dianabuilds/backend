@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from app.core.security import (
-    get_password_hash,
-    verify_password,
     create_access_token,
     create_refresh_token,
+    get_password_hash,
     verify_access_token,
+    verify_password,
     verify_refresh_token,
 )
 from app.domains.auth.application.ports.hasher import IPasswordHasher
@@ -29,8 +27,8 @@ class TokenService(ITokenService):
     def create_refresh_token(self, user_id) -> str:
         return create_refresh_token(user_id)
 
-    def verify_access_token(self, token: str) -> Optional[str]:
+    def verify_access_token(self, token: str) -> str | None:
         return verify_access_token(token)
 
-    def verify_refresh_token(self, token: str) -> Optional[str]:
+    def verify_refresh_token(self, token: str) -> str | None:
         return verify_refresh_token(token)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -21,7 +22,7 @@ class NotificationRules(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     @model_validator(mode="after")
-    def _dedupe(self) -> "NotificationRules":
+    def _dedupe(self) -> NotificationRules:
         """Remove duplicate channels per trigger."""
         self.achievement = list(dict.fromkeys(self.achievement))
         self.publish = list(dict.fromkeys(self.publish))

@@ -3,19 +3,22 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.notifications.infrastructure.models.campaign_models import NotificationCampaign, CampaignStatus
+from app.domains.notifications.infrastructure.models.campaign_models import (
+    CampaignStatus,
+    NotificationCampaign,
+)
 from app.domains.users.infrastructure.models.user import User
 
 logger = logging.getLogger(__name__)
 
 
-def _apply_user_filters(q, filters: Dict[str, Any]):
+def _apply_user_filters(q, filters: dict[str, Any]):
     conds = []
     role = filters.get("role")
     if role:
@@ -37,7 +40,7 @@ def _apply_user_filters(q, filters: Dict[str, Any]):
     return q
 
 
-async def estimate_recipients(db: AsyncSession, filters: Dict[str, Any]) -> int:
+async def estimate_recipients(db: AsyncSession, filters: dict[str, Any]) -> int:
     q = select(User)
     q = _apply_user_filters(q, filters or {})
     res = await db.execute(q)
@@ -49,6 +52,7 @@ def start_campaign_async(campaign_id: UUID) -> None:
     Лёгкий асинхронный запуск кампании. В реальной системе должен вызывать воркер.
     Здесь — безопасный no-op с логированием, чтобы не блокировать API.
     """
+
     async def _runner(cid: UUID) -> None:
         try:
             logger.info("notification_broadcast_start cid=%s", cid)

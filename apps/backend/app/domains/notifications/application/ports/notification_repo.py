@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
 
@@ -14,5 +14,5 @@ class INotificationRepository(Protocol):
         message: str,
         type: Any,
         is_preview: bool = False,
-    ) -> Dict[str, Any]:  # pragma: no cover - контракт
+    ) -> dict[str, Any]:  # pragma: no cover - контракт
         ...

@@ -14,7 +14,9 @@ TRUNCATE_LEN = 16384  # должен соответствовать RAW_LOG_MAX_
 def upgrade():
     # Добавляем новые колонки
     op.add_column("generation_job_logs", sa.Column("raw_url", sa.Text(), nullable=True))
-    op.add_column("generation_job_logs", sa.Column("raw_preview", sa.Text(), nullable=True))
+    op.add_column(
+        "generation_job_logs", sa.Column("raw_preview", sa.Text(), nullable=True)
+    )
 
     # Заполняем raw_preview усечённой копией raw_response для уже существующих записей
     bind = op.get_bind()

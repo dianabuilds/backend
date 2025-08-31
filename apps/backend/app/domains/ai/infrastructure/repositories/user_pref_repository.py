@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.infrastructure.models.user_pref_models import UserAIPref
 
@@ -13,7 +12,7 @@ class UserAIPrefRepository:
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def get(self, user_id: UUID) -> Optional[UserAIPref]:
+    async def get(self, user_id: UUID) -> UserAIPref | None:
         res = await self._db.execute(
             select(UserAIPref).where(UserAIPref.user_id == user_id)
         )

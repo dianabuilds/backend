@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Dict, Any
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -11,7 +11,6 @@ class MediaAssetOut(BaseModel):
     workspace_id: UUID
     url: str
     type: str
-    metadata_json: Optional[Dict[str, Any]] = None
+    metadata_json: dict[str, Any] | None = None
 
     model_config = {"from_attributes": True}
-

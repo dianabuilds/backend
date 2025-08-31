@@ -7,12 +7,21 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
-from app.domains.notifications.infrastructure.models.notification_models import NotificationType
+from app.domains.notifications.application.notify_service import NotifyService
+from app.domains.notifications.infrastructure.models.notification_models import (
+    NotificationType,
+)
+from app.domains.notifications.infrastructure.repositories.notification_repository import (
+    NotificationRepository,
+)
+from app.domains.notifications.infrastructure.transports.websocket import (
+    WebsocketPusher,
+)
+from app.domains.notifications.infrastructure.transports.websocket import (
+    manager as ws_manager,
+)
 from app.domains.users.infrastructure.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.domains.notifications.application.notify_service import NotifyService
-from app.domains.notifications.infrastructure.repositories.notification_repository import NotificationRepository
-from app.domains.notifications.infrastructure.transports.websocket import WebsocketPusher, manager as ws_manager
 
 admin_required = require_admin_role({"admin"})
 

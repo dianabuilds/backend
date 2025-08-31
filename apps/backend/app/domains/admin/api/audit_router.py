@@ -2,9 +2,9 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_
 
 from app.core.db.session import get_db
 from app.domains.admin.infrastructure.models.audit_log import AuditLog

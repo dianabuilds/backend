@@ -17,8 +17,12 @@ class ModerationCase(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    type = Column(String, nullable=False)  # complaint_content | complaint_user | support_request | appeal
-    status = Column(String, nullable=False, default="new")  # new | assigned | in_progress | waiting_user | resolved | rejected | escalated
+    type = Column(
+        String, nullable=False
+    )  # complaint_content | complaint_user | support_request | appeal
+    status = Column(
+        String, nullable=False, default="new"
+    )  # new | assigned | in_progress | waiting_user | resolved | rejected | escalated
     priority = Column(String, nullable=False, default="P2")  # P0 | P1 | P2
 
     reporter_id = Column(UUID(), nullable=True)
@@ -41,10 +45,18 @@ class ModerationCase(Base):
     reason_code = Column(String, nullable=True)  # при закрытии
     resolution = Column(String, nullable=True)  # resolved | rejected
 
-    labels = relationship("CaseLabel", cascade="all, delete-orphan", back_populates="case")
-    notes = relationship("CaseNote", cascade="all, delete-orphan", back_populates="case")
-    attachments = relationship("CaseAttachment", cascade="all, delete-orphan", back_populates="case")
-    events = relationship("CaseEvent", cascade="all, delete-orphan", back_populates="case")
+    labels = relationship(
+        "CaseLabel", cascade="all, delete-orphan", back_populates="case"
+    )
+    notes = relationship(
+        "CaseNote", cascade="all, delete-orphan", back_populates="case"
+    )
+    attachments = relationship(
+        "CaseAttachment", cascade="all, delete-orphan", back_populates="case"
+    )
+    events = relationship(
+        "CaseEvent", cascade="all, delete-orphan", back_populates="case"
+    )
 
 
 class ModerationLabel(Base):
@@ -60,8 +72,12 @@ class CaseLabel(Base):
     __tablename__ = "case_labels"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    case_id = Column(UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False)
-    label_id = Column(UUID(), ForeignKey("moderation_labels.id", ondelete="CASCADE"), nullable=False)
+    case_id = Column(
+        UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False
+    )
+    label_id = Column(
+        UUID(), ForeignKey("moderation_labels.id", ondelete="CASCADE"), nullable=False
+    )
 
     case = relationship("ModerationCase", back_populates="labels")
     label = relationship("ModerationLabel")
@@ -71,7 +87,9 @@ class CaseNote(Base):
     __tablename__ = "case_notes"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    case_id = Column(UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False)
+    case_id = Column(
+        UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False
+    )
     author_id = Column(UUID(), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     text = Column(Text, nullable=False)
@@ -84,7 +102,9 @@ class CaseAttachment(Base):
     __tablename__ = "case_attachments"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    case_id = Column(UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False)
+    case_id = Column(
+        UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False
+    )
     author_id = Column(UUID(), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     url = Column(String, nullable=False)
@@ -98,9 +118,13 @@ class CaseEvent(Base):
     __tablename__ = "case_events"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    case_id = Column(UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False)
+    case_id = Column(
+        UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False
+    )
     actor_id = Column(UUID(), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    kind = Column(String, nullable=False)  # assign | change_priority | add_label | remove_label | add_note | add_attachment | status_change | decision_* | escalate_overdue | reopen
+    kind = Column(
+        String, nullable=False
+    )  # assign | change_priority | add_label | remove_label | add_note | add_attachment | status_change | decision_* | escalate_overdue | reopen
     payload = Column(JSONB, nullable=True)
     case = relationship("ModerationCase", back_populates="events")

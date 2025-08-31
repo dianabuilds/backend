@@ -5,13 +5,13 @@ import io
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.api.deps import get_current_user
-from app.core.workspace_context import require_workspace
 from app.core.deps import get_storage
 from app.core.log_events import (
     node_cover_upload_fail,
     node_cover_upload_start,
     node_cover_upload_success,
 )
+from app.core.workspace_context import require_workspace
 from app.domains.media.application.ports.storage_port import IStorageGateway
 from app.domains.media.application.storage_service import StorageService
 

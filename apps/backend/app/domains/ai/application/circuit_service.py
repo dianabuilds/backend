@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import time
 import os
+import time
 from dataclasses import dataclass
-from typing import Dict
 
 
 @dataclass
@@ -14,7 +13,7 @@ class _State:
 
 class LLMCircuitBreaker:
     def __init__(self) -> None:
-        self._states: Dict[str, _State] = {}
+        self._states: dict[str, _State] = {}
 
     def _get(self, provider: str) -> _State:
         return self._states.setdefault(provider, _State())

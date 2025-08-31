@@ -5,13 +5,15 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
-from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.ai.application.embedding_service import update_node_embedding
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.api.deps import assert_owner_or_role
+from app.core.db.session import get_db
+from app.domains.ai.application.embedding_service import update_node_embedding
+from app.domains.nodes.infrastructure.models.node import Node
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(prefix="/admin/ai", tags=["admin-ai"], responses=ADMIN_AUTH_RESPONSES)
+router = APIRouter(
+    prefix="/admin/ai", tags=["admin-ai"], responses=ADMIN_AUTH_RESPONSES
+)
 admin_required = require_admin_role()
 
 

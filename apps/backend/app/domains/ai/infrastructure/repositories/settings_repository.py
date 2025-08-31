@@ -13,7 +13,9 @@ class AISettingsRepository(IAISettingsRepository):
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def get_singleton(self, *, create_if_missing: bool, defaults: dict[str, Any]) -> AISettings:
+    async def get_singleton(
+        self, *, create_if_missing: bool, defaults: dict[str, Any]
+    ) -> AISettings:
         result = await self._db.execute(select(AISettings).where(AISettings.id == 1))
         row = result.scalar_one_or_none()
         if row is None and create_if_missing:

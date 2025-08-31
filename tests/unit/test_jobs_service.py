@@ -16,7 +16,6 @@ os.environ.setdefault("AUTH__REDIS_URL", "fakeredis://")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
-from app.core.db.base import Base
 from app.domains.admin.application.jobs_service import JobsService
 from app.models.background_job_history import BackgroundJobHistory
 

@@ -1,22 +1,23 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
+
 from pydantic import BaseModel
 
 
 class GenerateQuestIn(BaseModel):
-    world_template_id: Optional[UUID] = None
+    world_template_id: UUID | None = None
     structure: str  # linear | vn_branching | epic
-    length: str     # short | long
-    tone: str       # light | dark | ironic | custom
+    length: str  # short | long
+    tone: str  # light | dark | ironic | custom
     genre: str
-    locale: Optional[str] = None
+    locale: str | None = None
     extras: dict[str, Any] | None = None
-    model: Optional[str] = None
+    model: str | None = None
     remember: bool = False
-    workspace_id: Optional[UUID] = None
+    workspace_id: UUID | None = None
 
 
 class GenerationJobOut(BaseModel):

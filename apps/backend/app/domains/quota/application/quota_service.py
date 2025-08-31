@@ -35,10 +35,16 @@ class QuotaService:
                 "overage": False,
             }
 
-        now = preview.now.astimezone(UTC) if preview and preview.now else datetime.now(tz=UTC)
+        now = (
+            preview.now.astimezone(UTC)
+            if preview and preview.now
+            else datetime.now(tz=UTC)
+        )
         if scope == "day":
             period = now.strftime("%Y%m%d")
-            reset_at = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            reset_at = now.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ) + timedelta(days=1)
         elif scope == "month":
             period = now.strftime("%Y%m")
             first_day = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

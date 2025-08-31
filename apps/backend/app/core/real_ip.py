@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from ipaddress import ip_address, ip_network
-from typing import Optional
 
 from fastapi import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -23,7 +22,7 @@ def _is_trusted(remote: str) -> bool:
     return False
 
 
-def get_real_ip(request: Request) -> Optional[str]:
+def get_real_ip(request: Request) -> str | None:
     """Return best-effort real client IP address."""
     if not settings.real_ip.enabled or not request.client:
         return request.client.host if request.client else None

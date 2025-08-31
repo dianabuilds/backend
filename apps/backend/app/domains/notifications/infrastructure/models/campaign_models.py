@@ -3,10 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, Integer, String, Text, JSON
+from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
 
-from app.core.db.base import Base
 from app.core.db.adapters import UUID
+from app.core.db.base import Base
 
 
 class CampaignStatus(str):

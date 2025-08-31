@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Union
+from typing import Any
 from uuid import UUID
 
-from app.domains.telemetry.domain.audit import AuditEntry
 from app.domains.telemetry.application.ports.audit_port import IAuditLogRepository
+from app.domains.telemetry.domain.audit import AuditEntry
 
 
 class AuditService:
@@ -14,18 +14,18 @@ class AuditService:
     async def log(
         self,
         *,
-        actor_id: Optional[Union[str, UUID]],
+        actor_id: str | UUID | None,
         action: str,
-        resource_type: Optional[str] = None,
-        resource_id: Optional[str] = None,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
         before: Any = None,
         after: Any = None,
-        ip: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        reason: Optional[str] = None,
+        ip: str | None = None,
+        user_agent: str | None = None,
+        reason: str | None = None,
         extra: Any = None,
     ) -> None:
-        normalized_actor_id: Optional[UUID] = None
+        normalized_actor_id: UUID | None = None
         if isinstance(actor_id, UUID):
             normalized_actor_id = actor_id
         elif isinstance(actor_id, str) and actor_id:

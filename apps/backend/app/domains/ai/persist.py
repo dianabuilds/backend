@@ -3,14 +3,18 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime
-from typing import Any, Tuple
+from typing import Any
 from uuid import UUID as _UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.quests.infrastructure.models.quest_models import Quest
-from app.domains.quests.infrastructure.models.quest_version_models import QuestVersion, QuestGraphNode, QuestGraphEdge
 from app.domains.ai.infrastructure.models.generation_models import GenerationJob
+from app.domains.quests.infrastructure.models.quest_models import Quest
+from app.domains.quests.infrastructure.models.quest_version_models import (
+    QuestGraphEdge,
+    QuestGraphNode,
+    QuestVersion,
+)
 
 
 def _pick_author_id(job: GenerationJob) -> _UUID:
@@ -25,13 +29,17 @@ def _pick_author_id(job: GenerationJob) -> _UUID:
     raise RuntimeError("author_id_missing: set job.created_by or AI_DEFAULT_AUTHOR_ID")
 
 
-def _normalize_graph(graph: Any) -> Tuple[list[dict], list[dict]]:
+def _normalize_graph(graph: Any) -> tuple[list[dict], list[dict]]:
     """Принимает граф в произвольной форме и приводит к спискам nodes/edges."""
     if isinstance(graph, str):
         graph = json.loads(graph)
     if not isinstance(graph, dict):
         raise ValueError("graph_json_invalid")
-    payload = graph.get("graph") if "graph" in graph and isinstance(graph["graph"], dict) else graph
+    payload = (
+        graph.get("graph")
+        if "graph" in graph and isinstance(graph["graph"], dict)
+        else graph
+    )
     nodes = payload.get("nodes") or []
     edges = payload.get("edges") or []
     if not isinstance(nodes, list) or not isinstance(edges, list):
@@ -39,7 +47,9 @@ def _normalize_graph(graph: Any) -> Tuple[list[dict], list[dict]]:
     return nodes, edges
 
 
-async def persist_generated_quest(db: AsyncSession, job: GenerationJob, graph_json: Any) -> Tuple[Any, Any]:
+async def persist_generated_quest(
+    db: AsyncSession, job: GenerationJob, graph_json: Any
+) -> tuple[Any, Any]:
     """Создаёт квест и первую версию на основе JSON графа (узлы/ребра).
     Возвращает (quest_id, version_id).
     """
@@ -49,7 +59,11 @@ async def persist_generated_quest(db: AsyncSession, job: GenerationJob, graph_js
 
     # Название квеста
     extras = params.get("extras") if isinstance(params.get("extras"), dict) else {}
-    title = extras.get("title") or params.get("title") or f"AI Quest {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+    title = (
+        extras.get("title")
+        or params.get("title")
+        or f"AI Quest {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+    )
 
     quest = Quest(
         title=title,

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.payments.infrastructure.repositories.ledger_repository import LedgerRepository
+from app.domains.payments.infrastructure.repositories.ledger_repository import (
+    LedgerRepository,
+)
 
 
 class LedgerService:
@@ -22,8 +24,8 @@ class LedgerService:
         gross_cents: int,
         currency: str | None = "USD",
         status: str = "captured",
-        extra_meta: Dict[str, Any] | None = None,
-    ) -> Dict[str, Any]:
+        extra_meta: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         return await self._repo.capture_transaction(
             db,
             user_id=user_id,

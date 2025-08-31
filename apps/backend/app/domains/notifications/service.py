@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from app.core.db.session import db_session
+from app.domains.notifications.infrastructure.models.campaign_models import (
+    CampaignStatus,
+    NotificationCampaign,
+)
 from app.domains.system.events import (
     NodeArchived,
     NodePublished,
     NodeUpdated,
     get_event_bus,
-)
-from app.core.db.session import db_session
-from app.domains.notifications.infrastructure.models.campaign_models import (
-    CampaignStatus,
-    NotificationCampaign,
 )
 
 

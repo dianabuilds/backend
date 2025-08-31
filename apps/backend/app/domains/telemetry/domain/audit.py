@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 
 @dataclass(frozen=True)
 class AuditEntry:
-    actor_id: Optional[UUID]
+    actor_id: UUID | None
     action: str
-    resource_type: Optional[str] = None
-    resource_id: Optional[str] = None
+    resource_type: str | None = None
+    resource_id: str | None = None
     before: Any = None
     after: Any = None
-    ip: Optional[str] = None
-    user_agent: Optional[str] = None
+    ip: str | None = None
+    user_agent: str | None = None
     extra: Any = None
 
     def __post_init__(self) -> None:

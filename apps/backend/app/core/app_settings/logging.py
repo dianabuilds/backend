@@ -19,4 +19,3 @@ class LoggingSettings(BaseSettings):
     service_name: str = Field("backend", alias="SERVICE_NAME")
 
     model_config = SettingsConfigDict(extra="ignore")
-

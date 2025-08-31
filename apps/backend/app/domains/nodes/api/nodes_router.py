@@ -318,9 +318,7 @@ async def update_node_notification_settings(
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     settings_repo = NodeNotificationSettingsRepository(db)
-    setting = await settings_repo.upsert(
-        current_user.id, resolved, payload.enabled
-    )
+    setting = await settings_repo.upsert(current_user.id, resolved, payload.enabled)
     return NodeNotificationSettingsOut.model_validate(setting)
 
 

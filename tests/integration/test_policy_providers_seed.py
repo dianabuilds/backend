@@ -1,20 +1,19 @@
 import pytest
-from punq import Container
-
 from apps.backend.app.core.policy import RuntimePolicy
 from apps.backend.app.core.rng import init_rng, next_seed
-from apps.backend.app.core.settings import Settings, EnvMode
+from apps.backend.app.core.settings import EnvMode, Settings
 from apps.backend.app.providers import (
-    register_providers,
     IAIProvider,
-    IPayments,
     IEmail,
     IMediaStorage,
+    IPayments,
+    register_providers,
 )
 from apps.backend.app.providers.ai import FakeAIProvider
 from apps.backend.app.providers.email import FakeEmail
 from apps.backend.app.providers.media_storage import FakeMediaStorage
 from apps.backend.app.providers.payments import FakePayments
+from punq import Container
 
 
 @pytest.mark.asyncio

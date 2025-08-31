@@ -7,8 +7,8 @@ JSON field.  After running it successfully the
 """
 
 import asyncio
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from sqlalchemy import text
 

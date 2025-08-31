@@ -5,7 +5,6 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Optional
 
 from sqlalchemy import event, text
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
@@ -19,7 +18,7 @@ from app.core.db.base import Base
 
 logger = logging.getLogger(__name__)
 
-_engine: Optional[AsyncEngine] = None
+_engine: AsyncEngine | None = None
 _session_ctx: ContextVar[AsyncSession | None] = ContextVar("db_session", default=None)
 
 

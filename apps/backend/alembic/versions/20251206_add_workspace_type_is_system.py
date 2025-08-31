@@ -10,6 +10,7 @@ depends_on = None
 
 workspace_type = sa.Enum("personal", "team", "global", name="workspace_type")
 
+
 def upgrade() -> None:
     # Create enum type
     workspace_type.create(op.get_bind(), checkfirst=True)

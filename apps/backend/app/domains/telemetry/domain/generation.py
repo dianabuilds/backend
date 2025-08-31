@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -12,6 +12,6 @@ class GenerationStageLog:
     model: str
     prompt: str
     raw_response: str
-    usage: Dict[str, int]
+    usage: dict[str, int]
     cost: float
     status: str = "ok"

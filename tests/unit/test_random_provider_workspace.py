@@ -1,21 +1,22 @@
+import asyncio
 import importlib
 import sys
+import types
 import uuid
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-import asyncio
-import types
-
 # Ensure apps package is importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 stub = types.ModuleType("nft_service")
 
+
 async def _user_has_nft(user, nft):
     return False
+
 
 stub.user_has_nft = _user_has_nft
 sys.modules.setdefault("app.domains.users.application.nft_service", stub)
@@ -34,7 +35,9 @@ def test_random_provider_scoped_by_workspace() -> None:
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async_session = sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
 
         async with async_session() as session:
             user = User(id=uuid.uuid4())
@@ -73,4 +76,3 @@ def test_random_provider_scoped_by_workspace() -> None:
             assert all(n.workspace_id == w1.id for n in res)
 
     asyncio.run(_run())
-

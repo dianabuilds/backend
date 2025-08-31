@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import uuid
-from typing import List, Optional, Tuple
 
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text, select
 
 from app.domains.nodes.infrastructure.models.node import Node
 
@@ -17,12 +16,14 @@ class CompassRepository:
 
     async def get_similar_nodes_pgvector(
         self, node: Node, limit: int, probes: int
-    ) -> Optional[List[Tuple[Node, float]]]:
+    ) -> list[tuple[Node, float]] | None:
         bind = self.session.get_bind()
         if bind.dialect.name != "postgresql":
             return None
         try:
-            await self.session.execute(text("SET LOCAL ivfflat.probes = :p"), {"p": probes})
+            await self.session.execute(
+                text("SET LOCAL ivfflat.probes = :p"), {"p": probes}
+            )
             query = text(
                 """
                 SELECT id, embedding_vector <=> :vec AS dist
@@ -45,7 +46,7 @@ class CompassRepository:
             return None
         if not mappings:
             return []
-        ids: List[uuid.UUID] = []
+        ids: list[uuid.UUID] = []
         dists: dict[uuid.UUID, float] = {}
         for m in mappings:
             uid = uuid.UUID(m["id"])
@@ -56,13 +57,15 @@ class CompassRepository:
         return [(node_map[i], dists[i]) for i in ids if i in node_map]
 
     async def search_by_vector_pgvector(
-        self, query_vec: List[float], limit: int, probes: int
-    ) -> Optional[List[Tuple[Node, float]]]:
+        self, query_vec: list[float], limit: int, probes: int
+    ) -> list[tuple[Node, float]] | None:
         bind = self.session.get_bind()
         if bind.dialect.name != "postgresql":
             return None
         try:
-            await self.session.execute(text("SET LOCAL ivfflat.probes = :p"), {"p": probes})
+            await self.session.execute(
+                text("SET LOCAL ivfflat.probes = :p"), {"p": probes}
+            )
             query = text(
                 """
                 SELECT id, embedding_vector <=> :vec AS dist
@@ -81,7 +84,7 @@ class CompassRepository:
             return None
         if not mappings:
             return []
-        ids: List[uuid.UUID] = []
+        ids: list[uuid.UUID] = []
         dists: dict[uuid.UUID, float] = {}
         for m in mappings:
             uid = uuid.UUID(m["id"])

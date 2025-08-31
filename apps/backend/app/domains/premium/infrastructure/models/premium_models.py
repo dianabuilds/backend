@@ -3,11 +3,20 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, String, Text, Integer, Boolean, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
+from app.core.db.adapters import JSONB, UUID
 from app.core.db.base import Base
-from app.core.db.adapters import UUID, JSONB
 
 
 class SubscriptionPlan(Base):
@@ -25,9 +34,13 @@ class SubscriptionPlan(Base):
     monthly_limits = Column(JSONB, nullable=True)
     features = Column(JSONB, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
-    subscriptions = relationship("UserSubscription", back_populates="plan", cascade="all, delete-orphan")
+    subscriptions = relationship(
+        "UserSubscription", back_populates="plan", cascade="all, delete-orphan"
+    )
 
 
 class UserSubscription(Base):
@@ -35,12 +48,16 @@ class UserSubscription(Base):
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
-    plan_id = Column(UUID(), ForeignKey("subscription_plans.id"), nullable=False, index=True)
+    plan_id = Column(
+        UUID(), ForeignKey("subscription_plans.id"), nullable=False, index=True
+    )
     status = Column(String, nullable=False, default="active")
     auto_renew = Column(Boolean, default=False)
     started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     ends_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     plan = relationship("SubscriptionPlan", back_populates="subscriptions")

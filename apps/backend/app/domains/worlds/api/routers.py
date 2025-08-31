@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
+from app.domains.users.infrastructure.models.user import User
 from app.domains.worlds.application.worlds_service import WorldsService
 from app.domains.worlds.infrastructure.repositories.worlds_repository import (
     WorldsRepository,
@@ -18,7 +18,6 @@ from app.schemas.worlds import (
     WorldTemplateOut,
 )
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.domains.users.infrastructure.models.user import User
 
 router = APIRouter(
     prefix="/admin/worlds", tags=["admin-worlds"], responses=ADMIN_AUTH_RESPONSES

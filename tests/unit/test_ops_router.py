@@ -2,7 +2,7 @@ import asyncio
 import importlib
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
@@ -17,9 +17,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from apps.backend.app.api import ops as ops_module  # noqa: E402
-from app.admin.ops import alerts as alerts_module  # noqa: E402
 from fastapi import FastAPI  # noqa: E402
 
+from app.admin.ops import alerts as alerts_module  # noqa: E402
 from app.core.cache import cache as shared_cache  # noqa: E402
 
 app = FastAPI()
@@ -44,6 +44,7 @@ def clear_ops_cache():
         keys = await shared_cache.scan("ops:*")
         if keys:
             await shared_cache.delete(*keys)
+
     run(_clear())
 
 
@@ -92,12 +93,13 @@ def test_limits_endpoint_remaining_and_cached():
 
     ops_module.WorkspaceDAO.get = fake_get
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     period = now.strftime("%Y%m%d")
 
     async def setup():  # pragma: no cover - helper
         await shared_cache.incr(f"q:ai_tokens:{period}:user1:{workspace_id}", 40)
         await shared_cache.incr(f"q:notif_per_day:{period}:user1:{workspace_id}", 3)
+
     run(setup())
 
     resp1 = client.get(f"/admin/ops/limits?workspace_id={workspace_id}")
@@ -109,6 +111,7 @@ def test_limits_endpoint_remaining_and_cached():
 
     async def more():  # pragma: no cover - helper
         await shared_cache.incr(f"q:ai_tokens:{period}:user1:{workspace_id}", 10)
+
     run(more())
 
     resp2 = client.get(f"/admin/ops/limits?workspace_id={workspace_id}")

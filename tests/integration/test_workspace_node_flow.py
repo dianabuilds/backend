@@ -1,8 +1,9 @@
 import pytest
 from httpx import AsyncClient
-from app.main import app
-from app.domains.workspaces.api import router as workspaces_router
+
 from app.domains.nodes.content_admin_router import router as nodes_router
+from app.domains.workspaces.api import router as workspaces_router
+from app.main import app
 
 app.include_router(workspaces_router)
 app.include_router(nodes_router)
@@ -11,7 +12,9 @@ pytestmark = pytest.mark.skip("requires full database schema")
 
 
 @pytest.mark.asyncio
-async def test_workspace_node_simulation_trace(client: AsyncClient, auth_headers: dict[str, str]):
+async def test_workspace_node_simulation_trace(
+    client: AsyncClient, auth_headers: dict[str, str]
+):
     # Create workspace
     resp = await client.post(
         "/admin/workspaces",

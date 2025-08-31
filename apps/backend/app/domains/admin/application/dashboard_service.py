@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any
 
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,9 +19,9 @@ from app.domains.navigation.application.navigation_cache_service import (
 from app.domains.navigation.application.stats_service import NavigationStatsService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.payments.manager import get_active_subscriptions_stats
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.users.infrastructure.models.user import User
-from app.domains.payments.manager import get_active_subscriptions_stats
 from app.models.ops_incident import OpsIncident
 
 CACHE_KEY = "admin:dashboard"
@@ -33,7 +33,7 @@ nav_stats = NavigationStatsService()
 
 class DashboardService:
     @staticmethod
-    async def get_dashboard(db: AsyncSession) -> Dict[str, Any]:
+    async def get_dashboard(db: AsyncSession) -> dict[str, Any]:
         cached = await shared_cache.get(CACHE_KEY)
         if cached:
             return json.loads(cached)
@@ -48,30 +48,40 @@ class DashboardService:
             )
         ).scalar() or 0
         active_premium = (
-            await db.execute(select(func.count()).select_from(User).where(User.is_premium))
+            await db.execute(
+                select(func.count()).select_from(User).where(User.is_premium)
+            )
         ).scalar() or 0
-        active_subscriptions, active_subscriptions_change = await get_active_subscriptions_stats(db)
+        active_subscriptions, active_subscriptions_change = (
+            await get_active_subscriptions_stats(db)
+        )
         active_users = (
             await db.execute(
-                select(func.count()).select_from(User).where(User.last_login_at >= day_ago)
+                select(func.count())
+                .select_from(User)
+                .where(User.last_login_at >= day_ago)
             )
         ).scalar() or 0
         nodes_created = (
             await db.execute(
-                select(func.count()).select_from(Node).where(Node.created_at >= week_ago)
+                select(func.count())
+                .select_from(Node)
+                .where(Node.created_at >= week_ago)
             )
         ).scalar() or 0
         nodes_without_outgoing_pct = await nav_stats.get_nodes_without_outgoing_pct(db)
         quests_created = (
             await db.execute(
-                select(func.count()).select_from(Quest).where(Quest.created_at >= day_ago)
+                select(func.count())
+                .select_from(Quest)
+                .where(Quest.created_at >= day_ago)
             )
         ).scalar() or 0
         incidents_count = (
             await db.execute(
-                select(func.count()).select_from(OpsIncident).where(
-                    OpsIncident.created_at >= day_ago
-                )
+                select(func.count())
+                .select_from(OpsIncident)
+                .where(OpsIncident.created_at >= day_ago)
             )
         ).scalar() or 0
 
@@ -105,7 +115,9 @@ class DashboardService:
             redis_ok = False
 
         try:
-            nav_keys = len(await navcache._cache.scan(f"{settings.cache.key_version}:nav*"))
+            nav_keys = len(
+                await navcache._cache.scan(f"{settings.cache.key_version}:nav*")
+            )
             comp_keys = len(
                 await navcache._cache.scan(f"{settings.cache.key_version}:comp*")
             )

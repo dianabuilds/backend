@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import logging
-from typing import List
 
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.feature_flags import get_effective_flags
 from app.core.db.session import get_db
+from app.core.feature_flags import get_effective_flags
 from app.domains.admin.application.menu_service import (
-    get_cached_menu,
     count_items,
+    get_cached_menu,
     invalidate_menu_cache,
 )
 from app.domains.users.infrastructure.models.user import User
@@ -36,7 +35,7 @@ async def get_admin_menu(
 ) -> Response:
     preview_header = request.headers.get("X-Feature-Flags", "")
     effective_flags = await get_effective_flags(db, preview_header)
-    flags: List[str] = sorted(list(effective_flags))
+    flags: list[str] = sorted(list(effective_flags))
 
     menu, etag, cached = get_cached_menu(current_user, flags)
     if_none = request.headers.get("if-none-match")
@@ -68,6 +67,8 @@ async def get_admin_menu(
 
 
 @router.post("/menu/invalidate", summary="Invalidate admin menu cache")
-async def invalidate_admin_menu(current_user: User = Depends(admin_required)) -> JSONResponse:
+async def invalidate_admin_menu(
+    current_user: User = Depends(admin_required),
+) -> JSONResponse:
     invalidate_menu_cache()
     return JSONResponse({"status": "invalidated"})

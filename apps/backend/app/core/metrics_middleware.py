@@ -1,17 +1,21 @@
 import time
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.core.metrics import metrics_storage
 from app.core.config import settings
+from app.core.metrics import metrics_storage
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
         # Не считаем собственные метрики, чтобы не искажать картину
         metrics_path = settings.observability.metrics_path
-        if request.url.path.startswith("/admin/metrics") or request.url.path == metrics_path:
+        if (
+            request.url.path.startswith("/admin/metrics")
+            or request.url.path == metrics_path
+        ):
             return await call_next(request)
         start = time.perf_counter()
         response: Response = await call_next(request)

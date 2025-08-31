@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class AdminSettings(BaseSettings):
     bootstrap_enabled: bool = True
     username: str = "admin"

@@ -1,5 +1,5 @@
-from typing import Annotated, Any
 from secrets import token_urlsafe
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Depends, Header, Query, Request, Response
 from pydantic import BaseModel

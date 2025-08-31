@@ -5,7 +5,7 @@ from datetime import datetime
 # Этот модуль ранее пытался переимпортировать несуществующий legacy-роутер,
 # из-за чего импорт падал и все админские эндпоинты для AI-квестов возвращали
 # 404.  Удаляем лишний импорт и используем собственный роутер ниже.
-from typing import Any, List
+from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -111,12 +111,12 @@ async def generate_ai_quest(
 
 
 @router.get(
-    "/jobs", response_model=List[GenerationJobOut], summary="List AI generation jobs"
+    "/jobs", response_model=list[GenerationJobOut], summary="List AI generation jobs"
 )
 async def list_jobs(
     db: AsyncSession = Depends(get_db),
     _: Depends = Depends(admin_required),
-) -> List[GenerationJobOut]:
+) -> list[GenerationJobOut]:
     res = await db.execute(
         select(GenerationJob).order_by(GenerationJob.created_at.desc())
     )
@@ -247,11 +247,11 @@ async def tick_job(
 # -------- Worlds & Characters CRUD --------
 
 
-@router.get("/worlds", response_model=List[WorldTemplateOut], summary="List worlds")
+@router.get("/worlds", response_model=list[WorldTemplateOut], summary="List worlds")
 async def list_worlds(
     db: AsyncSession = Depends(get_db),
     _: Depends = Depends(admin_required),
-) -> List[WorldTemplateOut]:
+) -> list[WorldTemplateOut]:
     res = await db.execute(select(World).order_by(World.title.asc()))
     rows = list(res.scalars().all())
     return [WorldTemplateOut.model_validate(r) for r in rows]
@@ -316,14 +316,14 @@ async def delete_world(
 
 @router.get(
     "/worlds/{world_id}/characters",
-    response_model=List[CharacterOut],
+    response_model=list[CharacterOut],
     summary="List characters for world",
 )
 async def list_characters(
     world_id: UUID,
     db: AsyncSession = Depends(get_db),
     _: Depends = Depends(admin_required),
-) -> List[CharacterOut]:
+) -> list[CharacterOut]:
     res = await db.execute(
         select(Character)
         .where(Character.world_id == world_id)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Protocol
+from typing import Any, Protocol
 
 
 class LLMError(Exception):
@@ -32,7 +32,7 @@ class LLMResult:
     text: str
     model: str
     usage: LLMUsage
-    raw: Optional[Dict[str, Any]] = None
+    raw: dict[str, Any] | None = None
 
 
 class LLMProvider(Protocol):
@@ -43,20 +43,19 @@ class LLMProvider(Protocol):
         *,
         model: str,
         prompt: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 1024,
         temperature: float = 0.7,
         timeout: float = 30.0,
         json_mode: bool = False,
-    ) -> LLMResult:
-        ...
+    ) -> LLMResult: ...
 
     async def count_tokens(
         self,
         *,
         model: str,
         prompt: str,
-        system: Optional[str] = None,
-    ) -> Optional[int]:
+        system: str | None = None,
+    ) -> int | None:
         """Return number of tokens in the prompt if provider supports it."""
         ...

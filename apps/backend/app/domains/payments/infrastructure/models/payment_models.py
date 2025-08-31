@@ -3,9 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, String, Boolean, Integer, DateTime, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, UniqueConstraint
+
+from app.core.db.adapters import JSONB, UUID
 from app.core.db.base import Base
-from app.core.db.adapters import UUID, JSONB
 
 
 class PaymentGatewayConfig(Base):
@@ -20,7 +21,9 @@ class PaymentGatewayConfig(Base):
     config = Column(JSONB, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
 
 class PaymentTransaction(Base):
@@ -38,7 +41,9 @@ class PaymentTransaction(Base):
     fee_cents = Column(Integer, nullable=False, default=0)
     net_cents = Column(Integer, nullable=False)
 
-    status = Column(String, nullable=False, default="captured")  # authorized|captured|settled|refunded
+    status = Column(
+        String, nullable=False, default="captured"
+    )  # authorized|captured|settled|refunded
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     meta = Column(JSONB, nullable=True)

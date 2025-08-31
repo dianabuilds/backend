@@ -14,10 +14,8 @@ import logging
 import random
 import string
 import sys
-from pathlib import Path
 from datetime import datetime, timedelta
-from typing import List
-from uuid import UUID
+from pathlib import Path
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,12 +26,19 @@ project_root = current_file.parent.parent
 sys.path.insert(0, str(project_root))
 
 from apps.backend.app.core.config import settings
+from apps.backend.app.core.db.session import create_tables, db_session, init_db
 from apps.backend.app.core.security import get_password_hash
-from apps.backend.app.core.db.session import init_db, create_tables, db_session
-from apps.backend.app.domains.ai.application.embedding_service import update_node_embedding
+from apps.backend.app.domains.ai.application.embedding_service import (
+    update_node_embedding,
+)
+from apps.backend.app.domains.navigation.infrastructure.models.echo_models import (
+    EchoTrace,
+)
+from apps.backend.app.domains.navigation.infrastructure.models.transition_models import (
+    NodeTransition,
+    NodeTransitionType,
+)
 from apps.backend.app.domains.nodes.infrastructure.models.node import Node
-from apps.backend.app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType
-from apps.backend.app.domains.navigation.infrastructure.models.echo_models import EchoTrace
 from apps.backend.app.domains.users.infrastructure.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -45,12 +50,34 @@ def rand_username(prefix: str = "user") -> string:
 
 
 def rand_title() -> str:
-    words = ["Sky", "Ocean", "Forest", "Mountain", "River", "City", "Dream", "Echo", "Light", "Shadow"]
+    words = [
+        "Sky",
+        "Ocean",
+        "Forest",
+        "Mountain",
+        "River",
+        "City",
+        "Dream",
+        "Echo",
+        "Light",
+        "Shadow",
+    ]
     return " ".join(random.choices(words, k=random.randint(2, 4)))
 
 
-def rand_tags() -> List[str]:
-    pool = ["story", "tech", "art", "music", "travel", "food", "premium", "news", "science", "fun"]
+def rand_tags() -> list[str]:
+    pool = [
+        "story",
+        "tech",
+        "art",
+        "music",
+        "travel",
+        "food",
+        "premium",
+        "news",
+        "science",
+        "fun",
+    ]
     k = random.randint(0, 4)
     return random.sample(pool, k=k)
 
@@ -59,14 +86,21 @@ async def wipe_db(session: AsyncSession) -> None:
     """Очищает таблицы (в порядке зависимостей)."""
     logger.info("Wiping existing data...")
     # Безопасное удаление по порядку (TRUNCATE CASCADE можно, но делаем кросс-совместимо)
-    for table in ("echo_trace", "node_transitions", "node_moderation", "user_restrictions", "nodes", "users"):
+    for table in (
+        "echo_trace",
+        "node_transitions",
+        "node_moderation",
+        "user_restrictions",
+        "nodes",
+        "users",
+    ):
         await session.execute(text(f"DELETE FROM {table};"))
     await session.commit()
     logger.info("Data wiped.")
 
 
-async def create_users(session: AsyncSession, count: int) -> List[User]:
-    users: List[User] = []
+async def create_users(session: AsyncSession, count: int) -> list[User]:
+    users: list[User] = []
     for i in range(count):
         username = rand_username()
         email = f"{username}@example.com"
@@ -110,8 +144,10 @@ async def create_users(session: AsyncSession, count: int) -> List[User]:
     return users
 
 
-async def create_nodes(session: AsyncSession, authors: List[User], count: int, compute_embeddings: bool) -> List[Node]:
-    nodes: List[Node] = []
+async def create_nodes(
+    session: AsyncSession, authors: list[User], count: int, compute_embeddings: bool
+) -> list[Node]:
+    nodes: list[Node] = []
     for i in range(count):
         author = random.choice(authors)
         title = rand_title()
@@ -150,10 +186,12 @@ async def create_nodes(session: AsyncSession, authors: List[User], count: int, c
     return nodes
 
 
-async def create_transitions(session: AsyncSession, nodes: List[Node], users: List[User], count: int) -> List[NodeTransition]:
+async def create_transitions(
+    session: AsyncSession, nodes: list[Node], users: list[User], count: int
+) -> list[NodeTransition]:
     if len(nodes) < 2:
         return []
-    transitions: List[NodeTransition] = []
+    transitions: list[NodeTransition] = []
     pairs = set()
     max_attempts = count * 3
     attempts = 0
@@ -183,7 +221,9 @@ async def create_transitions(session: AsyncSession, nodes: List[Node], users: Li
     return transitions
 
 
-async def create_echo_traces(session: AsyncSession, nodes: List[Node], users: List[User], count: int) -> None:
+async def create_echo_traces(
+    session: AsyncSession, nodes: list[Node], users: list[User], count: int
+) -> None:
     if len(nodes) < 2:
         return
     for _ in range(count):
@@ -202,12 +242,20 @@ async def create_echo_traces(session: AsyncSession, nodes: List[Node], users: Li
 
 async def main():
     parser = argparse.ArgumentParser(description="Seed database with sample data")
-    parser.add_argument("--users", type=int, default=5, help="Количество пользователей (кроме админа)")
+    parser.add_argument(
+        "--users", type=int, default=5, help="Количество пользователей (кроме админа)"
+    )
     parser.add_argument("--nodes", type=int, default=30, help="Количество узлов")
-    parser.add_argument("--transitions", type=int, default=60, help="Количество переходов")
+    parser.add_argument(
+        "--transitions", type=int, default=60, help="Количество переходов"
+    )
     parser.add_argument("--echoes", type=int, default=100, help="Количество echo-трасс")
-    parser.add_argument("--wipe", action="store_true", help="Очистить базу перед заполнением")
-    parser.add_argument("--no-embeddings", action="store_true", help="Не считать эмбеддинги для узлов")
+    parser.add_argument(
+        "--wipe", action="store_true", help="Очистить базу перед заполнением"
+    )
+    parser.add_argument(
+        "--no-embeddings", action="store_true", help="Не считать эмбеддинги для узлов"
+    )
     args = parser.parse_args()
 
     logger.info("Seeding database for environment: %s", settings.env_mode)
@@ -221,7 +269,9 @@ async def main():
             await wipe_db(session)
 
         users = await create_users(session, args.users)
-        nodes = await create_nodes(session, users, args.nodes, compute_embeddings=not args.no_embeddings)
+        nodes = await create_nodes(
+            session, users, args.nodes, compute_embeddings=not args.no_embeddings
+        )
         await create_transitions(session, nodes, users, args.transitions)
         await create_echo_traces(session, nodes, users, args.echoes)
 

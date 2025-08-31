@@ -3,7 +3,9 @@ from __future__ import annotations
 from app.domains.auth.application.ports.mail_port import IMailer
 
 try:  # pragma: no cover - optional dependency
-    from app.domains.notifications.infrastructure.mail import mail_service  # type: ignore
+    from app.domains.notifications.infrastructure.mail import (
+        mail_service,  # type: ignore
+    )
 except Exception:  # pragma: no cover
     mail_service = None  # type: ignore
 
