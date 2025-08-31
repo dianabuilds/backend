@@ -54,7 +54,8 @@ async def run_ai_validation(db: AsyncSession, node_id: UUID) -> ValidationReport
             max_tokens=512,
         )
         data = json.loads(raw)
-    except Exception:
+    except Exception as err:
+        _ = err
         data = []
 
     items: list[ValidationItem] = []
