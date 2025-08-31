@@ -49,6 +49,8 @@ export default function QuestVersionEditor() {
     errors: string[];
     warnings: string[];
   } | null>(null);
+  const [clientErrors, setClientErrors] = useState<string[]>([]);
+  const [clientWarnings, setClientWarnings] = useState<string[]>([]);
   const [savingGraph, setSavingGraph] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
@@ -96,6 +98,54 @@ export default function QuestVersionEditor() {
     const map = new Map<string, VersionGraph["edges"][number]>();
     graph?.edges.forEach((e) => map.set(`${e.from_node_key}:${e.to_node_key}`, e));
     return map;
+  }, [graph]);
+
+  useEffect(() => {
+    if (!graph) {
+      setClientErrors([]);
+      setClientWarnings([]);
+      return;
+    }
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    const startNodes = graph.nodes.filter((n) => n.type === "start");
+    if (startNodes.length !== 1) {
+      errors.push("Graph must contain exactly one start node");
+    }
+    const visited = new Set<string>();
+    if (startNodes[0]) {
+      const queue = [startNodes[0].key];
+      visited.add(startNodes[0].key);
+      while (queue.length) {
+        const cur = queue.shift()!;
+        graph.edges
+          .filter((e) => e.from_node_key === cur)
+          .forEach((e) => {
+            if (!visited.has(e.to_node_key)) {
+              visited.add(e.to_node_key);
+              queue.push(e.to_node_key);
+            }
+          });
+      }
+    }
+
+    graph.nodes
+      .filter((n) => n.type === "end")
+      .forEach((n) => {
+        if (graph.edges.some((e) => e.from_node_key === n.key)) {
+          errors.push(`End node "${n.key}" has outgoing edges`);
+        }
+      });
+
+    graph.nodes.forEach((n) => {
+      if (!visited.has(n.key)) {
+        warnings.push(`Node "${n.key}" is unreachable from start`);
+      }
+    });
+
+    setClientErrors(errors);
+    setClientWarnings(warnings);
   }, [graph]);
 
   const load = async () => {
@@ -883,6 +933,39 @@ export default function QuestVersionEditor() {
               ) : (
                 <div className="text-sm text-gray-500">
                   Run validation to see the report
+                </div>
+              )}
+            </CollapsibleSection>
+          </div>
+
+          <div className="col-span-1">
+            <CollapsibleSection title="Live checks">
+              {clientErrors.length === 0 && clientWarnings.length === 0 ? (
+                <div className="text-sm text-gray-500">No issues</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <div className="font-semibold mb-1">Errors</div>
+                    <ul className="list-disc pl-5 text-red-700">
+                      {clientErrors.map((e, i) => (
+                        <li key={i}>{e}</li>
+                      ))}
+                      {clientErrors.length === 0 && (
+                        <li className="text-gray-500">None</li>
+                      )}
+                    </ul>
+                  </div>
+                  <div>
+                    <div className="font-semibold mb-1">Warnings</div>
+                    <ul className="list-disc pl-5 text-yellow-700">
+                      {clientWarnings.map((w, i) => (
+                        <li key={i}>{w}</li>
+                      ))}
+                      {clientWarnings.length === 0 && (
+                        <li className="text-gray-500">None</li>
+                      )}
+                    </ul>
+                  </div>
                 </div>
               )}
             </CollapsibleSection>
