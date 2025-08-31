@@ -9,7 +9,7 @@ def test_cors_allows_post(monkeypatch):
     # Configure environment without POST to simulate misconfiguration
     monkeypatch.setenv("APP_CORS_ALLOW_METHODS", '["GET","PUT","DELETE","PATCH"]')
     monkeypatch.setenv("TESTING", "1")
-    monkeypatch.setenv("AUTH__REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
     monkeypatch.setenv("DATABASE__HOST", "localhost")
     monkeypatch.setenv("DATABASE__USERNAME", "user")
     monkeypatch.setenv("DATABASE__PASSWORD", "pass")

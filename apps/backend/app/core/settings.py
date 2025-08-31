@@ -266,16 +266,9 @@ class Settings(ProjectSettings):
 
         self.cache.redis_url = _normalize_redis_url(self.cache.redis_url)
 
-        # Проталкиваем в другие подсистемы, если у них пусто; иначе тоже нормализуем
-        if self.auth.redis_url in (None, ""):
-            self.auth.redis_url = self.cache.redis_url
-        else:
-            self.auth.redis_url = _normalize_redis_url(self.auth.redis_url)
-
-        if self.rate_limit.redis_url in (None, ""):
-            self.rate_limit.redis_url = self.cache.redis_url
-        else:
-            self.rate_limit.redis_url = _normalize_redis_url(self.rate_limit.redis_url)
+    @property
+    def redis_url(self) -> str | None:
+        return self.cache.redis_url
 
     @property
     def is_production(self) -> bool:

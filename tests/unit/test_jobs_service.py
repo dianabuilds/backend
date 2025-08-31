@@ -12,7 +12,7 @@ os.environ.setdefault("DATABASE__HOST", "localhost")
 os.environ.setdefault("DATABASE__NAME", "test")
 os.environ.setdefault("JWT__SECRET", "test")
 os.environ.setdefault("PAYMENT__JWT_SECRET", "test-pay")
-os.environ.setdefault("AUTH__REDIS_URL", "fakeredis://")
+os.environ.setdefault("REDIS_URL", "fakeredis://")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 

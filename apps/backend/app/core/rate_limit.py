@@ -40,7 +40,8 @@ recent_429: deque[dict] = deque(maxlen=50)
 def rate_limit_dep(rule: str):
     """
     Историческая версия: принимает строку правила и фиксирует её на момент объявления.
-    Оставляем для совместимости, но для динамических изменений используйте rate_limit_dep_key.
+    Оставляем для совместимости, но для динамических изменений используйте
+    rate_limit_dep_key.
     """
     times, seconds = _parse_rule(rule)
 
@@ -77,8 +78,9 @@ def rate_limit_dep(rule: str):
 
 def rate_limit_dep_key(key: str):
     """
-    Новая версия: принимает "ключ" правила (login, login_json, signup, evm_nonce, evm_verify, change_password)
-    и читает актуальное значение из настроек на каждом запросе.
+    Новая версия: принимает "ключ" правила (login, login_json, signup,
+    evm_nonce, evm_verify, change_password) и читает актуальное значение из
+    настроек на каждом запросе.
     """
     attr = f"rules_{key}"
 
@@ -121,7 +123,7 @@ def rate_limit_dep_key(key: str):
 async def init_rate_limiter() -> None:
     if not settings.rate_limit.enabled or policy.rate_limit_mode != "enforce":
         return
-    redis_url = settings.rate_limit.redis_url
+    redis_url = settings.redis_url
     if not redis_url:
         return
     redis_client = create_async_redis(
@@ -201,7 +203,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if redis_client is not None:
             self._redis = redis_client
         else:
-            redis_url = redis_url or settings.rate_limit.redis_url
+            redis_url = redis_url or settings.redis_url
             self._redis = create_async_redis(
                 redis_url,
                 decode_responses=True,

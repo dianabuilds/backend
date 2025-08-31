@@ -45,10 +45,10 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # pragma: no cover
     fakeredis = None  # type: ignore
 
-if settings.auth.redis_url and not settings.auth.redis_url.startswith("fakeredis://"):
+if settings.redis_url and not settings.redis_url.startswith("fakeredis://"):
     if redis is not None:
         try:
-            _redis = redis.from_url(settings.auth.redis_url, decode_responses=True)
+            _redis = redis.from_url(settings.redis_url, decode_responses=True)
         except Exception:  # pragma: no cover - connection issues
             if fakeredis is None:
                 raise
