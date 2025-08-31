@@ -7,8 +7,8 @@ from uuid import UUID
 import jwt
 from fastapi import Depends, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from app.core.config import settings
 from app.core.db.session import get_db
@@ -58,8 +58,10 @@ async def get_current_user(token: str, db: AsyncSession) -> User:
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
-            (UserRestriction.expires_at.is_(None))
-            | (UserRestriction.expires_at > datetime.utcnow()),
+            or_(
+                UserRestriction.expires_at.is_(None),
+                UserRestriction.expires_at > datetime.utcnow(),
+            ),
         )
     )
     if result.scalars().first():
