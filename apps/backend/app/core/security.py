@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -24,6 +26,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(user_id) -> str:
     payload = {
         "sub": str(user_id),
+        "jti": uuid4().hex,
         "iat": datetime.utcnow(),
         "exp": datetime.utcnow() + timedelta(seconds=settings.jwt.expiration),
     }
