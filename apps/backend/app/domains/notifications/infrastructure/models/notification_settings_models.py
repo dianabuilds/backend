@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime
+from sqlalchemy import Boolean, Column, DateTime, BigInteger, ForeignKey, Index
 
 from app.core.db.adapters import UUID
 from app.core.db.base import Base
@@ -16,7 +16,12 @@ class NodeNotificationSetting(Base):
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     user_id = Column(UUID(), nullable=False)
-    node_id = Column(UUID(), nullable=False)
+    node_alt_id = Column(UUID(), nullable=False)
+    node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False)
     enabled = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# B-tree index on the new node_id column
+Index("ix_node_notification_settings_node_id", NodeNotificationSetting.node_id)

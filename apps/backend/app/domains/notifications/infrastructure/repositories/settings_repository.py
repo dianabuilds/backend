@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,7 +19,7 @@ class NodeNotificationSettingsRepository:
         res = await self._db.execute(
             select(NodeNotificationSetting).where(
                 NodeNotificationSetting.user_id == user_id,
-                NodeNotificationSetting.node_id == node_id,
+                NodeNotificationSetting.node_alt_id == node_id,
             )
         )
         return res.scalar_one_or_none()
@@ -28,8 +29,20 @@ class NodeNotificationSettingsRepository:
         if setting:
             setting.enabled = enabled
         else:
+            nodes = sa.table(
+                "nodes",
+                sa.column("id", sa.BigInteger()),
+                sa.column("alt_id", sa.String()),
+            )
+            node_pk = await self._db.execute(
+                select(nodes.c.id).where(nodes.c.alt_id == str(node_id))
+            )
+            node_pk_id = node_pk.scalar_one()
             setting = NodeNotificationSetting(
-                user_id=user_id, node_id=node_id, enabled=enabled
+                user_id=user_id,
+                node_alt_id=node_id,
+                node_id=node_pk_id,
+                enabled=enabled,
             )
             self._db.add(setting)
         await self._db.commit()

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class NodeNotificationSettingsOut(BaseModel):
-    node_id: UUID
+    node_id: UUID = Field(alias="node_alt_id")
     enabled: bool
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 class NodeNotificationSettingsUpdate(BaseModel):
