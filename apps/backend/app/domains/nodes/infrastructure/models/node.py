@@ -83,3 +83,63 @@ class Node(Base):
         secondary=NodeTag.__table__,
         back_populates="nodes",
     )
+
+    # ------------------------------------------------------------------
+    # Compatibility properties for legacy fields removed from the schema.
+    # These fields were historically stored as separate columns but now
+    # live inside the ``meta`` JSONB blob.  Exposing them as properties
+    # keeps older code and admin tooling functional while allowing new
+    # records to persist data in ``meta``.
+
+    @property
+    def content(self) -> dict | list:
+        """Return node content stored inside ``meta``."""
+        return (self.meta or {}).get("content", {})
+
+    @content.setter
+    def content(self, value: dict | list) -> None:
+        meta = dict(self.meta or {})
+        meta["content"] = value
+        self.meta = meta
+
+    @property
+    def cover_url(self) -> str | None:
+        return (self.meta or {}).get("cover_url")
+
+    @cover_url.setter
+    def cover_url(self, value: str | None) -> None:
+        meta = dict(self.meta or {})
+        meta["cover_url"] = value
+        self.meta = meta
+
+    @property
+    def media(self) -> list[str]:
+        return (self.meta or {}).get("media", [])
+
+    @media.setter
+    def media(self, value: list[str]) -> None:
+        meta = dict(self.meta or {})
+        meta["media"] = value
+        self.meta = meta
+
+    @property
+    def reactions(self) -> dict:
+        return (self.meta or {}).get("reactions", {})
+
+    @reactions.setter
+    def reactions(self, value: dict) -> None:
+        meta = dict(self.meta or {})
+        meta["reactions"] = value
+        self.meta = meta
+
+    @property
+    def is_public(self) -> bool:
+        return self.visibility == Visibility.public
+
+    @is_public.setter
+    def is_public(self, value: bool) -> None:
+        self.visibility = Visibility.public if value else Visibility.private
+
+    @property
+    def tag_slugs(self) -> list[str]:
+        return [t.slug for t in self.tags] if self.tags else []
