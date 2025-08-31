@@ -114,8 +114,9 @@ async def update_node_embedding(db: AsyncSession, node: Node) -> None:
     parts: list[str] = []
     if getattr(node, "title", None):
         parts.append(node.title)
-    if getattr(node, "nodes", None) is not None:
-        parts.append(str(node.content))
+    content = getattr(node, "content", None)
+    if content is not None:
+        parts.append(str(content))
     try:
         res = await db.execute(
             select(Tag.slug)
