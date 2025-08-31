@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "Workspace API",
+    "name": "Workspace API v2",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -8,14 +8,14 @@
       "name": "List workspaces",
       "request": {
         "method": "GET",
-        "url": "{{baseUrl}}/admin/workspaces"
+        "url": "{{baseUrl}}/v2/workspaces"
       }
     },
     {
       "name": "Create workspace",
       "request": {
         "method": "POST",
-        "url": "{{baseUrl}}/admin/workspaces/{{workspace_id}}",
+        "url": "{{baseUrl}}/v2/workspaces/{{workspace_id}}",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"name\": \"Demo\",\n  \"slug\": \"demo\"\n}"
@@ -32,9 +32,7 @@
       "name": "List nodes",
       "request": {
         "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/admin/workspaces/{{workspace_id}}/nodes/all?node_type=article"
-        }
+        "url": "{{baseUrl}}/v2/workspaces/{{workspace_id}}/nodes?limit={{limit}}&cursor={{cursor}}"
       }
     }
   ]
