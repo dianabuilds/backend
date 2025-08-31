@@ -33,6 +33,7 @@ import type { NodeOut } from '../models/NodeOut';
 import type { NodePatchCreate } from '../models/NodePatchCreate';
 import type { NodePatchDiffOut } from '../models/NodePatchDiffOut';
 import type { NodePatchOut } from '../models/NodePatchOut';
+import type { DraftIssueOut } from '../models/DraftIssueOut';
 import type { NodeTransitionType } from '../models/NodeTransitionType';
 import type { NodeTransitionUpdate } from '../models/NodeTransitionUpdate';
 import type { NodeType } from '../models/NodeType';
@@ -1710,6 +1711,21 @@ export class AdminService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/dashboard',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+            },
+        });
+    }
+    /**
+     * List drafts with issues
+     * @returns DraftIssueOut Successful Response
+     * @throws ApiError
+     */
+    public static listDraftIssuesAdminDraftsIssuesGet(): CancelablePromise<Array<DraftIssueOut>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/drafts/issues',
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,

@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { api } from '../api/client';
 import KpiCard from '../components/KpiCard';
+import { AdminService, type DraftIssueOut } from '../openapi';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -27,6 +28,11 @@ export default function Dashboard() {
           params: { type: typeFilter || undefined, status: statusFilter || undefined },
         })
       ).data,
+  });
+
+  const { data: draftIssues = [] } = useQuery<DraftIssueOut[]>({
+    queryKey: ['admin', 'drafts', 'issues'],
+    queryFn: () => AdminService.listDraftIssuesAdminDraftsIssuesGet(),
   });
 
   async function approve(id: string) {
@@ -99,6 +105,21 @@ export default function Dashboard() {
           />
         </div>
       )}
+
+      <section>
+        <h2 className="text-xl font-bold">Drafts with issues</h2>
+        <ul className="mb-2 list-disc pl-5 text-sm">
+          {draftIssues.map((d) => (
+            <li key={d.id}>{d.title || d.slug}</li>
+          ))}
+        </ul>
+        <a
+          href="/content/all?status=draft"
+          className="text-sm text-blue-600 hover:underline"
+        >
+          See all drafts
+        </a>
+      </section>
 
       <section>
         <h2 className="text-xl font-bold">Moderation queue</h2>

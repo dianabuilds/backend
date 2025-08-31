@@ -4,6 +4,7 @@ import hashlib
 
 from sqlalchemy import String, and_, asc, cast, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
@@ -161,4 +162,35 @@ class NodeQueryService:
         for node, node_type in res.all():
             node.node_type = node_type
             items.append(node)
+        return items
+
+    async def list_drafts_with_issues(
+        self, limit: int = 10
+    ) -> list[tuple[Node, list[str]]]:
+        stmt = (
+            select(Node)
+            .options(selectinload(Node.tags))
+            .where(
+                Node.status == Status.draft,
+                or_(
+                    Node.cover_url.is_(None),
+                    func.coalesce(func.length(func.trim(Node.title)), 0) == 0,
+                    ~Node.tags.any(),
+                ),
+            )
+            .order_by(desc(Node.updated_at))
+            .limit(limit)
+        )
+        res = await self._db.execute(stmt)
+        nodes = list(res.scalars().unique().all())
+        items: list[tuple[Node, list[str]]] = []
+        for node in nodes:
+            issues: list[str] = []
+            if not node.cover_url:
+                issues.append("cover")
+            if not node.title or not node.title.strip():
+                issues.append("title")
+            if not getattr(node, "tags", []):
+                issues.append("tags")
+            items.append((node, issues))
         return items
