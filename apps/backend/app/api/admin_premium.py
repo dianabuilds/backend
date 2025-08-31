@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.db.session import get_db
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.domains.premium.infrastructure.models.premium_models import SubscriptionPlan
 from app.schemas.premium import SubscriptionPlanIn, SubscriptionPlanOut
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role()
 
@@ -22,23 +22,41 @@ router = APIRouter(
 )
 
 
-@router.get("/plans", response_model=List[SubscriptionPlanOut], summary="List subscription plans")
-async def list_plans(db: AsyncSession = Depends(get_db)) -> List[SubscriptionPlan]:
-    res = await db.execute(select(SubscriptionPlan).order_by(SubscriptionPlan.order.asc()))
+@router.get(
+    "/plans",
+    response_model=list[SubscriptionPlanOut],
+    summary="List subscription plans",
+)
+async def list_plans(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[SubscriptionPlan]:
+    res = await db.execute(
+        select(SubscriptionPlan).order_by(SubscriptionPlan.order.asc())
+    )
     return list(res.scalars().all())
 
 
-@router.post("/plans", response_model=SubscriptionPlanOut, summary="Create subscription plan")
-async def create_plan(payload: SubscriptionPlanIn, db: AsyncSession = Depends(get_db)) -> SubscriptionPlan:
+@router.post(
+    "/plans", response_model=SubscriptionPlanOut, summary="Create subscription plan"
+)
+async def create_plan(
+    payload: SubscriptionPlanIn, db: Annotated[AsyncSession, Depends(get_db)]
+) -> SubscriptionPlan:
     plan = SubscriptionPlan(**payload.model_dump())
     db.add(plan)
     await db.commit()
     return plan
 
 
-@router.put("/plans/{plan_id}", response_model=SubscriptionPlanOut, summary="Update subscription plan")
+@router.put(
+    "/plans/{plan_id}",
+    response_model=SubscriptionPlanOut,
+    summary="Update subscription plan",
+)
 async def update_plan(
-    plan_id: UUID, payload: SubscriptionPlanIn, db: AsyncSession = Depends(get_db)
+    plan_id: UUID,
+    payload: SubscriptionPlanIn,
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> SubscriptionPlan:
     plan = await db.get(SubscriptionPlan, plan_id)
     if not plan:
@@ -50,7 +68,9 @@ async def update_plan(
 
 
 @router.delete("/plans/{plan_id}", summary="Delete subscription plan")
-async def delete_plan(plan_id: UUID, db: AsyncSession = Depends(get_db)) -> dict:
+async def delete_plan(
+    plan_id: UUID, db: Annotated[AsyncSession, Depends(get_db)]
+) -> dict:
     plan = await db.get(SubscriptionPlan, plan_id)
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")

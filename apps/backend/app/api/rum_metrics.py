@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from collections import deque
-from typing import Any, Dict, Deque, List, Optional
-from statistics import mean
-
-from fastapi import APIRouter, Request, Depends, Query
 import logging
+from collections import deque
+from statistics import mean
+from typing import Annotated, Any
+
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.api.deps import admin_required
+from app.domains.users.infrastructure.models.user import User
 
 router = APIRouter(tags=["metrics"])
 admin_router = APIRouter(prefix="/admin/telemetry", tags=["admin-telemetry"])
@@ -15,10 +16,10 @@ admin_router = APIRouter(prefix="/admin/telemetry", tags=["admin-telemetry"])
 log = logging.getLogger("rum")
 
 # Кольцевой буфер последних событий (в памяти процесса)
-_RUM_BUFFER: Deque[Dict[str, Any]] = deque(maxlen=1000)
+_RUM_BUFFER: deque[dict[str, Any]] = deque(maxlen=1000)
 
 
-def _push_event(payload: Dict[str, Any]) -> None:
+def _push_event(payload: dict[str, Any]) -> None:
     try:
         _RUM_BUFFER.append(payload)
     except Exception:
@@ -27,7 +28,7 @@ def _push_event(payload: Dict[str, Any]) -> None:
 
 
 @router.post("/metrics/rum")
-async def rum_metrics(request: Request) -> Dict[str, Any]:
+async def rum_metrics(request: Request) -> dict[str, Any]:
     """
     Приёмник простых RUM-событий с фронтенда.
     Тело: { event: str, ts: int, url: str, data: any }
@@ -45,9 +46,9 @@ async def rum_metrics(request: Request) -> Dict[str, Any]:
 
 @admin_router.get("/rum")
 async def list_rum_events(
+    _admin: Annotated[User, Depends(admin_required)],
     limit: int = Query(200, ge=1, le=1000),
-    _admin=Depends(admin_required),
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Админ: последние RUM-события (по убыванию времени).
     """
@@ -58,9 +59,9 @@ async def list_rum_events(
 
 @admin_router.get("/rum/summary")
 async def rum_summary(
+    _admin: Annotated[User, Depends(admin_required)],
     window: int = Query(500, ge=1, le=1000),
-    _admin=Depends(admin_required),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Админ: сводка по последним событиям.
     - counts по event
@@ -68,7 +69,7 @@ async def rum_summary(
     - навигационные тайминги (средние по окну): ttfb, domContentLoaded, loadEvent
     """
     items = list(_RUM_BUFFER)[-window:]
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
     login_durations: list[float] = []
     nav_ttfb: list[float] = []
     nav_dcl: list[float] = []
@@ -91,7 +92,7 @@ async def rum_summary(
                 if isinstance(d.get("loadEvent"), (int, float)):
                     nav_load.append(float(d["loadEvent"]))
 
-    def avg(arr: list[float]) -> Optional[float]:
+    def avg(arr: list[float]) -> float | None:
         return round(mean(arr), 2) if arr else None
 
     return {

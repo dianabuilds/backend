@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, Security, status
@@ -20,9 +23,11 @@ from app.security import bearer_scheme
 
 async def get_current_user(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
-    db: AsyncSession = Depends(get_db),
-    preview: PreviewContext = Depends(get_preview_context),
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Security(bearer_scheme)
+    ],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    preview: Annotated[PreviewContext, Depends(get_preview_context)],
 ) -> User:
     # Приоритетно берем Bearer из Security-схемы Swagger; если нет — cookie
     token: str | None = None
@@ -40,8 +45,9 @@ async def get_current_user(
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
-    # Выбираем только безопасные колонки, чтобы не падать на отсутствующих (например, premium_until)
+        ) from None
+    # Выбираем только безопасные колонки,
+    # чтобы не падать на отсутствующих (например, premium_until)
     result = await db.execute(
         select(User)
         .options(
@@ -69,7 +75,7 @@ async def get_current_user(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
-            (UserRestriction.expires_at == None) | (UserRestriction.expires_at > now),
+            (UserRestriction.expires_at is None) | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
@@ -81,9 +87,11 @@ async def get_current_user(
 
 async def get_current_user_optional(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
-    db: AsyncSession = Depends(get_db),
-    preview: PreviewContext = Depends(get_preview_context),
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Security(bearer_scheme)
+    ],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    preview: Annotated[PreviewContext, Depends(get_preview_context)],
 ) -> User | None:
     """Return current user if auth header/cookie present, otherwise None."""
     token: str | None = None
@@ -108,7 +116,7 @@ async def get_current_user_optional(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
-            (UserRestriction.expires_at == None) | (UserRestriction.expires_at > now),
+            (UserRestriction.expires_at is None) | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
@@ -119,8 +127,8 @@ async def get_current_user_optional(
 
 
 async def require_premium(
-    user: User = Depends(get_current_user),
-    preview: PreviewContext = Depends(get_preview_context),
+    user: Annotated[User, Depends(get_current_user)],
+    preview: Annotated[PreviewContext, Depends(get_preview_context)],
 ) -> User:
     if preview and preview.plan == "premium":
         return user
@@ -143,7 +151,7 @@ role_order = {"user": 0, "support": 1, "moderator": 2, "admin": 3}
 
 
 def require_role(min_role: str = "moderator"):
-    async def _require_role(user: User = Depends(get_current_user)) -> User:
+    async def _require_role(user: Annotated[User, Depends(get_current_user)]) -> User:
         if role_order.get(user.role, 0) < role_order[min_role]:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         return user
@@ -176,16 +184,16 @@ def assert_seniority_over(target_user: User, current_user: User) -> None:
 
 
 async def ensure_can_post(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    preview: PreviewContext = Depends(get_preview_context),
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    preview: Annotated[PreviewContext, Depends(get_preview_context)],
 ) -> User:
     now = preview.now if preview and preview.now else datetime.utcnow()
     result = await db.execute(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "post_restrict",
-            (UserRestriction.expires_at == None) | (UserRestriction.expires_at > now),
+            (UserRestriction.expires_at is None) | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
@@ -199,8 +207,8 @@ admin_required = require_role("admin")
 
 async def current_workspace(
     workspace_id: UUID,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Resolve workspace by id ensuring the user is a member.
 

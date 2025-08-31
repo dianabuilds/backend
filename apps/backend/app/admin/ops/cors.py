@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 
 from app.core.config import Settings, get_settings
@@ -8,7 +10,9 @@ router = APIRouter()
 
 
 @router.get("/cors")
-def get_cors_config(settings: Settings = Depends(get_settings)) -> dict[str, object]:
+def get_cors_config(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> dict[str, object]:
     """Return CORS configuration used by the application."""
     cors_config: dict[str, object] = {**settings.effective_origins()}
     cors_config.update(
