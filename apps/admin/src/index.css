@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* стандартная высота карточек на дашборде */
+.dashboard-card {
+  @apply h-32;
+}
+
 /* Editor.js: полноширинный контент и перенос длинных слов внутри модалки */
 .edjs-wrap .ce-block__content,
 .edjs-wrap .ce-toolbar__content {
