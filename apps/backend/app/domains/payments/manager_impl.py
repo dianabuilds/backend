@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Protocol, Tuple
+from datetime import datetime, timedelta
 
 import jwt
+from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.domains.payments.infrastructure.models.payment_models import PaymentGatewayConfig
 from app.domains.payments.application.payments_service import payment_service  # domain fallback
+from app.domains.premium.infrastructure.models.premium_models import UserSubscription
 
 
 class PaymentGateway(Protocol):
@@ -112,3 +115,36 @@ async def verify_payment(
         if ok:
             return True, gw.slug
     return False, None
+
+
+async def get_active_subscriptions_stats(
+    db: AsyncSession,
+) -> Tuple[int, float]:
+    """Return current active subscriptions count and pct change vs last week."""
+    now = datetime.utcnow()
+    week_ago = now - timedelta(days=7)
+
+    current_q = (
+        select(func.count())
+        .select_from(UserSubscription)
+        .where(
+            UserSubscription.status == "active",
+            UserSubscription.started_at <= now,
+            or_(UserSubscription.ends_at.is_(None), UserSubscription.ends_at > now),
+        )
+    )
+    current = (await db.execute(current_q)).scalar() or 0
+
+    past_q = (
+        select(func.count())
+        .select_from(UserSubscription)
+        .where(
+            UserSubscription.status == "active",
+            UserSubscription.started_at <= week_ago,
+            or_(UserSubscription.ends_at.is_(None), UserSubscription.ends_at > week_ago),
+        )
+    )
+    past = (await db.execute(past_q)).scalar() or 0
+
+    pct_change = ((current - past) / past * 100.0) if past else 0.0
+    return current, pct_change

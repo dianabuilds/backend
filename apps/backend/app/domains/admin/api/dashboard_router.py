@@ -19,6 +19,7 @@ from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.users.infrastructure.models.user import User
+from app.domains.payments.manager import get_active_subscriptions_stats
 from app.models.ops_incident import OpsIncident
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -47,6 +48,7 @@ async def admin_dashboard(
     active_premium = (
         await db.execute(select(func.count()).select_from(User).where(User.is_premium))
     ).scalar() or 0
+    active_subscriptions, active_subscriptions_change = await get_active_subscriptions_stats(db)
     active_users = (
         await db.execute(
             select(func.count()).select_from(User).where(User.last_login_at >= day_ago)
@@ -113,6 +115,8 @@ async def admin_dashboard(
             "active_users_24h": active_users,
             "new_registrations_24h": new_registrations,
             "active_premium": active_premium,
+            "active_subscriptions": active_subscriptions,
+            "active_subscriptions_change_pct": active_subscriptions_change,
             "nodes_24h": nodes_created,
             "quests_24h": quests_created,
             "incidents_24h": incidents_count,
