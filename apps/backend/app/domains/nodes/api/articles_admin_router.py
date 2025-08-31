@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.db.session import get_db
 from app.domains.nodes.application.node_service import NodeService
+from app.domains.nodes.content_admin_router import _get_item
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import publish_content
@@ -120,13 +121,17 @@ async def create_article(
 
 @router.get("/{node_id}", summary="Get article (admin)")
 async def get_article(
-    node_id: UUID,
+    node_id: int | UUID,
     workspace_id: UUID = Path(...),  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.get(workspace_id, "article", node_id)
+    if isinstance(node_id, int):
+        item = await _get_item(db, node_id, workspace_id)
+        item = await svc.get(workspace_id, "article", item.id)
+    else:
+        item = await svc.get(workspace_id, "article", node_id)
     node = await db.get(
         Node, item.node_id or item.id, options=(selectinload(Node.tags),)
     )
@@ -135,7 +140,7 @@ async def get_article(
 
 @router.patch("/{node_id}", summary="Update article (admin)")
 async def update_article(
-    node_id: UUID,
+    node_id: int | UUID,
     payload: dict,
     workspace_id: UUID = Path(...),  # noqa: B008
     next: int = Query(0),
@@ -143,13 +148,23 @@ async def update_article(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.update(
-        workspace_id,
-        "article",
-        node_id,
-        payload,
-        actor_id=current_user.id,
-    )
+    if isinstance(node_id, int):
+        item = await _get_item(db, node_id, workspace_id)
+        item = await svc.update(
+            workspace_id,
+            "article",
+            item.id,
+            payload,
+            actor_id=current_user.id,
+        )
+    else:
+        item = await svc.update(
+            workspace_id,
+            "article",
+            node_id,
+            payload,
+            actor_id=current_user.id,
+        )
     if next:
         from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 
@@ -162,21 +177,32 @@ async def update_article(
 
 @router.post("/{node_id}/publish", summary="Publish article (admin)")
 async def publish_article(
-    node_id: UUID,
+    node_id: int | UUID,
     payload: PublishIn | None = None,
     workspace_id: UUID = Path(...),  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.publish(
-        workspace_id,
-        "article",
-        node_id,
-        actor_id=current_user.id,
-        access=(payload.access if payload else "everyone"),
-        cover=(payload.cover if payload else None),
-    )
+    if isinstance(node_id, int):
+        item = await _get_item(db, node_id, workspace_id)
+        item = await svc.publish(
+            workspace_id,
+            "article",
+            item.id,
+            actor_id=current_user.id,
+            access=(payload.access if payload else "everyone"),
+            cover=(payload.cover if payload else None),
+        )
+    else:
+        item = await svc.publish(
+            workspace_id,
+            "article",
+            node_id,
+            actor_id=current_user.id,
+            access=(payload.access if payload else "everyone"),
+            cover=(payload.cover if payload else None),
+        )
     await publish_content(
         node_id=item.id,
         slug=item.slug,
@@ -189,13 +215,21 @@ async def publish_article(
     return _serialize(item, node)
 
 
-@router.post("/{node_id}/validate", summary="Validate article (admin)", response_model=ValidateResult)
+@router.post(
+    "/{node_id}/validate",
+    summary="Validate article (admin)",
+    response_model=ValidateResult,
+)
 async def validate_article(
-    node_id: UUID,
+    node_id: int | UUID,
     workspace_id: UUID = Path(...),  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> ValidateResult:
     svc = NodeService(db)
-    await svc.get(workspace_id, "article", node_id)
+    if isinstance(node_id, int):
+        item = await _get_item(db, node_id, workspace_id)
+        await svc.get(workspace_id, "article", item.id)
+    else:
+        await svc.get(workspace_id, "article", node_id)
     return ValidateResult(ok=True, errors=[], warnings=[])
