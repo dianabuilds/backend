@@ -1,21 +1,21 @@
 from __future__ import annotations
 
 import asyncio
-import time
 import logging
-from typing import Any
+import time
+from typing import Annotated, Any
 from urllib.parse import urlparse
 
+import httpx
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-import httpx
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.domains.ai.application.embedding_service import get_embedding
 from app.core.db.session import get_db
 from app.core.redis_utils import create_async_redis
+from app.domains.ai.application.embedding_service import get_embedding
 
 try:
     import redis.asyncio as redis  # type: ignore
@@ -98,7 +98,7 @@ async def _check_payment_service(timeout: float) -> bool:
 
 
 @router.get("/readyz", include_in_schema=False)
-async def readyz(db: AsyncSession = Depends(get_db)) -> JSONResponse:
+async def readyz(db: Annotated[AsyncSession, Depends(get_db)]) -> JSONResponse:
     obs = settings.observability
     db_timeout = obs.db_check_timeout_ms / 1000
     redis_timeout = obs.redis_check_timeout_ms / 1000
@@ -134,7 +134,7 @@ async def readyz(db: AsyncSession = Depends(get_db)) -> JSONResponse:
 
     result: dict[str, Any] = {"duration_ms": duration_ms}
     status = 200
-    for (name, value) in zip(tasks.keys(), results):
+    for name, value in zip(tasks.keys(), results):
         ok = value is True
         result[name] = "ok" if ok else "fail"
         if not ok:

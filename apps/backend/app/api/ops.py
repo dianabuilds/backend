@@ -3,18 +3,18 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.ops.alerts import router as alerts_router
+from app.admin.ops.cors import router as cors_router
 from app.api.health import readyz
 from app.core.cache import cache as shared_cache
 from app.core.db.session import get_db
-from app.admin.ops.cors import router as cors_router
-from app.admin.ops.alerts import router as alerts_router
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.workspaces import WorkspaceSettings
@@ -44,8 +44,8 @@ def _workspace_info(ws: Any) -> dict[str, Any]:
 
 
 async def _resolve_workspace(
-    db: AsyncSession, workspace_id: Optional[UUID]
-) -> Optional[Workspace]:
+    db: AsyncSession, workspace_id: UUID | None
+) -> Workspace | None:
     if workspace_id:
         return await WorkspaceDAO.get(db, workspace_id)
     # попробуем системный workspace 'main'
@@ -60,7 +60,8 @@ async def _resolve_workspace(
 
 @router.get("/status")
 async def get_status(
-    workspace_id: Optional[UUID] = None, db: AsyncSession = Depends(get_db)  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)],
+    workspace_id: UUID | None = None,
 ) -> dict[str, Any]:
     # Кэшируем по реальному id (или по ключу 'none', если WS не найден)
     ws = await _resolve_workspace(db, workspace_id)
@@ -84,7 +85,8 @@ async def get_status(
 
 @router.get("/limits")
 async def get_limits(
-    workspace_id: Optional[UUID] = None, db: AsyncSession = Depends(get_db)  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)],
+    workspace_id: UUID | None = None,
 ) -> dict[str, int]:
     ws = await _resolve_workspace(db, workspace_id)
     if not ws:
