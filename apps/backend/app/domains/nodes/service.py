@@ -9,6 +9,12 @@ from app.core.preview import PreviewContext
 from app.domains.notifications.application.ports.notifications import (
     INotificationPort,
 )
+from app.domains.system.events import (
+    NodeArchived,
+    NodePublished,
+    NodeUpdated,
+    get_event_bus,
+)
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.schemas.nodes_common import Status
 
@@ -42,8 +48,6 @@ async def publish_content(
     preview: PreviewContext | None = None,
 ) -> None:
     """Publish node and emit domain event."""
-    from app.domains.system.events import NodePublished, get_event_bus
-
     bus = get_event_bus()
     await bus.publish(NodePublished(node_id=node_id, slug=slug, author_id=author_id))
     event_metrics.inc("node.publish", str(workspace_id))
@@ -63,16 +67,12 @@ async def publish_content(
 
 async def update_content(node_id: UUID, slug: str, author_id: UUID) -> None:
     """Update node and emit domain event."""
-    from app.domains.system.events import NodeUpdated, get_event_bus
-
     bus = get_event_bus()
     await bus.publish(NodeUpdated(node_id=node_id, slug=slug, author_id=author_id))
 
 
 async def archive_content(node_id: UUID, slug: str, author_id: UUID) -> None:
     """Archive node and emit domain event."""
-    from app.domains.system.events import NodeArchived, get_event_bus
-
     bus = get_event_bus()
     await bus.publish(NodeArchived(node_id=node_id, slug=slug, author_id=author_id))
 
