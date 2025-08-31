@@ -61,8 +61,28 @@ BEGIN
 END;
 $$;
 
--- Example trigger setup for node_notification_settings table
+-- Generic trigger function that blocks writes to deprecated UUID columns.
+CREATE OR REPLACE FUNCTION prevent_uuid_write()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF TG_OP = 'INSERT' AND (to_jsonb(NEW)->>TG_ARGV[0]) IS NOT NULL THEN
+        RAISE EXCEPTION '% column is deprecated, use %', TG_ARGV[0], TG_ARGV[1];
+    END IF;
+
+    IF TG_OP = 'UPDATE'
+       AND (to_jsonb(NEW)->>TG_ARGV[0]) IS DISTINCT FROM (to_jsonb(OLD)->>TG_ARGV[0]) THEN
+        RAISE EXCEPTION '% column is immutable, use %', TG_ARGV[0], TG_ARGV[1];
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+-- Example trigger setup forbidding writes to node_alt_id in node_notification_settings
 DROP TRIGGER IF EXISTS trg_node_notification_settings_fill_node_id ON node_notification_settings;
-CREATE TRIGGER trg_node_notification_settings_fill_node_id
+DROP TRIGGER IF EXISTS trg_node_notification_settings_block_node_alt_id ON node_notification_settings;
+CREATE TRIGGER trg_node_notification_settings_block_node_alt_id
 BEFORE INSERT OR UPDATE ON node_notification_settings
-FOR EACH ROW EXECUTE FUNCTION fill_fk_id_from_uuid('node_id', 'node_alt_id');
+FOR EACH ROW EXECUTE FUNCTION prevent_uuid_write('node_alt_id', 'node_id');
