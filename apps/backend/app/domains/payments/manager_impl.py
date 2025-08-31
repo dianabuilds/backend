@@ -8,9 +8,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.domains.payments.application.payments_service import (
-    payment_service,  # domain fallback
-)
+from app.domains.payments.application.payments_service import payment_service
 from app.domains.payments.infrastructure.models.payment_models import (
     PaymentGatewayConfig,
 )
