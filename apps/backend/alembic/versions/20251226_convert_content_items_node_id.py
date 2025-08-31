@@ -16,8 +16,17 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.drop_constraint("content_items_node_id_fkey", "content_items", type_="foreignkey")
-    op.drop_index("ix_content_items_node_id", table_name="content_items")
+    op.drop_constraint(
+        "content_items_node_id_fkey",
+        "content_items",
+        type_="foreignkey",
+        if_exists=True,
+    )
+    op.drop_index(
+        "ix_content_items_node_id",
+        table_name="content_items",
+        if_exists=True,
+    )
     op.alter_column("content_items", "node_id", new_column_name="node_alt_id")
     op.add_column(
         "content_items",
@@ -58,8 +67,17 @@ def downgrade() -> None:
         """
     )
     op.alter_column("content_items", "node_alt_id", nullable=True)
-    op.drop_constraint("content_items_node_id_fkey", "content_items", type_="foreignkey")
-    op.drop_index("ix_content_items_node_id", table_name="content_items")
+    op.drop_constraint(
+        "content_items_node_id_fkey",
+        "content_items",
+        type_="foreignkey",
+        if_exists=True,
+    )
+    op.drop_index(
+        "ix_content_items_node_id",
+        table_name="content_items",
+        if_exists=True,
+    )
     op.drop_column("content_items", "node_id")
     op.alter_column("content_items", "node_alt_id", new_column_name="node_id")
     op.create_index("ix_content_items_node_id", "content_items", ["node_id"])
