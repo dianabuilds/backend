@@ -316,9 +316,11 @@ def register_domain_routers(app: FastAPI) -> None:
         pass
     # Admin quest steps
     try:
+        from app.api.admin.quests.steps import graph_router as admin_quest_graph_router
         from app.api.admin.quests.steps import router as admin_quest_steps_router
 
         app.include_router(admin_quest_steps_router)
+        app.include_router(admin_quest_graph_router)
     except Exception:
         pass
     # Admin transitions
