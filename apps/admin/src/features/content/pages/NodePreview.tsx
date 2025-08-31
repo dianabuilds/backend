@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 
 import { getNode } from "../../../api/nodes";
 import { useWorkspace } from "../../../workspace/WorkspaceContext";
-import AdminNodePreview, { Doc } from "../components/AdminNodePreview";
+import AdminNodePreview from "../components/AdminNodePreview";
+import type { Doc } from "../components/AdminNodePreview";
 
 export default function NodePreview() {
   const { type = "article", id = "" } = useParams<{ type?: string; id?: string }>();
