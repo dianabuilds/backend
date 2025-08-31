@@ -106,8 +106,8 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
 @router.post("", summary="Create article (admin)")
 async def create_article(
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: dict | None = None,
-    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
@@ -122,7 +122,7 @@ async def create_article(
 @router.get("/{node_id}", summary="Get article (admin)")
 async def get_article(
     node_id: int | UUID,
-    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
@@ -142,7 +142,7 @@ async def get_article(
 async def update_article(
     node_id: int | UUID,
     payload: dict,
-    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -178,8 +178,8 @@ async def update_article(
 @router.post("/{node_id}/publish", summary="Publish article (admin)")
 async def publish_article(
     node_id: int | UUID,
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
-    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
@@ -222,7 +222,7 @@ async def publish_article(
 )
 async def validate_article(
     node_id: int | UUID,
-    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> ValidateResult:
