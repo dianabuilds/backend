@@ -124,6 +124,10 @@ async def _get_item(
         item = result.scalar_one_or_none()
         if item:
             return item
+        node = await db.get(Node, node_id)
+        if node and node.workspace_id == workspace_id:
+            svc = NodeService(db)
+            return await svc.create_item_for_node(node)
     else:
         item = await db.get(NodeItem, node_id)
         if item and item.workspace_id == workspace_id:
@@ -136,6 +140,8 @@ async def _get_item(
             item = result.scalar_one_or_none()
             if item:
                 return item
+            svc = NodeService(db)
+            return await svc.create_item_for_node(node)
     raise HTTPException(status_code=404, detail="Node not found")
 
 
