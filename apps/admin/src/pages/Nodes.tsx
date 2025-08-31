@@ -153,8 +153,8 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     return p > 0 ? p - 1 : 0;
   });
   const [limit, setLimit] = useState(() => {
-    const l = Number(searchParams.get("limit") || "20");
-    return Number.isFinite(l) && l > 0 ? l : 20;
+    const rawLimit = Number(searchParams.get("limit") || "20");
+    return Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20;
   });
 
   // Данные

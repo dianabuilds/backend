@@ -650,8 +650,8 @@ export default function WorkspaceSettings() {
                 min={0}
                 value={limits.ai_tokens}
                 onChange={(e) =>
-                  setLimitsState((l) => ({
-                    ...l,
+                  setLimitsState((prev) => ({
+                    ...prev,
                     ai_tokens: Number(e.target.value),
                   }))
                 }
@@ -672,8 +672,8 @@ export default function WorkspaceSettings() {
                 min={0}
                 value={limits.notif_per_day}
                 onChange={(e) =>
-                  setLimitsState((l) => ({
-                    ...l,
+                  setLimitsState((prev) => ({
+                    ...prev,
                     notif_per_day: Number(e.target.value),
                   }))
                 }
@@ -694,8 +694,8 @@ export default function WorkspaceSettings() {
                 min={0}
                 value={limits.compass_calls}
                 onChange={(e) =>
-                  setLimitsState((l) => ({
-                    ...l,
+                  setLimitsState((prev) => ({
+                    ...prev,
                     compass_calls: Number(e.target.value),
                   }))
                 }

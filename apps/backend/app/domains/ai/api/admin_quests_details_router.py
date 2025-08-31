@@ -56,15 +56,15 @@ async def get_generation_job_details(
     agg_prompt = 0
     agg_completion = 0
     agg_cost = 0.0
-    for l in logs:
-        u = l.get("usage") or {}
+    for log_entry in logs:
+        u = log_entry.get("usage") or {}
         try:
             agg_prompt += int(u.get("prompt", 0))
             agg_completion += int(u.get("completion", 0))
         except Exception:
             pass
         try:
-            agg_cost += float(l.get("cost") or 0.0)
+            agg_cost += float(log_entry.get("cost") or 0.0)
         except Exception:
             pass
 
