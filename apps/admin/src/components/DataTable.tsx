@@ -12,7 +12,7 @@ type Props<T> = {
   loading?: boolean;
   skeletonRows?: number;
   onRowClick?: (row: T) => void;
-  rowClassName?: string;
+  rowClassName?: string | ((row: T) => string | undefined);
 };
 
 export default function DataTable<T>({
@@ -49,7 +49,9 @@ export default function DataTable<T>({
               ? Array.from({ length: skeletonRows }).map((_, i) => (
                   <tr
                     key={`skeleton-${i}`}
-                    className={`border-t ${rowClassName || ""}`}
+                    className={`border-t ${
+                      typeof rowClassName === "string" ? rowClassName : ""
+                    }`}
                     role="row"
                   >
                     {columns.map((c) => (
@@ -62,7 +64,11 @@ export default function DataTable<T>({
               : (rows || []).map((row) => (
                   <tr
                     key={rowKey(row)}
-                    className={`border-t ${rowClassName || ""}`}
+                    className={`border-t ${
+                      typeof rowClassName === "function"
+                        ? rowClassName(row) || ""
+                        : rowClassName || ""
+                    }`}
                     role="row"
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                   >
