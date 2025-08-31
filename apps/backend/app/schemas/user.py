@@ -40,7 +40,7 @@ class UserPremiumUpdate(BaseModel):
 
 
 class UserRoleUpdate(BaseModel):
-    role: Literal["user", "moderator", "admin"]
+    role: Literal["user", "moderator", "support", "admin"]
 
 
 class AdminUserOut(UserBase):

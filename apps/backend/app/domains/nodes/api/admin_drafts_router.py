@@ -17,13 +17,4 @@ async def list_draft_issues(
     limit: int = 5,
 ):
     svc = NodeQueryService(db)
-    items = await svc.list_drafts_with_issues(limit=limit)
-    return [
-        {
-            "id": str(node.id),
-            "slug": node.slug,
-            "title": node.title,
-            "issues": issues,
-        }
-        for node, issues in items
-    ]
+    return await svc.list_drafts_with_issues(limit=limit)

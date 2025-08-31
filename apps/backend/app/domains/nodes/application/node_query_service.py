@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 
 from sqlalchemy import String, and_, asc, cast, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.cache import cache as shared_cache
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
     PageRequest,
@@ -166,7 +168,11 @@ class NodeQueryService:
 
     async def list_drafts_with_issues(
         self, limit: int = 10
-    ) -> list[tuple[Node, list[str]]]:
+    ) -> list[dict]:
+        cache_key = f"admin:drafts:issues:{limit}"
+        cached = await shared_cache.get(cache_key)
+        if cached:
+            return json.loads(cached)
         stmt = (
             select(Node)
             .options(selectinload(Node.tags))
@@ -183,7 +189,7 @@ class NodeQueryService:
         )
         res = await self._db.execute(stmt)
         nodes = list(res.scalars().unique().all())
-        items: list[tuple[Node, list[str]]] = []
+        items: list[dict] = []
         for node in nodes:
             issues: list[str] = []
             if not node.cover_url:
@@ -192,5 +198,13 @@ class NodeQueryService:
                 issues.append("title")
             if not getattr(node, "tags", []):
                 issues.append("tags")
-            items.append((node, issues))
+            items.append(
+                {
+                    "id": str(node.id),
+                    "slug": node.slug,
+                    "title": node.title,
+                    "issues": issues,
+                }
+            )
+        await shared_cache.set(cache_key, json.dumps(items), 120)
         return items

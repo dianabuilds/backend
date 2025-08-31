@@ -8,7 +8,7 @@ from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.schemas.job import BackgroundJobHistoryOut
 from app.domains.admin.application.jobs_service import JobsService
 
-admin_required = require_admin_role()
+admin_required = require_admin_role({"admin", "support"})
 
 router = APIRouter(
     prefix="/admin/jobs",

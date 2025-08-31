@@ -36,7 +36,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 function isAllowed(role: string): boolean {
-  return role === "admin" || role === "moderator";
+  return role === "admin" || role === "moderator" || role === "support";
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

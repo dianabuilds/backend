@@ -29,6 +29,7 @@ class User(Base):
         SAEnum(
             "user",
             "moderator",
+            "support",
             "admin",
             name="user_role",
         ),
