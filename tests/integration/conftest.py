@@ -76,7 +76,8 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         try:
             await session.execute(text("DELETE FROM users"))
             await session.commit()
-        except Exception:
+        except Exception as err:
+            _ = err
             await session.rollback()
 
 

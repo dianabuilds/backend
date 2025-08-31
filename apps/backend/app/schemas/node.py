@@ -51,7 +51,8 @@ class NodeBase(BaseModel):
 
             try:
                 parsed = json.loads(v)
-            except Exception:
+            except Exception as err:
+                _ = err
                 return {}
             return parsed if isinstance(parsed, dict) else {}
         return {}
@@ -109,7 +110,8 @@ class NodeOut(NodeBase):
         # Приводим popularity_score к числу (некорректные значения -> 0.0)
         try:
             self.popularity_score = float(self.popularity_score)  # type: ignore[arg-type]
-        except Exception:
+        except Exception as err:
+            _ = err
             self.popularity_score = 0.0
         return self
 
