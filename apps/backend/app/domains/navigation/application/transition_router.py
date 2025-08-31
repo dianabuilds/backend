@@ -19,6 +19,9 @@ from sqlalchemy.future import select
 from app.core.preview import PreviewContext
 
 if TYPE_CHECKING:  # pragma: no cover - used for type hints only
+    from app.domains.navigation.application.transitions_service import (
+        TransitionsService,
+    )
     from app.domains.nodes.infrastructure.models.node import Node
     from app.domains.users.infrastructure.models.user import User
 
