@@ -147,7 +147,7 @@ async def _get_item(
 
 @router.get("/{node_id}", summary="Get node item by id")
 async def get_node_by_id(
-    node_id: int | UUID,
+    node_id: Annotated[int | UUID, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -165,7 +165,7 @@ async def get_node_by_id(
 
 @router.patch("/{node_id}", summary="Update node item by id")
 async def update_node_by_id(
-    node_id: int | UUID,
+    node_id: Annotated[int | UUID, Path(...)],
     payload: dict,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
@@ -196,7 +196,7 @@ async def update_node_by_id(
 
 @router.post("/{node_id}/publish", summary="Publish node item by id")
 async def publish_node_by_id(
-    node_id: int | UUID,
+    node_id: Annotated[int | UUID, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
@@ -272,7 +272,7 @@ async def create_node(
 @router.get("/{node_type}/{node_id}", summary="Get node item")
 async def get_node(
     node_type: str,
-    node_id: int | UUID,
+    node_id: Annotated[int | UUID, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -293,7 +293,7 @@ async def get_node(
 @router.patch("/{node_type}/{node_id}", summary="Update node item")
 async def update_node(
     node_type: str,
-    node_id: int | UUID,
+    node_id: Annotated[int | UUID, Path(...)],
     payload: dict,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
@@ -328,7 +328,7 @@ async def update_node(
 @router.post("/{node_type}/{node_id}/publish", summary="Publish node item")
 async def publish_node(
     node_type: str,
-    node_id: int | UUID,
+    node_id: Annotated[int | UUID, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
@@ -366,7 +366,7 @@ async def publish_node(
 )
 async def publish_node_patch(
     node_type: str,
-    node_id: int | UUID,
+    node_id: Annotated[int | UUID, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
