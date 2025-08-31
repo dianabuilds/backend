@@ -172,3 +172,71 @@ async def test_get_graph_returns_steps_and_transitions() -> None:
         steps, transitions = await svc.get_graph(session, quest.id)
         assert len(steps) == 2
         assert len(transitions) == 1
+
+
+@pytest.mark.asyncio
+async def test_update_step_cannot_become_start_if_one_exists() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Quest.__table__.create)
+        await conn.run_sync(QuestStep.__table__.create)
+        await conn.run_sync(QuestStepTransition.__table__.create)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    svc = QuestStepService()
+    async with async_session() as session:
+        quest = Quest()
+        session.add(quest)
+        await session.commit()
+
+        await svc.create_step(session, quest.id, key="s1", title="Start", type="start")
+        step = await svc.create_step(session, quest.id, key="s2", title="Normal")
+        with pytest.raises(ValueError):
+            await svc.update_step(session, step.id, type="start")
+
+
+@pytest.mark.asyncio
+async def test_list_steps_sorted_by_order() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Quest.__table__.create)
+        await conn.run_sync(QuestStep.__table__.create)
+        await conn.run_sync(QuestStepTransition.__table__.create)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    svc = QuestStepService()
+    async with async_session() as session:
+        quest = Quest()
+        session.add(quest)
+        await session.commit()
+
+        await svc.create_step(session, quest.id, key="b", title="B")
+        await svc.create_step(session, quest.id, key="a", title="A")
+        steps = await svc.list_steps(session, quest.id)
+        assert [s.key for s in steps] == ["b", "a"]
+        assert [s.order for s in steps] == [1, 2]
+
+
+@pytest.mark.asyncio
+async def test_create_transition_missing_step() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Quest.__table__.create)
+        await conn.run_sync(QuestStep.__table__.create)
+        await conn.run_sync(QuestStepTransition.__table__.create)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    svc = QuestStepService()
+    async with async_session() as session:
+        quest = Quest()
+        session.add(quest)
+        await session.commit()
+
+        step = await svc.create_step(session, quest.id, key="s1", title="S1")
+        with pytest.raises(ValueError):
+            await svc.create_transition(
+                session,
+                quest.id,
+                from_step_id=uuid.uuid4(),
+                to_step_id=step.id,
+            )
