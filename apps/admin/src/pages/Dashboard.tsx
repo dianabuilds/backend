@@ -1,11 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { listFlags, updateFlag } from '../api/flags';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import KpiCard from '../components/KpiCard';
 import { AdminService, type DraftIssueOut, type FeatureFlagOut } from '../openapi';
+import { getIconComponent } from '../icons/registry';
 
 function Toggle({
   checked,
@@ -84,61 +86,124 @@ export default function Dashboard() {
   const kpi = data?.kpi || {};
   const subsChange = kpi.active_subscriptions_change_pct ?? 0;
   const subsChangeColor = subsChange >= 0 ? 'text-green-600' : 'text-red-600';
+  const DashboardIcon = getIconComponent('home');
+  const FlagIcon = getIconComponent('flag');
+  const FileIcon = getIconComponent('file');
+  const UsersIcon = getIconComponent('users');
+
+  const statusColors: Record<string, string> = {
+    approved: 'text-green-600',
+    pending: 'text-yellow-600',
+    rejected: 'text-red-600',
+  };
 
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="flex items-center text-2xl font-bold">
+          <DashboardIcon className="mr-2 h-6 w-6" />
+          Dashboard
+        </h1>
         <div className="flex gap-2 text-sm">
-          <span className="rounded bg-green-100 px-2 py-1 text-green-800 dark:bg-green-900 dark:text-green-100">
+          <Link
+            to="/ops/health"
+            className="rounded bg-green-100 px-2 py-1 text-green-800 dark:bg-green-900 dark:text-green-100"
+          >
             System OK
-          </span>
-          <span className="rounded bg-blue-100 px-2 py-1 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
+          </Link>
+          <Link
+            to="/ops/monitoring"
+            className="rounded bg-yellow-100 px-2 py-1 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
+          >
             Global
-          </span>
-          <span className="rounded bg-gray-100 px-2 py-1 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+          </Link>
+          <Link
+            to="/users?status=active"
+            className="rounded bg-red-100 px-2 py-1 text-red-800 dark:bg-red-900 dark:text-red-100"
+          >
             active
-          </span>
+          </Link>
         </div>
       </header>
 
       {isLoading && <div className="text-sm text-gray-500">Loading…</div>}
       {!isLoading && (
         <div className="grid gap-4 md:grid-cols-5">
-          <KpiCard title="Active users (24h)" value={kpi.active_users_24h ?? 0} />
-          <KpiCard title="New registrations (24h)" value={kpi.new_registrations_24h ?? 0} />
-          <KpiCard title="Active premium" value={kpi.active_premium ?? 0} />
-          <KpiCard
-            title="Active subscriptions"
-            value={
-              <>
-                {kpi.active_subscriptions ?? 0}
-                <span className={`ml-1 text-sm ${subsChangeColor}`}>
-                  {subsChange >= 0 ? '+' : ''}
-                  {subsChange.toFixed(1)}%
+          <Link to="/users" className="block">
+            <KpiCard
+              title="Active users (24h)"
+              value={kpi.active_users_24h ?? 0}
+              className="dashboard-card"
+            />
+          </Link>
+          <Link to="/users" className="block">
+            <KpiCard
+              title="New registrations (24h)"
+              value={kpi.new_registrations_24h ?? 0}
+              className="dashboard-card"
+            />
+          </Link>
+          <Link to="/users?premium=1" className="block">
+            <KpiCard
+              title="Active premium"
+              value={kpi.active_premium ?? 0}
+              className="dashboard-card"
+            />
+          </Link>
+          <Link to="/payments/transactions" className="block">
+            <KpiCard
+              title="Active subscriptions"
+              value={
+                <>
+                  {kpi.active_subscriptions ?? 0}
+                  <span className={`ml-1 text-sm ${subsChangeColor}`}>
+                    {subsChange >= 0 ? '+' : ''}
+                    {subsChange.toFixed(1)}%
+                  </span>
+                </>
+              }
+              className="dashboard-card"
+            />
+          </Link>
+          <Link to="/nodes" className="block">
+            <KpiCard
+              title="Nodes (7d)"
+              value={kpi.nodes_7d ?? 0}
+              className="dashboard-card"
+            />
+          </Link>
+          <Link to="/nodes" className="block">
+            <KpiCard
+              title="Nodes w/o transitions"
+              value={`${(kpi.nodes_without_outgoing_pct ?? 0).toFixed(1)}%`}
+              className="dashboard-card"
+            />
+          </Link>
+          <Link to="/quests" className="block">
+            <KpiCard
+              title="Quests (24h)"
+              value={kpi.quests_24h ?? 0}
+              className="dashboard-card"
+            />
+          </Link>
+          <Link to="/ops/alerts" className="block">
+            <KpiCard
+              title="Incidents (24h)"
+              value={
+                <span className={kpi.incidents_24h ? 'text-red-600' : ''}>
+                  {kpi.incidents_24h ?? 0}
                 </span>
-              </>
-            }
-          />
-          <KpiCard title="Nodes (7d)" value={kpi.nodes_7d ?? 0} />
-          <KpiCard
-            title="Nodes w/o transitions"
-            value={`${(kpi.nodes_without_outgoing_pct ?? 0).toFixed(1)}%`}
-          />
-          <KpiCard title="Quests (24h)" value={kpi.quests_24h ?? 0} />
-          <KpiCard
-            title="Incidents (24h)"
-            value={
-              <span className={kpi.incidents_24h ? 'text-red-600' : ''}>
-                {kpi.incidents_24h ?? 0}
-              </span>
-            }
-          />
+              }
+              className="dashboard-card"
+            />
+          </Link>
         </div>
       )}
 
       <section>
-        <h2 className="text-xl font-bold">Feature Flags</h2>
+        <h2 className="mb-2 flex items-center text-xl font-bold">
+          <FlagIcon className="mr-2 h-5 w-5" /> Feature Flags
+        </h2>
         {flagsLoading && (
           <div className="text-sm text-gray-500">Loading...</div>
         )}
@@ -174,7 +239,9 @@ export default function Dashboard() {
       </section>
 
       <section>
-        <h2 className="text-xl font-bold">Drafts with issues</h2>
+        <h2 className="mb-2 flex items-center text-xl font-bold">
+          <FileIcon className="mr-2 h-5 w-5" /> Drafts with issues
+        </h2>
         <ul className="mb-2 list-disc pl-5 text-sm">
           {draftIssues.map((d) => (
             <li key={d.id}>{d.title || d.slug}</li>
@@ -189,7 +256,9 @@ export default function Dashboard() {
       </section>
 
       <section>
-        <h2 className="text-xl font-bold">Moderation queue</h2>
+        <h2 className="mb-2 flex items-center text-xl font-bold">
+          <UsersIcon className="mr-2 h-5 w-5" /> Moderation queue
+        </h2>
         <div className="mb-2 flex gap-2 text-sm">
           <select
             className="rounded border px-2 py-1"
@@ -227,7 +296,14 @@ export default function Dashboard() {
                 <td className="p-1 align-top">{item.id}</td>
                 <td className="p-1 align-top">{item.type}</td>
                 <td className="p-1 align-top">{item.reason}</td>
-                <td className="p-1 align-top">{item.status}</td>
+                <td className={`p-1 align-top ${statusColors[item.status] ?? ''}`}>
+                  <Link
+                    to={`/moderation?status=${item.status}`}
+                    className="hover:underline"
+                  >
+                    {item.status}
+                  </Link>
+                </td>
                 <td className="p-1 align-top space-x-1">
                   <button
                     className="text-green-600 hover:underline"
