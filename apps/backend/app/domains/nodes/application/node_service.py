@@ -133,7 +133,6 @@ class NodeService:
         # Синхронно создаём запись в таблице nodes с тем же идентификатором/slug,
         # чтобы элемент сразу отображался в админ-списках, работающих по таблице nodes.
         node = Node(
-            id=item.id,  # связываем 1:1 по идентификатору
             workspace_id=workspace_id,
             slug=item.slug,
             title=item.title,
@@ -144,9 +143,8 @@ class NodeService:
             updated_by_user_id=actor_id,
         )
         self._db.add(node)
-        # Проставляем ссылку из контентной записи на node
+        await self._db.commit()
         item.node_id = node.id
-
         await self._db.commit()
         return item
 
@@ -172,11 +170,10 @@ class NodeService:
                 setattr(item, key, value)
 
         # Сохраняем контент и флаги во "внешнюю" таблицу nodes
-        node = await self._db.get(Node, item.node_id or item.id)
+        node = await self._db.get(Node, item.node_id) if item.node_id else None
         if node is None:
             # На случай старых записей, созданных до появления связанного Node
             node = Node(
-                id=item.id,
                 workspace_id=item.workspace_id,
                 slug=item.slug,
                 title=item.title,
@@ -187,6 +184,7 @@ class NodeService:
                 updated_by_user_id=actor_id,
             )
             self._db.add(node)
+            await self._db.commit()
             item.node_id = node.id
 
         # синхронизируем заголовок, если он менялся
@@ -233,10 +231,9 @@ class NodeService:
         item.updated_by_user_id = actor_id
 
         # Ищем/создаём инфраструктурную запись в nodes по id контента
-        node = await self._db.get(Node, item.node_id or item.id)
+        node = await self._db.get(Node, item.node_id) if item.node_id else None
         if node is None:
             node = Node(
-                id=item.id,
                 workspace_id=item.workspace_id,
                 slug=item.slug,
                 title=item.title,
@@ -247,6 +244,7 @@ class NodeService:
                 updated_by_user_id=actor_id,
             )
             self._db.add(node)
+            await self._db.commit()
             item.node_id = node.id
 
         # Проставляем флаги доступа и прочие поля
