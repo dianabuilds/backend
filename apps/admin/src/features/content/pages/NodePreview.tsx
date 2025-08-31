@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 
-import { getNode } from "../../../api/nodes";
-import { useWorkspace } from "../../../workspace/WorkspaceContext";
-import AdminNodePreview from "../components/AdminNodePreview";
-import type { Doc } from "../components/AdminNodePreview";
+import { getNode } from '../../../api/nodes';
+import { useWorkspace } from '../../../workspace/WorkspaceContext';
+import type { Doc } from '../components/AdminNodePreview';
+import AdminNodePreview from '../components/AdminNodePreview';
 
 export default function NodePreview() {
-  const { type = "article", id = "" } = useParams<{ type?: string; id?: string }>();
+  const { type = 'article', id = '' } = useParams<{ type?: string; id?: string }>();
   const { workspaceId } = useWorkspace();
   const [doc, setDoc] = useState<Doc | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,19 +18,17 @@ export default function NodePreview() {
     if (!workspaceId || !id) return;
     (async () => {
       try {
-        const n = await getNode(workspaceId, type, id);
-        const blocks = Array.isArray((n.content as any)?.blocks)
-          ? (n.content as any).blocks
-          : [];
+        const n = await getNode(workspaceId, id);
+        const blocks = Array.isArray((n.content as any)?.blocks) ? (n.content as any).blocks : [];
         setDoc({
-          title: n.title || "",
+          title: n.title || '',
           cover: n.coverUrl || undefined,
           tags: n.tags || [],
           reactions: n.reactions || {},
           blocks,
         });
       } catch {
-        setError("Failed to load node");
+        setError('Failed to load node');
       } finally {
         setLoading(false);
       }

@@ -1,21 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useSearchParams } from "react-router-dom";
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/rules-of-hooks, react-hooks/exhaustive-deps */
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { wsApi } from "../api/wsApi";
-import { createPreviewLink } from "../api/preview";
-import { createNode, listNodes, patchNode, type NodeListParams } from "../api/nodes";
-import StatusBadge from "../components/StatusBadge";
-import FlagsCell from "../components/FlagsCell";
-import type { TagOut } from "../components/tags/TagPicker";
-import { useToast } from "../components/ToastProvider";
-import WorkspaceSelector from "../components/WorkspaceSelector";
-import WorkspaceControlPanel from "../components/WorkspaceControlPanel";
-import type { OutputData } from "../types/editorjs";
-import { confirmWithEnv } from "../utils/env";
-import { ensureArray } from "../shared/utils";
-import { safeLocalStorage } from "../utils/safeStorage";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import { createNode, listNodes, type NodeListParams, patchNode } from '../api/nodes';
+import { createPreviewLink } from '../api/preview';
+import { wsApi } from '../api/wsApi';
+import FlagsCell from '../components/FlagsCell';
+import StatusBadge from '../components/StatusBadge';
+import type { TagOut } from '../components/tags/TagPicker';
+import { useToast } from '../components/ToastProvider';
+import WorkspaceControlPanel from '../components/WorkspaceControlPanel';
+import WorkspaceSelector from '../components/WorkspaceSelector';
+import { ensureArray } from '../shared/utils';
+import type { OutputData } from '../types/editorjs';
+import { confirmWithEnv } from '../utils/env';
+import { safeLocalStorage } from '../utils/safeStorage';
+import { useWorkspace } from '../workspace/WorkspaceContext';
 
 type NodeItem = {
   id: string;
@@ -43,18 +44,13 @@ function normalizeNode(raw: any): NodeItem {
     title: n.title ?? n.name ?? undefined,
     slug: n.slug,
     status: n.status ?? n.state ?? undefined,
-    is_visible:
-      typeof n.is_visible === "boolean" ? n.is_visible : Boolean(n.isVisible),
-    is_public:
-      typeof n.is_public === "boolean" ? n.is_public : Boolean(n.isPublic),
-    premium_only:
-      typeof n.premium_only === "boolean"
-        ? n.premium_only
-        : Boolean(n.premiumOnly),
+    is_visible: typeof n.is_visible === 'boolean' ? n.is_visible : Boolean(n.isVisible),
+    is_public: typeof n.is_public === 'boolean' ? n.is_public : Boolean(n.isPublic),
+    premium_only: typeof n.premium_only === 'boolean' ? n.premium_only : Boolean(n.premiumOnly),
     is_recommendable:
-      typeof n.is_recommendable === "boolean"
+      typeof n.is_recommendable === 'boolean'
         ? n.is_recommendable
-        : typeof n.isRecommendable === "boolean"
+        : typeof n.isRecommendable === 'boolean'
           ? n.isRecommendable
           : true,
     created_at: n.created_at ?? n.createdAt ?? undefined,
@@ -78,40 +74,37 @@ interface NodeEditorData {
 function makeDraft(): NodeEditorData {
   return {
     id: `draft-${Date.now()}`,
-    title: "",
-    slug: "",
-    subtitle: "",
+    title: '',
+    slug: '',
+    subtitle: '',
     cover_url: null,
     tags: [] as TagOut[],
     allow_comments: true,
     is_premium_only: false,
     contentData: {
       time: Date.now(),
-      blocks: [{ type: "paragraph", data: { text: "" } }],
-      version: "2.30.7",
+      blocks: [{ type: 'paragraph', data: { text: '' } }],
+      version: '2.30.7',
     },
   };
 }
 
 type ChangeSet = Partial<
-  Pick<
-    NodeItem,
-    "is_visible" | "is_public" | "premium_only" | "is_recommendable"
-  >
+  Pick<NodeItem, 'is_visible' | 'is_public' | 'premium_only' | 'is_recommendable'>
 >;
 
 interface NodesProps {
   initialType?: string;
 }
 
-export default function Nodes({ initialType = "" }: NodesProps = {}) {
+export default function Nodes({ initialType = '' }: NodesProps = {}) {
   const { addToast } = useToast();
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const copySlug = (slug: string) => {
-    if (typeof navigator !== "undefined" && slug) {
+    if (typeof navigator !== 'undefined' && slug) {
       void navigator.clipboard?.writeText(slug);
     }
   };
@@ -126,34 +119,28 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   }
 
   // Пагинация/поиск
-  const [q, setQ] = useState(() => searchParams.get("q") || "");
-  const [visibility, setVisibility] = useState<"all" | "visible" | "hidden">(
-    () => {
-      const vis = searchParams.get("visible");
-      return vis === "true" ? "visible" : vis === "false" ? "hidden" : "all";
-    },
+  const [q, setQ] = useState(() => searchParams.get('q') || '');
+  const [visibility, setVisibility] = useState<'all' | 'visible' | 'hidden'>(() => {
+    const vis = searchParams.get('visible');
+    return vis === 'true' ? 'visible' : vis === 'false' ? 'hidden' : 'all';
+  });
+  const [nodeType, setNodeType] = useState(() => searchParams.get('type') || initialType);
+  const [status, setStatus] = useState(() => searchParams.get('status') || 'all');
+  const [isPublic, setIsPublic] = useState<'all' | 'true' | 'false'>(
+    () => searchParams.get('is_public') ?? 'all',
   );
-  const [nodeType, setNodeType] = useState(
-    () => searchParams.get("type") || initialType,
+  const [premium, setPremium] = useState<'all' | 'true' | 'false'>(
+    () => searchParams.get('premium_only') ?? 'all',
   );
-  const [status, setStatus] = useState(
-    () => searchParams.get("status") || "all",
+  const [recommendable, setRecommendable] = useState<'all' | 'true' | 'false'>(
+    () => searchParams.get('recommendable') ?? 'all',
   );
-  const [isPublic, setIsPublic] = useState<"all" | "true" | "false">(
-    () => searchParams.get("is_public") ?? "all",
-  );
-  const [premium, setPremium] = useState<"all" | "true" | "false">(
-    () => searchParams.get("premium_only") ?? "all",
-  );
-  const [recommendable, setRecommendable] = useState<
-    "all" | "true" | "false"
-  >(() => searchParams.get("recommendable") ?? "all");
   const [page, setPage] = useState(() => {
-    const p = Number(searchParams.get("page") || "1");
+    const p = Number(searchParams.get('page') || '1');
     return p > 0 ? p - 1 : 0;
   });
   const [limit, setLimit] = useState(() => {
-    const rawLimit = Number(searchParams.get("limit") || "20");
+    const rawLimit = Number(searchParams.get('limit') || '20');
     return Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20;
   });
 
@@ -166,11 +153,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState<Map<string, ChangeSet>>(new Map());
   const changesCount = useMemo(
-    () =>
-      Array.from(pending.values()).reduce(
-        (acc, cs) => acc + Object.keys(cs).length,
-        0,
-      ),
+    () => Array.from(pending.values()).reduce((acc, cs) => acc + Object.keys(cs).length, 0),
     [pending],
   );
   const [applying, setApplying] = useState(false);
@@ -178,7 +161,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   // Модалка создания ноды
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState<NodeEditorData>(() => {
-    const raw = safeLocalStorage.getItem("node-draft");
+    const raw = safeLocalStorage.getItem('node-draft');
     if (raw) {
       try {
         return JSON.parse(raw) as NodeEditorData;
@@ -192,7 +175,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
 
   useEffect(() => {
     try {
-      safeLocalStorage.setItem("node-draft", JSON.stringify(draft));
+      safeLocalStorage.setItem('node-draft', JSON.stringify(draft));
     } catch {
       /* ignore */
     }
@@ -200,16 +183,15 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
 
   useEffect(() => {
     const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (nodeType) params.set("type", nodeType);
-    if (status !== "all") params.set("status", status);
-    if (visibility !== "all")
-      params.set("visible", visibility === "visible" ? "true" : "false");
-    if (isPublic !== "all") params.set("is_public", isPublic);
-    if (premium !== "all") params.set("premium_only", premium);
-    if (recommendable !== "all") params.set("recommendable", recommendable);
-    if (limit !== 20) params.set("limit", String(limit));
-    if (page > 0) params.set("page", String(page + 1));
+    if (q) params.set('q', q);
+    if (nodeType) params.set('type', nodeType);
+    if (status !== 'all') params.set('status', status);
+    if (visibility !== 'all') params.set('visible', visibility === 'visible' ? 'true' : 'false');
+    if (isPublic !== 'all') params.set('is_public', isPublic);
+    if (premium !== 'all') params.set('premium_only', premium);
+    if (recommendable !== 'all') params.set('recommendable', recommendable);
+    if (limit !== 20) params.set('limit', String(limit));
+    if (page > 0) params.set('page', String(page + 1));
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params);
     }
@@ -229,7 +211,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   // Модерация: скрытие с причиной / восстановление
   const [modOpen, setModOpen] = useState(false);
   const [modTarget, setModTarget] = useState<NodeItem | null>(null);
-  const [modReason, setModReason] = useState("");
+  const [modReason, setModReason] = useState('');
   const [modBusy, setModBusy] = useState(false);
 
   // Превью ноды
@@ -238,19 +220,19 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     // Если нода сейчас видима — запрашиваем причину и скрываем
     if (node.is_visible) {
       setModTarget(node);
-      setModReason("");
+      setModReason('');
       setModOpen(true);
     } else {
       // Восстановление: confirm и прямой вызов
       if (!node.slug) {
         addToast({
-          title: "Restore failed",
-          description: "Slug is missing",
-          variant: "error",
+          title: 'Restore failed',
+          description: 'Slug is missing',
+          variant: 'error',
         });
         return;
       }
-      if (!confirmWithEnv("Restore this node?")) return;
+      if (!confirmWithEnv('Restore this node?')) return;
       (async () => {
         try {
           setModBusy(true);
@@ -258,25 +240,21 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
             `/admin/moderation/nodes/${encodeURIComponent(String(node.slug))}/restore`,
           );
           // Оптимистично обновляем строку и baseline
-          setItems((prev) =>
-            prev.map((n) =>
-              n.id === node.id ? { ...n, is_visible: true } : n,
-            ),
-          );
+          setItems((prev) => prev.map((n) => (n.id === node.id ? { ...n, is_visible: true } : n)));
           setBaseline((prev) => {
             const m = new Map(prev);
             const base = m.get(node.id) || node;
             m.set(node.id, { ...base, is_visible: true });
             return m;
           });
-          addToast({ title: "Node restored", variant: "success" });
+          addToast({ title: 'Node restored', variant: 'success' });
           // Фоновая верификация
           await refetch();
         } catch (e) {
           addToast({
-            title: "Restore failed",
+            title: 'Restore failed',
             description: e instanceof Error ? e.message : String(e),
-            variant: "error",
+            variant: 'error',
           });
         } finally {
           setModBusy(false);
@@ -289,9 +267,9 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     if (!modTarget) return;
     if (!modTarget.slug) {
       addToast({
-        title: "Hide failed",
-        description: "Slug is missing",
-        variant: "error",
+        title: 'Hide failed',
+        description: 'Slug is missing',
+        variant: 'error',
       });
       return;
     }
@@ -299,14 +277,12 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       setModBusy(true);
       await wsApi.post(
         `/admin/moderation/nodes/${encodeURIComponent(String(modTarget.slug))}/hide`,
-        { reason: modReason || "" },
+        { reason: modReason || '' },
       );
       setModOpen(false);
       // Оптимистично: делаем ноду невидимой и фиксируем в baseline
       setItems((prev) =>
-        prev.map((n) =>
-          n.id === modTarget.id ? { ...n, is_visible: false } : n,
-        ),
+        prev.map((n) => (n.id === modTarget.id ? { ...n, is_visible: false } : n)),
       );
       setBaseline((prev) => {
         const m = new Map(prev);
@@ -314,13 +290,13 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
         m.set(modTarget.id, { ...base, is_visible: false });
         return m;
       });
-      addToast({ title: "Node hidden", variant: "success" });
+      addToast({ title: 'Node hidden', variant: 'success' });
       await refetch();
     } catch (e) {
       addToast({
-        title: "Hide failed",
+        title: 'Hide failed',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     } finally {
       setModBusy(false);
@@ -338,7 +314,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     refetch,
   } = useQuery<NodeItem[]>({
     queryKey: [
-      "nodes",
+      'nodes',
       workspaceId,
       q,
       nodeType,
@@ -357,11 +333,11 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       };
       if (q) params.q = q;
       if (nodeType) params.node_type = nodeType;
-      if (status !== "all") params.status = status;
-      if (visibility !== "all") params.visible = visibility === "visible";
-      if (isPublic !== "all") params.is_public = isPublic === "true";
-      if (premium !== "all") params.premium_only = premium === "true";
-      if (recommendable !== "all") params.recommendable = recommendable === "true";
+      if (status !== 'all') params.status = status;
+      if (visibility !== 'all') params.visible = visibility === 'visible';
+      if (isPublic !== 'all') params.is_public = isPublic === 'true';
+      if (premium !== 'all') params.premium_only = premium === 'true';
+      if (recommendable !== 'all') params.recommendable = recommendable === 'true';
       const res = await listNodes(workspaceId, params);
       const raw = ensureArray<any>(res) as any[];
       return raw.map((x) => normalizeNode(x));
@@ -371,9 +347,9 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     onError: (e) => {
       const msg = e instanceof Error ? e.message : String(e);
       addToast({
-        title: "Failed to load nodes",
+        title: 'Failed to load nodes',
         description: msg,
-        variant: "error",
+        variant: 'error',
       });
     },
   });
@@ -389,16 +365,12 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   }, [nodesData, limit]);
 
   const loading = isLoading || isFetching;
-  const errorMsg = error
-    ? error instanceof Error
-      ? error.message
-      : String(error)
-    : null;
+  const errorMsg = error ? (error instanceof Error ? error.message : String(error)) : null;
 
   // Локальные изменения без немедленного вызова API.
   // Для is_visible используем модерационные ручки (hide с причиной / restore) — без staging.
   const toggleField = (id: string, field: keyof ChangeSet) => {
-    if (field === "is_visible") {
+    if (field === 'is_visible') {
       const node = items.find((n) => n.id === id);
       if (node) openModerationFor(node);
       return;
@@ -411,9 +383,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       false;
     const nextVal = !current;
 
-    setItems((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, [field]: nextVal } : n)),
-    );
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, [field]: nextVal } : n)));
 
     setPending((prev) => {
       const next = new Map(prev);
@@ -446,16 +416,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       if (cs.is_public !== undefined && cs.is_public !== base.is_public) {
         (cs.is_public ? ops.public : ops.private).push(id);
       }
-      if (
-        cs.premium_only !== undefined &&
-        cs.premium_only !== base.premium_only
-      ) {
+      if (cs.premium_only !== undefined && cs.premium_only !== base.premium_only) {
         ops.toggle_premium.push(id);
       }
-      if (
-        cs.is_recommendable !== undefined &&
-        cs.is_recommendable !== base.is_recommendable
-      ) {
+      if (cs.is_recommendable !== undefined && cs.is_recommendable !== base.is_recommendable) {
         ops.toggle_recommendable.push(id);
       }
     }
@@ -466,17 +430,17 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       for (const [op, ids] of Object.entries(ops)) {
         if (ids.length === 0) continue;
         any = true;
-        await wsApi.post(
-          `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/bulk`,
-          { ids, op },
-        );
+        await wsApi.post(`/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/bulk`, {
+          ids,
+          op,
+        });
         results.push(`${op}: ${ids.length}`);
       }
       if (any) {
         addToast({
-          title: "Changes applied",
-          description: results.join(", "),
-          variant: "success",
+          title: 'Changes applied',
+          description: results.join(', '),
+          variant: 'success',
         });
         // Оптимистично фиксируем новые значения как базовые,
         // чтобы статус в таблице не «откатывался» визуально.
@@ -485,13 +449,13 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
         // Фоновая верификация серверного состояния
         await refetch();
       } else {
-        addToast({ title: "No changes to apply", variant: "info" });
+        addToast({ title: 'No changes to apply', variant: 'info' });
       }
     } catch (e) {
       addToast({
-        title: "Failed to apply changes",
+        title: 'Failed to apply changes',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     } finally {
       setApplying(false);
@@ -524,38 +488,36 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       is_premium_only: draft.is_premium_only,
       tags: draft.tags.map((t) => t.slug),
     };
-    const blocks = Array.isArray(draft.contentData?.blocks)
-      ? draft.contentData.blocks
-      : [];
+    const blocks = Array.isArray(draft.contentData?.blocks) ? draft.contentData.blocks : [];
     const media = blocks
-      .filter((b: any) => b.type === "image" && b.data?.file?.url)
+      .filter((b: any) => b.type === 'image' && b.data?.file?.url)
       .map((b: any) => String(b.data.file.url));
     if (media.length) payload.media = media;
-    if (draft.cover_url || media.length)
-      payload.cover_url = draft.cover_url || media[0];
+    if (draft.cover_url || media.length) payload.cover_url = draft.cover_url || media[0];
 
     const created = await createNode(workspaceId, {
-      node_type: (nodeType && ["article", "quest"].includes(nodeType)) ? nodeType : "article",
+      node_type: nodeType && ['article', 'quest'].includes(nodeType) ? nodeType : 'article',
       title: draft.title.trim() || undefined,
     });
-    const createdType = (created as any).node_type || nodeType || "article";
-    const nodeId = String((created as any)?.id ?? (created as any)?.uuid ?? (created as any)?._id ?? "");
-    await patchNode(workspaceId, createdType, nodeId, payload);
+    const nodeId = String(
+      (created as any)?.id ?? (created as any)?.uuid ?? (created as any)?._id ?? '',
+    );
+    await patchNode(workspaceId, nodeId, payload);
     return { ...created, id: nodeId } as any;
   };
 
-  const handleCommit = async (action: "save" | "next") => {
+  const handleCommit = async (action: 'save' | 'next') => {
     if (creatingRef.current) return;
     creatingRef.current = true;
     try {
       const created = await doCreate();
       try {
-        safeLocalStorage.removeItem("node-draft");
-        safeLocalStorage.removeItem("node-draft-content");
+        safeLocalStorage.removeItem('node-draft');
+        safeLocalStorage.removeItem('node-draft-content');
       } catch {
         /* ignore */
       }
-      if (action === "next") {
+      if (action === 'next') {
         setDraft(makeDraft());
       } else {
         setEditorOpen(false);
@@ -563,17 +525,17 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       await refetch();
       if (created?.slug) {
         addToast({
-          title: "Node created",
+          title: 'Node created',
           description: `Slug: ${created.slug}`,
-          variant: "success",
+          variant: 'success',
         });
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       addToast({
-        title: "Failed to create node",
+        title: 'Failed to create node',
         description: msg,
-        variant: "error",
+        variant: 'error',
       });
     } finally {
       creatingRef.current = false;
@@ -586,12 +548,12 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     if (!node) return;
     try {
       const { url } = await createPreviewLink(workspaceId);
-      window.open(node.slug ? `${url}/nodes/${node.slug}` : url, "_blank");
+      window.open(node.slug ? `${url}/nodes/${node.slug}` : url, '_blank');
     } catch (e) {
       addToast({
-        title: "Preview failed",
+        title: 'Preview failed',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     }
   };
@@ -599,8 +561,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
   const deleteSelected = async () => {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    if (!confirmWithEnv(`Delete ${ids.length} node${ids.length === 1 ? "" : "s"}?`))
-      return;
+    if (!confirmWithEnv(`Delete ${ids.length} node${ids.length === 1 ? '' : 's'}?`)) return;
     try {
       for (const id of ids) {
         await wsApi.delete(
@@ -609,12 +570,12 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
       }
       setItems((prev) => prev.filter((n) => !selected.has(n.id)));
       setSelected(new Set());
-      addToast({ title: "Deleted", variant: "success" });
+      addToast({ title: 'Deleted', variant: 'success' });
     } catch (e) {
       addToast({
-        title: "Delete failed",
+        title: 'Delete failed',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     }
   };
@@ -623,43 +584,36 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
     const onKey = (e: KeyboardEvent) => {
       if (
         e.target instanceof HTMLElement &&
-        (e.target.tagName === "INPUT" ||
-          e.target.tagName === "TEXTAREA" ||
+        (e.target.tagName === 'INPUT' ||
+          e.target.tagName === 'TEXTAREA' ||
           e.target.isContentEditable)
       ) {
         return;
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const first = Array.from(selected)[0];
-      if (e.key === "e" || e.key === "E") {
+      if (e.key === 'e' || e.key === 'E') {
         if (first) {
           const item = baseline.get(first);
-          if (item)
-            {
-              const usedType =
-                (item as any).type ||
-                (item as any).node_type ||
-                nodeType ||
-                "quest";
-              navigate(
-                `/nodes/${encodeURIComponent(usedType)}/${first}?workspace_id=${workspaceId}`,
-              );
-            }
+          if (item) {
+            const usedType = (item as any).type || (item as any).node_type || nodeType || 'quest';
+            navigate(`/nodes/${encodeURIComponent(usedType)}/${first}?workspace_id=${workspaceId}`);
+          }
         }
-      } else if (e.key === "p" || e.key === "P") {
+      } else if (e.key === 'p' || e.key === 'P') {
         if (first) void previewSelected(first);
-      } else if (e.key === "Delete") {
+      } else if (e.key === 'Delete') {
         e.preventDefault();
         void deleteSelected();
-      } else if (e.key === "s" || e.key === "S") {
+      } else if (e.key === 's' || e.key === 'S') {
         e.preventDefault();
         void applyChanges();
-      } else if (e.key === "Escape") {
+      } else if (e.key === 'Escape') {
         setSelected(new Set());
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [selected, items, workspaceId, navigate, applyChanges]);
 
   // Moderation actions by slug (hide/restore) удалены вместе с боковой панелью.
@@ -818,8 +772,8 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
               onClick={applyChanges}
             >
               {applying
-                ? "Applying…"
-                : `Apply changes${changesCount > 0 ? ` (${changesCount})` : ""}`}
+                ? 'Applying…'
+                : `Apply changes${changesCount > 0 ? ` (${changesCount})` : ''}`}
             </button>
             <button
               type="button"
@@ -848,18 +802,12 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
         {/* Bulk по выделению (по-прежнему доступно) */}
         {selected.size > 0 && (
           <div className="mb-2 flex gap-2">
-            <span className="self-center text-sm">
-              Selected {selected.size}
-            </span>
+            <span className="self-center text-sm">Selected {selected.size}</span>
             <button
               type="button"
               className="px-2 py-1 border rounded"
               onClick={() => {
-                setItems(
-                  items.map((n) =>
-                    selected.has(n.id) ? { ...n, is_visible: false } : n,
-                  ),
-                );
+                setItems(items.map((n) => (selected.has(n.id) ? { ...n, is_visible: false } : n)));
                 setPending((p) => {
                   const m = new Map(p);
                   Array.from(selected).forEach((id) => {
@@ -877,11 +825,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
               type="button"
               className="px-2 py-1 border rounded"
               onClick={() => {
-                setItems(
-                  items.map((n) =>
-                    selected.has(n.id) ? { ...n, is_visible: true } : n,
-                  ),
-                );
+                setItems(items.map((n) => (selected.has(n.id) ? { ...n, is_visible: true } : n)));
                 setPending((p) => {
                   const m = new Map(p);
                   Array.from(selected).forEach((id) => {
@@ -899,11 +843,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
               type="button"
               className="px-2 py-1 border rounded"
               onClick={() => {
-                setItems(
-                  items.map((n) =>
-                    selected.has(n.id) ? { ...n, is_public: true } : n,
-                  ),
-                );
+                setItems(items.map((n) => (selected.has(n.id) ? { ...n, is_public: true } : n)));
                 setPending((p) => {
                   const m = new Map(p);
                   Array.from(selected).forEach((id) => {
@@ -921,11 +861,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
               type="button"
               className="px-2 py-1 border rounded"
               onClick={() => {
-                setItems(
-                  items.map((n) =>
-                    selected.has(n.id) ? { ...n, is_public: false } : n,
-                  ),
-                );
+                setItems(items.map((n) => (selected.has(n.id) ? { ...n, is_public: false } : n)));
                 setPending((p) => {
                   const m = new Map(p);
                   Array.from(selected).forEach((id) => {
@@ -943,11 +879,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
               type="button"
               className="px-2 py-1 border rounded"
               onClick={() => {
-                setItems(
-                  items.map((n) =>
-                    selected.has(n.id) ? { ...n, premium_only: true } : n,
-                  ),
-                );
+                setItems(items.map((n) => (selected.has(n.id) ? { ...n, premium_only: true } : n)));
                 setPending((p) => {
                   const m = new Map(p);
                   Array.from(selected).forEach((id) => {
@@ -966,9 +898,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
               className="px-2 py-1 border rounded"
               onClick={() => {
                 setItems(
-                  items.map((n) =>
-                    selected.has(n.id) ? { ...n, premium_only: false } : n,
-                  ),
+                  items.map((n) => (selected.has(n.id) ? { ...n, premium_only: false } : n)),
                 );
                 setPending((p) => {
                   const m = new Map(p);
@@ -989,18 +919,14 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
               onClick={() => {
                 setItems(
                   items.map((n) =>
-                    selected.has(n.id)
-                      ? { ...n, is_recommendable: !n.is_recommendable }
-                      : n,
+                    selected.has(n.id) ? { ...n, is_recommendable: !n.is_recommendable } : n,
                   ),
                 );
                 setPending((p) => {
                   const m = new Map(p);
                   Array.from(selected).forEach((id) => {
                     const cs = { ...(m.get(id) || {}) };
-                    cs.is_recommendable = !(
-                      baseline.get(id)?.is_recommendable ?? false
-                    );
+                    cs.is_recommendable = !(baseline.get(id)?.is_recommendable ?? false);
                     m.set(id, cs);
                   });
                   return m;
@@ -1028,15 +954,9 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                   <th className="p-2">
                     <input
                       type="checkbox"
-                      checked={
-                        items.length > 0 && selected.size === items.length
-                      }
+                      checked={items.length > 0 && selected.size === items.length}
                       onChange={(e) =>
-                        setSelected(
-                          e.target.checked
-                            ? new Set(items.map((i) => i.id))
-                            : new Set(),
-                        )
+                        setSelected(e.target.checked ? new Set(items.map((i) => i.id)) : new Set())
                       }
                     />
                   </th>
@@ -1062,7 +982,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                   return (
                     <tr
                       key={n.id ?? i}
-                      className={`border-b hover:bg-gray-50 dark:hover:bg-gray-800 ${changed ? "bg-amber-50 dark:bg-amber-900/20" : ""}`}
+                      className={`border-b hover:bg-gray-50 dark:hover:bg-gray-800 ${changed ? 'bg-amber-50 dark:bg-amber-900/20' : ''}`}
                     >
                       <td className="p-2">
                         <input
@@ -1071,29 +991,23 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                           onChange={() => toggleSelect(n.id)}
                         />
                       </td>
-                      <td className="p-2 font-mono">{n.id ?? "-"}</td>
+                      <td className="p-2 font-mono">{n.id ?? '-'}</td>
                       <td className="p-2">
                         <div className="relative group pr-16">
-                          <div className="font-bold">
-                            {n.title?.trim() || "Untitled"}
-                          </div>
-                          <div className="text-gray-500 text-xs font-mono">
-                            {n.slug ?? "-"}
-                          </div>
+                          <div className="font-bold">{n.title?.trim() || 'Untitled'}</div>
+                          <div className="text-gray-500 text-xs font-mono">{n.slug ?? '-'}</div>
                           {n.slug && (
                             <button
                               type="button"
                               className="absolute top-0 right-0 text-xs text-blue-600 opacity-0 group-hover:opacity-100"
-                              onClick={() => copySlug(n.slug ?? "")}
+                              onClick={() => copySlug(n.slug ?? '')}
                             >
                               Copy slug
                             </button>
                           )}
                         </div>
                       </td>
-                      <td className="p-2">
-                        {n.status ? <StatusBadge status={n.status} /> : "-"}
-                      </td>
+                      <td className="p-2">{n.status ? <StatusBadge status={n.status} /> : '-'}</td>
                       <td className="p-2 text-center">
                         <FlagsCell
                           value={{
@@ -1107,14 +1021,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                         />
                       </td>
                       <td className="p-2">
-                        {n.created_at
-                          ? new Date(n.created_at).toLocaleString()
-                          : "-"}
+                        {n.created_at ? new Date(n.created_at).toLocaleString() : '-'}
                       </td>
                       <td className="p-2">
-                        {n.updated_at
-                          ? new Date(n.updated_at).toLocaleString()
-                          : "-"}
+                        {n.updated_at ? new Date(n.updated_at).toLocaleString() : '-'}
                       </td>
                       <td className="p-2 space-x-2">
                         <button
@@ -1122,10 +1032,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                           className="px-2 py-1 border rounded"
                           onClick={() => {
                             const usedType =
-                              (n as any).type ||
-                              (n as any).node_type ||
-                              nodeType ||
-                              "article";
+                              (n as any).type || (n as any).node_type || nodeType || 'article';
                             navigate(
                               `/nodes/${encodeURIComponent(usedType)}/${n.id}?workspace_id=${workspaceId}`,
                             );
@@ -1140,16 +1047,12 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                             if (!workspaceId) return;
                             try {
                               const { url } = await createPreviewLink(workspaceId);
-                              window.open(
-                                n.slug ? `${url}/nodes/${n.slug}` : url,
-                                "_blank",
-                              );
+                              window.open(n.slug ? `${url}/nodes/${n.slug}` : url, '_blank');
                             } catch (e) {
                               addToast({
-                                title: "Preview failed",
-                                description:
-                                  e instanceof Error ? e.message : String(e),
-                                variant: "error",
+                                title: 'Preview failed',
+                                description: e instanceof Error ? e.message : String(e),
+                                variant: 'error',
                               });
                             }
                           }}
@@ -1197,10 +1100,10 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
               <ContentEditor
                 nodeId={draft.id}
                 node_type="node"
-                title={draft.title || "New node"}
-                statuses={["draft"]}
+                title={draft.title || 'New node'}
+                statuses={['draft']}
                 versions={[1]}
-                onSave={() => handleCommit("save")}
+                onSave={() => handleCommit('save')}
                 onClose={() => setEditorOpen(false)}
                 toolbar={
                   <div className="flex gap-2">
@@ -1209,7 +1112,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                       aria-label="Save"
                       className="px-2 py-1 border rounded bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       disabled={!canSave || creatingRef.current}
-                      onClick={() => handleCommit("save")}
+                      onClick={() => handleCommit('save')}
                     >
                       Save
                     </button>
@@ -1218,7 +1121,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                       aria-label="Save and Next"
                       className="px-2 py-1 border rounded bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       disabled={!canSave || creatingRef.current}
-                      onClick={() => handleCommit("next")}
+                      onClick={() => handleCommit('next')}
                     >
                       Save & Next
                     </button>
@@ -1245,7 +1148,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                 content={{
                   initial: draft.contentData,
                   onSave: (d) => setDraft((prev) => ({ ...prev, contentData: d })),
-                  storageKey: "node-draft-content",
+                  storageKey: 'node-draft-content',
                 }}
               />
             </div>
@@ -1258,8 +1161,7 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
             <div className="w-full max-w-md rounded bg-white p-4 shadow dark:bg-gray-900">
               <h3 className="mb-3 text-lg font-semibold">Hide node</h3>
               <p className="mb-2 text-sm text-gray-600">
-                Provide a reason for hiding this node. The action will be logged
-                in audit.
+                Provide a reason for hiding this node. The action will be logged in audit.
               </p>
               <input
                 className="mb-3 w-full rounded border px-2 py-1"
@@ -1283,13 +1185,12 @@ export default function Nodes({ initialType = "" }: NodesProps = {}) {
                   onClick={submitModerationHide}
                   disabled={modBusy}
                 >
-                  {modBusy ? "Hiding…" : "Hide"}
+                  {modBusy ? 'Hiding…' : 'Hide'}
                 </button>
               </div>
             </div>
           </div>
         )}
-
       </div>
 
       {/* Moderation sidebar removed: управление скрытием ведём через общий список и фильтр visible/hidden */}
