@@ -5,6 +5,7 @@ from pathlib import Path
 import os
 
 import pytest
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -23,23 +24,30 @@ from app.domains.notifications.infrastructure.repositories.settings_repository i
 @pytest.mark.asyncio
 async def test_upsert_and_get_notification_settings() -> None:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    metadata = NodeNotificationSetting.__table__.metadata
+    nodes = sa.Table(
+        "nodes",
+        metadata,
+        sa.Column("id", sa.BigInteger, primary_key=True),
+        sa.Column("alt_id", sa.String, unique=True, nullable=False),
+    )
+    node_alt_id = uuid.uuid4()
     async with engine.begin() as conn:
-        await conn.run_sync(NodeNotificationSetting.__table__.create)
+        await conn.run_sync(metadata.create_all)
+        await conn.execute(nodes.insert().values(id=1, alt_id=str(node_alt_id)))
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
         repo = NodeNotificationSettingsRepository(session)
         user_id = uuid.uuid4()
-        node_id = uuid.uuid4()
-
-        setting = await repo.upsert(user_id, node_id, False)
+        setting = await repo.upsert(user_id, node_alt_id, False)
         assert setting.enabled is False
 
-        fetched = await repo.get(user_id, node_id)
+        fetched = await repo.get(user_id, node_alt_id)
         assert fetched is not None
         assert fetched.enabled is False
 
-        await repo.upsert(user_id, node_id, True)
-        fetched = await repo.get(user_id, node_id)
+        await repo.upsert(user_id, node_alt_id, True)
+        fetched = await repo.get(user_id, node_alt_id)
         assert fetched is not None
         assert fetched.enabled is True
