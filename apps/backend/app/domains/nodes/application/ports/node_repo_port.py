@@ -14,6 +14,11 @@ class INodeRepository(Protocol):
         ...
 
     async def get_by_id(
+        self, node_id: int, workspace_id: UUID
+    ) -> Node | None:  # pragma: no cover
+        ...
+
+    async def get_by_alt_id(
         self, node_id: UUID, workspace_id: UUID
     ) -> Node | None:  # pragma: no cover
         ...

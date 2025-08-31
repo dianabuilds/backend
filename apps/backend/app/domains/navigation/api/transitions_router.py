@@ -33,7 +33,7 @@ async def delete_transition(
     if not transition:
         raise HTTPException(status_code=404, detail="Transition not found")
     TransitionPolicy.ensure_can_delete(transition, current_user)
-    from_node = await node_repo.get_by_id(transition.from_node_id, workspace_id)
+    from_node = await node_repo.get_by_alt_id(transition.from_node_id, workspace_id)
     await repo.delete(transition)
     if from_node:
         await navcache.invalidate_navigation_by_node(from_node.slug)

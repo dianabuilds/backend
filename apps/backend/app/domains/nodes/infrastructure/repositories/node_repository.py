@@ -55,13 +55,29 @@ class NodeRepositoryAdapter(INodeRepository):
         res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
-    async def get_by_id(self, node_id: UUID, workspace_id: UUID) -> Node | None:
+    async def get_by_id(self, node_id: int, workspace_id: UUID) -> Node | None:
+        """Fetch node by numeric primary key."""
+        if self._repo:
+            # The legacy repository uses UUID identifiers; fall back to direct query
+            try:
+                return await self._repo.get_by_id(node_id, workspace_id=workspace_id)  # type: ignore[arg-type]
+            except Exception:
+                pass
+        res = await self._db.execute(
+            select(Node)
+            .options(selectinload(Node.tags))
+            .where(Node.id == node_id, Node.workspace_id == workspace_id)
+        )
+        return res.scalar_one_or_none()
+
+    async def get_by_alt_id(self, node_id: UUID, workspace_id: UUID) -> Node | None:
+        """Fetch node by alternative UUID identifier."""
         if self._repo:
             return await self._repo.get_by_id(node_id, workspace_id=workspace_id)
         res = await self._db.execute(
             select(Node)
             .options(selectinload(Node.tags))
-            .where(Node.id == node_id, Node.workspace_id == workspace_id)
+            .where(Node.alt_id == node_id, Node.workspace_id == workspace_id)
         )
         return res.scalar_one_or_none()
 

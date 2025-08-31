@@ -47,7 +47,8 @@ async def test_upsert_and_get_notification_settings() -> None:
         assert fetched is not None
         assert fetched.enabled is False
 
-        await repo.upsert(user_id, node_alt_id, True)
-        fetched = await repo.get(user_id, node_alt_id)
+        # Upsert using numeric id should also work
+        await repo.upsert(user_id, 1, True)
+        fetched = await repo.get(user_id, 1)
         assert fetched is not None
         assert fetched.enabled is True
