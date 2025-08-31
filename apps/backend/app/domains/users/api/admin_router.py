@@ -23,7 +23,11 @@ admin_only = require_admin_role({"admin"})
 admin_required = require_admin_role()
 
 
-@router.get("", response_model=list[AdminUserOut], summary="List users")
+@router.get(
+    "",
+    response_model=list[AdminUserOut],
+    summary="List users",
+)
 async def list_users(
     q: str | None = None,
     role: str | None = None,
@@ -84,7 +88,10 @@ async def list_users(
     ]
 
 
-@router.post("/{user_id}/premium", summary="Set user premium status")
+@router.post(
+    "/{user_id}/premium",
+    summary="Set user premium status",
+)
 async def set_user_premium(
     user_id: UUID,
     payload: UserPremiumUpdate,
@@ -104,7 +111,10 @@ async def set_user_premium(
     return {"is_premium": user.is_premium, "premium_until": user.premium_until}
 
 
-@router.post("/{user_id}/role", summary="Change user role")
+@router.post(
+    "/{user_id}/role",
+    summary="Change user role",
+)
 async def set_user_role(
     user_id: UUID,
     payload: UserRoleUpdate,
