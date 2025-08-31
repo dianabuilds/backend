@@ -21,8 +21,8 @@ class NodeTransition(Base):
     __tablename__ = "node_transitions"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    from_node_id = Column(UUID(), ForeignKey("nodes.id"), nullable=False, index=True)
-    to_node_id = Column(UUID(), ForeignKey("nodes.id"), nullable=False)
+    from_node_id = Column(UUID(), ForeignKey("nodes.alt_id"), nullable=False, index=True)
+    to_node_id = Column(UUID(), ForeignKey("nodes.alt_id"), nullable=False)
     type = Column(SAEnum(NodeTransitionType), nullable=False, default=NodeTransitionType.manual)
     condition = Column(MutableDict.as_mutable(JSONB), default=dict)
     weight = Column(Integer, default=1)
@@ -50,7 +50,7 @@ class NodeTrace(Base):
     __tablename__ = "node_traces"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    node_id = Column(UUID(), ForeignKey("nodes.id", ondelete="CASCADE"), index=True, nullable=False)
+    node_id = Column(UUID(), ForeignKey("nodes.alt_id", ondelete="CASCADE"), index=True, nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), index=True, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     kind = Column(SAEnum(NodeTraceKind), nullable=False)

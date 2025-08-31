@@ -65,7 +65,7 @@ class QuestStepContentRef(Base):
     )
     content_id = Column(
         UUID(),
-        ForeignKey("nodes.id", ondelete="CASCADE"),
+        ForeignKey("nodes.alt_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

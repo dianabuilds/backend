@@ -15,8 +15,8 @@ class EchoTrace(Base):
     __table_args__ = (Index("idx_echo_from_node", "from_node_id"),)
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    from_node_id = Column(UUID(), ForeignKey("nodes.id"))
-    to_node_id = Column(UUID(), ForeignKey("nodes.id"))
+    from_node_id = Column(UUID(), ForeignKey("nodes.alt_id"))
+    to_node_id = Column(UUID(), ForeignKey("nodes.alt_id"))
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
     source = Column(String, nullable=True)
     channel = Column(String, nullable=True)

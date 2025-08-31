@@ -130,7 +130,8 @@ class NodeUpdate(BaseModel):
 
 class NodeOut(NodeBase):
     tags: list[str] = Field(default_factory=list, alias="tags", validation_alias="tag_slugs")
-    id: UUID
+    id: int
+    alt_id: UUID = Field(alias="altId")
     slug: str
     author_id: UUID = Field(alias="authorId")
     created_by_user_id: UUID | None = Field(default=None, alias="createdByUserId")
