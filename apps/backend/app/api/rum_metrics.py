@@ -47,7 +47,7 @@ async def rum_metrics(request: Request) -> dict[str, Any]:
 @admin_router.get("/rum")
 async def list_rum_events(
     _admin: Annotated[User, Depends(admin_required)],
-    limit: Annotated[int, Query(200, ge=1, le=1000)] = ...,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 200,
 ) -> list[dict[str, Any]]:
     """
     Админ: последние RUM-события (по убыванию времени).
@@ -60,7 +60,7 @@ async def list_rum_events(
 @admin_router.get("/rum/summary")
 async def rum_summary(
     _admin: Annotated[User, Depends(admin_required)],
-    window: Annotated[int, Query(500, ge=1, le=1000)] = ...,
+    window: Annotated[int, Query(ge=1, le=1000)] = 500,
 ) -> dict[str, Any]:
     """
     Админ: сводка по последним событиям.

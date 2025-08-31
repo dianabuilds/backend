@@ -30,8 +30,8 @@ router = APIRouter(tags=["search"])
 @router.get("/search", summary="Search nodes")
 async def search_nodes(
     q: str | None = None,
-    tags: Annotated[str | None, Query(None)] = ...,
-    match: Annotated[str, Query("any", pattern="^(any|all)$")] = ...,
+    tags: Annotated[str | None, Query()] = None,
+    match: Annotated[str, Query(pattern="^(any|all)$")] = "any",
     limit: int = 20,
     offset: int = 0,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
