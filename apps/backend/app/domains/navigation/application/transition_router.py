@@ -34,7 +34,6 @@ if TYPE_CHECKING:  # pragma: no cover - used for type hints only
     from app.domains.navigation.application.compass_service import (
         CompassService,
     )
-
     from app.domains.navigation.application.transitions_service import (
         TransitionsService,
     )
@@ -159,7 +158,7 @@ class RandomProvider(TransitionProvider):
         from app.domains.nodes.infrastructure.models.node import Node
 
         query = select(Node).where(
-            Node.is_visible == True,  # noqa: E712
+            Node.is_visible,
             Node.is_public,
             Node.is_recommendable,
             Node.id != node.id,

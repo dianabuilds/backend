@@ -7,12 +7,14 @@ from sqlalchemy.future import select
 
 from app.api.deps import assert_seniority_over
 from app.core.db.session import get_db
-from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
+from app.domains.moderation.infrastructure.models.moderation_models import (
+    UserRestriction,
+)
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.moderation import (
-    RestrictionOut,
     RestrictionAdminCreate,
     RestrictionAdminUpdate,
+    RestrictionOut,
 )
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -31,8 +33,8 @@ async def list_restrictions(
     user_id: UUID | None = None,
     type: str | None = None,
     page: int = 1,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     stmt = select(UserRestriction).order_by(UserRestriction.created_at.desc())
     if user_id:
@@ -48,8 +50,8 @@ async def list_restrictions(
 @router.post("", response_model=RestrictionOut)
 async def create_restriction(
     payload: RestrictionAdminCreate,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     target_user = await db.get(User, payload.user_id)
     if not target_user:
@@ -66,7 +68,10 @@ async def create_restriction(
         select(UserRestriction).where(
             UserRestriction.user_id == payload.user_id,
             UserRestriction.type == payload.type,
-            ((UserRestriction.expires_at == None) | (UserRestriction.expires_at > now)),
+            (
+                (UserRestriction.expires_at.is_(None))
+                | (UserRestriction.expires_at > now)
+            ),
         )
     )
     if res.scalars().first():
@@ -88,8 +93,8 @@ async def create_restriction(
 async def update_restriction(
     restriction_id: UUID,
     payload: RestrictionAdminUpdate,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     restriction = await db.get(UserRestriction, restriction_id)
     if not restriction:
@@ -109,8 +114,8 @@ async def update_restriction(
 @router.delete("/{restriction_id}")
 async def delete_restriction(
     restriction_id: UUID,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     restriction = await db.get(UserRestriction, restriction_id)
     if not restriction:

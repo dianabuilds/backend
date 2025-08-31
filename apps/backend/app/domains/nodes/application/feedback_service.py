@@ -1,38 +1,53 @@
 from __future__ import annotations
 
-from fastapi import HTTPException
-from typing import List
 from uuid import UUID
 
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.nodes.application.ports.node_repo_port import INodeRepository
-from app.domains.notifications.application.notify_service import NotifyService
-from app.domains.notifications.infrastructure.repositories.notification_repository import NotificationRepository
-from app.domains.notifications.infrastructure.transports.websocket import WebsocketPusher, manager as ws_manager
-from app.domains.nodes.infrastructure.models.feedback import Feedback
 from app.domains.audit.application.audit_service import audit_log
+from app.domains.nodes.application.ports.node_repo_port import INodeRepository
+from app.domains.nodes.infrastructure.models.feedback import Feedback
+from app.domains.notifications.application.notify_service import NotifyService
 
 
 class FeedbackService:
-    def __init__(self, repo: INodeRepository, notifier: NotifyService | None = None) -> None:
+    def __init__(
+        self, repo: INodeRepository, notifier: NotifyService | None = None
+    ) -> None:
         self._repo = repo
         self._notifier = notifier
 
-    async def list_feedback(self, db: AsyncSession, slug: str, current_user, workspace_id: UUID) -> List[Feedback]:
+    async def list_feedback(
+        self, db: AsyncSession, slug: str, current_user, workspace_id: UUID
+    ) -> list[Feedback]:
         node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         if not node.allow_feedback and node.author_id != current_user.id:
             raise HTTPException(status_code=403, detail="Feedback disabled")
         result = await db.execute(
-            select(Feedback).where(Feedback.node_id == node.id, Feedback.is_hidden == False)  # noqa: E712
+            select(Feedback).where(
+                Feedback.node_id == node.id, Feedback.is_hidden.is_(False)
+            )
         )
         return result.scalars().all()
 
-    async def create_feedback(self, db: AsyncSession, slug: str, content: dict, is_anonymous: bool, current_user, workspace_id: UUID) -> Feedback:
-        if not isinstance(content, dict) or "text" not in content or not str(content["text"]).strip():
+    async def create_feedback(
+        self,
+        db: AsyncSession,
+        slug: str,
+        content: dict,
+        is_anonymous: bool,
+        current_user,
+        workspace_id: UUID,
+    ) -> Feedback:
+        if (
+            not isinstance(content, dict)
+            or "text" not in content
+            or not str(content["text"]).strip()
+        ):
             raise HTTPException(status_code=400, detail="Empty feedback")
         node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
@@ -40,7 +55,9 @@ class FeedbackService:
         if not node.allow_feedback:
             raise HTTPException(status_code=403, detail="Feedback disabled")
         if not node.is_visible and node.author_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to comment on this node")
+            raise HTTPException(
+                status_code=403, detail="Not authorized to comment on this node"
+            )
         feedback = Feedback(
             node_id=node.id,
             author_id=current_user.id,
@@ -79,12 +96,21 @@ class FeedbackService:
 
         return feedback
 
-    async def delete_feedback(self, db: AsyncSession, slug: str, feedback_id: UUID, current_user, workspace_id: UUID) -> dict:
+    async def delete_feedback(
+        self,
+        db: AsyncSession,
+        slug: str,
+        feedback_id: UUID,
+        current_user,
+        workspace_id: UUID,
+    ) -> dict:
         node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         result = await db.execute(
-            select(Feedback).where(Feedback.id == feedback_id, Feedback.node_id == node.id)
+            select(Feedback).where(
+                Feedback.id == feedback_id, Feedback.node_id == node.id
+            )
         )
         feedback = result.scalars().first()
         if not feedback:
