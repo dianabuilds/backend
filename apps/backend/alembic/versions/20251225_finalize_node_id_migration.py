@@ -16,11 +16,9 @@ def upgrade() -> None:
     op.create_unique_constraint("ux_nodes_alt_id", "nodes", ["alt_id"])
 
     # Remove deprecated UUID column from node_notification_settings
-    op.drop_constraint(
-        "node_notification_settings_node_alt_id_fkey",
-        "node_notification_settings",
-        type_="foreignkey",
-        if_exists=True,
+    op.execute(
+        "ALTER TABLE node_notification_settings "
+        "DROP CONSTRAINT IF EXISTS node_notification_settings_node_alt_id_fkey"
     )
     op.drop_column(
         "node_notification_settings",
