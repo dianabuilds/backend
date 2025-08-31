@@ -20,12 +20,10 @@ def upgrade() -> None:
         "node_notification_settings_node_alt_id_fkey",
         "node_notification_settings",
         type_="foreignkey",
-        if_exists=True,
     )
     op.drop_column(
         "node_notification_settings",
         "node_alt_id",
-        if_exists=True,
     )
 
 
