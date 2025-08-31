@@ -1,11 +1,12 @@
-from typing import List
+from __future__ import annotations
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class RealIPSettings(BaseSettings):
     enabled: bool = False
-    trusted_proxies: List[str] = Field(default_factory=list)
+    trusted_proxies: list[str] = Field(default_factory=list)
     header: str = "X-Forwarded-For"
     depth: int | None = None
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import fnmatch
 import logging
 import time
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Protocol
 
 try:
     import redis.asyncio as redis  # type: ignore
@@ -20,38 +20,29 @@ logger = logging.getLogger(__name__)
 
 
 class Cache(Protocol):
-    async def get(self, key: str) -> Optional[str]:
-        ...
+    async def get(self, key: str) -> str | None: ...
 
-    async def set(self, key: str, value: str, ttl: int | None = None) -> None:
-        ...
+    async def set(self, key: str, value: str, ttl: int | None = None) -> None: ...
 
-    async def mget(self, keys: List[str]) -> List[Optional[str]]:
-        ...
+    async def mget(self, keys: list[str]) -> list[str | None]: ...
 
-    async def mset(self, mapping: Dict[str, str], ttl: int | None = None) -> None:
-        ...
+    async def mset(self, mapping: dict[str, str], ttl: int | None = None) -> None: ...
 
-    async def incr(self, key: str, by: int = 1) -> int:
-        ...
+    async def incr(self, key: str, by: int = 1) -> int: ...
 
-    async def hincr(self, name: str, field: str, by: int = 1) -> int:
-        ...
+    async def hincr(self, name: str, field: str, by: int = 1) -> int: ...
 
-    async def expire(self, key: str, ttl: int) -> None:
-        ...
+    async def expire(self, key: str, ttl: int) -> None: ...
 
-    async def delete(self, *keys: str) -> None:
-        ...
+    async def delete(self, *keys: str) -> None: ...
 
-    async def scan(self, pattern: str) -> List[str]:
-        ...
+    async def scan(self, pattern: str) -> list[str]: ...
 
 
 class MemoryCache(Cache):
     def __init__(self) -> None:
-        self._data: Dict[str, tuple[str, Optional[float]]] = {}
-        self._hashes: Dict[str, Dict[str, int]] = {}
+        self._data: dict[str, tuple[str, float | None]] = {}
+        self._hashes: dict[str, dict[str, int]] = {}
 
     def _expired(self, key: str) -> bool:
         value = self._data.get(key)
@@ -65,7 +56,7 @@ class MemoryCache(Cache):
             return True
         return False
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         if self._expired(key):
             return None
         return self._data[key][0]
@@ -74,10 +65,10 @@ class MemoryCache(Cache):
         expires = time.time() + ttl if ttl else None
         self._data[key] = (value, expires)
 
-    async def mget(self, keys: List[str]) -> List[Optional[str]]:
+    async def mget(self, keys: list[str]) -> list[str | None]:
         return [await self.get(k) for k in keys]
 
-    async def mset(self, mapping: Dict[str, str], ttl: int | None = None) -> None:
+    async def mset(self, mapping: dict[str, str], ttl: int | None = None) -> None:
         for k, v in mapping.items():
             await self.set(k, v, ttl)
 
@@ -101,9 +92,9 @@ class MemoryCache(Cache):
             self._data.pop(key, None)
             self._hashes.pop(key, None)
 
-    async def scan(self, pattern: str) -> List[str]:
+    async def scan(self, pattern: str) -> list[str]:
         now = time.time()
-        keys: List[str] = []
+        keys: list[str] = []
         for key, (_, expires) in list(self._data.items()):
             if expires is not None and expires < now:
                 self._data.pop(key, None)
@@ -122,16 +113,16 @@ class RedisCache(Cache):
             url, decode_responses=True, connect_timeout=2.0, max_connections=100
         )
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         return await self._redis.get(key)
 
     async def set(self, key: str, value: str, ttl: int | None = None) -> None:
         await self._redis.set(key, value, ex=ttl)
 
-    async def mget(self, keys: List[str]) -> List[Optional[str]]:
+    async def mget(self, keys: list[str]) -> list[str | None]:
         return await self._redis.mget(keys)
 
-    async def mset(self, mapping: Dict[str, str], ttl: int | None = None) -> None:
+    async def mset(self, mapping: dict[str, str], ttl: int | None = None) -> None:
         if ttl is None:
             await self._redis.mset(mapping)
             return
@@ -153,7 +144,7 @@ class RedisCache(Cache):
         if keys:
             await self._redis.delete(*keys)
 
-    async def scan(self, pattern: str) -> List[str]:
+    async def scan(self, pattern: str) -> list[str]:
         return [k async for k in self._redis.scan_iter(match=pattern)]
 
 
@@ -162,7 +153,7 @@ class FallbackCache(Cache):
         self.primary = primary
         self.fallback = fallback
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         try:
             return await self.primary.get(key)
         except Exception as e:  # pragma: no cover - depends on redis
@@ -178,7 +169,7 @@ class FallbackCache(Cache):
             fallback_hit("cache.set")
             await self.fallback.set(key, value, ttl)
 
-    async def mget(self, keys: List[str]) -> List[Optional[str]]:
+    async def mget(self, keys: list[str]) -> list[str | None]:
         try:
             return await self.primary.mget(keys)
         except Exception as e:  # pragma: no cover
@@ -186,7 +177,7 @@ class FallbackCache(Cache):
             fallback_hit("cache.mget")
             return await self.fallback.mget(keys)
 
-    async def mset(self, mapping: Dict[str, str], ttl: int | None = None) -> None:
+    async def mset(self, mapping: dict[str, str], ttl: int | None = None) -> None:
         try:
             await self.primary.mset(mapping, ttl)
         except Exception as e:  # pragma: no cover
@@ -226,7 +217,7 @@ class FallbackCache(Cache):
             fallback_hit("cache.delete")
             await self.fallback.delete(*keys)
 
-    async def scan(self, pattern: str) -> List[str]:
+    async def scan(self, pattern: str) -> list[str]:
         try:
             return await self.primary.scan(pattern)
         except Exception as e:  # pragma: no cover
