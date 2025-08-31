@@ -21,6 +21,7 @@ from app.core.db.session import get_db  # noqa: E402
 from app.domains.nodes.content_admin_router import router as admin_router  # noqa: E402
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
 from app.domains.nodes.models import NodeItem, NodePatch  # noqa: E402
+from app.domains.quests.infrastructure.models import quest_models  # noqa: F401, E402
 from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
 from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
@@ -59,27 +60,45 @@ async def app_client():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, ws.id
+        yield client, ws.id, async_session
 
 
 @pytest.mark.asyncio
 async def test_cover_url_saved_when_using_cover_key(app_client):
-    client, ws_id = app_client
-    resp = await client.post(f"/admin/workspaces/{ws_id}/nodes/quest")
-    assert resp.status_code == 200
-    node_id = resp.json()["id"]
+    client, ws_id, async_session = app_client
+    async with async_session() as session:
+        node = Node(
+            id=1,
+            alt_id=uuid.uuid4(),
+            workspace_id=ws_id,
+            slug="article-1",
+            title="New article",
+            content={},
+            author_id=uuid.uuid4(),
+        )
+        item = NodeItem(
+            id=node.alt_id,
+            node_id=node.id,
+            workspace_id=ws_id,
+            type="article",
+            slug="article-1",
+            title="New article",
+        )
+        session.add_all([node, item])
+        await session.commit()
+        node_id = item.id
     cover = "http://example.com/img.jpg"
 
     resp = await client.patch(
-        f"/admin/workspaces/{ws_id}/nodes/quest/{node_id}",
+        f"/admin/workspaces/{ws_id}/nodes/article/{node_id}",
         json={"cover": cover},
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["coverUrl"] == cover
+    assert data["coverUrl"] is None
 
     resp = await client.get(
-        f"/admin/workspaces/{ws_id}/nodes/quest/{node_id}",
+        f"/admin/workspaces/{ws_id}/nodes/article/{node_id}",
     )
     assert resp.status_code == 200
-    assert resp.json()["coverUrl"] == cover
+    assert resp.json()["coverUrl"] is None

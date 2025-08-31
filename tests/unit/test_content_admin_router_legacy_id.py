@@ -20,6 +20,7 @@ from app.core.db.session import get_db  # noqa: E402
 from app.domains.nodes.content_admin_router import router as admin_router  # noqa: E402
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
 from app.domains.nodes.models import NodeItem, NodePatch  # noqa: E402
+from app.domains.quests.infrastructure.models import quest_models  # noqa: F401, E402
 from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
 from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
@@ -57,6 +58,7 @@ async def app_client():
         node_uuid = uuid.uuid4()
         item_uuid = uuid.uuid4()
         node = Node(
+            id=1,
             alt_id=node_uuid,
             workspace_id=ws.id,
             slug="legacy",
