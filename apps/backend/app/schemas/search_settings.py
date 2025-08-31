@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -47,8 +46,8 @@ class DryRunDiffItem(BaseModel):
 class RelevancePutIn(BaseModel):
     payload: RelevancePayload
     dryRun: bool = False
-    sample: List[str] = Field(default_factory=list)
-    comment: Optional[str] = None
+    sample: list[str] = Field(default_factory=list)
+    comment: str | None = None
 
 
 class RelevanceApplyOut(BaseModel):
@@ -58,13 +57,15 @@ class RelevanceApplyOut(BaseModel):
 
 
 class RelevanceDryRunOut(BaseModel):
-    diff: List[DryRunDiffItem]
-    warnings: List[str] = Field(default_factory=list)
+    diff: list[DryRunDiffItem]
+    warnings: list[str] = Field(default_factory=list)
 
 
 class SearchOverviewOut(BaseModel):
     zrr: dict = Field(default_factory=lambda: {"value": 0.0, "delta": 0.0})
     ctr: dict = Field(default_factory=lambda: {"value": 0.0, "delta": 0.0})
     latency: dict = Field(default_factory=lambda: {"p95_ms": 0, "p99_ms": 0})
-    index: dict = Field(default_factory=lambda: {"freshness_lag_ms": 0, "last_job": None})
+    index: dict = Field(
+        default_factory=lambda: {"freshness_lag_ms": 0, "last_job": None}
+    )
     activeConfigs: dict = Field(default_factory=dict)

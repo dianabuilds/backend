@@ -1,6 +1,7 @@
-from starlette.middleware.base import BaseHTTPMiddleware
+from __future__ import annotations
+
 from fastapi import Request
-from typing import List, Tuple
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 
@@ -27,7 +28,11 @@ def _harden_set_cookie_line(line: str, is_https: bool) -> str:
     if "samesite=" not in lower:
         parts.append("SameSite=Lax")
     # Path
-    if " path=" not in lower and not lower.strip().endswith("; path=/") and "path=/" not in lower:
+    if (
+        " path=" not in lower
+        and not lower.strip().endswith("; path=/")
+        and "path=/" not in lower
+    ):
         parts.append("Path=/")
     return "; ".join(parts)
 
@@ -42,7 +47,7 @@ class CookiesSecurityMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         # Перестраиваем только заголовки Set-Cookie
-        new_raw: List[Tuple[bytes, bytes]] = []
+        new_raw: list[tuple[bytes, bytes]] = []
         for k, v in response.raw_headers:
             if k.lower() == b"set-cookie":
                 try:

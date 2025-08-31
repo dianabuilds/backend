@@ -1,8 +1,10 @@
 """Simple helper for inserting events into the outbox table."""
 
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Any
 from uuid import UUID, uuid4
-from typing import Any, Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,9 +15,9 @@ from app.core.preview import PreviewContext
 async def emit(
     db: AsyncSession,
     topic: str,
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     workspace_id: UUID,
-    dedup_key: Optional[str] = None,
+    dedup_key: str | None = None,
     preview: PreviewContext | None = None,
 ) -> OutboxEvent:
     """Insert an event into the transactional outbox.

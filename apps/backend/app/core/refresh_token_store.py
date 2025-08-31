@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Protocol, Dict
+from typing import Protocol
 
 
 class RefreshTokenStore(Protocol):
@@ -9,7 +9,7 @@ class RefreshTokenStore(Protocol):
     def set(self, jti: str, sub: str) -> None:  # pragma: no cover - interface
         ...
 
-    def pop(self, jti: str) -> Optional[str]:  # pragma: no cover - interface
+    def pop(self, jti: str) -> str | None:  # pragma: no cover - interface
         ...
 
 
@@ -23,12 +23,12 @@ class MemoryRefreshTokenStore:
     """
 
     def __init__(self) -> None:
-        self._store: Dict[str, str] = {}
+        self._store: dict[str, str] = {}
 
     def set(self, jti: str, sub: str) -> None:
         self._store[jti] = sub
 
-    def pop(self, jti: str) -> Optional[str]:
+    def pop(self, jti: str) -> str | None:
         return self._store.pop(jti, None)
 
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import math
 import threading
@@ -5,7 +7,6 @@ import time
 from collections import defaultdict, deque
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Deque, Dict, List, Tuple
 
 
 @dataclass
@@ -19,16 +20,16 @@ class RequestRecord:
 
 
 _transition_lock = threading.Lock()
-_route_latencies: Deque[int] = deque(maxlen=1000)
-_repeat_rates: Deque[float] = deque(maxlen=1000)
-_route_lengths: Dict[str, Deque[int]] = defaultdict(lambda: deque(maxlen=1000))
-_tag_entropies: Dict[str, Deque[float]] = defaultdict(lambda: deque(maxlen=1000))
-_transition_counts: Dict[str, int] = defaultdict(int)
-_no_route_counts: Dict[str, int] = defaultdict(int)
-_fallback_used_counts: Dict[str, int] = defaultdict(int)
-_preview_route_lengths: Dict[str, Deque[int]] = defaultdict(lambda: deque(maxlen=1000))
-_preview_transition_counts: Dict[str, int] = defaultdict(int)
-_preview_no_route_counts: Dict[str, int] = defaultdict(int)
+_route_latencies: deque[int] = deque(maxlen=1000)
+_repeat_rates: deque[float] = deque(maxlen=1000)
+_route_lengths: dict[str, deque[int]] = defaultdict(lambda: deque(maxlen=1000))
+_tag_entropies: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=1000))
+_transition_counts: dict[str, int] = defaultdict(int)
+_no_route_counts: dict[str, int] = defaultdict(int)
+_fallback_used_counts: dict[str, int] = defaultdict(int)
+_preview_route_lengths: dict[str, deque[int]] = defaultdict(lambda: deque(maxlen=1000))
+_preview_transition_counts: dict[str, int] = defaultdict(int)
+_preview_no_route_counts: dict[str, int] = defaultdict(int)
 
 
 def record_route_latency_ms(value: float) -> None:
@@ -89,7 +90,7 @@ def _status_class(code: int) -> str:
     return "5xx"
 
 
-def _percentile(values: List[int], p: float) -> float:
+def _percentile(values: list[int], p: float) -> float:
     if not values:
         return 0.0
     values_sorted = sorted(values)
@@ -102,7 +103,7 @@ class MetricsStorage:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._records: Deque[RequestRecord] = deque()
+        self._records: deque[RequestRecord] = deque()
 
     def record(
         self,
@@ -128,7 +129,7 @@ class MetricsStorage:
         with self._lock:
             self._records.clear()
 
-    def _select_recent(self, range_seconds: int) -> List[RequestRecord]:
+    def _select_recent(self, range_seconds: int) -> list[RequestRecord]:
         now = time.time()
         cutoff = now - range_seconds
         with self._lock:
@@ -176,8 +177,8 @@ class MetricsStorage:
                 "p95": [],
             }
 
-        buckets: Dict[int, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
-        durations: Dict[int, List[int]] = defaultdict(list)
+        buckets: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        durations: dict[int, list[int]] = defaultdict(list)
 
         def bucket_ts(ts: float) -> int:
             return int(ts // step_seconds * step_seconds)
@@ -217,17 +218,17 @@ class MetricsStorage:
             "p95": p95_points,
         }
 
-    def top_endpoints(self, range_seconds: int, limit: int, sort_by: str) -> List[dict]:
+    def top_endpoints(self, range_seconds: int, limit: int, sort_by: str) -> list[dict]:
         """Топ маршрутов по p95 | error_rate | rps."""
         recent = self._select_recent(range_seconds)
         if not recent:
             return []
 
-        agg: Dict[str, List[RequestRecord]] = defaultdict(list)
+        agg: dict[str, list[RequestRecord]] = defaultdict(list)
         for r in recent:
             agg[r.route].append(r)
 
-        rows: List[Tuple[str, float, float, float, int]] = []
+        rows: list[tuple[str, float, float, float, int]] = []
         for route, rs in agg.items():
             count = len(rs)
             errors = sum(1 for r in rs if r.status_code >= 400)
@@ -256,12 +257,12 @@ class MetricsStorage:
             )
         return out
 
-    def recent_errors(self, limit: int = 100) -> List[dict]:
+    def recent_errors(self, limit: int = 100) -> list[dict]:
         """Последние ошибки (4xx/5xx)."""
         with self._lock:
             # идем с конца дека
             it: Iterable[RequestRecord] = reversed(self._records)
-            out: List[dict] = []
+            out: list[dict] = []
             for r in it:
                 if r.status_code >= 400:
                     out.append(
@@ -281,11 +282,11 @@ class MetricsStorage:
         """Render collected metrics in Prometheus text format."""
         with self._lock:
             records = list(self._records)
-        lines: List[str] = []
+        lines: list[str] = []
         lines.append("# HELP http_requests_total Total HTTP requests")
         lines.append("# TYPE http_requests_total counter")
-        count_map: Dict[Tuple[str, str, str, int], int] = defaultdict(int)
-        duration_map: Dict[Tuple[str, str, str], List[int]] = defaultdict(list)
+        count_map: dict[tuple[str, str, str, int], int] = defaultdict(int)
+        duration_map: dict[tuple[str, str, str], list[int]] = defaultdict(list)
         for r in records:
             ws = r.workspace_id or "unknown"
             count_map[(ws, r.method, r.route, r.status_code)] += 1
@@ -396,9 +397,9 @@ class MetricsStorage:
         return json.dumps(data)
 
 
-def transition_stats() -> Dict[str, dict]:
+def transition_stats() -> dict[str, dict]:
     with _transition_lock:
-        out: Dict[str, dict] = {}
+        out: dict[str, dict] = {}
         for ws in _transition_counts.keys():
             lengths = list(_route_lengths.get(ws, []))
             ents = list(_tag_entropies.get(ws, []))
