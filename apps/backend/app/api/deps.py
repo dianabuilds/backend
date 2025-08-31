@@ -18,6 +18,7 @@ from app.domains.moderation.infrastructure.models.moderation_models import (
     UserRestriction,
 )
 from app.domains.users.infrastructure.models.user import User
+from app.domains.workspaces.application.service import WorkspaceService
 from app.security import bearer_scheme
 
 
@@ -214,7 +215,5 @@ async def current_workspace(
 
     Raises 404 if workspace is not found or the user lacks access.
     """
-    from app.domains.workspaces.application.service import WorkspaceService
-
     workspace_id_var.set(str(workspace_id))
     return await WorkspaceService.get_for_user(db, workspace_id, user)
