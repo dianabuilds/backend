@@ -1,19 +1,26 @@
 from __future__ import annotations
 
+# ruff: noqa: B008
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.db.session import get_db
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
+from app.domains.navigation.application.navigation_service import NavigationService
+from app.domains.navigation.application.problems_service import (
+    NavigationProblemsService,
+)
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.navigation.schemas.problems import NavigationNodeProblem
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
-from app.domains.navigation.application.navigation_service import NavigationService
-from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
-from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.schemas.navigation_admin import (
-    NavigationRunRequest,
-    NavigationCacheSetRequest,
     NavigationCacheInvalidateRequest,
+    NavigationCacheSetRequest,
+    NavigationRunRequest,
 )
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -27,6 +34,19 @@ router = APIRouter(
     dependencies=[Depends(admin_required)],
     responses=ADMIN_AUTH_RESPONSES,
 )
+
+
+@router.get(
+    "/problems",
+    response_model=list[NavigationNodeProblem],
+    summary="Navigation problems",
+)
+async def navigation_problems(
+    current_user: User = Depends(admin_required),
+    db: AsyncSession = Depends(get_db),
+):
+    svc = NavigationProblemsService()
+    return await svc.analyse(db)
 
 
 @router.post("/run", summary="Run navigation generation")
@@ -78,10 +98,12 @@ async def invalidate_cache(
 
 @router.get("/pgvector/status", summary="pgvector status")
 async def pgvector_status(
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    from app.domains.navigation.infrastructure.repositories.compass_repository import CompassRepository
+    from app.domains.navigation.infrastructure.repositories.compass_repository import (
+        CompassRepository,
+    )
 
     repo = CompassRepository(db)
     enabled = repo.session.get_bind().dialect.name == "postgresql"
