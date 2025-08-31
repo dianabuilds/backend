@@ -1,12 +1,14 @@
 """
 Адаптеры типов данных SQLAlchemy для совместимости между PostgreSQL и SQLite.
 """
-import uuid
-from typing import Any, Dict, Optional, Union
 
-from sqlalchemy.dialects.postgresql import JSONB as pg_JSONB, UUID as pg_UUID, TSVECTOR as pg_TSVECTOR
-from sqlalchemy.types import JSON, TypeDecorator, CHAR
+import uuid
+
 import sqlalchemy.types as types
+from sqlalchemy.dialects.postgresql import JSONB as pg_JSONB
+from sqlalchemy.dialects.postgresql import TSVECTOR as pg_TSVECTOR
+from sqlalchemy.dialects.postgresql import UUID as pg_UUID
+from sqlalchemy.types import CHAR, TypeDecorator
 
 from app.core.policy import policy
 
@@ -18,7 +20,7 @@ class UUID(TypeDecorator):
     cache_ok = True
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
+        if dialect.name == "postgresql":
             return dialect.type_descriptor(pg_UUID())
         else:
             return dialect.type_descriptor(CHAR(36))
@@ -26,7 +28,7 @@ class UUID(TypeDecorator):
     def process_bind_param(self, value, dialect):
         if value is None:
             return value
-        elif dialect.name == 'postgresql':
+        elif dialect.name == "postgresql":
             return value
         else:
             if not isinstance(value, uuid.UUID):
@@ -53,13 +55,14 @@ class JSONB(TypeDecorator):
     cache_ok = True
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql' and policy.allow_write:
+        if dialect.name == "postgresql" and policy.allow_write:
             return dialect.type_descriptor(pg_JSONB())
         else:
             return dialect.type_descriptor(types.Text())
 
     def process_bind_param(self, value, dialect):
         import json
+
         if value is not None:
             # Преобразуем в JSON строку, если это не строка
             if not isinstance(value, str):
@@ -68,6 +71,7 @@ class JSONB(TypeDecorator):
 
     def process_result_value(self, value, dialect):
         import json
+
         if value is not None:
             # Пытаемся преобразовать строку в объект JSON
             try:
@@ -116,7 +120,9 @@ class ARRAY(TypeDecorator):
         # Определяем, нужно ли приводить элементы к числу
         is_numeric = False
         try:
-            is_numeric = issubclass(self.item_type, (types.Integer, types.Float, types.Numeric))
+            is_numeric = issubclass(
+                self.item_type, (types.Integer, types.Float, types.Numeric)
+            )
         except Exception:
             is_numeric = False
 

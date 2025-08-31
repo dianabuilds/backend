@@ -43,9 +43,9 @@ async def _merge_generation_settings(
     """
 
     from app.domains.ai.infrastructure.models.ai_settings import AISettings
+    from app.domains.ai.infrastructure.models.user_pref_models import UserAIPref
     from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
     from app.schemas.workspaces import WorkspaceSettings
-    from app.domains.ai.infrastructure.models.user_pref_models import UserAIPref
 
     trace: dict[str, dict[str, Any]] = {}
     orig_provider, orig_model = provider, model
@@ -104,7 +104,11 @@ async def _merge_generation_settings(
                     "system_prompt",
                     "forbidden",
                 ):
-                    if key in presets and presets[key] is not None and key not in params:
+                    if (
+                        key in presets
+                        and presets[key] is not None
+                        and key not in params
+                    ):
                         _set(key, presets[key], "workspace")
         except Exception:
             pass
@@ -123,6 +127,7 @@ async def _merge_generation_settings(
             _set(key, params.get(key), "explicit")
 
     return params, provider, model, trace, allowed_models
+
 
 logger = logging.getLogger(__name__)
 

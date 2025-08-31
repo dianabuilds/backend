@@ -21,6 +21,8 @@ sys.modules.setdefault("app", app_module)
 from app.api.admin.quests.steps import (  # noqa: E402
     admin_required,
     graph_router,
+)
+from app.api.admin.quests.steps import (
     router as steps_router,
 )
 from app.core.db.adapters import UUID as UUIDType  # noqa: E402

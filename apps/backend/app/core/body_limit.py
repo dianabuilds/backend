@@ -16,7 +16,9 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
         # По умолчанию 2 МБ, либо берём из настроек при наличии
         default_limit = 2 * 1024 * 1024
         security = getattr(settings, "security", None)
-        configured = getattr(security, "max_request_body_bytes", None) if security else None
+        configured = (
+            getattr(security, "max_request_body_bytes", None) if security else None
+        )
         self.max_bytes = int(max_bytes or configured or default_limit)
 
     async def dispatch(self, request: Request, call_next):

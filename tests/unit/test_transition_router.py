@@ -4,7 +4,6 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
-from typing import List, Optional
 
 from hypothesis import given
 from hypothesis import strategies as st
@@ -28,8 +27,8 @@ from apps.backend.app.domains.navigation.application.transition_router import (
 class DummyNode:
     slug: str
     workspace_id: str = "ws"
-    tags: Optional[List[str]] = None
-    source: Optional[str] = None
+    tags: list[str] | None = None
+    source: str | None = None
 
 
 class StaticProvider(TransitionProvider):

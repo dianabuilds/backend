@@ -1,26 +1,24 @@
 from __future__ import annotations
 
+import re
 from uuid import UUID
 
-import re
-
-from fastapi import HTTPException, Depends
+from fastapi import Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
-from app.security import auth_user
 from app.core.db.session import get_db
-
+from app.domains.users.infrastructure.models.user import User
+from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO
+from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 from app.schemas.workspaces import (
     WorkspaceIn,
-    WorkspaceUpdate,
     WorkspaceMemberIn,
     WorkspaceRole,
+    WorkspaceUpdate,
 )
-from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
-from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO
-from app.domains.users.infrastructure.models.user import User
+from app.security import auth_user
 
 
 async def require_ws_editor(
@@ -29,9 +27,7 @@ async def require_ws_editor(
     db: AsyncSession = Depends(get_db),
 ) -> WorkspaceMember | None:
     """Ensure the current user has editor or owner rights in the workspace."""
-    m = await WorkspaceMemberDAO.get(
-        db, workspace_id=workspace_id, user_id=user.id
-    )
+    m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
     if not (
         user.role == "admin"
         or (m and m.role in (WorkspaceRole.owner, WorkspaceRole.editor))
@@ -46,9 +42,7 @@ async def require_ws_owner(
     db: AsyncSession = Depends(get_db),
 ) -> WorkspaceMember | None:
     """Ensure the current user is an owner of the workspace."""
-    m = await WorkspaceMemberDAO.get(
-        db, workspace_id=workspace_id, user_id=user.id
-    )
+    m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
     if not (user.role == "admin" or (m and m.role == WorkspaceRole.owner)):
         raise HTTPException(status_code=403, detail="Forbidden")
     return m
@@ -60,12 +54,14 @@ async def require_ws_viewer(
     db: AsyncSession = Depends(get_db),
 ) -> WorkspaceMember | None:
     """Ensure the current user has at least viewer rights in the workspace."""
-    m = await WorkspaceMemberDAO.get(
-        db, workspace_id=workspace_id, user_id=user.id
-    )
+    m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
     if not (
         user.role == "admin"
-        or (m and m.role in (WorkspaceRole.owner, WorkspaceRole.editor, WorkspaceRole.viewer))
+        or (
+            m
+            and m.role
+            in (WorkspaceRole.owner, WorkspaceRole.editor, WorkspaceRole.viewer)
+        )
     ):
         raise HTTPException(status_code=403, detail="Forbidden")
     return m
@@ -77,9 +73,7 @@ async def require_ws_guest(
     db: AsyncSession = Depends(get_db),
 ) -> WorkspaceMember | None:
     """Ensure the current user is a member of the workspace."""
-    m = await WorkspaceMemberDAO.get(
-        db, workspace_id=workspace_id, user_id=user.id
-    )
+    m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
     if not (user.role == "admin" or m):
         raise HTTPException(status_code=403, detail="Forbidden")
     return m
@@ -238,13 +232,13 @@ class WorkspaceService:
         )
         if not member:
             raise HTTPException(status_code=404, detail="Member not found")
-        await WorkspaceMemberDAO.remove(
-            db, workspace_id=workspace_id, user_id=user_id
-        )
+        await WorkspaceMemberDAO.remove(db, workspace_id=workspace_id, user_id=user_id)
         await db.commit()
 
     @staticmethod
-    async def list_members(db: AsyncSession, workspace_id: UUID) -> list[WorkspaceMember]:
+    async def list_members(
+        db: AsyncSession, workspace_id: UUID
+    ) -> list[WorkspaceMember]:
         res = await db.execute(
             select(WorkspaceMember).where(WorkspaceMember.workspace_id == workspace_id)
         )

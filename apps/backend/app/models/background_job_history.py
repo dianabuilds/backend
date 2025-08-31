@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, String, func
@@ -18,7 +17,5 @@ class BackgroundJobHistory(Base):
     name = Column(String, nullable=False)
     status = Column(String, nullable=False)
     log_url = Column(String, nullable=True)
-    started_at = Column(
-        DateTime, nullable=False, server_default=func.now(), index=True
-    )
+    started_at = Column(DateTime, nullable=False, server_default=func.now(), index=True)
     finished_at = Column(DateTime, nullable=True)

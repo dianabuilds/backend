@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 from .openai import OpenAIProvider
 
@@ -17,7 +16,7 @@ class OpenAICompatibleProvider(OpenAIProvider):
 
     name = "openai_compatible"
 
-    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
+    def __init__(self, api_key: str | None = None, base_url: str | None = None):
         super().__init__(
             api_key=api_key
             or os.getenv("OPENAI_COMPATIBLE_API_KEY")

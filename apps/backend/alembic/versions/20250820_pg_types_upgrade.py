@@ -5,6 +5,7 @@ Revises: 20250820_domains_core_tables
 Create Date: 2025-08-20
 
 """
+
 from __future__ import annotations
 
 from alembic import op

@@ -1,5 +1,5 @@
 import re
-from typing import Iterable
+from collections.abc import Iterable
 
 # Пытаемся использовать bleach, если установлен
 try:
@@ -80,9 +80,13 @@ def sanitize_html(
         return cleaned
 
     # Фолбэк: вырезаем script/iframe и опасные схемы/обработчики событий.
-    cleaned = re.sub(r"(?is)<\s*(script|iframe|object|embed|style)[^>]*>.*?<\s*/\s*\1\s*>", "", html)
+    cleaned = re.sub(
+        r"(?is)<\s*(script|iframe|object|embed|style)[^>]*>.*?<\s*/\s*\1\s*>", "", html
+    )
     # Удаляем on* обработчики
     cleaned = re.sub(r"(?i)\son\w+\s*=\s*(['\"]).*?\1", "", cleaned)
     # Запрещаем javascript: и data: в href/src
-    cleaned = re.sub(r'(?i)\s(href|src)\s*=\s*([\'"])\s*(javascript:|data:)(.*?)\2', r"", cleaned)
+    cleaned = re.sub(
+        r'(?i)\s(href|src)\s*=\s*([\'"])\s*(javascript:|data:)(.*?)\2', r"", cleaned
+    )
     return cleaned

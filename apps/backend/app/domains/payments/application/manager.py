@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.payments.manager_impl import load_active_gateways as _load_active_gateways
+from app.domains.payments.manager_impl import (
+    load_active_gateways as _load_active_gateways,
+)
 from app.domains.payments.manager_impl import verify_payment as _verify_payment
 
 
@@ -20,7 +20,7 @@ async def verify_payment(
     currency: str | None,
     token: str,
     preferred_slug: str | None = None,
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """Фасад верификации платежа. Делегирует текущей реализации."""
     return await _verify_payment(
         db,

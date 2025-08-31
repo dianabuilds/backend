@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -15,8 +15,8 @@ class SubscriptionPlanIn(BaseModel):
     currency: str | None = None
     is_active: bool = True
     order: int = 100
-    monthly_limits: Dict[str, int] | None = None
-    features: Dict[str, Any] | None = None
+    monthly_limits: dict[str, int] | None = None
+    features: dict[str, Any] | None = None
 
 
 class SubscriptionPlanOut(SubscriptionPlanIn):

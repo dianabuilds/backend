@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, Tuple
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.search.application.ports.relevance_port import IRelevanceRepository
 from app.core.search.models import ConfigVersion, SearchRelevanceActive
+from app.domains.search.application.ports.relevance_port import IRelevanceRepository
 from app.schemas.search_settings import RelevancePayload
 
 
@@ -15,9 +14,11 @@ class SearchConfigRepository(IRelevanceRepository):
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def get_active(self) -> Optional[Tuple[int, RelevancePayload, datetime]]:
+    async def get_active(self) -> tuple[int, RelevancePayload, datetime] | None:
         res = await self._db.execute(
-            select(SearchRelevanceActive).order_by(SearchRelevanceActive.id.desc()).limit(1)
+            select(SearchRelevanceActive)
+            .order_by(SearchRelevanceActive.id.desc())
+            .limit(1)
         )
         row = res.scalars().first()
         if row is None:
@@ -25,7 +26,9 @@ class SearchConfigRepository(IRelevanceRepository):
         payload = RelevancePayload.model_validate(row.payload)
         return int(row.version), payload, row.updated_at
 
-    async def create_default_active(self, *, version: int, payload: RelevancePayload, updated_by: Optional[str]) -> datetime:
+    async def create_default_active(
+        self, *, version: int, payload: RelevancePayload, updated_by: str | None
+    ) -> datetime:
         active = SearchRelevanceActive(
             version=version,
             payload=payload.model_dump(),
@@ -38,11 +41,22 @@ class SearchConfigRepository(IRelevanceRepository):
 
     async def get_max_version(self) -> int:
         max_ver = (
-            await self._db.execute(select(func.max(ConfigVersion.version)).where(ConfigVersion.type == "relevance"))
+            await self._db.execute(
+                select(func.max(ConfigVersion.version)).where(
+                    ConfigVersion.type == "relevance"
+                )
+            )
         ).scalar() or 0
         return int(max_ver)
 
-    async def add_version(self, *, version: int, payload: RelevancePayload, checksum: str, created_by: Optional[str]) -> None:
+    async def add_version(
+        self,
+        *,
+        version: int,
+        payload: RelevancePayload,
+        checksum: str,
+        created_by: str | None,
+    ) -> None:
         cfg = ConfigVersion(
             type="relevance",
             version=version,
@@ -54,7 +68,9 @@ class SearchConfigRepository(IRelevanceRepository):
         )
         self._db.add(cfg)
 
-    async def set_active(self, *, version: int, payload: RelevancePayload, updated_by: Optional[str]) -> datetime:
+    async def set_active(
+        self, *, version: int, payload: RelevancePayload, updated_by: str | None
+    ) -> datetime:
         active = SearchRelevanceActive(
             version=version,
             payload=payload.model_dump(),
@@ -65,9 +81,11 @@ class SearchConfigRepository(IRelevanceRepository):
         await self._db.flush()
         return active.updated_at
 
-    async def get_version_payload(self, *, version: int) -> Optional[RelevancePayload]:
+    async def get_version_payload(self, *, version: int) -> RelevancePayload | None:
         res = await self._db.execute(
-            select(ConfigVersion).where(ConfigVersion.type == "relevance", ConfigVersion.version == int(version))
+            select(ConfigVersion).where(
+                ConfigVersion.type == "relevance", ConfigVersion.version == int(version)
+            )
         )
         cfg = res.scalars().first()
         if not cfg:

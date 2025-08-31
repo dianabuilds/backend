@@ -14,7 +14,9 @@ down_revision = "20250822_content_ws_status"
 branch_labels = None
 depends_on = None
 
-content_status = sa.Enum("draft", "in_review", "published", "archived", name="content_status")
+content_status = sa.Enum(
+    "draft", "in_review", "published", "archived", name="content_status"
+)
 content_visibility = sa.Enum("private", "unlisted", "public", name="content_visibility")
 
 
@@ -24,25 +26,65 @@ def upgrade() -> None:
     content_visibility.create(bind, checkfirst=True)
 
     for table in ["world_templates", "characters"]:
-        op.add_column(table, sa.Column("workspace_id", postgresql.UUID(as_uuid=True), nullable=True))
-        op.add_column(table, sa.Column("status", content_status, nullable=False, server_default="draft"))
-        op.add_column(table, sa.Column("version", sa.Integer(), nullable=False, server_default="1"))
-        op.add_column(table, sa.Column("visibility", content_visibility, nullable=False, server_default="private"))
-        op.add_column(table, sa.Column("created_by_user_id", postgresql.UUID(as_uuid=True), nullable=True))
-        op.add_column(table, sa.Column("updated_by_user_id", postgresql.UUID(as_uuid=True), nullable=True))
+        op.add_column(
+            table,
+            sa.Column("workspace_id", postgresql.UUID(as_uuid=True), nullable=True),
+        )
+        op.add_column(
+            table,
+            sa.Column("status", content_status, nullable=False, server_default="draft"),
+        )
+        op.add_column(
+            table,
+            sa.Column("version", sa.Integer(), nullable=False, server_default="1"),
+        )
+        op.add_column(
+            table,
+            sa.Column(
+                "visibility",
+                content_visibility,
+                nullable=False,
+                server_default="private",
+            ),
+        )
+        op.add_column(
+            table,
+            sa.Column(
+                "created_by_user_id", postgresql.UUID(as_uuid=True), nullable=True
+            ),
+        )
+        op.add_column(
+            table,
+            sa.Column(
+                "updated_by_user_id", postgresql.UUID(as_uuid=True), nullable=True
+            ),
+        )
         op.create_foreign_key(None, table, "workspaces", ["workspace_id"], ["id"])
-        op.create_foreign_key(None, table, "users", ["created_by_user_id"], ["id"], ondelete="SET NULL")
-        op.create_foreign_key(None, table, "users", ["updated_by_user_id"], ["id"], ondelete="SET NULL")
+        op.create_foreign_key(
+            None, table, "users", ["created_by_user_id"], ["id"], ondelete="SET NULL"
+        )
+        op.create_foreign_key(
+            None, table, "users", ["updated_by_user_id"], ["id"], ondelete="SET NULL"
+        )
 
     workspace_id = bind.execute(sa.text("SELECT id FROM workspaces LIMIT 1")).scalar()
     if workspace_id:
-        bind.execute(sa.text("UPDATE world_templates SET workspace_id = :id WHERE workspace_id IS NULL"), {"id": workspace_id})
-        bind.execute(sa.text("""
+        bind.execute(
+            sa.text(
+                "UPDATE world_templates SET workspace_id = :id WHERE workspace_id IS NULL"
+            ),
+            {"id": workspace_id},
+        )
+        bind.execute(
+            sa.text(
+                """
             UPDATE characters AS c
             SET workspace_id = wt.workspace_id
             FROM world_templates AS wt
             WHERE c.world_id = wt.id AND c.workspace_id IS NULL
-        """))
+        """
+            )
+        )
         op.alter_column("world_templates", "workspace_id", nullable=False)
         op.alter_column("characters", "workspace_id", nullable=False)
 

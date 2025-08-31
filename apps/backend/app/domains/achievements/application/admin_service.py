@@ -1,19 +1,24 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+import builtins
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.achievements.application.ports.repository import IAchievementsRepository
-from app.domains.achievements.infrastructure.models.achievement_models import Achievement
+from app.domains.achievements.application.ports.repository import (
+    IAchievementsRepository,
+)
+from app.domains.achievements.infrastructure.models.achievement_models import (
+    Achievement,
+)
 
 
 class AchievementsAdminService:
     def __init__(self, repo: IAchievementsRepository) -> None:
         self._repo = repo
 
-    async def list(self, workspace_id: UUID) -> List[Achievement]:
+    async def list(self, workspace_id: UUID) -> builtins.list[Achievement]:
         return await self._repo.list_achievements(workspace_id)
 
     async def create(
@@ -35,7 +40,7 @@ class AchievementsAdminService:
         achievement_id: UUID,
         data: dict[str, Any],
         actor_id: UUID,
-    ) -> Optional[Achievement]:
+    ) -> Achievement | None:
         item = await self._repo.get_achievement(achievement_id, workspace_id)
         if not item:
             return None
@@ -45,7 +50,9 @@ class AchievementsAdminService:
             if code != item.code and await self._repo.exists_code(code, workspace_id):
                 raise ValueError("code_conflict")
             data["code"] = code
-        item = await self._repo.update_achievement_fields(item, data, workspace_id, actor_id)
+        item = await self._repo.update_achievement_fields(
+            item, data, workspace_id, actor_id
+        )
         await db.commit()
         return item
 

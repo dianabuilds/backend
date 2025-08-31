@@ -2,27 +2,26 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
-from sqlalchemy.orm import aliased
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
-from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.navigation.infrastructure.models.transition_models import (
     NodeTransition,
     NodeTransitionType,
 )
 from app.domains.nodes.application.query_models import PageRequest, QueryContext
+from app.domains.nodes.infrastructure.models.node import Node
 
 
 class TransitionFilterSpec(BaseModel):
-    from_slug: Optional[str] = Field(None, alias="from")
-    to_slug: Optional[str] = Field(None, alias="to")
-    type: Optional[NodeTransitionType] = None
-    author: Optional[UUID] = None
+    from_slug: str | None = Field(None, alias="from")
+    to_slug: str | None = Field(None, alias="to")
+    type: NodeTransitionType | None = None
+    author: UUID | None = None
 
 
 class TransitionQueryService:
@@ -61,7 +60,7 @@ class TransitionQueryService:
         self,
         spec: TransitionFilterSpec,
         _ctx: QueryContext,
-        page: Optional[PageRequest] = None,
+        page: PageRequest | None = None,
     ) -> str:
         params = {
             "spec": spec.model_dump(exclude_none=True),

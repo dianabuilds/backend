@@ -1,4 +1,5 @@
 """add workspace_id to outbox and indexes"""
+
 """add workspace_id to outbox and indexes"""
 
 from alembic import op
@@ -32,7 +33,9 @@ def upgrade() -> None:
             )
             op.alter_column(table, "workspace_id", nullable=False)
             op.create_index(
-                "ix_outbox_workspace_id", table, ["workspace_id"],
+                "ix_outbox_workspace_id",
+                table,
+                ["workspace_id"],
             )
 
     table = "notifications"
@@ -88,5 +91,7 @@ def downgrade() -> None:
             op.drop_index("ix_media_assets_workspace_id", table_name=table)
         if "ix_media_assets_workspace" not in indexes:
             op.create_index(
-                "ix_media_assets_workspace", table, ["workspace_id"],
+                "ix_media_assets_workspace",
+                table,
+                ["workspace_id"],
             )

@@ -15,7 +15,9 @@ class NodeNotificationSettingsRepository:
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def get(self, user_id: UUID, node_id: int | UUID) -> NodeNotificationSetting | None:
+    async def get(
+        self, user_id: UUID, node_id: int | UUID
+    ) -> NodeNotificationSetting | None:
         """Fetch notification settings for a node identified by either id type."""
         nodes = sa.table(
             "nodes",

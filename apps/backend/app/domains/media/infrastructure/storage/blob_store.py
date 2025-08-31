@@ -4,7 +4,6 @@ import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 
 def _uploads_root() -> Path:
@@ -21,14 +20,17 @@ def _subdir(prefix: str) -> Path:
     return base
 
 
-def put_text(prefix: str, data: str, *, filename_hint: Optional[str] = None) -> str:
+def put_text(prefix: str, data: str, *, filename_hint: str | None = None) -> str:
     """
     Сохраняет текст в локальное файловое хранилище uploads/<prefix>/<yyyymmdd>/<uuid>[-hint].txt
     Возвращает файловый путь (URL для отдачи зависит от того, как настроена раздача uploads).
     """
     safe_hint = ""
     if filename_hint:
-        safe_hint = "-" + "".join(c for c in filename_hint if c.isalnum() or c in ("_", "-"))[:40]
+        safe_hint = (
+            "-"
+            + "".join(c for c in filename_hint if c.isalnum() or c in ("_", "-"))[:40]
+        )
     key = f"{uuid.uuid4().hex}{safe_hint}.txt"
     path = _subdir(prefix) / key
     path.write_text(data, encoding="utf-8")

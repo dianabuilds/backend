@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,16 +10,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.db.session import get_db
-from app.domains.notifications.infrastructure.models.campaign_models import NotificationCampaign, CampaignStatus
-from app.domains.users.infrastructure.models.user import User
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 # Доменные функции рассылки
 from app.domains.notifications.application.broadcast_service import (
+    cancel_campaign,
     estimate_recipients,
     start_campaign_async,
-    cancel_campaign,
 )
+from app.domains.notifications.infrastructure.models.campaign_models import (
+    CampaignStatus,
+    NotificationCampaign,
+)
+from app.domains.users.infrastructure.models.user import User
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_only = require_admin_role({"admin"})
 
@@ -32,18 +35,18 @@ router = APIRouter(
 
 
 class BroadcastFilters(BaseModel):
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
-    is_premium: Optional[bool] = None
-    created_from: Optional[datetime] = None
-    created_to: Optional[datetime] = None
+    role: str | None = None
+    is_active: bool | None = None
+    is_premium: bool | None = None
+    created_from: datetime | None = None
+    created_to: datetime | None = None
 
 
 class BroadcastCreate(BaseModel):
     title: str
     message: str
     type: str = "system"
-    filters: Optional[BroadcastFilters] = None
+    filters: BroadcastFilters | None = None
     dry_run: bool = False
 
 
@@ -53,7 +56,9 @@ async def create_broadcast(
     current_user: User = Depends(admin_only),
     db: AsyncSession = Depends(get_db),
 ):
-    filters_dict: Dict[str, Any] = payload.filters.model_dump() if payload.filters else {}
+    filters_dict: dict[str, Any] = (
+        payload.filters.model_dump() if payload.filters else {}
+    )
     if payload.dry_run:
         total = await estimate_recipients(db, filters_dict)
         return {"dry_run": True, "total_estimate": total}
@@ -79,7 +84,11 @@ async def list_broadcasts(
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(NotificationCampaign).order_by(NotificationCampaign.created_at.desc()).limit(limit)
+    stmt = (
+        select(NotificationCampaign)
+        .order_by(NotificationCampaign.created_at.desc())
+        .limit(limit)
+    )
     result = await db.execute(stmt)
     items = result.scalars().all()
     return [

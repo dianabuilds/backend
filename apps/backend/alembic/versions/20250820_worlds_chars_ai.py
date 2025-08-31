@@ -12,27 +12,49 @@ def upgrade():
     # world_templates
     op.create_table(
         "world_templates",
-        sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column(
+            "id",
+            sa.dialects.postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            nullable=False,
+        ),
         sa.Column("title", sa.String(), nullable=False),
         sa.Column("locale", sa.String(), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("meta", sa.JSON(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
+        ),
     )
 
     # characters
     op.create_table(
         "characters",
-        sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
-        sa.Column("world_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column(
+            "id",
+            sa.dialects.postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "world_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=False
+        ),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("role", sa.String(), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("traits", sa.JSON(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["world_id"], ["world_templates.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
+        ),
+        sa.ForeignKeyConstraint(
+            ["world_id"], ["world_templates.id"], ondelete="CASCADE"
+        ),
     )
 
     # ai_settings (одна строка конфигурации)
@@ -43,8 +65,12 @@ def upgrade():
         sa.Column("base_url", sa.Text(), nullable=True),
         sa.Column("model", sa.String(), nullable=True),
         sa.Column("api_key", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
+        ),
     )
 
 

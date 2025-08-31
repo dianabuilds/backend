@@ -2,22 +2,21 @@ from __future__ import annotations
 
 import threading
 from collections import defaultdict
-from typing import Dict, Tuple
 
 
 class TransitionMetrics:
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self.latency_sum: Dict[Tuple[str, str], float] = defaultdict(float)
-        self.latency_count: Dict[Tuple[str, str], int] = defaultdict(int)
-        self.no_route: Dict[Tuple[str, str], int] = defaultdict(int)
-        self.fallback: Dict[Tuple[str, str], int] = defaultdict(int)
-        self.entropy_sum: Dict[Tuple[str, str], float] = defaultdict(float)
-        self.entropy_count: Dict[Tuple[str, str], int] = defaultdict(int)
-        self.repeat_sum: Dict[Tuple[str, str], float] = defaultdict(float)
-        self.repeat_count: Dict[Tuple[str, str], int] = defaultdict(int)
+        self.latency_sum: dict[tuple[str, str], float] = defaultdict(float)
+        self.latency_count: dict[tuple[str, str], int] = defaultdict(int)
+        self.no_route: dict[tuple[str, str], int] = defaultdict(int)
+        self.fallback: dict[tuple[str, str], int] = defaultdict(int)
+        self.entropy_sum: dict[tuple[str, str], float] = defaultdict(float)
+        self.entropy_count: dict[tuple[str, str], int] = defaultdict(int)
+        self.repeat_sum: dict[tuple[str, str], float] = defaultdict(float)
+        self.repeat_count: dict[tuple[str, str], int] = defaultdict(int)
 
-    def _key(self, ws: str | None, mode: str | None) -> Tuple[str, str]:
+    def _key(self, ws: str | None, mode: str | None) -> tuple[str, str]:
         return (ws or "unknown", mode or "default")
 
     def observe_latency(

@@ -4,7 +4,10 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.navigation.infrastructure.models.transition_models import NodeTransition, NodeTransitionType
+from app.domains.navigation.infrastructure.models.transition_models import (
+    NodeTransition,
+    NodeTransitionType,
+)
 from app.schemas.transition import NodeTransitionCreate
 
 
@@ -32,7 +35,11 @@ class TransitionRepository:
             from_node_id=from_node_id,
             to_node_id=to_node_id,
             type=NodeTransitionType(payload.type),
-            condition=(payload.condition.model_dump(exclude_none=True) if payload.condition else {}),
+            condition=(
+                payload.condition.model_dump(exclude_none=True)
+                if payload.condition
+                else {}
+            ),
             weight=payload.weight,
             label=payload.label,
             created_by=user_id,

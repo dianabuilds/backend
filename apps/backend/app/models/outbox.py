@@ -2,10 +2,12 @@ import enum
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, String, DateTime, Integer, Enum as SAEnum, ForeignKey, Boolean
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Enum as SAEnum
 
-from .adapters import UUID as GUID, JSONB
 from . import Base
+from .adapters import JSONB
+from .adapters import UUID as GUID
 
 
 class OutboxStatus(str, enum.Enum):
@@ -23,9 +25,17 @@ class OutboxEvent(Base):
     topic = Column(String, nullable=False)
     payload_json = Column(JSONB(), nullable=False)
     dedup_key = Column(String, nullable=True)
-    status = Column(SAEnum(OutboxStatus, name="outboxstatus"), default=OutboxStatus.NEW, nullable=False)
+    status = Column(
+        SAEnum(OutboxStatus, name="outboxstatus"),
+        default=OutboxStatus.NEW,
+        nullable=False,
+    )
     attempts = Column(Integer, default=0, nullable=False)
     next_retry_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    workspace_id = Column(GUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
-    is_preview = Column(Boolean, nullable=False, default=False, server_default="false", index=True)
+    workspace_id = Column(
+        GUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
+    is_preview = Column(
+        Boolean, nullable=False, default=False, server_default="false", index=True
+    )

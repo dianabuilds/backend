@@ -1,30 +1,30 @@
-from pathlib import Path
-import sys
 import importlib
+import sys
 import uuid
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import sqlalchemy as sa
 from fastapi import HTTPException
-from starlette.requests import Request
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-import sqlalchemy as sa
+from starlette.requests import Request
 
 # Ensure "app" package resolves correctly
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
-from app.domains.users.infrastructure.models.user import User
-from app.schemas.workspaces import WorkspaceRole
 from app.core.workspace_context import (
     get_workspace_id,
-    resolve_workspace,
-    require_workspace,
     optional_workspace,
+    require_workspace,
+    resolve_workspace,
 )
+from app.domains.users.infrastructure.models.user import User
+from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
+from app.schemas.workspaces import WorkspaceRole
 
 
 def _make_request(headers=None, query_string: bytes = b"") -> Request:
@@ -64,7 +64,9 @@ async def test_resolve_workspace_checks_membership() -> None:
         with pytest.raises(HTTPException):
             await resolve_workspace(ws.id, user=user, db=session)
 
-        member = WorkspaceMember(workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer)
+        member = WorkspaceMember(
+            workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer
+        )
         session.add(member)
         await session.commit()
 
@@ -86,7 +88,9 @@ async def test_require_workspace_sets_state() -> None:
         await session.execute(sa.insert(User.__table__).values(id=user_id))
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user_id)
         session.add(ws)
-        member = WorkspaceMember(workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer)
+        member = WorkspaceMember(
+            workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer
+        )
         session.add(member)
         await session.commit()
 

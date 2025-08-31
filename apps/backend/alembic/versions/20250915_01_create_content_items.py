@@ -48,12 +48,20 @@ def upgrade() -> None:
         sa.Column("created_by_user_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("updated_by_user_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("published_at", sa.DateTime(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(), server_default=sa.func.now(), nullable=False
+        ),
         sa.ForeignKeyConstraint(["workspace_id"], ["workspaces.id"]),
         sa.ForeignKeyConstraint(["primary_tag_id"], ["tags.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["created_by_user_id"], ["users.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["updated_by_user_id"], ["users.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(
+            ["created_by_user_id"], ["users.id"], ondelete="SET NULL"
+        ),
+        sa.ForeignKeyConstraint(
+            ["updated_by_user_id"], ["users.id"], ondelete="SET NULL"
+        ),
     )
     op.create_index("ix_content_items_slug", "content_items", ["slug"], unique=True)
 

@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.worlds.application.ports.worlds_repo import IWorldsRepository
 from app.domains.ai.infrastructure.models.world_models import Character, WorldTemplate
+from app.domains.worlds.application.ports.worlds_repo import IWorldsRepository
 
 
 class WorldsRepository(IWorldsRepository):
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def list_worlds(self, workspace_id: UUID) -> List[WorldTemplate]:
+    async def list_worlds(self, workspace_id: UUID) -> list[WorldTemplate]:
         res = await self._db.execute(
             select(WorldTemplate)
             .where(WorldTemplate.workspace_id == workspace_id)
@@ -24,7 +24,7 @@ class WorldsRepository(IWorldsRepository):
 
     async def get_world(
         self, world_id: UUID, workspace_id: UUID
-    ) -> Optional[WorldTemplate]:
+    ) -> WorldTemplate | None:
         res = await self._db.execute(
             select(WorldTemplate).where(
                 WorldTemplate.id == world_id, WorldTemplate.workspace_id == workspace_id
@@ -44,7 +44,11 @@ class WorldsRepository(IWorldsRepository):
         return world
 
     async def update_world(
-        self, world: WorldTemplate, data: dict[str, Any], workspace_id: UUID, actor_id: UUID
+        self,
+        world: WorldTemplate,
+        data: dict[str, Any],
+        workspace_id: UUID,
+        actor_id: UUID,
     ) -> WorldTemplate:
         if world.workspace_id != workspace_id:
             return world
@@ -63,7 +67,7 @@ class WorldsRepository(IWorldsRepository):
 
     async def list_characters(
         self, world_id: UUID, workspace_id: UUID
-    ) -> List[Character]:
+    ) -> list[Character]:
         res = await self._db.execute(
             select(Character)
             .where(
@@ -89,7 +93,11 @@ class WorldsRepository(IWorldsRepository):
         return ch
 
     async def update_character(
-        self, character: Character, data: dict[str, Any], workspace_id: UUID, actor_id: UUID
+        self,
+        character: Character,
+        data: dict[str, Any],
+        workspace_id: UUID,
+        actor_id: UUID,
     ) -> Character:
         if character.workspace_id != workspace_id:
             return character
@@ -108,7 +116,7 @@ class WorldsRepository(IWorldsRepository):
 
     async def get_character(
         self, char_id: UUID, workspace_id: UUID
-    ) -> Optional[Character]:
+    ) -> Character | None:
         res = await self._db.execute(
             select(Character).where(
                 Character.id == char_id, Character.workspace_id == workspace_id

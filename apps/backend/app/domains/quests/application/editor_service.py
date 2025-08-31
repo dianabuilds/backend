@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Set
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -48,15 +47,15 @@ class EditorService:
 
     async def get_version_graph(
         self, db: AsyncSession, version_id: UUID
-    ) -> tuple[QuestVersion, List[QuestStep], List[QuestTransition]]:
+    ) -> tuple[QuestVersion, list[QuestStep], list[QuestTransition]]:
         return await self._graph.load_graph(db, version_id)
 
     async def replace_graph(
         self,
         db: AsyncSession,
         version_id: UUID,
-        steps: List[QuestStep],
-        transitions: List[QuestTransition],
+        steps: list[QuestStep],
+        transitions: list[QuestTransition],
     ) -> None:
         await self._graph.save_graph(db, version_id, steps, transitions)
 
@@ -85,13 +84,13 @@ class EditorService:
         return self.simulate_graph(steps, transitions, payload, preview)
 
     def validate_graph(
-        self, nodes: List[QuestStep], edges: List[QuestTransition]
+        self, nodes: list[QuestStep], edges: list[QuestTransition]
     ) -> ValidateResult:
-        errors: List[str] = []
-        warnings: List[str] = []
+        errors: list[str] = []
+        warnings: list[str] = []
 
-        node_keys: Set[str] = set()
-        node_map: Dict[str, QuestStep] = {}
+        node_keys: set[str] = set()
+        node_map: dict[str, QuestStep] = {}
         start_count = 0
         end_count = 0
         for n in nodes:
@@ -109,9 +108,9 @@ class EditorService:
         if end_count < 1:
             errors.append("There must be at least one end node")
 
-        adj: Dict[str, List[str]] = {}
-        adj_edges: Dict[str, List[QuestTransition]] = {}
-        incoming: Dict[str, int] = {k: 0 for k in node_keys}
+        adj: dict[str, list[str]] = {}
+        adj_edges: dict[str, list[QuestTransition]] = {}
+        incoming: dict[str, int] = {k: 0 for k in node_keys}
         for e in edges:
             if e.from_node_key not in node_keys:
                 errors.append(f"Edge from unknown node: {e.from_node_key}")
@@ -125,7 +124,7 @@ class EditorService:
 
         start_key = next((n.key for n in nodes if n.type == "start"), None)
         if start_key and not errors:
-            seen: Set[str] = set()
+            seen: set[str] = set()
             stack = [start_key]
             while stack:
                 cur = stack.pop()
@@ -155,11 +154,11 @@ class EditorService:
 
         # Detect unconditional cycles (including self-loops)
         index = 0
-        stack: List[str] = []
-        indices: Dict[str, int] = {}
-        lowlink: Dict[str, int] = {}
-        onstack: Set[str] = set()
-        sccs: List[List[str]] = []
+        stack: list[str] = []
+        indices: dict[str, int] = {}
+        lowlink: dict[str, int] = {}
+        onstack: set[str] = set()
+        sccs: list[list[str]] = []
 
         def strongconnect(v: str) -> None:
             nonlocal index
@@ -176,7 +175,7 @@ class EditorService:
                 elif w in onstack:
                     lowlink[v] = min(lowlink[v], indices[w])
             if lowlink[v] == indices[v]:
-                comp: List[str] = []
+                comp: list[str] = []
                 while True:
                     w = stack.pop()
                     onstack.remove(w)
@@ -191,9 +190,7 @@ class EditorService:
 
         for comp in sccs:
             edges_in_comp = [
-                e
-                for e in edges
-                if e.from_node_key in comp and e.to_node_key in comp
+                e for e in edges if e.from_node_key in comp and e.to_node_key in comp
             ]
             if len(comp) == 1:
                 if any(
@@ -205,8 +202,7 @@ class EditorService:
                     errors.append(f"Unconditional loop at node: {comp[0]}")
             elif edges_in_comp and all(e.condition is None for e in edges_in_comp):
                 errors.append(
-                    "Unconditional loop between nodes: "
-                    + ", ".join(sorted(comp))
+                    "Unconditional loop between nodes: " + ", ".join(sorted(comp))
                 )
 
         ok = len([e for e in errors if e]) == 0
@@ -214,18 +210,18 @@ class EditorService:
 
     def simulate_graph(
         self,
-        nodes: List[QuestStep],
-        edges: List[QuestTransition],
+        nodes: list[QuestStep],
+        edges: list[QuestTransition],
         payload: SimulateIn,
         preview: PreviewContext | None = None,
     ) -> SimulateResult:
         key_to_node = {n.key: n for n in nodes}
-        adj: Dict[str, List[QuestTransition]] = {}
+        adj: dict[str, list[QuestTransition]] = {}
         for e in edges:
             adj.setdefault(e.from_node_key, []).append(e)
 
-        steps: List[dict] = []
-        rewards: List[dict] = []
+        steps: list[dict] = []
+        rewards: list[dict] = []
 
         start = next((n for n in nodes if n.type == "start"), None)
         if not start:

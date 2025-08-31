@@ -1,6 +1,5 @@
 import importlib
 import sys
-import types
 import uuid
 from pathlib import Path
 
@@ -16,19 +15,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.core.db.session import get_db  # noqa: E402
 from app.api import deps as api_deps  # noqa: E402
+from app.core.db.session import get_db  # noqa: E402
 from app.core.preview import PreviewContext  # noqa: E402
 from app.domains.navigation.api.nodes_public_router import (
     router as public_router,  # noqa: E402
 )
+from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
 from app.domains.quests.infrastructure.models.navigation_cache_models import (  # noqa: E402
     NavigationCache,
 )
-from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
-from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
-from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
+from app.domains.tags.models import Tag  # noqa: E402
+from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 
 
 @pytest_asyncio.fixture()

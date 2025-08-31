@@ -28,10 +28,16 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     with op.batch_alter_table("nodes") as batch:
-        batch.add_column(sa.Column("media", postgresql.ARRAY(sa.String()), nullable=True))
+        batch.add_column(
+            sa.Column("media", postgresql.ARRAY(sa.String()), nullable=True)
+        )
         batch.add_column(sa.Column("cover_url", sa.String(), nullable=True))
         batch.add_column(sa.Column("is_public", sa.Boolean(), nullable=True))
-        batch.add_column(sa.Column("reactions", postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+        batch.add_column(
+            sa.Column(
+                "reactions", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+            )
+        )
         batch.add_column(
             sa.Column(
                 "content",

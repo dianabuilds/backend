@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from sqlalchemy import Column, String
 
-from app.core.db.base import Base
 from app.core.db.adapters import UUID
+from app.core.db.base import Base
 
 
 class UserAIPref(Base):

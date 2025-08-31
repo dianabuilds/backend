@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.telemetry.domain.generation import GenerationStageLog
-from app.domains.telemetry.application.ports.generation_log_port import IGenerationLogRepository
 from app.domains.ai.infrastructure.models.generation_models import GenerationJobLog
+from app.domains.telemetry.application.ports.generation_log_port import (
+    IGenerationLogRepository,
+)
+from app.domains.telemetry.domain.generation import GenerationStageLog
 
 
 class GenerationLogRepository(IGenerationLogRepository):

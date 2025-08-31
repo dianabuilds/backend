@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class CompassSettings(BaseSettings):
     top_k_db: int = 200
     top_k_result: int = 20

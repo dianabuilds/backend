@@ -20,10 +20,14 @@ def upgrade() -> None:
         sa.Column("provider", sa.String(), nullable=True),
         sa.Column("model", sa.String(), nullable=True),
         sa.Column("prompt_tokens", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("completion_tokens", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column(
+            "completion_tokens", sa.Integer(), nullable=False, server_default="0"
+        ),
         sa.Column("total_tokens", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("cost", sa.Float(), nullable=True),
-        sa.ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["workspace_id"], ["workspaces.id"], ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="SET NULL"),
     )
     op.create_index("ix_ai_usage_workspace_id", "ai_usage", ["workspace_id"])

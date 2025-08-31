@@ -24,6 +24,7 @@ sys.modules.setdefault("app.security", security_stub)
 from fastapi import HTTPException
 
 from app.core.preview import PreviewContext
+from app.domains.ai.infrastructure.models.ai_settings import AISettings
 from app.domains.ai.infrastructure.models.generation_models import GenerationJob
 from app.domains.ai.services.generation import (
     enqueue_generation_job,
@@ -31,7 +32,6 @@ from app.domains.ai.services.generation import (
 )
 from app.domains.workspaces.api import put_ai_presets
 from app.domains.workspaces.infrastructure.models import Workspace
-from app.domains.ai.infrastructure.models.ai_settings import AISettings
 from app.schemas.workspaces import WorkspaceSettings
 
 
@@ -131,7 +131,15 @@ async def test_generation_merges_sources_and_logs() -> None:
     async with async_session() as session:
         ai = AISettings(provider="openai", model="gpt-global")
         session.add(ai)
-        ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=uuid.uuid4(), settings_json=WorkspaceSettings(ai_presets={"system_prompt": "ws-system"}).model_dump())
+        ws = Workspace(
+            id=uuid.uuid4(),
+            name="W",
+            slug="w",
+            owner_user_id=uuid.uuid4(),
+            settings_json=WorkspaceSettings(
+                ai_presets={"system_prompt": "ws-system"}
+            ).model_dump(),
+        )
         session.add(ws)
         await session.commit()
 

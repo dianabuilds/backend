@@ -4,9 +4,8 @@ from datetime import datetime
 from enum import Enum
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Integer, String, Boolean
 
 from app.core.db.adapters import UUID
 from app.core.db.base import Base
@@ -23,7 +22,9 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    workspace_id = Column(
+        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
     message = Column(String, nullable=False)
@@ -45,4 +46,6 @@ class Notification(Base):
     )
     created_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
     updated_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
-    is_preview = Column(Boolean, nullable=False, default=False, server_default="false", index=True)
+    is_preview = Column(
+        Boolean, nullable=False, default=False, server_default="false", index=True
+    )

@@ -1,7 +1,7 @@
 import importlib
+import ssl
 import sys
 from pathlib import Path
-import ssl
 
 import pytest
 

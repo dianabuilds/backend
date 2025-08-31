@@ -3,8 +3,8 @@ import importlib
 import os
 import pkgutil
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Set
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -23,7 +23,12 @@ def _is_production() -> bool:
     # Пытаемся взять окружение из настроек, если есть; иначе используем переменные окружения
     try:
         from apps.backend.app.core.config import settings  # type: ignore
-        env = getattr(settings, "env_mode", None) or os.getenv("APP_ENV") or os.getenv("ENV")
+
+        env = (
+            getattr(settings, "env_mode", None)
+            or os.getenv("APP_ENV")
+            or os.getenv("ENV")
+        )
     except Exception:
         env = os.getenv("APP_ENV") or os.getenv("ENV")
     env = (env or "").lower()
@@ -87,12 +92,12 @@ def _import_all_models() -> None:
             _log(f"Предупреждение: не удалось импортировать {name}: {e}")
 
 
-def _collect_all_metadatas() -> Set[sa.MetaData]:
+def _collect_all_metadatas() -> set[sa.MetaData]:
     """
     Ищет все метаданные у ORM-классов, загруженных в sys.modules.
     Собирает уникальные объекты MetaData, чтобы выполнить create_all по каждому.
     """
-    metas: Set[sa.MetaData] = set()
+    metas: set[sa.MetaData] = set()
     for module in list(sys.modules.values()):
         try:
             d = getattr(module, "__dict__", None)
@@ -130,12 +135,32 @@ async def _drop_everything(conn, is_postgres: bool) -> None:
             # Работаем только в целевой схеме; public не трогаем
             # Можно управлять удалением схемы через DROP_TARGET_SCHEMA=0/1 (по умолчанию 1)
             if (os.getenv("DROP_TARGET_SCHEMA") or "1") == "1":
-                await conn.execute(sa.text(f"DROP SCHEMA IF EXISTS {sa.sql.quoted_name(target_schema, quote=True)} CASCADE"))
-            await conn.execute(sa.text(f"CREATE SCHEMA IF NOT EXISTS {sa.sql.quoted_name(target_schema, quote=True)}"))
-            await conn.execute(sa.text(f"GRANT ALL ON SCHEMA {sa.sql.quoted_name(target_schema, quote=True)} TO CURRENT_USER"))
-            await conn.execute(sa.text(f"GRANT ALL ON SCHEMA {sa.sql.quoted_name(target_schema, quote=True)} TO public"))
+                await conn.execute(
+                    sa.text(
+                        f"DROP SCHEMA IF EXISTS {sa.sql.quoted_name(target_schema, quote=True)} CASCADE"
+                    )
+                )
+            await conn.execute(
+                sa.text(
+                    f"CREATE SCHEMA IF NOT EXISTS {sa.sql.quoted_name(target_schema, quote=True)}"
+                )
+            )
+            await conn.execute(
+                sa.text(
+                    f"GRANT ALL ON SCHEMA {sa.sql.quoted_name(target_schema, quote=True)} TO CURRENT_USER"
+                )
+            )
+            await conn.execute(
+                sa.text(
+                    f"GRANT ALL ON SCHEMA {sa.sql.quoted_name(target_schema, quote=True)} TO public"
+                )
+            )
             # Включаем целевую схему в search_path
-            await conn.execute(sa.text(f"SET search_path TO {sa.sql.quoted_name(target_schema, quote=True)}, public"))
+            await conn.execute(
+                sa.text(
+                    f"SET search_path TO {sa.sql.quoted_name(target_schema, quote=True)}, public"
+                )
+            )
     else:
         # Универсальный способ: отрефлектить и дропнуть все объекты
         tmp_meta = sa.MetaData()
@@ -147,9 +172,12 @@ async def _drop_everything(conn, is_postgres: bool) -> None:
 # Пост-инициализация схемы
 # ======================
 
+
 async def _pg_enum_create_if_not_exists(conn, name: str, values: list[str]) -> None:
     # Создаём enum-типы, если отсутствуют, и добавляем недостающие значения
-    exists = await conn.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = :n"), {"n": name})
+    exists = await conn.execute(
+        sa.text("SELECT 1 FROM pg_type WHERE typname = :n"), {"n": name}
+    )
     if exists.scalar() is None:
         vals = ", ".join([f"'{v}'" for v in values])
         await conn.execute(sa.text(f"CREATE TYPE {name} AS ENUM ({vals})"))
@@ -166,7 +194,9 @@ async def _pg_enum_create_if_not_exists(conn, name: str, values: list[str]) -> N
     for v in values:
         if v not in have:
             try:
-                await conn.execute(sa.text(f"ALTER TYPE {name} ADD VALUE IF NOT EXISTS '{v}'"))
+                await conn.execute(
+                    sa.text(f"ALTER TYPE {name} ADD VALUE IF NOT EXISTS '{v}'")
+                )
             except Exception:
                 # Старые версии PG без IF NOT EXISTS — пытаемся обычный ADD VALUE
                 try:
@@ -210,7 +240,14 @@ async def _column_exists(conn, table: str, column: str) -> bool:
     return res.scalar() is not None
 
 
-async def _add_column_if_missing(conn, table: str, col: str, type_sql: str, default_sql: str | None = None, not_null: bool = False) -> None:
+async def _add_column_if_missing(
+    conn,
+    table: str,
+    col: str,
+    type_sql: str,
+    default_sql: str | None = None,
+    not_null: bool = False,
+) -> None:
     if not await _column_exists(conn, table, col):
         sql = f"ALTER TABLE {table} ADD COLUMN {col} {type_sql}"
         if default_sql:
@@ -223,23 +260,41 @@ async def _add_column_if_missing(conn, table: str, col: str, type_sql: str, defa
 async def _ensure_nodes_shape(conn) -> None:
     # Обязательные поля для nodes
     # Булевы/числовые/JSON дефолты выставляем сразу (PG)
-    await _add_column_if_missing(conn, "nodes", "allow_feedback", "BOOLEAN", "true", True)
-    await _add_column_if_missing(conn, "nodes", "is_recommendable", "BOOLEAN", "true", True)
-    await _add_column_if_missing(conn, "nodes", "popularity_score", "DOUBLE PRECISION", "0.0", True)
+    await _add_column_if_missing(
+        conn, "nodes", "allow_feedback", "BOOLEAN", "true", True
+    )
+    await _add_column_if_missing(
+        conn, "nodes", "is_recommendable", "BOOLEAN", "true", True
+    )
+    await _add_column_if_missing(
+        conn, "nodes", "popularity_score", "DOUBLE PRECISION", "0.0", True
+    )
     await _add_column_if_missing(conn, "nodes", "is_visible", "BOOLEAN", "true", True)
     await _add_column_if_missing(conn, "nodes", "views", "INTEGER", "0", True)
     # JSONB поля
-    await _add_column_if_missing(conn, "nodes", "reactions", "JSONB", "'{}'::jsonb", True)
+    await _add_column_if_missing(
+        conn, "nodes", "reactions", "JSONB", "'{}'::jsonb", True
+    )
     await _add_column_if_missing(conn, "nodes", "meta", "JSONB", "'{}'::jsonb", True)
-    await _add_column_if_missing(conn, "nodes", "premium_only", "BOOLEAN", "false", True)
-    await _add_column_if_missing(conn, "nodes", "ai_generated", "BOOLEAN", "false", True)
+    await _add_column_if_missing(
+        conn, "nodes", "premium_only", "BOOLEAN", "false", True
+    )
+    await _add_column_if_missing(
+        conn, "nodes", "ai_generated", "BOOLEAN", "false", True
+    )
     # Вектор эмбеддингов
-    await _add_column_if_missing(conn, "nodes", "embedding_vector", "vector(384)", None, False)
+    await _add_column_if_missing(
+        conn, "nodes", "embedding_vector", "vector(384)", None, False
+    )
     # Индекс на slug (уникальный)
     if not await _index_exists(conn, "ix_nodes_slug"):
-        await conn.execute(sa.text("CREATE UNIQUE INDEX IF NOT EXISTS ix_nodes_slug ON nodes (slug)"))
+        await conn.execute(
+            sa.text("CREATE UNIQUE INDEX IF NOT EXISTS ix_nodes_slug ON nodes (slug)")
+        )
     # Индекс для эмбеддингов
-    if await _column_exists(conn, "nodes", "embedding_vector") and not await _index_exists(conn, "idx_node_embedding_vector"):
+    if await _column_exists(
+        conn, "nodes", "embedding_vector"
+    ) and not await _index_exists(conn, "idx_node_embedding_vector"):
         await conn.execute(
             sa.text(
                 "CREATE INDEX IF NOT EXISTS idx_node_embedding_vector "
@@ -250,7 +305,9 @@ async def _ensure_nodes_shape(conn) -> None:
 
 async def _ensure_feedback(conn) -> None:
     # Таблица feedback + индексы
-    await conn.execute(sa.text("""
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS feedback (
           id uuid PRIMARY KEY,
           node_id uuid NOT NULL REFERENCES nodes(alt_id) ON DELETE CASCADE,
@@ -260,15 +317,27 @@ async def _ensure_feedback(conn) -> None:
           is_hidden boolean NOT NULL DEFAULT false,
           is_anonymous boolean NOT NULL DEFAULT false
         )
-    """))
+    """
+        )
+    )
     if not await _index_exists(conn, "idx_feedback_node"):
-        await conn.execute(sa.text("CREATE INDEX IF NOT EXISTS idx_feedback_node ON feedback (node_id)"))
+        await conn.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS idx_feedback_node ON feedback (node_id)"
+            )
+        )
     if not await _index_exists(conn, "idx_feedback_author"):
-        await conn.execute(sa.text("CREATE INDEX IF NOT EXISTS idx_feedback_author ON feedback (author_id)"))
+        await conn.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS idx_feedback_author ON feedback (author_id)"
+            )
+        )
 
 
 async def _ensure_tags(conn) -> None:
-    await conn.execute(sa.text("""
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS tags (
           id uuid PRIMARY KEY,
           slug varchar NOT NULL,
@@ -276,23 +345,33 @@ async def _ensure_tags(conn) -> None:
           created_at timestamp DEFAULT now(),
           is_hidden boolean NOT NULL DEFAULT false
         )
-    """))
+    """
+        )
+    )
     # Уникальный индекс на slug
     if not await _index_exists(conn, "idx_tag_slug"):
-        await conn.execute(sa.text("CREATE UNIQUE INDEX IF NOT EXISTS idx_tag_slug ON tags (slug)"))
+        await conn.execute(
+            sa.text("CREATE UNIQUE INDEX IF NOT EXISTS idx_tag_slug ON tags (slug)")
+        )
 
-    await conn.execute(sa.text("""
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS node_tags (
           node_id uuid NOT NULL REFERENCES nodes(alt_id) ON DELETE CASCADE,
           tag_id uuid NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
           created_at timestamp DEFAULT now(),
           PRIMARY KEY (node_id, tag_id)
         )
-    """))
+    """
+        )
+    )
 
 
 async def _ensure_echo_trace(conn) -> None:
-    await conn.execute(sa.text("""
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS echo_trace (
           id uuid PRIMARY KEY,
           from_node_id uuid REFERENCES nodes(alt_id),
@@ -302,15 +381,27 @@ async def _ensure_echo_trace(conn) -> None:
           channel text NULL,
           created_at timestamp DEFAULT now()
         )
-    """))
+    """
+        )
+    )
     if not await _index_exists(conn, "idx_echo_from_node"):
-        await conn.execute(sa.text("CREATE INDEX IF NOT EXISTS idx_echo_from_node ON echo_trace (from_node_id)"))
+        await conn.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS idx_echo_from_node ON echo_trace (from_node_id)"
+            )
+        )
 
 
 async def _ensure_node_traces(conn) -> None:
-    await _pg_enum_create_if_not_exists(conn, "nodetracekind", ["auto", "manual", "quest_hint"])
-    await _pg_enum_create_if_not_exists(conn, "nodetracevisibility", ["public", "private", "system"])
-    await conn.execute(sa.text("""
+    await _pg_enum_create_if_not_exists(
+        conn, "nodetracekind", ["auto", "manual", "quest_hint"]
+    )
+    await _pg_enum_create_if_not_exists(
+        conn, "nodetracevisibility", ["public", "private", "system"]
+    )
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS node_traces (
           id uuid PRIMARY KEY,
           node_id uuid NOT NULL REFERENCES nodes(alt_id) ON DELETE CASCADE,
@@ -321,13 +412,21 @@ async def _ensure_node_traces(conn) -> None:
           tags text[] NOT NULL DEFAULT '{}',
           visibility nodetracevisibility NOT NULL DEFAULT 'public'
         )
-    """))
+    """
+        )
+    )
     if not await _index_exists(conn, "idx_node_traces_node"):
-        await conn.execute(sa.text("CREATE INDEX IF NOT EXISTS idx_node_traces_node ON node_traces (node_id)"))
+        await conn.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS idx_node_traces_node ON node_traces (node_id)"
+            )
+        )
 
 
 async def _ensure_achievements(conn) -> None:
-    await conn.execute(sa.text("""
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS achievements (
           id uuid PRIMARY KEY,
           code varchar NOT NULL UNIQUE,
@@ -337,24 +436,42 @@ async def _ensure_achievements(conn) -> None:
           condition jsonb NOT NULL,
           visible boolean NOT NULL DEFAULT true
         )
-    """))
-    await conn.execute(sa.text("""
+    """
+        )
+    )
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS user_achievements (
           user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           achievement_id uuid NOT NULL REFERENCES achievements(id) ON DELETE CASCADE,
           unlocked_at timestamp NOT NULL DEFAULT now(),
           PRIMARY KEY (user_id, achievement_id)
         )
-    """))
+    """
+        )
+    )
     if not await _index_exists(conn, "idx_user_achievements_user"):
-        await conn.execute(sa.text("CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements (user_id)"))
+        await conn.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements (user_id)"
+            )
+        )
     if not await _index_exists(conn, "idx_user_achievements_achievement"):
-        await conn.execute(sa.text("CREATE INDEX IF NOT EXISTS idx_user_achievements_achievement ON user_achievements (achievement_id)"))
+        await conn.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS idx_user_achievements_achievement ON user_achievements (achievement_id)"
+            )
+        )
 
 
 async def _ensure_event_quests(conn) -> None:
-    await _pg_enum_create_if_not_exists(conn, "eventquestrewardtype", ["achievement", "premium", "custom"])
-    await conn.execute(sa.text("""
+    await _pg_enum_create_if_not_exists(
+        conn, "eventquestrewardtype", ["achievement", "premium", "custom"]
+    )
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS event_quests (
           id uuid PRIMARY KEY,
           title varchar NOT NULL,
@@ -368,8 +485,12 @@ async def _ensure_event_quests(conn) -> None:
           reward_type eventquestrewardtype NOT NULL,
           is_active boolean NOT NULL DEFAULT false
         )
-    """))
-    await conn.execute(sa.text("""
+    """
+        )
+    )
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS event_quest_completions (
           id uuid PRIMARY KEY,
           quest_id uuid NOT NULL REFERENCES event_quests(id) ON DELETE CASCADE,
@@ -378,22 +499,36 @@ async def _ensure_event_quests(conn) -> None:
           completed_at timestamp NOT NULL DEFAULT now(),
           UNIQUE (quest_id, user_id)
         )
-    """))
+    """
+        )
+    )
     if not await _index_exists(conn, "idx_event_quest_completions_quest"):
-        await conn.execute(sa.text("CREATE INDEX IF NOT EXISTS idx_event_quest_completions_quest ON event_quest_completions (quest_id)"))
+        await conn.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS idx_event_quest_completions_quest ON event_quest_completions (quest_id)"
+            )
+        )
 
 
 async def _ensure_roles_and_moderation(conn) -> None:
     # Роли и ограничения пользователей
-    await _pg_enum_create_if_not_exists(conn, "user_role", ["user", "moderator", "admin"])
-    await _pg_enum_create_if_not_exists(conn, "restriction_type", ["ban", "post_restrict"])
+    await _pg_enum_create_if_not_exists(
+        conn, "user_role", ["user", "moderator", "admin"]
+    )
+    await _pg_enum_create_if_not_exists(
+        conn, "restriction_type", ["ban", "post_restrict"]
+    )
 
     # users.role / премиум-поля
     await _add_column_if_missing(conn, "users", "role", "user_role", "'user'", True)
     await _add_column_if_missing(conn, "users", "is_premium", "BOOLEAN", "false", True)
-    await _add_column_if_missing(conn, "users", "premium_until", "timestamp", None, False)
+    await _add_column_if_missing(
+        conn, "users", "premium_until", "timestamp", None, False
+    )
 
-    await conn.execute(sa.text("""
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS user_restrictions (
           id uuid PRIMARY KEY,
           user_id uuid NOT NULL REFERENCES users(id),
@@ -403,8 +538,12 @@ async def _ensure_roles_and_moderation(conn) -> None:
           expires_at timestamp NULL,
           issued_by uuid NULL REFERENCES users(id)
         )
-    """))
-    await conn.execute(sa.text("""
+    """
+        )
+    )
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS node_moderation (
           id uuid PRIMARY KEY,
           node_id uuid NULL REFERENCES nodes(alt_id),
@@ -412,11 +551,15 @@ async def _ensure_roles_and_moderation(conn) -> None:
           hidden_by uuid NULL REFERENCES users(id),
           created_at timestamp NULL
         )
-    """))
+    """
+        )
+    )
 
 
 async def _ensure_audit_logs(conn) -> None:
-    await conn.execute(sa.text("""
+    await conn.execute(
+        sa.text(
+            """
         CREATE TABLE IF NOT EXISTS audit_logs (
           id uuid PRIMARY KEY,
           actor_id uuid NULL,
@@ -430,13 +573,27 @@ async def _ensure_audit_logs(conn) -> None:
           created_at timestamp NOT NULL DEFAULT now(),
           extra jsonb NULL
         )
-    """))
+    """
+        )
+    )
     if not await _index_exists(conn, "idx_audit_logs_actor"):
-        await conn.execute(sa.text("CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs (actor_id)"))
+        await conn.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs (actor_id)"
+            )
+        )
     if not await _index_exists(conn, "idx_audit_logs_action"):
-        await conn.execute(sa.text("CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs (action)"))
+        await conn.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs (action)"
+            )
+        )
     if not await _index_exists(conn, "idx_audit_logs_created"):
-        await conn.execute(sa.text("CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs (created_at)"))
+        await conn.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs (created_at)"
+            )
+        )
 
 
 async def _ensure_quests_search_vector(conn) -> None:
@@ -444,9 +601,13 @@ async def _ensure_quests_search_vector(conn) -> None:
     if not await _table_exists(conn, "quests"):
         return
     if not await _column_exists(conn, "quests", "search_vector"):
-        await conn.execute(sa.text("ALTER TABLE quests ADD COLUMN search_vector tsvector"))
+        await conn.execute(
+            sa.text("ALTER TABLE quests ADD COLUMN search_vector tsvector")
+        )
     # Функция обновления
-    await conn.execute(sa.text("""
+    await conn.execute(
+        sa.text(
+            """
         CREATE OR REPLACE FUNCTION quests_search_vector_update() RETURNS trigger AS $$
         BEGIN
           NEW.search_vector :=
@@ -454,15 +615,23 @@ async def _ensure_quests_search_vector(conn) -> None:
           RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
-    """))
+    """
+        )
+    )
     # Индекс
     if not await _index_exists(conn, "idx_quests_search_vector"):
-        await conn.execute(sa.text("""
+        await conn.execute(
+            sa.text(
+                """
             CREATE INDEX IF NOT EXISTS idx_quests_search_vector
             ON quests USING GIN(search_vector)
-        """))
+        """
+            )
+        )
     # Триггер
-    await conn.execute(sa.text("""
+    await conn.execute(
+        sa.text(
+            """
         DO $$
         BEGIN
             IF NOT EXISTS (
@@ -474,7 +643,9 @@ async def _ensure_quests_search_vector(conn) -> None:
                 EXECUTE FUNCTION quests_search_vector_update();
             END IF;
         END$$;
-    """))
+    """
+        )
+    )
 
 
 async def _drop_legacy_columns(conn) -> None:
@@ -548,13 +719,19 @@ async def reset_database() -> None:
             # Для Postgres дополнительно выставим search_path на целевую схему
             if is_pg:
                 target_schema = _get_target_schema()
-                await conn.execute(sa.text(f"SET search_path TO {sa.sql.quoted_name(target_schema, quote=True)}, public"))
+                await conn.execute(
+                    sa.text(
+                        f"SET search_path TO {sa.sql.quoted_name(target_schema, quote=True)}, public"
+                    )
+                )
 
             _log("Импорт моделей...")
             _import_all_models()
             metadatas = _collect_all_metadatas()
             if not metadatas:
-                _log("Внимание: не найдено MetaData у моделей. Проверьте, что все модели в apps.backend.app.models импортируются.")
+                _log(
+                    "Внимание: не найдено MetaData у моделей. Проверьте, что все модели в apps.backend.app.models импортируются."
+                )
             else:
                 _log(f"Найдено {len(metadatas)} наборов MetaData.")
 
@@ -578,6 +755,7 @@ async def reset_database() -> None:
             try:
                 from alembic import command as _al_command  # type: ignore
                 from alembic.config import Config as _AlConfig  # type: ignore
+
                 cfg_path = os.getenv("ALEMBIC_CONFIG") or "alembic.ini"
                 cfg = _AlConfig(cfg_path)
                 _al_command.stamp(cfg, stamp)

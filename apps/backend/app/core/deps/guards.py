@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from app.domains.navigation.infrastructure.models.transition_models import NodeTransition
-from app.domains.users.infrastructure.models.user import User
 from app.core.preview import PreviewContext
+from app.domains.navigation.infrastructure.models.transition_models import (
+    NodeTransition,
+)
+from app.domains.users.infrastructure.models.user import User
 
 
 def check_transition(

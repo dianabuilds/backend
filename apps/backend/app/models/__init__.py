@@ -6,15 +6,15 @@ Domain models must be imported from app.domains.<domain>.infrastructure.models.
 
 from app.core.db.base import Base  # re-export Base from the DB layer
 
+from . import background_job_history as _background_job_history  # noqa: F401
+from . import event_counter as _event_counter  # noqa: F401
+from . import idempotency as _idempotency  # noqa: F401
+from . import ops_incident as _ops_incident  # noqa: F401
+
 # Import core models to register them with SQLAlchemy metadata (no domain models here)
 # Prefer importing modules to avoid name coupling
 from . import outbox as _outbox  # noqa: F401
-from . import idempotency as _idempotency  # noqa: F401
-from . import search_config as _search_config  # noqa: F401
-from . import event_counter as _event_counter  # noqa: F401
-from . import ops_incident as _ops_incident  # noqa: F401
 from . import quests as _quests  # noqa: F401
-from . import background_job_history as _background_job_history  # noqa: F401
+from . import search_config as _search_config  # noqa: F401
 
 __all__ = ["Base"]
-

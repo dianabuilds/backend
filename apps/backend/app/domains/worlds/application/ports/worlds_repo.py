@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any
 from uuid import UUID
 
 from app.domains.ai.infrastructure.models.world_models import Character, WorldTemplate
@@ -9,12 +9,12 @@ from app.domains.ai.infrastructure.models.world_models import Character, WorldTe
 class IWorldsRepository:
     async def list_worlds(
         self, workspace_id: UUID
-    ) -> List[WorldTemplate]:  # pragma: no cover
+    ) -> list[WorldTemplate]:  # pragma: no cover
         ...
 
     async def get_world(
         self, world_id: UUID, workspace_id: UUID
-    ) -> Optional[WorldTemplate]:  # pragma: no cover
+    ) -> WorldTemplate | None:  # pragma: no cover
         ...
 
     async def create_world(
@@ -23,7 +23,11 @@ class IWorldsRepository:
         ...
 
     async def update_world(
-        self, world: WorldTemplate, data: dict[str, Any], workspace_id: UUID, actor_id: UUID
+        self,
+        world: WorldTemplate,
+        data: dict[str, Any],
+        workspace_id: UUID,
+        actor_id: UUID,
     ) -> WorldTemplate:  # pragma: no cover
         ...
 
@@ -34,7 +38,7 @@ class IWorldsRepository:
 
     async def list_characters(
         self, world_id: UUID, workspace_id: UUID
-    ) -> List[Character]:  # pragma: no cover
+    ) -> list[Character]:  # pragma: no cover
         ...
 
     async def create_character(
@@ -43,7 +47,11 @@ class IWorldsRepository:
         ...
 
     async def update_character(
-        self, character: Character, data: dict[str, Any], workspace_id: UUID, actor_id: UUID
+        self,
+        character: Character,
+        data: dict[str, Any],
+        workspace_id: UUID,
+        actor_id: UUID,
     ) -> Character:  # pragma: no cover
         ...
 
@@ -54,5 +62,5 @@ class IWorldsRepository:
 
     async def get_character(
         self, char_id: UUID, workspace_id: UUID
-    ) -> Optional[Character]:  # pragma: no cover
+    ) -> Character | None:  # pragma: no cover
         ...

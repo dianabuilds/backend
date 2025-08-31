@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.notifications.application.ports.notification_repo import INotificationRepository
-from app.domains.notifications.infrastructure.models.notification_models import Notification
+from app.domains.notifications.application.ports.notification_repo import (
+    INotificationRepository,
+)
+from app.domains.notifications.infrastructure.models.notification_models import (
+    Notification,
+)
 from app.schemas.notification import NotificationOut
 
 
@@ -23,7 +27,7 @@ class NotificationRepository(INotificationRepository):
         message: str,
         type: Any,
         is_preview: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         notif = Notification(
             workspace_id=workspace_id,
             user_id=user_id,

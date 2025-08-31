@@ -21,8 +21,8 @@ def test_cors_allows_post(monkeypatch):
     # Reload settings and app to apply new environment
     sys.path.append(str(pathlib.Path(__file__).resolve().parents[2] / "apps/backend"))
 
-    import app.core.settings as settings_module
     import app.core.config as config_module
+    import app.core.settings as settings_module
 
     importlib.reload(settings_module)
     importlib.reload(config_module)

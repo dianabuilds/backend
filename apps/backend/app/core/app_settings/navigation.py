@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class NavigationSettings(BaseSettings):
     max_options: int = 3
     weight_compass: float = 0.5

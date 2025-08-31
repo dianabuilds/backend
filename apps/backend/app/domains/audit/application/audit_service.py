@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,11 +15,11 @@ async def audit_log(
     action: str,
     resource_type: str,
     resource_id: str,
-    before: Optional[dict[str, Any]] = None,
-    after: Optional[dict[str, Any]] = None,
+    before: dict[str, Any] | None = None,
+    after: dict[str, Any] | None = None,
     request: Any = None,
-    reason: Optional[str] = None,
-    extra: Optional[dict[str, Any]] = None,
+    reason: str | None = None,
+    extra: dict[str, Any] | None = None,
     workspace_id: str | None = None,
     node_type: str | None = None,
 ) -> None:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,9 +35,7 @@ async def get_effective_plan_slug(
     if not user_id:
         return "free"
     now = (
-        preview.now.astimezone(timezone.utc)
-        if preview and preview.now
-        else datetime.now(tz=timezone.utc)
+        preview.now.astimezone(UTC) if preview and preview.now else datetime.now(tz=UTC)
     )
     res = await db.execute(
         select(UserSubscription, SubscriptionPlan)

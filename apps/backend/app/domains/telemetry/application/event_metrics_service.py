@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import threading
-from typing import Dict
 
 
 class EventMetrics:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         # event -> workspace -> count
-        self._counters: Dict[str, Dict[str, int]] = {}
+        self._counters: dict[str, dict[str, int]] = {}
 
     def inc(self, event: str, workspace_id: str | None) -> None:
         ws = workspace_id or "unknown"
@@ -16,10 +15,10 @@ class EventMetrics:
             ev_map = self._counters.setdefault(event, {})
             ev_map[ws] = ev_map.get(ws, 0) + 1
 
-    def snapshot(self) -> Dict[str, Dict[str, int]]:
+    def snapshot(self) -> dict[str, dict[str, int]]:
         # return workspace -> events
         with self._lock:
-            out: Dict[str, Dict[str, int]] = {}
+            out: dict[str, dict[str, int]] = {}
             for ev, ws_map in self._counters.items():
                 for ws, cnt in ws_map.items():
                     out.setdefault(ws, {})[ev] = cnt

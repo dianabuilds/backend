@@ -8,11 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.db.session import get_db
+from app.domains.notifications.application.broadcast_service import start_campaign_async
 from app.domains.notifications.infrastructure.models.campaign_models import (
     CampaignStatus,
     NotificationCampaign,
 )
-from app.domains.notifications.application.broadcast_service import start_campaign_async
 from app.domains.users.infrastructure.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -36,7 +36,11 @@ async def list_campaigns(
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(NotificationCampaign).order_by(NotificationCampaign.created_at.desc()).limit(limit)
+    stmt = (
+        select(NotificationCampaign)
+        .order_by(NotificationCampaign.created_at.desc())
+        .limit(limit)
+    )
     result = await db.execute(stmt)
     items = result.scalars().all()
     return [

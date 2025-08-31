@@ -6,8 +6,8 @@ from uuid import uuid4
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
 from sqlalchemy.orm import relationship
 
+from app.core.db.adapters import JSONB, UUID
 from app.core.db.base import Base
-from app.core.db.adapters import UUID, JSONB
 
 
 class NodeTag(Base):
@@ -22,7 +22,9 @@ class TagAlias(Base):
     __tablename__ = "tag_aliases"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    tag_id = Column(UUID(), ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True)
+    tag_id = Column(
+        UUID(), ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     alias = Column(String, unique=True, nullable=False, index=True)
     type = Column(String, nullable=False, default="synonym")  # synonym | misspelling
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

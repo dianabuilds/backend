@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.preview import PreviewContext
+from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.navigation_cache_models import (
     NavigationCache,
 )
-from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -25,9 +24,9 @@ class NavigationService:
         self,
         db: AsyncSession,
         node: Node,
-        user: Optional[User],
+        user: User | None,
         preview: PreviewContext | None = None,
-    ) -> List[Dict[str, object]]:
+    ) -> list[dict[str, object]]:
         result = await db.execute(
             select(NavigationCache.navigation).where(
                 NavigationCache.node_slug == node.slug
@@ -42,9 +41,9 @@ class NavigationService:
         self,
         db: AsyncSession,
         node: Node,
-        user: Optional[User],
+        user: User | None,
         preview: PreviewContext | None = None,
-    ) -> Dict[str, object]:
+    ) -> dict[str, object]:
         result = await db.execute(
             select(NavigationCache.navigation).where(
                 NavigationCache.node_slug == node.slug
@@ -61,9 +60,7 @@ class NavigationService:
             ).isoformat(),
         }
 
-    async def invalidate_navigation_cache(
-        self, db: AsyncSession, node: Node
-    ) -> None:
+    async def invalidate_navigation_cache(self, db: AsyncSession, node: Node) -> None:
         await db.execute(
             delete(NavigationCache).where(NavigationCache.node_slug == node.slug)
         )

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.navigation.application.compass_service import CompassService
@@ -31,7 +29,9 @@ class ModesService:
             nodes = await self._compass.get_compass_nodes(db, node, user, max_options)
             return [{"slug": n.slug, "label": n.title, "mode": mode} for n in nodes]
         if mode == "echo":
-            nodes = await self._echo.get_echo_transitions(db, node, max_options, user=user)
+            nodes = await self._echo.get_echo_transitions(
+                db, node, max_options, user=user
+            )
             return [{"slug": n.slug, "label": n.title, "mode": mode} for n in nodes]
         if mode == "random":
             options: list[dict] = []

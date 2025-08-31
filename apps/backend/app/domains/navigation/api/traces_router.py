@@ -2,18 +2,21 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_
 
-from app.core.db.session import get_db
 from app.api.deps import get_current_user
-from app.core.workspace_context import require_workspace, optional_workspace
-from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.navigation.infrastructure.models.transition_models import NodeTrace, NodeTraceVisibility
-from app.domains.users.infrastructure.models.user import User
+from app.core.db.session import get_db
+from app.core.workspace_context import optional_workspace, require_workspace
+from app.domains.navigation.infrastructure.models.transition_models import (
+    NodeTrace,
+    NodeTraceVisibility,
+)
 from app.domains.navigation.schemas.traces import NodeTraceCreate, NodeTraceOut
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.users.infrastructure.models.user import User
 
 router = APIRouter(prefix="/traces", tags=["traces"])
 
@@ -54,11 +57,17 @@ async def list_traces(
     if visible_to == "me":
         stmt = stmt.where(
             or_(
-                NodeTrace.visibility.in_([NodeTraceVisibility.public, NodeTraceVisibility.system]),
+                NodeTrace.visibility.in_(
+                    [NodeTraceVisibility.public, NodeTraceVisibility.system]
+                ),
                 NodeTrace.user_id == current_user.id,
             )
         )
     else:
-        stmt = stmt.where(NodeTrace.visibility.in_([NodeTraceVisibility.public, NodeTraceVisibility.system]))
+        stmt = stmt.where(
+            NodeTrace.visibility.in_(
+                [NodeTraceVisibility.public, NodeTraceVisibility.system]
+            )
+        )
     result = await db.execute(stmt.order_by(NodeTrace.created_at.desc()))
     return result.scalars().all()

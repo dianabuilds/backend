@@ -39,9 +39,9 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             server_onupdate=sa.func.now(),
         ),
-        sa.ForeignKeyConstraint([
-            "version_id"
-        ], ["quest_versions.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["version_id"], ["quest_versions.id"], ondelete="CASCADE"
+        ),
         sa.UniqueConstraint("version_id", "key", name="uq_quest_step_key"),
         if_not_exists=True,
     )
@@ -60,15 +60,13 @@ def upgrade() -> None:
         sa.Column("to_step_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("label", sa.String(), nullable=True),
         sa.Column("condition", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.ForeignKeyConstraint([
-            "version_id"
-        ], ["quest_versions.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint([
-            "from_step_id"
-        ], ["quest_steps.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint([
-            "to_step_id"
-        ], ["quest_steps.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["version_id"], ["quest_versions.id"], ondelete="CASCADE"
+        ),
+        sa.ForeignKeyConstraint(
+            ["from_step_id"], ["quest_steps.id"], ondelete="CASCADE"
+        ),
+        sa.ForeignKeyConstraint(["to_step_id"], ["quest_steps.id"], ondelete="CASCADE"),
         if_not_exists=True,
     )
     op.create_index(

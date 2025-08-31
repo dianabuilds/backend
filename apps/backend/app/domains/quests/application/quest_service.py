@@ -2,12 +2,16 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from app.domains.quests.application.ports.event_quests_port import IEventQuestsRepository
+from app.domains.quests.application.ports.event_quests_port import (
+    IEventQuestsRepository,
+)
 from app.domains.quests.application.ports.notifications_port import INotificationPort
 
 
 class QuestService:
-    def __init__(self, repo: IEventQuestsRepository, notifier: INotificationPort) -> None:
+    def __init__(
+        self, repo: IEventQuestsRepository, notifier: INotificationPort
+    ) -> None:
         self._repo = repo
         self._notifier = notifier
 

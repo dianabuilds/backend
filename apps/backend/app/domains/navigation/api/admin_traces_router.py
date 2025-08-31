@@ -2,21 +2,20 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit_log import log_admin_action
 from app.core.db.session import get_db
 from app.domains.navigation.infrastructure.models.transition_models import NodeTrace
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.core.audit_log import log_admin_action
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ router = APIRouter(
 
 
 class BulkIds(BaseModel):
-    ids: List[UUID]
+    ids: list[UUID]
 
 
 @router.get("", summary="List navigation traces")
@@ -52,9 +51,8 @@ async def list_traces(
 ):
     node_alias = aliased(Node)
 
-    stmt = (
-        select(NodeTrace, node_alias.slug)
-        .join(node_alias, NodeTrace.node_id == node_alias.id)
+    stmt = select(NodeTrace, node_alias.slug).join(
+        node_alias, NodeTrace.node_id == node_alias.id
     )
 
     if from_slug:
@@ -62,18 +60,18 @@ async def list_traces(
     if user_id and hasattr(NodeTrace, "user_id"):
         stmt = stmt.where(NodeTrace.user_id == user_id)
     if type and hasattr(NodeTrace, "type"):
-        stmt = stmt.where(getattr(NodeTrace, "type") == type)
+        stmt = stmt.where(NodeTrace.type == type)
     if source and hasattr(NodeTrace, "source"):
-        stmt = stmt.where(getattr(NodeTrace, "source") == source)
+        stmt = stmt.where(NodeTrace.source == source)
     if channel and hasattr(NodeTrace, "channel"):
-        stmt = stmt.where(getattr(NodeTrace, "channel") == channel)
+        stmt = stmt.where(NodeTrace.channel == channel)
     if date_from and hasattr(NodeTrace, "created_at"):
-        stmt = stmt.where(getattr(NodeTrace, "created_at") >= date_from)
+        stmt = stmt.where(NodeTrace.created_at >= date_from)
     if date_to and hasattr(NodeTrace, "created_at"):
-        stmt = stmt.where(getattr(NodeTrace, "created_at") <= date_to)
+        stmt = stmt.where(NodeTrace.created_at <= date_to)
 
     if hasattr(NodeTrace, "created_at"):
-        stmt = stmt.order_by(getattr(NodeTrace, "created_at").desc())
+        stmt = stmt.order_by(NodeTrace.created_at.desc())
     offset = (page - 1) * page_size
     stmt = stmt.offset(offset).limit(page_size)
 
@@ -87,7 +85,15 @@ async def list_traces(
             "from_slug": fs,
             "to_slug": None,
         }
-        for field in ("user_id", "source", "channel", "created_at", "type", "latency_ms", "request_id"):
+        for field in (
+            "user_id",
+            "source",
+            "channel",
+            "created_at",
+            "type",
+            "latency_ms",
+            "request_id",
+        ):
             item[field] = getattr(t, field, None)
         data.append(item)
 

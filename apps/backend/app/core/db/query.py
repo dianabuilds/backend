@@ -8,6 +8,10 @@ For now, we re-export domain services and a compatible transition query module
 to enable imports from core.db.query without relying on legacy service paths.
 """
 
+from app.core.db.transition_query import (  # noqa: F401
+    TransitionFilterSpec,
+    TransitionQueryService,
+)
 from app.domains.nodes.application.node_query_service import (  # noqa: F401
     NodeQueryService,
 )
@@ -15,10 +19,6 @@ from app.domains.nodes.application.query_models import (  # noqa: F401
     NodeFilterSpec,
     PageRequest,
     QueryContext,
-)
-from app.core.db.transition_query import (  # noqa: F401
-    TransitionQueryService,
-    TransitionFilterSpec,
 )
 
 __all__ = [

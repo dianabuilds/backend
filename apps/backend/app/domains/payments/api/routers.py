@@ -1,5 +1,4 @@
 from __future__ import annotations
-from __future__ import annotations
 
 from datetime import datetime, timedelta
 
@@ -8,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.db.session import get_db
+from app.domains.payments.application.payments_service import PaymentService
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.payment import PremiumPurchaseIn
-from app.domains.payments.application.payments_service import PaymentService
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -34,15 +33,17 @@ async def buy_premium(
     current_user.is_premium = True
     await db.commit()
     return {"status": "ok", "premium_until": current_user.premium_until}
+
+
 from fastapi import APIRouter
 
 router = APIRouter()
 
-from app.api.payments import router as payments_router  # noqa: E402
 from app.api.admin_payments import router as admin_payments_router  # noqa: E402
 from app.api.admin_payments_transactions_cursor import (  # noqa: E402
     router as admin_payments_transactions_cursor_router,
 )
+from app.api.payments import router as payments_router  # noqa: E402
 
 router.include_router(payments_router)
 router.include_router(admin_payments_router)

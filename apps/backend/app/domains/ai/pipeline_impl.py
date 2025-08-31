@@ -3,28 +3,33 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime
 from dataclasses import dataclass, field
-from typing import Any, Dict, Tuple, Optional
+from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.domains.ai.infrastructure.models.generation_models import GenerationJob  # type: ignore
-from app.domains.ai.infrastructure.models.ai_settings import AISettings  # type: ignore
-from app.domains.ai.infrastructure.models.world_models import WorldTemplate, Character  # type: ignore
-from app.domains.ai.providers import (
-    OpenAIProvider,
-    OpenAICompatibleProvider,
-    AnthropicProvider,
-)
-from app.domains.ai.logs import save_stage_log
+from app.domains.ai.application.circuit_service import llm_circuit
 from app.domains.ai.application.pricing_service import estimate_cost_usd
 from app.domains.ai.application.usage_recorder import record_usage
+from app.domains.ai.infrastructure.models.ai_settings import AISettings  # type: ignore
+from app.domains.ai.infrastructure.models.generation_models import (
+    GenerationJob,  # type: ignore
+)
+from app.domains.ai.infrastructure.models.world_models import (  # type: ignore
+    Character,
+    WorldTemplate,
+)
+from app.domains.ai.logs import save_stage_log
+from app.domains.ai.providers import (
+    AnthropicProvider,
+    OpenAICompatibleProvider,
+    OpenAIProvider,
+)
 from app.domains.telemetry.application.metrics_registry import llm_metrics
 from app.domains.telemetry.application.ports.llm_metrics_port import LLMCallLabels
-from app.domains.ai.application.circuit_service import llm_circuit
 
 logger = logging.getLogger(__name__)
 
@@ -36,19 +41,32 @@ class StageLog:
     model: str
     prompt: str
     raw_response: str
-    usage: Dict[str, int] = field(default_factory=dict)
+    usage: dict[str, int] = field(default_factory=dict)
     cost: float = 0.0
     status: str = "ok"
 
 
-def _build_fallback_chain(preferred: Optional[str] = None, ai: Optional[AISettings] = None):
-    primary = (preferred or os.getenv("AI_PROVIDER") or "openai").lower().strip().replace("-", "_")
+def _build_fallback_chain(preferred: str | None = None, ai: AISettings | None = None):
+    primary = (
+        (preferred or os.getenv("AI_PROVIDER") or "openai")
+        .lower()
+        .strip()
+        .replace("-", "_")
+    )
 
     def _make(name: str):
         if name == "openai":
             return OpenAIProvider(
-                api_key=(ai.api_key if ai and (ai.provider or "").lower() == "openai" else None),
-                base_url=(ai.base_url if ai and (ai.provider or "").lower() == "openai" else None),
+                api_key=(
+                    ai.api_key
+                    if ai and (ai.provider or "").lower() == "openai"
+                    else None
+                ),
+                base_url=(
+                    ai.base_url
+                    if ai and (ai.provider or "").lower() == "openai"
+                    else None
+                ),
             )
         if name == "openai_compatible":
             prov_name = (ai.provider or "").lower().replace("-", "_") if ai else ""
@@ -58,8 +76,16 @@ def _build_fallback_chain(preferred: Optional[str] = None, ai: Optional[AISettin
             )
         if name == "anthropic":
             return AnthropicProvider(
-                api_key=(ai.api_key if ai and (ai.provider or "").lower() == "anthropic" else None),
-                base_url=(ai.base_url if ai and (ai.provider or "").lower() == "anthropic" else None),
+                api_key=(
+                    ai.api_key
+                    if ai and (ai.provider or "").lower() == "anthropic"
+                    else None
+                ),
+                base_url=(
+                    ai.base_url
+                    if ai and (ai.provider or "").lower() == "anthropic"
+                    else None
+                ),
             )
         return None
 
@@ -98,10 +124,10 @@ async def _call_with_fallback(
     system: str,
     model: str | list[str],
     json_mode: bool,
-    preferred_provider: Optional[str],
-    ai_settings: Optional[AISettings],
+    preferred_provider: str | None,
+    ai_settings: AISettings | None,
     max_tokens: int = 2048,
-    providers: Optional[list] = None,
+    providers: list | None = None,
 ):
     models = [model] if isinstance(model, str) else list(model)
     last_err: Exception | None = None
@@ -127,7 +153,10 @@ async def _call_with_fallback(
             try:
                 allowed, reason = await try_acquire_for(pname, m, amount=1)
             except Exception:
-                allowed, reason = True, None  # в случае ошибки лимитера не блокируем вызов
+                allowed, reason = (
+                    True,
+                    None,
+                )  # в случае ошибки лимитера не блокируем вызов
             if not allowed:
                 rate_skipped_any = True
                 try:
@@ -162,6 +191,7 @@ async def _call_with_fallback(
                     LLMRateLimit,
                     LLMServerError,
                 )  # lazy import to avoid cycles
+
                 logger.warning("Provider %s failed (%s), trying next...", pname, e)
                 llm_circuit.on_failure(pname)
                 try:
@@ -181,6 +211,7 @@ async def _call_with_fallback(
         raise last_err
     if rate_skipped_any:
         from app.domains.ai.providers.base import LLMRateLimit  # lazy import
+
         raise LLMRateLimit("rate_limited_all_providers")
     raise RuntimeError("No providers configured")
 
@@ -200,7 +231,7 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     locale = params.get("locale") or "en"
 
     # load AI settings
-    ai_settings: Optional[AISettings] = None
+    ai_settings: AISettings | None = None
     try:
         _res = await db.execute(select(AISettings).limit(1))
         ai_settings = _res.scalars().first()
@@ -215,12 +246,18 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     )
     model_default = (
         job.model
-        or (ai_settings.model if ai_settings and ai_settings.model else os.getenv("AI_MODEL"))
+        or (
+            ai_settings.model
+            if ai_settings and ai_settings.model
+            else os.getenv("AI_MODEL")
+        )
         or "gpt-4o-mini"
     ).strip()
     if allowed_models and model_default not in allowed_models:
         model_default = allowed_models[0]
-    models_param = (params.get("models") or {}) if isinstance(params.get("models"), dict) else {}
+    models_param = (
+        (params.get("models") or {}) if isinstance(params.get("models"), dict) else {}
+    )
     model_beats = (
         models_param.get("beats") or os.getenv("AI_MODEL_BEATS") or model_default
     ).strip()
@@ -231,7 +268,15 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         models_param.get("nodes") or os.getenv("AI_MODEL_NODES") or model_default
     ).strip()
 
-    preferred_provider = (getattr(job, "provider", None) or (ai_settings.provider if ai_settings and ai_settings.provider else os.getenv("AI_PROVIDER")) or "openai").strip()
+    preferred_provider = (
+        getattr(job, "provider", None)
+        or (
+            ai_settings.provider
+            if ai_settings and ai_settings.provider
+            else os.getenv("AI_PROVIDER")
+        )
+        or "openai"
+    ).strip()
     maxtok_beats = int(os.getenv("AI_MAXTOK_BEATS", "1200"))
     maxtok_chapters = int(os.getenv("AI_MAXTOK_CHAPTERS", "3000"))
     maxtok_nodes = int(os.getenv("AI_MAXTOK_NODES", "6000"))
@@ -241,15 +286,30 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     world_slice = None
     if world_template_id:
         try:
-            _w = await db.execute(select(WorldTemplate).where(WorldTemplate.id == world_template_id))
+            _w = await db.execute(
+                select(WorldTemplate).where(WorldTemplate.id == world_template_id)
+            )
             wt = _w.scalars().first()
             if wt:
-                _c = await db.execute(select(Character).where(Character.world_id == wt.id).limit(12))
-                chars = [{"name": c.name, "role": c.role, "description": c.description} for c in _c.scalars().all()]
-                world_slice = {"title": wt.title, "locale": wt.locale, "description": wt.description, "meta": wt.meta, "characters": chars}
+                _c = await db.execute(
+                    select(Character).where(Character.world_id == wt.id).limit(12)
+                )
+                chars = [
+                    {"name": c.name, "role": c.role, "description": c.description}
+                    for c in _c.scalars().all()
+                ]
+                world_slice = {
+                    "title": wt.title,
+                    "locale": wt.locale,
+                    "description": wt.description,
+                    "meta": wt.meta,
+                    "characters": chars,
+                }
         except Exception as _e:
             logger.warning("Failed to load world slice: %s", _e)
-    world_ctx = json.dumps(world_slice, ensure_ascii=False)[:2000] if world_slice else ""
+    world_ctx = (
+        json.dumps(world_slice, ensure_ascii=False)[:2000] if world_slice else ""
+    )
 
     stage_logs: list[StageLog] = []
     total_prompt = 0
@@ -289,7 +349,9 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         max_tokens=maxtok_beats,
         providers=providers,
     )
-    cost = estimate_cost_usd(res.model, res.usage.prompt_tokens, res.usage.completion_tokens)
+    cost = estimate_cost_usd(
+        res.model, res.usage.prompt_tokens, res.usage.completion_tokens
+    )
     if workspace_uuid:
         await record_usage(
             db,
@@ -302,18 +364,29 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         )
     if budget_usd > 0 and (total_cost + cost) > budget_usd:
         try:
-            labels = LLMCallLabels(provider=getattr(prov, "name", "?"), model=res.model, stage="beats")
+            labels = LLMCallLabels(
+                provider=getattr(prov, "name", "?"), model=res.model, stage="beats"
+            )
             llm_metrics.inc_error(labels, "budget_exceeded", 1)
         except Exception:
             pass
-        raise RuntimeError(f"budget_exceeded:{(total_cost + cost):.4f}>{budget_usd:.4f}")
+        raise RuntimeError(
+            f"budget_exceeded:{(total_cost + cost):.4f}>{budget_usd:.4f}"
+        )
     try:
-        stage_labels = LLMCallLabels(provider=getattr(prov, "name", "?"), model=res.model, stage="beats")
+        stage_labels = LLMCallLabels(
+            provider=getattr(prov, "name", "?"), model=res.model, stage="beats"
+        )
         llm_metrics.inc("success", stage_labels, 1)
-        llm_metrics.observe_tokens(stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens)
+        llm_metrics.observe_tokens(
+            stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens
+        )
         llm_metrics.observe_cost(stage_labels, cost)
         try:
-            from app.domains.telemetry.application.worker_metrics_facade import worker_metrics
+            from app.domains.telemetry.application.worker_metrics_facade import (
+                worker_metrics,
+            )
+
             worker_metrics.observe_stage("chapters", ms)
         except Exception:
             pass
@@ -323,7 +396,21 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     total_completion += res.usage.completion_tokens
     total_cost += cost
     beats_json = res.text
-    await save_stage_log(db, job_id=job.id, stage="beats", provider=getattr(prov, "name", "?"), model=res.model, prompt=prompt_beats, raw_response=json.dumps(res.raw or {}, ensure_ascii=False), usage={"prompt": res.usage.prompt_tokens, "completion": res.usage.completion_tokens, "total": res.usage.total_tokens}, cost=cost)
+    await save_stage_log(
+        db,
+        job_id=job.id,
+        stage="beats",
+        provider=getattr(prov, "name", "?"),
+        model=res.model,
+        prompt=prompt_beats,
+        raw_response=json.dumps(res.raw or {}, ensure_ascii=False),
+        usage={
+            "prompt": res.usage.prompt_tokens,
+            "completion": res.usage.completion_tokens,
+            "total": res.usage.total_tokens,
+        },
+        cost=cost,
+    )
     try:
         job.progress = 33
         job.updated_at = datetime.utcnow()
@@ -354,7 +441,9 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         max_tokens=maxtok_chapters,
         providers=providers,
     )
-    cost = estimate_cost_usd(res.model, res.usage.prompt_tokens, res.usage.completion_tokens)
+    cost = estimate_cost_usd(
+        res.model, res.usage.prompt_tokens, res.usage.completion_tokens
+    )
     if workspace_uuid:
         await record_usage(
             db,
@@ -367,18 +456,29 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         )
     if budget_usd > 0 and (total_cost + cost) > budget_usd:
         try:
-            labels = LLMCallLabels(provider=getattr(prov, "name", "?"), model=res.model, stage="chapters")
+            labels = LLMCallLabels(
+                provider=getattr(prov, "name", "?"), model=res.model, stage="chapters"
+            )
             llm_metrics.inc_error(labels, "budget_exceeded", 1)
         except Exception:
             pass
-        raise RuntimeError(f"budget_exceeded:{(total_cost + cost):.4f}>{budget_usd:.4f}")
+        raise RuntimeError(
+            f"budget_exceeded:{(total_cost + cost):.4f}>{budget_usd:.4f}"
+        )
     try:
-        stage_labels = LLMCallLabels(provider=getattr(prov, "name", "?"), model=res.model, stage="chapters")
+        stage_labels = LLMCallLabels(
+            provider=getattr(prov, "name", "?"), model=res.model, stage="chapters"
+        )
         llm_metrics.inc("success", stage_labels, 1)
-        llm_metrics.observe_tokens(stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens)
+        llm_metrics.observe_tokens(
+            stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens
+        )
         llm_metrics.observe_cost(stage_labels, cost)
         try:
-            from app.domains.telemetry.application.worker_metrics_facade import worker_metrics
+            from app.domains.telemetry.application.worker_metrics_facade import (
+                worker_metrics,
+            )
+
             worker_metrics.observe_stage("nodes", ms)
         except Exception:
             pass
@@ -388,7 +488,21 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     total_completion += res.usage.completion_tokens
     total_cost += cost
     chapters_json = res.text
-    await save_stage_log(db, job_id=job.id, stage="chapters", provider=getattr(prov, "name", "?"), model=res.model, prompt=prompt_ch, raw_response=json.dumps(res.raw or {}, ensure_ascii=False), usage={"prompt": res.usage.prompt_tokens, "completion": res.usage.completion_tokens, "total": res.usage.total_tokens}, cost=cost)
+    await save_stage_log(
+        db,
+        job_id=job.id,
+        stage="chapters",
+        provider=getattr(prov, "name", "?"),
+        model=res.model,
+        prompt=prompt_ch,
+        raw_response=json.dumps(res.raw or {}, ensure_ascii=False),
+        usage={
+            "prompt": res.usage.prompt_tokens,
+            "completion": res.usage.completion_tokens,
+            "total": res.usage.total_tokens,
+        },
+        cost=cost,
+    )
     try:
         job.progress = 66
         job.updated_at = datetime.utcnow()
@@ -419,7 +533,9 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         max_tokens=maxtok_nodes,
         providers=providers,
     )
-    cost = estimate_cost_usd(res.model, res.usage.prompt_tokens, res.usage.completion_tokens)
+    cost = estimate_cost_usd(
+        res.model, res.usage.prompt_tokens, res.usage.completion_tokens
+    )
     if workspace_uuid:
         await record_usage(
             db,
@@ -432,19 +548,30 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         )
     if budget_usd > 0 and (total_cost + cost) > budget_usd:
         try:
-            labels = LLMCallLabels(provider=getattr(prov, "name", "?"), model=res.model, stage="nodes")
+            labels = LLMCallLabels(
+                provider=getattr(prov, "name", "?"), model=res.model, stage="nodes"
+            )
             llm_metrics.inc_error(labels, "budget_exceeded", 1)
         except Exception:
             pass
-    
-        raise RuntimeError(f"budget_exceeded:{(total_cost + cost):.4f}>{budget_usd:.4f}")
+
+        raise RuntimeError(
+            f"budget_exceeded:{(total_cost + cost):.4f}>{budget_usd:.4f}"
+        )
     try:
-        stage_labels = LLMCallLabels(provider=getattr(prov, "name", "?"), model=res.model, stage="nodes")
+        stage_labels = LLMCallLabels(
+            provider=getattr(prov, "name", "?"), model=res.model, stage="nodes"
+        )
         llm_metrics.inc("success", stage_labels, 1)
-        llm_metrics.observe_tokens(stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens)
+        llm_metrics.observe_tokens(
+            stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens
+        )
         llm_metrics.observe_cost(stage_labels, cost)
         try:
-            from app.domains.telemetry.application.worker_metrics_facade import worker_metrics
+            from app.domains.telemetry.application.worker_metrics_facade import (
+                worker_metrics,
+            )
+
             worker_metrics.observe_stage("beats", ms)
         except Exception:
             pass
@@ -456,8 +583,11 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
 
     from app.domains.ai.persist import persist_generated_quest
     from app.domains.ai.validation import validate_version_graph
+
     try:
-        result_quest_id, result_version_id = await persist_generated_quest(db, job, res.text)
+        result_quest_id, result_version_id = await persist_generated_quest(
+            db, job, res.text
+        )
         try:
             await validate_version_graph(db, result_version_id)
         except Exception as ve:
@@ -466,7 +596,21 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         logger.exception("Persisting generated quest failed: %s", e)
         raise
 
-    await save_stage_log(db, job_id=job.id, stage="nodes", provider=getattr(prov, "name", "?"), model=res.model, prompt=prompt_nodes, raw_response=json.dumps(res.raw or {}, ensure_ascii=False), usage={"prompt": res.usage.prompt_tokens, "completion": res.usage.completion_tokens, "total": res.usage.total_tokens}, cost=cost)
+    await save_stage_log(
+        db,
+        job_id=job.id,
+        stage="nodes",
+        provider=getattr(prov, "name", "?"),
+        model=res.model,
+        prompt=prompt_nodes,
+        raw_response=json.dumps(res.raw or {}, ensure_ascii=False),
+        usage={
+            "prompt": res.usage.prompt_tokens,
+            "completion": res.usage.completion_tokens,
+            "total": res.usage.total_tokens,
+        },
+        cost=cost,
+    )
     try:
         job.progress = 99
         job.updated_at = datetime.utcnow()
@@ -475,11 +619,23 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         pass
 
     token_usage = {
-        "stages": stage_logs and [
-            {"stage": s.stage, "usage": s.usage, "cost": s.cost, "provider": s.provider, "model": s.model}
+        "stages": stage_logs
+        and [
+            {
+                "stage": s.stage,
+                "usage": s.usage,
+                "cost": s.cost,
+                "provider": s.provider,
+                "model": s.model,
+            }
             for s in stage_logs
-        ] or [],
-        "total": {"prompt": total_prompt, "completion": total_completion, "total": total_prompt + total_completion},
+        ]
+        or [],
+        "total": {
+            "prompt": total_prompt,
+            "completion": total_completion,
+            "total": total_prompt + total_completion,
+        },
     }
 
     return {

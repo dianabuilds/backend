@@ -13,16 +13,17 @@ from sqlalchemy.orm import sessionmaker
 # Ensure app package resolves
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import importlib
+
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
 from app.core.db.session import get_db  # noqa: E402
 from app.domains.nodes.content_admin_router import router as admin_router  # noqa: E402
-from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
-from app.domains.tags.models import Tag  # noqa: E402
-from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
 from app.domains.nodes.models import NodeItem, NodePatch  # noqa: E402
+from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
+from app.domains.tags.models import Tag  # noqa: E402
+from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 from app.security import auth_user, require_ws_editor  # noqa: E402
 
 

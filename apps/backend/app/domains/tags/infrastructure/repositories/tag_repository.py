@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import delete, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.tags.application.ports.tag_repo_port import ITagRepository
-from app.domains.tags.models import Tag
 from app.domains.tags.infrastructure.models.tag_models import (
     NodeTag,
     TagAlias,
     TagBlacklist,
     TagMergeLog,
 )
+from app.domains.tags.models import Tag
 
 
 class TagRepository(ITagRepository):
@@ -22,6 +22,7 @@ class TagRepository(ITagRepository):
     Минимальный репозиторий для совместимости со старыми местами использования.
     Реализует только get_by_slug/create.
     """
+
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
@@ -36,10 +37,12 @@ class TagRepository(ITagRepository):
         return tag
 
     # Остальные методы протокола здесь не используются
-    async def list_with_counters(self, q: str | None, limit: int, offset: int) -> List[Dict[str, Any]]:
+    async def list_with_counters(
+        self, q: str | None, limit: int, offset: int
+    ) -> list[dict[str, Any]]:
         raise NotImplementedError
 
-    async def list_aliases(self, tag_id: UUID) -> List[TagAlias]:
+    async def list_aliases(self, tag_id: UUID) -> list[TagAlias]:
         raise NotImplementedError
 
     async def add_alias(self, tag_id: UUID, alias: str) -> TagAlias:
@@ -48,7 +51,7 @@ class TagRepository(ITagRepository):
     async def remove_alias(self, alias_id: UUID) -> None:
         raise NotImplementedError
 
-    async def blacklist_list(self, q: str | None) -> List[TagBlacklist]:
+    async def blacklist_list(self, q: str | None) -> list[TagBlacklist]:
         raise NotImplementedError
 
     async def blacklist_add(self, slug: str, reason: str | None) -> TagBlacklist:
@@ -63,10 +66,12 @@ class TagRepository(ITagRepository):
     async def delete_tag(self, tag_id: UUID) -> None:
         raise NotImplementedError
 
-    async def merge_dry_run(self, from_id: UUID, to_id: UUID) -> Dict[str, Any]:
+    async def merge_dry_run(self, from_id: UUID, to_id: UUID) -> dict[str, Any]:
         raise NotImplementedError
 
-    async def merge_apply(self, from_id: UUID, to_id: UUID, actor_id: str | None, reason: str | None) -> Dict[str, Any]:
+    async def merge_apply(
+        self, from_id: UUID, to_id: UUID, actor_id: str | None, reason: str | None
+    ) -> dict[str, Any]:
         raise NotImplementedError
 
 
@@ -75,7 +80,9 @@ class TagRepositoryAdapter(ITagRepository):
         self._db = db
 
     # Listing
-    async def list_with_counters(self, q: str | None, limit: int, offset: int) -> List[Dict[str, Any]]:
+    async def list_with_counters(
+        self, q: str | None, limit: int, offset: int
+    ) -> list[dict[str, Any]]:
         stmt = (
             select(
                 Tag,
@@ -92,7 +99,7 @@ class TagRepositoryAdapter(ITagRepository):
         stmt = stmt.order_by(desc("usage_count"), Tag.name).offset(offset).limit(limit)
         res = await self._db.execute(stmt)
         rows = res.all()
-        out: List[Dict[str, Any]] = []
+        out: list[dict[str, Any]] = []
         for tag, usage, aliases in rows:
             out.append(
                 {
@@ -108,9 +115,11 @@ class TagRepositoryAdapter(ITagRepository):
         return out
 
     # Aliases
-    async def list_aliases(self, tag_id: UUID) -> List[TagAlias]:
+    async def list_aliases(self, tag_id: UUID) -> list[TagAlias]:
         res = await self._db.execute(
-            select(TagAlias).where(TagAlias.tag_id == tag_id).order_by(TagAlias.alias.asc())
+            select(TagAlias)
+            .where(TagAlias.tag_id == tag_id)
+            .order_by(TagAlias.alias.asc())
         )
         return list(res.scalars().all())
 
@@ -134,7 +143,7 @@ class TagRepositoryAdapter(ITagRepository):
             await self._db.flush()
 
     # Blacklist
-    async def blacklist_list(self, q: str | None) -> List[TagBlacklist]:
+    async def blacklist_list(self, q: str | None) -> list[TagBlacklist]:
         stmt = select(TagBlacklist)
         if q:
             stmt = stmt.where(TagBlacklist.slug.ilike(f"%{q}%"))
@@ -182,7 +191,7 @@ class TagRepositoryAdapter(ITagRepository):
         await self._db.flush()
 
     # Merge
-    async def merge_dry_run(self, from_id: UUID, to_id: UUID) -> Dict[str, Any]:
+    async def merge_dry_run(self, from_id: UUID, to_id: UUID) -> dict[str, Any]:
         if str(from_id) == str(to_id):
             return {"errors": ["from and to tags must be different"], "warnings": []}
         from_tag = await self._db.get(Tag, from_id)
@@ -190,13 +199,21 @@ class TagRepositoryAdapter(ITagRepository):
         if not from_tag or not to_tag:
             return {"errors": ["tag not found"], "warnings": []}
         cnt = (
-            await self._db.execute(select(func.count(NodeTag.node_id)).where(NodeTag.tag_id == from_id))
+            await self._db.execute(
+                select(func.count(NodeTag.node_id)).where(NodeTag.tag_id == from_id)
+            )
         ).scalar() or 0
         aliases = (
-            await self._db.execute(select(func.count(TagAlias.id)).where(TagAlias.tag_id == from_id))
+            await self._db.execute(
+                select(func.count(TagAlias.id)).where(TagAlias.tag_id == from_id)
+            )
         ).scalar() or 0
         return {
-            "from": {"id": str(from_tag.id), "name": from_tag.name, "slug": from_tag.slug},
+            "from": {
+                "id": str(from_tag.id),
+                "name": from_tag.name,
+                "slug": from_tag.slug,
+            },
             "to": {"id": str(to_tag.id), "name": to_tag.name, "slug": to_tag.slug},
             "content_touched": int(cnt),
             "aliases_moved": int(aliases),
@@ -204,20 +221,26 @@ class TagRepositoryAdapter(ITagRepository):
             "errors": [],
         }
 
-    async def merge_apply(self, from_id: UUID, to_id: UUID, actor_id: str | None, reason: str | None) -> Dict[str, Any]:
+    async def merge_apply(
+        self, from_id: UUID, to_id: UUID, actor_id: str | None, reason: str | None
+    ) -> dict[str, Any]:
         # Валидируем и формируем отчёт
         report = await self.merge_dry_run(from_id, to_id)
         if report.get("errors"):
             return report
 
         # Удаляем потенциальные дубликаты NodeTag(to_id) для тех же node_id, что привязаны к from_id
-        subq = select(NodeTag.node_id).where(NodeTag.tag_id == from_id).scalar_subquery()
+        subq = (
+            select(NodeTag.node_id).where(NodeTag.tag_id == from_id).scalar_subquery()
+        )
         await self._db.execute(
             delete(NodeTag).where(NodeTag.tag_id == to_id, NodeTag.node_id.in_(subq))
         )
 
         # Перевешиваем связи NodeTag
-        await self._db.execute(update(NodeTag).where(NodeTag.tag_id == from_id).values(tag_id=to_id))
+        await self._db.execute(
+            update(NodeTag).where(NodeTag.tag_id == from_id).values(tag_id=to_id)
+        )
 
         # Переносим алиасы на целевой тег
         res = await self._db.execute(select(TagAlias).where(TagAlias.tag_id == from_id))

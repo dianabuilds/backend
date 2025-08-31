@@ -79,7 +79,11 @@ class QuotaService:
                 "overage": False,
             }
 
-        now = preview.now.astimezone(UTC) if preview and preview.now else datetime.now(tz=UTC)
+        now = (
+            preview.now.astimezone(UTC)
+            if preview and preview.now
+            else datetime.now(tz=UTC)
+        )
         if scope == "day":
             period = now.strftime("%Y%m%d")
             reset_at = now.replace(

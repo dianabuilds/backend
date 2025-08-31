@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Optional
+import builtins
 from uuid import UUID
 
-from sqlalchemy import select, delete, func
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import Tag, ContentTag
+from .models import ContentTag, Tag
 
 
 class TagDAO:
@@ -29,8 +29,8 @@ class TagDAO:
 
     @staticmethod
     async def list(
-        db: AsyncSession, *, q: Optional[str] = None, workspace_id: UUID
-    ) -> List[Tag]:
+        db: AsyncSession, *, q: str | None = None, workspace_id: UUID
+    ) -> builtins.list[Tag]:
         stmt = select(Tag).where(Tag.workspace_id == workspace_id)
         if q:
             pattern = f"%{q}%"

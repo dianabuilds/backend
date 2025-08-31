@@ -1,10 +1,9 @@
-import os
 import json
+import os
 from pathlib import Path
-from typing import Optional
 
 
-def _parse_line(line: str) -> Optional[tuple[str, str]]:
+def _parse_line(line: str) -> tuple[str, str] | None:
     # Удаляем комментарии и пробелы
     s = line.strip()
     if not s or s.startswith("#"):
@@ -48,8 +47,10 @@ def _load_file(path: Path, override: bool) -> bool:
 
 def _looks_like_json(value: str) -> bool:
     s = value.strip()
-    return s.startswith("[") or s.startswith("{") or (
-        s.startswith('"') and s.endswith('"')
+    return (
+        s.startswith("[")
+        or s.startswith("{")
+        or (s.startswith('"') and s.endswith('"'))
     )
 
 
@@ -81,7 +82,7 @@ def _normalize_env_for_pydantic_json() -> None:
         os.environ[key] = json.dumps(parts if parts else [])
 
 
-def load_dotenv(path: Optional[str | Path] = None, override: bool = False) -> Optional[Path]:
+def load_dotenv(path: str | Path | None = None, override: bool = False) -> Path | None:
     """
     Загружает переменные окружения из .env в os.environ.
     - path: явный путь к .env; если не указан — ищем по типовым локациям.

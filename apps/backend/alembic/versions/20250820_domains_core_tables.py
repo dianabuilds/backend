@@ -5,6 +5,7 @@ Revises: 20250820_ai_generation_idx
 Create Date: 2025-08-20
 
 """
+
 from __future__ import annotations
 
 from alembic import op
@@ -41,7 +42,9 @@ def upgrade() -> None:
         sa.Column("slug", sa.String(255), nullable=False, unique=True),
         sa.Column("type", sa.String(64), nullable=False),
         sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.text("1")),
-        sa.Column("priority", sa.Integer(), nullable=False, server_default=sa.text("100")),
+        sa.Column(
+            "priority", sa.Integer(), nullable=False, server_default=sa.text("100")
+        ),
         sa.Column("config", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
@@ -57,9 +60,16 @@ def upgrade() -> None:
         sa.Column("product_id", sa.String(64), nullable=True, index=True),
         sa.Column("currency", sa.String(16), nullable=True),
         sa.Column("gross_cents", sa.Integer(), nullable=False),
-        sa.Column("fee_cents", sa.Integer(), nullable=False, server_default=sa.text("0")),
+        sa.Column(
+            "fee_cents", sa.Integer(), nullable=False, server_default=sa.text("0")
+        ),
         sa.Column("net_cents", sa.Integer(), nullable=False),
-        sa.Column("status", sa.String(32), nullable=False, server_default=sa.text("'captured'")),
+        sa.Column(
+            "status",
+            sa.String(32),
+            nullable=False,
+            server_default=sa.text("'captured'"),
+        ),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("meta", sa.Text(), nullable=True),
     )
@@ -73,7 +83,9 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("price_cents", sa.Integer(), nullable=True),
         sa.Column("currency", sa.String(16), nullable=True),
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column(
+            "is_active", sa.Boolean(), nullable=False, server_default=sa.text("1")
+        ),
         sa.Column("order", sa.Integer(), nullable=False, server_default=sa.text("100")),
         sa.Column("monthly_limits", sa.Text(), nullable=True),
         sa.Column("features", sa.Text(), nullable=True),
@@ -87,8 +99,12 @@ def upgrade() -> None:
         sa.Column("id", sa.String(64), primary_key=True),
         sa.Column("user_id", sa.String(64), nullable=False, index=True),
         sa.Column("plan_id", sa.String(64), nullable=False, index=True),
-        sa.Column("status", sa.String(32), nullable=False, server_default=sa.text("'active'")),
-        sa.Column("auto_renew", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column(
+            "status", sa.String(32), nullable=False, server_default=sa.text("'active'")
+        ),
+        sa.Column(
+            "auto_renew", sa.Boolean(), nullable=False, server_default=sa.text("0")
+        ),
         sa.Column("started_at", sa.DateTime(), nullable=False),
         sa.Column("ends_at", sa.DateTime(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
@@ -108,10 +124,14 @@ def upgrade() -> None:
         sa.Column("raw_response", sa.Text(), nullable=True),
         sa.Column("usage", sa.Text(), nullable=True),
         sa.Column("cost", sa.Float(), nullable=True),
-        sa.Column("status", sa.String(32), nullable=False, server_default=sa.text("'ok'")),
+        sa.Column(
+            "status", sa.String(32), nullable=False, server_default=sa.text("'ok'")
+        ),
         sa.Column("created_at", sa.DateTime(), nullable=False),
     )
-    _safe_create_index("ix_generation_job_logs_job_id", "generation_job_logs", ["job_id"])
+    _safe_create_index(
+        "ix_generation_job_logs_job_id", "generation_job_logs", ["job_id"]
+    )
 
 
 def downgrade() -> None:

@@ -1,7 +1,6 @@
 from datetime import datetime
-from uuid import UUID
-
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr
 
@@ -19,9 +18,7 @@ class UserBase(BaseModel):
     avatar_url: str | None = None
     role: str
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class UserOut(UserBase):

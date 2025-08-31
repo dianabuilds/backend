@@ -7,8 +7,8 @@ from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.domains.ai.services.generation import process_next_generation_job
 from app.domains.ai.recovery import recover_stuck_generation_jobs
+from app.domains.ai.services.generation import process_next_generation_job
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,9 @@ def _make_sessionmaker() -> async_sessionmaker[AsyncSession]:
     if not db_url:
         raise RuntimeError("DATABASE_URL is not set")
     engine = create_async_engine(db_url, pool_pre_ping=True, future=True)
-    return async_sessionmaker(engine, expire_on_commit=False, autoflush=False, autocommit=False)
+    return async_sessionmaker(
+        engine, expire_on_commit=False, autoflush=False, autocommit=False
+    )
 
 
 @asynccontextmanager

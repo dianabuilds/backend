@@ -5,7 +5,7 @@ import hashlib
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.admin_menu import MenuItem, MenuResponse
@@ -68,7 +68,7 @@ BASE_MENU: list[dict] = [
                 "path": "/achievements",
                 "icon": "achievements",
                 "order": 6,
-            }
+            },
         ],
     },
     {
@@ -263,7 +263,7 @@ _menu_cache: dict[tuple[str, tuple[str, ...]], tuple[float, MenuResponse, str]] 
 
 
 def _filter_and_convert(
-        items: list[dict], role: str, flags: set[str]
+    items: list[dict], role: str, flags: set[str]
 ) -> list[MenuItem]:
     result: list[MenuItem] = []
     for raw in items:
@@ -303,9 +303,7 @@ def build_menu(user: User, flags: list[str]) -> MenuResponse:
     version = hashlib.sha256(
         json.dumps(items_dump, sort_keys=True).encode()
     ).hexdigest()
-    return MenuResponse(
-        items=items, version=version, generated_at=datetime.now(timezone.utc)
-    )
+    return MenuResponse(items=items, version=version, generated_at=datetime.now(UTC))
 
 
 def get_cached_menu(user: User, flags: list[str]) -> tuple[MenuResponse, str, bool]:

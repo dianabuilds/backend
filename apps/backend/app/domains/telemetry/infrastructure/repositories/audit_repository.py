@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.telemetry.domain.audit import AuditEntry
-from app.domains.telemetry.application.ports.audit_port import IAuditLogRepository
 from app.domains.admin.infrastructure.models.audit_log import AuditLog
+from app.domains.telemetry.application.ports.audit_port import IAuditLogRepository
+from app.domains.telemetry.domain.audit import AuditEntry
 
 
 class AuditLogRepository(IAuditLogRepository):

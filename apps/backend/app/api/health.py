@@ -134,7 +134,7 @@ async def readyz(db: Annotated[AsyncSession, Depends(get_db)]) -> JSONResponse:
 
     result: dict[str, Any] = {"duration_ms": duration_ms}
     status = 200
-    for name, value in zip(tasks.keys(), results):
+    for name, value in zip(tasks.keys(), results, strict=False):
         ok = value is True
         result[name] = "ok" if ok else "fail"
         if not ok:

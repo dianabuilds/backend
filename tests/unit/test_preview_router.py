@@ -59,7 +59,7 @@ class DummyRouter:
         self.history: list[str] = []
 
     async def route(
-        self, db, start, user, budget, preview: Optional[PreviewContext] = None
+        self, db, start, user, budget, preview: PreviewContext | None = None
     ):
         rng = random.Random(preview.seed if preview else None)
         options = ["n1", "n2"]

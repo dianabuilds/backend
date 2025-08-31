@@ -56,9 +56,7 @@ def test_multiple_unconditional_edges():
     ]
     res = EditorService().validate_graph(steps, edges)
     assert not res.ok
-    assert (
-        "Multiple unconditional transitions from node: start" in res.errors
-    )
+    assert "Multiple unconditional transitions from node: start" in res.errors
 
 
 def test_valid_graph():

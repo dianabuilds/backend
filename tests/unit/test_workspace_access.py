@@ -1,8 +1,8 @@
-import uuid
-from types import SimpleNamespace
 import importlib
 import sys
+import uuid
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -12,10 +12,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.domains.workspaces.infrastructure.models import Workspace
 from app.domains.quests.infrastructure.models.quest_models import Quest
-from app.schemas.nodes_common import Status, Visibility
 from app.domains.quests.queries import get_for_view
+from app.domains.workspaces.infrastructure.models import Workspace
+from app.schemas.nodes_common import Status, Visibility
 
 
 @pytest.mark.asyncio
@@ -26,8 +26,12 @@ async def test_get_for_view_respects_workspace() -> None:
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
-        w1 = Workspace(id=uuid.uuid4(), name="W1", slug="w1", owner_user_id=uuid.uuid4())
-        w2 = Workspace(id=uuid.uuid4(), name="W2", slug="w2", owner_user_id=uuid.uuid4())
+        w1 = Workspace(
+            id=uuid.uuid4(), name="W1", slug="w1", owner_user_id=uuid.uuid4()
+        )
+        w2 = Workspace(
+            id=uuid.uuid4(), name="W2", slug="w2", owner_user_id=uuid.uuid4()
+        )
         q = Quest(
             workspace_id=w1.id,
             title="Quest",

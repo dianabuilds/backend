@@ -10,5 +10,7 @@ class IAccessRepository(Protocol):
     ) -> bool:  # pragma: no cover - контракт
         ...
 
-    async def grant_premium_days(self, *, user, days: int) -> None:  # pragma: no cover - контракт
+    async def grant_premium_days(
+        self, *, user, days: int
+    ) -> None:  # pragma: no cover - контракт
         ...

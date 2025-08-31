@@ -3,11 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, Float, Integer, String, ForeignKey
-from sqlalchemy import Index
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Index, Integer, String
 
-from app.core.db.base import Base
 from app.core.db.adapters import UUID
+from app.core.db.base import Base
 
 
 class AIUsage(Base):
@@ -30,4 +29,3 @@ class AIUsage(Base):
     completion_tokens = Column(Integer, nullable=False, default=0)
     total_tokens = Column(Integer, nullable=False, default=0)
     cost = Column(Float, nullable=True)
-

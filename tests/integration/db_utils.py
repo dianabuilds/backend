@@ -8,7 +8,7 @@ import sqlite3
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy import text
 
@@ -259,7 +259,7 @@ async def create_user(user: TestUser, conn) -> bool:
         return False
 
 
-async def get_user_by_username(username: str, conn) -> Optional[TestUser]:
+async def get_user_by_username(username: str, conn) -> TestUser | None:
     """
     Получает пользователя по имени пользователя.
     """

@@ -22,6 +22,7 @@ async def _main():
     poll = float(_env("AI_WORKER_POLL_INTERVAL", "2.0"))
     # Ленивая загрузка, чтобы импорт не падал без зависимостей
     from apps.backend.app.domains.ai.worker import run_worker_loop
+
     await run_worker_loop(poll_interval=poll)
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -16,7 +16,7 @@ class AIUsageRepository:
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def system_totals(self, since: datetime | None = None) -> Dict[str, Any]:
+    async def system_totals(self, since: datetime | None = None) -> dict[str, Any]:
         stmt = select(
             func.coalesce(func.sum(AIUsage.cost), 0.0).label("cost"),
             func.coalesce(func.sum(AIUsage.total_tokens), 0).label("tokens"),
@@ -26,19 +26,16 @@ class AIUsageRepository:
         row = (await self._db.execute(stmt)).one()
         return {"cost": float(row.cost or 0), "tokens": int(row.tokens or 0)}
 
-    async def by_workspace(self, since: datetime | None = None) -> List[Dict[str, Any]]:
-        stmt = (
-            select(
-                AIUsage.workspace_id,
-                func.coalesce(func.sum(AIUsage.cost), 0.0).label("cost"),
-                func.coalesce(func.sum(AIUsage.total_tokens), 0).label("tokens"),
-            )
-            .group_by(AIUsage.workspace_id)
-        )
+    async def by_workspace(self, since: datetime | None = None) -> list[dict[str, Any]]:
+        stmt = select(
+            AIUsage.workspace_id,
+            func.coalesce(func.sum(AIUsage.cost), 0.0).label("cost"),
+            func.coalesce(func.sum(AIUsage.total_tokens), 0).label("tokens"),
+        ).group_by(AIUsage.workspace_id)
         if since is not None:
             stmt = stmt.where(AIUsage.ts >= since)
         rows = await self._db.execute(stmt)
-        out: List[Dict[str, Any]] = []
+        out: list[dict[str, Any]] = []
         for workspace_id, cost, tokens in rows.all():
             out.append(
                 {
@@ -49,7 +46,9 @@ class AIUsageRepository:
             )
         return out
 
-    async def workspace_totals(self, workspace_id: UUID, since: datetime | None = None) -> Dict[str, Any]:
+    async def workspace_totals(
+        self, workspace_id: UUID, since: datetime | None = None
+    ) -> dict[str, Any]:
         stmt = select(
             func.coalesce(func.sum(AIUsage.cost), 0.0).label("cost"),
             func.coalesce(func.sum(AIUsage.total_tokens), 0).label("tokens"),
@@ -59,7 +58,9 @@ class AIUsageRepository:
         row = (await self._db.execute(stmt)).one()
         return {"cost": float(row.cost or 0), "tokens": int(row.tokens or 0)}
 
-    async def by_user(self, workspace_id: UUID, since: datetime | None = None) -> List[Dict[str, Any]]:
+    async def by_user(
+        self, workspace_id: UUID, since: datetime | None = None
+    ) -> list[dict[str, Any]]:
         stmt = (
             select(
                 AIUsage.user_id,
@@ -72,7 +73,7 @@ class AIUsageRepository:
         if since is not None:
             stmt = stmt.where(AIUsage.ts >= since)
         rows = await self._db.execute(stmt)
-        out: List[Dict[str, Any]] = []
+        out: list[dict[str, Any]] = []
         for user_id, cost, tokens in rows.all():
             out.append(
                 {
@@ -84,8 +85,8 @@ class AIUsageRepository:
         return out
 
     async def by_model(
-        self, workspace_id: Optional[UUID] = None, since: datetime | None = None
-    ) -> List[Dict[str, Any]]:
+        self, workspace_id: UUID | None = None, since: datetime | None = None
+    ) -> list[dict[str, Any]]:
         stmt = select(
             AIUsage.model,
             func.coalesce(func.sum(AIUsage.cost), 0.0).label("cost"),
@@ -97,7 +98,7 @@ class AIUsageRepository:
             stmt = stmt.where(AIUsage.ts >= since)
         stmt = stmt.group_by(AIUsage.model)
         rows = await self._db.execute(stmt)
-        out: List[Dict[str, Any]] = []
+        out: list[dict[str, Any]] = []
         for model, cost, tokens in rows.all():
             out.append(
                 {

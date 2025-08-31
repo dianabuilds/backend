@@ -5,6 +5,7 @@ Revises: 20251220_add_last_login_at_to_users
 Create Date: 2025-12-21
 
 """
+
 from __future__ import annotations
 
 from alembic import op
@@ -24,10 +25,15 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("kind", sa.String(), nullable=False),
         sa.Column("message", sa.String(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
+        ),
     )
     op.create_index(
-        "ix_ops_incidents_created_at", "ops_incidents", ["created_at"], if_not_exists=True
+        "ix_ops_incidents_created_at",
+        "ops_incidents",
+        ["created_at"],
+        if_not_exists=True,
     )
 
 

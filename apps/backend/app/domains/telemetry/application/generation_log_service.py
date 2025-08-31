@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
+from app.domains.telemetry.application.ports.generation_log_port import (
+    IGenerationLogRepository,
+)
 from app.domains.telemetry.domain.generation import GenerationStageLog
-from app.domains.telemetry.application.ports.generation_log_port import IGenerationLogRepository
 
 _MAX_RAW = 30_000
 _MAX_PROMPT = 8_000
@@ -22,7 +24,7 @@ class GenerationLogService:
         model: str,
         prompt: str,
         raw_response: str,
-        usage: Dict[str, int],
+        usage: dict[str, int],
         cost: float,
         status: str = "ok",
     ) -> None:

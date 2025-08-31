@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, Integer, String
+
 from . import Base
 from .adapters import JSONB, UUID
 

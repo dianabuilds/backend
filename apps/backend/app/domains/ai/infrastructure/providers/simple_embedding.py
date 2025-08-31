@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-from typing import List
 
 from app.core.config import settings
 from app.domains.ai.application.ports.embedding_port import IEmbeddingProvider
@@ -15,7 +14,7 @@ class SimpleEmbeddingProvider(IEmbeddingProvider):
     def dim(self) -> int:
         return self._dim
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         tokens = text.lower().split()
         vec = [0.0] * self._dim
         for tok in tokens:

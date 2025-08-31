@@ -1,12 +1,11 @@
-import uuid
 import pytest
+from apps.backend.app.main import app
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 from tests.integration.conftest import test_engine
+
 from app.domains.workspaces.api import router as workspaces_router
-from apps.backend.app.main import app
+from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 
 app.include_router(workspaces_router)
 

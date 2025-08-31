@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.db.session import get_db
 from app.api.deps import admin_required
-from app.domains.ai.infrastructure.models.generation_models import GenerationJob, GenerationJobLog
+from app.core.db.session import get_db
+from app.domains.ai.infrastructure.models.generation_models import (
+    GenerationJob,
+    GenerationJobLog,
+)
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 
@@ -18,16 +21,18 @@ async def get_generation_job_details(
     job_id: str,
     db: AsyncSession = Depends(get_db),
     _admin: Any = Depends(admin_required),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     res = await db.execute(select(GenerationJob).where(GenerationJob.id == job_id))
-    job: Optional[GenerationJob] = res.scalars().first()
+    job: GenerationJob | None = res.scalars().first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    logs: List[Dict[str, Any]] = []
+    logs: list[dict[str, Any]] = []
     try:
         r = await db.execute(
-            select(GenerationJobLog).where(GenerationJobLog.job_id == job_id).order_by(GenerationJobLog.created_at.asc())
+            select(GenerationJobLog)
+            .where(GenerationJobLog.job_id == job_id)
+            .order_by(GenerationJobLog.created_at.asc())
         )
         for row in r.scalars().all():
             logs.append(
@@ -40,7 +45,9 @@ async def get_generation_job_details(
                     "usage": row.usage,
                     "cost": row.cost,
                     "status": row.status,
-                    "created_at": row.created_at.isoformat() if row.created_at else None,
+                    "created_at": (
+                        row.created_at.isoformat() if row.created_at else None
+                    ),
                 }
             )
     except Exception:
@@ -68,12 +75,18 @@ async def get_generation_job_details(
             "created_at": job.created_at.isoformat() if job.created_at else None,
             "started_at": job.started_at.isoformat() if job.started_at else None,
             "finished_at": job.finished_at.isoformat() if job.finished_at else None,
-            "created_by": str(job.created_by) if getattr(job, "created_by", None) else None,
+            "created_by": (
+                str(job.created_by) if getattr(job, "created_by", None) else None
+            ),
             "provider": job.provider,
             "model": job.model,
             "params": job.params,
-            "result_quest_id": str(job.result_quest_id) if job.result_quest_id else None,
-            "result_version_id": str(job.result_version_id) if job.result_version_id else None,
+            "result_quest_id": (
+                str(job.result_quest_id) if job.result_quest_id else None
+            ),
+            "result_version_id": (
+                str(job.result_version_id) if job.result_version_id else None
+            ),
             "cost": float(job.cost) if job.cost is not None else None,
             "token_usage": job.token_usage,
             "reused": bool(job.reused),

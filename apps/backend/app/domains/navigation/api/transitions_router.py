@@ -1,18 +1,23 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import UUID
 
 from app.api.deps import get_current_user
 from app.core.db.session import get_db
 from app.core.workspace_context import require_workspace
-from app.domains.users.infrastructure.models.user import User
-from app.domains.navigation.policies.transition_policy import TransitionPolicy
-from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepositoryAdapter
-from app.repositories import TransitionRepository
-from app.domains.navigation.application.navigation_cache_service import NavigationCacheService
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.navigation.policies.transition_policy import TransitionPolicy
+from app.domains.nodes.infrastructure.repositories.node_repository import (
+    NodeRepositoryAdapter,
+)
+from app.domains.users.infrastructure.models.user import User
+from app.repositories import TransitionRepository
 
 router = APIRouter(prefix="/transitions", tags=["transitions"])
 navcache = NavigationCacheService(CoreCacheAdapter())

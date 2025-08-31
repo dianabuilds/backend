@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, List, Set
+from typing import Any
 from uuid import UUID, uuid4
 
 from app.domains.navigation.application.cache_singleton import navcache
@@ -44,17 +45,19 @@ class NodeUpdated:
 
 class EventBus:
     def __init__(self) -> None:
-        self._handlers: Dict[type, List[Callable[[Any], Awaitable[None]]]] = {}
-        self._processed: Set[str] = set()
+        self._handlers: dict[type, list[Callable[[Any], Awaitable[None]]]] = {}
+        self._processed: set[str] = set()
 
-    def subscribe(self, event_type: type, handler: Callable[[Any], Awaitable[None]]) -> None:
+    def subscribe(
+        self, event_type: type, handler: Callable[[Any], Awaitable[None]]
+    ) -> None:
         self._handlers.setdefault(event_type, []).append(handler)
 
     async def publish(self, event: Any) -> None:
         event_id = getattr(event, "id", None)
         if event_id is None:
             event_id = uuid4().hex
-            setattr(event, "id", event_id)
+            event.id = event_id
         if event_id in self._processed:
             return
         self._processed.add(event_id)
@@ -156,4 +159,3 @@ __all__ = [
     "register_handlers",
     "handlers",
 ]
-

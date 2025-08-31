@@ -32,11 +32,7 @@ async def fetch_active_alerts() -> list[dict[str, Any]]:
             "Failed to fetch alerts from %s", url, exc_info=e
         )
         return []
-    alerts = (
-        data.get("data", {}).get("alerts")
-        if isinstance(data, dict)
-        else None
-    )
+    alerts = data.get("data", {}).get("alerts") if isinstance(data, dict) else None
     if isinstance(alerts, list):
         return alerts
     if isinstance(data, list):
@@ -50,4 +46,3 @@ async def get_alerts() -> dict[str, list[dict[str, Any]]]:
 
     alerts = await fetch_active_alerts()
     return {"alerts": alerts}
-

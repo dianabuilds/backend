@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import HTTPException
 
@@ -14,7 +14,7 @@ class DomainError(Exception):
         message: str,
         *,
         status_code: int = 400,
-        details: Optional[Any] = None,
+        details: Any | None = None,
     ) -> None:
         super().__init__(message)
         self.code = code

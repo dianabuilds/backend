@@ -7,8 +7,11 @@ from app.core.db.session import get_db
 from app.domains.nodes.application.node_query_service import NodeQueryService
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(prefix="/admin/drafts", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
+router = APIRouter(
+    prefix="/admin/drafts", tags=["admin"], responses=ADMIN_AUTH_RESPONSES
+)
 admin_required = require_admin_role()
+
 
 @router.get("/issues", summary="List drafts with missing fields")
 async def list_draft_issues(

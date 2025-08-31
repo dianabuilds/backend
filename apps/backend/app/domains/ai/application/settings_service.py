@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Optional
+from typing import Any
 
 from app.domains.ai.application.ports.settings_repo import IAISettingsRepository
-
 
 # ENV дефолты
 ENV_PROVIDER = os.getenv("AI_PROVIDER")
@@ -64,12 +63,14 @@ class SettingsService:
     async def update_ai_settings(
         self,
         *,
-        provider: Optional[str] | None = None,
-        base_url: Optional[str] | None = None,
-        model: Optional[str] | None = None,
-        api_key: Optional[str] | None = None,  # None — не менять, "" — очистить, строка — сохранить
-        model_map: Optional[dict[str, Any]] | None = None,
-        cb: Optional[dict[str, Any]] | None = None,
+        provider: str | None | None = None,
+        base_url: str | None | None = None,
+        model: str | None | None = None,
+        api_key: (
+            str | None | None
+        ) = None,  # None — не менять, "" — очистить, строка — сохранить
+        model_map: dict[str, Any] | None | None = None,
+        cb: dict[str, Any] | None | None = None,
     ) -> dict[str, Any]:
         # Загружаем строку (создаём при необходимости)
         row = await self._repo.get_singleton(
@@ -94,9 +95,17 @@ class SettingsService:
 
         if cb is not None:
             normalized_cb = {
-                "fail_rate_threshold": float(cb.get("fail_rate_threshold", _env_cb_defaults()["fail_rate_threshold"])),
-                "min_requests": int(cb.get("min_requests", _env_cb_defaults()["min_requests"])),
-                "open_seconds": int(cb.get("open_seconds", _env_cb_defaults()["open_seconds"])),
+                "fail_rate_threshold": float(
+                    cb.get(
+                        "fail_rate_threshold", _env_cb_defaults()["fail_rate_threshold"]
+                    )
+                ),
+                "min_requests": int(
+                    cb.get("min_requests", _env_cb_defaults()["min_requests"])
+                ),
+                "open_seconds": int(
+                    cb.get("open_seconds", _env_cb_defaults()["open_seconds"])
+                ),
             }
             row.cb = normalized_cb
 

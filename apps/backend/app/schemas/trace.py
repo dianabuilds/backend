@@ -3,7 +3,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.domains.navigation.infrastructure.models.transition_models import NodeTraceKind, NodeTraceVisibility
+from app.domains.navigation.infrastructure.models.transition_models import (
+    NodeTraceKind,
+    NodeTraceVisibility,
+)
 
 
 class TraceUser(BaseModel):

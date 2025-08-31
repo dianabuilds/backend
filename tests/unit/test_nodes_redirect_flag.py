@@ -20,8 +20,11 @@ sys.modules.setdefault("app.domains", domains_module)
 security_stub = types.ModuleType("app.security")
 security_stub.ADMIN_AUTH_RESPONSES = {}
 security_stub.bearer_scheme = lambda: None
+
+
 async def _stub_ws_perm(*args, **kwargs):
     return None
+
 
 security_stub.require_ws_guest = _stub_ws_perm
 security_stub.require_ws_viewer = _stub_ws_perm

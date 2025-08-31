@@ -87,7 +87,9 @@ def upgrade() -> None:
             op.alter_column("event_quests", "workspace_id", nullable=False)
         indexes = {idx["name"] for idx in inspector.get_indexes("event_quests")}
         if "ix_event_quests_workspace_id" not in indexes:
-            op.create_index("ix_event_quests_workspace_id", "event_quests", ["workspace_id"])
+            op.create_index(
+                "ix_event_quests_workspace_id", "event_quests", ["workspace_id"]
+            )
 
     # event_quest_completions table
     if "event_quest_completions" in inspector.get_table_names():
@@ -126,7 +128,9 @@ def downgrade() -> None:
     inspector = inspect(bind)
 
     if "event_quest_completions" in inspector.get_table_names():
-        indexes = {idx["name"] for idx in inspector.get_indexes("event_quest_completions")}
+        indexes = {
+            idx["name"] for idx in inspector.get_indexes("event_quest_completions")
+        }
         if "ix_event_quest_completions_workspace_id" in indexes:
             op.drop_index(
                 "ix_event_quest_completions_workspace_id",
@@ -155,7 +159,9 @@ def downgrade() -> None:
     if "quest_purchases" in inspector.get_table_names():
         indexes = {idx["name"] for idx in inspector.get_indexes("quest_purchases")}
         if "ix_quest_purchases_workspace_id" in indexes:
-            op.drop_index("ix_quest_purchases_workspace_id", table_name="quest_purchases")
+            op.drop_index(
+                "ix_quest_purchases_workspace_id", table_name="quest_purchases"
+            )
         cols = {c["name"] for c in inspector.get_columns("quest_purchases")}
         if "workspace_id" in cols:
             op.drop_column("quest_purchases", "workspace_id")
@@ -164,4 +170,3 @@ def downgrade() -> None:
         indexes = {idx["name"] for idx in inspector.get_indexes("quests")}
         if "ix_quests_workspace_id" in indexes:
             op.drop_index("ix_quests_workspace_id", table_name="quests")
-

@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import func, desc
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi import APIRouter, Depends, Query, HTTPException
 
 from app.core.db.session import get_db
-from app.domains.tags.models import Tag, ContentTag
 from app.domains.tags.dao import TagDAO
-from app.schemas.tag import TagOut, TagCreate, TagUpdate
+from app.domains.tags.models import ContentTag, Tag
+from app.schemas.tag import TagCreate, TagOut, TagUpdate
 from app.security import require_ws_editor, require_ws_guest
 
 router = APIRouter(prefix="/tags", tags=["tags"])

@@ -3,14 +3,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
-from pydantic import ValidationError
-from fastapi.exceptions import RequestValidationError
 import sentry_sdk
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
-from app.core.errors import DomainError, ERROR_CODE_MAP
+from app.core.errors import ERROR_CODE_MAP, DomainError
 from app.core.log_filters import request_id_var
 from app.security.exceptions import AuthError
 

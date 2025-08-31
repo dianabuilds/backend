@@ -1,19 +1,23 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.domains.payments.infrastructure.models.payment_models import PaymentGatewayConfig
-from app.domains.payments.infrastructure.models.payment_models import PaymentTransaction
+from app.domains.payments.infrastructure.models.payment_models import (
+    PaymentGatewayConfig,
+    PaymentTransaction,
+)
 
 
 def _round_cents(x: float) -> int:
     return int(x + 0.5) if x >= 0 else -int((-x) + 0.5)
 
 
-def _compute_fee_from_config(cfg: Dict[str, Any] | None, gross_cents: int, currency: str | None) -> tuple[int, Dict[str, Any]]:
+def _compute_fee_from_config(
+    cfg: dict[str, Any] | None, gross_cents: int, currency: str | None
+) -> tuple[int, dict[str, Any]]:
     cfg = cfg or {}
     mode = (cfg.get("fee_mode") or "").lower()
     pct = float(cfg.get("fee_percent") or 0.0)
@@ -37,7 +41,14 @@ def _compute_fee_from_config(cfg: Dict[str, Any] | None, gross_cents: int, curre
     if fee > gross_cents:
         fee = gross_cents
 
-    meta = {"fee": {"mode": mode or "none", "percent": pct, "fixed_cents": fixed, "min_fee_cents": min_fee}}
+    meta = {
+        "fee": {
+            "mode": mode or "none",
+            "percent": pct,
+            "fixed_cents": fixed,
+            "min_fee_cents": min_fee,
+        }
+    }
     return fee, meta
 
 
@@ -51,18 +62,22 @@ async def capture_transaction(
     gross_cents: int,
     currency: str | None = "USD",
     status: str = "captured",
-    extra_meta: Dict[str, Any] | None = None,
-) -> Dict[str, Any]:
-    cfg: Dict[str, Any] | None = None
+    extra_meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    cfg: dict[str, Any] | None = None
     if gateway_slug:
-        res = await db.execute(select(PaymentGatewayConfig).where(PaymentGatewayConfig.slug == gateway_slug))
+        res = await db.execute(
+            select(PaymentGatewayConfig).where(
+                PaymentGatewayConfig.slug == gateway_slug
+            )
+        )
         gw = res.scalars().first()
         if gw:
             cfg = gw.config or {}
 
     fee_cents, meta_fee = _compute_fee_from_config(cfg, gross_cents, currency)
     net_cents = max(gross_cents - fee_cents, 0)
-    meta: Dict[str, Any] = {"currency": currency, **meta_fee}
+    meta: dict[str, Any] = {"currency": currency, **meta_fee}
     if extra_meta:
         meta.update(extra_meta)
 
