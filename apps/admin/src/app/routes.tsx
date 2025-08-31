@@ -19,6 +19,7 @@ const Transitions = lazy(() => import("../pages/Transitions"));
 const ModerationInbox = lazy(() => import("../pages/ModerationInbox"));
 const ModerationCase = lazy(() => import("../pages/ModerationCase"));
 const Navigation = lazy(() => import("../pages/Navigation"));
+const NavigationProblems = lazy(() => import("../pages/NavigationProblems"));
 const Simulation = lazy(() => import("../pages/Simulation"));
 const Echo = lazy(() => import("../pages/Echo"));
 const Traces = lazy(() => import("../pages/Traces"));
@@ -89,6 +90,7 @@ const protectedChildren: RouteObject[] = [
   { path: "moderation", element: <ModerationInbox /> },
   { path: "moderation/cases/:id", element: <ModerationCase /> },
   { path: "navigation", element: <Navigation /> },
+  { path: "navigation/problems", element: <NavigationProblems /> },
   { path: "traces", element: <Traces /> },
   { path: "notifications", element: <Notifications /> },
   { path: "notifications/campaigns/:id", element: <NotificationCampaignEditor /> },
