@@ -115,9 +115,11 @@ async def _get_item(db: AsyncSession, node_id: UUID, workspace_id: UUID) -> Node
     item = await db.get(NodeItem, node_id)
     if item and item.workspace_id == workspace_id:
         return item
-    node = await db.get(Node, node_id)
+    node = await db.scalar(select(Node).where(Node.alt_id == node_id))
     if node and node.workspace_id == workspace_id:
-        result = await db.execute(select(NodeItem).where(NodeItem.node_id == node.id))
+        result = await db.execute(
+            select(NodeItem).where(NodeItem.node_id == node.alt_id)
+        )
         item = result.scalar_one_or_none()
         if item:
             return item
@@ -134,8 +136,10 @@ async def get_node_by_id(
     item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
     item = await svc.get(workspace_id, item.type, item.id)
-    node = await db.get(
-        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    node = await db.scalar(
+        select(Node)
+        .where(Node.alt_id == (item.node_id or item.id))
+        .options(selectinload(Node.tags))
     )
     return _serialize(item, node)
 
@@ -163,8 +167,10 @@ async def update_node_by_id(
         from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 
         ux_metrics.inc_save_next()
-    node = await db.get(
-        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    node = await db.scalar(
+        select(Node)
+        .where(Node.alt_id == (item.node_id or item.id))
+        .options(selectinload(Node.tags))
     )
     return _serialize(item, node)
 
@@ -194,7 +200,7 @@ async def publish_node_by_id(
         author_id=current_user.id,
         workspace_id=workspace_id,
     )
-    node = await db.get(Node, item.node_id or item.id)
+    node = await db.scalar(select(Node).where(Node.alt_id == (item.node_id or item.id)))
     return _serialize(item, node)
 
 

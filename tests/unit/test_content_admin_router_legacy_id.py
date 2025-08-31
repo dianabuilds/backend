@@ -57,7 +57,7 @@ async def app_client():
         node_uuid = uuid.uuid4()
         item_uuid = uuid.uuid4()
         node = Node(
-            id=node_uuid,
+            alt_id=node_uuid,
             workspace_id=ws.id,
             slug="legacy",
             title="L",
@@ -66,7 +66,7 @@ async def app_client():
         )
         item = NodeItem(
             id=item_uuid,
-            node_id=node.id,
+            node_id=node.alt_id,
             workspace_id=ws.id,
             type="article",
             slug="legacy",

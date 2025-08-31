@@ -16,7 +16,6 @@ class NodeNotificationSetting(Base):
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     user_id = Column(UUID(), nullable=False)
-    node_alt_id = Column(UUID(), nullable=False)
     node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False)
     enabled = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)

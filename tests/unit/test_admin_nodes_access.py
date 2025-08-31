@@ -188,7 +188,7 @@ def test_set_tags_is_scoped_by_workspace() -> None:
             await session.commit()
 
             node = Node(
-                id=uuid.uuid4(),
+                alt_id=uuid.uuid4(),
                 workspace_id=ws1.id,
                 slug="node",
                 title="N",
@@ -203,7 +203,7 @@ def test_set_tags_is_scoped_by_workspace() -> None:
             await repo.set_tags(node, ["shared"], actor_id=user_id)
 
             link = await session.execute(
-                sa.select(NodeTag).where(NodeTag.node_id == node.id)
+                sa.select(NodeTag).where(NodeTag.node_id == node.alt_id)
             )
             tag_id = link.scalars().first().tag_id
             tag = await session.get(Tag, tag_id)
