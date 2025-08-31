@@ -1,9 +1,9 @@
-"""
-Domains.Premium: Admin API re-export.
+from __future__ import annotations
 
-from app.domains.premium.api_admin import router
-"""
+from fastapi import APIRouter
 
-from app.api.admin_premium import router
+router = APIRouter(prefix="/admin/premium", tags=["admin-premium"])
+
+# TODO: implement premium admin endpoints
 
 __all__ = ["router"]
