@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
@@ -23,8 +24,8 @@ from app.security import auth_user
 
 async def require_ws_editor(
     workspace_id: UUID,
-    user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(auth_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
     """Ensure the current user has editor or owner rights in the workspace."""
     m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
@@ -38,8 +39,8 @@ async def require_ws_editor(
 
 async def require_ws_owner(
     workspace_id: UUID,
-    user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(auth_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
     """Ensure the current user is an owner of the workspace."""
     m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
@@ -50,8 +51,8 @@ async def require_ws_owner(
 
 async def require_ws_viewer(
     workspace_id: UUID,
-    user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(auth_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
     """Ensure the current user has at least viewer rights in the workspace."""
     m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
@@ -69,8 +70,8 @@ async def require_ws_viewer(
 
 async def require_ws_guest(
     workspace_id: UUID,
-    user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(auth_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
     """Ensure the current user is a member of the workspace."""
     m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -152,10 +152,10 @@ router = APIRouter(
 @router.get("", response_model=QuestStepPage, summary="List quest steps")
 async def list_steps(
     quest_id: UUID,
-    limit: int = Query(25, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    limit: Annotated[int, Query(25, ge=1, le=100)] = ...,
+    offset: Annotated[int, Query(0, ge=0)] = ...,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> QuestStepPage:
     svc = QuestStepService()
     steps = await svc.list_steps(db, quest_id, limit=limit, offset=offset)
@@ -176,7 +176,7 @@ async def create_step(
     quest_id: UUID,
     payload: QuestStepCreate,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> QuestStepOut:
     svc = QuestStepService()
     step = await svc.create_step(
@@ -197,7 +197,7 @@ async def get_step(
     quest_id: UUID,
     step_id: UUID,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> QuestStepOut:
     step = await db.get(QuestStep, step_id)
     if not step or step.quest_id != quest_id:
@@ -211,7 +211,7 @@ async def put_step(
     step_id: UUID,
     payload: QuestStepUpdate,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> QuestStepOut:
     step = await db.get(QuestStep, step_id)
     if not step or step.quest_id != quest_id:
@@ -228,7 +228,7 @@ async def patch_step(
     step_id: UUID,
     payload: QuestStepPatch,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> QuestStepOut:
     step = await db.get(QuestStep, step_id)
     if not step or step.quest_id != quest_id:
@@ -244,7 +244,7 @@ async def delete_step(
     quest_id: UUID,
     step_id: UUID,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict:
     step = await db.get(QuestStep, step_id)
     if not step or step.quest_id != quest_id:
@@ -264,7 +264,7 @@ async def list_transitions(
     quest_id: UUID,
     step_id: UUID,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> list[QuestTransitionOut]:
     step = await db.get(QuestStep, step_id)
     if not step or step.quest_id != quest_id:
@@ -287,7 +287,7 @@ async def create_transition(
     step_id: UUID,
     payload: QuestTransitionCreate,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> QuestTransitionOut:
     step = await db.get(QuestStep, step_id)
     if not step or step.quest_id != quest_id:
@@ -322,7 +322,7 @@ async def delete_transition(
     step_id: UUID,
     transition_id: UUID,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict:
     step = await db.get(QuestStep, step_id)
     tr = await db.get(QuestStepTransition, transition_id)
@@ -351,7 +351,7 @@ graph_router = APIRouter(
 async def get_graph(
     quest_id: UUID,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> QuestGraphOut:
     svc = QuestStepService()
     steps, transitions = await svc.get_graph(db, quest_id)

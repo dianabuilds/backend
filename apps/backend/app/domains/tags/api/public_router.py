@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -19,12 +20,12 @@ router = APIRouter(prefix="/tags", tags=["tags"])
 @router.get("/", response_model=list[TagOut], summary="List tags")
 async def list_tags(
     workspace_id: UUID,
-    q: str | None = Query(None),
-    popular: bool = Query(False),
-    limit: int = Query(10),
-    offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db),
-    _: object = Depends(require_ws_guest),
+    q: Annotated[str | None, Query(None)] = ...,
+    popular: Annotated[bool, Query(False)] = ...,
+    limit: Annotated[int, Query(10)] = ...,
+    offset: Annotated[int, Query(0, ge=0)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _: Annotated[object, Depends(require_ws_guest)] = ...,
 ):
     """Retrieve available tags with optional search and popularity filter."""
     stmt = (
@@ -54,8 +55,8 @@ async def list_tags(
 async def create_tag(
     workspace_id: UUID,
     body: TagCreate,
-    _: object = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[object, Depends(require_ws_editor)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> TagOut:
     tag = await TagDAO.create(
         db, workspace_id=workspace_id, slug=body.slug, name=body.name
@@ -67,8 +68,8 @@ async def create_tag(
 async def get_tag(
     workspace_id: UUID,
     slug: str,
-    db: AsyncSession = Depends(get_db),
-    _: object = Depends(require_ws_guest),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _: Annotated[object, Depends(require_ws_guest)] = ...,
 ) -> TagOut:
     tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
     if not tag:
@@ -82,8 +83,8 @@ async def update_tag(
     workspace_id: UUID,
     slug: str,
     body: TagUpdate,
-    _: object = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[object, Depends(require_ws_editor)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> TagOut:
     tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
     if not tag:
@@ -102,8 +103,8 @@ async def update_tag(
 async def delete_tag(
     workspace_id: UUID,
     slug: str,
-    _: object = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[object, Depends(require_ws_editor)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
     if not tag:

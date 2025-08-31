@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -38,9 +39,9 @@ async def record_visit(
     workspace_id: UUID,
     source: str | None = None,
     channel: str | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
     repo = NodeRepositoryAdapter(db)
     from_node = await repo.get_by_slug(slug, workspace_id)
@@ -64,9 +65,9 @@ async def create_transition(
     slug: str,
     payload: NodeTransitionCreate,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
     repo = NodeRepositoryAdapter(db)
     from_node = await repo.get_by_slug(slug, workspace_id)

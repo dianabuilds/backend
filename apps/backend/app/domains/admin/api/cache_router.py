@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -35,7 +36,7 @@ class InvalidatePatternRequest(BaseModel):
 
 @router.get("/stats", summary="Cache statistics")
 async def cache_stats(
-    current_user: User = Depends(admin_required),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
 ):
     counters = {k: dict(v) for k, v in cache_counters.items()}
     hot_keys = []
@@ -48,8 +49,8 @@ async def cache_stats(
 @router.post("/invalidate_by_pattern", summary="Invalidate cache by pattern")
 async def invalidate_by_pattern(
     payload: InvalidatePatternRequest,
-    current_user: User = Depends(admin_only),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_only)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     keys = await navcache._cache.scan(payload.pattern)
     if keys:

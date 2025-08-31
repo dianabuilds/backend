@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -32,8 +33,8 @@ def _svc(db: AsyncSession) -> WorldsService:
 @router.get("", response_model=list[WorldTemplateOut], summary="List world templates")
 async def list_worlds(
     workspace_id: UUID,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     return await _svc(db).list_worlds(workspace_id)
 
@@ -42,8 +43,8 @@ async def list_worlds(
 async def create_world(
     workspace_id: UUID,
     payload: WorldTemplateIn,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     return await _svc(db).create_world(
         db, workspace_id, payload.model_dump(exclude_none=True), current_user.id
@@ -57,8 +58,8 @@ async def update_world(
     world_id: UUID,
     workspace_id: UUID,
     payload: WorldTemplateIn,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     out = await _svc(db).update_world(
         db,
@@ -76,8 +77,8 @@ async def update_world(
 async def delete_world(
     world_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ok = await _svc(db).delete_world(db, workspace_id, world_id)
     if not ok:
@@ -93,8 +94,8 @@ async def delete_world(
 async def list_characters(
     world_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     return await _svc(db).list_characters(world_id, workspace_id)
 
@@ -106,8 +107,8 @@ async def create_character(
     world_id: UUID,
     workspace_id: UUID,
     payload: CharacterIn,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ch = await _svc(db).create_character(
         db,
@@ -128,8 +129,8 @@ async def update_character(
     char_id: UUID,
     workspace_id: UUID,
     payload: CharacterIn,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ch = await _svc(db).update_character(
         db,
@@ -147,8 +148,8 @@ async def update_character(
 async def delete_character(
     char_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ok = await _svc(db).delete_character(db, char_id, workspace_id)
     if not ok:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
@@ -20,10 +21,10 @@ router = APIRouter(tags=["media"])
 
 @router.post("/media")
 async def upload_media(
-    file: UploadFile = File(...),  # noqa: B008
+    file: Annotated[UploadFile, File(...)] = ...,  # noqa: B008
     user=Depends(get_current_user),  # noqa: B008
-    storage: IStorageGateway = Depends(get_storage),  # noqa: B008
-    _workspace: object = Depends(require_workspace),
+    storage: Annotated[IStorageGateway, Depends(get_storage)] = ...,  # noqa: B008
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
     """Accept an uploaded image and return its public URL."""
     node_cover_upload_start(str(getattr(user, "id", None)))
@@ -46,10 +47,10 @@ async def upload_media(
 # Алиас для админки: поддерживаем POST /admin/media
 @router.post("/admin/media")
 async def upload_media_admin(
-    file: UploadFile = File(...),  # noqa: B008
+    file: Annotated[UploadFile, File(...)] = ...,  # noqa: B008
     user=Depends(get_current_user),  # noqa: B008
-    storage: IStorageGateway = Depends(get_storage),  # noqa: B008
-    _workspace: object = Depends(require_workspace),
+    storage: Annotated[IStorageGateway, Depends(get_storage)] = ...,  # noqa: B008
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
     return await upload_media(
         file=file, user=user, storage=storage, _workspace=_workspace

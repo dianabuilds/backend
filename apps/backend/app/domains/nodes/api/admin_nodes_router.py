@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import Annotated, Literal, TypedDict
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Path, Query, Response
@@ -79,26 +79,29 @@ class AdminNodeListParams(TypedDict, total=False):
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin)")
 async def list_nodes_admin(
     response: Response,
-    workspace_id: UUID = Path(...),  # noqa: B008
-    if_none_match: str | None = Header(None, alias="If-None-Match"),
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
+    if_none_match: Annotated[str | None, Header(None, alias="If-None-Match")] = ...,
     author: UUID | None = None,
-    sort: Literal[
-        "updated_desc",
-        "created_desc",
-        "created_asc",
-        "views_desc",
-    ] = Query("updated_desc"),
+    sort: Annotated[
+        Literal[
+            "updated_desc",
+            "created_desc",
+            "created_asc",
+            "views_desc",
+        ],
+        Query("updated_desc"),
+    ] = ...,
     visible: bool | None = None,
     premium_only: bool | None = None,
     recommendable: bool | None = None,
-    node_type: str | None = Query(None, alias="node_type"),
-    limit: int = Query(25, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    node_type: Annotated[str | None, Query(None, alias="node_type")] = ...,
+    limit: Annotated[int, Query(25, ge=1, le=100)] = ...,
+    offset: Annotated[int, Query(0, ge=0)] = ...,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     q: str | None = None,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     """List nodes in workspace.
 
@@ -135,9 +138,9 @@ async def list_nodes_admin(
 @router.post("", summary="Create node (admin)")
 async def create_node_admin(
     payload: NodeCreateIn,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
     item = await svc.create(workspace_id, payload.node_type, actor_id=current_user.id)
@@ -147,9 +150,9 @@ async def create_node_admin(
 @router.post("/bulk", summary="Bulk node operations")
 async def bulk_node_operation(
     payload: NodeBulkOperation,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     result = await db.execute(
         select(Node).where(Node.id.in_(payload.ids), Node.workspace_id == workspace_id)
@@ -190,9 +193,9 @@ async def bulk_node_operation(
 @router.patch("/bulk", summary="Bulk update nodes")
 async def bulk_patch_nodes(
     payload: NodeBulkPatch,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     result = await db.execute(
         select(Node).where(Node.id.in_(payload.ids), Node.workspace_id == workspace_id)

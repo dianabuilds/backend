@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,13 +30,17 @@ router = APIRouter(tags=["search"])
 @router.get("/search", summary="Search nodes")
 async def search_nodes(
     q: str | None = None,
-    tags: str | None = Query(None),
-    match: str = Query("any", pattern="^(any|all)$"),
+    tags: Annotated[str | None, Query(None)] = ...,
+    match: Annotated[str, Query("any", pattern="^(any|all)$")] = ...,
     limit: int = 20,
     offset: int = 0,
-    db: AsyncSession = Depends(get_db),  # noqa: B008
-    user: User | None = Depends(get_current_user_optional),  # noqa: B008
-    preview: PreviewContext = Depends(get_preview_context),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+    user: Annotated[
+        User | None, Depends(get_current_user_optional)
+    ] = ...,  # noqa: B008
+    preview: Annotated[
+        PreviewContext, Depends(get_preview_context)
+    ] = ...,  # noqa: B008
 ):
     stmt = select(Node).where(Node.is_visible)
     if q:
@@ -63,9 +69,13 @@ async def search_nodes(
 async def semantic_search(
     q: str,
     limit: int = 20,
-    db: AsyncSession = Depends(get_db),  # noqa: B008
-    user: User | None = Depends(get_current_user_optional),  # noqa: B008
-    preview: PreviewContext = Depends(get_preview_context),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+    user: Annotated[
+        User | None, Depends(get_current_user_optional)
+    ] = ...,  # noqa: B008
+    preview: Annotated[
+        PreviewContext, Depends(get_preview_context)
+    ] = ...,  # noqa: B008
 ):
     query_vec = get_embedding(q)
     repo = CompassRepository(db)

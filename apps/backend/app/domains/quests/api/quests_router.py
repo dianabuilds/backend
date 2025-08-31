@@ -1,6 +1,7 @@
 # ruff: noqa: B008, B904
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -40,7 +41,9 @@ router = APIRouter(prefix="/quests", tags=["quests"])
 
 
 @router.get("", response_model=list[QuestOut], summary="List quests")
-async def list_quests(workspace_id: UUID, db: AsyncSession = Depends(get_db)):
+async def list_quests(
+    workspace_id: UUID, db: Annotated[AsyncSession, Depends(get_db)] = ...
+):
     """Return all published quests."""
     from app.domains.quests.queries import list_public
 
@@ -51,14 +54,14 @@ async def list_quests(workspace_id: UUID, db: AsyncSession = Depends(get_db)):
 async def search_quests(
     workspace_id: UUID,
     q: str | None = None,
-    tags: str | None = Query(None),
+    tags: Annotated[str | None, Query(None)] = ...,
     author_id: UUID | None = None,
     free_only: bool = False,
     premium_only: bool = False,
     sort_by: str = "new",
     page: int = 1,
     per_page: int = 10,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     from app.domains.quests.queries import search
 
@@ -81,8 +84,8 @@ async def search_quests(
 async def get_quest(
     slug: str,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Fetch a quest by slug, ensuring access permissions."""
     from app.domains.quests.queries import get_for_view
@@ -103,9 +106,9 @@ async def get_quest(
 async def create_quest(
     payload: QuestCreate,
     workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    preview: PreviewContext = Depends(get_preview_context),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ):
     """Create a new quest owned by the current user."""
     if workspace_id is None:
@@ -136,8 +139,8 @@ async def update_quest(
     quest_id: UUID,
     payload: QuestUpdate,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Modify quest fields if the user is the author."""
     from app.domains.quests.authoring import update_quest as update_quest_domain
@@ -166,8 +169,8 @@ async def update_quest(
 async def publish_quest(
     quest_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Mark a draft quest as published."""
     result = await db.execute(
@@ -202,8 +205,8 @@ async def publish_quest(
 async def delete_quest(
     quest_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Soft delete a quest owned by the current user."""
     from app.domains.quests.authoring import delete_quest_soft
@@ -228,8 +231,8 @@ async def delete_quest(
 async def start_quest(
     quest_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Begin or restart progress for a quest."""
     from app.domains.quests.gameplay import start_quest as start_quest_domain
@@ -253,8 +256,8 @@ async def start_quest(
 async def get_progress(
     quest_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Retrieve progress of the current user in a quest."""
     from app.domains.quests.gameplay import get_progress as get_progress_domain
@@ -276,8 +279,8 @@ async def get_progress(
 async def get_quest_node(
     quest_id: UUID,
     node_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Return node details within a quest and update progress."""
     from app.domains.quests.gameplay import get_node as get_node_domain
@@ -300,8 +303,8 @@ async def get_quest_node(
 async def buy_quest(
     quest_id: UUID,
     payload: QuestBuyIn,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Purchase access to a paid quest."""
     result = await db.execute(

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,8 +25,8 @@ router = APIRouter(
 
 @router.get("", response_model=list[FeatureFlagOut], summary="List feature flags")
 async def list_flags(
-    _: Depends = Depends(admin_only),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[Depends, Depends(admin_only)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> list[FeatureFlagOut]:
     await ensure_known_flags(db)
     res = await db.execute(select(FeatureFlag).order_by(FeatureFlag.key.asc()))
@@ -38,7 +40,7 @@ async def update_flag(
     body: FeatureFlagUpdateIn,
     request: Request,
     current=Depends(admin_only),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> FeatureFlagOut:
     before = await db.get(FeatureFlag, key)
     before_dump = (

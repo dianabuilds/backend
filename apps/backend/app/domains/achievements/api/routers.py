@@ -1,6 +1,7 @@
 # ruff: noqa: B008, E501
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -56,10 +57,10 @@ def _svc(db: AsyncSession) -> AchievementsService:
     summary="List achievements",
 )
 async def list_achievements(
-    workspace: Workspace = Depends(current_workspace),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    _: object = Depends(require_ws_guest),
+    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    _: Annotated[object, Depends(require_ws_guest)] = ...,
 ) -> list[AchievementOut]:
     rows = await _svc(db).list(workspace.id, current_user.id)
     items: list[AchievementOut] = []
@@ -85,9 +86,9 @@ async def list_achievements(
 )
 async def list_achievements_admin(
     workspace_id: UUID,
-    workspace: Workspace = Depends(current_workspace),
-    db: AsyncSession = Depends(get_db),
-    _: object = Depends(require_ws_editor),
+    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _: Annotated[object, Depends(require_ws_editor)] = ...,
 ) -> list[AchievementAdminOut]:
     rows = await _admin_svc(db).list(workspace.id)
     return [AchievementAdminOut.model_validate(r) for r in rows]
@@ -101,10 +102,10 @@ async def list_achievements_admin(
 async def create_achievement_admin(
     body: AchievementCreateIn,
     workspace_id: UUID,
-    workspace: Workspace = Depends(current_workspace),
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(auth_user),
-    _: object = Depends(require_ws_editor),
+    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(auth_user)] = ...,
+    _: Annotated[object, Depends(require_ws_editor)] = ...,
 ) -> AchievementAdminOut:
     data = {
         "code": body.code.strip(),
@@ -132,10 +133,10 @@ async def update_achievement_admin(
     achievement_id: UUID,
     body: AchievementUpdateIn,
     workspace_id: UUID,
-    workspace: Workspace = Depends(current_workspace),
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(auth_user),
-    _: object = Depends(require_ws_editor),
+    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(auth_user)] = ...,
+    _: Annotated[object, Depends(require_ws_editor)] = ...,
 ) -> AchievementAdminOut:
     data = body.model_dump(exclude_unset=True)
     try:
@@ -155,10 +156,10 @@ async def update_achievement_admin(
 async def delete_achievement_admin(
     achievement_id: UUID,
     workspace_id: UUID,
-    workspace: Workspace = Depends(current_workspace),
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(auth_user),
-    _: object = Depends(require_ws_editor),
+    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(auth_user)] = ...,
+    _: Annotated[object, Depends(require_ws_editor)] = ...,
 ):
     ok = await _admin_svc(db).delete(db, workspace.id, achievement_id)
     if not ok:
@@ -178,10 +179,10 @@ async def grant_achievement(
     achievement_id: UUID,
     body: UserIdIn,
     workspace_id: UUID,
-    workspace: Workspace = Depends(current_workspace),
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(auth_user),
-    _: object = Depends(require_ws_editor),
+    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(auth_user)] = ...,
+    _: Annotated[object, Depends(require_ws_editor)] = ...,
 ):
     granted = await _svc(db).grant_manual(
         db, workspace.id, body.user_id, achievement_id
@@ -197,10 +198,10 @@ async def revoke_achievement(
     achievement_id: UUID,
     body: UserIdIn,
     workspace_id: UUID,
-    workspace: Workspace = Depends(current_workspace),
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(auth_user),
-    _: object = Depends(require_ws_editor),
+    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(auth_user)] = ...,
+    _: Annotated[object, Depends(require_ws_editor)] = ...,
 ):
     revoked = await _svc(db).revoke_manual(
         db, workspace.id, body.user_id, achievement_id

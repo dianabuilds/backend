@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 @router.get("/jobs_cursor")
 async def list_jobs_cursor(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _admin=Depends(admin_required),
 ):
     params: Mapping[str, str] = dict(request.query_params)

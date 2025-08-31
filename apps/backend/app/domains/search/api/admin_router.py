@@ -1,6 +1,8 @@
 # ruff: noqa: B008
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,7 +36,8 @@ router = APIRouter(
     "/relevance", response_model=RelevanceGetOut, summary="Get active relevance config"
 )
 async def get_relevance(
-    _: Depends = Depends(admin_required), db: AsyncSession = Depends(get_db)
+    _: Annotated[Depends, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> RelevanceGetOut:
     svc = ConfigService(SearchConfigRepository(db))
     return await svc.get_active_relevance()
@@ -45,7 +48,7 @@ async def put_relevance(
     body: RelevancePutIn,
     request: Request,
     current=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     svc = ConfigService(SearchConfigRepository(db))
     if body.dryRun:
@@ -79,7 +82,7 @@ async def post_rollback(
     toVersion: int,
     request: Request,
     current=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> RelevanceApplyOut:
     svc = ConfigService(SearchConfigRepository(db))
     try:
@@ -102,7 +105,9 @@ async def post_rollback(
 @router.get(
     "/overview", response_model=SearchOverviewOut, summary="Search overview KPIs"
 )
-async def get_overview(_: Depends = Depends(admin_required)) -> SearchOverviewOut:
+async def get_overview(
+    _: Annotated[Depends, Depends(admin_required)] = ...,
+) -> SearchOverviewOut:
     # MVP stub with zeros/empty values
     return SearchOverviewOut(
         activeConfigs={
@@ -112,5 +117,7 @@ async def get_overview(_: Depends = Depends(admin_required)) -> SearchOverviewOu
 
 
 @router.get("/top", response_model=list[SearchTopQuery], summary="Top search queries")
-async def get_top(_: Depends = Depends(admin_required)) -> list[SearchTopQuery]:
+async def get_top(
+    _: Annotated[Depends, Depends(admin_required)] = ...,
+) -> list[SearchTopQuery]:
     return [SearchTopQuery(**item) for item in search_stats.top()]

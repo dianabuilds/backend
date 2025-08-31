@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -44,8 +45,8 @@ class SendNotificationPayload(BaseModel):
 @router.post("", summary="Send notification to user")
 async def send_notification(
     payload: SendNotificationPayload,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     user = await db.get(User, payload.user_id)
     if not user:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,9 +17,9 @@ router = APIRouter(prefix="/premium", tags=["premium"])
 
 @router.get("/me/limits")
 async def my_limits(
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-    preview: PreviewContext = Depends(get_preview_context),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    user: Annotated[User, Depends(get_current_user)] = ...,
+    preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ) -> dict[str, Any]:
     plan = await get_effective_plan_slug(db, str(user.id), preview=preview)
     stories = await get_quota_status(

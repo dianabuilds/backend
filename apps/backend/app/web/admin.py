@@ -1,7 +1,10 @@
+from typing import Annotated
+
+
 @router.post("/login")
 async def login_action(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     # Поддерживаем и JSON, и form-data
     content_type = request.headers.get("content-type", "")

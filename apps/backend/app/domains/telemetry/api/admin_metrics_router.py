@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
@@ -31,7 +33,9 @@ def _parse_range(range_str: str) -> int:
 
 
 @router.get("/summary", response_model=MetricsSummary)
-async def metrics_summary(range: str = Query("1h")) -> MetricsSummary:  # noqa: A002
+async def metrics_summary(
+    range: Annotated[str, Query("1h")] = ...,
+) -> MetricsSummary:  # noqa: A002
     seconds = _parse_range(range)
     summary = metrics_storage.summary(seconds)
     return MetricsSummary(**summary)
@@ -39,8 +43,8 @@ async def metrics_summary(range: str = Query("1h")) -> MetricsSummary:  # noqa: 
 
 @router.get("/timeseries")
 async def metrics_timeseries(
-    range: str = Query("1h"),  # noqa: A002
-    step: int = Query(60, ge=10, le=600),
+    range: Annotated[str, Query("1h")] = ...,  # noqa: A002
+    step: Annotated[int, Query(60, ge=10, le=600)] = ...,
 ):
     """
     Таймсерии: counts per status class (2xx/4xx/5xx) и p95 latency по бакетам.
@@ -57,9 +61,9 @@ async def metrics_timeseries(
 
 @router.get("/endpoints/top")
 async def metrics_top_endpoints(
-    range: str = Query("1h"),  # noqa: A002
-    by: str = Query("p95", pattern="^(p95|error_rate|rps)$"),
-    limit: int = Query(20, ge=1, le=100),
+    range: Annotated[str, Query("1h")] = ...,  # noqa: A002
+    by: Annotated[str, Query("p95", pattern="^(p95|error_rate|rps)$")] = ...,
+    limit: Annotated[int, Query(20, ge=1, le=100)] = ...,
 ):
     """
     Топ маршрутов по p95 | error_rate | rps.
@@ -70,7 +74,7 @@ async def metrics_top_endpoints(
 
 
 @router.get("/errors/recent")
-async def metrics_errors_recent(limit: int = Query(100, ge=1, le=500)):
+async def metrics_errors_recent(limit: Annotated[int, Query(100, ge=1, le=500)] = ...):
     """
     Последние ошибки (4xx/5xx).
     """

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import (
@@ -34,8 +35,8 @@ ws_router = APIRouter()
 @router.get("", response_model=list[NotificationOut], summary="List notifications")
 async def list_notifications(
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     stmt = (
         select(Notification)
@@ -56,8 +57,8 @@ async def list_notifications(
 async def mark_read(
     notification_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     stmt = select(Notification).where(
         Notification.id == notification_id,
@@ -77,8 +78,8 @@ async def mark_read(
 @ws_router.websocket("/ws/notifications")
 async def notifications_websocket(
     websocket: WebSocket,
-    token: str = Query(...),
-    db: AsyncSession = Depends(get_db),
+    token: Annotated[str, Query(...)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     user_id_str = verify_access_token(token)
     if not user_id_str:

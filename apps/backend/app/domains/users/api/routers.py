@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +16,9 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("/me", response_model=UserOut, summary="Current user")
-async def read_me(current_user: User = Depends(get_current_user)) -> User:
+async def read_me(
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+) -> User:
     service = UserProfileService(UserRepository(None))  # repo не нужен для read
     return await service.read_me(current_user)
 
@@ -22,8 +26,8 @@ async def read_me(current_user: User = Depends(get_current_user)) -> User:
 @router.patch("/me", response_model=UserOut, summary="Update profile")
 async def update_me(
     payload: UserUpdate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> User:
     service = UserProfileService(UserRepository(db))
     data = payload.model_dump(exclude_unset=True)
@@ -32,8 +36,8 @@ async def update_me(
 
 @router.delete("/me", summary="Delete account")
 async def delete_me(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict:
     service = UserProfileService(UserRepository(db))
     return await service.delete_me(current_user)

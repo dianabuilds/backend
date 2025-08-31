@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -26,7 +27,7 @@ router = APIRouter(
 
 @router.get("/system", summary="System-wide usage totals")
 async def get_system_usage(
-    _=Depends(admin_required), db: AsyncSession = Depends(get_db)
+    _=Depends(admin_required), db: Annotated[AsyncSession, Depends(get_db)] = ...
 ) -> dict:
     repo = AIUsageRepository(db)
     return await repo.system_totals()
@@ -34,9 +35,9 @@ async def get_system_usage(
 
 @router.get("/workspaces", summary="Usage by workspace", response_model=None)
 async def get_usage_by_workspace(
-    format: str | None = Query(None),
+    format: Annotated[str | None, Query(None)] = ...,
     _=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     repo = AIUsageRepository(db)
     rows = await repo.by_workspace()
@@ -69,9 +70,9 @@ async def get_usage_by_workspace(
 )
 async def get_usage_by_user(
     workspace_id: UUID,
-    format: str | None = Query(None),
+    format: Annotated[str | None, Query(None)] = ...,
     _=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     repo = AIUsageRepository(db)
     rows = await repo.by_user(workspace_id)
@@ -92,9 +93,9 @@ async def get_usage_by_user(
 )
 async def get_usage_by_model(
     workspace_id: UUID,
-    format: str | None = Query(None),
+    format: Annotated[str | None, Query(None)] = ...,
     _=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     repo = AIUsageRepository(db)
     rows = await repo.by_model(workspace_id)

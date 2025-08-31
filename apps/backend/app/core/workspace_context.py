@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, Header, HTTPException, Request
@@ -50,11 +51,11 @@ async def resolve_workspace(
 
 async def require_workspace(
     request: Request,
-    workspace_header: UUID | None = Header(
-        None, alias="X-Workspace-Id", deprecated=True
-    ),
-    user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    workspace_header: Annotated[
+        UUID | None, Header(None, alias="X-Workspace-Id", deprecated=True)
+    ] = ...,
+    user: Annotated[User, Depends(auth_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Workspace:
     workspace_id = get_workspace_id(request, workspace_header)
     if workspace_id is None:
@@ -67,11 +68,11 @@ async def require_workspace(
 
 async def optional_workspace(
     request: Request,
-    workspace_header: UUID | None = Header(
-        None, alias="X-Workspace-Id", deprecated=True
-    ),
-    user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    workspace_header: Annotated[
+        UUID | None, Header(None, alias="X-Workspace-Id", deprecated=True)
+    ] = ...,
+    user: Annotated[User, Depends(auth_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Workspace | None:
     workspace_id = get_workspace_id(request, workspace_header)
     if workspace_id is None:

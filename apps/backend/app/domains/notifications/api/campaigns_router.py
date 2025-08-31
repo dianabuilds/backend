@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -33,8 +34,8 @@ class CampaignUpdate(BaseModel):
 
 @router.get("", summary="List campaigns")
 async def list_campaigns(
-    limit: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_db),
+    limit: Annotated[int, Query(50, ge=1, le=200)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     stmt = (
         select(NotificationCampaign)
@@ -56,7 +57,9 @@ async def list_campaigns(
 
 
 @router.get("/{campaign_id}", summary="Get campaign")
-async def get_campaign(campaign_id: UUID, db: AsyncSession = Depends(get_db)):
+async def get_campaign(
+    campaign_id: UUID, db: Annotated[AsyncSession, Depends(get_db)] = ...
+):
     camp = await db.get(NotificationCampaign, campaign_id)
     if not camp:
         raise HTTPException(status_code=404, detail="Not found")
@@ -73,8 +76,8 @@ async def get_campaign(campaign_id: UUID, db: AsyncSession = Depends(get_db)):
 async def update_campaign(
     campaign_id: UUID,
     payload: CampaignUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(admin_only),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current_user: Annotated[User, Depends(admin_only)] = ...,
 ):
     camp = await db.get(NotificationCampaign, campaign_id)
     if not camp:
@@ -88,7 +91,7 @@ async def update_campaign(
 @router.post("/{campaign_id}/send", summary="Dispatch campaign")
 async def send_campaign(
     campaign_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     camp = await db.get(NotificationCampaign, campaign_id)
     if not camp:

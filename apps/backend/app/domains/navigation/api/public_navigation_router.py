@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -22,8 +23,8 @@ router = APIRouter(prefix="/navigation", tags=["navigation"])
 async def compass_endpoint(
     node_id: UUID,
     user_id: UUID | None = None,
-    db: AsyncSession = Depends(get_db),
-    preview: PreviewContext = Depends(get_preview_context),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ):
     node = await db.get(Node, node_id)
     if (
@@ -57,9 +58,9 @@ async def compass_endpoint(
 @router.get("/{slug}", summary="Navigate from node")
 async def navigation(
     slug: str,
-    db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_current_user_optional),
-    preview: PreviewContext = Depends(get_preview_context),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    user: Annotated[User | None, Depends(get_current_user_optional)] = ...,
+    preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ):
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()

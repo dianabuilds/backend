@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -27,8 +28,8 @@ router = APIRouter(
 @router.get("", response_model=list[NodePatchDiffOut], summary="List node patches")
 async def list_patches(
     node_id: UUID | None = None,
-    current_user: User = Depends(admin_only),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_only)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> list[NodePatchDiffOut]:
     patches = await NodePatchDAO.list(db, node_id=node_id)
     out: list[NodePatchDiffOut] = []
@@ -43,8 +44,8 @@ async def list_patches(
 @router.post("", response_model=NodePatchOut, summary="Create node patch")
 async def create_patch(
     body: NodePatchCreate,
-    current_user: User = Depends(admin_only),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_only)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> NodePatchOut:
     patch = await NodePatchDAO.create(
         db,
@@ -59,8 +60,8 @@ async def create_patch(
 @router.post("/{patch_id}/revert", response_model=NodePatchOut, summary="Revert patch")
 async def revert_patch(
     patch_id: UUID,
-    current_user: User = Depends(admin_only),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_only)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> NodePatchOut:
     patch = await NodePatchDAO.revert(db, patch_id=patch_id)
     if not patch:
@@ -72,8 +73,8 @@ async def revert_patch(
 @router.get("/{patch_id}", response_model=NodePatchDiffOut, summary="Get patch")
 async def get_patch(
     patch_id: UUID,
-    current_user: User = Depends(admin_only),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_only)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> NodePatchDiffOut:
     patch = await NodePatchDAO.get(db, patch_id=patch_id)
     if not patch:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 # ruff: noqa: B008
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,8 +44,8 @@ router = APIRouter(
     summary="Navigation problems",
 )
 async def navigation_problems(
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     svc = NavigationProblemsService()
     return await svc.analyse(db)
@@ -52,8 +54,8 @@ async def navigation_problems(
 @router.post("/run", summary="Run navigation generation")
 async def run_navigation(
     payload: NavigationRunRequest,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     node_result = await db.execute(select(Node).where(Node.slug == payload.node_slug))
     node = node_result.scalars().first()
@@ -71,7 +73,7 @@ async def run_navigation(
 @router.post("/cache/set", summary="Set navigation cache")
 async def set_cache(
     payload: NavigationCacheSetRequest,
-    current_user: User = Depends(admin_required),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
 ):
     user_key = str(payload.user_id) if payload.user_id else "anon"
     await navcache.set_navigation(user_key, payload.node_slug, "auto", payload.payload)
@@ -81,7 +83,7 @@ async def set_cache(
 @router.post("/cache/invalidate", summary="Invalidate navigation cache")
 async def invalidate_cache(
     payload: NavigationCacheInvalidateRequest,
-    current_user: User = Depends(admin_required),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
 ):
     if payload.scope == "node":
         if not payload.node_slug:
@@ -98,8 +100,8 @@ async def invalidate_cache(
 
 @router.get("/pgvector/status", summary="pgvector status")
 async def pgvector_status(
-    current_user: User = Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_required)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     from app.domains.navigation.infrastructure.repositories.compass_repository import (
         CompassRepository,

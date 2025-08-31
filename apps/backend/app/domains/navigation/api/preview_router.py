@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import asdict
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -77,7 +77,7 @@ async def create_preview_link_get(
 )
 async def simulate_transitions(
     payload: SimulateRequest,
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
     request: Request = None,
 ):
     result = await db.execute(

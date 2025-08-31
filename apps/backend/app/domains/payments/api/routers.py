@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,8 +18,8 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 @router.post("/premium", response_model=dict, summary="Buy premium")
 async def buy_premium(
     payload: PremiumPurchaseIn,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Upgrade the current user to premium using a payment token."""
     amount = payload.days  # 1 token per day in this simplified example

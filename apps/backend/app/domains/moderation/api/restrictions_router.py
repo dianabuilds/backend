@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -33,8 +34,8 @@ async def list_restrictions(
     user_id: UUID | None = None,
     type: str | None = None,
     page: int = 1,
-    current_user: User = Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_required)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     stmt = select(UserRestriction).order_by(UserRestriction.created_at.desc())
     if user_id:
@@ -50,8 +51,8 @@ async def list_restrictions(
 @router.post("", response_model=RestrictionOut)
 async def create_restriction(
     payload: RestrictionAdminCreate,
-    current_user: User = Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_required)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     target_user = await db.get(User, payload.user_id)
     if not target_user:
@@ -93,8 +94,8 @@ async def create_restriction(
 async def update_restriction(
     restriction_id: UUID,
     payload: RestrictionAdminUpdate,
-    current_user: User = Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_required)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     restriction = await db.get(UserRestriction, restriction_id)
     if not restriction:
@@ -114,8 +115,8 @@ async def update_restriction(
 @router.delete("/{restriction_id}")
 async def delete_restriction(
     restriction_id: UUID,
-    current_user: User = Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_required)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     restriction = await db.get(UserRestriction, restriction_id)
     if not restriction:

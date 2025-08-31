@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -34,7 +35,7 @@ _ALLOWED_KEYS = {
 
 
 @router.get("/rules", summary="List rate limit rules")
-async def list_rules(current_user: User = Depends(admin_required)):
+async def list_rules(current_user: Annotated[User, Depends(admin_required)] = ...):
     return {
         "enabled": settings.rate_limit.enabled,
         "rules": {
@@ -55,7 +56,7 @@ class RuleUpdatePayload(BaseModel):
 
 @router.patch("/rules", summary="Update single rate limit rule")
 async def update_rule(
-    payload: RuleUpdatePayload, current_user: User = Depends(admin_only)
+    payload: RuleUpdatePayload, current_user: Annotated[User, Depends(admin_only)] = ...
 ):
     attr = _ALLOWED_KEYS.get(payload.key)
     if not attr:
@@ -82,7 +83,7 @@ async def update_rule(
 
 
 @router.get("/recent429", summary="Recent rate limit hits")
-async def recent_hits(current_user: User = Depends(admin_required)):
+async def recent_hits(current_user: Annotated[User, Depends(admin_required)] = ...):
     return list(recent_429)
 
 
@@ -93,8 +94,8 @@ class RateLimitDisablePayload(BaseModel):
 @router.post("/disable", summary="Toggle rate limiter")
 async def disable_rate_limit(
     payload: RateLimitDisablePayload,
-    current_user: User = Depends(admin_only),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_only)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     if settings.is_production:
         raise HTTPException(status_code=403, detail="Not allowed in production")

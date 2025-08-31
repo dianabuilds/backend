@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends
 
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/admin/embedding", tags=["admin"])
     summary="Проверка статуса embedding-провайдера",
     responses=ADMIN_AUTH_RESPONSES,
 )
-async def embedding_status(_: User = Depends(require_admin_role())):
+async def embedding_status(_: Annotated[User, Depends(require_admin_role())] = ...):
     info = {
         "backend": settings.embedding.name,
         "dim": EMBEDDING_DIM,
@@ -50,8 +51,10 @@ async def embedding_status(_: User = Depends(require_admin_role())):
     responses=ADMIN_AUTH_RESPONSES,
 )
 async def embedding_test(
-    text: str = Body(..., embed=True, description="Текст для эмбеддинга"),
-    _: User = Depends(require_admin_role()),
+    text: Annotated[
+        str, Body(..., embed=True, description="Текст для эмбеддинга")
+    ] = ...,
+    _: Annotated[User, Depends(require_admin_role())] = ...,
 ):
     try:
         t0 = time.perf_counter()

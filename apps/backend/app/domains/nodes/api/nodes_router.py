@@ -1,7 +1,7 @@
 # ruff: noqa
 from __future__ import annotations
 
-from typing import List, Literal, TypedDict
+from typing import List, Literal, TypedDict, Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
@@ -83,17 +83,20 @@ async def list_nodes(
     request: Request,
     response: Response,
     workspace_id: UUID | None = None,
-    if_none_match: str | None = Header(None, alias="If-None-Match"),
-    sort: Literal[
-        "updated_desc",
-        "created_desc",
-        "created_asc",
-        "views_desc",
-    ] = Query("updated_desc"),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    workspace_dep: object = Depends(optional_workspace),
-    _: object = Depends(require_ws_guest),
+    if_none_match: Annotated[str | None, Header(None, alias="If-None-Match")] = ...,
+    sort: Annotated[
+        Literal[
+            "updated_desc",
+            "created_desc",
+            "created_asc",
+            "views_desc",
+        ],
+        Query("updated_desc"),
+    ] = ...,
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
+    _: Annotated[object, Depends(require_ws_guest)] = ...,
 ) -> List[NodeOut]:
     """List nodes.
 
@@ -119,9 +122,9 @@ async def create_node(
     request: Request,
     payload: NodeCreate,
     workspace_id: UUID | None = None,
-    current_user: User = Depends(ensure_can_post),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
+    current_user: Annotated[User, Depends(ensure_can_post)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
     workspace_id = _ensure_workspace_id(request, workspace_id)
     await require_ws_viewer(workspace_id=workspace_id, user=current_user, db=db)
@@ -138,9 +141,9 @@ async def read_node(
     request: Request,
     slug: str,
     workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    workspace_dep: object = Depends(optional_workspace),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
 ):
     if workspace_id is None:
         wid = getattr(request.state, "workspace_id", None)
@@ -213,10 +216,10 @@ async def update_node(
     slug: str,
     payload: NodeUpdate,
     workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
-    _: object = Depends(require_ws_viewer),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
     workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
@@ -249,10 +252,10 @@ async def delete_node(
     request: Request,
     slug: str,
     workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
-    _: object = Depends(require_ws_viewer),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
     workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
@@ -280,10 +283,10 @@ async def get_node_notification_settings(
     request: Request,
     node_id: str,
     workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    workspace_dep: object = Depends(optional_workspace),
-    _: object = Depends(require_ws_viewer),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
+    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ) -> NodeNotificationSettingsOut:
     workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
@@ -307,10 +310,10 @@ async def update_node_notification_settings(
     node_id: str,
     payload: NodeNotificationSettingsUpdate,
     workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
-    _: object = Depends(require_ws_viewer),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ) -> NodeNotificationSettingsOut:
     workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
@@ -329,10 +332,10 @@ async def list_feedback(
     request: Request,
     slug: str,
     workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    workspace_dep: object = Depends(optional_workspace),
-    _: object = Depends(require_ws_viewer),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
+    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import (
@@ -350,10 +353,10 @@ async def create_feedback(
     slug: str,
     payload: FeedbackCreate,
     workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
-    _: object = Depends(require_ws_viewer),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import (
@@ -386,10 +389,10 @@ async def delete_feedback(
     slug: str,
     feedback_id: UUID,
     workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
-    _: object = Depends(require_ws_viewer),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import (

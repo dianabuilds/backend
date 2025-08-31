@@ -5,7 +5,7 @@ from datetime import datetime
 # Этот модуль ранее пытался переимпортировать несуществующий legacy-роутер,
 # из-за чего импорт падал и все админские эндпоинты для AI-квестов возвращали
 # 404.  Удаляем лишний импорт и используем собственный роутер ниже.
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -52,8 +52,8 @@ router = APIRouter(
 
 @router.get("/templates", summary="List world templates")
 async def list_world_templates(
-    db: AsyncSession = Depends(get_db),
-    _: Depends = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _: Annotated[Depends, Depends(admin_required)] = ...,
 ) -> list[dict[str, Any]]:
     res = await db.execute(select(World).order_by(World.title.asc()))
     worlds = list(res.scalars().all())
@@ -67,10 +67,10 @@ async def list_world_templates(
 )
 async def generate_ai_quest(
     body: GenerateQuestIn,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
     current=Depends(admin_required),
     reuse: bool = True,
-    preview: PreviewContext = Depends(get_preview_context),
+    preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ) -> GenerationEnqueued:
     params = {
         "world_template_id": (
@@ -114,8 +114,8 @@ async def generate_ai_quest(
     "/jobs", response_model=list[GenerationJobOut], summary="List AI generation jobs"
 )
 async def list_jobs(
-    db: AsyncSession = Depends(get_db),
-    _: Depends = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _: Annotated[Depends, Depends(admin_required)] = ...,
 ) -> list[GenerationJobOut]:
     res = await db.execute(
         select(GenerationJob).order_by(GenerationJob.created_at.desc())
@@ -127,8 +127,8 @@ async def list_jobs(
 @router.get("/jobs/{job_id}", response_model=GenerationJobOut, summary="Get job by id")
 async def get_job(
     job_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    _: Depends = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _: Annotated[Depends, Depends(admin_required)] = ...,
 ) -> GenerationJobOut:
     job = await db.get(GenerationJob, job_id)
     if not job:
@@ -143,8 +143,8 @@ async def get_job(
 )
 async def simulate_complete(
     job_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(admin_required)] = ...,
 ) -> GenerationJobOut:
     job = await db.get(GenerationJob, job_id)
     if not job:
@@ -215,8 +215,8 @@ async def simulate_complete(
 async def tick_job(
     job_id: UUID,
     body: dict | None = None,
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(admin_required)] = ...,
 ) -> GenerationJobOut:
     job = await db.get(GenerationJob, job_id)
     if not job:
@@ -249,8 +249,8 @@ async def tick_job(
 
 @router.get("/worlds", response_model=list[WorldTemplateOut], summary="List worlds")
 async def list_worlds(
-    db: AsyncSession = Depends(get_db),
-    _: Depends = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _: Annotated[Depends, Depends(admin_required)] = ...,
 ) -> list[WorldTemplateOut]:
     res = await db.execute(select(World).order_by(World.title.asc()))
     rows = list(res.scalars().all())
@@ -260,8 +260,8 @@ async def list_worlds(
 @router.post("/worlds", response_model=WorldTemplateOut, summary="Create world")
 async def create_world(
     body: WorldTemplateIn,
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(admin_required)] = ...,
 ) -> WorldTemplateOut:
     w = World(
         id=uuid4(),
@@ -283,8 +283,8 @@ async def create_world(
 async def update_world(
     world_id: UUID,
     body: WorldTemplateIn,
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(admin_required)] = ...,
 ) -> WorldTemplateOut:
     w = await db.get(World, world_id)
     if not w:
@@ -303,8 +303,8 @@ async def update_world(
 @router.delete("/worlds/{world_id}", summary="Delete world")
 async def delete_world(
     world_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(admin_required)] = ...,
 ) -> dict:
     w = await db.get(World, world_id)
     if not w:
@@ -321,8 +321,8 @@ async def delete_world(
 )
 async def list_characters(
     world_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    _: Depends = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _: Annotated[Depends, Depends(admin_required)] = ...,
 ) -> list[CharacterOut]:
     res = await db.execute(
         select(Character)
@@ -341,8 +341,8 @@ async def list_characters(
 async def create_character(
     world_id: UUID,
     body: CharacterIn,
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(admin_required)] = ...,
 ) -> CharacterOut:
     w = await db.get(World, world_id)
     if not w:
@@ -370,8 +370,8 @@ async def create_character(
 async def update_character(
     character_id: UUID,
     body: CharacterIn,
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(admin_required)] = ...,
 ) -> CharacterOut:
     c = await db.get(Character, character_id)
     if not c:
@@ -390,8 +390,8 @@ async def update_character(
 @router.delete("/characters/{character_id}", summary="Delete character")
 async def delete_character(
     character_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(admin_required)] = ...,
 ) -> dict:
     c = await db.get(Character, character_id)
     if not c:
@@ -408,8 +408,8 @@ async def delete_character(
     "/settings", response_model=AISettingsOut, summary="Get AI provider settings"
 )
 async def get_ai_settings(
-    db: AsyncSession = Depends(get_db),
-    _: Depends = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _: Annotated[Depends, Depends(admin_required)] = ...,
 ) -> AISettingsOut:
     res = await db.execute(select(AISettings).limit(1))
     s = res.scalar_one_or_none()
@@ -430,8 +430,8 @@ async def get_ai_settings(
 )
 async def put_ai_settings(
     body: AISettingsIn,
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(admin_required),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: Annotated[User, Depends(admin_required)] = ...,
 ) -> AISettingsOut:
     res = await db.execute(select(AISettings).limit(1))
     s = res.scalar_one_or_none()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -53,8 +53,8 @@ class BroadcastCreate(BaseModel):
 @router.post("", summary="Create broadcast campaign (or dry-run)")
 async def create_broadcast(
     payload: BroadcastCreate,
-    current_user: User = Depends(admin_only),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_only)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     filters_dict: dict[str, Any] = (
         payload.filters.model_dump() if payload.filters else {}
@@ -81,8 +81,8 @@ async def create_broadcast(
 
 @router.get("", summary="List broadcast campaigns")
 async def list_broadcasts(
-    limit: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_db),
+    limit: Annotated[int, Query(50, ge=1, le=200)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     stmt = (
         select(NotificationCampaign)
@@ -109,7 +109,9 @@ async def list_broadcasts(
 
 
 @router.get("/{campaign_id}", summary="Get campaign")
-async def get_broadcast(campaign_id: UUID, db: AsyncSession = Depends(get_db)):
+async def get_broadcast(
+    campaign_id: UUID, db: Annotated[AsyncSession, Depends(get_db)] = ...
+):
     camp = await db.get(NotificationCampaign, campaign_id)
     if not camp:
         raise HTTPException(status_code=404, detail="Not found")
@@ -129,7 +131,9 @@ async def get_broadcast(campaign_id: UUID, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{campaign_id}/cancel", summary="Cancel campaign")
-async def cancel_broadcast(campaign_id: UUID, db: AsyncSession = Depends(get_db)):
+async def cancel_broadcast(
+    campaign_id: UUID, db: Annotated[AsyncSession, Depends(get_db)] = ...
+):
     ok = await cancel_campaign(db, campaign_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Not found")
