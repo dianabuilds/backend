@@ -15,13 +15,11 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.tags.infrastructure.models.tag_models import NodeTag
 from app.schemas.node import NodeCreate, NodeUpdate
 
 try:  # pragma: no cover - optional legacy dependency
@@ -49,7 +47,7 @@ class NodeRepositoryAdapter(INodeRepository):
     ) -> Node | None:
         if self._repo and workspace_id is not None:
             return await self._repo.get_by_slug(slug, workspace_id=workspace_id)
-        query = select(Node).options(selectinload(Node.tags)).where(Node.slug == slug)
+        query = select(Node).where(Node.slug == slug)
         if workspace_id is not None:
             query = query.where(Node.workspace_id == workspace_id)
         res = await self._db.execute(query)
@@ -64,9 +62,7 @@ class NodeRepositoryAdapter(INodeRepository):
             except Exception:
                 pass
         res = await self._db.execute(
-            select(Node)
-            .options(selectinload(Node.tags))
-            .where(Node.id == node_id, Node.workspace_id == workspace_id)
+            select(Node).where(Node.id == node_id, Node.workspace_id == workspace_id)
         )
         return res.scalar_one_or_none()
 
@@ -75,9 +71,7 @@ class NodeRepositoryAdapter(INodeRepository):
         if self._repo:
             return await self._repo.get_by_id(node_id, workspace_id=workspace_id)
         res = await self._db.execute(
-            select(Node)
-            .options(selectinload(Node.tags))
-            .where(Node.alt_id == node_id, Node.workspace_id == workspace_id)
+            select(Node).where(Node.alt_id == node_id, Node.workspace_id == workspace_id)
         )
         return res.scalar_one_or_none()
 
@@ -90,12 +84,8 @@ class NodeRepositoryAdapter(INodeRepository):
             return await self._repo.create(payload, author_id, workspace_id)
         node = Node(
             title=payload.title,
-            content=payload.content,
-            media=payload.media or [],
-            cover_url=payload.cover_url,
             author_id=author_id,
             workspace_id=workspace_id,
-            is_public=payload.is_public,
             is_visible=payload.is_visible,
             meta=payload.meta or {},
             premium_only=payload.premium_only or False,
@@ -107,8 +97,6 @@ class NodeRepositoryAdapter(INodeRepository):
         )
         self._db.add(node)
         await self._db.flush()
-        if payload.tags is not None:
-            await self._apply_tags(node, payload.tags, author_id)
         await self._db.commit()
         loaded = await self.get_by_id(node.id, workspace_id)
         return loaded  # type: ignore[return-value]
@@ -117,13 +105,9 @@ class NodeRepositoryAdapter(INodeRepository):
         if self._repo:
             return await self._repo.update(node, payload, actor_id)
         for field, value in payload.model_dump(exclude_unset=True).items():
-            if field == "tags":
-                continue
             setattr(node, field, value)
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = actor_id
-        if payload.tags is not None:
-            await self._apply_tags(node, payload.tags, actor_id)
         await self._db.commit()
         loaded = await self.get_by_id(node.id, node.workspace_id)
         return loaded  # type: ignore[return-value]
@@ -135,72 +119,10 @@ class NodeRepositoryAdapter(INodeRepository):
         await self._db.delete(node)
         await self._db.commit()
 
-    async def set_tags(self, node: Node, tags: list[str], actor_id: UUID) -> Node:
-        if self._repo:
-            return await self._repo.set_tags(node, tags, actor_id)
-        await self._apply_tags(node, tags, actor_id)
-        await self._db.commit()
-        loaded = await self.get_by_id(node.id, node.workspace_id)
-        return loaded  # type: ignore[return-value]
-
-    async def _apply_tags(self, node: Node, tags: list[str], actor_id: UUID) -> None:
-        from app.domains.tags.models import Tag
-
-        tag_ids: list[UUID] = []
-        for slug in tags:
-            slug_norm = (slug or "").strip().lower()
-            if not slug_norm:
-                continue
-            res = await self._db.execute(
-                select(Tag).where(
-                    Tag.slug == slug_norm, Tag.workspace_id == node.workspace_id
-                )
-            )
-            tag = res.scalar_one_or_none()
-            if not tag:
-                tag = Tag(
-                    slug=slug_norm, name=slug_norm, workspace_id=node.workspace_id
-                )
-                self._db.add(tag)
-                await self._db.flush()
-            tag_ids.append(tag.id)
-        await self._db.execute(delete(NodeTag).where(NodeTag.node_id == node.id))
-        for tid in tag_ids:
-            self._db.add(NodeTag(node_id=node.id, tag_id=tid))
-        node.updated_by_user_id = actor_id
-        await self._db.flush()
-
     async def increment_views(self, node: Node) -> Node:
         if self._repo:
             return await self._repo.increment_views(node)
         node.views = int(node.views or 0) + 1
-        await self._db.commit()
-        loaded = await self.get_by_id(node.id, node.workspace_id)
-        return loaded  # type: ignore[return-value]
-
-    async def update_reactions(
-        self, node: Node, reaction: str, action: str, actor_id: UUID | None = None
-    ) -> Node:
-        if self._repo:
-            return await self._repo.update_reactions(node, reaction, action, actor_id)
-        import json
-
-        raw = node.reactions or {}
-        if isinstance(raw, str):
-            try:
-                parsed = json.loads(raw)
-                raw = parsed if isinstance(parsed, dict) else {}
-            except Exception:
-                raw = {}
-        reactions = dict(raw)
-        current = int(reactions.get(reaction, 0))
-        if action == "add":
-            reactions[reaction] = current + 1
-        elif action == "remove":
-            reactions[reaction] = max(0, current - 1)
-        node.reactions = reactions
-        if actor_id:
-            node.updated_by_user_id = actor_id
         await self._db.commit()
         loaded = await self.get_by_id(node.id, node.workspace_id)
         return loaded  # type: ignore[return-value]
@@ -212,7 +134,6 @@ class NodeRepositoryAdapter(INodeRepository):
     ) -> list[Node]:
         res = await self._db.execute(
             select(Node)
-            .options(selectinload(Node.tags))
             .where(Node.author_id == author_id, Node.workspace_id == workspace_id)
             .order_by(Node.created_at.desc())
             .offset(offset)
@@ -235,110 +156,3 @@ class NodeRepositoryAdapter(INodeRepository):
         await self._db.flush()
         return count
 
-    async def bulk_set_public(
-        self, node_ids: list[UUID], is_public: bool, workspace_id: UUID
-    ) -> int:
-        if not node_ids:
-            return 0
-        count = 0
-        for nid in node_ids:
-            n = await self._db.get(Node, nid)
-            if n is None or n.workspace_id != workspace_id:
-                continue
-            n.is_public = bool(is_public)
-            count += 1
-        await self._db.flush()
-        return count
-
-    async def bulk_set_tags(
-        self, node_ids: list[UUID], tags: list[str], workspace_id: UUID
-    ) -> int:
-        if not node_ids:
-            return 0
-        valid_ids: list[UUID] = []
-        for nid in node_ids:
-            n = await self._db.get(Node, nid)
-            if n and n.workspace_id == workspace_id:
-                valid_ids.append(nid)
-        if not valid_ids:
-            return 0
-        from app.domains.tags.models import Tag
-
-        tag_ids: list[UUID] = []
-        for slug in tags:
-            slug_norm = (slug or "").strip().lower()
-            if not slug_norm:
-                continue
-            existing = await self._db.execute(
-                select(Tag).where(
-                    Tag.slug == slug_norm, Tag.workspace_id == workspace_id
-                )
-            )
-            tag = existing.scalar_one_or_none()
-            if not tag:
-                tag = Tag(slug=slug_norm, name=slug_norm, workspace_id=workspace_id)
-                self._db.add(tag)
-                await self._db.flush()
-                await self._db.refresh(tag)
-            tag_ids.append(tag.id)
-        await self._db.execute(delete(NodeTag).where(NodeTag.node_id.in_(valid_ids)))
-        for nid in valid_ids:
-            for tid in tag_ids:
-                self._db.add(NodeTag(node_id=nid, tag_id=tid))
-        await self._db.flush()
-        return len(valid_ids)
-
-    async def bulk_set_tags_diff(
-        self,
-        node_ids: list[UUID],
-        add: list[str],
-        remove: list[str],
-        workspace_id: UUID,
-    ) -> int:
-        if not node_ids:
-            return 0
-        valid_ids: list[UUID] = []
-        for nid in node_ids:
-            n = await self._db.get(Node, nid)
-            if n and n.workspace_id == workspace_id:
-                valid_ids.append(nid)
-        if not valid_ids:
-            return 0
-        from app.domains.tags.models import Tag
-
-        add_ids: list[UUID] = []
-        for slug in add:
-            slug_norm = (slug or "").strip().lower()
-            if not slug_norm:
-                continue
-            existing = await self._db.execute(
-                select(Tag).where(
-                    Tag.slug == slug_norm, Tag.workspace_id == workspace_id
-                )
-            )
-            tag = existing.scalar_one_or_none()
-            if not tag:
-                tag = Tag(slug=slug_norm, name=slug_norm, workspace_id=workspace_id)
-                self._db.add(tag)
-                await self._db.flush()
-                await self._db.refresh(tag)
-            add_ids.append(tag.id)
-        if remove:
-            rem_q = await self._db.execute(
-                select(Tag.id).where(
-                    Tag.slug.in_([s.strip().lower() for s in remove]),
-                    Tag.workspace_id == workspace_id,
-                )
-            )
-            rem_ids = [row[0] for row in rem_q.all()]
-            if rem_ids:
-                await self._db.execute(
-                    delete(NodeTag).where(
-                        NodeTag.node_id.in_(valid_ids), NodeTag.tag_id.in_(rem_ids)
-                    )
-                )
-        for nid in valid_ids:
-            for tid in add_ids:
-                self._db.add(NodeTag(node_id=nid, tag_id=tid))
-        await self._db.flush()
-        return len(valid_ids)

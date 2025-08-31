@@ -17,7 +17,7 @@ class NodeQueryAdapter(INodeQueryService):
         self._svc = LegacyNodeQueryService(db)
 
     def _to_legacy(self, spec: NodeFilterSpec, ctx: QueryContext, page: PageRequest):
-        lspec = LegacySpec(tags=spec.tags, match=spec.match, workspace_id=spec.workspace_id)
+        lspec = LegacySpec(**spec.__dict__)
         lctx = LegacyCtx(user=ctx.user, is_admin=ctx.is_admin)
         lpage = LegacyPage()  # используем дефолты legacy, оффсет/лимит задаются внутри сервисов
         setattr(lpage, "offset", getattr(page, "offset", 0))

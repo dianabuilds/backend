@@ -39,13 +39,11 @@ from app.domains.nodes.schemas.node import (
     NodeCreate,
     NodeOut,
     NodeUpdate,
-    ReactionUpdate,
 )
 from app.domains.notifications.infrastructure.repositories.settings_repository import (
     NodeNotificationSettingsRepository,
 )
 from app.domains.system.events import NodeCreated, NodeUpdated, get_event_bus
-from app.domains.tags.schemas.node_tags import NodeTagsUpdate
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.domains.users.infrastructure.models.user import User
 from app.domains.users.nft import user_has_nft
@@ -63,14 +61,11 @@ navsvc = NavigationService()
 
 
 class NodeListParams(TypedDict, total=False):
-    tags: list[str]
-    match: Literal["any", "all"]
     sort: Literal[
         "updated_desc",
         "created_desc",
         "created_asc",
         "views_desc",
-        "reactions_desc",
     ]
 
 
@@ -89,14 +84,11 @@ async def list_nodes(
     response: Response,
     workspace_id: UUID | None = None,
     if_none_match: str | None = Header(None, alias="If-None-Match"),
-    tags: list[str] = Query(default_factory=list),
-    match: Literal["any", "all"] = Query("any"),
     sort: Literal[
         "updated_desc",
         "created_desc",
         "created_asc",
         "views_desc",
-        "reactions_desc",
     ] = Query("updated_desc"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -108,10 +100,7 @@ async def list_nodes(
     See :class:`NodeListParams` for available query parameters.
     """
     workspace_id = _ensure_workspace_id(request, workspace_id)
-    tag_list = [t.strip() for t in tags if t.strip()] or None
-    spec = NodeFilterSpec(
-        tags=tag_list, match=match, workspace_id=workspace_id, sort=sort
-    )
+    spec = NodeFilterSpec(workspace_id=workspace_id, sort=sort)
     ctx = QueryContext(user=current_user, is_admin=False)
     service = NodeQueryAdapter(db)
     page = PageRequest()
@@ -218,35 +207,6 @@ async def _resolve_node(
         return await repo.get_by_alt_id(alt_id, workspace_id), alt_id
 
 
-@router.post("/{node_id}/tags", response_model=NodeOut, summary="Set node tags")
-async def set_node_tags(
-    request: Request,
-    node_id: str,
-    payload: NodeTagsUpdate,
-    workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
-    _: object = Depends(require_ws_viewer),
-):
-    workspace_id = _ensure_workspace_id(request, workspace_id)
-    repo = NodeRepository(db)
-    node, _ = await _resolve_node(repo, node_id, workspace_id)
-    if not node:
-        raise HTTPException(status_code=404, detail="Node not found")
-    NodePolicy.ensure_can_edit(node, current_user)
-    node = await repo.set_tags(node, payload.tags, current_user.id)
-    await get_event_bus().publish(
-        NodeUpdated(
-            node_id=node.id,
-            slug=node.slug,
-            author_id=current_user.id,
-            tags_changed=True,
-        )
-    )
-    return node
-
-
 @router.patch("/{slug}", response_model=NodeOut, summary="Update node")
 async def update_node(
     request: Request,
@@ -264,10 +224,9 @@ async def update_node(
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(node, current_user)
-    was_public = node.is_public
     was_visible = node.is_visible
     node = await repo.update(node, payload, current_user.id)
-    if was_public != node.is_public or was_visible != node.is_visible:
+    if was_visible != node.is_visible:
         await navsvc.invalidate_navigation_cache(db, node)
         await navcache.invalidate_navigation_by_node(slug)
         await navcache.invalidate_modes_by_node(slug)
@@ -275,13 +234,11 @@ async def update_node(
         cache_invalidate("nav", reason="node_update", key=slug)
         cache_invalidate("navm", reason="node_update", key=slug)
         cache_invalidate("comp", reason="node_update")
-    tags_changed = payload.tags is not None
     await get_event_bus().publish(
         NodeUpdated(
             node_id=node.id,
             slug=node.slug,
             author_id=current_user.id,
-            tags_changed=tags_changed,
         )
     )
     return node
@@ -312,34 +269,6 @@ async def delete_node(
     cache_invalidate("navm", reason="node_delete", key=slug)
     cache_invalidate("comp", reason="node_delete")
     return {"message": "Node deleted"}
-
-
-@router.post("/{slug}/reactions", response_model=dict, summary="Update reactions")
-async def update_reactions(
-    request: Request,
-    slug: str,
-    payload: ReactionUpdate,
-    workspace_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
-    _: object = Depends(require_ws_viewer),
-):
-    from app.domains.nodes.application.reaction_service import ReactionService
-    from app.domains.nodes.infrastructure.repositories.node_repository import (
-        NodeRepositoryAdapter,
-    )
-
-    service = ReactionService(NodeRepositoryAdapter(db), navcache)
-    workspace_id = _ensure_workspace_id(request, workspace_id)
-    return await service.update_reactions_by_slug(
-        db,
-        slug,
-        payload.reaction,
-        payload.action,
-        workspace_id=workspace_id,
-        actor_id=str(current_user.id),
-    )
 
 
 @router.get(

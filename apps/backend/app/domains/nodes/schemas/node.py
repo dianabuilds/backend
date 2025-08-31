@@ -6,14 +6,12 @@ from app.schemas.node import (
     NodeCreate,
     NodeOut,
     NodeUpdate,
-    ReactionUpdate,
 )
 
 __all__ = [
     "NodeCreate",
     "NodeUpdate",
     "NodeOut",
-    "ReactionUpdate",
     "NodeBulkOperation",
     "NodeBulkPatch",
 ]

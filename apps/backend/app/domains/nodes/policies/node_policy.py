@@ -13,9 +13,9 @@ class NodePolicy:
     def ensure_can_view(
         node: Node, user: User, preview: PreviewContext | None = None
     ) -> None:
-        """Allow viewing if node is public or user is owner/mod/admin."""
+        """Allow viewing if node is visible or user is owner/mod/admin."""
         role = preview.role if preview and preview.role else user.role
-        if node.is_public and node.is_visible:
+        if node.is_visible:
             return
         if node.author_id == user.id:
             return

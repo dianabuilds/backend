@@ -39,7 +39,7 @@ class FeedbackService:
             raise HTTPException(status_code=404, detail="Node not found")
         if not node.allow_feedback:
             raise HTTPException(status_code=403, detail="Feedback disabled")
-        if not node.is_public and node.author_id != current_user.id:
+        if not node.is_visible and node.author_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to comment on this node")
         feedback = Feedback(
             node_id=node.id,
