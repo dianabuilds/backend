@@ -17,6 +17,7 @@ from .notification_settings import (
 )
 from .trace import NodeTraceCreate, NodeTraceOut
 from .achievement import AchievementOut
+from .job import BackgroundJobHistoryOut
 
 __all__ = (
     "LoginSchema",
@@ -47,4 +48,5 @@ __all__ = (
     "NodeTraceCreate",
     "NodeTraceOut",
     "AchievementOut",
+    "BackgroundJobHistoryOut",
 )

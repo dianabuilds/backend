@@ -229,6 +229,13 @@ def register_domain_routers(app: FastAPI) -> None:
         app.include_router(admin_cache_router)
     except Exception:
         pass
+    # Admin jobs
+    try:
+        from app.domains.admin.api.jobs_router import router as admin_jobs_router
+
+        app.include_router(admin_jobs_router)
+    except Exception:
+        pass
     # Admin dashboard
     try:
         from app.domains.admin.api.dashboard_router import (

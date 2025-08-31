@@ -63,6 +63,7 @@ const ReliabilityDashboard = lazy(() => import("../pages/ReliabilityDashboard"))
 const Alerts = lazy(() => import("../pages/Alerts"));
 const AIUsage = lazy(() => import("../pages/AIUsage"));
 const ComingSoon = lazy(() => import("../components/ComingSoon"));
+const Jobs = lazy(() => import("../pages/Jobs"));
 
 function useRouteTelemetry() {
   const location = useLocation();
@@ -131,6 +132,7 @@ const protectedChildren: RouteObject[] = [
   { path: "ops/reliability", element: <ReliabilityDashboard /> },
   { path: "ops/alerts", element: <Alerts /> },
   { path: "ops/ai-usage", element: <AIUsage /> },
+  { path: "ops/jobs", element: <Jobs /> },
   { path: "payments", element: <PaymentsGateways /> },
 ];
 
