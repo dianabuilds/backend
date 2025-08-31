@@ -11,7 +11,7 @@ depends_on = None
 
 def upgrade() -> None:
     # Switch primary key on nodes
-    op.drop_constraint("nodes_pkey", "nodes", type_="primary", cascade=True)
+    op.execute("ALTER TABLE nodes DROP CONSTRAINT nodes_pkey CASCADE")
     op.create_primary_key("nodes_pkey", "nodes", ["id"])
     op.create_unique_constraint("ux_nodes_alt_id", "nodes", ["alt_id"])
 
@@ -52,5 +52,5 @@ def downgrade() -> None:
 
     # Restore primary key on nodes
     op.drop_constraint("ux_nodes_alt_id", "nodes", type_="unique")
-    op.drop_constraint("nodes_pkey", "nodes", type_="primary", cascade=True)
+    op.execute("ALTER TABLE nodes DROP CONSTRAINT nodes_pkey CASCADE")
     op.create_primary_key("nodes_pkey", "nodes", ["alt_id"])
