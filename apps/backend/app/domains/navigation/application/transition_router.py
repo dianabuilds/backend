@@ -10,15 +10,33 @@ from collections import Counter, defaultdict, deque
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Deque, List, Optional, Tuple
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.preview import PreviewContext
+from app.core.preview import PreviewContext  # isort: skip
+from app.core.log_events import no_route, transition_finish, transition_start
+from app.core.metrics import (
+    record_fallback_used,
+    record_no_route,
+    record_repeat_rate,
+    record_route_latency_ms,
+    record_route_length,
+    record_tag_entropy,
+)
+from app.domains.telemetry.application.transition_metrics_facade import (
+    transition_metrics,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - used for type hints only
+    from app.domains.navigation.application.compass_service import (
+        CompassService,
+    )
+    from app.domains.navigation.application.transitions_service import (
+        TransitionsService,
+    )
     from app.domains.nodes.infrastructure.models.node import Node
     from app.domains.users.infrastructure.models.user import User
 
@@ -33,20 +51,6 @@ def _compute_entropy(tags: Sequence[str]) -> float:
     return -sum((c / total) * math.log(c / total) for c in counts.values())
 
 
-from app.core.log_events import no_route, transition_finish, transition_start
-from app.core.metrics import (
-    record_fallback_used,
-    record_no_route,
-    record_repeat_rate,
-    record_route_latency_ms,
-    record_route_length,
-    record_tag_entropy,
-)
-from app.domains.telemetry.application.transition_metrics_facade import (
-    transition_metrics,
-)
-
-
 class TransitionProvider(ABC):
     """Interface for objects that return possible transitions from a node."""
 
@@ -55,7 +59,7 @@ class TransitionProvider(ABC):
         self,
         db: AsyncSession,
         node: Node,
-        user: Optional[User],
+        user: User | None,
         workspace_id: UUID,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
@@ -75,11 +79,11 @@ class Policy(ABC):
         self,
         db: AsyncSession,
         node: Node,
-        user: Optional[User],
-        history: Deque[str],
+        user: User | None,
+        history: deque[str],
         repeat_filter: RepeatFilter,
         preview: PreviewContext | None = None,
-    ) -> Tuple[Optional[Node], TransitionTrace]:
+    ) -> tuple[Node | None, TransitionTrace]:
         """Return next node and trace info or ``None`` if not applicable."""
 
 
@@ -97,7 +101,7 @@ class ManualTransitionsProvider(TransitionProvider):
         self,
         db: AsyncSession,
         node: Node,
-        user: Optional[User],
+        user: User | None,
         workspace_id: UUID,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
@@ -122,7 +126,7 @@ class CompassProvider(TransitionProvider):
         self,
         db: AsyncSession,
         node: Node,
-        user: Optional[User],
+        user: User | None,
         workspace_id: UUID,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
@@ -145,7 +149,7 @@ class RandomProvider(TransitionProvider):
         self,
         db: AsyncSession,
         node: Node,
-        user: Optional[User],
+        user: User | None,
         workspace_id: UUID,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
@@ -155,14 +159,14 @@ class RandomProvider(TransitionProvider):
 
         query = select(Node).where(
             Node.is_visible == True,  # noqa: E712
-            Node.is_public == True,
-            Node.is_recommendable == True,
+            Node.is_public,
+            Node.is_recommendable,
             Node.id != node.id,
             Node.workspace_id == workspace_id,
         )
         query = scope_by_workspace(query, workspace_id)
         result = await db.execute(query)
-        nodes: List[Node] = result.scalars().all()
+        nodes: list[Node] = result.scalars().all()
         nodes = [n for n in nodes if await has_access_async(n, user, preview)]
         if not nodes:
             return []
@@ -183,13 +187,13 @@ class RepeatFilter:
         self.threshold = threshold
         self.decay = decay
         self.max_visits = max_visits
-        self.tag_history: Deque[str] = deque()
-        self.source_history: Deque[str] = deque()
+        self.tag_history: deque[str] = deque()
+        self.source_history: deque[str] = deque()
         self.tag_counts: dict[str, int] = defaultdict(int)
         self.source_counts: dict[str, int] = defaultdict(int)
         self.visit_counts: dict[str, int] = defaultdict(int)
 
-    def _add(self, history: Deque[str], counts: dict[str, int], value: str) -> None:
+    def _add(self, history: deque[str], counts: dict[str, int], value: str) -> None:
         history.append(value)
         counts[value] += 1
         if self.window and len(history) > self.window:
@@ -207,7 +211,7 @@ class RepeatFilter:
             self._add(self.source_history, self.source_counts, source)
 
     def _score(self, node: Node) -> float:
-        scores: List[float] = []
+        scores: list[float] = []
         for tag in getattr(node, "tags", []) or []:
             count = self.tag_counts.get(tag, 0)
             scores.append(self.decay**count)
@@ -217,9 +221,9 @@ class RepeatFilter:
             scores.append(self.decay**count)
         return min(scores) if scores else 1.0
 
-    def filter(self, nodes: Sequence[Node]) -> Tuple[List[Node], List[str]]:
-        allowed: List[Node] = []
-        filtered: List[str] = []
+    def filter(self, nodes: Sequence[Node]) -> tuple[list[Node], list[str]]:
+        allowed: list[Node] = []
+        filtered: list[str] = []
         for n in nodes:
             if self.max_visits and self.visit_counts.get(n.slug, 0) >= self.max_visits:
                 filtered.append(n.slug)
@@ -240,11 +244,11 @@ class ManualPolicy(Policy):
         self,
         db: AsyncSession,
         node: Node,
-        user: Optional[User],
-        history: Deque[str],
+        user: User | None,
+        history: deque[str],
         repeat_filter: RepeatFilter,
         preview: PreviewContext | None = None,
-    ) -> Tuple[Optional[Node], TransitionTrace]:
+    ) -> tuple[Node | None, TransitionTrace]:
         try:
             candidates = await self.provider.get_transitions(
                 db, node, user, node.workspace_id, preview=preview
@@ -270,11 +274,11 @@ class CompassPolicy(Policy):
         self,
         db: AsyncSession,
         node: Node,
-        user: Optional[User],
-        history: Deque[str],
+        user: User | None,
+        history: deque[str],
         repeat_filter: RepeatFilter,
         preview: PreviewContext | None = None,
-    ) -> Tuple[Optional[Node], TransitionTrace]:
+    ) -> tuple[Node | None, TransitionTrace]:
         try:
             candidates = await self.provider.get_transitions(
                 db, node, user, node.workspace_id, preview=preview
@@ -309,11 +313,11 @@ class RandomPolicy(Policy):
         self,
         db: AsyncSession,
         node: Node,
-        user: Optional[User],
-        history: Deque[str],
+        user: User | None,
+        history: deque[str],
         repeat_filter: RepeatFilter,
         preview: PreviewContext | None = None,
-    ) -> Tuple[Optional[Node], TransitionTrace]:
+    ) -> tuple[Node | None, TransitionTrace]:
         try:
             candidates = await self.provider.get_transitions(
                 db, node, user, node.workspace_id, preview=preview
@@ -335,10 +339,10 @@ class RandomPolicy(Policy):
 
 @dataclass
 class TransitionTrace:
-    candidates: List[str]
-    filters: List[str]
+    candidates: list[str]
+    filters: list[str]
     scores: dict
-    chosen: Optional[str]
+    chosen: str | None
     policy: str | None = None
 
 
@@ -350,9 +354,9 @@ class NoRouteReason(Enum):
 
 @dataclass
 class TransitionResult:
-    next: Optional[Node]
-    reason: Optional[NoRouteReason]
-    trace: List[TransitionTrace]
+    next: Node | None
+    reason: NoRouteReason | None
+    trace: list[TransitionTrace]
     metrics: dict
 
 
@@ -370,8 +374,8 @@ class TransitionRouter:
     ) -> None:
         self.policies = list(policies)
         self.policy_map = {p.name: p for p in self.policies}
-        self.history: Deque[str] = deque(maxlen=not_repeat_last)
-        self.trace: List[TransitionTrace] = []
+        self.history: deque[str] = deque(maxlen=not_repeat_last)
+        self.trace: list[TransitionTrace] = []
         self.repeat_filter = RepeatFilter(
             no_repeat_window, repeat_threshold, repeat_decay, max_visits
         )
@@ -380,7 +384,7 @@ class TransitionRouter:
         self,
         db: AsyncSession,
         start: Node,
-        user: Optional[User],
+        user: User | None,
         budget,
         preview: PreviewContext | None = None,
     ) -> TransitionResult:
@@ -416,8 +420,8 @@ class TransitionRouter:
         fallback_used = False
         queries = 0
         filtered_total = 0
-        nxt: Optional[Node] = None
-        reason: Optional[NoRouteReason] = None
+        nxt: Node | None = None
+        reason: NoRouteReason | None = None
 
         for idx, policy in enumerate(policy_order):
             candidate, trace = await policy.choose(

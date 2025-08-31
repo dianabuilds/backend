@@ -11,8 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.db.session import get_db
+
+from app.core.preview import PreviewContext, PreviewMode  # isort: skip
 from app.core.metrics import record_no_route, record_route_length
-from app.core.preview import PreviewContext, PreviewMode
 from app.core.rng import next_seed
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.navigation.application.transition_router import (
