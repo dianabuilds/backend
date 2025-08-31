@@ -42,10 +42,10 @@ async def get_current_user(
         )
     try:
         user_id = UUID(user_id_str)
-    except ValueError:
+    except ValueError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        ) from None
+        ) from err
     # Выбираем только безопасные колонки,
     # чтобы не падать на отсутствующих (например, premium_until)
     result = await db.execute(

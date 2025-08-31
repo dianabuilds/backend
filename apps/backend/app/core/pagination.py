@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import base64
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Literal, Mapping, Sequence, Tuple
+from typing import Any, Callable, Literal
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -42,8 +43,8 @@ def parse_page_query(
     raw_limit = params.get("limit", "25")
     try:
         limit = int(raw_limit)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid limit")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="Invalid limit") from err
     if not 1 <= limit <= 100:
         raise HTTPException(status_code=400, detail="Invalid limit")
 
@@ -86,7 +87,7 @@ def build_cursor_for_last_item(item: Any, sort_field: str, order: str) -> str:
     value = getattr(item, sort_field)
     if isinstance(value, datetime):
         value = value.isoformat()
-    payload = CursorPayload(k=value, id=str(getattr(item, "id")), o=order, s=sort_field)
+    payload = CursorPayload(k=value, id=str(item.id), o=order, s=sort_field)
     return encode_cursor(payload)
 
 
@@ -137,7 +138,7 @@ async def fetch_page(
     *,
     session,
     limit: int,
-) -> Tuple[Sequence[Any], bool]:
+) -> tuple[Sequence[Any], bool]:
     """Execute statement with cursor pagination logic.
 
     The function fetches ``limit + 1`` rows to determine whether another page
@@ -154,14 +155,16 @@ async def fetch_page(
 
 
 FilterHandler = Callable[[Select, Any], Select]
-FilterSpec = Mapping[str, Tuple[Callable[[str], Any], FilterHandler]]
+FilterSpec = Mapping[str, tuple[Callable[[str], Any], FilterHandler]]
 
 
 def extract_filters(params: Mapping[str, str]) -> dict[str, str]:
     return {k[2:]: v for k, v in params.items() if k.startswith("f_")}
 
 
-def apply_filters(stmt: Select, filters: Mapping[str, str], spec: FilterSpec) -> Tuple[Select, dict[str, Any]]:
+def apply_filters(
+    stmt: Select, filters: Mapping[str, str], spec: FilterSpec
+) -> tuple[Select, dict[str, Any]]:
     applied: dict[str, Any] = {}
     for key, raw in filters.items():
         if key not in spec:
@@ -169,8 +172,10 @@ def apply_filters(stmt: Select, filters: Mapping[str, str], spec: FilterSpec) ->
         parser, handler = spec[key]
         try:
             value = parser(raw)
-        except Exception:
-            raise HTTPException(status_code=400, detail=f"Invalid filter: {key}")
+        except Exception as err:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid filter: {key}"
+            ) from err
         stmt = handler(stmt, value)
         applied[key] = value
     return stmt, applied

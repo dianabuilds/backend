@@ -1,3 +1,4 @@
+# ruff: noqa: B008
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -85,8 +86,8 @@ async def post_rollback(
         applied = await svc.rollback_relevance(
             int(toVersion), str(getattr(current, "id", ""))
         )
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Version not found")
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail="Version not found") from err
     await audit_log(
         db,
         actor_id=str(getattr(current, "id", "")),
