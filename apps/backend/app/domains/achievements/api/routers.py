@@ -50,7 +50,11 @@ def _svc(db: AsyncSession) -> AchievementsService:
     return AchievementsService(AchievementsRepository(db), InAppNotificationPort(db))
 
 
-@user_router.get("", response_model=list[AchievementOut], summary="List achievements")
+@user_router.get(
+    "",
+    response_model=list[AchievementOut],
+    summary="List achievements",
+)
 async def list_achievements(
     workspace: Workspace = Depends(current_workspace),
     db: AsyncSession = Depends(get_db),
@@ -89,7 +93,11 @@ async def list_achievements_admin(
     return [AchievementAdminOut.model_validate(r) for r in rows]
 
 
-@admin_router.post("", response_model=AchievementAdminOut, summary="Create achievement")
+@admin_router.post(
+    "",
+    response_model=AchievementAdminOut,
+    summary="Create achievement",
+)
 async def create_achievement_admin(
     body: AchievementCreateIn,
     workspace_id: UUID,
@@ -162,7 +170,10 @@ class UserIdIn(BaseModel):
     user_id: UUID
 
 
-@admin_router.post("/{achievement_id}/grant", summary="Grant achievement to user")
+@admin_router.post(
+    "/{achievement_id}/grant",
+    summary="Grant achievement to user",
+)
 async def grant_achievement(
     achievement_id: UUID,
     body: UserIdIn,
@@ -178,7 +189,10 @@ async def grant_achievement(
     return {"granted": granted}
 
 
-@admin_router.post("/{achievement_id}/revoke", summary="Revoke achievement from user")
+@admin_router.post(
+    "/{achievement_id}/revoke",
+    summary="Revoke achievement from user",
+)
 async def revoke_achievement(
     achievement_id: UUID,
     body: UserIdIn,

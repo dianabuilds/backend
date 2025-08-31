@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-# Standalone SQLAlchemy type adapters to avoid importing app.models package (prevents circular imports)
-import os
-import uuid
-from typing import Any, Dict, Optional, Union
+# isort: skip_file
+# mypy: ignore-errors
 
-from sqlalchemy.dialects.postgresql import JSONB as pg_JSONB, UUID as pg_UUID, TSVECTOR as pg_TSVECTOR
-from sqlalchemy.types import JSON, TypeDecorator, CHAR
+# Standalone SQLAlchemy type adapters to avoid importing app.models package
+# (prevents circular imports)
+import uuid
+
 import sqlalchemy.types as types
+from sqlalchemy.dialects.postgresql import (
+    JSONB as pg_JSONB,
+    UUID as pg_UUID,
+    TSVECTOR as pg_TSVECTOR,
+)
+from sqlalchemy.types import CHAR, JSON, TypeDecorator
 
 
 class UUID(TypeDecorator):
@@ -94,7 +100,10 @@ class ARRAY(TypeDecorator):
 
 
 class VECTOR(TypeDecorator):
-    """Vector type adapter. For PostgreSQL uses TSVECTOR or vector extension; otherwise stores as JSON."""
+    """Vector type adapter.
+
+    For PostgreSQL uses TSVECTOR or vector extension; otherwise stores as JSON.
+    """
 
     impl = JSON
     cache_ok = True
