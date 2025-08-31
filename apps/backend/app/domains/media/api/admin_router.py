@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
@@ -29,10 +30,10 @@ router = APIRouter(
 @router.get("", response_model=list[MediaAssetOut], summary="List media assets")
 async def list_media_assets(
     workspace_id: UUID,
-    limit: int = Query(100, ge=1, le=500),
-    offset: int = Query(0, ge=0),
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    limit: Annotated[int, Query(100, ge=1, le=500)] = ...,
+    offset: Annotated[int, Query(0, ge=0)] = ...,
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> list[MediaAssetOut]:
     items = await MediaAssetDAO.list(
         db,
@@ -46,10 +47,10 @@ async def list_media_assets(
 @router.post("", summary="Upload media asset")
 async def upload_media_asset(
     workspace_id: UUID,
-    file: UploadFile = File(...),  # noqa: B008
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    storage: IStorageGateway = Depends(get_storage),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    file: Annotated[UploadFile, File(...)] = ...,  # noqa: B008
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    storage: Annotated[IStorageGateway, Depends(get_storage)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     node_cover_upload_start(str(getattr(_, "id", None)))
     try:

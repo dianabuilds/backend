@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
@@ -37,7 +38,7 @@ admin_required = require_admin_role()
 async def simulate_transitions(
     payload: SimulateRequest,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     result = await db.execute(select(Node).where(Node.slug == payload.start))
     node = result.scalars().first()

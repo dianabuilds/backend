@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query
@@ -107,9 +107,9 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 @router.post("", summary="Create article (admin)")
 async def create_article(
     payload: dict | None = None,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
     item = await svc.create(workspace_id, "article", actor_id=current_user.id)
@@ -122,9 +122,9 @@ async def create_article(
 @router.get("/{node_id}", summary="Get article (admin)")
 async def get_article(
     node_id: int | UUID,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
     if isinstance(node_id, int):
@@ -142,10 +142,10 @@ async def get_article(
 async def update_article(
     node_id: int | UUID,
     payload: dict,
-    workspace_id: UUID = Path(...),  # noqa: B008
-    next: int = Query(0),
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
+    next: Annotated[int, Query(0)] = ...,
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
     if isinstance(node_id, int):
@@ -179,9 +179,9 @@ async def update_article(
 async def publish_article(
     node_id: int | UUID,
     payload: PublishIn | None = None,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
     if isinstance(node_id, int):
@@ -222,9 +222,9 @@ async def publish_article(
 )
 async def validate_article(
     node_id: int | UUID,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> ValidateResult:
     svc = NodeService(db)
     if isinstance(node_id, int):

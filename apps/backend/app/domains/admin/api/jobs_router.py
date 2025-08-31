@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,7 +26,7 @@ router = APIRouter(
     response_model=list[BackgroundJobHistoryOut],
 )
 async def recent_jobs(
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> list[BackgroundJobHistoryOut]:
     jobs = await JobsService.get_recent(db, limit=10)
     return [BackgroundJobHistoryOut.model_validate(j) for j in jobs]

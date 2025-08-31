@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # ruff: noqa: B008
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -61,8 +61,8 @@ router = APIRouter(
 )
 async def create_workspace(
     data: WorkspaceIn,
-    user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(auth_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceOut:
     workspace = await WorkspaceService.create(db, data=data, owner=user)
     return workspace
@@ -70,8 +70,8 @@ async def create_workspace(
 
 @router.get("", response_model=list[WorkspaceWithRoleOut], summary="List workspaces")
 async def list_workspaces(
-    user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(auth_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> list[WorkspaceWithRoleOut]:
     stmt = (
         select(Workspace, WorkspaceMember.role)
@@ -91,8 +91,8 @@ async def list_workspaces(
 @router.get("/{workspace_id}", response_model=WorkspaceOut, summary="Get workspace")
 async def get_workspace(
     workspace_id: UUID,
-    user: User = Depends(auth_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(auth_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceOut:
     return await WorkspaceService.get_for_user(db, workspace_id, user)
 
@@ -103,8 +103,8 @@ async def get_workspace(
 async def update_workspace(
     workspace_id: UUID,
     data: WorkspaceUpdate,
-    _: WorkspaceMember | None = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_editor)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceOut:
     return await WorkspaceService.update(db, workspace_id, data)
 
@@ -112,8 +112,8 @@ async def update_workspace(
 @router.delete("/{workspace_id}", status_code=204, summary="Delete workspace")
 async def delete_workspace(
     workspace_id: UUID,
-    _: WorkspaceMember | None = Depends(require_ws_owner),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_owner)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Response:
     await WorkspaceService.delete(db, workspace_id)
     return Response(status_code=204)
@@ -128,8 +128,8 @@ async def delete_workspace(
 async def add_member(
     workspace_id: UUID,
     data: WorkspaceMemberIn,
-    _: WorkspaceMember | None = Depends(require_ws_owner),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_owner)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMemberOut:
     return await WorkspaceService.add_member(db, workspace_id, data)
 
@@ -143,8 +143,8 @@ async def update_member(
     workspace_id: UUID,
     user_id: UUID,
     data: WorkspaceMemberIn,
-    _: WorkspaceMember | None = Depends(require_ws_owner),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_owner)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMemberOut:
     if data.user_id != user_id:
         raise HTTPException(status_code=400, detail="User ID mismatch")
@@ -159,8 +159,8 @@ async def update_member(
 async def remove_member(
     workspace_id: UUID,
     user_id: UUID,
-    _: WorkspaceMember | None = Depends(require_ws_owner),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_owner)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Response:
     await WorkspaceService.remove_member(db, workspace_id, user_id)
     return Response(status_code=204)
@@ -173,8 +173,8 @@ async def remove_member(
 )
 async def list_members(
     workspace_id: UUID,
-    _: WorkspaceMember | None = Depends(require_ws_owner),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_owner)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> list[WorkspaceMemberOut]:
     return await WorkspaceService.list_members(db, workspace_id)
 
@@ -186,8 +186,8 @@ async def list_members(
 )
 async def get_ai_presets(
     workspace_id: UUID,
-    _: WorkspaceMember | None = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_editor)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict[str, Any]:
     workspace = await WorkspaceDAO.get(db, workspace_id)
     if not workspace:
@@ -204,8 +204,8 @@ async def get_ai_presets(
 async def put_ai_presets(
     workspace_id: UUID,
     presets: dict[str, Any],
-    _: WorkspaceMember | None = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_editor)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict[str, Any]:
     workspace = await WorkspaceDAO.get(db, workspace_id)
     if not workspace:
@@ -231,8 +231,8 @@ async def put_ai_presets(
 )
 async def get_notifications(
     workspace_id: UUID,
-    _: WorkspaceMember | None = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_editor)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> NotificationRules:
     workspace = await WorkspaceDAO.get(db, workspace_id)
     if not workspace:
@@ -249,8 +249,8 @@ async def get_notifications(
 async def put_notifications(
     workspace_id: UUID,
     rules: NotificationRules,
-    _: WorkspaceMember | None = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_editor)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> NotificationRules:
     workspace = await WorkspaceDAO.get(db, workspace_id)
     if not workspace:
@@ -272,8 +272,8 @@ async def put_notifications(
 )
 async def get_limits(
     workspace_id: UUID,
-    _: WorkspaceMember | None = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_editor)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict[str, int]:
     workspace = await WorkspaceDAO.get(db, workspace_id)
     if not workspace:
@@ -290,8 +290,8 @@ async def get_limits(
 async def put_limits(
     workspace_id: UUID,
     limits: dict[str, int],
-    _: WorkspaceMember | None = Depends(require_ws_editor),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_editor)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict[str, int]:
     workspace = await WorkspaceDAO.get(db, workspace_id)
     if not workspace:
@@ -310,9 +310,9 @@ async def put_limits(
 )
 async def get_workspace_usage(
     workspace_id: UUID,
-    user: User = Depends(auth_user),
-    _: WorkspaceMember | None = Depends(require_ws_viewer),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(auth_user)] = ...,
+    _: Annotated[WorkspaceMember | None, Depends(require_ws_viewer)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict:
     repo = AIUsageRepository(db)
     totals = await repo.workspace_totals(workspace_id)

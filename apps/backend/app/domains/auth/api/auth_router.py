@@ -115,7 +115,7 @@ async def login(
 async def refresh(
     request: Request,
     response: Response,
-    payload: Token = Body(default=Token()),
+    payload: Annotated[Token, Body(default=Token())] = ...,
 ) -> LoginResponse:
     token = payload.token or request.cookies.get("refresh_token")
     if not token:
@@ -162,7 +162,7 @@ async def signup(
 @router.get("/verify", dependencies=[Depends(_rate.dependency("verify"))])
 async def verify_email(
     db: Annotated[AsyncSession, Depends(get_db)],
-    token: str = Query(...),
+    token: Annotated[str, Query(...)] = ...,
 ) -> dict[str, Any]:
     if not token:
         raise http_error(400, "Token required")
@@ -180,7 +180,7 @@ class ChangePasswordIn(BaseModel):
 async def change_password(
     payload: ChangePasswordIn,
     db: Annotated[AsyncSession, Depends(get_db)],
-    authorization: str = Header(default=""),
+    authorization: Annotated[str, Header(default="")] = ...,
 ) -> dict[str, Any]:
     token = authorization.replace("Bearer ", "")
     return await _svc.change_password(
@@ -194,7 +194,9 @@ async def logout() -> dict[str, Any]:
 
 
 @router.get("/evm/nonce", dependencies=[Depends(_rate.dependency("evm_nonce"))])
-async def evm_nonce(user_id: str = Query(..., description="User ID")) -> dict[str, Any]:
+async def evm_nonce(
+    user_id: Annotated[str, Query(..., description="User ID")] = ...,
+) -> dict[str, Any]:
     return await _svc.evm_nonce(user_id)
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 import jwt
@@ -105,10 +105,10 @@ def require_admin_role(allowed_roles: set[str] | None = None):
 
     async def dependency(
         request: Request,
-        credentials: HTTPAuthorizationCredentials | None = Security(  # noqa: B008
-            bearer_scheme
-        ),
-        db: AsyncSession = Depends(get_db),  # noqa: B008
+        credentials: Annotated[
+            HTTPAuthorizationCredentials | None, Security(bearer_scheme)  # noqa: B008
+        ] = ...,
+        db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
     ) -> User:
         # Приоритет: Bearer из заголовка; если его нет — берём access_token из cookie.
         token: str | None = None
@@ -134,10 +134,10 @@ def require_admin_or_preview_token(allowed_roles: set[str] | None = None):
 
     async def dependency(
         request: Request,
-        credentials: HTTPAuthorizationCredentials | None = Security(  # noqa: B008
-            bearer_scheme
-        ),
-        db: AsyncSession = Depends(get_db),  # noqa: B008
+        credentials: Annotated[
+            HTTPAuthorizationCredentials | None, Security(bearer_scheme)  # noqa: B008
+        ] = ...,
+        db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
     ):
         token = request.query_params.get("token") or request.headers.get(
             "X-Preview-Token"
@@ -153,10 +153,10 @@ def require_admin_or_preview_token(allowed_roles: set[str] | None = None):
 
 async def auth_user(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Security(  # noqa: B008
-        bearer_scheme
-    ),
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Security(bearer_scheme)  # noqa: B008
+    ] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> User:
     token: str | None = None
     if credentials is not None and credentials.credentials:

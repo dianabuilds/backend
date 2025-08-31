@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import JSONResponse
@@ -30,8 +31,8 @@ router = APIRouter(
 @router.get("/menu", summary="Get admin menu")
 async def get_admin_menu(
     request: Request,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Response:
     preview_header = request.headers.get("X-Feature-Flags", "")
     effective_flags = await get_effective_flags(db, preview_header)
@@ -68,7 +69,7 @@ async def get_admin_menu(
 
 @router.post("/menu/invalidate", summary="Invalidate admin menu cache")
 async def invalidate_admin_menu(
-    current_user: User = Depends(admin_required),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
 ) -> JSONResponse:
     invalidate_menu_cache()
     return JSONResponse({"status": "invalidated"})

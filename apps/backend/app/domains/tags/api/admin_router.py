@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 # ruff: noqa: B008
 from uuid import UUID
 
@@ -37,11 +39,11 @@ router = APIRouter(
     summary="List tags with usage",
 )
 async def list_tags(
-    q: str | None = Query(None),
-    limit: int = Query(200, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
-    _: Depends = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    q: Annotated[str | None, Query(None)] = ...,
+    limit: Annotated[int, Query(200, ge=1, le=1000)] = ...,
+    offset: Annotated[int, Query(0, ge=0)] = ...,
+    _: Annotated[Depends, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> list[TagListItem]:
     svc = TagAdminService(TagRepositoryAdapter(db))
     rows = await svc.list_tags(q, limit, offset)
@@ -55,8 +57,8 @@ async def list_tags(
 )
 async def get_aliases(
     tag_id: UUID,
-    _: Depends = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[Depends, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> list[AliasOut]:
     svc = TagAdminService(TagRepositoryAdapter(db))
     items = await svc.list_aliases(tag_id)
@@ -69,7 +71,7 @@ async def post_alias(
     alias: str,
     request: Request,
     current=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> AliasOut:
     svc = TagAdminService(TagRepositoryAdapter(db))
     item = await svc.add_alias(
@@ -83,7 +85,7 @@ async def del_alias(
     alias_id: UUID,
     request: Request,
     current=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     svc = TagAdminService(TagRepositoryAdapter(db))
     await svc.remove_alias(db, alias_id, str(getattr(current, "id", "")), None, request)
@@ -99,7 +101,7 @@ async def merge_tags(
     body: MergeIn,
     request: Request,
     current=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> MergeReport:
     svc = TagAdminService(TagRepositoryAdapter(db))
     if body.dryRun:
@@ -122,9 +124,9 @@ async def merge_tags(
     summary="List blacklisted tags",
 )
 async def get_blacklist(
-    q: str | None = Query(None),
-    _: Depends = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    q: Annotated[str | None, Query(None)] = ...,
+    _: Annotated[Depends, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> list[BlacklistItem]:
     svc = TagAdminService(TagRepositoryAdapter(db))
     items = await svc.blacklist_list(q)
@@ -140,7 +142,7 @@ async def add_blacklist(
     body: BlacklistAdd,
     request: Request,
     current=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> BlacklistItem:
     svc = TagAdminService(TagRepositoryAdapter(db))
     item = await svc.blacklist_add(
@@ -158,7 +160,7 @@ async def delete_blacklist(
     slug: str,
     request: Request,
     current=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     svc = TagAdminService(TagRepositoryAdapter(db))
     await svc.blacklist_delete(db, slug, str(getattr(current, "id", "")), request)
@@ -170,7 +172,7 @@ async def create_tag(
     body: TagCreate,
     request: Request,
     current=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> TagListItem:
     svc = TagAdminService(TagRepositoryAdapter(db))
     slug = (body.slug or "").strip().lower()
@@ -198,7 +200,7 @@ async def delete_tag(
     tag_id: UUID,
     request: Request,
     current=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     svc = TagAdminService(TagRepositoryAdapter(db))
     await svc.delete_tag(db, tag_id, str(getattr(current, "id", "")), request)

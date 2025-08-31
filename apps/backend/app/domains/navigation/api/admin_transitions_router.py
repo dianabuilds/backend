@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -34,14 +35,14 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 
 @router.get("", response_model=list[AdminTransitionOut], summary="List transitions")
 async def list_transitions_admin(
-    from_slug: str | None = Query(None, alias="from"),
-    to_slug: str | None = Query(None, alias="to"),
+    from_slug: Annotated[str | None, Query(None, alias="from")] = ...,
+    to_slug: Annotated[str | None, Query(None, alias="to")] = ...,
     type: NodeTransitionType | None = None,
     author: UUID | None = None,
     page: int = 1,
-    page_size: int = Query(50, ge=1, le=100),
+    page_size: Annotated[int, Query(50, ge=1, le=100)] = ...,
     current_user=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     spec = TransitionFilterSpec(
         from_slug=from_slug, to_slug=to_slug, type=type, author=author
@@ -73,7 +74,7 @@ async def update_transition_admin(
     transition_id: UUID,
     payload: NodeTransitionUpdate,
     current_user=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     transition = await db.get(NodeTransition, transition_id)
     if not transition:
@@ -129,7 +130,7 @@ async def update_transition_admin(
 async def delete_transition_admin(
     transition_id: UUID,
     current_user=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     transition = await db.get(NodeTransition, transition_id)
     if not transition:
@@ -148,7 +149,7 @@ async def delete_transition_admin(
 async def disable_transitions_by_node(
     payload: TransitionDisableRequest,
     current_user=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     res = await db.execute(select(Node).where(Node.slug == payload.slug))
     node = res.scalars().first()

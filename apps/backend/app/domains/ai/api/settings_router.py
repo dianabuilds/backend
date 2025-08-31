@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +26,7 @@ admin_required = require_admin_role()
 
 @router.get("/settings")
 async def get_settings(
-    _=Depends(admin_required), db: AsyncSession = Depends(get_db)
+    _=Depends(admin_required), db: Annotated[AsyncSession, Depends(get_db)] = ...
 ) -> dict[str, Any]:
     service = SettingsService(AISettingsRepository(db))
     return await service.get_ai_settings()
@@ -36,7 +36,7 @@ async def get_settings(
 async def put_settings(
     payload: dict[str, Any],
     _=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict[str, Any]:
     provider = payload.get("provider")
     base_url = payload.get("base_url")
@@ -57,7 +57,7 @@ async def put_settings(
 
 @compat_router.get("/settings")
 async def get_settings_compat(
-    _=Depends(admin_required), db: AsyncSession = Depends(get_db)
+    _=Depends(admin_required), db: Annotated[AsyncSession, Depends(get_db)] = ...
 ) -> dict[str, Any]:
     service = SettingsService(AISettingsRepository(db))
     return await service.get_ai_settings()
@@ -67,6 +67,6 @@ async def get_settings_compat(
 async def put_settings_compat(
     payload: dict[str, Any],
     _=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict[str, Any]:
     return await put_settings(payload, _, db)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -21,7 +22,7 @@ admin_required = require_admin_role()
 async def recompute_node_embedding(
     node_id: UUID,
     current_user=Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     node = await db.get(Node, node_id)
     if not node:

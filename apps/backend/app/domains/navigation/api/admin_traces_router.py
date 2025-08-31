@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -36,8 +37,8 @@ class BulkIds(BaseModel):
 
 @router.get("", summary="List navigation traces")
 async def list_traces(
-    from_slug: str | None = Query(None, alias="from"),
-    to_slug: str | None = Query(None, alias="to"),
+    from_slug: Annotated[str | None, Query(None, alias="from")] = ...,
+    to_slug: Annotated[str | None, Query(None, alias="to")] = ...,
     user_id: UUID | None = None,
     type: str | None = None,
     source: str | None = None,
@@ -45,9 +46,9 @@ async def list_traces(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     page: int = 1,
-    page_size: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    page_size: Annotated[int, Query(50, ge=1, le=100)] = ...,
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     node_alias = aliased(Node)
 
@@ -103,8 +104,8 @@ async def list_traces(
 @router.post("/{trace_id}/anonymize", summary="Anonymize trace (remove user reference)")
 async def anonymize_trace(
     trace_id: UUID,
-    current_user: User = Depends(admin_only),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_only)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     trace = await db.get(NodeTrace, trace_id)
     if not trace:
@@ -125,8 +126,8 @@ async def anonymize_trace(
 @router.delete("/{trace_id}", summary="Delete trace")
 async def delete_trace(
     trace_id: UUID,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     trace = await db.get(NodeTrace, trace_id)
     if not trace:
@@ -146,8 +147,8 @@ async def delete_trace(
 @router.post("/bulk/anonymize", summary="Bulk anonymize traces")
 async def bulk_anonymize_traces(
     payload: BulkIds,
-    current_user: User = Depends(admin_only),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_only)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     if not payload.ids:
         return {"updated": 0}
@@ -172,8 +173,8 @@ async def bulk_anonymize_traces(
 @router.post("/bulk/delete", summary="Bulk delete traces")
 async def bulk_delete_traces(
     payload: BulkIds,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     if not payload.ids:
         return {"deleted": 0}

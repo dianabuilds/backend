@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
@@ -17,13 +17,13 @@ router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 
 @router.get("/jobs_paged", response_model=Paginated[dict])
 async def list_jobs_paged(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    status: str | None = Query(
-        None, pattern="^(queued|running|completed|failed|canceled)$"
-    ),
-    db: AsyncSession = Depends(get_db),
-    _admin: Any = Depends(admin_required),
+    page: Annotated[int, Query(1, ge=1)] = ...,
+    per_page: Annotated[int, Query(20, ge=1, le=100)] = ...,
+    status: Annotated[
+        str | None, Query(None, pattern="^(queued|running|completed|failed|canceled)$")
+    ] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _admin: Annotated[Any, Depends(admin_required)] = ...,
 ) -> dict[str, Any]:
     base = select(GenerationJob)
     if status:

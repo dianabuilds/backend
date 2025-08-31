@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,8 +17,8 @@ admin_required = require_admin_role()
 
 @router.get("/issues", summary="List drafts with missing fields")
 async def list_draft_issues(
-    _: object = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[object, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
     limit: int = 5,
 ):
     svc = NodeQueryService(db)

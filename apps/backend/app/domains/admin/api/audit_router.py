@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -31,9 +32,9 @@ async def list_audit_logs(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     page: int = 1,
-    page_size: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(admin_only),
-    db: AsyncSession = Depends(get_db),
+    page_size: Annotated[int, Query(50, ge=1, le=100)] = ...,
+    current_user: Annotated[User, Depends(admin_only)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     stmt = select(AuditLog)
     if actor_id:

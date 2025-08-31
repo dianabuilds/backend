@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,10 +16,10 @@ router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 @router.get("/jobs/{job_id}/logs")
 async def get_generation_job_logs(
     job_id: str,
-    db: AsyncSession = Depends(get_db),
-    _admin: Any = Depends(admin_required),
-    limit: int = Query(200, ge=1, le=1000),
-    clip: int = Query(5000, ge=512, le=200000),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _admin: Annotated[Any, Depends(admin_required)] = ...,
+    limit: Annotated[int, Query(200, ge=1, le=1000)] = ...,
+    clip: Annotated[int, Query(5000, ge=512, le=200000)] = ...,
 ) -> list[dict[str, Any]]:
     try:
         q = (

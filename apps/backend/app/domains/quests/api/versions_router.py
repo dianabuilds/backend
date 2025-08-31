@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -59,8 +60,8 @@ async def _ensure_version_access(
 async def list_versions(
     quest_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     await _ensure_quest_access(db, quest_id, workspace_id, current_user)
     res = await db.execute(
@@ -80,8 +81,8 @@ async def list_versions(
 async def create_version(
     quest_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     await _ensure_quest_access(db, quest_id, workspace_id, current_user)
     svc = EditorService()
@@ -99,8 +100,8 @@ async def create_version(
 async def get_current_version(
     quest_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     await _ensure_quest_access(db, quest_id, workspace_id, current_user)
     res = await db.execute(
@@ -133,8 +134,8 @@ async def get_version(
     quest_id: UUID,
     version_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     version = await _ensure_version_access(db, version_id, workspace_id, current_user)
     if version.quest_id != quest_id:
@@ -147,8 +148,8 @@ async def delete_version(
     quest_id: UUID,
     version_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     version = await _ensure_version_access(db, version_id, workspace_id, current_user)
     if version.quest_id != quest_id:
@@ -169,8 +170,8 @@ async def delete_version(
 async def get_graph(
     version_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     await _ensure_version_access(db, version_id, workspace_id, current_user)
     svc = QuestGraphService()
@@ -190,8 +191,8 @@ async def put_graph(
     version_id: UUID,
     payload: QuestGraphIn,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     await _ensure_version_access(db, version_id, workspace_id, current_user)
     svc = QuestGraphService()
@@ -208,8 +209,8 @@ async def put_graph(
 async def validate_version(
     version_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     await _ensure_version_access(db, version_id, workspace_id, current_user)
     svc = EditorService()
@@ -226,9 +227,9 @@ async def simulate_version(
     version_id: UUID,
     payload: SimulateIn,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    preview: PreviewContext = Depends(get_preview_context),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ):
     await _ensure_version_access(db, version_id, workspace_id, current_user)
     svc = EditorService()
@@ -243,8 +244,8 @@ async def simulate_version(
 async def publish_version(
     version_id: UUID,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     version = await _ensure_version_access(db, version_id, workspace_id, current_user)
     if version.status != "draft":

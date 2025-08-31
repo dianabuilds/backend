@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
@@ -35,7 +35,7 @@ class RecentPayment(BaseModel):
 async def list_recent_payments(
     limit: int = 20,
     _=Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> list[RecentPayment]:
     stmt = (
         select(PaymentTransaction)

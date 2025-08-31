@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -55,8 +56,8 @@ async def create_quest(
     body: QuestCreateIn,
     request: Request,
     workspace_id: UUID,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     q = Quest(
         workspace_id=workspace_id,
@@ -86,8 +87,8 @@ async def create_quest(
 async def get_quest(
     quest_id: UUID,
     workspace_id: UUID,
-    _: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     quest = await db.get(Quest, quest_id)
     if not quest:
@@ -114,8 +115,8 @@ async def create_draft(
     quest_id: UUID,
     request: Request,
     workspace_id: UUID,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     quest = await db.get(Quest, quest_id)
     if not quest:
@@ -142,8 +143,8 @@ async def create_draft(
 )
 async def get_version(
     version_id: UUID,
-    _: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     try:
         svc_q = QuestGraphService()
@@ -169,8 +170,8 @@ async def put_graph(
     version_id: UUID,
     payload: QuestGraphIn,
     request: Request,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     v = await db.get(QuestVersion, version_id)
     if not v:
@@ -200,8 +201,8 @@ async def put_graph(
 async def validate_version(
     version_id: UUID,
     workspace_id: UUID,
-    _: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    _: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ver = await db.get(QuestVersion, version_id)
     if not ver:
@@ -218,8 +219,8 @@ async def validate_version(
 async def autofix_version(
     version_id: UUID,
     request: Request,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     v = await db.get(QuestVersion, version_id)
     if not v:
@@ -344,8 +345,8 @@ async def publish_version(
     version_id: UUID,
     request: Request,
     workspace_id: UUID,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     v = await db.get(QuestVersion, version_id)
     if not v:
@@ -429,8 +430,8 @@ async def publish_version(
 async def rollback_version(
     version_id: UUID,
     request: Request,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     v = await db.get(QuestVersion, version_id)
     if not v:
@@ -457,9 +458,9 @@ async def simulate_version(
     version_id: UUID,
     payload: SimulateIn,
     workspace_id: UUID,
-    _: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
-    preview: PreviewContext = Depends(get_preview_context),
+    _: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ):
     ver = await db.get(QuestVersion, version_id)
     if not ver:
@@ -476,8 +477,8 @@ async def delete_draft(
     version_id: UUID,
     request: Request,
     workspace_id: UUID,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     v = await db.get(QuestVersion, version_id)
     if not v:

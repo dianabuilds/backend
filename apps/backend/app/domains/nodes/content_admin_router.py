@@ -1,6 +1,6 @@
 # mypy: ignore-errors
 
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -140,9 +140,9 @@ async def _get_item(
 @router.get("/{node_id}", summary="Get node item by id")
 async def get_node_by_id(
     node_id: int | UUID,
-    workspace_id: UUID = Path(...),  # noqa: B008
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
@@ -159,11 +159,11 @@ async def get_node_by_id(
 async def update_node_by_id(
     node_id: int | UUID,
     payload: dict,
-    workspace_id: UUID = Path(...),  # noqa: B008
-    next: int = Query(0),
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    current_user: User = Depends(auth_user),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
+    next: Annotated[int, Query(0)] = ...,
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
@@ -189,11 +189,11 @@ async def update_node_by_id(
 @router.post("/{node_id}/publish", summary="Publish node item by id")
 async def publish_node_by_id(
     node_id: int | UUID,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     payload: PublishIn | None = None,
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    current_user: User = Depends(auth_user),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
@@ -218,12 +218,12 @@ async def publish_node_by_id(
 @router.get("/{node_type}", summary="List nodes by type")
 async def list_nodes(
     node_type: str,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     page: int = 1,
     per_page: int = 10,
     q: str | None = None,
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(
@@ -243,10 +243,10 @@ async def list_nodes(
 @router.post("/{node_type}", summary="Create node item")
 async def create_node(
     node_type: str,
-    workspace_id: UUID = Path(...),  # noqa: B008
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    current_user: User = Depends(auth_user),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(
@@ -265,9 +265,9 @@ async def create_node(
 async def get_node(
     node_type: str,
     node_id: int | UUID,
-    workspace_id: UUID = Path(...),  # noqa: B008
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(
@@ -287,11 +287,11 @@ async def update_node(
     node_type: str,
     node_id: int | UUID,
     payload: dict,
-    workspace_id: UUID = Path(...),  # noqa: B008
-    next: int = Query(0),
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    current_user: User = Depends(auth_user),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
+    next: Annotated[int, Query(0)] = ...,
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(
@@ -321,11 +321,11 @@ async def update_node(
 async def publish_node(
     node_type: str,
     node_id: int | UUID,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     payload: PublishIn | None = None,
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    current_user: User = Depends(auth_user),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(
@@ -359,11 +359,11 @@ async def publish_node(
 async def publish_node_patch(
     node_type: str,
     node_id: int | UUID,
-    workspace_id: UUID = Path(...),  # noqa: B008
+    workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
     payload: PublishIn | None = None,
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    current_user: User = Depends(auth_user),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     if str(node_type).lower() in ("quest", "quests"):
         raise HTTPException(

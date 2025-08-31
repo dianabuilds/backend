@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -35,8 +36,8 @@ async def list_users(
     premium: str | None = None,
     limit: int = 100,
     offset: int = 0,
-    current_user: User = Depends(admin_required),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_required)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     stmt = select(User).offset(offset).limit(limit)
     if q:
@@ -95,8 +96,8 @@ async def list_users(
 async def set_user_premium(
     user_id: UUID,
     payload: UserPremiumUpdate,
-    current_user: User = Depends(admin_only),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_only)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     user = await db.get(User, user_id)
     if not user:
@@ -118,8 +119,8 @@ async def set_user_premium(
 async def set_user_role(
     user_id: UUID,
     payload: UserRoleUpdate,
-    current_user: User = Depends(admin_only),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    current_user: Annotated[User, Depends(admin_only)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     user = await db.get(User, user_id)
     if not user:

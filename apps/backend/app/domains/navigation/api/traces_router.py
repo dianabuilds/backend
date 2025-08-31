@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -24,9 +25,9 @@ router = APIRouter(prefix="/traces", tags=["traces"])
 @router.post("", response_model=NodeTraceOut, summary="Create trace")
 async def create_trace(
     payload: NodeTraceCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
     node = await db.get(Node, payload.node_id)
     if not node:
@@ -47,11 +48,11 @@ async def create_trace(
 
 @router.get("", response_model=list[NodeTraceOut], summary="List traces")
 async def list_traces(
-    node_id: UUID = Query(...),
-    visible_to: str = Query("all", pattern="^(all|me)$"),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    workspace_dep: object = Depends(optional_workspace),
+    node_id: Annotated[UUID, Query(...)] = ...,
+    visible_to: Annotated[str, Query("all", pattern="^(all|me)$")] = ...,
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
 ):
     stmt = select(NodeTrace).where(NodeTrace.node_id == node_id)
     if visible_to == "me":

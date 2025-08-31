@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -18,9 +20,9 @@ router = APIRouter(prefix="/nodes", tags=["nodes-navigation"])
 @router.get("/{slug}/next", summary="Get next transitions (auto)")
 async def get_next_nodes(
     slug: str,
-    db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_current_user_optional),
-    preview: PreviewContext = Depends(get_preview_context),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    user: Annotated[User | None, Depends(get_current_user_optional)] = ...,
+    preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ):
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()
@@ -32,8 +34,8 @@ async def get_next_nodes(
 @router.get("/{slug}/next_modes", summary="Get next modes options")
 async def get_next_modes(
     slug: str,
-    db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_current_user_optional),
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    user: Annotated[User | None, Depends(get_current_user_optional)] = ...,
 ):
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalars().first()

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,8 +24,8 @@ router = APIRouter(
 
 @router.get("/user-pref", response_model=UserAIPrefOut)
 async def get_user_pref(
-    current: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> UserAIPrefOut:
     repo = UserAIPrefRepository(db)
     pref = await repo.get(current.id)
@@ -33,8 +35,8 @@ async def get_user_pref(
 @router.put("/user-pref", response_model=UserAIPrefOut)
 async def put_user_pref(
     body: UserAIPrefIn,
-    current: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> UserAIPrefOut:
     repo = UserAIPrefRepository(db)
     pref = await repo.set(current.id, body.model)

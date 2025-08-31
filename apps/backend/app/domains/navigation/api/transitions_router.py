@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -27,9 +28,9 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 async def delete_transition(
     transition_id: str,
     workspace_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    _workspace: object = Depends(require_workspace),
+    current_user: Annotated[User, Depends(get_current_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
     """Delete a specific manual transition between nodes."""
     repo = TransitionRepository(db)

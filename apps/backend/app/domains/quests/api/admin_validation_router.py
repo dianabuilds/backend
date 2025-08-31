@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,9 +17,11 @@ router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 @router.get("/versions/{version_id}/validation")
 async def get_version_validation(
     version_id: str,
-    recalc: bool = Query(False, description="Пересчитать отчёт принудительно"),
-    db: AsyncSession = Depends(get_db),
-    _admin: Any = Depends(admin_required),
+    recalc: Annotated[
+        bool, Query(False, description="Пересчитать отчёт принудительно")
+    ] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _admin: Annotated[Any, Depends(admin_required)] = ...,
 ) -> dict[str, Any]:
     res = await db.execute(select(QuestVersion).where(QuestVersion.id == version_id))
     ver: QuestVersion | None = res.scalars().first()
