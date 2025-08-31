@@ -59,6 +59,7 @@ export type { NodeOut } from './models/NodeOut';
 export type { NodePatchCreate } from './models/NodePatchCreate';
 export type { NodePatchDiffOut } from './models/NodePatchDiffOut';
 export type { NodePatchOut } from './models/NodePatchOut';
+export type { DraftIssueOut } from './models/DraftIssueOut';
 export type { NodeTagsUpdate } from './models/NodeTagsUpdate';
 export type { NodeTraceCreate } from './models/NodeTraceCreate';
 export type { NodeTraceKind } from './models/NodeTraceKind';
