@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
 from app.domains.quests.services import QuestStepService
-from app.models.quests import QuestStep
+from app.models.quests import QuestStep, QuestStepTransition
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 
@@ -94,6 +94,52 @@ class QuestStepPage(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
+class QuestTransitionBase(BaseModel):
+    to_step_id: UUID = Field(alias="toStepId")
+    label: str | None = None
+    condition: dict[str, Any] | None = None
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    @field_validator("condition", mode="before")
+    @classmethod
+    def _parse_json(cls, v: Any) -> Any:  # noqa: ANN001
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            import json
+
+            try:
+                parsed = json.loads(v)
+            except Exception:  # noqa: BLE001
+                return None
+            return parsed if isinstance(parsed, dict) else None
+        return None
+
+
+class QuestTransitionCreate(QuestTransitionBase):
+    pass
+
+
+class QuestTransitionOut(QuestTransitionBase):
+    id: UUID
+    quest_id: UUID = Field(alias="questId")
+    from_step_id: UUID = Field(alias="fromStepId")
+
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
+
+
+class QuestGraphOut(BaseModel):
+    steps: list[QuestStepOut] = Field(default_factory=list)
+    transitions: list[QuestTransitionOut] = Field(default_factory=list)
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
 admin_required = require_admin_role({"admin", "moderator", "editor"})
 
 router = APIRouter(
@@ -114,14 +160,18 @@ async def list_steps(
     svc = QuestStepService()
     steps = await svc.list_steps(db, quest_id, limit=limit, offset=offset)
     total_res = await db.execute(
-        select(func.count()).select_from(QuestStep).where(QuestStep.quest_id == quest_id)
+        select(func.count())
+        .select_from(QuestStep)
+        .where(QuestStep.quest_id == quest_id)
     )
     total = int(total_res.scalar() or 0)
     items = [QuestStepOut.model_validate(s, from_attributes=True) for s in steps]
     return QuestStepPage(total=total, items=items)
 
 
-@router.post("", response_model=QuestStepOut, status_code=201, summary="Create quest step")
+@router.post(
+    "", response_model=QuestStepOut, status_code=201, summary="Create quest step"
+)
 async def create_step(
     quest_id: UUID,
     payload: QuestStepCreate,
@@ -184,9 +234,7 @@ async def patch_step(
     if not step or step.quest_id != quest_id:
         raise HTTPException(status_code=404, detail="Step not found")
     svc = QuestStepService()
-    step = await svc.update_step(
-        db, step_id, **payload.model_dump(exclude_unset=True)
-    )
+    step = await svc.update_step(db, step_id, **payload.model_dump(exclude_unset=True))
     await db.commit()
     return QuestStepOut.model_validate(step, from_attributes=True)
 
@@ -205,3 +253,110 @@ async def delete_step(
     await svc.delete_step(db, step_id)
     await db.commit()
     return {"status": "ok"}
+
+
+@router.get(
+    "/{step_id}/transitions",
+    response_model=list[QuestTransitionOut],
+    summary="List transitions from step",
+)
+async def list_transitions(
+    quest_id: UUID,
+    step_id: UUID,
+    current_user=Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> list[QuestTransitionOut]:
+    step = await db.get(QuestStep, step_id)
+    if not step or step.quest_id != quest_id:
+        raise HTTPException(status_code=404, detail="Step not found")
+    svc = QuestStepService()
+    transitions = await svc.list_transitions(db, quest_id, from_step_id=step_id)
+    return [
+        QuestTransitionOut.model_validate(t, from_attributes=True) for t in transitions
+    ]
+
+
+@router.post(
+    "/{step_id}/transitions",
+    response_model=QuestTransitionOut,
+    status_code=201,
+    summary="Create transition",
+)
+async def create_transition(
+    quest_id: UUID,
+    step_id: UUID,
+    payload: QuestTransitionCreate,
+    current_user=Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> QuestTransitionOut:
+    step = await db.get(QuestStep, step_id)
+    if not step or step.quest_id != quest_id:
+        raise HTTPException(status_code=404, detail="Step not found")
+    svc = QuestStepService()
+    try:
+        tr = await svc.create_transition(
+            db,
+            quest_id,
+            from_step_id=step_id,
+            to_step_id=payload.to_step_id,
+            label=payload.label,
+            condition=payload.condition,
+        )
+    except ValueError as e:
+        if str(e) == "step_not_found":
+            raise HTTPException(status_code=404, detail="Step not found") from None
+        if str(e) in {"invalid_quest_id", "invalid_from_step"}:
+            raise HTTPException(status_code=400, detail=str(e)) from None
+        raise
+    await db.commit()
+    return QuestTransitionOut.model_validate(tr, from_attributes=True)
+
+
+@router.delete(
+    "/{step_id}/transitions/{transition_id}",
+    response_model=dict,
+    summary="Delete transition",
+)
+async def delete_transition(
+    quest_id: UUID,
+    step_id: UUID,
+    transition_id: UUID,
+    current_user=Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> dict:
+    step = await db.get(QuestStep, step_id)
+    tr = await db.get(QuestStepTransition, transition_id)
+    if (
+        not step
+        or step.quest_id != quest_id
+        or not tr
+        or tr.quest_id != quest_id
+        or tr.from_step_id != step_id
+    ):
+        raise HTTPException(status_code=404, detail="Transition not found")
+    svc = QuestStepService()
+    await svc.delete_transition(db, transition_id)
+    await db.commit()
+    return {"status": "ok"}
+
+
+graph_router = APIRouter(
+    prefix="/admin/quests/{quest_id}",
+    tags=["admin"],
+    responses=ADMIN_AUTH_RESPONSES,
+)
+
+
+@graph_router.get("/graph", response_model=QuestGraphOut, summary="Get quest graph")
+async def get_graph(
+    quest_id: UUID,
+    current_user=Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> QuestGraphOut:
+    svc = QuestStepService()
+    steps, transitions = await svc.get_graph(db, quest_id)
+    step_models = [QuestStepOut.model_validate(s, from_attributes=True) for s in steps]
+    tr_models = [
+        QuestTransitionOut.model_validate(t, from_attributes=True) for t in transitions
+    ]
+    return QuestGraphOut(steps=step_models, transitions=tr_models)

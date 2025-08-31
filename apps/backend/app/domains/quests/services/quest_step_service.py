@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.quests import QuestStep, QuestStepTransition
 
 
 class QuestStepService:
-    """Service providing CRUD operations and validations for quest steps and transitions."""
+    """CRUD and validation for quest steps and transitions."""
 
     async def list_steps(
         self,
@@ -20,8 +20,10 @@ class QuestStepService:
         limit: int | None = None,
         offset: int | None = None,
     ) -> list[QuestStep]:
-        stmt = select(QuestStep).where(QuestStep.quest_id == quest_id).order_by(
-            QuestStep.order
+        stmt = (
+            select(QuestStep)
+            .where(QuestStep.quest_id == quest_id)
+            .order_by(QuestStep.order)
         )
         if offset is not None:
             stmt = stmt.offset(offset)
@@ -110,6 +112,8 @@ class QuestStepService:
             raise ValueError("step_not_found")
         if from_step.quest_id != quest_id or to_step.quest_id != quest_id:
             raise ValueError("invalid_quest_id")
+        if getattr(from_step, "is_end", False) or from_step.type == "end":
+            raise ValueError("invalid_from_step")
         transition = QuestStepTransition(
             quest_id=quest_id,
             from_step_id=from_step_id,
@@ -120,6 +124,28 @@ class QuestStepService:
         db.add(transition)
         await db.flush()
         return transition
+
+    async def list_transitions(
+        self,
+        db: AsyncSession,
+        quest_id: UUID,
+        *,
+        from_step_id: UUID | None = None,
+    ) -> list[QuestStepTransition]:
+        stmt = select(QuestStepTransition).where(
+            QuestStepTransition.quest_id == quest_id
+        )
+        if from_step_id is not None:
+            stmt = stmt.where(QuestStepTransition.from_step_id == from_step_id)
+        res = await db.execute(stmt)
+        return list(res.scalars().all())
+
+    async def get_graph(
+        self, db: AsyncSession, quest_id: UUID
+    ) -> tuple[list[QuestStep], list[QuestStepTransition]]:
+        steps = await self.list_steps(db, quest_id)
+        transitions = await self.list_transitions(db, quest_id)
+        return steps, transitions
 
     async def delete_transition(self, db: AsyncSession, transition_id: UUID) -> None:
         tr = await db.get(QuestStepTransition, transition_id)
