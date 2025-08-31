@@ -83,7 +83,7 @@ async def list_nodes(
     request: Request,
     response: Response,
     workspace_id: UUID | None = None,
-    if_none_match: Annotated[str | None, Header(None, alias="If-None-Match")] = ...,
+    if_none_match: Annotated[str | None, Header(alias="If-None-Match")] = None,
     sort: Annotated[
         Literal[
             "updated_desc",
@@ -91,8 +91,8 @@ async def list_nodes(
             "created_asc",
             "views_desc",
         ],
-        Query("updated_desc"),
-    ] = ...,
+        Query(),
+    ] = "updated_desc",
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,

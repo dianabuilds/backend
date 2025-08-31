@@ -18,8 +18,8 @@ async def get_generation_job_logs(
     job_id: str,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _admin: Annotated[Any, Depends(admin_required)] = ...,
-    limit: Annotated[int, Query(200, ge=1, le=1000)] = ...,
-    clip: Annotated[int, Query(5000, ge=512, le=200000)] = ...,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 200,
+    clip: Annotated[int, Query(ge=512, le=200000)] = 5000,
 ) -> list[dict[str, Any]]:
     try:
         q = (
@@ -51,4 +51,4 @@ async def get_generation_job_logs(
     except Exception as e:
         raise HTTPException(
             status_code=404, detail=f"Logs not found or unavailable: {e}"
-        )
+        ) from e

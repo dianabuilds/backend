@@ -27,7 +27,8 @@ router = APIRouter(
 
 @router.get("/system", summary="System-wide usage totals")
 async def get_system_usage(
-    _=Depends(admin_required), db: Annotated[AsyncSession, Depends(get_db)] = ...
+    _: Annotated[object, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict:
     repo = AIUsageRepository(db)
     return await repo.system_totals()
@@ -35,8 +36,8 @@ async def get_system_usage(
 
 @router.get("/workspaces", summary="Usage by workspace", response_model=None)
 async def get_usage_by_workspace(
-    format: Annotated[str | None, Query(None)] = ...,
-    _=Depends(admin_required),
+    format: Annotated[str | None, Query()] = None,
+    _: Annotated[object, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     repo = AIUsageRepository(db)
@@ -70,8 +71,8 @@ async def get_usage_by_workspace(
 )
 async def get_usage_by_user(
     workspace_id: UUID,
-    format: Annotated[str | None, Query(None)] = ...,
-    _=Depends(admin_required),
+    format: Annotated[str | None, Query()] = None,
+    _: Annotated[object, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     repo = AIUsageRepository(db)
@@ -93,8 +94,8 @@ async def get_usage_by_user(
 )
 async def get_usage_by_model(
     workspace_id: UUID,
-    format: Annotated[str | None, Query(None)] = ...,
-    _=Depends(admin_required),
+    format: Annotated[str | None, Query()] = None,
+    _: Annotated[object, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     repo = AIUsageRepository(db)

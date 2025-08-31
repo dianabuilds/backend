@@ -54,7 +54,7 @@ async def list_quests(
 async def search_quests(
     workspace_id: UUID,
     q: str | None = None,
-    tags: Annotated[str | None, Query(None)] = ...,
+    tags: Annotated[str | None, Query()] = None,
     author_id: UUID | None = None,
     free_only: bool = False,
     premium_only: bool = False,

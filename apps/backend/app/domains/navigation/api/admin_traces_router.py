@@ -37,8 +37,8 @@ class BulkIds(BaseModel):
 
 @router.get("", summary="List navigation traces")
 async def list_traces(
-    from_slug: Annotated[str | None, Query(None, alias="from")] = ...,
-    to_slug: Annotated[str | None, Query(None, alias="to")] = ...,
+    from_slug: Annotated[str | None, Query(alias="from")] = None,
+    to_slug: Annotated[str | None, Query(alias="to")] = None,
     user_id: UUID | None = None,
     type: str | None = None,
     source: str | None = None,
@@ -46,7 +46,7 @@ async def list_traces(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     page: int = 1,
-    page_size: Annotated[int, Query(50, ge=1, le=100)] = ...,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 50,
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):

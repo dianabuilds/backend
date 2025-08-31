@@ -30,8 +30,8 @@ router = APIRouter(
 @router.get("", response_model=list[MediaAssetOut], summary="List media assets")
 async def list_media_assets(
     workspace_id: UUID,
-    limit: Annotated[int, Query(100, ge=1, le=500)] = ...,
-    offset: Annotated[int, Query(0, ge=0)] = ...,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> list[MediaAssetOut]:

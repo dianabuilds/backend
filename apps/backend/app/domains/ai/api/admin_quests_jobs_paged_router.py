@@ -17,11 +17,11 @@ router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 
 @router.get("/jobs_paged", response_model=Paginated[dict])
 async def list_jobs_paged(
-    page: Annotated[int, Query(1, ge=1)] = ...,
-    per_page: Annotated[int, Query(20, ge=1, le=100)] = ...,
+    page: Annotated[int, Query(ge=1)] = 1,
+    per_page: Annotated[int, Query(ge=1, le=100)] = 20,
     status: Annotated[
-        str | None, Query(None, pattern="^(queued|running|completed|failed|canceled)$")
-    ] = ...,
+        str | None, Query(pattern="^(queued|running|completed|failed|canceled)$")
+    ] = None,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _admin: Annotated[Any, Depends(admin_required)] = ...,
 ) -> dict[str, Any]:

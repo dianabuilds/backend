@@ -143,7 +143,7 @@ async def update_article(
     node_id: int | UUID,
     payload: dict,
     workspace_id: Annotated[UUID, Path(...)] = ...,  # noqa: B008
-    next: Annotated[int, Query(0)] = ...,
+    next: Annotated[int, Query()] = 0,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):

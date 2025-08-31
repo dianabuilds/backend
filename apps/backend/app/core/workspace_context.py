@@ -17,7 +17,7 @@ def get_workspace_id(
     request: Request, header_wid: UUID | str | None = None
 ) -> UUID | None:
     """Extract workspace identifier from path params, headers or query params."""
-    if not isinstance(header_wid, (str, UUID, type(None))):
+    if not isinstance(header_wid, str | UUID | type(None)):
         header_wid = None
     wid = (
         request.path_params.get("workspace_id")
@@ -52,8 +52,8 @@ async def resolve_workspace(
 async def require_workspace(
     request: Request,
     workspace_header: Annotated[
-        UUID | None, Header(None, alias="X-Workspace-Id", deprecated=True)
-    ] = ...,
+        UUID | None, Header(alias="X-Workspace-Id", deprecated=True)
+    ] = None,
     user: Annotated[User, Depends(auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Workspace:
@@ -69,8 +69,8 @@ async def require_workspace(
 async def optional_workspace(
     request: Request,
     workspace_header: Annotated[
-        UUID | None, Header(None, alias="X-Workspace-Id", deprecated=True)
-    ] = ...,
+        UUID | None, Header(alias="X-Workspace-Id", deprecated=True)
+    ] = None,
     user: Annotated[User, Depends(auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Workspace | None:
