@@ -17,14 +17,27 @@ class NodeNotificationSettingsRepository:
 
     async def get(self, user_id: UUID, node_id: int | UUID) -> NodeNotificationSetting | None:
         """Fetch notification settings for a node identified by either id type."""
-        query = select(NodeNotificationSetting).where(
-            NodeNotificationSetting.user_id == user_id
+        nodes = sa.table(
+            "nodes",
+            sa.column("id", sa.BigInteger()),
+            sa.column("alt_id", sa.String()),
         )
         if isinstance(node_id, UUID):
-            query = query.where(NodeNotificationSetting.node_alt_id == node_id)
+            result = await self._db.execute(
+                select(nodes.c.id).where(nodes.c.alt_id == str(node_id))
+            )
+            row = result.one_or_none()
+            if row is None:
+                return None
+            node_pk = row.id
         else:
-            query = query.where(NodeNotificationSetting.node_id == node_id)
-        res = await self._db.execute(query)
+            node_pk = node_id
+        res = await self._db.execute(
+            select(NodeNotificationSetting).where(
+                NodeNotificationSetting.user_id == user_id,
+                NodeNotificationSetting.node_id == node_pk,
+            )
+        )
         return res.scalar_one_or_none()
 
     async def upsert(
@@ -41,25 +54,15 @@ class NodeNotificationSettingsRepository:
                 sa.column("alt_id", sa.String()),
             )
             if isinstance(node_id, UUID):
-                node_pk = await self._db.execute(
-                    select(nodes.c.id, nodes.c.alt_id).where(
-                        nodes.c.alt_id == str(node_id)
-                    )
+                result = await self._db.execute(
+                    select(nodes.c.id).where(nodes.c.alt_id == str(node_id))
                 )
-                row = node_pk.one()
-                node_pk_id = row.id
-                node_alt_id = UUID(row.alt_id)
+                node_pk = result.one().id
             else:
-                node_pk = await self._db.execute(
-                    select(nodes.c.id, nodes.c.alt_id).where(nodes.c.id == node_id)
-                )
-                row = node_pk.one()
-                node_pk_id = row.id
-                node_alt_id = UUID(row.alt_id)
+                node_pk = node_id
             setting = NodeNotificationSetting(
                 user_id=user_id,
-                node_alt_id=node_alt_id,
-                node_id=node_pk_id,
+                node_id=node_pk,
                 enabled=enabled,
             )
             self._db.add(setting)

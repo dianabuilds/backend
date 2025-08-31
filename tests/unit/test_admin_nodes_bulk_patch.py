@@ -90,7 +90,7 @@ async def test_bulk_patch_updates_flags(app_and_session):
         session.add(ws)
         await session.commit()
         n1 = Node(
-            id=uuid.uuid4(),
+            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
             slug="n1",
             title="N1",
@@ -103,7 +103,7 @@ async def test_bulk_patch_updates_flags(app_and_session):
             is_recommendable=True,
         )
         n2 = Node(
-            id=uuid.uuid4(),
+            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
             slug="n2",
             title="N2",
@@ -117,7 +117,6 @@ async def test_bulk_patch_updates_flags(app_and_session):
         )
         session.add_all([n1, n2])
         await session.commit()
-        ids = [str(n1.id), str(n2.id)]
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.patch(
@@ -134,10 +133,10 @@ async def test_bulk_patch_updates_flags(app_and_session):
         )
     assert resp.status_code == 200
     data = resp.json()
-    assert set(data["updated"]) == set(ids)
+    assert set(map(int, data["updated"])) == set(ids)
     async with async_session() as session:
-        node1 = await session.get(Node, uuid.UUID(ids[0]))
-        node2 = await session.get(Node, uuid.UUID(ids[1]))
+        node1 = await session.get(Node, ids[0])
+        node2 = await session.get(Node, ids[1])
         assert node1.is_visible is False
         assert node1.is_public is True
         assert node1.premium_only is True
@@ -156,7 +155,7 @@ async def test_bulk_patch_delete(app_and_session):
         session.add(ws)
         await session.commit()
         n1 = Node(
-            id=uuid.uuid4(),
+            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
             slug="n1",
             title="N1",
@@ -166,7 +165,7 @@ async def test_bulk_patch_delete(app_and_session):
         )
         session.add(n1)
         await session.commit()
-        node_id = str(n1.id)
+        node_id = n1.id
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.patch(
@@ -175,7 +174,7 @@ async def test_bulk_patch_delete(app_and_session):
         )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["deleted"] == [node_id]
+    assert list(map(int, data["deleted"])) == [node_id]
     async with async_session() as session:
-        node = await session.get(Node, uuid.UUID(node_id))
+        node = await session.get(Node, node_id)
         assert node is None

@@ -52,7 +52,7 @@ async def test_update_node_invalidates_navigation_cache(monkeypatch) -> None:
     async with async_session() as session:
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
         node = Node(
-            id=uuid.uuid4(),
+            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
             slug="n1",
             title="N1",

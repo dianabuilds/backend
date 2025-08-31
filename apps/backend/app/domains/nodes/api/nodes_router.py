@@ -364,9 +364,7 @@ async def get_node_notification_settings(
     settings_repo = NodeNotificationSettingsRepository(db)
     setting = await settings_repo.get(current_user.id, resolved)
     if not setting:
-        return NodeNotificationSettingsOut(
-            node_id=node.id, node_alt_id=node.alt_id, enabled=True
-        )
+        return NodeNotificationSettingsOut(node_id=node.id, enabled=True)
     return NodeNotificationSettingsOut.model_validate(setting)
 
 

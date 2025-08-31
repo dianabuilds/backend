@@ -193,7 +193,7 @@ class ReactionUpdate(BaseModel):
 class NodeBulkOperation(BaseModel):
     """Payload for bulk node admin operations."""
 
-    ids: list[UUID]
+    ids: list[int]
     op: Literal[
         "hide",
         "show",
@@ -228,7 +228,7 @@ class NodeBulkPatchChanges(BaseModel):
 class NodeBulkPatch(BaseModel):
     """Payload for bulk node patch operations."""
 
-    ids: list[UUID]
+    ids: list[int]
     changes: NodeBulkPatchChanges
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)

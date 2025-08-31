@@ -6,7 +6,7 @@
  * Payload for bulk node admin operations.
  */
 export type NodeBulkOperation = {
-    ids: Array<string>;
+    ids: Array<number>;
     op: 'hide' | 'show' | 'public' | 'private' | 'toggle_premium' | 'toggle_recommendable';
 };
 

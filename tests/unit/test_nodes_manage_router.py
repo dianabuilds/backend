@@ -70,7 +70,7 @@ async def test_create_transition_success_and_missing_target(app_and_session):
         session.add(ws)
         await session.commit()
         n1 = Node(
-            id=uuid.uuid4(),
+            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
             slug="a",
             title="A",
@@ -83,7 +83,7 @@ async def test_create_transition_success_and_missing_target(app_and_session):
             is_recommendable=True,
         )
         n2 = Node(
-            id=uuid.uuid4(),
+            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
             slug="b",
             title="B",

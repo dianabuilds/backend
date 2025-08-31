@@ -79,10 +79,3 @@ BEGIN
     RETURN NEW;
 END;
 $$;
-
--- Example trigger setup forbidding writes to node_alt_id in node_notification_settings
-DROP TRIGGER IF EXISTS trg_node_notification_settings_fill_node_id ON node_notification_settings;
-DROP TRIGGER IF EXISTS trg_node_notification_settings_block_node_alt_id ON node_notification_settings;
-CREATE TRIGGER trg_node_notification_settings_block_node_alt_id
-BEFORE INSERT OR UPDATE ON node_notification_settings
-FOR EACH ROW EXECUTE FUNCTION prevent_uuid_write('node_alt_id', 'node_id');
