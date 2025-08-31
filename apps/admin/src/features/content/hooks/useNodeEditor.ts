@@ -34,11 +34,16 @@ export function useNodeEditor(workspaceId: string, nodeType: string, id: string)
         title: data.title ?? "",
         slug: (data as any).slug ?? "",
         content: (data as any).content ?? { blocks: [] },
-        coverUrl: (data as any).cover_url ?? null,
+        coverUrl: (data as any).coverUrl ?? (data as any).cover_url ?? null,
         tags: (data as any).tags ?? [],
         isPublic: Boolean((data as any).isPublic ?? (data as any).is_public),
-        premiumOnly: Boolean((data as any).premium_only),
-        allowComments: Boolean((data as any).allow_comments ?? true),
+        premiumOnly: Boolean((data as any).premiumOnly ?? (data as any).premium_only),
+        allowComments: Boolean(
+          (data as any).allowFeedback ??
+            (data as any).allow_comments ??
+            (data as any).allowComments ??
+            true,
+        ),
       });
     }
   }, [data]);
