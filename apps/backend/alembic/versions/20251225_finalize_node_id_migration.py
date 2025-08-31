@@ -11,7 +11,7 @@ depends_on = None
 
 def upgrade() -> None:
     # Switch primary key on nodes
-    op.drop_constraint("nodes_pkey", "nodes", type_="primary")
+    op.drop_constraint("nodes_pkey", "nodes", type_="primary", cascade=True)
     op.create_primary_key("nodes_pkey", "nodes", ["id"])
     op.create_unique_constraint("ux_nodes_alt_id", "nodes", ["alt_id"])
 
@@ -28,7 +28,9 @@ def downgrade() -> None:
     # Recreate node_alt_id column
     op.add_column(
         "node_notification_settings",
-        sa.Column("node_alt_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column(
+            "node_alt_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=True
+        ),
     )
     op.execute(
         """
@@ -50,5 +52,5 @@ def downgrade() -> None:
 
     # Restore primary key on nodes
     op.drop_constraint("ux_nodes_alt_id", "nodes", type_="unique")
-    op.drop_constraint("nodes_pkey", "nodes", type_="primary")
+    op.drop_constraint("nodes_pkey", "nodes", type_="primary", cascade=True)
     op.create_primary_key("nodes_pkey", "nodes", ["alt_id"])
