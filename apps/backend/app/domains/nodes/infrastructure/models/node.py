@@ -4,14 +4,24 @@ import hashlib
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+)
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import Float, ForeignKey, Integer, String, BigInteger
 from sqlalchemy.ext.mutable import MutableList
+from sqlalchemy.orm import relationship
 
 from app.core.config import settings
 from app.core.db.adapters import JSONB, UUID, VECTOR
 from app.core.db.base import Base
+from app.domains.tags.infrastructure.models.tag_models import NodeTag
 from app.schemas.nodes_common import Status, Visibility
 
 
@@ -67,3 +77,9 @@ class Node(Base):
     )
     created_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
     updated_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
+
+    tags = relationship(
+        "Tag",
+        secondary=NodeTag.__table__,
+        back_populates="nodes",
+    )

@@ -2,25 +2,20 @@ import uuid
 from datetime import datetime
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
 
 from app.domains.quests.application.quest_graph_service import QuestGraphService
-from app.domains.quests.infrastructure.models.quest_version_models import (
-    QuestVersion,
-    QuestGraphNode,
-    QuestGraphEdge,
+from app.domains.quests.infrastructure.models.navigation_cache_models import (
+    NavigationCache,
 )
-from app.domains.quests.infrastructure.models.navigation_cache_models import NavigationCache
+from app.domains.quests.infrastructure.models.quest_version_models import (
+    QuestGraphEdge,
+    QuestGraphNode,
+    QuestVersion,
+)
 from app.domains.quests.schemas import QuestStep, QuestTransition
-from sqlalchemy.orm import relationship
-
-from app.domains.nodes.infrastructure.models.node import Node  # noqa: F401
-from app.domains.tags.models import Tag  # noqa: F401
-from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: F401
-
-Node.tags = relationship("Tag", secondary="node_tags", back_populates="nodes")
 
 
 @pytest.mark.asyncio
@@ -45,7 +40,9 @@ async def test_save_graph_generates_navigation_cache() -> None:
         session.add(version)
         await session.commit()
         steps = [
-            QuestStep(key="start", title="Start", type="start", content={}, rewards=None),
+            QuestStep(
+                key="start", title="Start", type="start", content={}, rewards=None
+            ),
             QuestStep(key="end", title="End", type="end", content={}, rewards=None),
         ]
         transitions = [

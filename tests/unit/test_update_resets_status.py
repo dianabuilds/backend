@@ -1,18 +1,13 @@
 import uuid
-import sqlalchemy as sa
-import pytest
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, relationship
 
-from app.domains.nodes.models import NodeItem, NodePatch
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
 from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.tags.models import Tag  # noqa: F401
-from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: F401
+from app.domains.nodes.models import NodeItem, NodePatch
 from app.schemas.nodes_common import NodeType, Status, Visibility
-
-# Ensure Node model has a tags relationship for test mappings
-Node.tags = relationship("Tag", secondary="node_tags", back_populates="nodes")
 
 
 @pytest.mark.asyncio

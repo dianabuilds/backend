@@ -1,34 +1,34 @@
-import uuid
 import importlib
 import sys
-import asyncio
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import sqlalchemy as sa
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-import sqlalchemy as sa
 
 # Ensure "app" package resolves correctly
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember  # noqa: E402
-from app.domains.nodes.models import NodeItem, NodePatch  # noqa: E402
 from app.domains.nodes.application.node_service import NodeService  # noqa: E402
-from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
+from app.domains.nodes.models import NodeItem, NodePatch  # noqa: E402
 from app.domains.tags.models import Tag  # noqa: E402
-from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
-from sqlalchemy.orm import relationship
-from app.security import require_ws_editor, require_ws_viewer, require_ws_guest  # noqa: E402
+from app.domains.workspaces.infrastructure.models import (  # noqa: E402
+    Workspace,
+    WorkspaceMember,
+)
 from app.schemas.nodes_common import NodeType  # noqa: E402
 from app.schemas.workspaces import WorkspaceRole  # noqa: E402
-
-# Ensure Node model has a tags relationship for test mappings
-Node.tags = relationship("Tag", secondary="node_tags", back_populates="nodes")
+from app.security import (  # noqa: E402
+    require_ws_editor,
+    require_ws_guest,
+    require_ws_viewer,
+)
 
 users_table = NodeItem.__table__.metadata.tables["users"]
 
@@ -93,7 +93,9 @@ async def test_require_ws_editor_roles() -> None:
         with pytest.raises(HTTPException):
             await require_ws_editor(workspace_id=ws.id, user=user, db=session)
 
-        member = WorkspaceMember(workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer)
+        member = WorkspaceMember(
+            workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer
+        )
         session.add(member)
         await session.commit()
         with pytest.raises(HTTPException):
@@ -163,5 +165,3 @@ async def test_require_ws_guest_roles() -> None:
         await session.commit()
         res = await require_ws_guest(workspace_id=ws.id, user=user, db=session)
         assert res.role == WorkspaceRole.viewer
-
-
