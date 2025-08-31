@@ -75,7 +75,7 @@ async def get_current_user(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
-            (UserRestriction.expires_at is None) | (UserRestriction.expires_at > now),
+            (UserRestriction.expires_at.is_(None)) | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
@@ -116,7 +116,7 @@ async def get_current_user_optional(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
-            (UserRestriction.expires_at is None) | (UserRestriction.expires_at > now),
+            (UserRestriction.expires_at.is_(None)) | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
@@ -193,7 +193,7 @@ async def ensure_can_post(
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "post_restrict",
-            (UserRestriction.expires_at is None) | (UserRestriction.expires_at > now),
+            (UserRestriction.expires_at.is_(None)) | (UserRestriction.expires_at > now),
         )
     )
     if result.scalars().first():
