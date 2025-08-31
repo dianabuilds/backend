@@ -1,6 +1,6 @@
 from .auth import LoginSchema, SignupSchema, Token, ChangePassword, EVMVerify
 from .user import UserOut, UserUpdate, UserPremiumUpdate, UserRoleUpdate
-from .node import NodeCreate, NodeOut, NodeUpdate, ReactionUpdate
+from .node import NodeCreate, NodeOut, NodeUpdate
 from .transition import (
     NodeTransitionType,
     NodeTransitionCreate,
@@ -32,7 +32,6 @@ __all__ = (
     "NodeCreate",
     "NodeOut",
     "NodeUpdate",
-    "ReactionUpdate",
     "NodeTransitionType",
     "NodeTransitionCreate",
     "TransitionOption",
