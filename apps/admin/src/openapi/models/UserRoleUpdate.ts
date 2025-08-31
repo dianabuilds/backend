@@ -3,6 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type UserRoleUpdate = {
-    role: 'user' | 'moderator' | 'admin';
+    role: 'user' | 'moderator' | 'support' | 'admin';
 };
 

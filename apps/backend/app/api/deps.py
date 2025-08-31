@@ -139,7 +139,7 @@ Roles have strict seniority: ``user < moderator < admin``.  Helpers below
 leverage this ranking to provide unified access checks across the API.
 """
 
-role_order = {"user": 0, "moderator": 1, "admin": 2}
+role_order = {"user": 0, "support": 1, "moderator": 2, "admin": 3}
 
 
 def require_role(min_role: str = "moderator"):

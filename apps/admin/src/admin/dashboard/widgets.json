@@ -1,0 +1,5 @@
+[
+  { "type": "moderation", "query": "/admin/moderation/queue", "refreshInterval": 60000 },
+  { "type": "drafts", "query": "/admin/drafts/issues", "refreshInterval": 120000 },
+  { "type": "jobs", "query": "/admin/jobs/recent", "refreshInterval": 120000 }
+]
