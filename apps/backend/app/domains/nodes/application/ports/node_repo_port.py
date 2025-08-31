@@ -36,17 +36,7 @@ class INodeRepository(Protocol):
     async def delete(self, node: Node) -> None:  # pragma: no cover
         ...
 
-    async def set_tags(
-        self, node: Node, tags: list[str], actor_id: UUID
-    ) -> Node:  # pragma: no cover
-        ...
-
     async def increment_views(self, node: Node) -> Node:  # pragma: no cover
-        ...
-
-    async def update_reactions(
-        self, node: Node, reaction: str, action: str, actor_id: UUID | None = None
-    ) -> Node:  # pragma: no cover
         ...
 
     # Дополнительные кейсы
@@ -57,24 +47,5 @@ class INodeRepository(Protocol):
 
     async def bulk_set_visibility(
         self, node_ids: list[UUID], is_visible: bool, workspace_id: UUID
-    ) -> int:  # pragma: no cover
-        ...
-
-    async def bulk_set_public(
-        self, node_ids: list[UUID], is_public: bool, workspace_id: UUID
-    ) -> int:  # pragma: no cover
-        ...
-
-    async def bulk_set_tags(
-        self, node_ids: list[UUID], tags: list[str], workspace_id: UUID
-    ) -> int:  # pragma: no cover
-        ...
-
-    async def bulk_set_tags_diff(
-        self,
-        node_ids: list[UUID],
-        add: list[str],
-        remove: list[str],
-        workspace_id: UUID,
     ) -> int:  # pragma: no cover
         ...

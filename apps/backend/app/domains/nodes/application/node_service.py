@@ -7,13 +7,11 @@ from uuid import UUID, uuid4
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import validate_transition
-from app.domains.tags.models import Tag
 from app.schemas.nodes_common import NodeType, Status, Visibility
 
 
@@ -145,7 +143,6 @@ class NodeService:
             workspace_id=workspace_id,
             slug=item.slug,
             title=item.title,
-            content={},  # минимальная заготовка содержимого
             author_id=actor_id,
             status=Status.draft,
             visibility=Visibility.private,
@@ -193,7 +190,6 @@ class NodeService:
                 workspace_id=item.workspace_id,
                 slug=item.slug,
                 title=item.title,
-                content={},
                 author_id=item.created_by_user_id or actor_id,
                 status=item.status,
                 visibility=item.visibility,
@@ -204,65 +200,12 @@ class NodeService:
             item.node_id = node.id
 
         # Маппинг полей из payload -> Node
-        if "content" in data and data["content"] is not None:
-            node.content = data["content"]  # Editor.js OutputData
-        if "contentData" in data and data["contentData"] is not None:
-            node.content = data["contentData"]  # на случай другого имени поля
         if "allow_comments" in data:
             node.allow_feedback = bool(data["allow_comments"])
         if "premium_only" in data:
             node.premium_only = bool(data["premium_only"])
-        if "is_public" in data:
-            node.is_public = bool(data["is_public"])
         if "is_visible" in data:
             node.is_visible = bool(data["is_visible"])
-
-        # теги: ожидаем список строк-слизгов; создаём недостающие и назначаем связку
-        if "tags" in data and data["tags"] is not None:
-            try:
-                raw_tags = data["tags"] or []
-                incoming_slugs = [str(t).strip() for t in raw_tags if str(t).strip()]
-            except Exception:
-                incoming_slugs = []
-            if incoming_slugs:
-                res = await self._db.execute(
-                    select(Tag).where(
-                        Tag.workspace_id == workspace_id,
-                        Tag.slug.in_(incoming_slugs),
-                    )
-                )
-                existing = {t.slug: t for t in res.scalars().all()}
-                tag_models: list[Tag] = []
-                for slug in incoming_slugs:
-                    tag = existing.get(slug)
-                    if tag is None:
-                        tag = Tag(
-                            slug=slug,
-                            name=slug,
-                            workspace_id=workspace_id,
-                        )
-                        self._db.add(tag)
-                        await self._db.flush()  # получим id, чтобы связать
-                        existing[slug] = tag
-                    tag_models.append(tag)
-                node.tags = tag_models
-            else:
-                # пустой список — снимаем все теги
-                node.tags = []
-
-        # обложка может прийти как cover_url (snake), coverUrl (camel) или cover
-        # (устаревший ключ) с фронта. Важно: допускаем очистку (null) — тогда
-        # устанавливаем None в БД.
-        if "cover_url" in data:
-            node.cover_url = (
-                str(data["cover_url"]) if data["cover_url"] is not None else None
-            )
-        if "coverUrl" in data:
-            node.cover_url = (
-                str(data["coverUrl"]) if data["coverUrl"] is not None else None
-            )
-        if "cover" in data:
-            node.cover_url = str(data["cover"]) if data["cover"] is not None else None
         # синхронизируем заголовок, если он менялся
         if "title" in data and data["title"]:
             node.title = str(data["title"])
@@ -274,7 +217,6 @@ class NodeService:
             item.published_at = None
             # согласуем видимость и статус в Node
             node.visibility = Visibility.private
-            node.is_public = False
             node.status = Status.draft
 
         node.updated_by_user_id = actor_id
@@ -293,7 +235,6 @@ class NodeService:
         *,
         actor_id: UUID,
         access: Literal["everyone", "premium_only", "early_access"] = "everyone",
-        cover: str | None = None,
     ) -> NodeItem:
         node_type = self._normalize_type(node_type)
         item = await self.get(workspace_id, node_type, node_id)
@@ -316,7 +257,6 @@ class NodeService:
                 workspace_id=item.workspace_id,
                 slug=item.slug,
                 title=item.title,
-                content={},  # Заполним пустым контентом, если ещё нет
                 author_id=item.created_by_user_id or actor_id,
                 status=item.status,
                 visibility=item.visibility,
@@ -328,12 +268,9 @@ class NodeService:
 
         # Проставляем флаги доступа и прочие поля
         node.premium_only = access == "premium_only"
-        node.is_public = access != "early_access"
         node.visibility = (
             Visibility.unlisted if access == "early_access" else Visibility.public
         )
-        if cover is not None:
-            node.cover_url = cover
         node.updated_by_user_id = actor_id
         node.updated_at = datetime.utcnow()
 

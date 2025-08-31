@@ -59,16 +59,12 @@ def _serialize(item: NodeItem) -> dict:
 
 class AdminNodeListParams(TypedDict, total=False):
     author: UUID
-    tags: list[str]
-    match: Literal["any", "all"]
     sort: Literal[
         "updated_desc",
         "created_desc",
         "created_asc",
         "views_desc",
-        "reactions_desc",
     ]
-    is_public: bool
     visible: bool
     premium_only: bool
     recommendable: bool
@@ -86,16 +82,12 @@ async def list_nodes_admin(
     workspace_id: UUID = Path(...),  # noqa: B008
     if_none_match: str | None = Header(None, alias="If-None-Match"),
     author: UUID | None = None,
-    tags: list[str] = Query(default_factory=list),
-    match: Literal["any", "all"] = Query("any"),
     sort: Literal[
         "updated_desc",
         "created_desc",
         "created_asc",
         "views_desc",
-        "reactions_desc",
     ] = Query("updated_desc"),
-    is_public: bool | None = None,
     visible: bool | None = None,
     premium_only: bool | None = None,
     recommendable: bool | None = None,
@@ -112,7 +104,6 @@ async def list_nodes_admin(
 
     See :class:`AdminNodeListParams` for available query parameters.
     """
-    tag_list = [t.strip() for t in tags if t.strip()] or None
     spec_workspace_id = workspace_id
     workspace = await db.get(Workspace, workspace_id)
     if workspace and workspace.is_system and workspace.type == WorkspaceType.global_:
@@ -120,9 +111,6 @@ async def list_nodes_admin(
     spec = NodeFilterSpec(
         workspace_id=spec_workspace_id,
         author_id=author,
-        tags=tag_list,
-        match=match,
-        is_public=is_public,
         is_visible=visible,
         premium_only=premium_only,
         recommendable=recommendable,
@@ -178,14 +166,6 @@ async def bulk_node_operation(
             if not node.is_visible:
                 node.is_visible = True
                 changed = True
-        elif payload.op == "public":
-            if not node.is_public:
-                node.is_public = True
-                changed = True
-        elif payload.op == "private":
-            if node.is_public:
-                node.is_public = False
-                changed = True
         elif payload.op == "toggle_premium":
             node.premium_only = not node.premium_only
         elif payload.op == "toggle_recommendable":
@@ -232,12 +212,9 @@ async def bulk_patch_nodes(
                 pass
             await db.delete(node)
             continue
-        was_public = node.is_public
         was_visible = node.is_visible
         if changes.is_visible is not None:
             node.is_visible = changes.is_visible
-        if changes.is_public is not None:
-            node.is_public = changes.is_public
         if changes.premium_only is not None:
             node.premium_only = changes.premium_only
         if changes.is_recommendable is not None:
@@ -249,7 +226,6 @@ async def bulk_patch_nodes(
         updated_ids.append(str(node.id))
         if (
             (changes.is_visible is not None and changes.is_visible != was_visible)
-            or (changes.is_public is not None and changes.is_public != was_public)
             or changes.workspace_id is not None
         ):
             invalidate_slugs.append(node.slug)

@@ -8,11 +8,8 @@ from uuid import UUID
 
 @dataclass
 class NodeFilterSpec:
-    tags: list[str] | None = None
-    match: str = "any"
     author_id: UUID | None = None
     workspace_id: UUID | None = None
-    is_public: bool | None = None
     is_visible: bool | None = True
     premium_only: bool | None = None
     recommendable: bool | None = None
@@ -21,11 +18,10 @@ class NodeFilterSpec:
     created_to: datetime | None = None
     updated_from: datetime | None = None
     updated_to: datetime | None = None
-    # updated_desc | created_desc | created_asc | views_desc | reactions_desc
+    # updated_desc | created_desc | created_asc | views_desc
     sort: str | None = "updated_desc"
     q: str | None = None
     min_views: int | None = None
-    min_reactions: int | None = None
 
 
 @dataclass

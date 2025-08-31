@@ -3,9 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 
-from sqlalchemy import String, and_, asc, cast, desc, func, or_, select
+from sqlalchemy import and_, asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.cache import cache as shared_cache
 from app.domains.nodes.application.query_models import (
@@ -15,7 +14,6 @@ from app.domains.nodes.application.query_models import (
 )
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
-from app.domains.tags.models import Tag
 from app.schemas.nodes_common import Status
 
 
@@ -39,8 +37,6 @@ class NodeQueryService:
         elif not getattr(ctx, "is_admin", False):
             # Для не-админов по умолчанию показываем только видимые записи
             clauses.append(Node.is_visible == True)  # noqa: E712
-        if spec.is_public is not None:
-            clauses.append(Node.is_public == bool(spec.is_public))
         if spec.premium_only is not None and hasattr(Node, "premium_only"):
             clauses.append(Node.premium_only == bool(spec.premium_only))
         if spec.recommendable is not None and hasattr(Node, "is_recommendable"):
@@ -61,22 +57,10 @@ class NodeQueryService:
             clauses.append(Node.updated_at <= spec.updated_to)
         if spec.q:
             pattern = f"%{spec.q.strip()}%"
-            clauses.append(
-                or_(
-                    Node.title.ilike(pattern), cast(Node.content, String).ilike(pattern)
-                )
-            )
+            clauses.append(Node.title.ilike(pattern))
         if spec.min_views and hasattr(Node, "views"):
             clauses.append(Node.views >= int(spec.min_views))
-        if spec.min_reactions and hasattr(Node, "reactions"):
-            clauses.append(Node.reactions >= int(spec.min_reactions))
         base = base.where(and_(*clauses))
-        if spec.tags:
-            base = base.join(Node.tags).where(Tag.slug.in_(spec.tags))
-            if spec.match == "all":
-                base = base.group_by(Node.id).having(
-                    func.count(Tag.id) == len(spec.tags)
-                )
         res = await self._db.execute(base)
         cnt, max_updated = (0, None)
         try:
@@ -86,10 +70,8 @@ class NodeQueryService:
         uid = getattr(getattr(ctx, "user", None), "id", None)
         sort = getattr(spec, "sort", "updated_desc") or "updated_desc"
         payload = (
-            f"{cnt}:{uid or 'anon'}:{spec.tags or []}:{spec.match}:"
-            f"{page.offset}:{page.limit}:{sort}:{max_updated or ''}:"
-            f"{spec.author_id or ''}:{spec.q or ''}:{spec.min_views or ''}:"
-            f"{spec.min_reactions or ''}:{spec.node_type or ''}"
+            f"{cnt}:{uid or 'anon'}:{page.offset}:{page.limit}:{sort}:{max_updated or ''}:"
+            f"{spec.author_id or ''}:{spec.q or ''}:{spec.min_views or ''}:{spec.node_type or ''}"
         )
         return hashlib.sha256(payload.encode()).hexdigest()
 
@@ -107,8 +89,6 @@ class NodeQueryService:
         elif not getattr(ctx, "is_admin", False):
             # Для не-админов по умолчанию показываем только видимые записи
             clauses.append(Node.is_visible == True)  # noqa: E712
-        if spec.is_public is not None:
-            clauses.append(Node.is_public == bool(spec.is_public))
         if spec.premium_only is not None and hasattr(Node, "premium_only"):
             clauses.append(Node.premium_only == bool(spec.premium_only))
         if spec.recommendable is not None and hasattr(Node, "is_recommendable"):
@@ -129,24 +109,10 @@ class NodeQueryService:
             clauses.append(Node.updated_at <= spec.updated_to)
         if spec.q:
             pattern = f"%{spec.q.strip()}%"
-            clauses.append(
-                or_(
-                    Node.title.ilike(pattern), cast(Node.content, String).ilike(pattern)
-                )
-            )
+            clauses.append(Node.title.ilike(pattern))
         if spec.min_views and hasattr(Node, "views"):
             clauses.append(Node.views >= int(spec.min_views))
-        if spec.min_reactions and hasattr(Node, "reactions"):
-            clauses.append(Node.reactions >= int(spec.min_reactions))
         stmt = stmt.where(and_(*clauses))
-        if spec.tags:
-            stmt = stmt.join(Node.tags).where(Tag.slug.in_(spec.tags))
-            if spec.match == "all":
-                stmt = stmt.group_by(Node.id).having(
-                    func.count(Tag.id) == len(spec.tags)
-                )
-            else:
-                stmt = stmt.distinct()
         sort = getattr(spec, "sort", "updated_desc") or "updated_desc"
         if sort == "created_desc":
             stmt = stmt.order_by(desc(Node.created_at))
@@ -154,8 +120,6 @@ class NodeQueryService:
             stmt = stmt.order_by(asc(Node.created_at))
         elif sort == "views_desc" and hasattr(Node, "views"):
             stmt = stmt.order_by(desc(Node.views))
-        elif sort == "reactions_desc" and hasattr(Node, "reactions"):
-            stmt = stmt.order_by(desc(Node.reactions))
         else:
             stmt = stmt.order_by(desc(Node.updated_at))
         stmt = stmt.offset(getattr(page, "offset", 0)).limit(getattr(page, "limit", 50))
@@ -175,29 +139,17 @@ class NodeQueryService:
             return json.loads(cached)
         stmt = (
             select(Node)
-            .options(selectinload(Node.tags))
-            .where(
-                Node.status == Status.draft,
-                or_(
-                    Node.cover_url.is_(None),
-                    func.coalesce(func.length(func.trim(Node.title)), 0) == 0,
-                    ~Node.tags.any(),
-                ),
-            )
+            .where(Node.status == Status.draft)
             .order_by(desc(Node.updated_at))
             .limit(limit)
         )
         res = await self._db.execute(stmt)
-        nodes = list(res.scalars().unique().all())
+        nodes = list(res.scalars().all())
         items: list[dict] = []
         for node in nodes:
             issues: list[str] = []
-            if not node.cover_url:
-                issues.append("cover")
             if not node.title or not node.title.strip():
                 issues.append("title")
-            if not getattr(node, "tags", []):
-                issues.append("tags")
             items.append(
                 {
                     "id": str(node.id),
