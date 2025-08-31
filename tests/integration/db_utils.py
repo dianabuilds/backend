@@ -2,15 +2,15 @@
 Модуль для управления тестовой базой данных без использования SQLAlchemy ORM.
 Это позволяет избежать проблем с несовместимыми типами данных.
 """
-import os
-import uuid
-import sqlite3
-from pathlib import Path
-import asyncio
-from datetime import datetime
-from typing import Dict, Any, List, Optional
-from sqlalchemy import text
 
+import os
+import sqlite3
+import uuid
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Optional
+
+from sqlalchemy import text
 
 # Путь к тестовой базе данных
 TEST_DB_NAME = os.getenv("DATABASE__NAME", "project_test")
@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS users (
     bio TEXT,
     avatar_url TEXT,
     role TEXT DEFAULT 'user',
+    last_login_at TIMESTAMP,
     deleted_at TIMESTAMP
 )
 """
@@ -64,7 +65,7 @@ CREATE TABLE IF NOT EXISTS user_restrictions (
 USER_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
     "CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)",
-    "CREATE INDEX IF NOT EXISTS idx_users_wallet ON users(wallet_address)"
+    "CREATE INDEX IF NOT EXISTS idx_users_wallet ON users(wallet_address)",
 ]
 
 CREATE_WORKSPACES_TABLE = """
@@ -166,22 +167,24 @@ class TestUser:
     Класс для работы с пользователями в тестовой базе данных.
     Заменяет модель User из основного приложения.
     """
+
     def __init__(self, **kwargs):
-        self.id = kwargs.get('id', str(uuid.uuid4()))
-        self.created_at = kwargs.get('created_at', datetime.utcnow())
-        self.email = kwargs.get('email')
-        self.password_hash = kwargs.get('password_hash')
-        self.wallet_address = kwargs.get('wallet_address')
-        self.is_active = kwargs.get('is_active', True)
-        self.is_premium = kwargs.get('is_premium', False)
-        self.username = kwargs.get('username')
-        self.bio = kwargs.get('bio')
-        self.avatar_url = kwargs.get('avatar_url')
-        self.role = kwargs.get('role', 'user')
-        self.deleted_at = kwargs.get('deleted_at')
+        self.id = kwargs.get("id", str(uuid.uuid4()))
+        self.created_at = kwargs.get("created_at", datetime.utcnow())
+        self.email = kwargs.get("email")
+        self.password_hash = kwargs.get("password_hash")
+        self.wallet_address = kwargs.get("wallet_address")
+        self.is_active = kwargs.get("is_active", True)
+        self.is_premium = kwargs.get("is_premium", False)
+        self.username = kwargs.get("username")
+        self.bio = kwargs.get("bio")
+        self.avatar_url = kwargs.get("avatar_url")
+        self.role = kwargs.get("role", "user")
+        self.last_login_at = kwargs.get("last_login_at")
+        self.deleted_at = kwargs.get("deleted_at")
 
     @staticmethod
-    def from_row(row: tuple) -> 'TestUser':
+    def from_row(row: tuple) -> "TestUser":
         """
         Создает объект TestUser из строки результата запроса.
         """
@@ -193,30 +196,44 @@ class TestUser:
             wallet_address=row[4],
             is_active=bool(row[5]),
             is_premium=bool(row[6]),
-            username=row[7],
-            bio=row[8],
+            username=row[8],
+            bio=row[9],
             avatar_url=row[10],
             role=row[11],
-            deleted_at=row[12]
+            last_login_at=row[12],
+            deleted_at=row[13],
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Преобразует объект в словарь.
         """
         return {
-            'id': self.id,
-            'created_at': self.created_at.isoformat() if isinstance(self.created_at, datetime) else self.created_at,
-            'email': self.email,
-            'password_hash': self.password_hash,
-            'wallet_address': self.wallet_address,
-            'is_active': 1 if self.is_active else 0,
-            'is_premium': 1 if self.is_premium else 0,
-            'username': self.username,
-            'bio': self.bio,
-            'avatar_url': self.avatar_url,
-            'role': self.role,
-            'deleted_at': self.deleted_at.isoformat() if isinstance(self.deleted_at, datetime) and self.deleted_at else None
+            "id": self.id,
+            "created_at": (
+                self.created_at.isoformat()
+                if isinstance(self.created_at, datetime)
+                else self.created_at
+            ),
+            "email": self.email,
+            "password_hash": self.password_hash,
+            "wallet_address": self.wallet_address,
+            "is_active": 1 if self.is_active else 0,
+            "is_premium": 1 if self.is_premium else 0,
+            "username": self.username,
+            "bio": self.bio,
+            "avatar_url": self.avatar_url,
+            "role": self.role,
+            "last_login_at": (
+                self.last_login_at.isoformat()
+                if isinstance(self.last_login_at, datetime) and self.last_login_at
+                else None
+            ),
+            "deleted_at": (
+                self.deleted_at.isoformat()
+                if isinstance(self.deleted_at, datetime) and self.deleted_at
+                else None
+            ),
         }
 
 

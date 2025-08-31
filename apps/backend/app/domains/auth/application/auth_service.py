@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from app.core.errors import http_error
 from app.core.security import get_password_hash, verify_password
@@ -38,7 +38,7 @@ class AuthService:
     async def login(self, db: AsyncSession, payload: LoginSchema) -> LoginResponse:
         q = await db.execute(
             select(User).where(
-                (User.email == payload.login) | (User.username == payload.login)
+                or_(User.email == payload.login, User.username == payload.login)
             )
         )
         user = q.scalars().first()
