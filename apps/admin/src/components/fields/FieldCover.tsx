@@ -1,12 +1,12 @@
 import MediaPicker from "../MediaPicker";
 
 interface Props {
-  value: string | null;
-  onChange: (url: string | null) => void;
+  value?: string | null;
+  onChange?: (url: string | null) => void;
   error?: string | null;
 }
 
-export default function FieldCover({ value, onChange, error }: Props) {
+export default function FieldCover({ value = null, onChange, error }: Props) {
   return (
     <div>
       <label className="block text-sm font-medium">Cover</label>

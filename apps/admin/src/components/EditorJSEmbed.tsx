@@ -1,5 +1,5 @@
 import type EditorJS from "@editorjs/editorjs";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { wsApi } from "../api/wsApi";
 import { compressImage } from "../utils/compressImage";
@@ -27,6 +27,7 @@ export default function EditorJSEmbed({
   const holderId = useRef(`edjs-${Math.random().toString(36).slice(2)}`);
   const editorRef = useRef<EditorJS | null>(null);
   const changeTimer = useRef<number | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Преобразуем относительный URL (/static/uploads/...) в абсолютный к backend origin (в dev 5173–5176) или VITE_API_BASE
   const resolveUrl = (u?: string): string => {
@@ -87,18 +88,19 @@ export default function EditorJSEmbed({
     let destroyed = false;
 
     async function init() {
-      const EditorJS = (await import("@editorjs/editorjs")).default;
-      const Header = (await import("@editorjs/header")).default;
-      const List = (await import("@editorjs/list")).default;
-      const Checklist = (await import("@editorjs/checklist")).default;
-      const ImageTool = (await import("@editorjs/image")).default;
-      const Table = (await import("@editorjs/table")).default;
-      const Quote = (await import("@editorjs/quote")).default;
-      const Delimiter = (await import("@editorjs/delimiter")).default;
+      try {
+        const EditorJS = (await import("@editorjs/editorjs")).default;
+        const Header = (await import("@editorjs/header")).default;
+        const List = (await import("@editorjs/list")).default;
+        const Checklist = (await import("@editorjs/checklist")).default;
+        const ImageTool = (await import("@editorjs/image")).default;
+        const Table = (await import("@editorjs/table")).default;
+        const Quote = (await import("@editorjs/quote")).default;
+        const Delimiter = (await import("@editorjs/delimiter")).default;
 
-      if (destroyed) return;
+        if (destroyed) return;
 
-      const instance = new EditorJS({
+        const instance = new EditorJS({
         holder: holderId.current,
         minHeight,
         placeholder: placeholder || "Напишите описание, легенду или сценарий…",
@@ -175,11 +177,16 @@ export default function EditorJSEmbed({
         },
       });
 
-      editorRef.current = instance;
-      try {
-        onReady?.({ save: () => instance.save() });
-      } catch {
-        // ignore
+        editorRef.current = instance;
+        try {
+          onReady?.({ save: () => instance.save() });
+        } catch {
+          // ignore
+        }
+      } catch (e) {
+        if (destroyed) return;
+        console.error("EditorJS failed to load", e);
+        setLoadError(e instanceof Error ? e.message : String(e));
       }
     }
 
@@ -197,6 +204,14 @@ export default function EditorJSEmbed({
   }, [holderId.current]);
 
   useEffect(() => {}, [value]);
+
+  if (loadError) {
+    return (
+      <div className={className || ""}>
+        Не удалось загрузить редактор: {loadError}
+      </div>
+    );
+  }
 
   return (
     <>

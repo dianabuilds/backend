@@ -4,7 +4,7 @@ import FieldCover from "../fields/FieldCover";
 import type { GeneralTabProps } from "./GeneralTab.helpers";
 
 export default function GeneralTab({
-  title,
+  title = "",
   tags = [],
   coverUrl = null,
   // Summary удалён из интерфейса формы: оставляем значения в пропсах, но не используем
@@ -23,7 +23,7 @@ export default function GeneralTab({
       <FieldTitle
         ref={titleRef}
         value={title}
-        onChange={onTitleChange}
+        onChange={onTitleChange ?? (() => {})}
         error={titleError}
       />
       {/* Показываем Cover всегда под Title. Если обработчик не передан — noop */}
@@ -32,7 +32,7 @@ export default function GeneralTab({
         onChange={onCoverChange ?? (() => {})}
         error={coverError}
       />
-      {onTagsChange ? <FieldTags value={tags} onChange={onTagsChange} /> : null}
+      <FieldTags value={tags} onChange={onTagsChange ?? (() => {})} />
     </div>
   );
 }
