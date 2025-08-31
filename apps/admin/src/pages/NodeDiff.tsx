@@ -1,25 +1,19 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 
-import { getNode } from "../api/nodes";
-import { useWorkspace } from "../workspace/WorkspaceContext";
-import type { OutputData } from "../types/editorjs";
+import { getNode } from '../api/nodes';
+import type { OutputData } from '../types/editorjs';
+import { useWorkspace } from '../workspace/WorkspaceContext';
 
-function diffObjects(a: any, b: any, prefix = ""): string[] {
+function diffObjects(a: any, b: any, prefix = ''): string[] {
   let out: string[] = [];
-  const keys = new Set([
-    ...Object.keys(a || {}),
-    ...Object.keys(b || {}),
-  ]);
+  const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
   for (const k of keys) {
     const path = prefix ? `${prefix}.${k}` : k;
     const av = a ? a[k] : undefined;
     const bv = b ? b[k] : undefined;
-    if (
-      av && bv &&
-      typeof av === "object" &&
-      typeof bv === "object"
-    ) {
+    if (av && bv && typeof av === 'object' && typeof bv === 'object') {
       out = out.concat(diffObjects(av, bv, path));
     } else if (JSON.stringify(av) !== JSON.stringify(bv)) {
       out.push(`${path}: ${JSON.stringify(av)} → ${JSON.stringify(bv)}`);
@@ -37,12 +31,12 @@ export default function NodeDiff() {
   useEffect(() => {
     if (!id || !type || !workspaceId) return;
     (async () => {
-      const node = await getNode(workspaceId, type, id);
+      const node = await getNode(workspaceId, id);
       const localRaw = localStorage.getItem(`node-draft-${id}`);
       const localData = localRaw ? JSON.parse(localRaw) : null;
       const remoteData = {
-        title: node.title ?? "",
-        summary: (node as any).summary ?? "",
+        title: node.title ?? '',
+        summary: (node as any).summary ?? '',
         tags: node.tags ?? [],
         contentData: (node.content as OutputData) || {},
       };

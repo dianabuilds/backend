@@ -1,11 +1,13 @@
-import Cropper, { type Area } from "react-easy-crop";
-import { useAuth } from "../auth/AuthContext";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { wsApi } from "../api/wsApi";
-import { compressImage } from "../utils/compressImage";
-import { listFlags } from "../api/flags";
-import { patchNode, recomputeNodeEmbedding, validateNode } from "../api/nodes";
-import type { ValidateResult } from "../openapi";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Cropper, { type Area } from 'react-easy-crop';
+
+import { listFlags } from '../api/flags';
+import { patchNode, recomputeNodeEmbedding, validateNode } from '../api/nodes';
+import { wsApi } from '../api/wsApi';
+import { useAuth } from '../auth/AuthContext';
+import type { ValidateResult } from '../openapi';
+import { compressImage } from '../utils/compressImage';
 
 interface CoverChange {
   assetId: string | null;
@@ -59,15 +61,15 @@ export default function NodeSidebar({
 }: NodeSidebarProps) {
   const { user } = useAuth();
   const role = user?.role;
-  const canModerate = role === "admin" || role === "moderator";
-  const canEditSlug = role === "admin";
+  const canModerate = role === 'admin' || role === 'moderator';
+  const canEditSlug = role === 'admin';
 
   const [nodesCover, setNodesCover] = useState(false);
   useEffect(() => {
     (async () => {
       try {
         const flags = await listFlags();
-        const f = flags.find((x) => x.key === "nodes_cover");
+        const f = flags.find((x) => x.key === 'nodes_cover');
         setNodesCover(Boolean(f?.value));
       } catch {
         setNodesCover(false);
@@ -82,7 +84,7 @@ export default function NodeSidebar({
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [focal, setFocal] = useState<{ x: number; y: number }>(
-    node.coverMeta && typeof node.coverMeta.focalX === "number"
+    node.coverMeta && typeof node.coverMeta.focalX === 'number'
       ? { x: node.coverMeta.focalX, y: node.coverMeta.focalY }
       : { x: 0.5, y: 0.5 },
   );
@@ -97,7 +99,7 @@ export default function NodeSidebar({
   const [allowSaving, setAllowSaving] = useState(false);
   const [premiumSaving, setPremiumSaving] = useState(false);
   const [scheduleValue, setScheduleValue] = useState(
-    node.publishedAt ? node.publishedAt.slice(0, 16) : "",
+    node.publishedAt ? node.publishedAt.slice(0, 16) : '',
   );
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [validation, setValidation] = useState<ValidateResult | null>(null);
@@ -105,7 +107,7 @@ export default function NodeSidebar({
   const [recomputing, setRecomputing] = useState(false);
 
   useEffect(() => {
-    setScheduleValue(node.publishedAt ? node.publishedAt.slice(0, 16) : "");
+    setScheduleValue(node.publishedAt ? node.publishedAt.slice(0, 16) : '');
   }, [node.publishedAt]);
 
   useEffect(() => {
@@ -114,7 +116,7 @@ export default function NodeSidebar({
     setZoom(1);
     setCroppedArea(null);
     setFocal(
-      node.coverMeta && typeof node.coverMeta.focalX === "number"
+      node.coverMeta && typeof node.coverMeta.focalX === 'number'
         ? { x: node.coverMeta.focalX, y: node.coverMeta.focalY }
         : { x: 0.5, y: 0.5 },
     );
@@ -125,27 +127,27 @@ export default function NodeSidebar({
       if (!files || files.length === 0) return;
       const file = files[0];
       if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) {
-        setUploadError("Допустимы только изображения JPEG/PNG/WebP");
+        setUploadError('Допустимы только изображения JPEG/PNG/WebP');
         return;
       }
       if (file.size > 8 * 1024 * 1024) {
-        setUploadError("Размер файла не должен превышать 8 MB");
+        setUploadError('Размер файла не должен превышать 8 MB');
         return;
       }
       const img = new Image();
       img.onload = async () => {
         URL.revokeObjectURL(img.src);
         if (img.width < 960 || img.height < 540) {
-          setUploadError("Минимальное разрешение 960×540");
+          setUploadError('Минимальное разрешение 960×540');
           return;
         }
         setUploadError(null);
         try {
           const compressed = await compressImage(file);
           const form = new FormData();
-          form.append("file", compressed);
-          const res = await wsApi.request("/admin/media/assets", {
-            method: "POST",
+          form.append('file', compressed);
+          const res = await wsApi.request('/admin/media/assets', {
+            method: 'POST',
             body: form,
             raw: true,
           });
@@ -153,7 +155,7 @@ export default function NodeSidebar({
           const id = data?.id ?? data?.asset_id ?? data?.assetId ?? null;
           const url = data?.url ?? data?.file_url ?? data?.src ?? null;
           if (!id || !url) {
-            setUploadError("Сервер не вернул ID или URL");
+            setUploadError('Сервер не вернул ID или URL');
             return;
           }
           onCoverChange?.({
@@ -163,14 +165,12 @@ export default function NodeSidebar({
             meta: { focalX: 0.5, focalY: 0.5, crop: { x: 0, y: 0, width: 1, height: 1 } },
           });
         } catch (e) {
-          setUploadError(
-            e instanceof Error ? e.message : "Не удалось загрузить изображение",
-          );
+          setUploadError(e instanceof Error ? e.message : 'Не удалось загрузить изображение');
         }
       };
       img.onerror = () => {
         URL.revokeObjectURL(img.src);
-        setUploadError("Не удалось прочитать изображение");
+        setUploadError('Не удалось прочитать изображение');
       };
       img.src = URL.createObjectURL(file);
     },
@@ -198,12 +198,12 @@ export default function NodeSidebar({
   const runValidation = async () => {
     setValidating(true);
     try {
-      const res = await validateNode(workspaceId, node.nodeType, node.id);
+      const res = await validateNode(workspaceId, node.id);
       setValidation(res);
       onValidation?.(res);
     } catch {
       setValidation(null);
-      onValidation?.({ ok: false, errors: ["Validation failed"], warnings: [] });
+      onValidation?.({ ok: false, errors: ['Validation failed'], warnings: [] });
     } finally {
       setValidating(false);
     }
@@ -213,7 +213,7 @@ export default function NodeSidebar({
     setStatusSaving(true);
     try {
       if (checked) {
-      const res = await validateNode(workspaceId, node.nodeType, node.id);
+        const res = await validateNode(workspaceId, node.id);
         setValidation(res);
         onValidation?.(res);
         if (!res.ok) {
@@ -221,7 +221,7 @@ export default function NodeSidebar({
           return;
         }
       }
-      const res = await patchNode(workspaceId, node.nodeType, node.id, {
+      const res = await patchNode(workspaceId, node.id, {
         isPublic: checked,
         updatedAt: node.updatedAt,
       });
@@ -236,7 +236,7 @@ export default function NodeSidebar({
   const handleHiddenChange = async (checked: boolean) => {
     setHiddenSaving(true);
     try {
-      const res = await patchNode(workspaceId, node.nodeType, node.id, {
+      const res = await patchNode(workspaceId, node.id, {
         isVisible: !checked,
         updatedAt: node.updatedAt,
       });
@@ -251,7 +251,7 @@ export default function NodeSidebar({
   const handleAllowFeedbackChange = async (checked: boolean) => {
     setAllowSaving(true);
     try {
-      const res = await patchNode(workspaceId, node.nodeType, node.id, {
+      const res = await patchNode(workspaceId, node.id, {
         allowFeedback: checked,
         updatedAt: node.updatedAt,
       });
@@ -266,7 +266,7 @@ export default function NodeSidebar({
   const handlePremiumOnlyChange = async (checked: boolean) => {
     setPremiumSaving(true);
     try {
-      const res = await patchNode(workspaceId, node.nodeType, node.id, {
+      const res = await patchNode(workspaceId, node.id, {
         premiumOnly: checked,
         updatedAt: node.updatedAt,
       });
@@ -283,7 +283,7 @@ export default function NodeSidebar({
     setScheduleSaving(true);
     try {
       const iso = value ? new Date(value).toISOString() : null;
-      const res = await patchNode(workspaceId, node.nodeType, node.id, {
+      const res = await patchNode(workspaceId, node.id, {
         publishedAt: iso,
         updatedAt: node.updatedAt,
       });
@@ -305,7 +305,7 @@ export default function NodeSidebar({
   };
 
   const copy = (v: string) => {
-    if (typeof navigator !== "undefined") {
+    if (typeof navigator !== 'undefined') {
       void navigator.clipboard?.writeText(v);
     }
   };
@@ -319,7 +319,7 @@ export default function NodeSidebar({
   const saveSlug = async () => {
     setSlugSaving(true);
     try {
-      const res = await patchNode(workspaceId, node.nodeType, node.id, {
+      const res = await patchNode(workspaceId, node.id, {
         slug: slugDraft,
         updatedAt: node.updatedAt,
       });
@@ -342,7 +342,7 @@ export default function NodeSidebar({
               <div className="relative">
                 <img
                   src={node.coverUrl}
-                  alt={node.coverAlt || ""}
+                  alt={node.coverAlt || ''}
                   className="w-full rounded border object-cover aspect-video"
                 />
                 <div className="absolute top-2 right-2 flex gap-1">
@@ -369,7 +369,7 @@ export default function NodeSidebar({
                       onCoverChange?.({
                         assetId: null,
                         url: null,
-                        alt: "",
+                        alt: '',
                         meta: null,
                       })
                     }
@@ -403,9 +403,7 @@ export default function NodeSidebar({
                 }
               />
             ) : null}
-            {uploadError && (
-              <div className="text-xs text-red-600">{uploadError}</div>
-            )}
+            {uploadError && <div className="text-xs text-red-600">{uploadError}</div>}
             <input
               ref={fileRef}
               type="file"
@@ -441,11 +439,7 @@ export default function NodeSidebar({
             <div className="text-xs mb-1 flex items-center justify-between">
               <span>Slug</span>
               {canEditSlug ? (
-                <button
-                  type="button"
-                  className="text-xs underline"
-                  onClick={openSlugModal}
-                >
+                <button type="button" className="text-xs underline" onClick={openSlugModal}>
                   Edit slug
                 </button>
               ) : null}
@@ -465,13 +459,9 @@ export default function NodeSidebar({
               </button>
             </div>
           </div>
-          <div>Author: {node.authorId || "-"}</div>
-          <div>
-            Created: {node.createdAt ? new Date(node.createdAt).toLocaleString() : "-"}
-          </div>
-          <div>
-            Updated: {node.updatedAt ? new Date(node.updatedAt).toLocaleString() : "-"}
-          </div>
+          <div>Author: {node.authorId || '-'}</div>
+          <div>Created: {node.createdAt ? new Date(node.createdAt).toLocaleString() : '-'}</div>
+          <div>Updated: {node.updatedAt ? new Date(node.updatedAt).toLocaleString() : '-'}</div>
         </div>
       </details>
       <details open>
@@ -531,7 +521,7 @@ export default function NodeSidebar({
             onClick={runValidation}
             disabled={validating}
           >
-            {validating ? "Validating…" : "Run validation"}
+            {validating ? 'Validating…' : 'Run validation'}
           </button>
           {validation ? (
             validation.ok ? (
@@ -574,7 +564,7 @@ export default function NodeSidebar({
               onClick={handleRecompute}
               disabled={recomputing || !!hasChanges}
             >
-              {recomputing ? "Recomputing..." : "Recompute embedding"}
+              {recomputing ? 'Recomputing...' : 'Recompute embedding'}
             </button>
             <div>Type: {node.nodeType}</div>
           </div>
@@ -584,17 +574,13 @@ export default function NodeSidebar({
       {slugModal ? (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white dark:bg-gray-800 p-4 rounded shadow-lg w-80">
-            <div className="text-sm mb-2">
-              Changing slug may break existing links.
-            </div>
+            <div className="text-sm mb-2">Changing slug may break existing links.</div>
             <input
               className="w-full border rounded px-2 py-1 text-sm"
               value={slugDraft}
               onChange={(e) => setSlugDraft(e.target.value)}
             />
-            {slugError && (
-              <div className="text-xs text-red-600 mt-1">{slugError}</div>
-            )}
+            {slugError && <div className="text-xs text-red-600 mt-1">{slugError}</div>}
             <div className="mt-4 flex justify-end gap-2 text-sm">
               <button
                 type="button"
@@ -644,7 +630,7 @@ export default function NodeSidebar({
                 style={{
                   left: `${focal.x * 100}%`,
                   top: `${focal.y * 100}%`,
-                  transform: "translate(-50%, -50%)",
+                  transform: 'translate(-50%, -50%)',
                 }}
               />
             </div>
@@ -656,11 +642,7 @@ export default function NodeSidebar({
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                className="px-2 py-1 border rounded"
-                onClick={applyMeta}
-              >
+              <button type="button" className="px-2 py-1 border rounded" onClick={applyMeta}>
                 Apply
               </button>
             </div>
@@ -670,4 +652,3 @@ export default function NodeSidebar({
     </div>
   );
 }
-

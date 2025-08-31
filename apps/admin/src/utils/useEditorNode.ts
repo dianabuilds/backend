@@ -1,19 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { getNode, patchNode } from "../api/nodes";
-import type { NodeOut } from "../openapi";
-import { useUnsavedChanges } from "./useUnsavedChanges";
+import { getNode, patchNode } from '../api/nodes';
+import type { NodeOut } from '../openapi';
+import { useUnsavedChanges } from './useUnsavedChanges';
 
 /**
  * Hook for editing a node with auto‑save and dirty state tracking.
  * Handles loading, manual saving and debounced auto‑saving.
  */
-export function useEditorNode(
-  workspaceId: string,
-  type: string,
-  id: string,
-  autoSaveDelay = 1000,
-) {
+export function useEditorNode(workspaceId: string, id: string, autoSaveDelay = 1000) {
   const [data, setData] = useState<NodeOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,7 +22,7 @@ export function useEditorNode(
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const node = await getNode(workspaceId, type, id);
+      const node = await getNode(workspaceId, id);
       setData(node);
       baseRef.current = node;
       setDirty(false);
@@ -68,19 +63,19 @@ export function useEditorNode(
     abortRef.current = controller;
     setSaving(true);
     try {
-      const updated = await patchNode(workspaceId, type, id, patch, {
+      const updated = await patchNode(workspaceId, id, patch, {
         signal: controller.signal,
       });
       setData(updated);
       baseRef.current = updated;
       setDirty(false);
-    } catch (e: any) {
-      if (e?.name !== "AbortError") throw e;
+    } catch (e: unknown) {
+      if ((e as Error).name !== 'AbortError') throw e;
     } finally {
       abortRef.current = null;
       setSaving(false);
     }
-  }, [computePatch, data, id, type, workspaceId]);
+  }, [computePatch, data, id, workspaceId]);
 
   const scheduleSave = useCallback(() => {
     if (timer.current) window.clearTimeout(timer.current);
@@ -90,7 +85,7 @@ export function useEditorNode(
   }, [save, autoSaveDelay]);
 
   const update = useCallback((patch: Partial<NodeOut>) => {
-    setData((prev) => ({ ...(prev || {}), ...patch } as NodeOut));
+    setData((prev) => ({ ...(prev || {}), ...patch }) as NodeOut);
   }, []);
 
   useEffect(() => {
@@ -110,4 +105,3 @@ export function useEditorNode(
 
   return { data, update, loading, saving, dirty, save, reload: load };
 }
-

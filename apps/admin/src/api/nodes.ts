@@ -1,6 +1,6 @@
-import type { NodeOut, ValidateResult, PublishIn } from "../openapi";
-import type { ApiResponse } from "./client";
-import { wsApi } from "./wsApi";
+import { AdminService, type NodeOut, type PublishIn, type ValidateResult } from '../openapi';
+import type { ApiResponse } from './client';
+import { wsApi } from './wsApi';
 
 // The admin nodes list endpoint returns additional metadata compared to the
 // public NodeOut model.  In particular it includes the `node_type` of each
@@ -16,13 +16,8 @@ const listCache = new Map<string, { etag: string | null; data: AdminNodeItem[] }
 export interface NodeListParams {
   author?: string;
   tags?: string;
-  match?: "any" | "all";
-  sort?:
-    | "updated_desc"
-    | "created_desc"
-    | "created_asc"
-    | "views_desc"
-    | "reactions_desc";
+  match?: 'any' | 'all';
+  sort?: 'updated_desc' | 'created_desc' | 'created_asc' | 'views_desc' | 'reactions_desc';
   is_public?: boolean;
   visible?: boolean;
   premium_only?: boolean;
@@ -53,10 +48,6 @@ export interface NodePatchParams {
   publishedAt?: string | null;
 }
 export type NodePublishParams = PublishIn;
-export interface NodePatchQuery {
-  force?: 1;
-  next?: 1;
-}
 export interface NodeSimulatePayload {
   [key: string]: unknown;
 }
@@ -85,7 +76,9 @@ export async function listNodes(
     })) as ApiResponse<AdminNodeItem[]>;
     if (res.status === 304 && cached) return cached.data;
     if (res.status === 404) {
-      const err: any = new Error("Not Found");
+      const err = new Error('Not Found') as Error & {
+        response?: { status: number };
+      };
       err.response = { status: 404 };
       throw err;
     }
@@ -97,27 +90,29 @@ export async function listNodes(
   // 1) Основной админ-маршрут: /admin/workspaces/{ws}/nodes
   const adminByPath = `/admin/workspaces/${encodeURIComponent(
     workspaceId,
-  )}/nodes${qs.toString() ? `?${qs.toString()}` : ""}`;
+  )}/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
   try {
     return await getWithCache(adminByPath);
-  } catch (e: any) {
-    if (e?.response?.status !== 404) throw e;
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status;
+    if (status !== 404) throw e;
   }
 
   // 2) Альтернативный админ-маршрут: /admin/nodes?workspace_id={ws}
   const adminByQuery = `/admin/nodes${
-    qs.toString() ? `?${qs.toString()}&` : "?"
+    qs.toString() ? `?${qs.toString()}&` : '?'
   }workspace_id=${encodeURIComponent(workspaceId)}`;
   try {
     return await getWithCache(adminByQuery);
-  } catch (e: any) {
-    if (e?.response?.status !== 404) throw e;
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status;
+    if (status !== 404) throw e;
   }
 
   // 3) Публичный список (вернёт только видимые/опубликованные)
   const publicUrl = `/workspaces/${encodeURIComponent(
     workspaceId,
-  )}/nodes${qs.toString() ? `?${qs.toString()}` : ""}`;
+  )}/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
   return await getWithCache(publicUrl);
 }
 
@@ -125,7 +120,9 @@ export async function createNode(
   workspaceId: string,
   body: { node_type: string; title?: string },
 ): Promise<NodeOut> {
-  const payload: any = { node_type: body.node_type };
+  const payload: { node_type: string; title?: string } = {
+    node_type: body.node_type,
+  };
   if (body.title) payload.title = body.title;
   const res = await wsApi.post<typeof payload, NodeOut>(
     `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes`,
@@ -141,61 +138,49 @@ export interface NodeResponse extends NodeOut {
   cover?: { url?: string | null; cover_url?: string | null } | null;
 }
 
-export async function getNode(
-  workspaceId: string,
-  type: string,
-  id: string,
-): Promise<NodeResponse> {
-  const url = `/admin/workspaces/${encodeURIComponent(
+export async function getNode(workspaceId: string, id: string): Promise<NodeResponse> {
+  const res = await AdminService.getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
+    id,
     workspaceId,
-  )}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`;
-  const res = await wsApi.get<NodeResponse>(url);
-  return res!;
+  );
+  return res as NodeResponse;
 }
 
 export async function patchNode(
   workspaceId: string,
-  type: string,
   id: string,
   patch: NodePatchParams,
-  opts: { force?: boolean; signal?: AbortSignal; next?: boolean } = {},
+  opts: { signal?: AbortSignal; next?: boolean } = {},
 ): Promise<NodeOut> {
-  const params: NodePatchQuery = {};
-  if (opts.force) params.force = 1;
-  if (opts.next) params.next = 1;
-  const res = await wsApi.patch<NodePatchParams, NodeOut, NodePatchQuery>(
-    `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
+  const res = await AdminService.updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch(
+    id,
+    workspaceId,
     patch,
-    { params, signal: opts.signal, workspace: false },
+    opts.next ? 1 : undefined,
   );
-  return res!;
+  return res as NodeOut;
 }
 
 export async function publishNode(
   workspaceId: string,
-  type: string,
   id: string,
   body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
-  const res = await wsApi.post<NodePublishParams | undefined, NodeOut>(
-    `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/publish`,
+  const res = await AdminService.publishNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPublishPost(
+    id,
+    workspaceId,
     body,
-    { workspace: false },
   );
-  return res!;
+  return res as NodeOut;
 }
 
-export async function validateNode(
-  workspaceId: string,
-  type: string,
-  id: string,
-): Promise<ValidateResult> {
-  const res = await wsApi.post<undefined, ValidateResult>(
-    `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
-    undefined,
-    { workspace: false },
-  );
-  return res!;
+export async function validateNode(workspaceId: string, id: string): Promise<ValidateResult> {
+  const res =
+    await AdminService.validateArticleAdminWorkspacesWorkspaceIdArticlesNodeIdValidatePost(
+      id,
+      workspaceId,
+    );
+  return res;
 }
 
 export async function simulateNode(
@@ -203,8 +188,8 @@ export async function simulateNode(
   type: string,
   id: string,
   payload: NodeSimulatePayload,
-): Promise<any> {
-  const res = await wsApi.post<NodeSimulatePayload, any>(
+): Promise<unknown> {
+  const res = await wsApi.post<NodeSimulatePayload, unknown>(
     `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/simulate`,
     payload,
     { workspace: false },
@@ -213,7 +198,5 @@ export async function simulateNode(
 }
 
 export async function recomputeNodeEmbedding(id: string): Promise<void> {
-  await wsApi.post(
-    `/admin/ai/nodes/${encodeURIComponent(id)}/embedding/recompute`,
-  );
+  await wsApi.post(`/admin/ai/nodes/${encodeURIComponent(id)}/embedding/recompute`);
 }
