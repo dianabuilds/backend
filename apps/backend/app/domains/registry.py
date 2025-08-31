@@ -314,6 +314,13 @@ def register_domain_routers(app: FastAPI) -> None:
         app.include_router(admin_drafts_router)
     except Exception:
         pass
+    # Admin quest steps
+    try:
+        from app.api.admin.quests.steps import router as admin_quest_steps_router
+
+        app.include_router(admin_quest_steps_router)
+    except Exception:
+        pass
     # Admin transitions
     try:
         from app.domains.navigation.api.admin_transitions_router import (

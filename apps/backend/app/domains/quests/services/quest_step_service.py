@@ -12,12 +12,22 @@ from app.models.quests import QuestStep, QuestStepTransition
 class QuestStepService:
     """Service providing CRUD operations and validations for quest steps and transitions."""
 
-    async def list_steps(self, db: AsyncSession, quest_id: UUID) -> list[QuestStep]:
-        res = await db.execute(
-            select(QuestStep)
-            .where(QuestStep.quest_id == quest_id)
-            .order_by(QuestStep.order)
+    async def list_steps(
+        self,
+        db: AsyncSession,
+        quest_id: UUID,
+        *,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> list[QuestStep]:
+        stmt = select(QuestStep).where(QuestStep.quest_id == quest_id).order_by(
+            QuestStep.order
         )
+        if offset is not None:
+            stmt = stmt.offset(offset)
+        if limit is not None:
+            stmt = stmt.limit(limit)
+        res = await db.execute(stmt)
         return list(res.scalars().all())
 
     async def create_step(
@@ -28,6 +38,8 @@ class QuestStepService:
         key: str,
         title: str,
         type: str = "normal",
+        content: dict | None = None,
+        rewards: dict | None = None,
     ) -> QuestStep:
         if type == "start":
             res = await db.execute(
@@ -47,6 +59,8 @@ class QuestStepService:
             title=title,
             type=type,
             order=int(max_order) + 1,
+            content=content,
+            rewards=rewards,
         )
         db.add(step)
         await db.flush()
