@@ -43,6 +43,19 @@ def upgrade() -> None:
         WHERE ci.node_alt_id = n.alt_id
         """
     )
+    # ``node_alt_id`` may be NULL for legacy rows where the ``node_id`` column was
+    # never backfilled.  For those rows the corresponding entry in ``nodes`` can
+    # still be located via ``content_items.id`` matching ``nodes.alt_id``.  This
+    # secondary update links such orphaned rows to their node before applying the
+    # NOT NULL constraint.
+    op.execute(
+        """
+        UPDATE content_items ci
+        SET node_id = n.id
+        FROM nodes n
+        WHERE ci.node_id IS NULL AND n.alt_id = ci.id
+        """
+    )
     op.alter_column("content_items", "node_id", nullable=False)
     op.drop_column("content_items", "node_alt_id")
 
