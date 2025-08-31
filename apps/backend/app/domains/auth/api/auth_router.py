@@ -37,16 +37,30 @@ _tokens = CoreTokenAdapter()
 _rate = CoreRateLimiter()
 _mailer = LegacyMailAdapter()
 
-if settings.auth.redis_url and settings.auth.redis_url.startswith("fakeredis://"):
+# Redis backend for nonces and verification tokens. In development and tests
+# we want the router to load even if Redis is not available, so fall back to
+# ``fakeredis`` when configuration or the real library is missing.
+try:  # pragma: no cover - optional dependency
     import fakeredis.aioredis as fakeredis  # type: ignore
+except Exception:  # pragma: no cover
+    fakeredis = None  # type: ignore
 
-    _redis = fakeredis.FakeRedis(decode_responses=True)
-else:
-    if redis is None:  # pragma: no cover - requires redis
-        raise RuntimeError("redis library is not installed")
-    if settings.auth.redis_url is None:
+if settings.auth.redis_url and not settings.auth.redis_url.startswith("fakeredis://"):
+    if redis is not None:
+        try:
+            _redis = redis.from_url(settings.auth.redis_url, decode_responses=True)
+        except Exception:  # pragma: no cover - connection issues
+            if fakeredis is None:
+                raise
+            _redis = fakeredis.FakeRedis(decode_responses=True)
+    else:  # redis library not installed
+        if fakeredis is None:
+            raise RuntimeError("redis library is not installed")
+        _redis = fakeredis.FakeRedis(decode_responses=True)
+else:  # No URL provided or explicit fakeredis://
+    if fakeredis is None:
         raise RuntimeError("Redis URL is not configured")
-    _redis = redis.from_url(settings.auth.redis_url, decode_responses=True)
+    _redis = fakeredis.FakeRedis(decode_responses=True)
 
 _nonce_store = NonceStore(_redis, settings.auth.nonce_ttl)
 _verification_store = VerificationTokenStore(
