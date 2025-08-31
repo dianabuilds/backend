@@ -68,6 +68,11 @@ _verification_store = VerificationTokenStore(
 )
 _svc = AuthService(_tokens, _verification_store, _nonce_store)
 
+# Reusable dependency for refresh token body parsing
+_token_body = Body(default_factory=Token)
+# Reusable dependency for Authorization header
+_auth_header = Header(default="")
+
 
 async def _login_rate_limit(request: Request, response: Response):
     key = (
@@ -141,7 +146,7 @@ async def login(
 async def refresh(
     request: Request,
     response: Response,
-    payload: Annotated[Token, Body(default=Token())] = ...,
+    payload: Token = _token_body,
 ) -> LoginResponse:
     token = payload.token or request.cookies.get("refresh_token")
     if not token:
@@ -206,7 +211,7 @@ class ChangePasswordIn(BaseModel):
 async def change_password(
     payload: ChangePasswordIn,
     db: Annotated[AsyncSession, Depends(get_db)],
-    authorization: Annotated[str, Header(default="")] = ...,
+    authorization: str = _auth_header,
 ) -> dict[str, Any]:
     token = authorization.replace("Bearer ", "")
     return await _svc.change_password(
