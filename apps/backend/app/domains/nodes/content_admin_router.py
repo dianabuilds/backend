@@ -134,7 +134,9 @@ async def get_node_by_id(
     item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
     item = await svc.get(workspace_id, item.type, item.id)
-    node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
+    node = await db.get(
+        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    )
     return _serialize(item, node)
 
 
@@ -161,7 +163,9 @@ async def update_node_by_id(
         from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 
         ux_metrics.inc_save_next()
-    node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
+    node = await db.get(
+        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    )
     return _serialize(item, node)
 
 
@@ -190,7 +194,7 @@ async def publish_node_by_id(
         author_id=current_user.id,
         workspace_id=workspace_id,
     )
-    node = await db.get(Node, item.id)
+    node = await db.get(Node, item.node_id or item.id)
     return _serialize(item, node)
 
 
@@ -234,7 +238,9 @@ async def create_node(
         )
     svc = NodeService(db)
     item = await svc.create(workspace_id, node_type, actor_id=current_user.id)
-    node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
+    node = await db.get(
+        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    )
     return _serialize(item, node)
 
 
@@ -253,7 +259,9 @@ async def get_node(
         )
     svc = NodeService(db)
     item = await svc.get(workspace_id, node_type, node_id)
-    node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
+    node = await db.get(
+        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    )
     return _serialize(item, node)
 
 
@@ -286,7 +294,9 @@ async def update_node(
         from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 
         ux_metrics.inc_save_next()
-    node = await db.get(Node, item.id, options=(selectinload(Node.tags),))
+    node = await db.get(
+        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
+    )
     return _serialize(item, node)
 
 
@@ -320,7 +330,7 @@ async def publish_node(
         author_id=current_user.id,
         workspace_id=workspace_id,
     )
-    node = await db.get(Node, item.id)
+    node = await db.get(Node, item.node_id or item.id)
     return _serialize(item, node)
 
 
@@ -358,5 +368,5 @@ async def publish_node_patch(
         author_id=current_user.id,
         workspace_id=workspace_id,
     )
-    node = await db.get(Node, item.id)
+    node = await db.get(Node, item.node_id or item.id)
     return _serialize(item, node)

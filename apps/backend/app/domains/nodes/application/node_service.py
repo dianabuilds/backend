@@ -185,7 +185,7 @@ class NodeService:
                 setattr(item, key, value)
 
         # Сохраняем контент и флаги во "внешнюю" таблицу nodes
-        node = await self._db.get(Node, item.id)
+        node = await self._db.get(Node, item.node_id or item.id)
         if node is None:
             # На случай старых записей, созданных до появления связанного Node
             node = Node(
@@ -201,6 +201,7 @@ class NodeService:
                 updated_by_user_id=actor_id,
             )
             self._db.add(node)
+            item.node_id = node.id
 
         # Маппинг полей из payload -> Node
         if "content" in data and data["content"] is not None:
@@ -261,9 +262,7 @@ class NodeService:
                 str(data["coverUrl"]) if data["coverUrl"] is not None else None
             )
         if "cover" in data:
-            node.cover_url = (
-                str(data["cover"]) if data["cover"] is not None else None
-            )
+            node.cover_url = str(data["cover"]) if data["cover"] is not None else None
         # синхронизируем заголовок, если он менялся
         if "title" in data and data["title"]:
             node.title = str(data["title"])
@@ -310,7 +309,7 @@ class NodeService:
         item.updated_by_user_id = actor_id
 
         # Ищем/создаём инфраструктурную запись в nodes по id контента
-        node = await self._db.get(Node, item.id)
+        node = await self._db.get(Node, item.node_id or item.id)
         if node is None:
             node = Node(
                 id=item.id,
