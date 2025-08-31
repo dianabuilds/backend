@@ -32,11 +32,11 @@ async def search_nodes(
     match: str = Query("any", pattern="^(any|all)$"),
     limit: int = 20,
     offset: int = 0,
-    db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_current_user_optional),
-    preview: PreviewContext = Depends(get_preview_context),
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user: User | None = Depends(get_current_user_optional),  # noqa: B008
+    preview: PreviewContext = Depends(get_preview_context),  # noqa: B008
 ):
-    stmt = select(Node).where(Node.is_visible == True)  # noqa: E712
+    stmt = select(Node).where(Node.is_visible)
     if q:
         pattern = f"%{q}%"
         stmt = stmt.where(Node.title.ilike(pattern))
@@ -63,9 +63,9 @@ async def search_nodes(
 async def semantic_search(
     q: str,
     limit: int = 20,
-    db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_current_user_optional),
-    preview: PreviewContext = Depends(get_preview_context),
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user: User | None = Depends(get_current_user_optional),  # noqa: B008
+    preview: PreviewContext = Depends(get_preview_context),  # noqa: B008
 ):
     query_vec = get_embedding(q)
     repo = CompassRepository(db)
@@ -75,9 +75,9 @@ async def semantic_search(
     results: list[tuple[Node, float]] = []
     if candidates is None:
         stmt = select(Node).where(
-            Node.is_visible == True,  # noqa: E712
-            Node.is_public == True,
-            Node.is_recommendable == True,
+            Node.is_visible,
+            Node.is_public,
+            Node.is_recommendable,
             Node.embedding_vector.isnot(None),
         )
         nodes = (await db.execute(stmt)).scalars().all()

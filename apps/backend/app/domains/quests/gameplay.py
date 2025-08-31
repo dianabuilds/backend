@@ -6,12 +6,10 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.quests.infrastructure.models.quest_version_models import QuestGraphNode
-from app.domains.quests.infrastructure.models.quest_models import QuestProgress
+from app.domains.quests.access import can_start, can_view
+from app.domains.quests.infrastructure.models.quest_models import Quest, QuestProgress
 from app.domains.users.infrastructure.models.user import User
-from app.domains.quests.access import can_view, can_start
 
 
 async def start_quest(
@@ -21,7 +19,7 @@ async def start_quest(
         select(Quest).where(
             Quest.id == quest_id,
             Quest.workspace_id == workspace_id,
-            Quest.is_deleted == False,
+            Quest.is_deleted.is_(False),
         )
     )
     quest = res.scalars().first()
@@ -60,7 +58,7 @@ async def get_progress(
         select(Quest).where(
             Quest.id == quest_id,
             Quest.workspace_id == workspace_id,
-            Quest.is_deleted == False,
+            Quest.is_deleted.is_(False),
         )
     )
     quest = qres.scalars().first()
@@ -91,7 +89,7 @@ async def get_node(
         select(Quest).where(
             Quest.id == quest_id,
             Quest.workspace_id == workspace_id,
-            Quest.is_deleted == False,
+            Quest.is_deleted.is_(False),
         )
     )
     quest = res.scalars().first()
@@ -99,7 +97,8 @@ async def get_node(
         raise ValueError("Quest not found")
     if not await can_view(db, quest=quest, user=user):
         raise PermissionError("No access")
-    # Имеется ли узел в графе квеста (если используется версия графа — можно проверить через таблицу узлов версии)
+    # Имеется ли узел в графе квеста (если используется версия графа —
+    # можно проверить через таблицу узлов версии)
     # Здесь базовая проверка: напрямую загрузим Node и обновим прогресс
     res = await db.execute(select(Node).where(Node.id == node_id))
     node = res.scalars().first()

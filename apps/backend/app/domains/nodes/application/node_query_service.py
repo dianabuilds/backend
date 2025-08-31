@@ -36,7 +36,7 @@ class NodeQueryService:
             clauses.append(Node.is_visible == bool(spec.is_visible))
         elif not getattr(ctx, "is_admin", False):
             # Для не-админов по умолчанию показываем только видимые записи
-            clauses.append(Node.is_visible == True)  # noqa: E712
+            clauses.append(Node.is_visible)
         if spec.premium_only is not None and hasattr(Node, "premium_only"):
             clauses.append(Node.premium_only == bool(spec.premium_only))
         if spec.recommendable is not None and hasattr(Node, "is_recommendable"):
@@ -70,8 +70,10 @@ class NodeQueryService:
         uid = getattr(getattr(ctx, "user", None), "id", None)
         sort = getattr(spec, "sort", "updated_desc") or "updated_desc"
         payload = (
-            f"{cnt}:{uid or 'anon'}:{page.offset}:{page.limit}:{sort}:{max_updated or ''}:"
-            f"{spec.author_id or ''}:{spec.q or ''}:{spec.min_views or ''}:{spec.node_type or ''}"
+            f"{cnt}:{uid or 'anon'}:{page.offset}:{page.limit}:"
+            f"{sort}:{max_updated or ''}:"
+            f"{spec.author_id or ''}:{spec.q or ''}:{spec.min_views or ''}:"
+            f"{spec.node_type or ''}"
         )
         return hashlib.sha256(payload.encode()).hexdigest()
 
@@ -88,7 +90,7 @@ class NodeQueryService:
             clauses.append(Node.is_visible == bool(spec.is_visible))
         elif not getattr(ctx, "is_admin", False):
             # Для не-админов по умолчанию показываем только видимые записи
-            clauses.append(Node.is_visible == True)  # noqa: E712
+            clauses.append(Node.is_visible)
         if spec.premium_only is not None and hasattr(Node, "premium_only"):
             clauses.append(Node.premium_only == bool(spec.premium_only))
         if spec.recommendable is not None and hasattr(Node, "is_recommendable"):
@@ -130,9 +132,7 @@ class NodeQueryService:
             items.append(node)
         return items
 
-    async def list_drafts_with_issues(
-        self, limit: int = 10
-    ) -> list[dict]:
+    async def list_drafts_with_issues(self, limit: int = 10) -> list[dict]:
         cache_key = f"admin:drafts:issues:{limit}"
         cached = await shared_cache.get(cache_key)
         if cached:

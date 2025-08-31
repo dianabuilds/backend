@@ -1,26 +1,27 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Set
+from typing import Any
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, Request, Security, HTTPException
+from fastapi import Depends, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.config import settings
 from app.core.db.session import get_db
+from app.domains.moderation.infrastructure.models.moderation_models import (
+    UserRestriction,
+)
 from app.domains.users.infrastructure.models.user import User
-from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
-from app.schemas.workspaces import WorkspaceRole
 
 from .exceptions import (
     AuthRequiredError,
+    ForbiddenError,
     InvalidTokenError,
     TokenExpiredError,
-    ForbiddenError,
 )
 
 bearer_scheme = HTTPBearer(auto_error=False, scheme_name="bearerAuth")
@@ -57,7 +58,7 @@ async def get_current_user(token: str, db: AsyncSession) -> User:
         select(UserRestriction).where(
             UserRestriction.user_id == user.id,
             UserRestriction.type == "ban",
-            (UserRestriction.expires_at == None)
+            (UserRestriction.expires_at.is_(None))
             | (UserRestriction.expires_at > datetime.utcnow()),
         )
     )
@@ -97,13 +98,15 @@ def verify_preview_token(token: str) -> dict[str, Any]:
     return data
 
 
-def require_admin_role(allowed_roles: Set[str] | None = None):
+def require_admin_role(allowed_roles: set[str] | None = None):
     allowed = allowed_roles or set(settings.security.admin_roles)
 
     async def dependency(
         request: Request,
-        credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
-        db: AsyncSession = Depends(get_db),
+        credentials: HTTPAuthorizationCredentials | None = Security(  # noqa: B008
+            bearer_scheme
+        ),
+        db: AsyncSession = Depends(get_db),  # noqa: B008
     ) -> User:
         # Приоритет: Bearer из заголовка; если его нет — берём access_token из cookie.
         token: str | None = None
@@ -124,15 +127,19 @@ def require_admin_role(allowed_roles: Set[str] | None = None):
     return dependency
 
 
-def require_admin_or_preview_token(allowed_roles: Set[str] | None = None):
+def require_admin_or_preview_token(allowed_roles: set[str] | None = None):
     admin_dep = require_admin_role(allowed_roles)
 
     async def dependency(
         request: Request,
-        credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
-        db: AsyncSession = Depends(get_db),
+        credentials: HTTPAuthorizationCredentials | None = Security(  # noqa: B008
+            bearer_scheme
+        ),
+        db: AsyncSession = Depends(get_db),  # noqa: B008
     ):
-        token = request.query_params.get("token") or request.headers.get("X-Preview-Token")
+        token = request.query_params.get("token") or request.headers.get(
+            "X-Preview-Token"
+        )
         if token:
             data = verify_preview_token(token)
             request.state.preview_token = data
@@ -144,8 +151,10 @@ def require_admin_or_preview_token(allowed_roles: Set[str] | None = None):
 
 async def auth_user(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
-    db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Security(  # noqa: B008
+        bearer_scheme
+    ),
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> User:
     token: str | None = None
     if credentials is not None and credentials.credentials:
@@ -162,11 +171,11 @@ async def auth_user(
 
 
 # Late import to avoid circular dependency with workspace service
-from app.domains.workspaces.application.service import (
+from app.domains.workspaces.application.service import (  # noqa: E402
     require_ws_editor,
+    require_ws_guest,
     require_ws_owner,
     require_ws_viewer,
-    require_ws_guest,
 )
 
 ADMIN_AUTH_RESPONSES = {

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Protocol, Tuple
 from datetime import datetime, timedelta
+from typing import Any, Protocol
 
 import jwt
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.domains.payments.infrastructure.models.payment_models import PaymentGatewayConfig
-from app.domains.payments.application.payments_service import payment_service  # domain fallback
+from app.domains.payments.application.payments_service import (
+    payment_service,  # domain fallback
+)
+from app.domains.payments.infrastructure.models.payment_models import (
+    PaymentGatewayConfig,
+)
 from app.domains.premium.infrastructure.models.premium_models import UserSubscription
 
 
@@ -17,19 +21,22 @@ class PaymentGateway(Protocol):
     slug: str
     type: str
 
-    async def verify(self, *, token: str, amount: int, currency: str | None = None) -> bool:
-        ...
+    async def verify(
+        self, *, token: str, amount: int, currency: str | None = None
+    ) -> bool: ...
 
 
 class CryptoJWTGateway:
-    def __init__(self, slug: str, cfg: Dict[str, Any]) -> None:
+    def __init__(self, slug: str, cfg: dict[str, Any]) -> None:
         self.slug = slug
         self.type = "crypto_jwt"
         self.secret = str(cfg.get("jwt_secret", "") or cfg.get("secret", ""))
         self.alg = str(cfg.get("jwt_algorithm", "HS256"))
         self.expected_currency = cfg.get("currency")
 
-    async def verify(self, *, token: str, amount: int, currency: str | None = None) -> bool:
+    async def verify(
+        self, *, token: str, amount: int, currency: str | None = None
+    ) -> bool:
         try:
             data = jwt.decode(token, self.secret, algorithms=[self.alg])
         except jwt.PyJWTError:
@@ -44,13 +51,15 @@ class CryptoJWTGateway:
 
 
 class StripeJWTGateway:
-    def __init__(self, slug: str, cfg: Dict[str, Any]) -> None:
+    def __init__(self, slug: str, cfg: dict[str, Any]) -> None:
         self.slug = slug
         self.type = "stripe_jwt"
         self.secret = str(cfg.get("jwt_secret", "") or cfg.get("secret", ""))
         self.alg = str(cfg.get("jwt_algorithm", "HS256"))
 
-    async def verify(self, *, token: str, amount: int, currency: str | None = None) -> bool:
+    async def verify(
+        self, *, token: str, amount: int, currency: str | None = None
+    ) -> bool:
         try:
             data = jwt.decode(token, self.secret, algorithms=[self.alg])
         except jwt.PyJWTError:
@@ -62,7 +71,7 @@ class StripeJWTGateway:
         return True
 
 
-def _build_gateway(pg: PaymentGatewayConfig) -> Optional[PaymentGateway]:
+def _build_gateway(pg: PaymentGatewayConfig) -> PaymentGateway | None:
     cfg = pg.config or {}
     t = (pg.type or "").lower()
     if t == "crypto_jwt":
@@ -72,12 +81,14 @@ def _build_gateway(pg: PaymentGatewayConfig) -> Optional[PaymentGateway]:
     return None
 
 
-async def load_active_gateways(db: AsyncSession) -> List[PaymentGateway]:
+async def load_active_gateways(db: AsyncSession) -> list[PaymentGateway]:
     res = await db.execute(
-        select(PaymentGatewayConfig).where(PaymentGatewayConfig.enabled == True).order_by(PaymentGatewayConfig.priority.asc())  # noqa: E712
+        select(PaymentGatewayConfig)
+        .where(PaymentGatewayConfig.enabled.is_(True))
+        .order_by(PaymentGatewayConfig.priority.asc())
     )
     items = list(res.scalars().all())
-    out: List[PaymentGateway] = []
+    out: list[PaymentGateway] = []
     for it in items:
         g = _build_gateway(it)
         if g:
@@ -92,18 +103,20 @@ async def verify_payment(
     currency: str | None,
     token: str,
     preferred_slug: str | None = None,
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     gateways = await load_active_gateways(db)
     if not gateways:
         ok = await payment_service.verify(token, amount)
         return ok, "legacy"
 
-    order: List[PaymentGateway] = gateways[:]
+    order: list[PaymentGateway] = gateways[:]
     if preferred_slug:
         order.sort(key=lambda g: (g.slug != preferred_slug, g.slug))
     else:
         try:
-            data = jwt.decode(token, options={"verify_signature": False, "verify_exp": False})  # type: ignore[arg-type]
+            data = jwt.decode(
+                token, options={"verify_signature": False, "verify_exp": False}
+            )  # type: ignore[arg-type]
             gw = data.get("gateway")
             if gw:
                 order.sort(key=lambda g: (g.slug != gw, g.slug))
@@ -119,7 +132,7 @@ async def verify_payment(
 
 async def get_active_subscriptions_stats(
     db: AsyncSession,
-) -> Tuple[int, float]:
+) -> tuple[int, float]:
     """Return current active subscriptions count and pct change vs last week."""
     now = datetime.utcnow()
     week_ago = now - timedelta(days=7)
@@ -130,7 +143,10 @@ async def get_active_subscriptions_stats(
         .where(
             UserSubscription.status == "active",
             UserSubscription.started_at <= now,
-            or_(UserSubscription.ends_at.is_(None), UserSubscription.ends_at > now),
+            or_(
+                UserSubscription.ends_at.is_(None),
+                UserSubscription.ends_at > now,
+            ),
         )
     )
     current = (await db.execute(current_q)).scalar() or 0
@@ -141,7 +157,10 @@ async def get_active_subscriptions_stats(
         .where(
             UserSubscription.status == "active",
             UserSubscription.started_at <= week_ago,
-            or_(UserSubscription.ends_at.is_(None), UserSubscription.ends_at > week_ago),
+            or_(
+                UserSubscription.ends_at.is_(None),
+                UserSubscription.ends_at > week_ago,
+            ),
         )
     )
     past = (await db.execute(past_q)).scalar() or 0

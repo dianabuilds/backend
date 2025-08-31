@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
 from uuid import UUID
 
 from sqlalchemy import func, or_
@@ -15,14 +14,14 @@ from app.domains.users.infrastructure.models.user import User
 from app.schemas.nodes_common import Status
 
 
-async def list_public(db: AsyncSession, *, workspace_id: UUID) -> List[Quest]:
+async def list_public(db: AsyncSession, *, workspace_id: UUID) -> list[Quest]:
     res = await db.execute(
         select(Quest)
         .join(NodeItem, NodeItem.id == Quest.id)
         .where(
             NodeItem.type == "quest",
             NodeItem.status == Status.published,
-            Quest.is_deleted == False,
+            Quest.is_deleted.is_(False),
             Quest.workspace_id == workspace_id,
         )
         .order_by(NodeItem.published_at.desc())
@@ -42,14 +41,14 @@ async def search(
     page: int,
     per_page: int,
     workspace_id: UUID,
- ) -> List[Quest]:
+) -> list[Quest]:
     stmt = (
         select(Quest)
         .join(NodeItem, NodeItem.id == Quest.id)
         .where(
             NodeItem.type == "quest",
             NodeItem.status == Status.published,
-            Quest.is_deleted == False,
+            Quest.is_deleted.is_(False),
             Quest.workspace_id == workspace_id,
         )
     )
@@ -71,10 +70,10 @@ async def search(
         stmt = stmt.where(Quest.author_id == author_id)
 
     if free_only:
-        stmt = stmt.where(or_(Quest.price == None, Quest.price == 0))  # noqa: E711
+        stmt = stmt.where(or_(Quest.price.is_(None), Quest.price == 0))
 
     if premium_only:
-        stmt = stmt.where(Quest.is_premium_only == True)  # noqa: E712
+        stmt = stmt.where(Quest.is_premium_only.is_(True))
 
     if sort_by == "price":
         stmt = stmt.order_by(Quest.price.asc())
@@ -98,7 +97,7 @@ async def get_for_view(
     res = await db.execute(
         select(Quest).where(
             Quest.slug == slug,
-            Quest.is_deleted == False,
+            Quest.is_deleted.is_(False),
             Quest.workspace_id == workspace_id,
         )
     )

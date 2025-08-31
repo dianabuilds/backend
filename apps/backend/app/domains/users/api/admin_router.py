@@ -1,27 +1,29 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import String, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.api.deps import assert_seniority_over
 from app.core.db.session import get_db
-from app.domains.moderation.infrastructure.models.moderation_models import UserRestriction
+from app.domains.moderation.infrastructure.models.moderation_models import (
+    UserRestriction,
+)
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.user import AdminUserOut, UserPremiumUpdate, UserRoleUpdate
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.api.deps import assert_seniority_over
 
-router = APIRouter(prefix="/admin/users", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
+router = APIRouter(
+    prefix="/admin/users", tags=["admin"], responses=ADMIN_AUTH_RESPONSES
+)
 admin_only = require_admin_role({"admin"})
 admin_required = require_admin_role()
 
 
-@router.get("", response_model=List[AdminUserOut], summary="List users")
+@router.get("", response_model=list[AdminUserOut], summary="List users")
 async def list_users(
     q: str | None = None,
     role: str | None = None,
@@ -29,8 +31,8 @@ async def list_users(
     premium: str | None = None,
     limit: int = 100,
     offset: int = 0,
-    current_user: User = Depends(admin_required),
-    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(admin_required),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     stmt = select(User).offset(offset).limit(limit)
     if q:
@@ -47,9 +49,9 @@ async def list_users(
     if is_active is not None:
         stmt = stmt.where(User.is_active == is_active)
     if premium == "active":
-        stmt = stmt.where(User.is_premium == True)  # noqa: E712
+        stmt = stmt.where(User.is_premium.is_(True))
     elif premium == "expired":
-        stmt = stmt.where(User.is_premium == False)  # noqa: E712
+        stmt = stmt.where(User.is_premium.is_(False))
 
     result = await db.execute(stmt)
     users = result.scalars().all()
@@ -86,8 +88,8 @@ async def list_users(
 async def set_user_premium(
     user_id: UUID,
     payload: UserPremiumUpdate,
-    current_user: User = Depends(admin_only),
-    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(admin_only),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     user = await db.get(User, user_id)
     if not user:
@@ -106,8 +108,8 @@ async def set_user_premium(
 async def set_user_role(
     user_id: UUID,
     payload: UserRoleUpdate,
-    current_user: User = Depends(admin_only),
-    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(admin_only),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     user = await db.get(User, user_id)
     if not user:

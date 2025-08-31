@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Sequence
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.quests.application.ports.event_quests_port import (
@@ -25,7 +25,7 @@ class EventQuestsRepository(IEventQuestsRepository):
         result = await self._db.execute(
             select(EventQuest).where(
                 EventQuest.workspace_id == workspace_id,
-                EventQuest.is_active == True,  # noqa: E712
+                EventQuest.is_active.is_(True),
                 EventQuest.target_node_id == node_id,
                 EventQuest.starts_at <= now,
                 EventQuest.expires_at >= now,
