@@ -34,6 +34,7 @@ if TYPE_CHECKING:  # pragma: no cover - used for type hints only
     from app.domains.navigation.application.compass_service import (
         CompassService,
     )
+
     from app.domains.navigation.application.transitions_service import (
         TransitionsService,
     )
