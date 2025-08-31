@@ -112,6 +112,29 @@ class NodeService:
         return item
 
     # Mutations ---------------------------------------------------------------
+    async def create_item_for_node(self, node: Node) -> NodeItem:
+        """Backfill a ``NodeItem`` for an existing ``Node`` record."""
+
+        item = await NodeItemDAO.create(
+            self._db,
+            id=node.alt_id,
+            node_id=node.id,
+            workspace_id=node.workspace_id,
+            type="quest",
+            status=node.status,
+            visibility=node.visibility,
+            version=getattr(node, "version", 1),
+            slug=node.slug,
+            title=node.title or "Untitled",
+            created_by_user_id=node.created_by_user_id,
+            updated_by_user_id=node.updated_by_user_id,
+            published_at=(node.updated_at if node.status == Status.published else None),
+            created_at=node.created_at,
+            updated_at=node.updated_at,
+        )
+        await self._db.commit()
+        return item
+
     async def create(
         self, workspace_id: UUID, node_type: str | NodeType, *, actor_id: UUID
     ) -> NodeItem:
