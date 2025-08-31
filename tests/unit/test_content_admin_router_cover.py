@@ -64,13 +64,13 @@ async def app_client():
 @pytest.mark.asyncio
 async def test_cover_url_saved_when_using_cover_key(app_client):
     client, ws_id = app_client
-    resp = await client.post(f"/admin/workspaces/{ws_id}/nodes/article")
+    resp = await client.post(f"/admin/workspaces/{ws_id}/nodes/quest")
     assert resp.status_code == 200
     node_id = resp.json()["id"]
     cover = "http://example.com/img.jpg"
 
     resp = await client.patch(
-        f"/admin/workspaces/{ws_id}/nodes/article/{node_id}",
+        f"/admin/workspaces/{ws_id}/nodes/quest/{node_id}",
         json={"cover": cover},
     )
     assert resp.status_code == 200
@@ -78,7 +78,7 @@ async def test_cover_url_saved_when_using_cover_key(app_client):
     assert data["coverUrl"] == cover
 
     resp = await client.get(
-        f"/admin/workspaces/{ws_id}/nodes/article/{node_id}",
+        f"/admin/workspaces/{ws_id}/nodes/quest/{node_id}",
     )
     assert resp.status_code == 200
     assert resp.json()["coverUrl"] == cover

@@ -22,12 +22,8 @@ class NodeService:
         """Initialize service."""
 
         self._db = db
-        # Разрешаем все известные типы NodeType, кроме "quest"
-        # (для него предусмотрены отдельные эндпоинты)
-        types = {t.value for t in NodeType}
-        if "quest" in types:
-            types.remove("quest")
-        self._allowed_types = types
+        # Разрешаем все известные типы NodeType (по умолчанию только "quest")
+        self._allowed_types = {t.value for t in NodeType}
 
     # ------------------------------------------------------------------
     def _normalize_type(self, node_type: str | NodeType) -> str:
@@ -37,18 +33,18 @@ class NodeService:
 
         # Распространённые варианты синонимов и множественного числа
         aliases = {
-            "articles": "article",
-            "article": "article",
-            "index": "article",
-            "page": "article",
-            "pages": "article",
-            "post": "article",
-            "posts": "article",
-            "story": "article",
-            "stories": "article",
-            "blog": "article",
-            "blogs": "article",
-            "news": "article",
+            "articles": "quest",
+            "article": "quest",
+            "index": "quest",
+            "page": "quest",
+            "pages": "quest",
+            "post": "quest",
+            "posts": "quest",
+            "story": "quest",
+            "stories": "quest",
+            "blog": "quest",
+            "blogs": "quest",
+            "news": "quest",
             "quests": "quest",
         }
         # Сначала подставим алиас, если он известен
@@ -58,14 +54,10 @@ class NodeService:
         if value.endswith("s") and value[:-1] in self._allowed_types:
             value = value[:-1]
 
-        # Жёстко запрещаем quest для этих эндпоинтов
-        if value in ("quest", "quests"):
-            raise HTTPException(status_code=400, detail="Unsupported node type")
-
-        # Безопасный фолбэк: любые неизвестные значения трактуем как article,
+        # Фолбэк: любые неизвестные значения трактуем как quest,
         # чтобы не блокировать работу админки различиями терминов.
         if value not in self._allowed_types:
-            value = "article"
+            value = "quest"
 
         return value
 
@@ -112,7 +104,9 @@ class NodeService:
     ) -> NodeItem:
         node_type = self._normalize_type(node_type)
         item = await self._db.get(NodeItem, node_id)
-        if not item or item.workspace_id != workspace_id or item.type != node_type:
+        if not item or item.workspace_id != workspace_id:
+            raise HTTPException(status_code=404, detail="Node not found")
+        if item.type not in {node_type, "article"}:
             raise HTTPException(status_code=404, detail="Node not found")
         await NodePatchDAO.overlay(self._db, [item])
         return item

@@ -55,7 +55,7 @@ async def test_get_node_respects_workspace() -> None:
         node = NodeItem(
             id=uuid.uuid4(),
             workspace_id=ws1.id,
-            type=NodeType.article.value,
+            type=NodeType.quest.value,
             slug="node-1",
             title="Node",
             created_by_user_id=user_id,
@@ -64,11 +64,11 @@ async def test_get_node_respects_workspace() -> None:
         await session.commit()
 
         svc = NodeService(session)
-        item = await svc.get(ws1.id, NodeType.article, node.id)
+        item = await svc.get(ws1.id, NodeType.quest, node.id)
         assert item.id == node.id
 
         with pytest.raises(HTTPException):
-            await svc.get(ws2.id, NodeType.article, node.id)
+            await svc.get(ws2.id, NodeType.quest, node.id)
 
 
 @pytest.mark.asyncio

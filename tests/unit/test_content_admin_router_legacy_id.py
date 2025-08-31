@@ -68,7 +68,7 @@ async def app_client():
             id=item_uuid,
             node_id=node.alt_id,
             workspace_id=ws.id,
-            type="article",
+            type="quest",
             slug="legacy",
             title="Legacy",
         )
