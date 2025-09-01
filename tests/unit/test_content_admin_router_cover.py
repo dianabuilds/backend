@@ -90,7 +90,7 @@ async def test_cover_url_saved_when_using_cover_key(app_client):
     cover = "http://example.com/img.jpg"
 
     resp = await client.patch(
-        f"/admin/workspaces/{ws_id}/nodes/article/{node_id}",
+        f"/admin/workspaces/{ws_id}/nodes/types/article/{node_id}",
         json={"cover": cover},
     )
     assert resp.status_code == 200
@@ -99,7 +99,7 @@ async def test_cover_url_saved_when_using_cover_key(app_client):
     assert data["nodeId"] == node_pk
 
     resp = await client.get(
-        f"/admin/workspaces/{ws_id}/nodes/article/{node_id}",
+        f"/admin/workspaces/{ws_id}/nodes/types/article/{node_id}",
     )
     assert resp.status_code == 200
     data = resp.json()

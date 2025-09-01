@@ -25,6 +25,13 @@ router = APIRouter(
     responses=ADMIN_AUTH_RESPONSES,
 )
 
+# Separate sub-routers to guarantee registration order.
+# ``id_router`` is included before ``type_router`` so that requests with a
+# single path segment resolve to ID-based handlers before the more generic
+# type-based ones.
+id_router = APIRouter()
+type_router = APIRouter(prefix="/types")
+
 
 class PublishIn(BaseModel):
     access: Literal["everyone", "premium_only", "early_access"] = "everyone"
@@ -139,7 +146,7 @@ async def _get_item(
     raise HTTPException(status_code=404, detail="Node not found")
 
 
-@router.get("/{node_id}", summary="Get node item by id")
+@id_router.get("/{node_id}", summary="Get node item by id")
 async def get_node_by_id(
     node_id: Annotated[int | UUID, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
@@ -155,7 +162,7 @@ async def get_node_by_id(
     return _serialize(item, node)
 
 
-@router.patch("/{node_id}", summary="Update node item by id")
+@id_router.patch("/{node_id}", summary="Update node item by id")
 async def update_node_by_id(
     node_id: Annotated[int | UUID, Path(...)],
     payload: dict,
@@ -184,7 +191,7 @@ async def update_node_by_id(
     return _serialize(item, node)
 
 
-@router.post("/{node_id}/publish", summary="Publish node item by id")
+@id_router.post("/{node_id}/publish", summary="Publish node item by id")
 async def publish_node_by_id(
     node_id: Annotated[int | UUID, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
@@ -213,7 +220,7 @@ async def publish_node_by_id(
     return _serialize(item, node)
 
 
-@router.get("/{node_type}", summary="List nodes by type")
+@type_router.get("/{node_type}", summary="List nodes by type")
 async def list_nodes(
     node_type: str,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
@@ -238,7 +245,7 @@ async def list_nodes(
     return {"items": [_serialize(i) for i in items]}
 
 
-@router.post("/{node_type}", summary="Create node item")
+@type_router.post("/{node_type}", summary="Create node item")
 async def create_node(
     node_type: str,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
@@ -259,7 +266,7 @@ async def create_node(
     return _serialize(item, node)
 
 
-@router.get("/{node_type}/{node_id}", summary="Get node item")
+@type_router.get("/{node_type}/{node_id}", summary="Get node item")
 async def get_node(
     node_type: str,
     node_id: Annotated[int | UUID, Path(...)],
@@ -280,7 +287,7 @@ async def get_node(
     return _serialize(item, node)
 
 
-@router.patch("/{node_type}/{node_id}", summary="Update node item")
+@type_router.patch("/{node_type}/{node_id}", summary="Update node item")
 async def update_node(
     node_type: str,
     node_id: Annotated[int | UUID, Path(...)],
@@ -315,7 +322,7 @@ async def update_node(
     return _serialize(item, node)
 
 
-@router.post("/{node_type}/{node_id}/publish", summary="Publish node item")
+@type_router.post("/{node_type}/{node_id}/publish", summary="Publish node item")
 async def publish_node(
     node_type: str,
     node_id: Annotated[int | UUID, Path(...)],
@@ -350,7 +357,7 @@ async def publish_node(
 
 
 # PATCH-алиас на случай, если фронт отправляет PATCH вместо POST
-@router.patch(
+@type_router.patch(
     "/{node_type}/{node_id}/publish",
     summary="Publish node item (PATCH alias)",
 )
@@ -385,3 +392,8 @@ async def publish_node_patch(
     )
     node = await db.get(Node, item.node_id or item.id)
     return _serialize(item, node)
+
+
+# Register sub-routers in the desired order.
+router.include_router(id_router)
+router.include_router(type_router)
