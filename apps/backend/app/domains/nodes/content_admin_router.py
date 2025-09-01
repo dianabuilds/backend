@@ -115,6 +115,33 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     }
 
 
+async def _resolve_content_item_id(
+    db: AsyncSession, *, workspace_id: UUID, node_pk: int
+) -> int:
+    """
+    Resolve ``NodeItem.id`` by numeric ``Node.id``.
+
+    Creates a ``NodeItem`` if one does not exist for the given ``Node``.
+    """
+
+    res = await db.execute(
+        select(NodeItem.id)
+        .where(NodeItem.workspace_id == workspace_id, NodeItem.node_id == node_pk)
+        .order_by(NodeItem.updated_at.desc())
+    )
+    content_id = res.scalar_one_or_none()
+    if content_id is not None:
+        return content_id
+
+    node = await db.get(Node, node_pk)
+    if node is None or node.workspace_id != workspace_id:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    svc = NodeService(db)
+    item = await svc.create_item_for_node(node)
+    return item.id
+
+
 @id_router.get("/{node_id}", summary="Get node item by id")
 async def get_node_by_id(
     node_id: Annotated[int, Path(...)],
@@ -122,8 +149,11 @@ async def get_node_by_id(
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_pk=node_id
+    )
     svc = NodeService(db)
-    item = await svc.get(workspace_id, node_id)
+    item = await svc.get(workspace_id, content_id)
     node = await db.scalar(
         select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags))
     )
@@ -140,10 +170,13 @@ async def update_node_by_id(
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_pk=node_id
+    )
     svc = NodeService(db)
     item = await svc.update(
         workspace_id,
-        node_id,
+        content_id,
         payload,
         actor_id=current_user.id,
     )
@@ -166,10 +199,13 @@ async def publish_node_by_id(
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_pk=node_id
+    )
     svc = NodeService(db)
     item = await svc.publish(
         workspace_id,
-        node_id,
+        content_id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
     )
@@ -240,8 +276,11 @@ async def get_node(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_pk=node_id
+    )
     svc = NodeService(db)
-    item = await svc.get(workspace_id, node_id)
+    item = await svc.get(workspace_id, content_id)
     node = await db.get(
         Node, item.node_id or item.id, options=(selectinload(Node.tags),)
     )
@@ -265,10 +304,13 @@ async def update_node(
             detail="quest nodes are read-only; use /quests/*",
         )
 
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_pk=node_id
+    )
     svc = NodeService(db)
     item = await svc.update(
         workspace_id,
-        node_id,
+        content_id,
         payload,
         actor_id=current_user.id,
     )
@@ -297,10 +339,13 @@ async def publish_node(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_pk=node_id
+    )
     svc = NodeService(db)
     item = await svc.publish(
         workspace_id,
-        node_id,
+        content_id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
     )
@@ -333,10 +378,13 @@ async def publish_node_patch(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_pk=node_id
+    )
     svc = NodeService(db)
     item = await svc.publish(
         workspace_id,
-        node_id,
+        content_id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
     )
