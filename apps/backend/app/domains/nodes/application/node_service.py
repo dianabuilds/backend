@@ -27,7 +27,7 @@ class NodeService:
     # Queries -----------------------------------------------------------------
     async def list(
         self,
-        workspace_id: UUID,
+        workspace_id: UUID | None,
         *,
         page: int = 1,
         per_page: int = 10,
@@ -43,7 +43,7 @@ class NodeService:
 
     async def search(
         self,
-        workspace_id: UUID,
+        workspace_id: UUID | None,
         q: str,
         *,
         page: int = 1,
@@ -58,7 +58,7 @@ class NodeService:
             per_page=per_page,
         )
 
-    async def get(self, workspace_id: UUID, node_id: int) -> NodeItem:
+    async def get(self, workspace_id: UUID | None, node_id: int) -> NodeItem:
         item = await self._db.get(NodeItem, node_id)
         if not item or item.workspace_id != workspace_id:
             raise HTTPException(status_code=404, detail="Node not found")
@@ -88,7 +88,7 @@ class NodeService:
         await self._db.commit()
         return item
 
-    async def create(self, workspace_id: UUID, *, actor_id: UUID) -> NodeItem:
+    async def create(self, workspace_id: UUID | None, *, actor_id: UUID) -> NodeItem:
         item = await NodeItemDAO.create(
             self._db,
             workspace_id=workspace_id,
@@ -121,7 +121,7 @@ class NodeService:
 
     async def update(
         self,
-        workspace_id: UUID,
+        workspace_id: UUID | None,
         node_id: int,
         data: dict[str, Any],
         *,
@@ -200,7 +200,7 @@ class NodeService:
 
     async def publish(
         self,
-        workspace_id: UUID,
+        workspace_id: UUID | None,
         node_id: int,
         *,
         actor_id: UUID,

@@ -14,12 +14,12 @@ class INodeRepository(Protocol):
         ...
 
     async def get_by_id(
-        self, node_id: int, workspace_id: UUID
+        self, node_id: int, workspace_id: UUID | None
     ) -> Node | None:  # pragma: no cover
         ...
 
     async def create(
-        self, payload: NodeCreate, author_id: UUID, workspace_id: UUID
+        self, payload: NodeCreate, author_id: UUID, workspace_id: UUID | None
     ) -> Node:  # pragma: no cover
         ...
 
@@ -36,11 +36,15 @@ class INodeRepository(Protocol):
 
     # Дополнительные кейсы
     async def list_by_author(
-        self, author_id: UUID, workspace_id: UUID, limit: int = 50, offset: int = 0
+        self,
+        author_id: UUID,
+        workspace_id: UUID | None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Node]:  # pragma: no cover
         ...
 
     async def bulk_set_visibility(
-        self, node_ids: list[UUID], is_visible: bool, workspace_id: UUID
+        self, node_ids: list[UUID], is_visible: bool, workspace_id: UUID | None
     ) -> int:  # pragma: no cover
         ...
