@@ -40,7 +40,7 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     """
 
     node_data = node or Node(
-        id=item.id,
+        id=item.node_id or 0,
         workspace_id=item.workspace_id,
         slug=item.slug,
         title=item.title,
@@ -62,8 +62,11 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         updated_by_user_id=item.updated_by_user_id,
     )
 
+    node_pk = node.id if node else item.node_id
+
     return {
         "id": str(item.id),
+        "nodeId": node_pk,
         "workspace_id": str(item.workspace_id),
         "nodeType": item.type,
         "type": item.type,  # legacy
