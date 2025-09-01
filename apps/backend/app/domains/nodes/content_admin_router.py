@@ -1,5 +1,4 @@
 # mypy: ignore-errors
-
 from __future__ import annotations
 
 from typing import Annotated, Literal
@@ -116,47 +115,15 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     }
 
 
-async def _get_item(
-    db: AsyncSession, node_id: int | UUID, workspace_id: UUID
-) -> NodeItem:
-    """Fetch a ``NodeItem`` regardless of identifier format.
-
-    ``node_id`` may refer to the numeric primary key from the ``nodes`` table or
-    the UUID of a ``NodeItem``.  The helper normalises the value to a
-    ``NodeItem`` instance, creating one from an existing ``Node`` if necessary.
-    """
-
-    if isinstance(node_id, UUID):
-        item = await db.get(NodeItem, node_id)
-        if item and item.workspace_id == workspace_id:
-            return item
-        raise HTTPException(status_code=404, detail="Node not found")
-
-    result = await db.execute(
-        select(NodeItem).where(
-            NodeItem.node_id == node_id, NodeItem.workspace_id == workspace_id
-        )
-    )
-    item = result.scalar_one_or_none()
-    if item:
-        return item
-    node = await db.get(Node, node_id)
-    if node and node.workspace_id == workspace_id:
-        svc = NodeService(db)
-        return await svc.create_item_for_node(node)
-    raise HTTPException(status_code=404, detail="Node not found")
-
-
 @id_router.get("/{node_id}", summary="Get node item by id")
 async def get_node_by_id(
-    node_id: Annotated[int | UUID, Path(...)],
+    node_id: Annotated[int, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
-    item = await svc.get(workspace_id, item.id)
+    item = await svc.get(workspace_id, node_id)
     node = await db.scalar(
         select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags))
     )
@@ -165,7 +132,7 @@ async def get_node_by_id(
 
 @id_router.patch("/{node_id}", summary="Update node item by id")
 async def update_node_by_id(
-    node_id: Annotated[int | UUID, Path(...)],
+    node_id: Annotated[int, Path(...)],
     payload: dict,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
@@ -173,11 +140,10 @@ async def update_node_by_id(
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
     item = await svc.update(
         workspace_id,
-        item.id,
+        node_id,
         payload,
         actor_id=current_user.id,
     )
@@ -193,22 +159,19 @@ async def update_node_by_id(
 
 @id_router.post("/{node_id}/publish", summary="Publish node item by id")
 async def publish_node_by_id(
-    node_id: Annotated[int | UUID, Path(...)],
+    node_id: Annotated[int, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
     item = await svc.publish(
         workspace_id,
-        item.type,
-        item.id,
+        node_id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
-        cover=(payload.cover if payload else None),
     )
     await publish_content(
         node_id=item.id,
@@ -267,7 +230,7 @@ async def create_node(
 @type_router.get("/{node_type}/{node_id}", summary="Get node item")
 async def get_node(
     node_type: str,
-    node_id: Annotated[int | UUID, Path(...)],
+    node_id: Annotated[int, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -288,7 +251,7 @@ async def get_node(
 @type_router.patch("/{node_type}/{node_id}", summary="Update node item")
 async def update_node(
     node_type: str,
-    node_id: Annotated[int | UUID, Path(...)],
+    node_id: Annotated[int, Path(...)],
     payload: dict,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
@@ -322,7 +285,7 @@ async def update_node(
 @type_router.post("/{node_type}/{node_id}/publish", summary="Publish node item")
 async def publish_node(
     node_type: str,
-    node_id: Annotated[int | UUID, Path(...)],
+    node_id: Annotated[int, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
@@ -358,7 +321,7 @@ async def publish_node(
 )
 async def publish_node_patch(
     node_type: str,
-    node_id: Annotated[int | UUID, Path(...)],
+    node_id: Annotated[int, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008

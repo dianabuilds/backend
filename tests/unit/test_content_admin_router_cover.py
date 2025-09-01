@@ -76,7 +76,7 @@ async def test_cover_url_saved_when_using_cover_key(app_client):
             author_id=uuid.uuid4(),
         )
         item = NodeItem(
-            id=uuid.uuid4(),
+            id=2,
             node_id=node.id,
             workspace_id=ws_id,
             type="article",
