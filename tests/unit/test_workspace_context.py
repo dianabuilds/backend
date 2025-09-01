@@ -16,15 +16,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.core.workspace_context import (
+from app.core.workspace_context import (  # noqa: E402
     get_workspace_id,
     optional_workspace,
     require_workspace,
     resolve_workspace,
 )
-from app.domains.users.infrastructure.models.user import User
-from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
-from app.schemas.workspaces import WorkspaceRole
+from app.domains.quests.infrastructure.models import quest_models  # noqa: F401, E402
+from app.domains.users.infrastructure.models.user import User  # noqa: E402
+from app.domains.workspaces.infrastructure.models import (  # noqa: E402
+    Workspace,
+    WorkspaceMember,
+)
+from app.schemas.workspaces import WorkspaceRole  # noqa: E402
 
 
 def _make_request(headers=None, query_string: bytes = b"") -> Request:
@@ -61,8 +65,9 @@ async def test_resolve_workspace_checks_membership() -> None:
         await session.commit()
 
         user = SimpleNamespace(id=user_id, role="user")
-        with pytest.raises(HTTPException):
+        with pytest.raises(HTTPException) as exc:
             await resolve_workspace(ws.id, user=user, db=session)
+        assert exc.value.status_code == 403
 
         member = WorkspaceMember(
             workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer

@@ -142,7 +142,7 @@ class WorkspaceService:
                 db, workspace_id=workspace_id, user_id=user.id
             )
             if not member:
-                raise HTTPException(status_code=404, detail="Workspace not found")
+                raise HTTPException(status_code=403, detail="Forbidden")
         return workspace
 
     @staticmethod
