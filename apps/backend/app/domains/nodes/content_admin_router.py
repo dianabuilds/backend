@@ -108,8 +108,21 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     }
 
 
-async def _get_item(db: AsyncSession, node_id: int, workspace_id: UUID) -> NodeItem:
-    """Fetch a node item by numeric node id."""
+async def _get_item(
+    db: AsyncSession, node_id: int | UUID, workspace_id: UUID
+) -> NodeItem:
+    """Fetch a ``NodeItem`` regardless of identifier format.
+
+    ``node_id`` may refer to the numeric primary key from the ``nodes`` table or
+    the UUID of a ``NodeItem``.  The helper normalises the value to a
+    ``NodeItem`` instance, creating one from an existing ``Node`` if necessary.
+    """
+
+    if isinstance(node_id, UUID):
+        item = await db.get(NodeItem, node_id)
+        if item and item.workspace_id == workspace_id:
+            return item
+        raise HTTPException(status_code=404, detail="Node not found")
 
     result = await db.execute(
         select(NodeItem).where(
@@ -128,7 +141,7 @@ async def _get_item(db: AsyncSession, node_id: int, workspace_id: UUID) -> NodeI
 
 @router.get("/{node_id}", summary="Get node item by id")
 async def get_node_by_id(
-    node_id: Annotated[int, Path(...)],
+    node_id: Annotated[int | UUID, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -144,7 +157,7 @@ async def get_node_by_id(
 
 @router.patch("/{node_id}", summary="Update node item by id")
 async def update_node_by_id(
-    node_id: Annotated[int, Path(...)],
+    node_id: Annotated[int | UUID, Path(...)],
     payload: dict,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
@@ -173,7 +186,7 @@ async def update_node_by_id(
 
 @router.post("/{node_id}/publish", summary="Publish node item by id")
 async def publish_node_by_id(
-    node_id: Annotated[int, Path(...)],
+    node_id: Annotated[int | UUID, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
