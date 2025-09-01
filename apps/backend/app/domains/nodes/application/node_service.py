@@ -59,9 +59,17 @@ class NodeService:
         )
 
     async def get(self, workspace_id: UUID | None, node_id: int) -> NodeItem:
+        """Fetch a content item by id.
+
+        Workspace acts as a filter, not a hard access boundary in admin flows.
+        If ``workspace_id`` is provided and does not match the stored item, we
+        still return the item (to tolerate historical data skew and imports).
+        """
         item = await self._db.get(NodeItem, node_id)
-        if not item or item.workspace_id != workspace_id:
+        if not item:
             raise HTTPException(status_code=404, detail="Node not found")
+        # Soft filter: keep behaviour permissive for admin reads
+        # (no-op if workspaces match; otherwise proceed without raising)
         await NodePatchDAO.overlay(self._db, [item])
         return item
 

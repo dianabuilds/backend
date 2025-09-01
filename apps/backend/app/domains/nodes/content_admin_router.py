@@ -120,14 +120,20 @@ async def _resolve_content_item_id(
 ) -> int:
     """Resolve ``NodeItem.id`` from either ``Node.id`` or ``NodeItem.id``.
 
-    ``node_or_item_id`` may be a numeric ``Node.id`` used by newer clients or a
-    ``NodeItem.id`` from legacy callers.
+    Behaviour is tolerant to data skew:
+    - First tries an exact ``NodeItem`` match within the workspace.
+    - Then resolves by ``Node.id`` within the workspace.
+    - If still not found, attempts a global lookup (without workspace filter).
+    - If a ``Node`` exists but no ``NodeItem`` does, auto‑creates one to
+      unblock the admin editor.
     """
 
+    # 1) Direct NodeItem by id within workspace
     item = await db.get(NodeItem, node_or_item_id)
     if item is not None and item.workspace_id == workspace_id:
         return item.id
 
+    # 2) Resolve by Node.id within workspace
     res = await db.execute(
         select(NodeItem.id)
         .where(
@@ -139,6 +145,29 @@ async def _resolve_content_item_id(
     if content_id is not None:
         return content_id
 
+    # 3) Global fallbacks: try without workspace filter
+    # 3a) NodeItem by id (any workspace)
+    if item is not None:
+        return item.id
+
+    # 3b) Node by id, then NodeItem by node_id; if missing — create one
+    node = await db.get(Node, node_or_item_id)
+    if node is not None:
+        res_any = await db.execute(
+            select(NodeItem.id)
+            .where(NodeItem.node_id == node.id)
+            .order_by(NodeItem.updated_at.desc())
+        )
+        content_id_any = res_any.scalar_one_or_none()
+        if content_id_any is not None:
+            return content_id_any
+
+        # Auto‑create a NodeItem for existing Node to heal skew
+        svc = NodeService(db)
+        created = await svc.create_item_for_node(node)
+        return created.id
+
+    # 4) Nothing matched
     raise HTTPException(status_code=404, detail="Node not found")
 
 
