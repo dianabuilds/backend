@@ -29,7 +29,7 @@ def require_admin_role():
 
 
 security_stub.require_admin_role = require_admin_role
-sys.modules.setdefault("app.security", security_stub)
+sys.modules["app.security"] = security_stub
 
 from app.core.db.session import get_db  # noqa: E402
 from app.domains.nodes.api.admin_nodes_global_router import (  # noqa: E402
@@ -86,6 +86,33 @@ async def test_get_global_node(app_and_session):
     assert resp.status_code == 200
     data = resp.json()
     assert data["id"] == node_id
+
+
+@pytest.mark.asyncio
+async def test_put_global_node_updates(app_and_session):
+    app, async_session = app_and_session
+    async with async_session() as session:
+        node = Node(
+            id=3,
+            slug="n3",
+            title="N3",
+            content={},
+            media=[],
+            author_id=uuid.uuid4(),
+        )
+        session.add(node)
+        await session.commit()
+        node_id = node.id
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.put(f"/admin/nodes/{node_id}", json={"title": "NX"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["id"] == node_id
+    assert data["title"] == "NX"
+    async with async_session() as session:
+        updated = await session.get(Node, node_id)
+        assert updated.title == "NX"
 
 
 @pytest.mark.asyncio

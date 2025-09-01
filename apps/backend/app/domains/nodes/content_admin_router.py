@@ -190,6 +190,36 @@ async def update_node_by_id(
     return _serialize(item, node)
 
 
+@id_router.put("/{node_id}", summary="Replace node item by id")
+async def replace_node_by_id(
+    node_id: Annotated[int, Path(...)],
+    payload: dict,
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    next: Annotated[int, Query()] = 0,
+    _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
+    current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008,
+):
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_or_item_id=node_id
+    )
+    svc = NodeService(db)
+    item = await svc.update(
+        workspace_id,
+        content_id,
+        payload,
+        actor_id=current_user.id,
+    )
+    if next:
+        from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
+
+        ux_metrics.inc_save_next()
+    node = await db.scalar(
+        select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags))
+    )
+    return _serialize(item, node)
+
+
 @id_router.post("/{node_id}/publish", summary="Publish node item by id")
 async def publish_node_by_id(
     node_id: Annotated[int, Path(...)],
