@@ -6,6 +6,7 @@ from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
@@ -129,12 +130,29 @@ class NodeService:
         item = await self.get(workspace_id, node_id)
 
         # Разрешаем обновлять только простые поля, связанные с графом
-        allowed_updates: set[str] = {
-            "slug",
-            "title",
-        }
+        allowed_updates: set[str] = {"slug", "title"}
+
+        new_slug = data.get("slug")
+        if new_slug is not None and new_slug != item.slug:
+            # Проверяем уникальность slug среди NodeItem
+            res = await self._db.execute(
+                select(NodeItem).where(
+                    NodeItem.slug == new_slug, NodeItem.id != item.id
+                )
+            )
+            if res.scalar_one_or_none():
+                raise HTTPException(status_code=409, detail="Slug already exists")
+
+            # Проверяем уникальность slug среди Node
+            res = await self._db.execute(select(Node).where(Node.slug == new_slug))
+            existing_node = res.scalar_one_or_none()
+            if existing_node and existing_node.id != item.node_id:
+                raise HTTPException(status_code=409, detail="Slug already exists")
+
+            item.slug = str(new_slug)
+
         for key, value in data.items():
-            if key in allowed_updates:
+            if key in allowed_updates - {"slug"}:
                 setattr(item, key, value)
 
         # Сохраняем контент и флаги во "внешнюю" таблицу nodes
@@ -154,6 +172,10 @@ class NodeService:
             self._db.add(node)
             await self._db.commit()
             item.node_id = node.id
+        else:
+            # синхронизируем slug, если он менялся
+            if new_slug is not None:
+                node.slug = item.slug
 
         # синхронизируем заголовок, если он менялся
         if "title" in data and data["title"]:
