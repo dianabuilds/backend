@@ -23,11 +23,11 @@ different error scenarios.
 ### Versioned requests
 
 ```bash
-# list workspaces using numeric ids
+# list workspaces
 http GET :8000/workspaces
 
-# get node by id
-http GET :8000/nodes/42
+# get node by id (UUID)
+http GET :8000/nodes/d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef
 ```
 
 ### Pagination

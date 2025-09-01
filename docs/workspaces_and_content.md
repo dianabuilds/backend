@@ -133,6 +133,10 @@ Common endpoints:
 - `POST /admin/workspaces/{id}/nodes/{type}/{id}/validate` – run validators and
   return a report.
 
+Identifiers in these endpoints are **UUIDs** of the corresponding ``NodeItem``.
+A numeric ``nodes.id`` is accepted for backward compatibility but clients
+should migrate to the UUID form.
+
 Example listing and creation:
 
 ```bash
@@ -143,7 +147,7 @@ GET /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/all?node_type=a
 {
   "items": [
     {
-      "id": "42",
+      "id": "d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef",
       "node_type": "article",
       "title": "Hello world",
       "status": "draft"
@@ -162,7 +166,7 @@ Content-Type: application/json
 
 ```json
 {
-  "id": "42",
+  "id": "d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef",
   "node_type": "article",
   "title": "Hello world",
   "status": "draft",
@@ -173,7 +177,7 @@ Content-Type: application/json
 Publishing:
 
 ```bash
-POST /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article/42/publish
+POST /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article/d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef/publish
 ```
 
 ```json
