@@ -88,7 +88,7 @@ def upgrade() -> None:
         "UPDATE node_patches SET id_bigint = nextval('node_patches_id_bigint_seq')"
     )
     op.alter_column("node_patches", "id_bigint", nullable=False)
-    op.drop_constraint("node_patches_pkey", "node_patches", type_="primary")
+    op.drop_constraint("content_patches_pkey", "node_patches", type_="primary")
     op.create_primary_key("node_patches_pkey", "node_patches", ["id_bigint"])
 
     # recreate foreign keys and indexes to bigint columns
