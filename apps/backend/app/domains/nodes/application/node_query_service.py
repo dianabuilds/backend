@@ -45,8 +45,6 @@ class NodeQueryService:
             clauses.append(Node.author_id == spec.author_id)
         if spec.workspace_id is not None:
             clauses.append(Node.workspace_id == spec.workspace_id)
-        if spec.node_type is not None:
-            clauses.append(NodeItem.type == spec.node_type)
         if spec.created_from:
             clauses.append(Node.created_at >= spec.created_from)
         if spec.created_to:
@@ -73,7 +71,6 @@ class NodeQueryService:
             f"{cnt}:{uid or 'anon'}:{page.offset}:{page.limit}:"
             f"{sort}:{max_updated or ''}:"
             f"{spec.author_id or ''}:{spec.q or ''}:{spec.min_views or ''}:"
-            f"{spec.node_type or ''}"
         )
         return hashlib.sha256(payload.encode()).hexdigest()
 
@@ -99,8 +96,6 @@ class NodeQueryService:
             clauses.append(Node.author_id == spec.author_id)
         if spec.workspace_id is not None:
             clauses.append(Node.workspace_id == spec.workspace_id)
-        if spec.node_type is not None:
-            clauses.append(NodeItem.type == spec.node_type)
         if spec.created_from:
             clauses.append(Node.created_at >= spec.created_from)
         if spec.created_to:

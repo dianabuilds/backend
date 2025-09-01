@@ -27,14 +27,11 @@ class NodeItemDAO:
     async def list_by_type(
         db: AsyncSession, *, workspace_id: UUID, node_type: str
     ) -> list[NodeItem]:
-        types = [node_type]
-        if node_type == "quest":
-            types.append("article")
         stmt = (
             select(NodeItem)
             .where(
                 NodeItem.workspace_id == workspace_id,
-                NodeItem.type.in_(types),
+                NodeItem.type == node_type,
             )
             .order_by(func.coalesce(NodeItem.published_at, func.now()).desc())
         )
@@ -74,12 +71,9 @@ class NodeItemDAO:
         page: int = 1,
         per_page: int = 10,
     ) -> list[NodeItem]:
-        types = [node_type]
-        if node_type == "quest":
-            types.append("article")
         stmt = select(NodeItem).where(
             NodeItem.workspace_id == workspace_id,
-            NodeItem.type.in_(types),
+            NodeItem.type == node_type,
         )
         if q:
             pattern = f"%{q}%"

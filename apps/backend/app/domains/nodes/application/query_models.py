@@ -13,7 +13,6 @@ class NodeFilterSpec:
     is_visible: bool | None = True
     premium_only: bool | None = None
     recommendable: bool | None = None
-    node_type: str | None = None
     created_from: datetime | None = None
     created_to: datetime | None = None
     updated_from: datetime | None = None
