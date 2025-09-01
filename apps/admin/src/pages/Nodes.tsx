@@ -19,7 +19,7 @@ import { safeLocalStorage } from '../utils/safeStorage';
 import { useWorkspace } from '../workspace/WorkspaceContext';
 
 type NodeItem = {
-  id: string;
+  id: number;
   title?: string;
   slug?: string;
   status?: string;
@@ -40,7 +40,7 @@ function normalizeNode(raw: any): NodeItem {
   const n = raw || {};
   return {
     ...n,
-    id: String(n.id ?? n.uuid ?? n._id),
+    id: Number(n.id ?? n.uuid ?? n._id),
     title: n.title ?? n.name ?? undefined,
     slug: n.slug,
     status: n.status ?? n.state ?? undefined,
@@ -60,7 +60,7 @@ function normalizeNode(raw: any): NodeItem {
 }
 
 interface NodeEditorData {
-  id: string;
+  id: number | undefined;
   title: string;
   slug: string;
   subtitle: string;
@@ -73,7 +73,7 @@ interface NodeEditorData {
 
 function makeDraft(): NodeEditorData {
   return {
-    id: `draft-${Date.now()}`,
+    id: undefined,
     title: '',
     slug: '',
     subtitle: '',
@@ -146,12 +146,12 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
 
   // Данные
   const [items, setItems] = useState<NodeItem[]>([]);
-  const [baseline, setBaseline] = useState<Map<string, NodeItem>>(new Map()); // снимок исходных значений
+  const [baseline, setBaseline] = useState<Map<number, NodeItem>>(new Map()); // снимок исходных значений
   const [hasMore, setHasMore] = useState(false);
 
   // Выделение и отложенные изменения
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [pending, setPending] = useState<Map<string, ChangeSet>>(new Map());
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [pending, setPending] = useState<Map<number, ChangeSet>>(new Map());
   const changesCount = useMemo(
     () => Array.from(pending.values()).reduce((acc, cs) => acc + Object.keys(cs).length, 0),
     [pending],
@@ -369,7 +369,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
 
   // Локальные изменения без немедленного вызова API.
   // Для is_visible используем модерационные ручки (hide с причиной / restore) — без staging.
-  const toggleField = (id: string, field: keyof ChangeSet) => {
+  const toggleField = (id: number, field: keyof ChangeSet) => {
     if (field === 'is_visible') {
       const node = items.find((n) => n.id === id);
       if (node) openModerationFor(node);
@@ -469,7 +469,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
   };
 
   // Выделение строк
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: number) => {
     setSelected((s) => {
       const next = new Set(s);
       if (next.has(id)) next.delete(id);
@@ -499,9 +499,10 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
       node_type: nodeType && ['article', 'quest'].includes(nodeType) ? nodeType : 'article',
       title: draft.title.trim() || undefined,
     });
-    const nodeId = String(
-      (created as any)?.id ?? (created as any)?.uuid ?? (created as any)?._id ?? '',
-    );
+    const nodeId =
+      (created as any)?.id ??
+      (created as any)?.uuid ??
+      (created as any)?._id ?? 0;
     await patchNode(workspaceId, nodeId, payload);
     return { ...created, id: nodeId } as any;
   };
@@ -542,7 +543,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     }
   };
 
-  const previewSelected = async (id: string) => {
+  const previewSelected = async (id: number) => {
     if (!workspaceId) return;
     const node = items.find((n) => n.id === id);
     if (!node) return;

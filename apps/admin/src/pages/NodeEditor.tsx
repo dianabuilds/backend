@@ -17,7 +17,7 @@ import { useUnsavedChanges } from '../utils/useUnsavedChanges';
 import { useWorkspace } from '../workspace/WorkspaceContext';
 
 type NodeEditorData = {
-  id: string;
+  id: number;
   title: string;
   slug?: string;
   authorId?: string;
@@ -38,7 +38,7 @@ type NodeEditorData = {
 };
 
 interface NodeDraft {
-  id: string;
+  id: number;
   title: string;
   tags: string[];
   content: OutputData;

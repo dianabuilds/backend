@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { app__domains__quests__schemas__graph__QuestGraphOut } from '../models/app__domains__quests__schemas__graph__QuestGraphOut';
 import type { NodeOut } from '../models/NodeOut';
 import type { QuestBuyIn } from '../models/QuestBuyIn';
 import type { QuestCreate } from '../models/QuestCreate';
 import type { QuestGraphIn } from '../models/QuestGraphIn';
-import type { QuestGraphOut } from '../models/QuestGraphOut';
 import type { QuestOut } from '../models/QuestOut';
 import type { QuestProgressOut } from '../models/QuestProgressOut';
 import type { QuestUpdate } from '../models/QuestUpdate';
@@ -371,13 +371,13 @@ export class QuestsService {
      * Get current quest version graph
      * @param questId
      * @param workspaceId
-     * @returns QuestGraphOut Successful Response
+     * @returns app__domains__quests__schemas__graph__QuestGraphOut Successful Response
      * @throws ApiError
      */
     public static getCurrentVersionQuestsQuestIdVersionsCurrentGet(
         questId: string,
         workspaceId: string,
-    ): CancelablePromise<QuestGraphOut> {
+    ): CancelablePromise<app__domains__quests__schemas__graph__QuestGraphOut> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/quests/{quest_id}/versions/current',
@@ -452,13 +452,13 @@ export class QuestsService {
      * Get version graph
      * @param versionId
      * @param workspaceId
-     * @returns QuestGraphOut Successful Response
+     * @returns app__domains__quests__schemas__graph__QuestGraphOut Successful Response
      * @throws ApiError
      */
     public static getGraphQuestsVersionsVersionIdGraphGet(
         versionId: string,
         workspaceId: string,
-    ): CancelablePromise<QuestGraphOut> {
+    ): CancelablePromise<app__domains__quests__schemas__graph__QuestGraphOut> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/quests/versions/{version_id}/graph',

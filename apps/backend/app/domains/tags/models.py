@@ -40,7 +40,9 @@ class ContentTag(Base):
     __tablename__ = "content_tags"
 
     content_id = sa.Column(
-        UUID(), sa.ForeignKey("content_items.id", ondelete="CASCADE"), primary_key=True
+        sa.BigInteger,
+        sa.ForeignKey("content_items.id_bigint", ondelete="CASCADE"),
+        primary_key=True,
     )
     tag_id = sa.Column(
         UUID(), sa.ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True

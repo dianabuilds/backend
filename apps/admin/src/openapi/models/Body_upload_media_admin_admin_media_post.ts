@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * Supported node types.
- */
-export type NodeType = 'article' | 'quest';
+export type Body_upload_media_admin_admin_media_post = {
+    file?: Blob;
+};
+

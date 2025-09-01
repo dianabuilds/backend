@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import uuid4
 
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
@@ -14,7 +13,7 @@ from app.schemas.nodes_common import Status, Visibility
 class NodeItem(Base):
     __tablename__ = "content_items"
 
-    id = sa.Column(UUID(), primary_key=True, default=uuid4)
+    id = sa.Column("id_bigint", sa.BigInteger, primary_key=True)
     node_id = sa.Column(
         sa.BigInteger, sa.ForeignKey("nodes.id"), nullable=True, index=True
     )
@@ -54,8 +53,13 @@ class NodeItem(Base):
 class NodePatch(Base):
     __tablename__ = "node_patches"
 
-    id = sa.Column(UUID(), primary_key=True, default=uuid4)
-    node_id = sa.Column(UUID(), sa.ForeignKey("content_items.id"), nullable=False)
+    id = sa.Column("id_bigint", sa.BigInteger, primary_key=True)
+    node_id = sa.Column(
+        "node_id_bigint",
+        sa.BigInteger,
+        sa.ForeignKey("content_items.id_bigint", ondelete="CASCADE"),
+        nullable=False,
+    )
     data = sa.Column(sa.JSON, nullable=False)
     created_by_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=True)
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)

@@ -37,3 +37,9 @@ alembic upgrade head
 
 This scans the `nodes` table and inserts a corresponding `content_items` record
 for each node without one.
+
+## Bigint IDs
+
+The migration in `content_items_bigint_migration.md` converts `content_items`
+and `node_patches` identifiers to bigint sequences. Refer to that document for
+upgrade and rollback instructions.

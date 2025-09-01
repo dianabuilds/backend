@@ -11,14 +11,14 @@ export class MediaService {
     /**
      * Upload Media
      * Accept an uploaded image and return its public URL.
-     * @param formData
      * @param xWorkspaceId
+     * @param formData
      * @returns any Successful Response
      * @throws ApiError
      */
     public static uploadMediaMediaPost(
-        formData: Body_upload_media_media_post,
         xWorkspaceId?: (string | null),
+        formData?: Body_upload_media_media_post,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -36,14 +36,14 @@ export class MediaService {
     /**
      * Upload Media
      * Accept an uploaded image and return its public URL.
-     * @param formData
      * @param xWorkspaceId
+     * @param formData
      * @returns any Successful Response
      * @throws ApiError
      */
     public static uploadMediaWorkspacesWorkspaceIdMediaPost(
-        formData: Body_upload_media_workspaces__workspace_id__media_post,
         xWorkspaceId?: (string | null),
+        formData?: Body_upload_media_workspaces__workspace_id__media_post,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',

@@ -42,7 +42,7 @@ class NodeItemDAO:
 
     @staticmethod
     async def attach_tag(
-        db: AsyncSession, *, node_id: UUID, tag_id: UUID, workspace_id: UUID
+        db: AsyncSession, *, node_id: int, tag_id: UUID, workspace_id: UUID
     ) -> ContentTag:
         item = ContentTag(content_id=node_id, tag_id=tag_id, workspace_id=workspace_id)
         db.add(item)
@@ -51,7 +51,7 @@ class NodeItemDAO:
 
     @staticmethod
     async def detach_tag(
-        db: AsyncSession, *, node_id: UUID, tag_id: UUID, workspace_id: UUID
+        db: AsyncSession, *, node_id: int, tag_id: UUID, workspace_id: UUID
     ) -> None:
         stmt = delete(ContentTag).where(
             ContentTag.content_id == node_id,
@@ -93,7 +93,7 @@ class NodePatchDAO:
     async def create(
         db: AsyncSession,
         *,
-        node_id: UUID,
+        node_id: int,
         data: dict,
         created_by_user_id: UUID | None = None,
     ) -> NodePatch:
@@ -107,7 +107,7 @@ class NodePatchDAO:
         return patch
 
     @staticmethod
-    async def revert(db: AsyncSession, *, patch_id: UUID) -> NodePatch | None:
+    async def revert(db: AsyncSession, *, patch_id: int) -> NodePatch | None:
         patch = await db.get(NodePatch, patch_id)
         if patch and patch.reverted_at is None:
             patch.reverted_at = datetime.utcnow()
@@ -115,11 +115,11 @@ class NodePatchDAO:
         return patch
 
     @staticmethod
-    async def get(db: AsyncSession, *, patch_id: UUID) -> NodePatch | None:
+    async def get(db: AsyncSession, *, patch_id: int) -> NodePatch | None:
         return await db.get(NodePatch, patch_id)
 
     @staticmethod
-    async def list(db: AsyncSession, *, node_id: UUID | None = None) -> list[NodePatch]:
+    async def list(db: AsyncSession, *, node_id: int | None = None) -> list[NodePatch]:
         stmt = select(NodePatch)
         if node_id:
             stmt = stmt.where(NodePatch.node_id == node_id)

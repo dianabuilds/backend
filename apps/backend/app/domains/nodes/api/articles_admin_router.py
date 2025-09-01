@@ -63,7 +63,7 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     )
 
     return {
-        "id": str(item.id),
+        "id": item.id,
         "workspace_id": str(item.workspace_id),
         "nodeType": item.type,
         "type": item.type,  # legacy

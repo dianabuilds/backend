@@ -14,7 +14,7 @@ interface ContentTabProps {
 }
 
 interface ContentEditorProps {
-  nodeId?: string;
+  nodeId?: number;
   node_type?: string;
   title: string;
   status?: string;

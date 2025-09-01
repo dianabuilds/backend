@@ -2,4 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type NodeTraceVisibility = 'public' | 'private' | 'system';
+export enum NodeTraceVisibility {
+    PUBLIC = 'public',
+    PRIVATE = 'private',
+    SYSTEM = 'system',
+}

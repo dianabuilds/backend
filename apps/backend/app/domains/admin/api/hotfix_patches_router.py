@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,7 +26,7 @@ router = APIRouter(
 
 @router.get("", response_model=list[NodePatchDiffOut], summary="List node patches")
 async def list_patches(
-    node_id: UUID | None = None,
+    node_id: int | None = None,
     current_user: Annotated[User, Depends(admin_only)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> list[NodePatchDiffOut]:
@@ -59,7 +58,7 @@ async def create_patch(
 
 @router.post("/{patch_id}/revert", response_model=NodePatchOut, summary="Revert patch")
 async def revert_patch(
-    patch_id: UUID,
+    patch_id: int,
     current_user: Annotated[User, Depends(admin_only)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> NodePatchOut:
@@ -72,7 +71,7 @@ async def revert_patch(
 
 @router.get("/{patch_id}", response_model=NodePatchDiffOut, summary="Get patch")
 async def get_patch(
-    patch_id: UUID,
+    patch_id: int,
     current_user: Annotated[User, Depends(admin_only)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> NodePatchDiffOut:

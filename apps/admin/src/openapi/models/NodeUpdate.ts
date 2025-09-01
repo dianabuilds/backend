@@ -4,11 +4,6 @@
 /* eslint-disable */
 export type NodeUpdate = {
     title?: (string | null);
-    nodes?: null;
-    media?: (Array<string> | null);
-    coverUrl?: (string | null);
-    tags?: (Array<string> | null);
-    isPublic?: (boolean | null);
     hidden?: (boolean | null);
     allow_feedback?: (boolean | null);
     isRecommendable?: (boolean | null);

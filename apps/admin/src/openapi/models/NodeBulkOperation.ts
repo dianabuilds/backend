@@ -7,6 +7,14 @@
  */
 export type NodeBulkOperation = {
     ids: Array<number>;
-    op: 'hide' | 'show' | 'public' | 'private' | 'toggle_premium' | 'toggle_recommendable';
+    op: NodeBulkOperation.op;
 };
+export namespace NodeBulkOperation {
+    export enum op {
+        HIDE = 'hide',
+        SHOW = 'show',
+        TOGGLE_PREMIUM = 'toggle_premium',
+        TOGGLE_RECOMMENDABLE = 'toggle_recommendable',
+    }
+}
 

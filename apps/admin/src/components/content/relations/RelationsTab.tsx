@@ -8,7 +8,7 @@ import type {
 } from "../../../openapi";
 
 interface RelationsTabProps {
-  nodeId?: string;
+  nodeId?: number;
   slug: string;
   nodeType?: string;
 }
@@ -34,9 +34,9 @@ export default function RelationsTab({
         ]);
         setOutgoing(out);
         setIncoming(inc);
-        if (nodeType === "quest" && nodeId) {
+        if (nodeType === "quest" && nodeId !== undefined) {
           try {
-            const graph = await getVersion(nodeId);
+            const graph = await getVersion(String(nodeId));
             setNodes(graph.nodes || []);
             setEdges(graph.edges || []);
           } catch (e) {

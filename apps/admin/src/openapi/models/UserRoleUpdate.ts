@@ -3,6 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 export type UserRoleUpdate = {
-    role: 'user' | 'moderator' | 'support' | 'admin';
+    role: UserRoleUpdate.role;
 };
+export namespace UserRoleUpdate {
+    export enum role {
+        USER = 'user',
+        MODERATOR = 'moderator',
+        SUPPORT = 'support',
+        ADMIN = 'admin',
+    }
+}
 

@@ -39,7 +39,7 @@ def validate_transition(current: Status, new: Status) -> None:
 
 
 async def publish_content(
-    node_id: UUID,
+    node_id: int,
     slug: str,
     author_id: UUID,
     *,
@@ -65,13 +65,13 @@ async def publish_content(
             pass
 
 
-async def update_content(node_id: UUID, slug: str, author_id: UUID) -> None:
+async def update_content(node_id: int, slug: str, author_id: UUID) -> None:
     """Update node and emit domain event."""
     bus = get_event_bus()
     await bus.publish(NodeUpdated(node_id=node_id, slug=slug, author_id=author_id))
 
 
-async def archive_content(node_id: UUID, slug: str, author_id: UUID) -> None:
+async def archive_content(node_id: int, slug: str, author_id: UUID) -> None:
     """Archive node and emit domain event."""
     bus = get_event_bus()
     await bus.publish(NodeArchived(node_id=node_id, slug=slug, author_id=author_id))
@@ -88,7 +88,7 @@ class NodePatchService:
     async def record(
         db: AsyncSession,
         *,
-        node_id: UUID,
+        node_id: int,
         data: dict[str, Any],
         actor_id: UUID | None = None,
     ) -> None:
