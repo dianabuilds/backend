@@ -5,4 +5,7 @@ export interface NodeEditorData {
   coverUrl?: string | null;
   media?: string[];
   tags?: string[];
+  // additional fields used by the redesigned editor
+  isPublic?: boolean;
+  content?: any;
 }

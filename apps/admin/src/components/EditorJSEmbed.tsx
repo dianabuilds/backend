@@ -27,6 +27,8 @@ export default function EditorJSEmbed({
   const holderId = useRef(`edjs-${Math.random().toString(36).slice(2)}`);
   const editorRef = useRef<EditorJS | null>(null);
   const changeTimer = useRef<number | null>(null);
+  const lastRendered = useRef<string>("");
+  const applyingExternal = useRef(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Преобразуем относительный URL (/static/uploads/...) в абсолютный к backend origin (в dev 5173–5176) или VITE_API_BASE
@@ -165,11 +167,17 @@ export default function EditorJSEmbed({
         },
         onChange: async () => {
           if (!onChange) return;
+          if (applyingExternal.current) return; // skip feedback when we render externally
           if (changeTimer.current) window.clearTimeout(changeTimer.current);
           changeTimer.current = window.setTimeout(async () => {
             try {
               const data = await instance.save();
               onChange(data);
+              try {
+                lastRendered.current = JSON.stringify(data);
+              } catch {
+                // ignore
+              }
             } catch {
               // ignore
             }
@@ -203,7 +211,41 @@ export default function EditorJSEmbed({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holderId.current]);
 
-  useEffect(() => {}, [value]);
+  // When value prop changes after async load, re-render the editor content
+  useEffect(() => {
+    const inst = editorRef.current;
+    if (!inst || !value) return;
+    let incoming = "";
+    try {
+      incoming = JSON.stringify(value);
+    } catch {
+      // ignore
+    }
+    if (!incoming || incoming === lastRendered.current) return;
+    applyingExternal.current = true;
+    // Prefer blocks.render for broad compatibility across EditorJS versions
+    const render = async () => {
+      try {
+        // Wait until the editor is ready
+        if ((inst as any).isReady && typeof (inst as any).isReady.then === 'function') {
+          await (inst as any).isReady;
+        }
+        const blocks = (value as any)?.blocks || (value as any)?.data?.blocks;
+        if (Array.isArray(blocks) && (inst as any).blocks?.render) {
+          await (inst as any).blocks.render(blocks);
+        } else if ((inst as any).render) {
+          // Fallback to full render if available
+          await (inst as any).render(value as any);
+        }
+        lastRendered.current = incoming;
+      } catch (e) {
+        console.error('EditorJS render failed', e);
+      } finally {
+        applyingExternal.current = false;
+      }
+    };
+    render();
+  }, [value]);
 
   if (loadError) {
     return (

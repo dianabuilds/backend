@@ -14,6 +14,10 @@ from sqlalchemy.orm import selectinload
 from app.core.db.session import get_db
 from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.nodes.application.editorjs_renderer import (
+    collect_unknown_blocks,
+    render_html,
+)
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.schemas.node import AdminNodeList, AdminNodeOut
 from app.domains.nodes.service import publish_content
@@ -74,24 +78,40 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
     node_pk = node.id if node else item.node_id
 
-    return {
+    # Provide stable defaults so the admin UI can render all controls even when
+    # the ``meta`` blob is empty for legacy/imported records.
+    editorjs_default = {
+        "time": int(__import__("time").time() * 1000),
+        "blocks": [],
+        "version": "2.30.7",
+    }
+    content_value = node_data.content if node_data.content else editorjs_default
+
+    payload = {
         "id": node_pk,
         "contentId": item.id,
         "nodeId": node_pk,
-        "workspace_id": str(item.workspace_id),
+        "workspace_id": str(item.workspace_id),  # kept for compatibility
+        "workspaceId": str(item.workspace_id),   # explicit camelCase for clients not using aliases
         "nodeType": item.type,
         "type": item.type,  # legacy
         "slug": item.slug,
         "title": item.title,
+        "subtitle": getattr(node_data, "subtitle", None) or "",
         "summary": item.summary,
         "status": item.status.value,
         "publishedAt": item.published_at.isoformat() if item.published_at else None,
         "createdAt": item.created_at.isoformat() if item.created_at else None,
         "updatedAt": item.updated_at.isoformat() if item.updated_at else None,
-        # admin editor expects content and coverUrl in payload
-        "content": node_data.content,
-        "coverUrl": node_data.cover_url,
-        "media": node_data.media,
+        # admin editor expects content and cover fields in payload
+        "content": content_value,
+        # Pre-rendered HTML for preview clients
+        "contentHtml": render_html(content_value),
+        "coverUrl": node_data.cover_url if node_data.cover_url is not None else None,
+        "coverAssetId": getattr(node_data, "cover_asset_id", None),
+        "coverMeta": getattr(node_data, "cover_meta", None),
+        "coverAlt": getattr(node_data, "cover_alt", None) or "",
+        "media": node_data.media or [],
         "isPublic": node_data.is_public,
         "isVisible": node_data.is_visible,
         "allowFeedback": node_data.allow_feedback,
@@ -99,7 +119,7 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         "premiumOnly": node_data.premium_only,
         "nftRequired": node_data.nft_required,
         "aiGenerated": node_data.ai_generated,
-        "meta": node_data.meta,
+        "meta": getattr(node_data, "_meta_dict", lambda: {})(),
         "authorId": str(node_data.author_id) if node_data.author_id else None,
         "createdByUserId": (
             str(node_data.created_by_user_id)
@@ -111,12 +131,20 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
             if node_data.updated_by_user_id
             else (str(item.updated_by_user_id) if item.updated_by_user_id else None)
         ),
-        "views": node_data.views,
+        "views": node_data.views or 0,
         "reactions": node_data.reactions or {},
-        "popularityScore": node_data.popularity_score,
+        "popularityScore": node_data.popularity_score or 0.0,
+        # Provide both snake_case and camelCase explicitly
         "tag_slugs": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
+        "tagSlugs": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
         "tags": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
     }
+    # Informational: list unsupported blocks in content to help clients decide
+    try:
+        payload["unsupportedBlocks"] = collect_unknown_blocks(content_value)
+    except Exception:
+        payload["unsupportedBlocks"] = []
+    return payload
 
 
 async def _resolve_content_item_id(

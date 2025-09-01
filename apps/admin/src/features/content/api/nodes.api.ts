@@ -23,6 +23,8 @@ export interface NodeMutationPayload {
   media?: string[] | null;
   tags?: string[] | null;
   tagSlugs?: string[] | null;
+  // EditorJS document
+  content?: unknown;
 }
 
 function enrichPayload(payload: NodeMutationPayload): Record<string, unknown> {
@@ -37,6 +39,10 @@ function enrichPayload(payload: NodeMutationPayload): Record<string, unknown> {
   if (body.media !== undefined && !body.mediaUrls && !body.media_urls) {
     body.mediaUrls = body.media;
     body.media_urls = body.media;
+  }
+  // For compatibility with older endpoints that expect `nodes` instead of `content`
+  if (body.content !== undefined && (body as any).nodes === undefined) {
+    (body as any).nodes = body.content;
   }
   return body;
 }

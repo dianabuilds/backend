@@ -19,27 +19,42 @@ export function useNodeEditor(
   });
 
   const [node, setNode] = useState<NodeEditorData>({
-    id: id === "new" ? undefined : id,
+    id: id === "new" ? undefined : (id as number),
     title: "",
     slug: "",
     coverUrl: null,
     media: [],
     tags: [],
+    isPublic: false,
+    content: { time: Date.now(), blocks: [], version: "2.30.7" },
   });
 
   useEffect(() => {
     if (data) {
+      let content: any = (data as any).content;
+      if (typeof content === "string") {
+        try {
+          content = JSON.parse(content);
+        } catch {
+          content = { time: Date.now(), blocks: [], version: "2.30.7" };
+        }
+      }
+      if (!content || typeof content !== "object") {
+        content = { time: Date.now(), blocks: [], version: "2.30.7" };
+      }
       setNode({
-        id: data.id,
-        title: data.title ?? "",
+        id: (data as any).id,
+        title: (data as any).title ?? "",
         slug: (data as any).slug ?? "",
-        coverUrl:
-          (data as any).coverUrl ?? (data as any).cover_url ?? null,
+        coverUrl: (data as any).coverUrl ?? (data as any).cover_url ?? null,
         media: ((data as any).media as string[] | undefined) ?? [],
         tags:
           ((data as any).tagSlugs as string[] | undefined) ??
+          ((data as any).tag_slugs as string[] | undefined) ??
           ((data as any).tags as string[] | undefined) ??
           [],
+        isPublic: (data as any).isPublic ?? (data as any).is_public ?? false,
+        content,
       });
     }
   }, [data]);
@@ -51,6 +66,7 @@ export function useNodeEditor(
         slug: payload.slug,
         coverUrl: payload.coverUrl,
         media: payload.media,
+        content: payload.content, // EditorJS document
       };
       if (payload.tags) body.tagSlugs = payload.tags;
       if (isNew) {

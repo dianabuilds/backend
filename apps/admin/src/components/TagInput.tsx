@@ -1,4 +1,4 @@
-import { useRef, useState, type InputHTMLAttributes } from "react";
+import { useEffect, useRef, useState, type InputHTMLAttributes } from "react";
 
 import { getSuggestions, mergeTags } from "../utils/tagManager";
 
@@ -19,6 +19,15 @@ export default function TagInput({
   const [tags, setTags] = useState<string[]>(mergeTags(value));
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sync internal state when value prop changes (e.g. after async load)
+  useEffect(() => {
+    const next = mergeTags(value || []);
+    // Avoid unnecessary rerenders
+    const same = next.length === tags.length && next.every((t, i) => t === tags[i]);
+    if (!same) setTags(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Array.isArray(value) ? value.join("\u0001") : String(value || "")]);
 
   const commit = (raw: string) => {
     const items = raw

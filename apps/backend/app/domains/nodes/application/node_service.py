@@ -200,14 +200,24 @@ class NodeService:
         if title is not None and title != node.title:
             node.title = str(title)
 
-        content = data.get("content")
-        if content is not None and content != node.content:
-            node.content = content
+        # Content may be provided under `content` (new) or `nodes` (legacy)
+        raw_content = data.get("content", data.get("nodes"))
+        if raw_content is not None and raw_content != node.content:
+            if isinstance(raw_content, (dict, list)):
+                node.content = raw_content  # type: ignore[assignment]
+            else:
+                try:
+                    import json
+
+                    parsed = json.loads(str(raw_content))
+                except Exception:
+                    parsed = {"time": 0, "blocks": [], "version": "2.30.7"}
+                node.content = parsed  # type: ignore[assignment]
             changed = True
 
-        cover_url = data.get("cover_url")
-        if "cover_url" in data and cover_url != node.cover_url:
-            node.cover_url = cover_url
+        cover_url = data.get("cover_url", data.get("coverUrl"))
+        if ("cover_url" in data or "coverUrl" in data) and cover_url != node.cover_url:
+            node.cover_url = cover_url  # type: ignore[assignment]
             changed = True
 
         media = data.get("media")

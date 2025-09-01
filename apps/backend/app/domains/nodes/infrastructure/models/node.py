@@ -90,44 +90,64 @@ class Node(Base):
     # keeps older code and admin tooling functional while allowing new
     # records to persist data in ``meta``.
 
+    def _meta_dict(self) -> dict:
+        """Return ``meta`` as a dictionary, tolerating legacy string values.
+
+        Some historical rows stored JSON as a plain string in the ``meta``
+        column. Accessors below normalise such values to a dict to avoid
+        ``AttributeError: 'str' object has no attribute 'get'``.
+        """
+        m = self.meta
+        if isinstance(m, dict):
+            return m
+        if isinstance(m, str):
+            try:
+                import json
+
+                parsed = json.loads(m)
+                return parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                return {}
+        return {}
+
     @property
     def content(self) -> dict | list:
         """Return node content stored inside ``meta``."""
-        return (self.meta or {}).get("content", {})
+        return self._meta_dict().get("content", {})
 
     @content.setter
     def content(self, value: dict | list) -> None:
-        meta = dict(self.meta or {})
+        meta = dict(self._meta_dict())
         meta["content"] = value
         self.meta = meta
 
     @property
     def cover_url(self) -> str | None:
-        return (self.meta or {}).get("cover_url")
+        return self._meta_dict().get("cover_url")
 
     @cover_url.setter
     def cover_url(self, value: str | None) -> None:
-        meta = dict(self.meta or {})
+        meta = dict(self._meta_dict())
         meta["cover_url"] = value
         self.meta = meta
 
     @property
     def media(self) -> list[str]:
-        return (self.meta or {}).get("media", [])
+        return self._meta_dict().get("media", [])
 
     @media.setter
     def media(self, value: list[str]) -> None:
-        meta = dict(self.meta or {})
+        meta = dict(self._meta_dict())
         meta["media"] = value
         self.meta = meta
 
     @property
     def reactions(self) -> dict:
-        return (self.meta or {}).get("reactions", {})
+        return self._meta_dict().get("reactions", {})
 
     @reactions.setter
     def reactions(self, value: dict) -> None:
-        meta = dict(self.meta or {})
+        meta = dict(self._meta_dict())
         meta["reactions"] = value
         self.meta = meta
 
