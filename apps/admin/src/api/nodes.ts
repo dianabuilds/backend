@@ -34,7 +34,16 @@ export interface NodeListParams {
 
 export interface NodePatchParams {
   title?: string | null;
-  nodes?: null;
+  /**
+   * Field used by newer API versions for node content.
+   * We keep it flexible to allow any structure.
+   */
+  nodes?: unknown;
+  /**
+   * Backwards compatible field name for node content. When present it will
+   * be mapped to `nodes` before sending the request.
+   */
+  content?: unknown;
   media?: string[] | null;
   coverUrl?: string | null;
   tags?: string[] | null;
@@ -154,10 +163,15 @@ export async function patchNode(
   patch: NodePatchParams,
   opts: { signal?: AbortSignal; next?: boolean } = {},
 ): Promise<NodeOut> {
+  const body: Record<string, unknown> = { ...patch };
+  if (body.content !== undefined) {
+    body.nodes = body.content;
+    delete body.content;
+  }
   const res = await AdminService.updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch(
     id,
     workspaceId,
-    patch,
+    body,
     opts.next ? 1 : undefined,
   );
   return res as NodeOut;
