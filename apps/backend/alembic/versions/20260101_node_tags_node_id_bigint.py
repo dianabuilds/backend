@@ -30,10 +30,9 @@ def upgrade() -> None:
         Path(__file__).resolve().parents[4] / "scripts" / "sql" / "fk_uuid_to_id.sql"
     )
     op.execute(sql_path.read_text())
-    op.execute(
-        sa.text(
-            "CALL backfill_fk_id('node_tags', 'tag_id', 'node_uuid', 'node_id')"
-        ).execution_options(autocommit=True)
+    op.get_bind().exec_driver_sql(
+        "CALL backfill_fk_id('node_tags', 'tag_id', 'node_uuid', 'node_id')",
+        execution_options={"isolation_level": "AUTOCOMMIT"},
     )
     op.execute(
         """
