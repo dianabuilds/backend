@@ -22,6 +22,9 @@ export function useNodeEditor(
     id: id === "new" ? undefined : id,
     title: "",
     slug: "",
+    coverUrl: null,
+    media: [],
+    tags: [],
   });
 
   useEffect(() => {
@@ -30,6 +33,13 @@ export function useNodeEditor(
         id: data.id,
         title: data.title ?? "",
         slug: (data as any).slug ?? "",
+        coverUrl:
+          (data as any).coverUrl ?? (data as any).cover_url ?? null,
+        media: ((data as any).media as string[] | undefined) ?? [],
+        tags:
+          ((data as any).tagSlugs as string[] | undefined) ??
+          ((data as any).tags as string[] | undefined) ??
+          [],
       });
     }
   }, [data]);
@@ -39,7 +49,10 @@ export function useNodeEditor(
       const body: any = {
         title: payload.title,
         slug: payload.slug,
+        coverUrl: payload.coverUrl,
+        media: payload.media,
       };
+      if (payload.tags) body.tagSlugs = payload.tags;
       if (isNew) {
         return nodesApi.create(workspaceId, body as any);
       }

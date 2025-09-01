@@ -44,6 +44,9 @@ export interface NodePatchParams {
     content?: unknown;
     media?: string[] | null;
     coverUrl?: string | null;
+    /**
+     * List of tag slugs. Aliases `tagSlugs`/`tag_slugs` will be sent automatically.
+     */
     tags?: string[] | null;
     isPublic?: boolean | null;
     isVisible?: boolean | null;
@@ -178,19 +181,38 @@ export async function patchNode(
     id: number,
     patch: NodePatchParams,
     opts: { signal?: AbortSignal; next?: boolean } = {},
-): Promise<NodeOut> {
-    const body: Record<string, unknown> = {...patch};
+): Promise<NodeResponse> {
+    const body: Record<string, unknown> = { ...patch };
+
     if (body.content !== undefined) {
         body.nodes = body.content;
         delete body.content;
     }
+
+    // Normalize cover URL
+    if (body.coverUrl !== undefined && body.cover_url === undefined) {
+        body.cover_url = body.coverUrl;
+    }
+
+    // Normalize media field
+    if (body.media !== undefined && !body.mediaUrls && !body.media_urls) {
+        body.mediaUrls = body.media;
+        body.media_urls = body.media;
+    }
+
+    // Expand tag slugs aliases
+    if (body.tags !== undefined && !body.tagSlugs && !body.tag_slugs) {
+        body.tagSlugs = body.tags;
+        body.tag_slugs = body.tags;
+    }
+
     const res = await AdminService.updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch(
         id,
         workspaceId,
         body,
-        opts.next ? 1 : undefined,
+        opts.next === false ? undefined : 1,
     );
-    return res as NodeOut;
+    return res as NodeResponse;
 }
 
 export async function publishNode(
