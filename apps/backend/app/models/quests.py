@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from . import Base
@@ -35,11 +35,6 @@ class QuestStep(Base):
         DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    quest = relationship(
-        "Quest",
-        backref=backref("steps", cascade="all, delete-orphan"),
-        passive_deletes=True,
-    )
     outgoing_transitions = relationship(
         "QuestStepTransition",
         foreign_keys="QuestStepTransition.from_step_id",
@@ -82,11 +77,6 @@ class QuestStepTransition(Base):
         DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    quest = relationship(
-        "Quest",
-        backref=backref("step_transitions", cascade="all, delete-orphan"),
-        passive_deletes=True,
-    )
     from_step = relationship(
         "QuestStep", foreign_keys=[from_step_id], back_populates="outgoing_transitions"
     )
