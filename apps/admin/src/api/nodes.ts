@@ -147,6 +147,7 @@ export interface NodeResponse extends NodeOut {
   tagSlugs?: string[];
   cover?: { url?: string | null; cover_url?: string | null } | null;
   nodeId?: number | null;
+  contentId?: string;
 }
 
 export async function getNode(workspaceId: string, id: string): Promise<NodeResponse> {
