@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated, Literal, TypedDict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Response
+from fastapi import APIRouter, Depends, Header, Path, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -58,31 +58,6 @@ def _serialize(item: NodeItem) -> dict:
         "summary": item.summary,
         "status": item.status.value,
     }
-
-
-async def _resolve_content_item_id(
-    db: AsyncSession, *, workspace_id: UUID, node_pk: int
-) -> int:
-    """
-    Находит UUID контент-элемента по числовому node_id.
-    Если контента ещё нет, но Node существует в этом workspace — создаёт его.
-    """
-    res = await db.execute(
-        select(NodeItem.id)
-        .where(NodeItem.workspace_id == workspace_id, NodeItem.node_id == node_pk)
-        .order_by(NodeItem.updated_at.desc())
-    )
-    content_id = res.scalar_one_or_none()
-    if content_id is not None:
-        return content_id
-
-    node = await db.get(Node, node_pk)
-    if node is None or node.workspace_id != workspace_id:
-        raise HTTPException(status_code=404, detail="Node not found")
-
-    svc = NodeService(db)
-    item = await svc.create_item_for_node(node)
-    return item.id
 
 
 class AdminNodeListParams(TypedDict, total=False):
@@ -280,15 +255,10 @@ async def get_node_by_id_admin(
 ):
     """
     Единая точка для загрузки полной ноды по ID (числовой node.id).
-    Резолвит UUID контента и делегирует в реализацию контент‑роутера,
-    чтобы вернуть все данные ноды.
+    Делегирует обработку в контент‑роутер, который самостоятельно
+    резолвит идентификатор контента.
     """
-    content_id = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_pk=id
-    )
-    return await _content_get_node_by_id(
-        workspace_id=workspace_id, id=content_id, current_user=current_user, db=db
-    )
+    return await _content_get_node_by_id(node_id=id, workspace_id=workspace_id, db=db)
 
 
 @router.patch("/{id}", summary="Update node by ID (admin, full)")
@@ -301,15 +271,12 @@ async def update_node_by_id_admin(
 ):
     """
     Обновление полной ноды по числовому ID с возвратом полного объекта.
-    Резолвим UUID контента и делегируем в контент‑роутер.
+    Делегируем в контент‑роутер, который резолвит идентификатор контента.
     """
-    content_id = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_pk=id
-    )
     return await _content_update_node_by_id(
-        workspace_id=workspace_id,
-        id=content_id,
+        node_id=id,
         payload=payload,
+        workspace_id=workspace_id,
         current_user=current_user,
         db=db,
     )
@@ -325,14 +292,11 @@ async def publish_node_by_id_admin(
 ):
     """
     Публикация ноды по числовому ID. Возвращает обновлённую полную ноду.
-    Резолвим UUID контента и делегируем в контент‑роутер.
+    Делегируем в контент‑роутер, который резолвит идентификатор контента.
     """
-    content_id = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_pk=id
-    )
     return await _content_publish_node_by_id(
+        node_id=id,
         workspace_id=workspace_id,
-        id=content_id,
         payload=payload or {},
         current_user=current_user,
         db=db,
