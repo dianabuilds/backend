@@ -121,13 +121,9 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 async def _resolve_content_item_id(
     db: AsyncSession, *, workspace_id: UUID, node_or_item_id: int
 ) -> NodeItem:
-    """Resolve a ``NodeItem`` from either ``Node.id`` or ``NodeItem.id``.
 
-    ``node_or_item_id`` may be a numeric ``Node.id`` used by newer clients or a
-    ``NodeItem.id`` from legacy callers.  When only a ``Node`` exists the
-    corresponding ``NodeItem`` is fetched or backfilled.
-    """
 
+    # 1) Direct NodeItem by id within workspace
     item = await db.get(NodeItem, node_or_item_id)
     if item is not None:
         if item.workspace_id != workspace_id:
@@ -164,6 +160,7 @@ async def _resolve_content_item_id(
         )
         raise HTTPException(status_code=404, detail="Node not found")
 
+    # 2) Resolve by Node.id within workspace
     res = await db.execute(
         select(NodeItem)
         .where(NodeItem.workspace_id == workspace_id, NodeItem.node_id == node.id)
@@ -174,7 +171,30 @@ async def _resolve_content_item_id(
         svc = NodeService(db)
         item = await svc.create_item_for_node(node)
 
-    return item
+    # 3) Global fallbacks: try without workspace filter
+    # 3a) NodeItem by id (any workspace)
+    if item is not None:
+        return item.id
+
+    # 3b) Node by id, then NodeItem by node_id; if missing — create one
+    node = await db.get(Node, node_or_item_id)
+    if node is not None:
+        res_any = await db.execute(
+            select(NodeItem.id)
+            .where(NodeItem.node_id == node.id)
+            .order_by(NodeItem.updated_at.desc())
+        )
+        content_id_any = res_any.scalar_one_or_none()
+        if content_id_any is not None:
+            return content_id_any
+
+        # Auto‑create a NodeItem for existing Node to heal skew
+        svc = NodeService(db)
+        created = await svc.create_item_for_node(node)
+        return created.id
+
+    # 4) Nothing matched
+    raise HTTPException(status_code=404, detail="Node not found")
 
 
 @id_router.get("/{node_id}", summary="Get node item by id")
