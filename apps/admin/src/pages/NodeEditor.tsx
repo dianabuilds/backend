@@ -311,7 +311,7 @@ function NodeCreate({ workspaceId, nodeType }: { workspaceId: string; nodeType: 
               disabled={!title.trim() || creating}
               onClick={handleCreate}
             >
-              Create
+              {creating ? 'Creating content…' : 'Create'}
             </button>
             <button type="button" className="px-2 py-1 border rounded" onClick={handleClose}>
               Close
