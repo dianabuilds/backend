@@ -116,30 +116,30 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
 
 async def _resolve_content_item_id(
-    db: AsyncSession, *, workspace_id: UUID, node_pk: int
+    db: AsyncSession, *, workspace_id: UUID, node_or_item_id: int
 ) -> int:
-    """
-    Resolve ``NodeItem.id`` by numeric ``Node.id``.
+    """Resolve ``NodeItem.id`` from either ``Node.id`` or ``NodeItem.id``.
 
-    Creates a ``NodeItem`` if one does not exist for the given ``Node``.
+    ``node_or_item_id`` may be a numeric ``Node.id`` used by newer clients or a
+    ``NodeItem.id`` from legacy callers.
     """
+
+    item = await db.get(NodeItem, node_or_item_id)
+    if item is not None and item.workspace_id == workspace_id:
+        return item.id
 
     res = await db.execute(
         select(NodeItem.id)
-        .where(NodeItem.workspace_id == workspace_id, NodeItem.node_id == node_pk)
+        .where(
+            NodeItem.workspace_id == workspace_id, NodeItem.node_id == node_or_item_id
+        )
         .order_by(NodeItem.updated_at.desc())
     )
     content_id = res.scalar_one_or_none()
     if content_id is not None:
         return content_id
 
-    node = await db.get(Node, node_pk)
-    if node is None or node.workspace_id != workspace_id:
-        raise HTTPException(status_code=404, detail="Node not found")
-
-    svc = NodeService(db)
-    item = await svc.create_item_for_node(node)
-    return item.id
+    raise HTTPException(status_code=404, detail="Node not found")
 
 
 @id_router.get("/{node_id}", summary="Get node item by id")
@@ -150,7 +150,7 @@ async def get_node_by_id(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     content_id = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_pk=node_id
+        db, workspace_id=workspace_id, node_or_item_id=node_id
     )
     svc = NodeService(db)
     item = await svc.get(workspace_id, content_id)
@@ -171,7 +171,7 @@ async def update_node_by_id(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     content_id = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_pk=node_id
+        db, workspace_id=workspace_id, node_or_item_id=node_id
     )
     svc = NodeService(db)
     item = await svc.update(
@@ -200,7 +200,7 @@ async def publish_node_by_id(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     content_id = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_pk=node_id
+        db, workspace_id=workspace_id, node_or_item_id=node_id
     )
     svc = NodeService(db)
     item = await svc.publish(
@@ -277,7 +277,7 @@ async def get_node(
             detail="quest nodes are read-only; use /quests/*",
         )
     content_id = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_pk=node_id
+        db, workspace_id=workspace_id, node_or_item_id=node_id
     )
     svc = NodeService(db)
     item = await svc.get(workspace_id, content_id)
@@ -305,7 +305,7 @@ async def update_node(
         )
 
     content_id = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_pk=node_id
+        db, workspace_id=workspace_id, node_or_item_id=node_id
     )
     svc = NodeService(db)
     item = await svc.update(
@@ -340,7 +340,7 @@ async def publish_node(
             detail="quest nodes are read-only; use /quests/*",
         )
     content_id = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_pk=node_id
+        db, workspace_id=workspace_id, node_or_item_id=node_id
     )
     svc = NodeService(db)
     item = await svc.publish(
@@ -379,7 +379,7 @@ async def publish_node_patch(
             detail="quest nodes are read-only; use /quests/*",
         )
     content_id = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_pk=node_id
+        db, workspace_id=workspace_id, node_or_item_id=node_id
     )
     svc = NodeService(db)
     item = await svc.publish(

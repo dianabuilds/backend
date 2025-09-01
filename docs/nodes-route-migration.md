@@ -7,6 +7,10 @@ Routes now use only the numeric identifier:
 /nodes/:id
 ```
 
+The `id` segment refers to the numeric `node.id`. For a limited transition
+period the backend also accepts a `content_items.id`, but new clients should
+send the `node_id`.
+
 ## Application updates
 
 * React Router definitions should drop the `:type` segment.
