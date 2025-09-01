@@ -145,11 +145,32 @@ export interface NodeResponse extends NodeOut {
 }
 
 export async function getNode(workspaceId: string, id: number): Promise<NodeResponse> {
-    const res = await AdminService.getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
-        id,
-        workspaceId,
-    );
-    return res as NodeResponse;
+    try {
+        const res = await AdminService.getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
+            id,
+            workspaceId,
+        );
+        return res as NodeResponse;
+    } catch (e: unknown) {
+        const status =
+            (e as { status?: number; response?: { status?: number } }).status ??
+            (e as { response?: { status?: number } }).response?.status;
+        if (status !== 404) throw e;
+        if (!workspaceId || workspaceId.toLowerCase() === 'global') {
+            const res = await AdminService.getGlobalNodeByIdAdminNodesNodeIdGet(id);
+            return res as NodeResponse;
+        }
+        await AdminService.replaceNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPut(
+            id,
+            workspaceId,
+            {},
+        );
+        const res = await AdminService.getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
+            id,
+            workspaceId,
+        );
+        return res as NodeResponse;
+    }
 }
 
 export async function patchNode(
