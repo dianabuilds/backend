@@ -10,7 +10,6 @@ import KpiCard from "../components/KpiCard";
 
 interface NodeItem {
   id: string;
-  node_type: string;
   status: string;
   updated_at?: string;
   updatedAt?: string;
@@ -61,7 +60,6 @@ export default function ContentDashboard() {
   });
 
   const nodesCount = nodes.length;
-  const questsCount = nodes.filter((n) => n.node_type === "quest").length;
   const tagsCount = tags.length;
 
   const latestEdits = [...nodes]
@@ -81,8 +79,7 @@ export default function ContentDashboard() {
     )[0];
 
   const createQuest = async () => {
-    const type = "quest";
-    const n = await createNode(workspaceId, { node_type: type });
+    const n = await createNode(workspaceId);
     const path = workspaceId
       ? `/nodes/${n.id}?workspace_id=${workspaceId}`
       : `/nodes/${n.id}`;
@@ -90,8 +87,7 @@ export default function ContentDashboard() {
   };
 
   const createGenericNode = async () => {
-    const type = "article";
-    const n = await createNode(workspaceId, { node_type: type });
+    const n = await createNode(workspaceId);
     const path = workspaceId
       ? `/nodes/${n.id}?workspace_id=${workspaceId}`
       : `/nodes/${n.id}`;
@@ -142,16 +138,13 @@ export default function ContentDashboard() {
             <h2 className="mb-2 text-lg font-semibold">Summary</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <KpiCard title="Nodes" value={nodesCount} />
-              <KpiCard title="Quests" value={questsCount} />
               <KpiCard title="Tags" value={tagsCount} />
             </div>
             <div className="mt-4 space-y-1 text-sm">
               <div className="font-semibold">Last 5 edits</div>
               <ul className="list-disc pl-5">
                 {latestEdits.map((n) => (
-                  <li key={n.id}>
-                    {n.node_type} – {n.status}
-                  </li>
+                  <li key={n.id}>{n.status}</li>
                 ))}
               </ul>
               {lastPublished && (
@@ -211,7 +204,6 @@ export default function ContentDashboard() {
             </div>
             <div className="space-y-2">
               <Progress label="Nodes" value={nodesCount} limit={limit} />
-              <Progress label="Quests" value={questsCount} limit={limit} />
               <Progress label="Tags" value={tagsCount} limit={limit} />
             </div>
           </div>

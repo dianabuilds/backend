@@ -55,7 +55,6 @@ function normalizeNode(raw: any): NodeItem {
           : true,
     created_at: n.created_at ?? n.createdAt ?? undefined,
     updated_at: n.updated_at ?? n.updatedAt ?? undefined,
-    type: n.node_type ?? n.nodeType ?? n.type ?? undefined,
   };
 }
 
@@ -332,7 +331,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
         offset: page * limit,
       };
       if (q) params.q = q;
-      if (nodeType) params.node_type = nodeType;
       if (status !== 'all') params.status = status;
       if (visibility !== 'all') params.visible = visibility === 'visible';
       if (isPublic !== 'all') params.is_public = isPublic === 'true';
@@ -495,10 +493,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     if (media.length) payload.media = media;
     if (draft.cover_url || media.length) payload.cover_url = draft.cover_url || media[0];
 
-    const created = await createNode(workspaceId, {
-      node_type: nodeType && ['article', 'quest'].includes(nodeType) ? nodeType : 'article',
-      title: draft.title.trim() || undefined,
-    });
+    const created = await createNode(workspaceId);
     const nodeId =
       (created as any)?.id ??
       (created as any)?.uuid ??
@@ -1097,7 +1092,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
             <div className="bg-white w-full max-w-[95vw] md:max-w-7xl max-h-[92vh] flex flex-col">
               <ContentEditor
                 nodeId={draft.id}
-                node_type="node"
+                data-node="node"
                 title={draft.title || 'New node'}
                 statuses={['draft']}
                 versions={[1]}

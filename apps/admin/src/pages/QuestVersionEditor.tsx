@@ -1042,7 +1042,7 @@ export default function QuestVersionEditor() {
           <div className="bg-white w-full max-w-[95vw] md:max-w-7xl max-h-[92vh] flex flex-col">
             <ContentEditor
               nodeId={editorNode.id}
-              node_type="node"
+              data-node="node"
               title={editorNode.title || "Node"}
               statuses={["draft"]}
               versions={[1]}

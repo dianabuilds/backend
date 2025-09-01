@@ -6,7 +6,6 @@ interface SidePanelsProps {
     slug: string;
     author_id: string;
     is_public: boolean;
-    node_type: string;
   };
   onSlugChange?: (slug: string) => void;
 }
@@ -51,14 +50,6 @@ export default function SidePanels({ node, onSlugChange }: SidePanelsProps) {
         <summary className="cursor-pointer font-semibold">Validation</summary>
         <div className="mt-2 text-sm text-gray-500">No validation errors.</div>
       </details>
-      {canModerate ? (
-        <details>
-          <summary className="cursor-pointer font-semibold">Advanced</summary>
-          <div className="mt-2 space-y-1 text-sm">
-            <div>Type: {node.node_type}</div>
-          </div>
-        </details>
-      ) : null}
     </div>
   );
 }

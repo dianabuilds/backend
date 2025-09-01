@@ -172,17 +172,13 @@ async def read_node(
         .limit(1)
     )
     item = res.scalar_one_or_none()
-    if item:
-        node.node_type = item.type
-        if item.type == "quest":
-            flags = await get_effective_flags(
-                db, request.headers.get("X-Preview-Flags")
+    if item and item.type == "quest":
+        flags = await get_effective_flags(db, request.headers.get("X-Preview-Flags"))
+        if "quests.nodes_redirect" in flags:
+            return RedirectResponse(
+                url=f"/quests/{node.id}/versions/current?workspace_id={workspace_id}",
+                status_code=307,
             )
-            if "quests.nodes_redirect" in flags:
-                return RedirectResponse(
-                    url=f"/quests/{node.id}/versions/current?workspace_id={workspace_id}",
-                    status_code=307,
-                )
     NodePolicy.ensure_can_view(node, current_user)
     if node.premium_only:
         await require_premium(current_user)

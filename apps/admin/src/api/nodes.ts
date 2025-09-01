@@ -3,11 +3,10 @@ import type {ApiResponse} from './client';
 import {wsApi} from './wsApi';
 
 // The admin nodes list endpoint returns additional metadata compared to the
-// public NodeOut model.  In particular it includes the `node_type` of each
-// item and its `status`.  We extend the generated `NodeOut` type to capture
-// these fields for stronger typing inside the admin UI.
+// public NodeOut model. In particular it includes the `status` of each item.
+// We extend the generated `NodeOut` type to capture these fields for stronger
+// typing inside the admin UI.
 export interface AdminNodeItem extends NodeOut {
-    node_type: string;
     status: string;
     nodeId?: number | null;
 }
@@ -23,7 +22,6 @@ export interface NodeListParams {
     visible?: boolean;
     premium_only?: boolean;
     recommendable?: boolean;
-    node_type?: string;
     limit?: number;
     offset?: number;
     date_from?: string;
@@ -128,18 +126,11 @@ export async function listNodes(
     return await getWithCache(publicUrl);
 }
 
-export async function createNode(
-    workspaceId: string,
-    body: { node_type: string; title?: string },
-): Promise<NodeOut> {
-    const payload: { node_type: string; title?: string } = {
-        node_type: body.node_type,
-    };
-    if (body.title) payload.title = body.title;
-    const res = await wsApi.post<typeof payload, NodeOut>(
+export async function createNode(workspaceId: string): Promise<NodeOut> {
+    const res = await wsApi.post<undefined, NodeOut>(
         `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes`,
-        payload,
-        {workspace: false},
+        undefined,
+        { workspace: false },
     );
     return res;
 }

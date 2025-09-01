@@ -77,7 +77,7 @@ class NodeQueryService:
     async def list_nodes(
         self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext
     ) -> list[Node]:
-        stmt = select(Node, NodeItem.type.label("node_type")).join(
+        stmt = select(Node).join(
             NodeItem,
             and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
             isouter=True,
@@ -121,11 +121,7 @@ class NodeQueryService:
             stmt = stmt.order_by(desc(Node.updated_at))
         stmt = stmt.offset(getattr(page, "offset", 0)).limit(getattr(page, "limit", 50))
         res = await self._db.execute(stmt)
-        items: list[Node] = []
-        for node, node_type in res.all():
-            node.node_type = node_type
-            items.append(node)
-        return items
+        return list(res.scalars().all())
 
     async def list_drafts_with_issues(self, limit: int = 10) -> list[dict]:
         cache_key = f"admin:drafts:issues:{limit}"
