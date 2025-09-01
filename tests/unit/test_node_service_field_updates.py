@@ -136,3 +136,40 @@ async def test_update_tags_resets_status(db: AsyncSession) -> None:
     assert sorted(t.slug for t in node_obj.tags) == ["a", "b"]
     assert sorted(t.slug for t in item_obj.tags) == ["a", "b"]
     assert item_obj.status == Status.draft
+
+
+@pytest.mark.asyncio
+async def test_update_multiple_fields_resets_status(db: AsyncSession) -> None:
+    ws, user_id, node, item = await _prepare_published(db)
+    tag_a = Tag(id=uuid.uuid4(), slug="a", name="A", workspace_id=ws.id)
+    tag_b = Tag(id=uuid.uuid4(), slug="b", name="B", workspace_id=ws.id)
+    db.add_all([tag_a, tag_b])
+    await db.commit()
+    svc = NodeService(db)
+    await svc.update(
+        ws.id,
+        item.id,
+        {
+            "content": {"y": 2},
+            "cover_url": "http://img",
+            "media": ["m"],
+            "tags": ["a", "b"],
+        },
+        actor_id=user_id,
+    )
+    node_db = await db.execute(
+        sa.select(Node).where(Node.id == node.id).options(selectinload(Node.tags))
+    )
+    node_obj = node_db.scalar_one()
+    item_db = await db.execute(
+        sa.select(NodeItem)
+        .where(NodeItem.id == item.id)
+        .options(selectinload(NodeItem.tags))
+    )
+    item_obj = item_db.scalar_one()
+    assert node_obj.content == {"y": 2}
+    assert node_obj.cover_url == "http://img"
+    assert node_obj.media == ["m"]
+    assert sorted(t.slug for t in node_obj.tags) == ["a", "b"]
+    assert sorted(t.slug for t in item_obj.tags) == ["a", "b"]
+    assert item_obj.status == Status.draft
