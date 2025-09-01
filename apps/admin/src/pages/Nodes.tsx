@@ -544,7 +544,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     if (!node) return;
     try {
       const { url } = await createPreviewLink(workspaceId);
-      window.open(node.slug ? `${url}/nodes/${node.slug}` : url, '_blank');
+      window.open(`${url}/nodes/${id}`, '_blank');
     } catch (e) {
       addToast({
         title: 'Preview failed',
@@ -1040,7 +1040,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
                             if (!workspaceId) return;
                             try {
                               const { url } = await createPreviewLink(workspaceId);
-                              window.open(n.slug ? `${url}/nodes/${n.slug}` : url, '_blank');
+                              window.open(`${url}/nodes/${n.id}`, '_blank');
                             } catch (e) {
                               addToast({
                                 title: 'Preview failed',

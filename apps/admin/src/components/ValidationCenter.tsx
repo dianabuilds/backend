@@ -4,30 +4,28 @@ import { api } from "../api/client";
 import ValidationReportView from "./ValidationReportView";
 
 type Props = {
-  type: string;
-  id: string;
+  id: number;
 };
 
-export default function ValidationCenter({ type, id }: Props) {
+export default function ValidationCenter({ id }: Props) {
   const [report, setReport] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
 
   const run = async () => {
     setLoading(true);
-      try {
-        const res = await api.post<
-          void,
-          { report?: unknown }
-        >(`/content/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`);
-        setReport(res.data?.report ?? null);
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      const res = await api.post<void, { report?: unknown }>(
+        `/content/${encodeURIComponent(String(id))}/validate`,
+      );
+      setReport(res.data?.report ?? null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     run();
-  }, [type, id]);
+  }, [id]);
 
   return (
     <div className="space-y-2">

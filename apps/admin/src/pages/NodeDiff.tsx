@@ -23,16 +23,18 @@ function diffObjects(a: any, b: any, prefix = ''): string[] {
 }
 
 export default function NodeDiff() {
-  const { type, id } = useParams<{ type: string; id: string }>();
+  const { id } = useParams<{ id: string }>();
   const { workspaceId } = useWorkspace();
   const [remote, setRemote] = useState<any | null>(null);
   const [local, setLocal] = useState<any | null>(null);
 
+  const nodeId = Number(id);
+
   useEffect(() => {
-    if (!id || !type || !workspaceId) return;
+    if (!Number.isInteger(nodeId) || !workspaceId) return;
     (async () => {
-      const node = await getNode(workspaceId, id);
-      const localRaw = localStorage.getItem(`node-draft-${id}`);
+      const node = await getNode(workspaceId, nodeId);
+      const localRaw = localStorage.getItem(`node-draft-${nodeId}`);
       const localData = localRaw ? JSON.parse(localRaw) : null;
       const remoteData = {
         title: node.title ?? '',
@@ -43,10 +45,10 @@ export default function NodeDiff() {
       setLocal(localData);
       setRemote(remoteData);
     })();
-  }, [id, type, workspaceId]);
+  }, [nodeId, workspaceId]);
 
-  if (!id || !type || !workspaceId) {
-    return <div className="p-4">No id provided</div>;
+  if (!Number.isInteger(nodeId) || !workspaceId) {
+    return <div className="p-4">Invalid id</div>;
   }
 
   if (!remote || !local) {

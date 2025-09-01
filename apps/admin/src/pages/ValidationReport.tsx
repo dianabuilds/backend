@@ -8,19 +8,21 @@ import type { ValidationReport as ValidationReportModel } from "../openapi";
 import PageLayout from "./_shared/PageLayout";
 
 export default function ValidationReport() {
-  const { type, id } = useParams<{ type: string; id: string }>();
+  const { id } = useParams<{ id: string }>();
   const { workspaceId } = useWorkspace();
   const [report, setReport] = useState<ValidationReportModel | null>(null);
   const [loading, setLoading] = useState(false);
   const [aiReport, setAiReport] = useState<ValidationReportModel | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
+  const nodeId = Number(id);
+
   const run = async () => {
-    if (!type || !id || !workspaceId) return;
+    if (!Number.isInteger(nodeId) || !workspaceId) return;
     setLoading(true);
     try {
       const res = await api.post(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate`,
+        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/validate`,
       );
       setReport(res.data?.report ?? null);
     } finally {
@@ -29,11 +31,11 @@ export default function ValidationReport() {
   };
 
   const runAi = async () => {
-    if (!type || !id || !workspaceId) return;
+    if (!Number.isInteger(nodeId) || !workspaceId) return;
     setAiLoading(true);
     try {
       const res = await api.post(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/validate_ai`,
+        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/validate_ai`,
       );
       setAiReport(res.data?.report ?? null);
     } finally {
@@ -44,7 +46,7 @@ export default function ValidationReport() {
   useEffect(() => {
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, id, workspaceId]);
+  }, [nodeId, workspaceId]);
 
   return (
     <PageLayout title="Validation report">

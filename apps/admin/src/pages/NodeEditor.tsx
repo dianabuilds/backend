@@ -628,9 +628,9 @@ function NodeEditorInner({
                   Create
                 </button>
               )}
-              {node.slug && (
+              {node.id && (
                 <a
-                  href={`/nodes/${node.slug}`}
+                  href={`/nodes/${node.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-2 py-1 border rounded"
