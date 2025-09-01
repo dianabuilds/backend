@@ -196,12 +196,11 @@ export async function validateNode(workspaceId: string, id: number): Promise<Val
 
 export async function simulateNode(
     workspaceId: string,
-    type: string,
     id: number,
     payload: NodeSimulatePayload,
 ): Promise<unknown> {
     const res = await wsApi.post<NodeSimulatePayload, unknown>(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(String(id))}/simulate`,
+        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/simulate`,
         payload,
         {workspace: false},
     );
