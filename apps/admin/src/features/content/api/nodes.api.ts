@@ -18,19 +18,19 @@ export const nodesApi = {
   list(workspaceId: string, params?: Record<string, unknown>) {
     return client.get<NodeOut[]>(withQuery(base(workspaceId), params));
   },
-  get(workspaceId: string, id: string) {
-    return client.get<NodeOut>(`${base(workspaceId)}/${encodeURIComponent(id)}`);
+  get(workspaceId: string, id: number) {
+    return client.get<NodeOut>(`${base(workspaceId)}/${encodeURIComponent(String(id))}`);
   },
   create(workspaceId: string, payload: NodeCreate) {
     return client.post<NodeCreate, NodeOut>(base(workspaceId), payload);
   },
-  update(workspaceId: string, id: string, payload: NodeUpdate) {
+  update(workspaceId: string, id: number, payload: NodeUpdate) {
     return client.patch<NodeUpdate, NodeOut>(
-      `${base(workspaceId)}/${encodeURIComponent(id)}`,
+      `${base(workspaceId)}/${encodeURIComponent(String(id))}`,
       payload,
     );
   },
-  delete(workspaceId: string, id: string) {
-    return client.del<void>(`${base(workspaceId)}/${encodeURIComponent(id)}`);
+  delete(workspaceId: string, id: number) {
+    return client.del<void>(`${base(workspaceId)}/${encodeURIComponent(String(id))}`);
   },
 };

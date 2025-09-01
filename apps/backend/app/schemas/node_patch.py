@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
 
 class NodePatchCreate(BaseModel):
-    node_id: UUID
+    node_id: int
     data: dict[str, object]
 
 
 class NodePatchOut(BaseModel):
-    id: UUID
-    node_id: UUID
+    id: int
+    node_id: int
     data: dict[str, object]
     created_at: datetime
     reverted_at: datetime | None = None

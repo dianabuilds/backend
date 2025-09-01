@@ -2,7 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type NodeTagsUpdate = {
-    tags?: Array<string>;
-};
-
+export enum WorkspaceRole {
+    OWNER = 'owner',
+    EDITOR = 'editor',
+    VIEWER = 'viewer',
+}

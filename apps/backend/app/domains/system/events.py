@@ -12,7 +12,7 @@ from app.domains.navigation.application.cache_singleton import navcache
 
 @dataclass(frozen=True)
 class NodePublished:
-    node_id: UUID
+    node_id: int
     slug: str
     author_id: UUID
     id: str = field(default_factory=lambda: uuid4().hex)
@@ -20,7 +20,7 @@ class NodePublished:
 
 @dataclass(frozen=True)
 class NodeArchived:
-    node_id: UUID
+    node_id: int
     slug: str
     author_id: UUID
     id: str = field(default_factory=lambda: uuid4().hex)
@@ -28,7 +28,7 @@ class NodeArchived:
 
 @dataclass(frozen=True)
 class NodeCreated:
-    node_id: UUID
+    node_id: int
     slug: str
     author_id: UUID
     id: str = field(default_factory=lambda: uuid4().hex)
@@ -36,7 +36,7 @@ class NodeCreated:
 
 @dataclass(frozen=True)
 class NodeUpdated:
-    node_id: UUID
+    node_id: int
     slug: str
     author_id: UUID
     tags_changed: bool = False

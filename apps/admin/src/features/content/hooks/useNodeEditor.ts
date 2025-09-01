@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import { nodesApi } from "../api/nodes.api";
 import type { NodeEditorData } from "../model/node";
 
-export function useNodeEditor(workspaceId: string, id: string) {
+export function useNodeEditor(workspaceId: string, id: number | "new") {
   const queryClient = useQueryClient();
   const isNew = id === "new";
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["node", workspaceId, id],
-    queryFn: () => nodesApi.get(workspaceId, id),
+    queryFn: () => nodesApi.get(workspaceId, id as number),
     enabled: !isNew,
   });
 
@@ -24,7 +24,7 @@ export function useNodeEditor(workspaceId: string, id: string) {
   useEffect(() => {
     if (data) {
       setNode({
-        id: String(data.id),
+        id: data.id,
         title: data.title ?? "",
         slug: (data as any).slug ?? "",
       });
@@ -40,7 +40,7 @@ export function useNodeEditor(workspaceId: string, id: string) {
       if (isNew) {
         return nodesApi.create(workspaceId, body as any);
       }
-      return nodesApi.update(workspaceId, payload.id as string, body as any);
+      return nodesApi.update(workspaceId, payload.id as number, body as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["node", workspaceId, id] });

@@ -4,8 +4,14 @@
 /* eslint-disable */
 export type RestrictionAdminCreate = {
     user_id: string;
-    type: 'ban' | 'post_restrict';
+    type: RestrictionAdminCreate.type;
     reason?: (string | null);
     expires_at?: (string | null);
 };
+export namespace RestrictionAdminCreate {
+    export enum type {
+        BAN = 'ban',
+        POST_RESTRICT = 'post_restrict',
+    }
+}
 

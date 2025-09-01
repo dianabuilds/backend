@@ -1,5 +1,5 @@
 export interface NodeEditorData {
-  id?: string;
+  id?: number;
   title: string;
   slug?: string;
 }

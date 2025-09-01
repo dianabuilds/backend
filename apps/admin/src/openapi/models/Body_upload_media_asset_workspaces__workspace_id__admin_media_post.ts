@@ -3,6 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type Body_upload_media_asset_workspaces__workspace_id__admin_media_post = {
-    file: Blob;
+    file?: Blob;
 };
 

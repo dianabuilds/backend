@@ -2,8 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ReactionUpdate = {
-    reaction: string;
-    action: 'add' | 'remove';
+export type QuestTransitionCreate = {
+    toStepId: string;
+    label?: (string | null);
+    condition?: (Record<string, any> | null);
 };
 

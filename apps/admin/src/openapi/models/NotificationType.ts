@@ -2,4 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type NotificationType = 'quest' | 'system' | 'moderation';
+export enum NotificationType {
+    QUEST = 'quest',
+    SYSTEM = 'system',
+    MODERATION = 'moderation',
+}

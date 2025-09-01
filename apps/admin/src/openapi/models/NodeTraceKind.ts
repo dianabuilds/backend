@@ -2,4 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type NodeTraceKind = 'auto' | 'manual' | 'quest_hint';
+export enum NodeTraceKind {
+    AUTO = 'auto',
+    MANUAL = 'manual',
+    QUEST_HINT = 'quest_hint',
+}

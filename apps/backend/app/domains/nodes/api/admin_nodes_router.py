@@ -51,7 +51,7 @@ navsvc = NavigationService()
 
 def _serialize(item: NodeItem) -> dict:
     return {
-        "id": str(item.id),
+        "id": item.id,
         "workspace_id": str(item.workspace_id),
         "node_type": item.type,
         "slug": item.slug,
@@ -63,7 +63,7 @@ def _serialize(item: NodeItem) -> dict:
 
 async def _resolve_content_item_id(
     db: AsyncSession, *, workspace_id: UUID, node_pk: int
-) -> UUID:
+) -> int:
     """
     Находит UUID контент-элемента по числовому node_id.
     Если контента ещё нет, но Node существует в этом workspace — создаёт его.
@@ -212,7 +212,7 @@ async def bulk_node_operation(
     if invalidate_slugs:
         await navcache.invalidate_compass_all()
         cache_invalidate("comp", reason="node_bulk")
-    return {"updated": [str(n.id) for n in nodes]}
+    return {"updated": [n.id for n in nodes]}
 
 
 @router.patch("/bulk", summary="Bulk update nodes")
@@ -226,14 +226,14 @@ async def bulk_patch_nodes(
         select(Node).where(Node.id.in_(payload.ids), Node.workspace_id == workspace_id)
     )
     nodes = result.scalars().all()
-    updated_ids: list[str] = []
-    deleted_ids: list[str] = []
+    updated_ids: list[int] = []
+    deleted_ids: list[int] = []
     invalidate_slugs: list[str] = []
     for node in nodes:
         changes = payload.changes
         if changes.delete:
             invalidate_slugs.append(node.slug)
-            deleted_ids.append(str(node.id))
+            deleted_ids.append(node.id)
             try:
                 await navsvc.invalidate_navigation_cache(db, node)
             except Exception:
@@ -251,7 +251,7 @@ async def bulk_patch_nodes(
             node.workspace_id = changes.workspace_id
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = current_user.id
-        updated_ids.append(str(node.id))
+        updated_ids.append(node.id)
         if (
             changes.is_visible is not None and changes.is_visible != was_visible
         ) or changes.workspace_id is not None:

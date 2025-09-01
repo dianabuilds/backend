@@ -57,7 +57,7 @@ class NodeService:
             per_page=per_page,
         )
 
-    async def get(self, workspace_id: UUID, node_id: UUID) -> NodeItem:
+    async def get(self, workspace_id: UUID, node_id: int) -> NodeItem:
         item = await self._db.get(NodeItem, node_id)
         if not item or item.workspace_id != workspace_id:
             raise HTTPException(status_code=404, detail="Node not found")
@@ -121,7 +121,7 @@ class NodeService:
     async def update(
         self,
         workspace_id: UUID,
-        node_id: UUID,
+        node_id: int,
         data: dict[str, Any],
         *,
         actor_id: UUID,
@@ -179,7 +179,7 @@ class NodeService:
     async def publish(
         self,
         workspace_id: UUID,
-        node_id: UUID,
+        node_id: int,
         *,
         actor_id: UUID,
         access: Literal["everyone", "premium_only", "early_access"] = "everyone",

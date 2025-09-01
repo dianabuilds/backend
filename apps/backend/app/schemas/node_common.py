@@ -18,7 +18,7 @@ class ContentBase(BaseModel):
 
 
 class NodeItem(ContentBase):
-    id: UUID
+    id: int
     type: str
     workspace_id: UUID
     version: Version

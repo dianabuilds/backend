@@ -2,4 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type NodeTransitionType = 'manual' | 'locked';
+export enum NodeTransitionType {
+    MANUAL = 'manual',
+    LOCKED = 'locked',
+}

@@ -21,7 +21,7 @@ import type { OutputData } from "../types/editorjs";
 import PageLayout from "./_shared/PageLayout";
 
 interface NodeEditorData {
-  id: string;
+  id: number;
   title: string;
   slug: string;
   subtitle: string;

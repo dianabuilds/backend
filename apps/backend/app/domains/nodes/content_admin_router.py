@@ -72,8 +72,8 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     node_pk = node.id if node else item.node_id
 
     return {
-        "id": str(node_pk),
-        "contentId": str(item.id),
+        "id": node_pk,
+        "contentId": item.id,
         "nodeId": node_pk,
         "workspace_id": str(item.workspace_id),
         "nodeType": item.type,
@@ -177,7 +177,6 @@ async def update_node_by_id(
     svc = NodeService(db)
     item = await svc.update(
         workspace_id,
-        item.type,
         item.id,
         payload,
         actor_id=current_user.id,

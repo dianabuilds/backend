@@ -8,18 +8,17 @@ import type { NodeCreate } from '../models/NodeCreate';
 import type { NodeNotificationSettingsOut } from '../models/NodeNotificationSettingsOut';
 import type { NodeNotificationSettingsUpdate } from '../models/NodeNotificationSettingsUpdate';
 import type { NodeOut } from '../models/NodeOut';
-import type { NodeTagsUpdate } from '../models/NodeTagsUpdate';
 import type { NodeUpdate } from '../models/NodeUpdate';
-import type { ReactionUpdate } from '../models/ReactionUpdate';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class NodesService {
     /**
      * List nodes
+     * List nodes.
+     *
+     * See :class:`NodeListParams` for available query parameters.
      * @param workspaceId
-     * @param tags
-     * @param match
      * @param sort
      * @param ifNoneMatch
      * @param xWorkspaceId
@@ -28,9 +27,7 @@ export class NodesService {
      */
     public static listNodesNodesGet(
         workspaceId: string,
-        tags?: (string | null),
-        match: string = 'any',
-        sort: string = 'updated_desc',
+        sort: 'updated_desc' | 'created_desc' | 'created_asc' | 'views_desc' = 'updated_desc',
         ifNoneMatch?: (string | null),
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Array<NodeOut>> {
@@ -43,8 +40,6 @@ export class NodesService {
             },
             query: {
                 'workspace_id': workspaceId,
-                'tags': tags,
-                'match': match,
                 'sort': sort,
             },
             errors: {
@@ -91,7 +86,7 @@ export class NodesService {
      */
     public static readNodeNodesSlugGet(
         slug: string,
-        workspaceId: string,
+        workspaceId?: (string | null),
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeOut> {
         return __request(OpenAPI, {
@@ -176,74 +171,6 @@ export class NodesService {
         });
     }
     /**
-     * Set node tags
-     * @param nodeId
-     * @param workspaceId
-     * @param requestBody
-     * @param xWorkspaceId
-     * @returns NodeOut Successful Response
-     * @throws ApiError
-     */
-    public static setNodeTagsNodesNodeIdTagsPost(
-        nodeId: string,
-        workspaceId: string,
-        requestBody: NodeTagsUpdate,
-        xWorkspaceId?: (string | null),
-    ): CancelablePromise<NodeOut> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/nodes/{node_id}/tags',
-            path: {
-                'node_id': nodeId,
-            },
-            headers: {
-                'X-Workspace-Id': xWorkspaceId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update reactions
-     * @param slug
-     * @param workspaceId
-     * @param requestBody
-     * @param xWorkspaceId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static updateReactionsNodesSlugReactionsPost(
-        slug: string,
-        workspaceId: string,
-        requestBody: ReactionUpdate,
-        xWorkspaceId?: (string | null),
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/nodes/{slug}/reactions',
-            path: {
-                'slug': slug,
-            },
-            headers: {
-                'X-Workspace-Id': xWorkspaceId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Get node notification settings
      * @param nodeId
      * @param workspaceId
@@ -252,7 +179,7 @@ export class NodesService {
      * @throws ApiError
      */
     public static getNodeNotificationSettingsNodesNodeIdNotificationSettingsGet(
-        nodeId: string,
+        nodeId: number,
         workspaceId: string,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeNotificationSettingsOut> {
@@ -283,7 +210,7 @@ export class NodesService {
      * @throws ApiError
      */
     public static updateNodeNotificationSettingsNodesNodeIdNotificationSettingsPatch(
-        nodeId: string,
+        nodeId: number,
         workspaceId: string,
         requestBody: NodeNotificationSettingsUpdate,
         xWorkspaceId?: (string | null),
@@ -406,9 +333,10 @@ export class NodesService {
     }
     /**
      * List nodes
+     * List nodes.
+     *
+     * See :class:`NodeListParams` for available query parameters.
      * @param workspaceId
-     * @param tags
-     * @param match
      * @param sort
      * @param ifNoneMatch
      * @param xWorkspaceId
@@ -417,9 +345,7 @@ export class NodesService {
      */
     public static listNodesWorkspacesWorkspaceIdNodesGet(
         workspaceId: string,
-        tags?: (string | null),
-        match: string = 'any',
-        sort: string = 'updated_desc',
+        sort: 'updated_desc' | 'created_desc' | 'created_asc' | 'views_desc' = 'updated_desc',
         ifNoneMatch?: (string | null),
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Array<NodeOut>> {
@@ -434,8 +360,6 @@ export class NodesService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'tags': tags,
-                'match': match,
                 'sort': sort,
             },
             errors: {
@@ -482,7 +406,7 @@ export class NodesService {
      */
     public static readNodeWorkspacesWorkspaceIdNodesSlugGet(
         slug: string,
-        workspaceId: string,
+        workspaceId: (string | null),
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeOut> {
         return __request(OpenAPI, {
@@ -561,70 +485,6 @@ export class NodesService {
         });
     }
     /**
-     * Set node tags
-     * @param nodeId
-     * @param workspaceId
-     * @param requestBody
-     * @param xWorkspaceId
-     * @returns NodeOut Successful Response
-     * @throws ApiError
-     */
-    public static setNodeTagsWorkspacesWorkspaceIdNodesNodeIdTagsPost(
-        nodeId: string,
-        workspaceId: string,
-        requestBody: NodeTagsUpdate,
-        xWorkspaceId?: (string | null),
-    ): CancelablePromise<NodeOut> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/workspaces/{workspace_id}/nodes/{node_id}/tags',
-            path: {
-                'node_id': nodeId,
-                'workspace_id': workspaceId,
-            },
-            headers: {
-                'X-Workspace-Id': xWorkspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update reactions
-     * @param slug
-     * @param workspaceId
-     * @param requestBody
-     * @param xWorkspaceId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static updateReactionsWorkspacesWorkspaceIdNodesSlugReactionsPost(
-        slug: string,
-        workspaceId: string,
-        requestBody: ReactionUpdate,
-        xWorkspaceId?: (string | null),
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/workspaces/{workspace_id}/nodes/{slug}/reactions',
-            path: {
-                'slug': slug,
-                'workspace_id': workspaceId,
-            },
-            headers: {
-                'X-Workspace-Id': xWorkspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Get node notification settings
      * @param nodeId
      * @param workspaceId
@@ -633,7 +493,7 @@ export class NodesService {
      * @throws ApiError
      */
     public static getNodeNotificationSettingsWorkspacesWorkspaceIdNodesNodeIdNotificationSettingsGet(
-        nodeId: string,
+        nodeId: number,
         workspaceId: string,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeNotificationSettingsOut> {
@@ -662,7 +522,7 @@ export class NodesService {
      * @throws ApiError
      */
     public static updateNodeNotificationSettingsWorkspacesWorkspaceIdNodesNodeIdNotificationSettingsPatch(
-        nodeId: string,
+        nodeId: number,
         workspaceId: string,
         requestBody: NodeNotificationSettingsUpdate,
         xWorkspaceId?: (string | null),

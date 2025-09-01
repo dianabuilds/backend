@@ -150,10 +150,10 @@ export interface NodeResponse extends NodeOut {
     tagSlugs?: string[];
     cover?: { url?: string | null; cover_url?: string | null } | null;
     nodeId?: number | null;
-  contentId?: string;
+  contentId?: number;
 }
 
-export async function getNode(workspaceId: string, id: string): Promise<NodeResponse> {
+export async function getNode(workspaceId: string, id: number): Promise<NodeResponse> {
     const res = await AdminService.getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
         id,
         workspaceId,
@@ -163,7 +163,7 @@ export async function getNode(workspaceId: string, id: string): Promise<NodeResp
 
 export async function patchNode(
     workspaceId: string,
-    id: string,
+    id: number,
     patch: NodePatchParams,
     opts: { signal?: AbortSignal; next?: boolean } = {},
 ): Promise<NodeOut> {
@@ -183,7 +183,7 @@ export async function patchNode(
 
 export async function publishNode(
     workspaceId: string,
-    id: string,
+    id: number,
     body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
     const res = await AdminService.publishNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPublishPost(
@@ -194,7 +194,7 @@ export async function publishNode(
     return res as NodeOut;
 }
 
-export async function validateNode(workspaceId: string, id: string): Promise<ValidateResult> {
+export async function validateNode(workspaceId: string, id: number): Promise<ValidateResult> {
     const res =
         await AdminService.validateArticleAdminWorkspacesWorkspaceIdArticlesNodeIdValidatePost(
             id,
@@ -206,17 +206,17 @@ export async function validateNode(workspaceId: string, id: string): Promise<Val
 export async function simulateNode(
     workspaceId: string,
     type: string,
-    id: string,
+    id: number,
     payload: NodeSimulatePayload,
 ): Promise<unknown> {
     const res = await wsApi.post<NodeSimulatePayload, unknown>(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(id)}/simulate`,
+        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(type)}/${encodeURIComponent(String(id))}/simulate`,
         payload,
         {workspace: false},
     );
     return res;
 }
 
-export async function recomputeNodeEmbedding(id: string): Promise<void> {
+export async function recomputeNodeEmbedding(id: number): Promise<void> {
     await wsApi.post(`/admin/ai/nodes/${encodeURIComponent(id)}/embedding/recompute`);
 }

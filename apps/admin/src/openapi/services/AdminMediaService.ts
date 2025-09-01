@@ -10,6 +10,32 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AdminMediaService {
     /**
+     * Upload media asset
+     * @param workspaceId
+     * @param formData
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static uploadMediaAssetAdminMediaPost(
+        workspaceId: string,
+        formData?: Body_upload_media_asset_admin_media_post,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/media',
+            query: {
+                'workspace_id': workspaceId,
+            },
+            formData: formData,
+            mediaType: 'multipart/form-data',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * List media assets
      * @param workspaceId
      * @param limit
@@ -44,14 +70,14 @@ export class AdminMediaService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static uploadMediaAssetAdminMediaPost(
+    public static uploadMediaAssetWorkspacesWorkspaceIdAdminMediaPost(
         workspaceId: string,
-        formData: Body_upload_media_asset_admin_media_post,
+        formData?: Body_upload_media_asset_workspaces__workspace_id__admin_media_post,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/media',
-            query: {
+            url: '/workspaces/{workspace_id}/admin/media',
+            path: {
                 'workspace_id': workspaceId,
             },
             formData: formData,
@@ -86,32 +112,6 @@ export class AdminMediaService {
                 'limit': limit,
                 'offset': offset,
             },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Upload media asset
-     * @param workspaceId
-     * @param formData
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static uploadMediaAssetWorkspacesWorkspaceIdAdminMediaPost(
-        workspaceId: string,
-        formData: Body_upload_media_asset_workspaces__workspace_id__admin_media_post,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/workspaces/{workspace_id}/admin/media',
-            path: {
-                'workspace_id': workspaceId,
-            },
-            formData: formData,
-            mediaType: 'multipart/form-data',
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,

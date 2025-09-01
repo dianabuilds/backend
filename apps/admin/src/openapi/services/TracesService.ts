@@ -41,7 +41,7 @@ export class TracesService {
      * @throws ApiError
      */
     public static listTracesTracesGet(
-        nodeId: string,
+        nodeId?: string,
         visibleTo: string = 'all',
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Array<NodeTraceOut>> {

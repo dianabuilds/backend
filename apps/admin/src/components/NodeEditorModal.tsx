@@ -5,7 +5,7 @@ import ImageDropzone from "./ImageDropzone";
 import TagInput from "./TagInput";
 
 export interface NodeEditorData extends Partial<NodeCreate> {
-  id: string;
+  id?: number;
   subtitle?: string;
   content: any;
 }

@@ -2,10 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type DraftIssueOut = {
-    id: string;
+export type NavigationNodeProblem = {
+    node_id: string;
     slug: string;
     title?: (string | null);
-    issues: Array<'title' | 'cover' | 'tags'>;
+    views: number;
+    transitions: number;
+    ctr: number;
+    dead_end: boolean;
+    cycle: boolean;
 };
 
