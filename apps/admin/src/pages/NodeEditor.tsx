@@ -110,7 +110,7 @@ function normalizeTags(input: any): string[] {
 
 function normalizeNodeType(src: any): string | undefined {
   if (!src) return undefined;
-  return (src as any).nodeType ?? (src as any).node_type ?? undefined;
+  return (src as any).nodeType ?? undefined;
 }
 
 // Преобразуем относительный URL в абсолютный к backend origin
@@ -259,7 +259,7 @@ function NodeCreate({ workspaceId, nodeType }: { workspaceId: string; nodeType: 
     setCreating(true);
     try {
       const t = nodeType === 'article' || nodeType === 'quest' ? nodeType : 'article';
-      const n = await createNode(workspaceId, { node_type: t, title });
+      const n = await createNode(workspaceId);
       const path = workspaceId
         ? `/nodes/${n.id}?workspace_id=${workspaceId}`
         : `/nodes/${n.id}`;

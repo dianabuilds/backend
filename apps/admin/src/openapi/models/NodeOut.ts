@@ -16,7 +16,6 @@ export type NodeOut = {
     authorId: string;
     createdByUserId?: (string | null);
     updatedByUserId?: (string | null);
-    nodeType?: (string | null);
     views: number;
     createdAt: string;
     updatedAt: string;

@@ -94,7 +94,6 @@ class NodeOut(NodeBase):
     author_id: UUID = Field(alias="authorId")
     created_by_user_id: UUID | None = Field(default=None, alias="createdByUserId")
     updated_by_user_id: UUID | None = Field(default=None, alias="updatedByUserId")
-    node_type: str | None = Field(default=None, alias="nodeType")
     views: int
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")

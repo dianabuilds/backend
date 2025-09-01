@@ -15,7 +15,6 @@ interface ContentTabProps {
 
 interface ContentEditorProps {
   nodeId?: number;
-  node_type?: string;
   title: string;
   status?: string;
   statuses?: string[];
@@ -30,7 +29,6 @@ interface ContentEditorProps {
 
 export default function ContentEditor({
   nodeId,
-  node_type,
   title,
   status,
   statuses,
@@ -86,11 +84,7 @@ export default function ContentEditor({
   }, [onSave, onClose]);
 
   return (
-    <div
-      data-node-id={nodeId}
-      data-node-type={node_type}
-      className="flex flex-col h-full"
-    >
+    <div data-node-id={nodeId} className="flex flex-col h-full">
       <div className="flex items-center justify-between border-b p-4">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-semibold">{title}</h1>
