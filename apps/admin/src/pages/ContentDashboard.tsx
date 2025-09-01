@@ -84,8 +84,8 @@ export default function ContentDashboard() {
     const type = "quest";
     const n = await createNode(workspaceId, { node_type: type });
     const path = workspaceId
-      ? `/nodes/${type}/${n.id}?workspace_id=${workspaceId}`
-      : `/nodes/${type}/${n.id}`;
+      ? `/nodes/${n.id}?workspace_id=${workspaceId}`
+      : `/nodes/${n.id}`;
     navigate(path);
   };
 
@@ -93,8 +93,8 @@ export default function ContentDashboard() {
     const type = "article";
     const n = await createNode(workspaceId, { node_type: type });
     const path = workspaceId
-      ? `/nodes/${type}/${n.id}?workspace_id=${workspaceId}`
-      : `/nodes/${type}/${n.id}`;
+      ? `/nodes/${n.id}?workspace_id=${workspaceId}`
+      : `/nodes/${n.id}`;
     navigate(path);
   };
 

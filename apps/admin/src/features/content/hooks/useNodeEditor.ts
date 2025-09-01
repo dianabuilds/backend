@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { nodesApi } from "../api/nodes.api";
 import type { NodeEditorData } from "../model/node";
 
-export function useNodeEditor(workspaceId: string, nodeType: string, id: string) {
+export function useNodeEditor(workspaceId: string, id: string) {
   const queryClient = useQueryClient();
   const isNew = id === "new";
 
@@ -38,10 +38,7 @@ export function useNodeEditor(workspaceId: string, nodeType: string, id: string)
         slug: payload.slug,
       };
       if (isNew) {
-        return nodesApi.create(workspaceId, {
-          node_type: nodeType,
-          ...body,
-        } as any);
+        return nodesApi.create(workspaceId, body as any);
       }
       return nodesApi.update(workspaceId, payload.id as string, body as any);
     },

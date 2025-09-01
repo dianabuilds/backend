@@ -596,8 +596,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
         if (first) {
           const item = baseline.get(first);
           if (item) {
-            const usedType = (item as any).type || (item as any).node_type || nodeType || 'quest';
-            navigate(`/nodes/${encodeURIComponent(usedType)}/${first}?workspace_id=${workspaceId}`);
+            navigate(`/nodes/${first}?workspace_id=${workspaceId}`);
           }
         }
       } else if (e.key === 'p' || e.key === 'P') {
@@ -1031,10 +1030,8 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
                           type="button"
                           className="px-2 py-1 border rounded"
                           onClick={() => {
-                            const usedType =
-                              (n as any).type || (n as any).node_type || nodeType || 'article';
                             navigate(
-                              `/nodes/${encodeURIComponent(usedType)}/${n.id}?workspace_id=${workspaceId}`,
+                              `/nodes/${n.id}?workspace_id=${workspaceId}`,
                             );
                           }}
                         >
