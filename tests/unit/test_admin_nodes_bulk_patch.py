@@ -90,7 +90,6 @@ async def test_bulk_patch_updates_flags(app_and_session):
         session.add(ws)
         await session.commit()
         n1 = Node(
-            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
             slug="n1",
             title="N1",
@@ -103,7 +102,6 @@ async def test_bulk_patch_updates_flags(app_and_session):
             is_recommendable=True,
         )
         n2 = Node(
-            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
             slug="n2",
             title="N2",
@@ -117,6 +115,7 @@ async def test_bulk_patch_updates_flags(app_and_session):
         )
         session.add_all([n1, n2])
         await session.commit()
+        ids = [n1.id, n2.id]
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.patch(
@@ -155,7 +154,6 @@ async def test_bulk_patch_delete(app_and_session):
         session.add(ws)
         await session.commit()
         n1 = Node(
-            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
             slug="n1",
             title="N1",

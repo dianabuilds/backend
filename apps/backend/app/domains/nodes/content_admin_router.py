@@ -108,49 +108,27 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     }
 
 
-async def _get_item(
-    db: AsyncSession, node_id: int | UUID, workspace_id: UUID
-) -> NodeItem:
-    """Fetch a node item by numeric id or legacy UUID identifiers.
+async def _get_item(db: AsyncSession, node_id: int, workspace_id: UUID) -> NodeItem:
+    """Fetch a node item by numeric node id."""
 
-    The admin API historically accepted a UUID ``Node`` identifier which mapped
-    to ``Node.alt_id``.  Newer records use the integer primary key.  This helper
-    transparently resolves either form to the corresponding ``NodeItem``.
-    """
-
-    if isinstance(node_id, int):
-        result = await db.execute(
-            select(NodeItem).where(
-                NodeItem.node_id == node_id, NodeItem.workspace_id == workspace_id
-            )
+    result = await db.execute(
+        select(NodeItem).where(
+            NodeItem.node_id == node_id, NodeItem.workspace_id == workspace_id
         )
-        item = result.scalar_one_or_none()
-        if item:
-            return item
-        node = await db.get(Node, node_id)
-        if node and node.workspace_id == workspace_id:
-            svc = NodeService(db)
-            return await svc.create_item_for_node(node)
-    else:
-        item = await db.get(NodeItem, node_id)
-        if item and item.workspace_id == workspace_id:
-            return item
-        node = await db.scalar(select(Node).where(Node.alt_id == node_id))
-        if node and node.workspace_id == workspace_id:
-            result = await db.execute(
-                select(NodeItem).where(NodeItem.node_id == node.id)
-            )
-            item = result.scalar_one_or_none()
-            if item:
-                return item
-            svc = NodeService(db)
-            return await svc.create_item_for_node(node)
+    )
+    item = result.scalar_one_or_none()
+    if item:
+        return item
+    node = await db.get(Node, node_id)
+    if node and node.workspace_id == workspace_id:
+        svc = NodeService(db)
+        return await svc.create_item_for_node(node)
     raise HTTPException(status_code=404, detail="Node not found")
 
 
 @router.get("/{node_id}", summary="Get node item by id")
 async def get_node_by_id(
-    node_id: Annotated[int | UUID, Path(...)],
+    node_id: Annotated[int, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -158,17 +136,15 @@ async def get_node_by_id(
     item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
     item = await svc.get(workspace_id, item.type, item.id)
-    if item.node_id:
-        node_query = select(Node).where(Node.id == item.node_id)
-    else:
-        node_query = select(Node).where(Node.alt_id == item.id)
-    node = await db.scalar(node_query.options(selectinload(Node.tags)))
+    node = await db.scalar(
+        select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags))
+    )
     return _serialize(item, node)
 
 
 @router.patch("/{node_id}", summary="Update node item by id")
 async def update_node_by_id(
-    node_id: Annotated[int | UUID, Path(...)],
+    node_id: Annotated[int, Path(...)],
     payload: dict,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
@@ -190,16 +166,14 @@ async def update_node_by_id(
 
         ux_metrics.inc_save_next()
     node = await db.scalar(
-        select(Node)
-        .where(Node.alt_id == (item.node_id or item.id))
-        .options(selectinload(Node.tags))
+        select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags))
     )
     return _serialize(item, node)
 
 
 @router.post("/{node_id}/publish", summary="Publish node item by id")
 async def publish_node_by_id(
-    node_id: Annotated[int | UUID, Path(...)],
+    node_id: Annotated[int, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
@@ -222,7 +196,7 @@ async def publish_node_by_id(
         author_id=current_user.id,
         workspace_id=workspace_id,
     )
-    node = await db.scalar(select(Node).where(Node.alt_id == (item.node_id or item.id)))
+    node = await db.scalar(select(Node).where(Node.id == item.node_id))
     return _serialize(item, node)
 
 

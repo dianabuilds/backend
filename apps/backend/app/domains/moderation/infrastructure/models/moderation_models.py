@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Text
+from sqlalchemy import BigInteger, Column, DateTime, Enum, ForeignKey, Text
 
 from app.core.db.adapters import UUID
 from app.core.db.base import Base
@@ -25,7 +25,7 @@ class ContentModeration(Base):
     __tablename__ = "node_moderation"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    node_id = Column(UUID(), ForeignKey("nodes.alt_id"))
+    node_id = Column(BigInteger, ForeignKey("nodes.id"))
     reason = Column(Text)
     hidden_by = Column(UUID(), ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)

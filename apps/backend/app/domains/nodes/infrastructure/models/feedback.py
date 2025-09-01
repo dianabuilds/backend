@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Text
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Text
 
 from app.core.db.adapters import UUID
 from app.core.db.base import Base
@@ -14,8 +14,8 @@ class Feedback(Base):
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     node_id = Column(
-        UUID(),
-        ForeignKey("nodes.alt_id", ondelete="CASCADE"),
+        BigInteger,
+        ForeignKey("nodes.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

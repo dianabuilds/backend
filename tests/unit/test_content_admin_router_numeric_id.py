@@ -59,7 +59,6 @@ async def app_client():
         session.add(ws)
         node = Node(
             id=1,
-            alt_id=uuid.uuid4(),
             workspace_id=ws.id,
             slug="n1",
             title="N1",
@@ -130,22 +129,21 @@ async def app_client_node_only():
         )
         session.add(node)
         await session.commit()
-        node_alt = node.alt_id
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, ws.id, node.id, node_alt, async_session
+        yield client, ws.id, node.id, async_session
 
 
 @pytest.mark.asyncio
 async def test_get_node_creates_item_if_missing(app_client_node_only):
-    client, ws_id, node_id, node_alt, async_session = app_client_node_only
+    client, ws_id, node_id, async_session = app_client_node_only
     resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
     assert resp.status_code == 200
     data = resp.json()
-    assert data["id"] == str(node_alt)
     assert data["nodeId"] == node_id
+    node_item_id = uuid.UUID(data["id"])
     async with async_session() as session:
-        item = await session.get(NodeItem, node_alt)
+        item = await session.get(NodeItem, node_item_id)
         assert item is not None
         assert item.node_id == node_id

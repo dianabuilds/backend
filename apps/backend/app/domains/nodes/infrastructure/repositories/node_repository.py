@@ -66,17 +66,6 @@ class NodeRepositoryAdapter(INodeRepository):
         )
         return res.scalar_one_or_none()
 
-    async def get_by_alt_id(self, node_id: UUID, workspace_id: UUID) -> Node | None:
-        """Fetch node by alternative UUID identifier."""
-        if self._repo:
-            return await self._repo.get_by_id(node_id, workspace_id=workspace_id)
-        res = await self._db.execute(
-            select(Node).where(
-                Node.alt_id == node_id, Node.workspace_id == workspace_id
-            )
-        )
-        return res.scalar_one_or_none()
-
     # ------------------------------------------------------------------
     # Mutating operations
     async def create(

@@ -90,11 +90,9 @@ async def test_nodes_redirect_flag(app_and_session):
     async with async_session() as session:
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
         session.add(ws)
-        node_alt_id = uuid.uuid4()
         slug = "quest-node"
         node = Node(
             id=1,
-            alt_id=node_alt_id,
             workspace_id=ws.id,
             slug=slug,
             title="Quest",

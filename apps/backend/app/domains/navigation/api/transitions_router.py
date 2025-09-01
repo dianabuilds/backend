@@ -13,14 +13,14 @@ from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.navigation.infrastructure.repositories.transition_repository import (
+    TransitionRepository,
+)
 from app.domains.navigation.policies.transition_policy import TransitionPolicy
 from app.domains.nodes.infrastructure.repositories.node_repository import (
     NodeRepositoryAdapter,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.domains.navigation.infrastructure.repositories.transition_repository import (
-    TransitionRepository,
-)
 
 router = APIRouter(prefix="/transitions", tags=["transitions"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -41,7 +41,7 @@ async def delete_transition(
     if not transition:
         raise HTTPException(status_code=404, detail="Transition not found")
     TransitionPolicy.ensure_can_delete(transition, current_user)
-    from_node = await node_repo.get_by_alt_id(transition.from_node_id, workspace_id)
+    from_node = await node_repo.get_by_id(transition.from_node_id, workspace_id)
     await repo.delete(transition)
     if from_node:
         await navcache.invalidate_navigation_by_node(from_node.slug)

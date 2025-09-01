@@ -194,22 +194,6 @@ async def read_node(
     return node
 
 
-async def _resolve_node(
-    repo: NodeRepository, node_id: str, workspace_id: UUID
-) -> tuple[Node | None, int | UUID | None]:
-    """Resolve node identifier that can be numeric id or UUID alt id."""
-    try:
-        alt_id = UUID(node_id)
-    except ValueError:
-        try:
-            pk_id = int(node_id)
-        except ValueError:
-            return None, None
-        return await repo.get_by_id(pk_id, workspace_id), pk_id
-    else:
-        return await repo.get_by_alt_id(alt_id, workspace_id), alt_id
-
-
 @router.patch("/{slug}", response_model=NodeOut, summary="Update node")
 async def update_node(
     request: Request,
@@ -281,7 +265,7 @@ async def delete_node(
 )
 async def get_node_notification_settings(
     request: Request,
-    node_id: str,
+    node_id: int,
     workspace_id: UUID | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
@@ -290,11 +274,11 @@ async def get_node_notification_settings(
 ) -> NodeNotificationSettingsOut:
     workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
-    node, resolved = await _resolve_node(repo, node_id, workspace_id)
+    node = await repo.get_by_id(node_id, workspace_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     settings_repo = NodeNotificationSettingsRepository(db)
-    setting = await settings_repo.get(current_user.id, resolved)
+    setting = await settings_repo.get(current_user.id, node.id)
     if not setting:
         return NodeNotificationSettingsOut(node_id=node.id, enabled=True)
     return NodeNotificationSettingsOut.model_validate(setting)
@@ -307,7 +291,7 @@ async def get_node_notification_settings(
 )
 async def update_node_notification_settings(
     request: Request,
-    node_id: str,
+    node_id: int,
     payload: NodeNotificationSettingsUpdate,
     workspace_id: UUID | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
@@ -317,11 +301,11 @@ async def update_node_notification_settings(
 ) -> NodeNotificationSettingsOut:
     workspace_id = _ensure_workspace_id(request, workspace_id)
     repo = NodeRepository(db)
-    node, resolved = await _resolve_node(repo, node_id, workspace_id)
+    node = await repo.get_by_id(node_id, workspace_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     settings_repo = NodeNotificationSettingsRepository(db)
-    setting = await settings_repo.upsert(current_user.id, resolved, payload.enabled)
+    setting = await settings_repo.upsert(current_user.id, node.id, payload.enabled)
     return NodeNotificationSettingsOut.model_validate(setting)
 
 

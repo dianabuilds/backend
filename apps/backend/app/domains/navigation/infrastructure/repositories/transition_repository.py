@@ -26,8 +26,8 @@ class TransitionRepository:
 
     async def create(
         self,
-        from_node_id: UUID,
-        to_node_id: UUID,
+        from_node_id: int,
+        to_node_id: int,
         payload: NodeTransitionCreate,
         user_id: UUID,
     ) -> NodeTransition:

@@ -29,26 +29,23 @@ async def test_upsert_and_get_notification_settings() -> None:
         "nodes",
         metadata,
         sa.Column("id", sa.BigInteger, primary_key=True),
-        sa.Column("alt_id", sa.String, unique=True, nullable=False),
     )
     NodeNotificationSetting.__table__.tometadata(metadata)
-    node_alt_id = uuid.uuid4()
     async with engine.begin() as conn:
         await conn.run_sync(metadata.create_all)
-        await conn.execute(nodes.insert().values(id=1, alt_id=str(node_alt_id)))
+        await conn.execute(nodes.insert().values(id=1))
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
         repo = NodeNotificationSettingsRepository(session)
         user_id = uuid.uuid4()
-        setting = await repo.upsert(user_id, node_alt_id, False)
+        setting = await repo.upsert(user_id, 1, False)
         assert setting.enabled is False
 
-        fetched = await repo.get(user_id, node_alt_id)
+        fetched = await repo.get(user_id, 1)
         assert fetched is not None
         assert fetched.enabled is False
 
-        # Upsert using numeric id should also work
         await repo.upsert(user_id, 1, True)
         fetched = await repo.get(user_id, 1)
         assert fetched is not None

@@ -18,11 +18,6 @@ class INodeRepository(Protocol):
     ) -> Node | None:  # pragma: no cover
         ...
 
-    async def get_by_alt_id(
-        self, node_id: UUID, workspace_id: UUID
-    ) -> Node | None:  # pragma: no cover
-        ...
-
     async def create(
         self, payload: NodeCreate, author_id: UUID, workspace_id: UUID
     ) -> Node:  # pragma: no cover
