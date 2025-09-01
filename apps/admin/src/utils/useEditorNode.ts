@@ -65,6 +65,7 @@ export function useEditorNode(workspaceId: string, id: string, autoSaveDelay = 1
     try {
       const updated = await patchNode(workspaceId, id, patch, {
         signal: controller.signal,
+        next: true,
       });
       setData(updated);
       baseRef.current = updated;
