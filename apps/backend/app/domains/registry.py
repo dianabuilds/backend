@@ -335,6 +335,18 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load admin nodes router. Startup aborted")
         raise RuntimeError("Failed to load admin nodes router") from exc
+    # Admin global nodes
+    try:
+        from app.domains.nodes.api.admin_nodes_global_router import (
+            router as admin_global_nodes_router,
+        )
+
+        app.include_router(admin_global_nodes_router)
+    except Exception as exc:
+        logger.exception(
+            "Failed to load admin global nodes router. Startup aborted",
+        )
+        raise RuntimeError("Failed to load admin global nodes router") from exc
     # Admin drafts
     try:
         from app.domains.nodes.api.admin_drafts_router import (
