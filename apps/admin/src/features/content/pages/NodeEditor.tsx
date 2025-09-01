@@ -6,12 +6,11 @@ import NodeSidebar from "../components/NodeSidebar";
 import useNodeEditor from "../hooks/useNodeEditor";
 
 export default function NodeEditorPage() {
-  const { type = "article", id = "new" } = useParams<{ type?: string; id?: string }>();
+  const { id = "new" } = useParams<{ id?: string }>();
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
   const { node, update, save, loading, error, isSaving } = useNodeEditor(
     workspaceId || "",
-    type,
     id,
   );
 
@@ -22,7 +21,7 @@ export default function NodeEditorPage() {
   const handleSave = async () => {
     const res = (await save()) as { id?: string } | undefined;
     if (id === "new" && res?.id) {
-      navigate(`/nodes/${type}/${res.id}?workspace_id=${workspaceId}`);
+      navigate(`/nodes/${res.id}?workspace_id=${workspaceId}`);
     }
   };
 

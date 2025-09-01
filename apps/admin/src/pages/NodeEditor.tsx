@@ -141,7 +141,7 @@ function resolveAssetUrl(u?: string | null): string | null {
 }
 
 export default function NodeEditor() {
-  const { type, id } = useParams<{ type?: string; id: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const [node, setNode] = useState<NodeEditorData | null>(null);
@@ -154,21 +154,13 @@ export default function NodeEditor() {
       if (!id || id === 'new') return;
 
       try {
-        // Treat literal 'undefined'/'null' from malformed URLs as missing
-        const nodeType =
-          type && type !== 'undefined' && type !== 'null' && type.trim() !== '' ? type : 'article';
-        // Normalize URL if we had to assume the type
-        if (!type || type === 'undefined' || type === 'null' || type.trim() === '') {
-          const qs = workspaceId ? `?workspace_id=${workspaceId}` : '';
-          navigate(`/nodes/${nodeType}/${id}${qs}`, { replace: true });
-        }
         const n = await getNode(workspaceId, id);
 
         const normalizedCover = resolveAssetUrl(normalizeCoverUrl(n));
         const normalizedTags = normalizeTags(
           (n as any).tags ?? (n as any).tag_slugs ?? (n as any).tagSlugs,
         );
-        const normalizedType = normalizeNodeType(n) ?? nodeType;
+        const normalizedType = normalizeNodeType(n) ?? 'article';
         const rawContent: unknown = (n as any).content;
         let normalizedContent: OutputData;
         if (typeof rawContent === 'string') {
@@ -218,7 +210,7 @@ export default function NodeEditor() {
       }
     };
     void load();
-  }, [id, workspaceId, type, navigate]);
+  }, [id, workspaceId]);
 
   if (!workspaceId) {
     return (
@@ -230,7 +222,7 @@ export default function NodeEditor() {
   }
 
   if (id === 'new') {
-    return <NodeCreate workspaceId={workspaceId} nodeType={type || 'article'} />;
+    return <NodeCreate workspaceId={workspaceId} nodeType="article" />;
   }
 
   if (loading) {
@@ -269,8 +261,8 @@ function NodeCreate({ workspaceId, nodeType }: { workspaceId: string; nodeType: 
       const t = nodeType === 'article' || nodeType === 'quest' ? nodeType : 'article';
       const n = await createNode(workspaceId, { node_type: t, title });
       const path = workspaceId
-        ? `/nodes/${t}/${n.id}?workspace_id=${workspaceId}`
-        : `/nodes/${t}/${n.id}`;
+        ? `/nodes/${n.id}?workspace_id=${workspaceId}`
+        : `/nodes/${n.id}`;
       navigate(path, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -550,8 +542,8 @@ function NodeEditorInner({
   const handleCreate = () => {
     if (!canEdit) return;
     const path = workspaceId
-      ? `/nodes/${node.nodeType}/new?workspace_id=${workspaceId}`
-      : `/nodes/${node.nodeType}/new`;
+      ? `/nodes/new?workspace_id=${workspaceId}`
+      : `/nodes/new`;
     navigate(path);
   };
 
