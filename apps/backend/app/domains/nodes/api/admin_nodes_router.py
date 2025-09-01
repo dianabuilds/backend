@@ -4,8 +4,7 @@ from datetime import datetime
 from typing import Annotated, Literal, TypedDict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Path, Query, Response, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -23,17 +22,21 @@ from app.domains.nodes.application.query_models import (
     PageRequest,
     QueryContext,
 )
+from app.domains.nodes.content_admin_router import (
+    get_node_by_id as _content_get_node_by_id,
+)
+from app.domains.nodes.content_admin_router import (
+    publish_node_by_id as _content_publish_node_by_id,
+)
+from app.domains.nodes.content_admin_router import (
+    update_node_by_id as _content_update_node_by_id,
+)
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.schemas.node import NodeBulkOperation, NodeBulkPatch, NodeOut
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.workspaces import WorkspaceType
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-from app.domains.nodes.content_admin_router import (
-    get_node_by_id as _content_get_node_by_id,
-    update_node_by_id as _content_update_node_by_id,
-    publish_node_by_id as _content_publish_node_by_id,
-)
 
 router = APIRouter(
     prefix="/admin/workspaces/{workspace_id}/nodes",
@@ -44,10 +47,6 @@ admin_required = require_admin_role()
 
 navcache = NavigationCacheService(CoreCacheAdapter())
 navsvc = NavigationService()
-
-
-class NodeCreateIn(BaseModel):
-    node_type: str
 
 
 def _serialize(item: NodeItem) -> dict:
@@ -61,6 +60,7 @@ def _serialize(item: NodeItem) -> dict:
         "status": item.status.value,
     }
 
+
 async def _resolve_content_item_id(
     db: AsyncSession, *, workspace_id: UUID, node_pk: int
 ) -> UUID:
@@ -70,8 +70,8 @@ async def _resolve_content_item_id(
     """
     res = await db.execute(
         select(NodeItem.id)
-            .where(NodeItem.workspace_id == workspace_id, NodeItem.node_id == node_pk)
-            .order_by(NodeItem.updated_at.desc())
+        .where(NodeItem.workspace_id == workspace_id, NodeItem.node_id == node_pk)
+        .order_by(NodeItem.updated_at.desc())
     )
     content_id = res.scalar_one_or_none()
     if content_id is not None:
@@ -86,7 +86,6 @@ async def _resolve_content_item_id(
     return item.id
 
 
-
 class AdminNodeListParams(TypedDict, total=False):
     author: UUID
     sort: Literal[
@@ -98,7 +97,6 @@ class AdminNodeListParams(TypedDict, total=False):
     visible: bool
     premium_only: bool
     recommendable: bool
-    node_type: str
     limit: int
     offset: int
     date_from: datetime
@@ -124,7 +122,6 @@ async def list_nodes_admin(
     visible: bool | None = None,
     premium_only: bool | None = None,
     recommendable: bool | None = None,
-    node_type: Annotated[str | None, Query(alias="node_type")] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 25,
     offset: Annotated[int, Query(ge=0)] = 0,
     date_from: datetime | None = None,
@@ -147,7 +144,6 @@ async def list_nodes_admin(
         is_visible=visible,
         premium_only=premium_only,
         recommendable=recommendable,
-        node_type=node_type,
         created_from=date_from,
         created_to=date_to,
         q=q,
@@ -167,13 +163,12 @@ async def list_nodes_admin(
 
 @router.post("", summary="Create node (admin)")
 async def create_node_admin(
-    payload: NodeCreateIn,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.create(workspace_id, payload.node_type, actor_id=current_user.id)
+    item = await svc.create(workspace_id, actor_id=current_user.id)
     return _serialize(item)
 
 
@@ -289,7 +284,9 @@ async def get_node_by_id_admin(
     Резолвит UUID контента и делегирует в реализацию контент‑роутера,
     чтобы вернуть все данные ноды.
     """
-    content_id = await _resolve_content_item_id(db, workspace_id=workspace_id, node_pk=id)
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_pk=id
+    )
     return await _content_get_node_by_id(
         workspace_id=workspace_id, id=content_id, current_user=current_user, db=db
     )
@@ -307,9 +304,15 @@ async def update_node_by_id_admin(
     Обновление полной ноды по числовому ID с возвратом полного объекта.
     Резолвим UUID контента и делегируем в контент‑роутер.
     """
-    content_id = await _resolve_content_item_id(db, workspace_id=workspace_id, node_pk=id)
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_pk=id
+    )
     return await _content_update_node_by_id(
-        workspace_id=workspace_id, id=content_id, payload=payload, current_user=current_user, db=db
+        workspace_id=workspace_id,
+        id=content_id,
+        payload=payload,
+        current_user=current_user,
+        db=db,
     )
 
 
@@ -325,7 +328,9 @@ async def publish_node_by_id_admin(
     Публикация ноды по числовому ID. Возвращает обновлённую полную ноду.
     Резолвим UUID контента и делегируем в контент‑роутер.
     """
-    content_id = await _resolve_content_item_id(db, workspace_id=workspace_id, node_pk=id)
+    content_id = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_pk=id
+    )
     return await _content_publish_node_by_id(
         workspace_id=workspace_id,
         id=content_id,

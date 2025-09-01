@@ -21,7 +21,7 @@ from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem, NodePatch
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.infrastructure.models import Workspace
-from app.schemas.nodes_common import NodeType, Status, Visibility
+from app.schemas.nodes_common import Status, Visibility
 
 
 @pytest_asyncio.fixture()
@@ -46,7 +46,7 @@ async def test_create_assigns_integer_node_id(db: AsyncSession) -> None:
     db.add_all([User(id=user_id), ws])
     await db.commit()
     service = NodeService(db)
-    item = await service.create(ws.id, NodeType.quest, actor_id=user_id)
+    item = await service.create(ws.id, actor_id=user_id)
     assert item.node_id is not None
     assert isinstance(item.node_id, int)
     assert item.node_id != item.id
@@ -73,7 +73,7 @@ async def test_publish_creates_integer_node_id(db: AsyncSession) -> None:
     )
     await db.commit()
     service = NodeService(db)
-    published = await service.publish(ws.id, NodeType.quest, item.id, actor_id=user_id)
+    published = await service.publish(ws.id, item.id, actor_id=user_id)
     assert published.node_id is not None
     assert isinstance(published.node_id, int)
     assert published.node_id != published.id
@@ -100,7 +100,7 @@ async def test_update_creates_integer_node_id(db: AsyncSession) -> None:
     )
     await db.commit()
     service = NodeService(db)
-    updated = await service.update(ws.id, NodeType.quest, item.id, {}, actor_id=user_id)
+    updated = await service.update(ws.id, item.id, {}, actor_id=user_id)
     assert updated.node_id is not None
     assert isinstance(updated.node_id, int)
     assert updated.node_id != updated.id

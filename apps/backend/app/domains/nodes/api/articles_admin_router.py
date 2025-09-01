@@ -112,7 +112,7 @@ async def create_article(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.create(workspace_id, "article", actor_id=current_user.id)
+    item = await svc.create(workspace_id, actor_id=current_user.id)
     node = await db.get(
         Node, item.node_id or item.id, options=(selectinload(Node.tags),)
     )
@@ -129,9 +129,9 @@ async def get_article(
     svc = NodeService(db)
     if isinstance(node_id, int):
         item = await _get_item(db, node_id, workspace_id)
-        item = await svc.get(workspace_id, "article", item.id)
+        item = await svc.get(workspace_id, item.id)
     else:
-        item = await svc.get(workspace_id, "article", node_id)
+        item = await svc.get(workspace_id, node_id)
     node = await db.get(
         Node, item.node_id or item.id, options=(selectinload(Node.tags),)
     )
@@ -152,7 +152,6 @@ async def update_article(
         item = await _get_item(db, node_id, workspace_id)
         item = await svc.update(
             workspace_id,
-            "article",
             item.id,
             payload,
             actor_id=current_user.id,
@@ -160,7 +159,6 @@ async def update_article(
     else:
         item = await svc.update(
             workspace_id,
-            "article",
             node_id,
             payload,
             actor_id=current_user.id,
@@ -188,20 +186,16 @@ async def publish_article(
         item = await _get_item(db, node_id, workspace_id)
         item = await svc.publish(
             workspace_id,
-            "article",
             item.id,
             actor_id=current_user.id,
             access=(payload.access if payload else "everyone"),
-            cover=(payload.cover if payload else None),
         )
     else:
         item = await svc.publish(
             workspace_id,
-            "article",
             node_id,
             actor_id=current_user.id,
             access=(payload.access if payload else "everyone"),
-            cover=(payload.cover if payload else None),
         )
     await publish_content(
         node_id=item.id,
@@ -229,7 +223,7 @@ async def validate_article(
     svc = NodeService(db)
     if isinstance(node_id, int):
         item = await _get_item(db, node_id, workspace_id)
-        await svc.get(workspace_id, "article", item.id)
+        await svc.get(workspace_id, item.id)
     else:
-        await svc.get(workspace_id, "article", node_id)
+        await svc.get(workspace_id, node_id)
     return ValidateResult(ok=True, errors=[], warnings=[])

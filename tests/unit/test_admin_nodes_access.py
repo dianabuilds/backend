@@ -65,11 +65,11 @@ async def test_get_node_respects_workspace() -> None:
         await session.commit()
 
         svc = NodeService(session)
-        item = await svc.get(ws1.id, NodeType.quest, node.id)
+        item = await svc.get(ws1.id, node.id)
         assert item.id == node.id
 
         with pytest.raises(HTTPException):
-            await svc.get(ws2.id, NodeType.quest, node.id)
+            await svc.get(ws2.id, node.id)
 
 
 @pytest.mark.asyncio

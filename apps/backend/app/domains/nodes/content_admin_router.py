@@ -156,7 +156,7 @@ async def get_node_by_id(
 ):
     item = await _get_item(db, node_id, workspace_id)
     svc = NodeService(db)
-    item = await svc.get(workspace_id, item.type, item.id)
+    item = await svc.get(workspace_id, item.id)
     node = await db.scalar(
         select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags))
     )
@@ -238,11 +238,9 @@ async def list_nodes(
         )
     svc = NodeService(db)
     if q:
-        items = await svc.search(
-            workspace_id, node_type, q, page=page, per_page=per_page
-        )
+        items = await svc.search(workspace_id, q, page=page, per_page=per_page)
     else:
-        items = await svc.list(workspace_id, node_type, page=page, per_page=per_page)
+        items = await svc.list(workspace_id, page=page, per_page=per_page)
     return {"items": [_serialize(i) for i in items]}
 
 
@@ -260,7 +258,7 @@ async def create_node(
             detail="quest nodes are read-only; use /quests/*",
         )
     svc = NodeService(db)
-    item = await svc.create(workspace_id, node_type, actor_id=current_user.id)
+    item = await svc.create(workspace_id, actor_id=current_user.id)
     node = await db.get(
         Node, item.node_id or item.id, options=(selectinload(Node.tags),)
     )
@@ -281,7 +279,7 @@ async def get_node(
             detail="quest nodes are read-only; use /quests/*",
         )
     svc = NodeService(db)
-    item = await svc.get(workspace_id, node_type, node_id)
+    item = await svc.get(workspace_id, node_id)
     node = await db.get(
         Node, item.node_id or item.id, options=(selectinload(Node.tags),)
     )
@@ -308,7 +306,6 @@ async def update_node(
     svc = NodeService(db)
     item = await svc.update(
         workspace_id,
-        node_type,
         node_id,
         payload,
         actor_id=current_user.id,
@@ -341,11 +338,9 @@ async def publish_node(
     svc = NodeService(db)
     item = await svc.publish(
         workspace_id,
-        node_type,
         node_id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
-        cover=(payload.cover if payload else None),
     )
     await publish_content(
         node_id=item.id,
@@ -379,11 +374,9 @@ async def publish_node_patch(
     svc = NodeService(db)
     item = await svc.publish(
         workspace_id,
-        node_type,
         node_id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
-        cover=(payload.cover if payload else None),
     )
     await publish_content(
         node_id=item.id,
