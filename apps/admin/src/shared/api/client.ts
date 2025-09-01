@@ -2,10 +2,19 @@ import { apiFetch } from "../../api/client";
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const resp = await apiFetch(path, init);
-  if (!resp.ok) {
-    throw new Error(resp.statusText || `Request failed with ${resp.status}`);
-  }
   const ct = resp.headers.get("content-type") || "";
+  if (!resp.ok) {
+    let message = resp.statusText || `Request failed with ${resp.status}`;
+    if (ct.includes("application/json")) {
+      try {
+        const data = (await resp.json()) as { detail?: string };
+        if (data.detail) message = data.detail;
+      } catch {
+        // ignore json parse errors
+      }
+    }
+    throw new Error(message);
+  }
   if (resp.status === 204 || !ct.includes("application/json")) {
     return undefined as T;
   }

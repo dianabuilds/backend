@@ -10,13 +10,13 @@ export default function NodeEditorPage() {
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
   const { node, update, save, loading, error, isSaving } = useNodeEditor(
-    workspaceId || "",
+    workspaceId,
     id,
   );
 
   if (!workspaceId) return <div>Workspace not selected</div>;
   if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error loading node</div>;
+  if (error) return <div>{error instanceof Error ? error.message : String(error)}</div>;
 
   const handleSave = async () => {
     const res = (await save()) as { id?: string } | undefined;
