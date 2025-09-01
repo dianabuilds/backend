@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
+from app.domains.workspaces.infrastructure.models import Workspace  # noqa: F401
 
 revision = "20260116_content_items_node_idx_backfill"
 down_revision = "20260115_content_items_bigint_ids"
