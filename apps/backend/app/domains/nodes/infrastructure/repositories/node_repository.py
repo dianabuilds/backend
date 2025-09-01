@@ -48,30 +48,37 @@ class NodeRepositoryAdapter(INodeRepository):
         if self._repo and workspace_id is not None:
             return await self._repo.get_by_slug(slug, workspace_id=workspace_id)
         query = select(Node).where(Node.slug == slug)
-        if workspace_id is not None:
+        if workspace_id is None:
+            query = query.where(Node.workspace_id.is_(None))
+        else:
             query = query.where(Node.workspace_id == workspace_id)
         res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
-    async def get_by_id(self, node_id: int, workspace_id: UUID) -> Node | None:
+    async def get_by_id(
+        self, node_id: int, workspace_id: UUID | None
+    ) -> Node | None:
         """Fetch node by numeric primary key."""
-        if self._repo:
+        if self._repo and workspace_id is not None:
             # The legacy repository uses UUID identifiers; fall back to direct query
             try:
                 return await self._repo.get_by_id(node_id, workspace_id=workspace_id)  # type: ignore[arg-type]
             except Exception:
                 pass
-        res = await self._db.execute(
-            select(Node).where(Node.id == node_id, Node.workspace_id == workspace_id)
-        )
+        query = select(Node).where(Node.id == node_id)
+        if workspace_id is None:
+            query = query.where(Node.workspace_id.is_(None))
+        else:
+            query = query.where(Node.workspace_id == workspace_id)
+        res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
     # ------------------------------------------------------------------
     # Mutating operations
     async def create(
-        self, payload: NodeCreate, author_id: UUID, workspace_id: UUID
+        self, payload: NodeCreate, author_id: UUID, workspace_id: UUID | None
     ) -> Node:
-        if self._repo:
+        if self._repo and workspace_id is not None:
             return await self._repo.create(payload, author_id, workspace_id)
         node = Node(
             title=payload.title,
@@ -121,19 +128,25 @@ class NodeRepositoryAdapter(INodeRepository):
     # ------------------------------------------------------------------
     # Bulk operations used by admin services
     async def list_by_author(
-        self, author_id: UUID, workspace_id: UUID, limit: int = 50, offset: int = 0
+        self,
+        author_id: UUID,
+        workspace_id: UUID | None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Node]:
-        res = await self._db.execute(
-            select(Node)
-            .where(Node.author_id == author_id, Node.workspace_id == workspace_id)
-            .order_by(Node.created_at.desc())
-            .offset(offset)
-            .limit(limit)
+        query = select(Node).where(Node.author_id == author_id)
+        if workspace_id is None:
+            query = query.where(Node.workspace_id.is_(None))
+        else:
+            query = query.where(Node.workspace_id == workspace_id)
+        query = (
+            query.order_by(Node.created_at.desc()).offset(offset).limit(limit)
         )
+        res = await self._db.execute(query)
         return list(res.scalars().all())
 
     async def bulk_set_visibility(
-        self, node_ids: list[UUID], is_visible: bool, workspace_id: UUID
+        self, node_ids: list[UUID], is_visible: bool, workspace_id: UUID | None
     ) -> int:
         if not node_ids:
             return 0

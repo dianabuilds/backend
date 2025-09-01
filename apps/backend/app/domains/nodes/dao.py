@@ -25,16 +25,14 @@ class NodeItemDAO:
 
     @staticmethod
     async def list_by_type(
-        db: AsyncSession, *, workspace_id: UUID, node_type: str
+        db: AsyncSession, *, workspace_id: UUID | None, node_type: str
     ) -> list[NodeItem]:
-        stmt = (
-            select(NodeItem)
-            .where(
-                NodeItem.workspace_id == workspace_id,
-                NodeItem.type == node_type,
-            )
-            .order_by(func.coalesce(NodeItem.published_at, func.now()).desc())
-        )
+        stmt = select(NodeItem).where(NodeItem.type == node_type)
+        if workspace_id is None:
+            stmt = stmt.where(NodeItem.workspace_id.is_(None))
+        else:
+            stmt = stmt.where(NodeItem.workspace_id == workspace_id)
+        stmt = stmt.order_by(func.coalesce(NodeItem.published_at, func.now()).desc())
         result = await db.execute(stmt)
         items = list(result.scalars().all())
         await NodePatchDAO.overlay(db, items)
@@ -42,7 +40,7 @@ class NodeItemDAO:
 
     @staticmethod
     async def attach_tag(
-        db: AsyncSession, *, node_id: int, tag_id: UUID, workspace_id: UUID
+        db: AsyncSession, *, node_id: int, tag_id: UUID, workspace_id: UUID | None
     ) -> ContentTag:
         item = ContentTag(content_id=node_id, tag_id=tag_id, workspace_id=workspace_id)
         db.add(item)
@@ -51,13 +49,16 @@ class NodeItemDAO:
 
     @staticmethod
     async def detach_tag(
-        db: AsyncSession, *, node_id: int, tag_id: UUID, workspace_id: UUID
+        db: AsyncSession, *, node_id: int, tag_id: UUID, workspace_id: UUID | None
     ) -> None:
         stmt = delete(ContentTag).where(
             ContentTag.content_id == node_id,
             ContentTag.tag_id == tag_id,
-            ContentTag.workspace_id == workspace_id,
         )
+        if workspace_id is None:
+            stmt = stmt.where(ContentTag.workspace_id.is_(None))
+        else:
+            stmt = stmt.where(ContentTag.workspace_id == workspace_id)
         await db.execute(stmt)
         await db.flush()
 
@@ -65,16 +66,17 @@ class NodeItemDAO:
     async def search(
         db: AsyncSession,
         *,
-        workspace_id: UUID,
+        workspace_id: UUID | None,
         node_type: str,
         q: str | None = None,
         page: int = 1,
         per_page: int = 10,
     ) -> list[NodeItem]:
-        stmt = select(NodeItem).where(
-            NodeItem.workspace_id == workspace_id,
-            NodeItem.type == node_type,
-        )
+        stmt = select(NodeItem).where(NodeItem.type == node_type)
+        if workspace_id is None:
+            stmt = stmt.where(NodeItem.workspace_id.is_(None))
+        else:
+            stmt = stmt.where(NodeItem.workspace_id == workspace_id)
         if q:
             pattern = f"%{q}%"
             stmt = stmt.where(
