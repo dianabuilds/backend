@@ -1,8 +1,10 @@
 import type { NodeCreate, NodeOut, NodeUpdate } from "../../../openapi";
 import { client } from "../../../shared/api/client";
 
-const base = (workspaceId: string) =>
-  `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes`;
+const base = (workspaceId?: string) =>
+  workspaceId
+    ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes`
+    : "/admin/nodes";
 
 function withQuery(baseUrl: string, params?: Record<string, unknown>) {
   if (!params) return baseUrl;
@@ -15,22 +17,22 @@ function withQuery(baseUrl: string, params?: Record<string, unknown>) {
 }
 
 export const nodesApi = {
-  list(workspaceId: string, params?: Record<string, unknown>) {
+  list(workspaceId?: string, params?: Record<string, unknown>) {
     return client.get<NodeOut[]>(withQuery(base(workspaceId), params));
   },
-  get(workspaceId: string, id: number) {
+  get(workspaceId: string | undefined, id: number) {
     return client.get<NodeOut>(`${base(workspaceId)}/${encodeURIComponent(String(id))}`);
   },
-  create(workspaceId: string, payload: NodeCreate) {
-    return client.post<NodeCreate, NodeOut>(base(workspaceId), payload);
+  create(workspaceId: string | undefined, payload: NodeCreate) {
+    return client.put<NodeCreate, NodeOut>(base(workspaceId), payload);
   },
-  update(workspaceId: string, id: number, payload: NodeUpdate) {
-    return client.patch<NodeUpdate, NodeOut>(
+  update(workspaceId: string | undefined, id: number, payload: NodeUpdate) {
+    return client.put<NodeUpdate, NodeOut>(
       `${base(workspaceId)}/${encodeURIComponent(String(id))}`,
       payload,
     );
   },
-  delete(workspaceId: string, id: number) {
+  delete(workspaceId: string | undefined, id: number) {
     return client.del<void>(`${base(workspaceId)}/${encodeURIComponent(String(id))}`);
   },
 };
