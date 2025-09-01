@@ -5,6 +5,7 @@ from enum import Enum
 from uuid import uuid4
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -36,7 +37,7 @@ class EventQuest(Base):
         UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
     )
     title = Column(String, nullable=False)
-    target_node_id = Column(UUID(), ForeignKey("nodes.alt_id"), nullable=False)
+    target_node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False)
     hints_tags = Column(MutableList.as_mutable(ARRAY(String)), default=list)
     hints_keywords = Column(MutableList.as_mutable(ARRAY(String)), default=list)
     hints_trace = Column(MutableList.as_mutable(ARRAY(UUID())), default=list)
@@ -56,7 +57,7 @@ class EventQuestCompletion(Base):
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("event_quests.id"), nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
-    node_id = Column(UUID(), ForeignKey("nodes.alt_id"), nullable=False)
+    node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False)
     workspace_id = Column(
         UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
     )

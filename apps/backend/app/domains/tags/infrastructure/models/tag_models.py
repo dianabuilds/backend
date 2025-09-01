@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, String
 from sqlalchemy.orm import relationship
 
 from app.core.db.adapters import JSONB, UUID
@@ -13,7 +13,7 @@ from app.core.db.base import Base
 class NodeTag(Base):
     __tablename__ = "node_tags"
 
-    node_id = Column(UUID(), ForeignKey("nodes.alt_id"), primary_key=True)
+    node_id = Column(BigInteger, ForeignKey("nodes.id"), primary_key=True)
     tag_id = Column(UUID(), ForeignKey("tags.id"), primary_key=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

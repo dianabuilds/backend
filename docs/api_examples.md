@@ -23,17 +23,11 @@ different error scenarios.
 ### Versioned requests
 
 ```bash
-# v1 – list workspaces using alt_id identifiers
-http GET :8000/v1/workspaces
+# list workspaces using numeric ids
+http GET :8000/workspaces
 
-# v2 – list workspaces using numeric ids
-http GET :8000/v2/workspaces
-
-# v1 – get node by alt_id
-http GET :8000/v1/nodes/123e4567-e89b-12d3-a456-426614174000
-
-# v2 – get node by id
-http GET :8000/v2/nodes/42
+# get node by id
+http GET :8000/nodes/42
 ```
 
 ### Pagination

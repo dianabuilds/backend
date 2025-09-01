@@ -86,8 +86,8 @@ class NextModes(BaseModel):
 
 class NodeTransitionOut(BaseModel):
     id: UUID
-    from_node_id: UUID
-    to_node_id: UUID
+    from_node_id: int
+    to_node_id: int
     type: NodeTransitionType
     condition: dict[str, Any]
     weight: int

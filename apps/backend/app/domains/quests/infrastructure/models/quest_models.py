@@ -5,6 +5,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -46,8 +47,8 @@ class Quest(Base):
     author_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
     price = Column(Integer, nullable=True)
     is_premium_only = Column(Boolean, default=False)
-    entry_node_id = Column(UUID(), ForeignKey("nodes.alt_id"), nullable=True)
-    nodes = Column(MutableList.as_mutable(ARRAY(UUID())), default=list)
+    entry_node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=True)
+    nodes = Column(MutableList.as_mutable(ARRAY(BigInteger)), default=list)
     custom_transitions = Column(MutableDict.as_mutable(JSONB), nullable=True)
     structure = Column(String, nullable=True)
     length = Column(String, nullable=True)
@@ -107,7 +108,7 @@ class QuestProgress(Base):
     workspace_id = Column(
         UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
     )
-    current_node_id = Column(UUID(), ForeignKey("nodes.alt_id"), nullable=False)
+    current_node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False)
     started_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

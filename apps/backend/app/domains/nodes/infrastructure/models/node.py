@@ -34,7 +34,6 @@ class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    alt_id = Column(UUID(), default=uuid4, nullable=False, unique=True)
     workspace_id = Column(
         UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
     )

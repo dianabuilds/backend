@@ -90,7 +90,6 @@ class NodeUpdate(BaseModel):
 
 class NodeOut(NodeBase):
     id: int
-    alt_id: UUID = Field(alias="altId")
     slug: str
     author_id: UUID = Field(alias="authorId")
     created_by_user_id: UUID | None = Field(default=None, alias="createdByUserId")

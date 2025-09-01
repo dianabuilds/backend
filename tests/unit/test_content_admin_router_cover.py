@@ -69,7 +69,6 @@ async def test_cover_url_saved_when_using_cover_key(app_client):
     async with async_session() as session:
         node = Node(
             id=1,
-            alt_id=uuid.uuid4(),
             workspace_id=ws_id,
             slug="article-1",
             title="New article",
@@ -77,7 +76,7 @@ async def test_cover_url_saved_when_using_cover_key(app_client):
             author_id=uuid.uuid4(),
         )
         item = NodeItem(
-            id=node.alt_id,
+            id=uuid.uuid4(),
             node_id=node.id,
             workspace_id=ws_id,
             type="article",
