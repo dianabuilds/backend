@@ -66,7 +66,7 @@ async def app_client():
             author_id=user.id,
         )
         item = NodeItem(
-            id=uuid.uuid4(),
+            id=2,
             node_id=node.id,
             workspace_id=ws.id,
             type="quest",
@@ -78,16 +78,17 @@ async def app_client():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, ws.id, node.id, item.id
+        yield client, ws.id, item.id, node.id
 
 
 @pytest.mark.asyncio
-async def test_get_node_by_numeric_id(app_client):
-    client, ws_id, node_id, item_id = app_client
-    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
+async def test_get_node_by_id(app_client):
+    client, ws_id, item_id, node_id = app_client
+    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{item_id}")
     assert resp.status_code == 200
     data = resp.json()
-    assert data["id"] == str(item_id)
+    assert data["id"] == node_id
+    assert data["contentId"] == item_id
     assert data["nodeId"] == node_id
 
 
@@ -136,14 +137,7 @@ async def app_client_node_only():
 
 
 @pytest.mark.asyncio
-async def test_get_node_creates_item_if_missing(app_client_node_only):
-    client, ws_id, node_id, async_session = app_client_node_only
+async def test_get_node_missing_returns_404(app_client_node_only):
+    client, ws_id, node_id, _ = app_client_node_only
     resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["nodeId"] == node_id
-    node_item_id = uuid.UUID(data["id"])
-    async with async_session() as session:
-        item = await session.get(NodeItem, node_item_id)
-        assert item is not None
-        assert item.node_id == node_id
+    assert resp.status_code == 404

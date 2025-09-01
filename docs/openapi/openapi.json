@@ -387,7 +387,7 @@
           "metrics"
         ],
         "summary": "Rum Metrics",
-        "description": "\u041f\u0440\u0438\u0451\u043c\u043d\u0438\u043a \u043f\u0440\u043e\u0441\u0442\u044b\u0445 RUM-\u0441\u043e\u0431\u044b\u0442\u0438\u0439 \u0441 \u0444\u0440\u043e\u043d\u0442\u0435\u043d\u0434\u0430.\n\u0422\u0435\u043b\u043e: { event: str, ts: int, url: str, data: any }",
+        "description": "Приёмник простых RUM-событий с фронтенда.\nТело: { event: str, ts: int, url: str, data: any }",
         "operationId": "rum_metrics_metrics_rum_post",
         "responses": {
           "200": {
@@ -411,7 +411,7 @@
           "admin-telemetry"
         ],
         "summary": "List Rum Events",
-        "description": "\u0410\u0434\u043c\u0438\u043d: \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 RUM-\u0441\u043e\u0431\u044b\u0442\u0438\u044f (\u043f\u043e \u0443\u0431\u044b\u0432\u0430\u043d\u0438\u044e \u0432\u0440\u0435\u043c\u0435\u043d\u0438).",
+        "description": "Админ: последние RUM-события (по убыванию времени).",
         "operationId": "list_rum_events_admin_telemetry_rum_get",
         "security": [
           {
@@ -467,7 +467,7 @@
           "admin-telemetry"
         ],
         "summary": "Rum Summary",
-        "description": "\u0410\u0434\u043c\u0438\u043d: \u0441\u0432\u043e\u0434\u043a\u0430 \u043f\u043e \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u043c \u0441\u043e\u0431\u044b\u0442\u0438\u044f\u043c.\n- counts \u043f\u043e event\n- \u0441\u0440\u0435\u0434\u043d\u044f\u044f \u0434\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c login_attempt.dur_ms\n- \u043d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u043e\u043d\u043d\u044b\u0435 \u0442\u0430\u0439\u043c\u0438\u043d\u0433\u0438 (\u0441\u0440\u0435\u0434\u043d\u0438\u0435 \u043f\u043e \u043e\u043a\u043d\u0443): ttfb, domContentLoaded, loadEvent",
+        "description": "Админ: сводка по последним событиям.\n- counts по event\n- средняя длительность login_attempt.dur_ms\n- навигационные тайминги (средние по окну): ttfb, domContentLoaded, loadEvent",
         "operationId": "rum_summary_admin_telemetry_rum_summary_get",
         "security": [
           {
@@ -2698,7 +2698,7 @@
           "admin-ai-quests"
         ],
         "summary": "Get Rate Limits",
-        "description": "\u0422\u0435\u043a\u0443\u0449\u0438\u0435 \u0440\u0430\u043d\u0442\u0430\u0439\u043c-\u043b\u0438\u043c\u0438\u0442\u044b RPM \u043f\u043e \u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440\u0430\u043c \u0438 \u043c\u043e\u0434\u0435\u043b\u044f\u043c (\u043e\u0432\u0435\u0440\u0440\u0430\u0439\u0434\u044b).",
+        "description": "Текущие рантайм-лимиты RPM по провайдерам и моделям (оверрайды).",
         "operationId": "get_rate_limits_admin_ai_quests_rate_limits_get",
         "responses": {
           "200": {
@@ -2725,7 +2725,7 @@
           "admin-ai-quests"
         ],
         "summary": "Set Rate Limits",
-        "description": "\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0440\u0430\u043d\u0442\u0430\u0439\u043c-\u043b\u0438\u043c\u0438\u0442\u044b RPM.\n\u0424\u043e\u0440\u043c\u0430\u0442:\n{\n  \"providers\": { \"openai\": 60, \"anthropic\": 30, \"openai_compatible\": 45 },\n  \"models\": { \"gpt-4o-mini\": 120, \"claude-3-haiku\": 100 }\n}\n\u0417\u043d\u0430\u0447\u0435\u043d\u0438\u044f null/0/\"\" \u2014 \u0443\u0434\u0430\u043b\u044f\u044e\u0442 \u043e\u0432\u0435\u0440\u0440\u0430\u0439\u0434.",
+        "description": "Установить рантайм-лимиты RPM.\nФормат:\n{\n  \"providers\": { \"openai\": 60, \"anthropic\": 30, \"openai_compatible\": 45 },\n  \"models\": { \"gpt-4o-mini\": 120, \"claude-3-haiku\": 100 }\n}\nЗначения null/0/\"\" — удаляют оверрайд.",
         "operationId": "set_rate_limits_admin_ai_quests_rate_limits_post",
         "requestBody": {
           "content": {
@@ -2776,7 +2776,7 @@
           "admin-ai-quests"
         ],
         "summary": "Get Ai Worker Stats",
-        "description": "\u0421\u0432\u043e\u0434\u043a\u0430 \u043f\u043e \u0437\u0430\u0434\u0430\u0447\u0430\u043c/\u0441\u0442\u0430\u0434\u0438\u044f\u043c \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u0438: \u0441\u0447\u0451\u0442\u0447\u0438\u043a\u0438, \u0441\u0440\u0435\u0434\u043d\u0435\u0435 \u0432\u0440\u0435\u043c\u044f, \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c, \u0442\u043e\u043a\u0435\u043d\u044b.",
+        "description": "Сводка по задачам/стадиям генерации: счётчики, среднее время, стоимость, токены.",
         "operationId": "get_ai_worker_stats_admin_ai_quests_stats_get",
         "responses": {
           "200": {
@@ -2876,11 +2876,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "\u041f\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0442\u0447\u0451\u0442 \u043f\u0440\u0438\u043d\u0443\u0434\u0438\u0442\u0435\u043b\u044c\u043d\u043e",
+              "description": "Пересчитать отчёт принудительно",
               "default": false,
               "title": "Recalc"
             },
-            "description": "\u041f\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0442\u0447\u0451\u0442 \u043f\u0440\u0438\u043d\u0443\u0434\u0438\u0442\u0435\u043b\u044c\u043d\u043e"
+            "description": "Пересчитать отчёт принудительно"
           }
         ],
         "responses": {
@@ -2914,7 +2914,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0441\u0442\u0430\u0442\u0443\u0441\u0430 embedding-\u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440\u0430",
+        "summary": "Проверка статуса embedding-провайдера",
         "operationId": "embedding_status_admin_embedding_status_get",
         "responses": {
           "200": {
@@ -2987,7 +2987,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "\u041f\u0440\u043e\u0442\u0435\u0441\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432\u0435\u043a\u0442\u043e\u0440\u0438\u0437\u0430\u0446\u0438\u044e \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u043b\u044c\u043d\u043e\u0433\u043e \u0442\u0435\u043a\u0441\u0442\u0430",
+        "summary": "Протестировать векторизацию произвольного текста",
         "operationId": "embedding_test_admin_embedding_test_post",
         "requestBody": {
           "content": {
@@ -16211,15 +16211,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -16321,15 +16313,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -16455,15 +16439,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -16835,15 +16811,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -16954,15 +16922,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -17097,15 +17057,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -17233,15 +17185,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -17475,15 +17419,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -17585,15 +17521,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -17719,15 +17647,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -17848,15 +17768,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              ],
+              "type": "integer",
               "title": "Node Id"
             }
           },
@@ -18523,7 +18435,7 @@
           "admin"
         ],
         "summary": "Get node by ID (admin, full)",
-        "description": "\u0415\u0434\u0438\u043d\u0430\u044f \u0442\u043e\u0447\u043a\u0430 \u0434\u043b\u044f \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438 \u043f\u043e\u043b\u043d\u043e\u0439 \u043d\u043e\u0434\u044b \u043f\u043e ID (\u0447\u0438\u0441\u043b\u043e\u0432\u043e\u0439 node.id).\n\u0420\u0435\u0437\u043e\u043b\u0432\u0438\u0442 UUID \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u0430 \u0438 \u0434\u0435\u043b\u0435\u0433\u0438\u0440\u0443\u0435\u0442 \u0432 \u0440\u0435\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044e \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u2011\u0440\u043e\u0443\u0442\u0435\u0440\u0430,\n\u0447\u0442\u043e\u0431\u044b \u0432\u0435\u0440\u043d\u0443\u0442\u044c \u0432\u0441\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u043d\u043e\u0434\u044b.",
+        "description": "Единая точка для загрузки полной ноды по ID (числовой node.id).\nРезолвит UUID контента и делегирует в реализацию контент‑роутера,\nчтобы вернуть все данные ноды.",
         "operationId": "get_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__get",
         "security": [
           {
@@ -18626,7 +18538,7 @@
           "admin"
         ],
         "summary": "Update node by ID (admin, full)",
-        "description": "\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u043b\u043d\u043e\u0439 \u043d\u043e\u0434\u044b \u043f\u043e \u0447\u0438\u0441\u043b\u043e\u0432\u043e\u043c\u0443 ID \u0441 \u0432\u043e\u0437\u0432\u0440\u0430\u0442\u043e\u043c \u043f\u043e\u043b\u043d\u043e\u0433\u043e \u043e\u0431\u044a\u0435\u043a\u0442\u0430.\n\u0420\u0435\u0437\u043e\u043b\u0432\u0438\u043c UUID \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u0430 \u0438 \u0434\u0435\u043b\u0435\u0433\u0438\u0440\u0443\u0435\u043c \u0432 \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u2011\u0440\u043e\u0443\u0442\u0435\u0440.",
+        "description": "Обновление полной ноды по числовому ID с возвратом полного объекта.\nРезолвим UUID контента и делегируем в контент‑роутер.",
         "operationId": "update_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__patch",
         "security": [
           {
@@ -18743,7 +18655,7 @@
           "admin"
         ],
         "summary": "Publish node by ID (admin)",
-        "description": "\u041f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u043d\u043e\u0434\u044b \u043f\u043e \u0447\u0438\u0441\u043b\u043e\u0432\u043e\u043c\u0443 ID. \u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 \u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d\u043d\u0443\u044e \u043f\u043e\u043b\u043d\u0443\u044e \u043d\u043e\u0434\u0443.\n\u0420\u0435\u0437\u043e\u043b\u0432\u0438\u043c UUID \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u0430 \u0438 \u0434\u0435\u043b\u0435\u0433\u0438\u0440\u0443\u0435\u043c \u0432 \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u2011\u0440\u043e\u0443\u0442\u0435\u0440.",
+        "description": "Публикация ноды по числовому ID. Возвращает обновлённую полную ноду.\nРезолвим UUID контента и делегируем в контент‑роутер.",
         "operationId": "publish_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__publish_post",
         "security": [
           {
@@ -21276,7 +21188,7 @@
           "admin"
         ],
         "summary": "Metrics Timeseries",
-        "description": "\u0422\u0430\u0439\u043c\u0441\u0435\u0440\u0438\u0438: counts per status class (2xx/4xx/5xx) \u0438 p95 latency \u043f\u043e \u0431\u0430\u043a\u0435\u0442\u0430\u043c.",
+        "description": "Таймсерии: counts per status class (2xx/4xx/5xx) и p95 latency по бакетам.",
         "operationId": "metrics_timeseries_admin_metrics_timeseries_get",
         "security": [
           {
@@ -21384,7 +21296,7 @@
           "admin"
         ],
         "summary": "Metrics Top Endpoints",
-        "description": "\u0422\u043e\u043f \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u043e\u0432 \u043f\u043e p95 | error_rate | rps.",
+        "description": "Топ маршрутов по p95 | error_rate | rps.",
         "operationId": "metrics_top_endpoints_admin_metrics_endpoints_top_get",
         "security": [
           {
@@ -21503,7 +21415,7 @@
           "admin"
         ],
         "summary": "Metrics Errors Recent",
-        "description": "\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 \u043e\u0448\u0438\u0431\u043a\u0438 (4xx/5xx).",
+        "description": "Последние ошибки (4xx/5xx).",
         "operationId": "metrics_errors_recent_admin_metrics_errors_recent_get",
         "security": [
           {
@@ -26323,7 +26235,7 @@
           "text": {
             "type": "string",
             "title": "Text",
-            "description": "\u0422\u0435\u043a\u0441\u0442 \u0434\u043b\u044f \u044d\u043c\u0431\u0435\u0434\u0434\u0438\u043d\u0433\u0430"
+            "description": "Текст для эмбеддинга"
           }
         },
         "type": "object",
