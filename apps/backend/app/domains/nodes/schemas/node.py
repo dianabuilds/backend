@@ -10,6 +10,7 @@ from app.schemas.node import (
     NodeBulkOperation,
     NodeBulkPatch,
     NodeCreate,
+    NodeOut,
     NodeUpdate,
 )
 from app.schemas.nodes_common import Status

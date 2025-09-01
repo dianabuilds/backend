@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 import pytest_asyncio
+import sqlalchemy as sa
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -23,6 +24,9 @@ from app.domains.nodes.content_admin_router import router as admin_router  # noq
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
 from app.domains.nodes.models import NodeItem, NodePatch  # noqa: E402
 from app.domains.quests.infrastructure.models import quest_models  # noqa: F401, E402
+from app.domains.quests.infrastructure.models.navigation_cache_models import (
+    NavigationCache,
+)  # noqa: E402
 from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
 from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
@@ -37,6 +41,7 @@ async def app_client():
         await conn.run_sync(Tag.__table__.create)
         await conn.run_sync(Node.__table__.create)
         await conn.run_sync(NodeTag.__table__.create)
+        NodeItem.__table__.c.id_bigint.type = sa.Integer()
         await conn.run_sync(NodeItem.__table__.create)
         await conn.run_sync(NodePatch.__table__.create)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -89,8 +94,11 @@ async def app_client_with_session():
         await conn.run_sync(Tag.__table__.create)
         await conn.run_sync(Node.__table__.create)
         await conn.run_sync(NodeTag.__table__.create)
+        NodeItem.__table__.c.id_bigint.type = sa.Integer()
+        NodeItem.__table__.c.id_bigint.type = sa.Integer()
         await conn.run_sync(NodeItem.__table__.create)
         await conn.run_sync(NodePatch.__table__.create)
+        await conn.run_sync(NavigationCache.__table__.create)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     app = FastAPI()
@@ -169,6 +177,8 @@ async def app_client_node_only():
         await conn.run_sync(Tag.__table__.create)
         await conn.run_sync(Node.__table__.create)
         await conn.run_sync(NodeTag.__table__.create)
+        NodeItem.__table__.c.id_bigint.type = sa.Integer()
+        NodeItem.__table__.c.id_bigint.type = sa.Integer()
         await conn.run_sync(NodeItem.__table__.create)
         await conn.run_sync(NodePatch.__table__.create)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -206,7 +216,12 @@ async def app_client_node_only():
 
 
 @pytest.mark.asyncio
-async def test_get_node_missing_returns_404(app_client_node_only):
-    client, ws_id, node_id, _ = app_client_node_only
+async def test_get_node_auto_creates_item(app_client_node_only):
+    client, ws_id, node_id, async_session = app_client_node_only
     resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
-    assert resp.status_code == 404
+    assert resp.status_code == 200
+    async with async_session() as session:
+        res = await session.execute(
+            sa.select(NodeItem).where(NodeItem.node_id == node_id)
+        )
+        assert res.scalar_one() is not None

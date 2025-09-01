@@ -122,11 +122,10 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 async def _resolve_content_item_id(
     db: AsyncSession, *, workspace_id: UUID, node_or_item_id: int
 ) -> NodeItem:
-
-    # 1) Direct NodeItem by id within workspace
+    # 1) Direct NodeItem by id (allow global items)
     item = await db.get(NodeItem, node_or_item_id)
     if item is not None:
-        if item.workspace_id != workspace_id:
+        if item.workspace_id not in (workspace_id, None):
             logger.warning(
                 "content_item.workspace_mismatch",
                 extra={
@@ -138,6 +137,7 @@ async def _resolve_content_item_id(
             raise HTTPException(status_code=404, detail="Node not found")
         return item
 
+    # 2) Node lookup (workspace or global)
     node = await db.get(Node, node_or_item_id)
     if node is None:
         logger.warning(
@@ -149,7 +149,7 @@ async def _resolve_content_item_id(
         )
         raise HTTPException(status_code=404, detail="Node not found")
 
-    if node.workspace_id != workspace_id:
+    if node.workspace_id not in (workspace_id, None):
         logger.warning(
             "content_item.workspace_mismatch",
             extra={
@@ -160,41 +160,17 @@ async def _resolve_content_item_id(
         )
         raise HTTPException(status_code=404, detail="Node not found")
 
-    # 2) Resolve by Node.id within workspace
+    # Resolve by Node.id (without workspace filter for global nodes)
     res = await db.execute(
         select(NodeItem)
-        .where(NodeItem.workspace_id == workspace_id, NodeItem.node_id == node.id)
+        .where(NodeItem.node_id == node.id)
         .order_by(NodeItem.updated_at.desc())
     )
     item = res.scalar_one_or_none()
     if item is None:
         svc = NodeService(db)
         item = await svc.create_item_for_node(node)
-
-    # 3) Global fallbacks: try without workspace filter
-    # 3a) NodeItem by id (any workspace)
-    if item is not None:
-        return item.id
-
-    # 3b) Node by id, then NodeItem by node_id; if missing — create one
-    node = await db.get(Node, node_or_item_id)
-    if node is not None:
-        res_any = await db.execute(
-            select(NodeItem.id)
-            .where(NodeItem.node_id == node.id)
-            .order_by(NodeItem.updated_at.desc())
-        )
-        content_id_any = res_any.scalar_one_or_none()
-        if content_id_any is not None:
-            return content_id_any
-
-        # Auto‑create a NodeItem for existing Node to heal skew
-        svc = NodeService(db)
-        created = await svc.create_item_for_node(node)
-        return created.id
-
-    # 4) Nothing matched
-    raise HTTPException(status_code=404, detail="Node not found")
+    return item
 
 
 @id_router.get("/{node_id}", response_model=AdminNodeOut, summary="Get node item by id")
