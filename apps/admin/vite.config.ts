@@ -11,6 +11,7 @@ export default defineConfig(({ mode, command }) => {
     "auth",
     "users",
     "nodes",
+    "content",
     "tags",
     "moderation",
     "transitions",
@@ -57,6 +58,7 @@ export default defineConfig(({ mode, command }) => {
     "traces",
     "flags",
     "nodes",
+    "content",
     "achievements",
     "moderation",
     "ops",
@@ -65,7 +67,10 @@ export default defineConfig(({ mode, command }) => {
 
   const htmlBypass = (req: { headers: Record<string, string | undefined> }) => {
     const accept = req.headers["accept"] || "";
-    if (typeof accept === "string" && accept.includes("text/html")) {
+    const mode = req.headers["sec-fetch-mode"] || "";
+    const dest = req.headers["sec-fetch-dest"] || "";
+    const isDocumentNavigation = mode === "navigate" || dest === "document";
+    if (isDocumentNavigation && typeof accept === "string" && accept.includes("text/html")) {
       return "/admin/index.html";
     }
   };

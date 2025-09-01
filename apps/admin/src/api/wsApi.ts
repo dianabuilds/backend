@@ -45,6 +45,10 @@ async function request<
   const headers: Record<string, string> = {
     ...(optHeaders as Record<string, string> | undefined),
   };
+  // Явно выставляем Accept для стабильного проксирования/маршрутизации API‑запросов
+  if (!Object.keys(headers).some((k) => k.toLowerCase() === "accept")) {
+    headers["Accept"] = "application/json";
+  }
 
   let finalUrl = url;
   const finalParams: Record<string, unknown> = { ...(params || {}) };

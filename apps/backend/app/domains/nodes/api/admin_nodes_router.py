@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated, Literal, TypedDict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Path, Query, Response
+from fastapi import APIRouter, Depends, Header, Path, Query, Response, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -29,6 +29,11 @@ from app.domains.nodes.schemas.node import NodeBulkOperation, NodeBulkPatch, Nod
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.workspaces import WorkspaceType
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.domains.nodes.content_admin_router import (
+    get_node_by_id as _content_get_node_by_id,
+    update_node_by_id as _content_update_node_by_id,
+    publish_node_by_id as _content_publish_node_by_id,
+)
 
 router = APIRouter(
     prefix="/admin/workspaces/{workspace_id}/nodes",
@@ -55,6 +60,31 @@ def _serialize(item: NodeItem) -> dict:
         "summary": item.summary,
         "status": item.status.value,
     }
+
+async def _resolve_content_item_id(
+    db: AsyncSession, *, workspace_id: UUID, node_pk: int
+) -> UUID:
+    """
+    Находит UUID контент-элемента по числовому node_id.
+    Если контента ещё нет, но Node существует в этом workspace — создаёт его.
+    """
+    res = await db.execute(
+        select(NodeItem.id)
+            .where(NodeItem.workspace_id == workspace_id, NodeItem.node_id == node_pk)
+            .order_by(NodeItem.updated_at.desc())
+    )
+    content_id = res.scalar_one_or_none()
+    if content_id is not None:
+        return content_id
+
+    node = await db.get(Node, node_pk)
+    if node is None or node.workspace_id != workspace_id:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    svc = NodeService(db)
+    item = await svc.create_item_for_node(node)
+    return item.id
+
 
 
 class AdminNodeListParams(TypedDict, total=False):
@@ -245,3 +275,61 @@ async def bulk_patch_nodes(
         await navcache.invalidate_compass_all()
         cache_invalidate("comp", reason="node_bulk_patch")
     return {"updated": updated_ids, "deleted": deleted_ids}
+
+
+@router.get("/{id}", summary="Get node by ID (admin, full)")
+async def get_node_by_id_admin(
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    id: Annotated[int, Path(...)],  # noqa: B008
+    current_user=Depends(admin_required),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+):
+    """
+    Единая точка для загрузки полной ноды по ID (числовой node.id).
+    Резолвит UUID контента и делегирует в реализацию контент‑роутера,
+    чтобы вернуть все данные ноды.
+    """
+    content_id = await _resolve_content_item_id(db, workspace_id=workspace_id, node_pk=id)
+    return await _content_get_node_by_id(
+        workspace_id=workspace_id, id=content_id, current_user=current_user, db=db
+    )
+
+
+@router.patch("/{id}", summary="Update node by ID (admin, full)")
+async def update_node_by_id_admin(
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    id: Annotated[int, Path(...)],  # noqa: B008
+    payload: dict,
+    current_user=Depends(admin_required),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+):
+    """
+    Обновление полной ноды по числовому ID с возвратом полного объекта.
+    Резолвим UUID контента и делегируем в контент‑роутер.
+    """
+    content_id = await _resolve_content_item_id(db, workspace_id=workspace_id, node_pk=id)
+    return await _content_update_node_by_id(
+        workspace_id=workspace_id, id=content_id, payload=payload, current_user=current_user, db=db
+    )
+
+
+@router.post("/{id}/publish", summary="Publish node by ID (admin)")
+async def publish_node_by_id_admin(
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    id: Annotated[int, Path(...)],  # noqa: B008
+    payload: dict | None = None,
+    current_user=Depends(admin_required),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+):
+    """
+    Публикация ноды по числовому ID. Возвращает обновлённую полную ноду.
+    Резолвим UUID контента и делегируем в контент‑роутер.
+    """
+    content_id = await _resolve_content_item_id(db, workspace_id=workspace_id, node_pk=id)
+    return await _content_publish_node_by_id(
+        workspace_id=workspace_id,
+        id=content_id,
+        payload=payload or {},
+        current_user=current_user,
+        db=db,
+    )
