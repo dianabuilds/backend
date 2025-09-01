@@ -9,6 +9,7 @@ import { wsApi } from './wsApi';
 export interface AdminNodeItem extends NodeOut {
   node_type: string;
   status: string;
+  nodeId?: number | null;
 }
 
 const listCache = new Map<string, { etag: string | null; data: AdminNodeItem[] }>();
@@ -136,6 +137,7 @@ export interface NodeResponse extends NodeOut {
   tag_slugs?: string[];
   tagSlugs?: string[];
   cover?: { url?: string | null; cover_url?: string | null } | null;
+  nodeId?: number | null;
 }
 
 export async function getNode(workspaceId: string, id: string): Promise<NodeResponse> {

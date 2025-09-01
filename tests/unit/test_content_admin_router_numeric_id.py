@@ -87,7 +87,9 @@ async def test_get_node_by_numeric_id(app_client):
     client, ws_id, node_id, item_id = app_client
     resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
     assert resp.status_code == 200
-    assert resp.json()["id"] == str(item_id)
+    data = resp.json()
+    assert data["id"] == str(item_id)
+    assert data["nodeId"] == node_id
 
 
 @pytest_asyncio.fixture()
@@ -140,7 +142,9 @@ async def test_get_node_creates_item_if_missing(app_client_node_only):
     client, ws_id, node_id, node_alt, async_session = app_client_node_only
     resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
     assert resp.status_code == 200
-    assert resp.json()["id"] == str(node_alt)
+    data = resp.json()
+    assert data["id"] == str(node_alt)
+    assert data["nodeId"] == node_id
     async with async_session() as session:
         item = await session.get(NodeItem, node_alt)
         assert item is not None

@@ -81,12 +81,14 @@ async def app_client():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, ws.id, node_uuid, item_uuid
+        yield client, ws.id, node_uuid, item_uuid, node.id
 
 
 @pytest.mark.asyncio
 async def test_get_node_by_node_id(app_client):
-    client, ws_id, node_id, item_id = app_client
-    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
+    client, ws_id, node_alt_id, item_id, node_pk = app_client
+    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_alt_id}")
     assert resp.status_code == 200
-    assert resp.json()["id"] == str(item_id)
+    data = resp.json()
+    assert data["id"] == str(item_id)
+    assert data["nodeId"] == node_pk

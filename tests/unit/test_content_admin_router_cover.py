@@ -87,6 +87,7 @@ async def test_cover_url_saved_when_using_cover_key(app_client):
         session.add_all([node, item])
         await session.commit()
         node_id = item.id
+        node_pk = node.id
     cover = "http://example.com/img.jpg"
 
     resp = await client.patch(
@@ -96,9 +97,12 @@ async def test_cover_url_saved_when_using_cover_key(app_client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["coverUrl"] is None
+    assert data["nodeId"] == node_pk
 
     resp = await client.get(
         f"/admin/workspaces/{ws_id}/nodes/article/{node_id}",
     )
     assert resp.status_code == 200
-    assert resp.json()["coverUrl"] is None
+    data = resp.json()
+    assert data["coverUrl"] is None
+    assert data["nodeId"] == node_pk

@@ -27,5 +27,6 @@ export type NodeOut = {
     createdAt: string;
     updatedAt: string;
     popularityScore: number;
+    nodeId?: (number | null);
 };
 
