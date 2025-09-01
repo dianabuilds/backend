@@ -30,7 +30,11 @@ def upgrade() -> None:
         Path(__file__).resolve().parents[4] / "scripts" / "sql" / "fk_uuid_to_id.sql"
     )
     op.execute(sql_path.read_text())
-    op.execute("CALL backfill_fk_id('node_tags', 'tag_id', 'node_uuid', 'node_id')")
+    op.execute(
+        sa.text(
+            "CALL backfill_fk_id('node_tags', 'tag_id', 'node_uuid', 'node_id')"
+        ).execution_options(autocommit=True)
+    )
     op.execute(
         """
         CREATE TRIGGER fill_node_tags_node_id
