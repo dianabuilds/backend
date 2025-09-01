@@ -6,6 +6,8 @@ import type { AchievementAdminOut } from '../models/AchievementAdminOut';
 import type { AchievementCreateIn } from '../models/AchievementCreateIn';
 import type { AchievementUpdateIn } from '../models/AchievementUpdateIn';
 import type { AdminEchoTraceOut } from '../models/AdminEchoTraceOut';
+import type { AdminNodeList } from '../models/AdminNodeList';
+import type { AdminNodeOut } from '../models/AdminNodeOut';
 import type { AdminTransitionOut } from '../models/AdminTransitionOut';
 import type { AdminUserOut } from '../models/AdminUserOut';
 import type { app__api__admin__quests__steps__QuestGraphOut } from '../models/app__api__admin__quests__steps__QuestGraphOut';
@@ -39,6 +41,7 @@ import type { NodePatchDiffOut } from '../models/NodePatchDiffOut';
 import type { NodePatchOut } from '../models/NodePatchOut';
 import type { NodeTransitionType } from '../models/NodeTransitionType';
 import type { NodeTransitionUpdate } from '../models/NodeTransitionUpdate';
+import type { NodeUpdate } from '../models/NodeUpdate';
 import type { NotificationRules } from '../models/NotificationRules';
 import type { PopularityRecomputeRequest } from '../models/PopularityRecomputeRequest';
 import type { PreviewLinkRequest } from '../models/PreviewLinkRequest';
@@ -2193,13 +2196,13 @@ export class AdminService {
      * Get node item by id
      * @param nodeId
      * @param workspaceId
-     * @returns any Successful Response
+     * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
     public static getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/workspaces/{workspace_id}/nodes/{node_id}',
@@ -2220,17 +2223,51 @@ export class AdminService {
      * @param workspaceId
      * @param requestBody
      * @param next
-     * @returns any Successful Response
+     * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
     public static updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch(
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
         requestBody: Record<string, any>,
         next?: number,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
+            url: '/admin/workspaces/{workspace_id}/nodes/{node_id}',
+            path: {
+                'node_id': nodeId,
+                'workspace_id': workspaceId,
+            },
+            query: {
+                'next': next,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Replace node item by id
+     * @param nodeId
+     * @param workspaceId
+     * @param requestBody
+     * @param next
+     * @returns AdminNodeOut Successful Response
+     * @throws ApiError
+     */
+    public static replaceNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPut(
+        nodeId: number,
+        workspaceId: string,
+        requestBody: Record<string, any>,
+        next?: number,
+    ): CancelablePromise<AdminNodeOut> {
+        return __request(OpenAPI, {
+            method: 'PUT',
             url: '/admin/workspaces/{workspace_id}/nodes/{node_id}',
             path: {
                 'node_id': nodeId,
@@ -2253,14 +2290,14 @@ export class AdminService {
      * @param nodeId
      * @param workspaceId
      * @param requestBody
-     * @returns any Successful Response
+     * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
     public static publishNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPublishPost(
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
         requestBody?: (PublishIn | null),
-    ): CancelablePromise<any> {
+    ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/workspaces/{workspace_id}/nodes/{node_id}/publish',
@@ -2284,7 +2321,7 @@ export class AdminService {
      * @param page
      * @param perPage
      * @param q
-     * @returns any Successful Response
+     * @returns AdminNodeList Successful Response
      * @throws ApiError
      */
     public static listNodesAdminWorkspacesWorkspaceIdNodesTypesNodeTypeGet(
@@ -2293,7 +2330,7 @@ export class AdminService {
         page: number = 1,
         perPage: number = 10,
         q?: (string | null),
-    ): CancelablePromise<any> {
+    ): CancelablePromise<AdminNodeList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}',
@@ -2317,13 +2354,13 @@ export class AdminService {
      * Create node item
      * @param nodeType
      * @param workspaceId
-     * @returns any Successful Response
+     * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
     public static createNodeAdminWorkspacesWorkspaceIdNodesTypesNodeTypePost(
         nodeType: string,
         workspaceId: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}',
@@ -2343,14 +2380,14 @@ export class AdminService {
      * @param nodeType
      * @param nodeId
      * @param workspaceId
-     * @returns any Successful Response
+     * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
     public static getNodeAdminWorkspacesWorkspaceIdNodesTypesNodeTypeNodeIdGet(
         nodeType: string,
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}/{node_id}',
@@ -2373,16 +2410,16 @@ export class AdminService {
      * @param workspaceId
      * @param requestBody
      * @param next
-     * @returns any Successful Response
+     * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
     public static updateNodeAdminWorkspacesWorkspaceIdNodesTypesNodeTypeNodeIdPatch(
         nodeType: string,
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
         requestBody: Record<string, any>,
         next?: number,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}/{node_id}',
@@ -2409,15 +2446,15 @@ export class AdminService {
      * @param nodeId
      * @param workspaceId
      * @param requestBody
-     * @returns any Successful Response
+     * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
     public static publishNodeAdminWorkspacesWorkspaceIdNodesTypesNodeTypeNodeIdPublishPost(
         nodeType: string,
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
         requestBody?: (PublishIn | null),
-    ): CancelablePromise<any> {
+    ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}/{node_id}/publish',
@@ -2441,15 +2478,15 @@ export class AdminService {
      * @param nodeId
      * @param workspaceId
      * @param requestBody
-     * @returns any Successful Response
+     * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
     public static publishNodePatchAdminWorkspacesWorkspaceIdNodesTypesNodeTypeNodeIdPublishPatch(
         nodeType: string,
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
         requestBody?: (PublishIn | null),
-    ): CancelablePromise<any> {
+    ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}/{node_id}/publish',
@@ -2501,7 +2538,7 @@ export class AdminService {
      * @throws ApiError
      */
     public static getArticleAdminWorkspacesWorkspaceIdArticlesNodeIdGet(
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -2528,7 +2565,7 @@ export class AdminService {
      * @throws ApiError
      */
     public static updateArticleAdminWorkspacesWorkspaceIdArticlesNodeIdPatch(
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
         requestBody: Record<string, any>,
         next?: number,
@@ -2561,7 +2598,7 @@ export class AdminService {
      * @throws ApiError
      */
     public static publishArticleAdminWorkspacesWorkspaceIdArticlesNodeIdPublishPost(
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
         requestBody?: (PublishIn | null),
     ): CancelablePromise<any> {
@@ -2589,7 +2626,7 @@ export class AdminService {
      * @throws ApiError
      */
     public static validateArticleAdminWorkspacesWorkspaceIdArticlesNodeIdValidatePost(
-        nodeId: (number | string),
+        nodeId: number,
         workspaceId: string,
     ): CancelablePromise<ValidateResult> {
         return __request(OpenAPI, {
@@ -2745,8 +2782,8 @@ export class AdminService {
     /**
      * Get node by ID (admin, full)
      * Единая точка для загрузки полной ноды по ID (числовой node.id).
-     * Резолвит UUID контента и делегирует в реализацию контент‑роутера,
-     * чтобы вернуть все данные ноды.
+     * Делегирует обработку в контент‑роутер, который самостоятельно
+     * резолвит идентификатор контента.
      * @param workspaceId
      * @param id
      * @returns any Successful Response
@@ -2773,7 +2810,7 @@ export class AdminService {
     /**
      * Update node by ID (admin, full)
      * Обновление полной ноды по числовому ID с возвратом полного объекта.
-     * Резолвим UUID контента и делегируем в контент‑роутер.
+     * Делегируем в контент‑роутер, который резолвит идентификатор контента.
      * @param workspaceId
      * @param id
      * @param requestBody
@@ -2804,7 +2841,7 @@ export class AdminService {
     /**
      * Publish node by ID (admin)
      * Публикация ноды по числовому ID. Возвращает обновлённую полную ноду.
-     * Резолвим UUID контента и делегируем в контент‑роутер.
+     * Делегируем в контент‑роутер, который резолвит идентификатор контента.
      * @param workspaceId
      * @param id
      * @param requestBody
@@ -2822,6 +2859,54 @@ export class AdminService {
             path: {
                 'workspace_id': workspaceId,
                 'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get global node by ID
+     * @param nodeId
+     * @returns NodeOut Successful Response
+     * @throws ApiError
+     */
+    public static getGlobalNodeByIdAdminNodesNodeIdGet(
+        nodeId: number,
+    ): CancelablePromise<NodeOut> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/nodes/{node_id}',
+            path: {
+                'node_id': nodeId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update global node by ID
+     * @param nodeId
+     * @param requestBody
+     * @returns NodeOut Successful Response
+     * @throws ApiError
+     */
+    public static updateGlobalNodeByIdAdminNodesNodeIdPut(
+        nodeId: number,
+        requestBody: NodeUpdate,
+    ): CancelablePromise<NodeOut> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/admin/nodes/{node_id}',
+            path: {
+                'node_id': nodeId,
             },
             body: requestBody,
             mediaType: 'application/json',

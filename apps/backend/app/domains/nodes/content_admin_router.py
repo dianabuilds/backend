@@ -15,6 +15,7 @@ from app.core.db.session import get_db
 from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
+from app.domains.nodes.schemas.node import AdminNodeList, AdminNodeOut
 from app.domains.nodes.service import publish_content
 from app.domains.users.infrastructure.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
@@ -122,7 +123,6 @@ async def _resolve_content_item_id(
     db: AsyncSession, *, workspace_id: UUID, node_or_item_id: int
 ) -> NodeItem:
 
-
     # 1) Direct NodeItem by id within workspace
     item = await db.get(NodeItem, node_or_item_id)
     if item is not None:
@@ -197,7 +197,7 @@ async def _resolve_content_item_id(
     raise HTTPException(status_code=404, detail="Node not found")
 
 
-@id_router.get("/{node_id}", summary="Get node item by id")
+@id_router.get("/{node_id}", response_model=AdminNodeOut, summary="Get node item by id")
 async def get_node_by_id(
     node_id: Annotated[int, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
@@ -215,7 +215,9 @@ async def get_node_by_id(
     return _serialize(item, node)
 
 
-@id_router.patch("/{node_id}", summary="Update node item by id")
+@id_router.patch(
+    "/{node_id}", response_model=AdminNodeOut, summary="Update node item by id"
+)
 async def update_node_by_id(
     node_id: Annotated[int, Path(...)],
     payload: dict,
@@ -245,7 +247,9 @@ async def update_node_by_id(
     return _serialize(item, node)
 
 
-@id_router.put("/{node_id}", summary="Replace node item by id")
+@id_router.put(
+    "/{node_id}", response_model=AdminNodeOut, summary="Replace node item by id"
+)
 async def replace_node_by_id(
     node_id: Annotated[int, Path(...)],
     payload: dict,
@@ -275,7 +279,11 @@ async def replace_node_by_id(
     return _serialize(item, node)
 
 
-@id_router.post("/{node_id}/publish", summary="Publish node item by id")
+@id_router.post(
+    "/{node_id}/publish",
+    response_model=AdminNodeOut,
+    summary="Publish node item by id",
+)
 async def publish_node_by_id(
     node_id: Annotated[int, Path(...)],
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
@@ -304,7 +312,9 @@ async def publish_node_by_id(
     return _serialize(item, node)
 
 
-@type_router.get("/{node_type}", summary="List nodes by type")
+@type_router.get(
+    "/{node_type}", response_model=AdminNodeList, summary="List nodes by type"
+)
 async def list_nodes(
     node_type: str,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
@@ -327,7 +337,9 @@ async def list_nodes(
     return {"items": [_serialize(i) for i in items]}
 
 
-@type_router.post("/{node_type}", summary="Create node item")
+@type_router.post(
+    "/{node_type}", response_model=AdminNodeOut, summary="Create node item"
+)
 async def create_node(
     node_type: str,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
@@ -348,7 +360,11 @@ async def create_node(
     return _serialize(item, node)
 
 
-@type_router.get("/{node_type}/{node_id}", summary="Get node item")
+@type_router.get(
+    "/{node_type}/{node_id}",
+    response_model=AdminNodeOut,
+    summary="Get node item",
+)
 async def get_node(
     node_type: str,
     node_id: Annotated[int, Path(...)],
@@ -372,7 +388,11 @@ async def get_node(
     return _serialize(item, node)
 
 
-@type_router.patch("/{node_type}/{node_id}", summary="Update node item")
+@type_router.patch(
+    "/{node_type}/{node_id}",
+    response_model=AdminNodeOut,
+    summary="Update node item",
+)
 async def update_node(
     node_type: str,
     node_id: Annotated[int, Path(...)],
@@ -409,7 +429,11 @@ async def update_node(
     return _serialize(item, node)
 
 
-@type_router.post("/{node_type}/{node_id}/publish", summary="Publish node item")
+@type_router.post(
+    "/{node_type}/{node_id}/publish",
+    response_model=AdminNodeOut,
+    summary="Publish node item",
+)
 async def publish_node(
     node_type: str,
     node_id: Annotated[int, Path(...)],
@@ -447,6 +471,7 @@ async def publish_node(
 # PATCH-алиас на случай, если фронт отправляет PATCH вместо POST
 @type_router.patch(
     "/{node_type}/{node_id}/publish",
+    response_model=AdminNodeOut,
     summary="Publish node item (PATCH alias)",
 )
 async def publish_node_patch(
