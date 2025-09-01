@@ -23,7 +23,17 @@ logger = logging.getLogger(__name__)
 
 async def _scan_and_backfill() -> None:
     engine = create_async_engine(settings.database_url)
-    async with AsyncSession(engine) as session:
+    # ``NodeService.create_item_for_node`` commits the session for every
+    # processed record.  The default ``expire_on_commit=True`` setting would
+    # expire all loaded ``Node`` instances after the first commit which in
+    # turn triggers lazy reloads when their attributes are accessed during
+    # subsequent iterations.  These reloads require ``greenlet_spawn`` and
+    # therefore fail inside the migration context with ``MissingGreenlet``.
+    #
+    # Disabling expiration keeps the loaded attributes available after each
+    # commit so that the service can read fields like ``node.id`` without
+    # issuing additional I/O.
+    async with AsyncSession(engine, expire_on_commit=False) as session:
         service = NodeService(session)
         stmt = (
             select(Node, NodeItem)
