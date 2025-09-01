@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import uuid
@@ -32,6 +34,11 @@ async def db() -> AsyncSession:
         await conn.run_sync(Node.__table__.create)
         await conn.run_sync(NodeItem.__table__.create)
         await conn.run_sync(NodePatch.__table__.create)
+        from app.domains.quests.infrastructure.models.navigation_cache_models import (
+            NavigationCache,
+        )
+
+        await conn.run_sync(NavigationCache.__table__.create)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with async_session() as session:
         yield session

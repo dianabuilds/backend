@@ -6,14 +6,26 @@ from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import set_committed_value
 
+from app.core.log_events import cache_invalidate
+from app.domains.navigation.application.navigation_cache_service import (
+    NavigationCacheService,
+)
+from app.domains.navigation.application.navigation_service import NavigationService
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import validate_transition
+from app.domains.tags.infrastructure.models.tag_models import NodeTag
+from app.domains.tags.models import ContentTag, Tag
 from app.schemas.nodes_common import Status, Visibility
+
+navcache = NavigationCacheService(CoreCacheAdapter())
+navsvc = NavigationService()
 
 
 class NodeService:
@@ -137,8 +149,7 @@ class NodeService:
     ) -> NodeItem:
         item = await self.get(workspace_id, node_id)
 
-        # Разрешаем обновлять только простые поля, связанные с графом
-        allowed_updates: set[str] = {"slug", "title"}
+        changed = False
 
         new_slug = data.get("slug")
         if new_slug is not None and new_slug != item.slug:
@@ -158,10 +169,12 @@ class NodeService:
                 raise HTTPException(status_code=409, detail="Slug already exists")
 
             item.slug = str(new_slug)
+            changed = True
 
-        for key, value in data.items():
-            if key in allowed_updates - {"slug"}:
-                setattr(item, key, value)
+        title = data.get("title")
+        if title is not None and title != item.title:
+            item.title = str(title)
+            changed = True
 
         # Сохраняем контент и флаги во "внешнюю" таблицу nodes
         node = await self._db.get(Node, item.node_id) if item.node_id else None
@@ -181,20 +194,67 @@ class NodeService:
             await self._db.commit()
             item.node_id = node.id
         else:
-            # синхронизируем slug, если он менялся
             if new_slug is not None:
                 node.slug = item.slug
 
-        # синхронизируем заголовок, если он менялся
-        if "title" in data and data["title"]:
-            node.title = str(data["title"])
+        if title is not None and title != node.title:
+            node.title = str(title)
 
-        # Любое редактирование опубликованной записи переводит её в черновик
-        if item.status == Status.published:
+        content = data.get("content")
+        if content is not None and content != node.content:
+            node.content = content
+            changed = True
+
+        cover_url = data.get("cover_url")
+        if "cover_url" in data and cover_url != node.cover_url:
+            node.cover_url = cover_url
+            changed = True
+
+        media = data.get("media")
+        if media is not None and media != node.media:
+            node.media = list(media)
+            changed = True
+
+        if "tags" in data:
+            new_tag_slugs = [
+                str(s) for s in data.get("tags") or [] if isinstance(s, str)
+            ]
+            res = await self._db.execute(
+                select(Tag.slug)
+                .join(NodeTag, Tag.id == NodeTag.tag_id)
+                .where(NodeTag.node_id == node.id)
+            )
+            existing_slugs = set(res.scalars().all())
+            if set(new_tag_slugs) != existing_slugs:
+                changed = True
+            if new_tag_slugs:
+                tag_res = await self._db.execute(
+                    select(Tag).where(
+                        Tag.slug.in_(new_tag_slugs),
+                        Tag.workspace_id == item.workspace_id,
+                    )
+                )
+                tags = list(tag_res.scalars().all())
+            else:
+                tags = []
+            set_committed_value(node, "tags", [])
+            node.tags = tags
+            await self._db.execute(
+                delete(ContentTag).where(ContentTag.content_id == item.id)
+            )
+            for t in tags:
+                await NodeItemDAO.attach_tag(
+                    self._db,
+                    node_id=item.id,
+                    tag_id=t.id,
+                    workspace_id=item.workspace_id,
+                )
+            set_committed_value(item, "tags", tags)
+
+        if changed and item.status == Status.published:
             item.status = Status.draft
             item.visibility = Visibility.private
             item.published_at = None
-            # согласуем видимость и статус в Node
             node.visibility = Visibility.private
             node.status = Status.draft
 
@@ -204,6 +264,16 @@ class NodeService:
         item.updated_at = datetime.utcnow()
 
         await self._db.commit()
+
+        if changed:
+            await navsvc.invalidate_navigation_cache(self._db, node)
+            await navcache.invalidate_navigation_by_node(node.slug)
+            await navcache.invalidate_modes_by_node(node.slug)
+            await navcache.invalidate_compass_all()
+            cache_invalidate("nav", reason="node_update", key=node.slug)
+            cache_invalidate("navm", reason="node_update", key=node.slug)
+            cache_invalidate("comp", reason="node_update")
+
         return item
 
     async def publish(
