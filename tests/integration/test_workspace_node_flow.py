@@ -27,7 +27,7 @@ async def test_workspace_node_simulation_trace(
 
     # Create node
     resp = await client.post(
-        f"/admin/workspaces/{ws_id}/nodes/quest",
+        f"/admin/workspaces/{ws_id}/nodes/types/quest",
         headers=auth_headers,
     )
     assert resp.status_code == 200
@@ -36,7 +36,7 @@ async def test_workspace_node_simulation_trace(
 
     # Simulate node
     resp = await client.post(
-        f"/admin/workspaces/{ws_id}/nodes/quest/{node_id}/simulate",
+        f"/admin/workspaces/{ws_id}/nodes/types/quest/{node_id}/simulate",
         json={"inputs": {}},
         headers=auth_headers,
     )
