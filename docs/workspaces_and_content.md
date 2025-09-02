@@ -174,6 +174,16 @@ Content-Type: application/json
 }
 ```
 
+Updating content:
+
+```bash
+PATCH /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article/d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef
+Content-Type: application/json
+
+{ "content": { "time": 0, "blocks": [], "version": "2.30.7" } }
+```
+
+Legacy `nodes` field is rejected with HTTP 422.
 Publishing:
 
 ```bash
