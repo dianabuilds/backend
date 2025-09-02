@@ -293,7 +293,68 @@ class NodeService:
         item.updated_by_user_id = actor_id
         item.updated_at = datetime.utcnow()
 
+        # Обработка тегов: ожидаем массив слугов или объектов с полем slug
+        raw_tags = data.get("tags")
+        if isinstance(raw_tags, (list, tuple)):
+            desired_slugs: set[str] = set()
+            for t in raw_tags:
+                if isinstance(t, str):
+                    s = t.strip().lower()
+                    if s:
+                        desired_slugs.add(s)
+                elif isinstance(t, dict):
+                    s = str(t.get("slug") or t.get("value") or t.get("id") or "").strip().lower()
+                    if s:
+                        desired_slugs.add(s)
+
+            # Текущие слуги
+            current_slugs: set[str] = {getattr(t, "slug", "") for t in (item.tags or []) if getattr(t, "slug", "")}
+            to_add = sorted(desired_slugs - current_slugs)
+            to_remove = sorted(current_slugs - desired_slugs)
+
+            if to_add:
+                res = await self._db.execute(
+                    select(Tag).where(
+                        Tag.workspace_id == item.workspace_id,
+                        Tag.slug.in_(to_add),
+                    )
+                )
+                existing = {t.slug: t for t in res.scalars().all()}
+                for slug in to_add:
+                    tag = existing.get(slug)
+                    if tag is None:
+                        # создаём отсутствующий тег в текущем воркспейсе
+                        tag = Tag(workspace_id=item.workspace_id, slug=slug, name=slug)
+                        self._db.add(tag)
+                        await self._db.flush()
+                    await NodeItemDAO.attach_tag(
+                        self._db,
+                        node_id=item.id,
+                        tag_id=tag.id,
+                        workspace_id=item.workspace_id,
+                    )
+
+            if to_remove:
+                res = await self._db.execute(
+                    select(Tag).where(
+                        Tag.workspace_id == item.workspace_id,
+                        Tag.slug.in_(to_remove),
+                    )
+                )
+                for tag in res.scalars().all():
+                    await NodeItemDAO.detach_tag(
+                        self._db,
+                        node_id=item.id,
+                        tag_id=tag.id,
+                        workspace_id=item.workspace_id,
+                    )
+
         await self._db.commit()
+        # Обновим объект, чтобы отдать актуальные связи
+        try:
+            await self._db.refresh(item)
+        except Exception:
+            pass
 
         if changed:
             await navsvc.invalidate_navigation_cache(self._db, node)

@@ -54,3 +54,20 @@ export async function createPreviewLink(
   return res.data as PreviewLinkResponse;
 }
 
+/**
+ * Открывает превью ноды в новой вкладке.
+ * Если передан slug — добавляет ?start=<slug> к URL превью.
+ * Использует тот же механизм, что и превью в карточке редактирования.
+ */
+export async function openNodePreview(
+  workspace_id: string,
+  slug?: string | null,
+): Promise<void> {
+  const { url } = await createPreviewLink(workspace_id);
+  const withStart =
+    slug && slug.trim()
+      ? `${url}${url.includes("?") ? "&" : "?"}start=${encodeURIComponent(slug)}`
+      : url;
+  window.open(withStart, "_blank", "noopener");
+}
+

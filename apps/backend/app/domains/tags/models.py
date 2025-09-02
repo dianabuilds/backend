@@ -39,7 +39,9 @@ class ContentTag(Base):
 
     __tablename__ = "content_tags"
 
+    # В базе колонка называется content_id_bigint; маппим на python‑атрибут content_id
     content_id = sa.Column(
+        "content_id_bigint",
         sa.BigInteger,
         sa.ForeignKey("content_items.id_bigint", ondelete="CASCADE"),
         primary_key=True,
