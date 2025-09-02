@@ -81,6 +81,7 @@ class Node(Base):
         "Tag",
         secondary=NodeTag.__table__,
         back_populates="nodes",
+        lazy="selectin",
     )
 
     # ------------------------------------------------------------------

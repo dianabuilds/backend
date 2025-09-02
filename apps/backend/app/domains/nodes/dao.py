@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.inspection import inspect
+from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import set_committed_value
 
 from app.domains.tags.models import ContentTag
@@ -27,7 +28,11 @@ class NodeItemDAO:
     async def list_by_type(
         db: AsyncSession, *, workspace_id: UUID | None, node_type: str
     ) -> list[NodeItem]:
-        stmt = select(NodeItem).where(NodeItem.type == node_type)
+        stmt = (
+            select(NodeItem)
+            .options(selectinload(NodeItem.tags))
+            .where(NodeItem.type == node_type)
+        )
         if workspace_id is None:
             stmt = stmt.where(NodeItem.workspace_id.is_(None))
         else:
@@ -72,7 +77,11 @@ class NodeItemDAO:
         page: int = 1,
         per_page: int = 10,
     ) -> list[NodeItem]:
-        stmt = select(NodeItem).where(NodeItem.type == node_type)
+        stmt = (
+            select(NodeItem)
+            .options(selectinload(NodeItem.tags))
+            .where(NodeItem.type == node_type)
+        )
         if workspace_id is None:
             stmt = stmt.where(NodeItem.workspace_id.is_(None))
         else:

@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 import sqlalchemy as sa
-from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -22,7 +21,8 @@ from app.domains.nodes.infrastructure.repositories.node_repository import (
     NodeRepositoryAdapter,
 )
 from app.domains.nodes.models import NodeItem, NodePatch
-from app.domains.tags.models import Tag
+from app.domains.tags.infrastructure.models.tag_models import NodeTag
+from app.domains.tags.models import ContentTag, Tag
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.nodes_common import Status, Visibility
@@ -35,6 +35,8 @@ async def db() -> AsyncSession:
         await conn.run_sync(User.__table__.create)
         await conn.run_sync(Workspace.__table__.create)
         await conn.run_sync(Tag.__table__.create)
+        await conn.run_sync(NodeTag.__table__.create)
+        await conn.run_sync(ContentTag.__table__.create)
         Node.__table__.c.id.type = sa.Integer()
         Node.__table__.c.workspace_id.nullable = True
         await conn.run_sync(Node.__table__.create)
@@ -79,6 +81,12 @@ async def test_node_service_handles_global_and_workspace_nodes(
         visibility=Visibility.private,
         version=1,
     )
+    tag = Tag(id=uuid.uuid4(), slug="t1", name="T1", workspace_id=ws.id)
+    db.add(tag)
+    await db.flush()
+    await NodeItemDAO.attach_tag(
+        db, node_id=ws_item.id, tag_id=tag.id, workspace_id=ws.id
+    )
     await db.commit()
 
     svc = NodeService(db)
@@ -86,11 +94,12 @@ async def test_node_service_handles_global_and_workspace_nodes(
     assert [i.id for i in global_list] == [global_item.id]
     workspace_list = await svc.list(ws.id)
     assert [i.id for i in workspace_list] == [ws_item.id]
+    assert [t.slug for t in workspace_list[0].tags] == ["t1"]
 
     fetched = await svc.get(None, global_item.id)
     assert fetched.id == global_item.id
-    with pytest.raises(HTTPException):
-        await svc.get(ws.id, global_item.id)
+    fetched_ws = await svc.get(ws.id, global_item.id)
+    assert fetched_ws.id == global_item.id
 
 
 @pytest.mark.asyncio

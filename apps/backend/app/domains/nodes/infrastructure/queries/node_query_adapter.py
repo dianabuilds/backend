@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.db.query import (
     NodeFilterSpec as LegacySpec,
@@ -20,11 +22,13 @@ from app.domains.nodes.application.query_models import (
     PageRequest,
     QueryContext,
 )
+from app.domains.nodes.infrastructure.models.node import Node
 
 
 class NodeQueryAdapter(INodeQueryService):
     def __init__(self, db: AsyncSession) -> None:
         self._svc = LegacyNodeQueryService(db)
+        self._db = db
 
     def _to_legacy(self, spec: NodeFilterSpec, ctx: QueryContext, page: PageRequest):
         lspec = LegacySpec(**spec.__dict__)
@@ -46,4 +50,10 @@ class NodeQueryAdapter(INodeQueryService):
         self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext
     ):
         lspec, lctx, lpage = self._to_legacy(spec, ctx, page)
-        return await self._svc.list_nodes(lspec, lpage, lctx)
+        nodes = await self._svc.list_nodes(lspec, lpage, lctx)
+        if nodes:
+            ids = [n.id for n in nodes]
+            await self._db.execute(
+                select(Node).where(Node.id.in_(ids)).options(selectinload(Node.tags))
+            )
+        return nodes
