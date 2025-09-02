@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 
 import { wsApi } from "../api/wsApi";
 import { compressImage } from "../utils/compressImage";
+import { resolveUrl } from "../utils/resolveUrl";
 import type { OutputData } from "../types/editorjs";
 
 interface Props {
@@ -31,44 +32,6 @@ export default function EditorJSEmbed({
   const applyingExternal = useRef(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
-
-  // Преобразуем относительный URL (/static/uploads/...) в абсолютный к backend origin (в dev 5173–5176) или VITE_API_BASE
-  const resolveUrl = (u?: string): string => {
-    if (!u) return "";
-    try {
-      // База для относительных ссылок: VITE_API_BASE или dev-маппинг на :8000, иначе текущий origin
-      let base = "";
-      const envBase = (
-        import.meta as { env?: Record<string, string | undefined> }
-      )?.env?.VITE_API_BASE as string | undefined;
-      if (envBase) {
-        base = envBase;
-      } else if (typeof window !== "undefined" && window.location) {
-        const port = window.location.port;
-        if (port && ["5173", "5174", "5175", "5176"].includes(port)) {
-          // В dev намеренно используем http://:8000 (бэкенд без TLS).
-          // Это устранение mixed-content и проблем с самоподписанными сертификатами.
-          base = `http://${window.location.hostname}:8000`;
-        } else {
-          base = `${window.location.protocol}//${window.location.host}`;
-        }
-      }
-
-      // Унифицировано резолвим и относительные, и абсолютные URL
-      const urlObj = new URL(
-        u,
-        base ||
-          (typeof window !== "undefined" ? window.location.origin : undefined),
-      );
-
-      // Важно: не меняем протокол принудительно.
-      // Если backend доступен только по http, насильственная замена на https приведёт к невозможности загрузить изображение.
-      return urlObj.toString();
-    } catch {
-      // На всякий случай возвращаем исходное значение
-      return u;
-    }
-  };
 
   const extractUrl = (data: unknown): string => {
     if (typeof data === "string") return data;
