@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { wsApi } from "./wsApi";
 
 export interface SimulatePreviewRequest {
   workspace_id: string;
@@ -30,11 +30,11 @@ export interface SimulatePreviewResponse {
 export async function simulatePreview(
   body: SimulatePreviewRequest,
 ): Promise<SimulatePreviewResponse> {
-  const res = await api.post<SimulatePreviewResponse>(
-    `/admin/preview/transitions/simulate`,
-    body,
-  );
-  return res.data ?? {};
+  const res = await wsApi.post<
+    SimulatePreviewRequest,
+    SimulatePreviewResponse
+  >(`/admin/preview/transitions/simulate`, body, { workspace: false });
+  return res ?? {};
 }
 
 export interface PreviewLinkResponse {
@@ -45,10 +45,11 @@ export async function createPreviewLink(
   workspace_id: string,
 ): Promise<PreviewLinkResponse> {
   // Корректный эндпоинт — без workspace в пути. workspace_id передаём в теле.
-  const res = await api.post<PreviewLinkResponse>(`/admin/preview/link`, {
-    workspace_id,
-  });
-  return res.data as PreviewLinkResponse;
+  const res = await wsApi.post<
+    { workspace_id: string },
+    PreviewLinkResponse
+  >(`/admin/preview/link`, { workspace_id }, { workspace: false });
+  return res;
 }
 
 /**

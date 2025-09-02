@@ -2,6 +2,13 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## API clients
+
+The admin UI talks to the backend using two helpers:
+
+- `wsApi` — injects the selected workspace into `/admin/*` paths and sets common headers. Use this for admin endpoints. If the backend expects the workspace ID in the body or query instead of the path, pass `{ workspace: false }` or `{ workspace: 'query' }`.
+- `api` — thin wrapper around `fetch` without workspace logic. Use it for public or auth routes.
+
 ## Hotkeys
 
 - `⌘K` / `Ctrl+K` — open the command palette for quick navigation to **Status**, **Limits** and **Trace** pages.
