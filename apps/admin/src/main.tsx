@@ -7,6 +7,10 @@ import { createRoot } from "react-dom/client";
 
 import App from "./App.tsx";
 import { AppProviders } from "./app/providers";
+import { initPreviewTokenFromUrl } from "./utils/previewToken";
+
+// Initialize preview token if present in URL before any API calls
+initPreviewTokenFromUrl();
 
 const routeId = (window as any).__ROUTE_ID__;
 console.log("route_id:", routeId);

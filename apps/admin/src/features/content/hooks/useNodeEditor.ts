@@ -6,16 +6,25 @@ import { nodesApi } from "../api/nodes.api";
 import type { NodeEditorData } from "../model/node";
 
 export function normalizeTags(src: unknown): string[] {
-  const input: any =
+  // Пытаемся найти массив тегов в разных местах ответа
+  const top: any =
     (src as any)?.tagSlugs ??
     (src as any)?.tag_slugs ??
-    (src as any)?.tags ??
-    src;
+    (src as any)?.tags;
+
+  const meta: any =
+    (src as any)?.meta?.tagSlugs ??
+    (src as any)?.meta?.tag_slugs ??
+    (src as any)?.meta?.tags;
+
+  const input: any = Array.isArray(top) ? top : Array.isArray(meta) ? meta : src;
+
   if (!Array.isArray(input)) return [];
   return (input as any[])
     .map((t) => {
       if (typeof t === "string") return t;
       if (t && typeof t === "object") {
+        // поддерживаем как объекты тегов { slug, name }, так и простые строки
         return (t as any).slug ?? (t as any).name ?? null;
       }
       return null;
@@ -82,7 +91,8 @@ export function useNodeEditor(
         media: payload.media,
         content: payload.content, // EditorJS document
       };
-      if (payload.tags) body.tagSlugs = payload.tags;
+      // ВАЖНО: отправляем tags всегда, если свойство определено, даже если [] — это позволяет очищать теги
+      if (payload.tags !== undefined) body.tags = payload.tags;
       if (isNew) {
         return nodesApi.create(workspaceId, body as any);
       }

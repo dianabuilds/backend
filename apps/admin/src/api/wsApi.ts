@@ -116,10 +116,11 @@ export const wsApi = {
     json?: TReq,
     opts?: WsRequestOptions<P>,
   ) => request<TRes, P>(url, { ...opts, method: "PATCH", json }),
-  del: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts?: WsRequestOptions<P>) =>
-    request<T, P>(url, { ...opts, method: "DELETE" }),
   delete: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts?: WsRequestOptions<P>) =>
     request<T, P>(url, { ...opts, method: "DELETE" }),
 };
+
+// Provide alias to reduce confusion, but prefer wsApi.delete across the codebase
+export const del = wsApi.delete;
 
 export type { WsRequestOptions };

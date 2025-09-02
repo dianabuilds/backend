@@ -54,18 +54,48 @@ export async function createPreviewLink(
 
 /**
  * Открывает превью ноды в новой вкладке.
- * Если передан slug — добавляет ?start=<slug> к URL превью.
- * Использует тот же механизм, что и превью в карточке редактирования.
+ * Универсально обрабатывает:
+ * - числовой id (например, 60) или строку с числом ("60")
+ * - путь вида "/nodes/60"
+ * - slug строки (в этом случае используем токен‑превью со start=<slug>)
+ *
+ * Для id всегда формируем admin‑маршрут:
+ *   /admin/nodes/{type}/{id}/preview?workspace_id=...
+ * Тип по умолчанию: "article".
  */
 export async function openNodePreview(
   workspace_id: string,
-  slug?: string | null,
+  ref?: string | number | null,
+  nodeType: string = 'article',
 ): Promise<void> {
+  const raw = ref == null ? '' : String(ref).trim();
+
+  // 1) Если это путь "/nodes/{id}" — вытащим id
+  let idStr: string | null = null;
+  if (raw.startsWith('/nodes/')) {
+    idStr = raw.split('/').filter(Boolean).pop() || null;
+  } else if (/^\d+$/.test(raw)) {
+    // 2) Если это числовой id в строке
+    idStr = raw;
+  } else if (typeof ref === 'number' && Number.isFinite(ref)) {
+    // 3) Если это number
+    idStr = String(ref);
+  }
+
+  if (idStr) {
+    const adminUrl = `/admin/nodes/${encodeURIComponent(nodeType)}/${encodeURIComponent(
+      idStr,
+    )}/preview?workspace_id=${encodeURIComponent(workspace_id)}`;
+    window.open(adminUrl, '_blank', 'noopener');
+    return;
+  }
+
+  // 4) Иначе — считаем, что это slug: используем токен‑превью со start
   const { url } = await createPreviewLink(workspace_id);
   const withStart =
-    slug && slug.trim()
-      ? `${url}${url.includes("?") ? "&" : "?"}start=${encodeURIComponent(slug)}`
+    raw
+      ? `${url}${url.includes('?') ? '&' : '?'}start=${encodeURIComponent(raw)}`
       : url;
-  window.open(withStart, "_blank", "noopener");
+  window.open(withStart, '_blank', 'noopener');
 }
 

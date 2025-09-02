@@ -29,18 +29,19 @@ export interface NodeMutationPayload {
 
 function enrichPayload(payload: NodeMutationPayload): Record<string, unknown> {
   const body: Record<string, unknown> = { ...payload };
-  if (body.tags && !body.tagSlugs && !body.tag_slugs) {
-    body.tagSlugs = body.tags;
-    body.tag_slugs = body.tags;
+  // Дублируем теги вне зависимости от пустоты массива: ключевое — наличие ключа 'tags'
+  if ('tags' in body && !('tagSlugs' in body) && !('tag_slugs' in body)) {
+    body.tagSlugs = body.tags as unknown as string[] | null;
+    body.tag_slugs = body.tags as unknown as string[] | null;
   }
   if (body.coverUrl !== undefined && body.cover_url === undefined) {
     body.cover_url = body.coverUrl;
   }
-  if (body.media !== undefined && !body.mediaUrls && !body.media_urls) {
+  if (body.media !== undefined && !('mediaUrls' in body) && !('media_urls' in body)) {
     body.mediaUrls = body.media;
     body.media_urls = body.media;
   }
-  // For compatibility with older endpoints that expect `nodes` instead of `content`
+  // Совместимость с более старыми эндпоинтами, ожидающими 'nodes' вместо 'content'
   if (body.content !== undefined && (body as any).nodes === undefined) {
     (body as any).nodes = body.content;
   }

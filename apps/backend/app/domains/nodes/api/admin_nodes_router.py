@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Resp
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from app.domains.tags.models import Tag, ContentTag
 
 from app.core.db.session import get_db
 from app.core.log_events import cache_invalidate
@@ -61,6 +62,144 @@ def _serialize(item: NodeItem) -> dict:
         "summary": item.summary,
         "status": item.status.value,
     }
+
+
+async def _fetch_tag_slugs(db: AsyncSession, *, content_id: int) -> list[str]:
+    res = await db.execute(
+        select(Tag.slug).join(ContentTag, ContentTag.tag_id == Tag.id).where(ContentTag.content_id == content_id)
+    )
+    return [r[0] for r in res.all()]
+
+def _to_dict(obj: object) -> dict:
+    """
+    Преобразовать ответ (Pydantic v2/v1 модель или dict) в обычный словарь.
+    """
+    if isinstance(obj, dict):
+        return dict(obj)
+    # Pydantic v2
+    md = getattr(obj, "model_dump", None)
+    if callable(md):
+        try:
+            return md()  # type: ignore[no-any-return]
+        except Exception:
+            pass
+    # Pydantic v1
+    d = getattr(obj, "dict", None)
+    if callable(d):
+        try:
+            return d()  # type: ignore[no-any-return]
+        except Exception:
+            pass
+    # Фолбэк
+    try:
+        return dict(obj)  # type: ignore[arg-type]
+    except Exception:
+        return {"value": obj}
+
+async def _normalize_node_payload(
+    db: AsyncSession, payload: object, *, content_id: int
+) -> dict:
+    """
+    Удаляем legacy‑поля (nodeType/type/summary) и гарантируем присутствие тегов.
+    Принимает Pydantic‑модель или dict, возвращает dict.
+    """
+    data = _to_dict(payload)
+    # Удаляем типы и summary
+    data.pop("nodeType", None)
+    data.pop("type", None)
+    data.pop("summary", None)
+    # Проставляем теги, если их нет
+    tag_slugs = data.get("tagSlugs")
+    if not isinstance(tag_slugs, list):
+        tag_slugs = await _fetch_tag_slugs(db, content_id=content_id)
+        data["tagSlugs"] = tag_slugs
+    # Для совместимости дублируем tags (массив строк)
+    if not isinstance(data.get("tags"), list):
+        data["tags"] = list(tag_slugs or [])
+    return data
+
+
+def _extract_tag_slugs_from_payload(payload: dict | None) -> list[str] | None:
+    """
+    Достаём список тегов из разных ключей входного payload.
+    Возвращает нормализованный список слугов или None, если теги не переданы.
+    """
+    if not isinstance(payload, dict):
+        return None
+    raw = payload.get("tagSlugs") or payload.get("tag_slugs") or payload.get("tags")
+    if not isinstance(raw, (list, tuple)):
+        return None
+    out: list[str] = []
+    for t in raw:
+        if isinstance(t, str):
+            s = t.strip().lower()
+        elif isinstance(t, dict):
+            s = str(t.get("slug") or t.get("value") or t.get("id") or "").strip().lower()
+        else:
+            s = ""
+        if s:
+            out.append(s)
+    # уникализируем, сохраняя порядок
+    seen: set[str] = set()
+    uniq = [x for x in out if not (x in seen or seen.add(x))]
+    return uniq
+
+
+async def _apply_tag_slugs(
+    db: AsyncSession, *, workspace_id: UUID, content_id: int, desired_slugs: list[str]
+) -> None:
+    """
+    Синхронизируем связи тегов для контент‑элемента:
+      — создаём отсутствующие теги в воркспейсе,
+      — добавляем недостающие связи,
+      — удаляем лишние.
+    """
+    # Текущие связи
+    res = await db.execute(
+        select(Tag.slug)
+        .join(ContentTag, ContentTag.tag_id == Tag.id)
+        .where(ContentTag.content_id == content_id, ContentTag.workspace_id == workspace_id)
+    )
+    current = {row[0] for row in res.all()}
+    desired = set(desired_slugs)
+
+    to_add = sorted(desired - current)
+    to_remove = sorted(current - desired)
+
+    if to_add:
+        # Находим уже существующие теги
+        res = await db.execute(
+            select(Tag).where(Tag.workspace_id == workspace_id, Tag.slug.in_(to_add))
+        )
+        have = {t.slug: t for t in res.scalars().all()}
+        # Создаём недостающие
+        missing = [slug for slug in to_add if slug not in have]
+        for slug in missing:
+            tag = Tag(slug=slug, name=slug, workspace_id=workspace_id)
+            db.add(tag)
+            await db.flush()
+            have[slug] = tag
+        # Привязываем
+        for slug in to_add:
+            tag = have[slug]
+            db.add(ContentTag(content_id=content_id, tag_id=tag.id, workspace_id=workspace_id))
+
+    if to_remove:
+        await db.execute(
+            select(ContentTag)  # dummy select to ensure bindings
+        )  # no-op, keeps SA happy across DBs
+        await db.execute(
+            # Удаляем только лишние связи данного контента/воркспейса
+            ContentTag.__table__.delete().where(
+                ContentTag.content_id == content_id,
+                ContentTag.workspace_id == workspace_id,
+                ContentTag.tag_id.in_(
+                    select(Tag.id).where(Tag.workspace_id == workspace_id, Tag.slug.in_(to_remove))
+                ),
+            )
+        )
+    if to_add or to_remove:
+        await db.flush()
 
 
 class AdminNodeListParams(TypedDict, total=False):

@@ -43,14 +43,37 @@ export function resolveBackendUrl(u: string | null | undefined): string | null {
 
 /**
  * Достаёт URL из тела ответа/заголовка Location и нормализует его.
+ * Приоритет: file.url -> url -> path -> location -> Location header.
+ * Дополнительно удаляет обрамляющие кавычки и экранирование из строки.
  */
 export function extractUrlFromUploadResponse(
   data: any,
   headers?: Headers,
 ): string | null {
-  const u =
-    (data && (data.url || data.path || data.location)) ??
+  let u: string | null =
+    (data && (data.file?.url || data.url || data.path || data.location)) ??
     (typeof data === "string" ? data : null) ??
     (headers ? headers.get("Location") : null);
+
+  if (!u) return null;
+
+  // Нормализуем: trim и удаление обрамляющих кавычек/экранирования
+  try {
+    u = String(u).trim();
+    // Если строка в виде "\"/static/..\"" — снимем экранирование
+    if (/^\\?["'].*\\?["']$/.test(u)) {
+      // убираем один уровень backslash-экранирования
+      u = u.replace(/\\"/g, '"').replace(/\\'/g, "'");
+    }
+    if (
+      (u.startsWith('"') && u.endsWith('"')) ||
+      (u.startsWith("'") && u.endsWith("'"))
+    ) {
+      u = u.slice(1, -1).trim();
+    }
+  } catch {
+    // noop
+  }
+
   return resolveBackendUrl(u || null);
 }

@@ -9,22 +9,22 @@ export type PublishInfo = {
 };
 
 export async function getPublishInfo(workspaceId: string, nodeId: number): Promise<PublishInfo> {
-  const { data } = await wsApi.get(
+  const info = await wsApi.get<PublishInfo>(
     `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/publish_info`,
   );
-  return data as PublishInfo;
+  return info;
 }
 
 export async function publishNow(
   workspaceId: string,
   nodeId: number,
   access: AccessMode = 'everyone',
-): Promise<any> {
-  const { data } = await wsApi.post(
+): Promise<{ ok: true } | Record<string, unknown>> {
+  const res = await wsApi.post<{ access: AccessMode }, { ok: true } | Record<string, unknown>>(
     `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/publish`,
     { access },
   );
-  return data;
+  return res;
 }
 
 export async function schedulePublish(
@@ -33,19 +33,19 @@ export async function schedulePublish(
   runAtISO: string,
   access: AccessMode = 'everyone',
 ): Promise<PublishInfo> {
-  const { data } = await wsApi.post(
+  const info = await wsApi.post<{ run_at: string; access: AccessMode }, PublishInfo>(
     `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/schedule_publish`,
     { run_at: runAtISO, access },
   );
-  return data as PublishInfo;
+  return info;
 }
 
 export async function cancelScheduledPublish(
   workspaceId: string,
   nodeId: number,
 ): Promise<{ canceled: boolean }> {
-  const { data } = await wsApi.delete(
+  const res = await wsApi.delete<{ canceled: boolean }>(
     `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/schedule_publish`,
   );
-  return data as { canceled: boolean };
+  return res;
 }

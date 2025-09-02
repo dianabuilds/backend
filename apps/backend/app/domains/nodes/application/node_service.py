@@ -293,8 +293,8 @@ class NodeService:
         item.updated_by_user_id = actor_id
         item.updated_at = datetime.utcnow()
 
-        # Обработка тегов: ожидаем массив слугов или объектов с полем slug
-        raw_tags = data.get("tags")
+        # Обработка тегов: поддерживаем несколько ключей (tags | tagSlugs | tag_slugs)
+        raw_tags = data.get("tags") or data.get("tagSlugs") or data.get("tag_slugs")
         if isinstance(raw_tags, (list, tuple)):
             desired_slugs: set[str] = set()
             for t in raw_tags:
