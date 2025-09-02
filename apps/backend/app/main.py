@@ -229,7 +229,7 @@ else:
 async def read_root(request: Request):
     accept_header = request.headers.get("accept", "")
     if "text/html" in accept_header:
-        return HTMLResponse("<script>window.location.href='/admin';</script>")
+        return HTMLResponse("<meta http-equiv='refresh' content='0; url=/admin'>")
     return {"message": "Hello, World!"}
 
 

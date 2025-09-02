@@ -32,22 +32,25 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         if not headers.get("Content-Security-Policy"):
             if is_docs:
-                # Swagger/Redoc используют inline bootstrap и, по умолчанию, CDN (https:)
+                # Swagger/Redoc позволяют загрузку ресурсов по https,
+                # inline-скрипты запрещены
                 csp = (
                     "default-src 'self'; "
                     "base-uri 'self'; "
                     "frame-ancestors 'none'; "
                     "img-src 'self' data: blob: https:; "
                     "font-src 'self' data: https:; "
-                    "script-src 'self' 'unsafe-inline' https:; "
+                    "script-src 'self' https:; "
                     "style-src 'self' 'unsafe-inline' https:; "
                     "connect-src 'self' https: ws: wss:; "
                     "worker-src 'self' blob:; "
                     "form-action 'self'"
                 )
             else:
-                # В продакшне сохраняем строгие правила, в dev — разрешаем http/https для cross-origin ресурсов,
-                # чтобы админка на :5173 могла грузить изображения и ходить к API на :8000.
+                # В продакшне сохраняем строгие правила,
+                # в dev разрешаем http/https для cross-origin ресурсов,
+                # чтобы админка на :5173 могла грузить изображения
+                # и ходить к API на :8000.
                 if settings.is_production:
                     img_src = "img-src 'self' data: blob:; "
                     connect_src = "connect-src 'self' https: ws: wss:; "
