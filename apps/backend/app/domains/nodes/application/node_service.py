@@ -284,8 +284,13 @@ class NodeService:
         if title is not None and title != node.title:
             node.title = str(title)
 
-        # Content may be provided under `content` (new) or `nodes` (legacy)
-        raw_content = data.get("content", data.get("nodes"))
+        # Content is provided under `content`
+        if "nodes" in data:
+            raise HTTPException(
+                status_code=422,
+                detail="Field 'nodes' is deprecated; use 'content' instead",
+            )
+        raw_content = data.get("content")
         if raw_content is not None and raw_content != node.content:
             if isinstance(raw_content, (dict, list)):
                 node.content = raw_content  # type: ignore[assignment]

@@ -16348,6 +16348,13 @@
                 "type": "object",
                 "additionalProperties": true,
                 "title": "Payload"
+              },
+              "example": {
+                "content": {
+                  "time": 0,
+                  "blocks": [],
+                  "version": "2.30.7"
+                }
               }
             }
           }
