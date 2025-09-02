@@ -5,6 +5,24 @@ import { useEffect, useState } from "react";
 import { nodesApi } from "../api/nodes.api";
 import type { NodeEditorData } from "../model/node";
 
+export function normalizeTags(src: unknown): string[] {
+  const input: any =
+    (src as any)?.tagSlugs ??
+    (src as any)?.tag_slugs ??
+    (src as any)?.tags ??
+    src;
+  if (!Array.isArray(input)) return [];
+  return (input as any[])
+    .map((t) => {
+      if (typeof t === "string") return t;
+      if (t && typeof t === "object") {
+        return (t as any).slug ?? (t as any).name ?? null;
+      }
+      return null;
+    })
+    .filter((t): t is string => typeof t === "string" && t.length > 0);
+}
+
 export function useNodeEditor(
   workspaceId: string | undefined,
   id: number | "new",
@@ -48,11 +66,7 @@ export function useNodeEditor(
         slug: (data as any).slug ?? "",
         coverUrl: (data as any).coverUrl ?? (data as any).cover_url ?? null,
         media: ((data as any).media as string[] | undefined) ?? [],
-        tags:
-          ((data as any).tagSlugs as string[] | undefined) ??
-          ((data as any).tag_slugs as string[] | undefined) ??
-          ((data as any).tags as string[] | undefined) ??
-          [],
+        tags: normalizeTags(data),
         isPublic: (data as any).isPublic ?? (data as any).is_public ?? false,
         content,
       });
