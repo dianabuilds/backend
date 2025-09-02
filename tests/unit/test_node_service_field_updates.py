@@ -10,11 +10,21 @@ import pytest_asyncio
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import selectinload, sessionmaker
+import types
 
 os.environ.setdefault("TESTING", "true")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
 from app.domains.nodes.application.node_service import NodeService
+module_name = "app.domains.nodes.application.editorjs_renderer"
+sys.modules.setdefault(
+    module_name,
+    types.SimpleNamespace(
+        collect_unknown_blocks=lambda _: [],
+        render_html=lambda _: "",
+    ),
+)
+from app.domains.nodes.content_admin_router import _serialize
 from app.domains.nodes.dao import NodeItemDAO
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem, NodePatch
@@ -136,6 +146,34 @@ async def test_update_tags_resets_status(db: AsyncSession) -> None:
     assert sorted(t.slug for t in node_obj.tags) == ["a", "b"]
     assert sorted(t.slug for t in item_obj.tags) == ["a", "b"]
     assert item_obj.status == Status.draft
+
+
+@pytest.mark.asyncio
+async def test_update_creates_new_tag_and_serializes(db: AsyncSession) -> None:
+    ws, user_id, node, item = await _prepare_published(db)
+    svc = NodeService(db)
+    await svc.update(ws.id, item.id, {"tagSlugs": ["fresh"]}, actor_id=user_id)
+
+    res = await db.execute(
+        sa.select(Tag).where(Tag.workspace_id == ws.id, Tag.slug == "fresh")
+    )
+    assert res.scalar_one_or_none() is not None
+
+    node_db = await db.execute(
+        sa.select(Node).where(Node.id == node.id).options(selectinload(Node.tags))
+    )
+    item_db = await db.execute(
+        sa.select(NodeItem)
+        .where(NodeItem.id == item.id)
+        .options(selectinload(NodeItem.tags))
+    )
+    node_obj = node_db.scalar_one()
+    item_obj = item_db.scalar_one()
+
+    payload = _serialize(item_obj, node_obj)
+    assert payload["tags"] == ["fresh"]
+    assert [t.slug for t in node_obj.tags] == ["fresh"]
+    assert [t.slug for t in item_obj.tags] == ["fresh"]
 
 
 @pytest.mark.asyncio
