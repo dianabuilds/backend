@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Literal
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import HTTPException
 from sqlalchemy import delete, select
@@ -20,7 +20,6 @@ from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import validate_transition
-from app.domains.tags.infrastructure.models.tag_models import NodeTag
 from app.domains.tags.models import ContentTag, Tag
 from app.schemas.nodes_common import Status, Visibility
 
@@ -84,6 +83,76 @@ class NodeService:
         # (no-op if workspaces match; otherwise proceed without raising)
         await NodePatchDAO.overlay(self._db, [item])
         return item
+
+    async def _apply_tags(
+        self,
+        *,
+        item: NodeItem,
+        node: Node,
+        data: dict[str, Any],
+    ) -> bool:
+        raw = data.get("tags") or data.get("tagSlugs") or data.get("tag_slugs")
+        if not isinstance(raw, (list, tuple)):
+            return False
+
+        desired_slugs: list[str] = []
+        for t in raw:
+            if isinstance(t, str):
+                s = t.strip().lower()
+            elif isinstance(t, dict):
+                s = (
+                    str(t.get("slug") or t.get("value") or t.get("id") or "")
+                    .strip()
+                    .lower()
+                )
+            else:
+                continue
+            if s and s not in desired_slugs:
+                desired_slugs.append(s)
+
+        res = await self._db.execute(
+            select(Tag.slug)
+            .join(ContentTag, Tag.id == ContentTag.tag_id)
+            .where(ContentTag.content_id == item.id)
+        )
+        current_slugs = set(res.scalars().all())
+        if current_slugs == set(desired_slugs):
+            return False
+
+        if desired_slugs:
+            res = await self._db.execute(
+                select(Tag).where(
+                    Tag.workspace_id == item.workspace_id,
+                    Tag.slug.in_(desired_slugs),
+                )
+            )
+            existing = {t.slug: t for t in res.scalars().all()}
+        else:
+            existing = {}
+
+        tags: list[Tag] = []
+        for slug in desired_slugs:
+            tag = existing.get(slug)
+            if tag is None:
+                tag = Tag(workspace_id=item.workspace_id, slug=slug, name=slug)
+                self._db.add(tag)
+                await self._db.flush()
+            tags.append(tag)
+
+        set_committed_value(node, "tags", [])
+        node.tags = tags
+        await self._db.execute(
+            delete(ContentTag).where(ContentTag.content_id == item.id)
+        )
+        for t in tags:
+            await NodeItemDAO.attach_tag(
+                self._db,
+                node_id=item.id,
+                tag_id=t.id,
+                workspace_id=item.workspace_id,
+            )
+        set_committed_value(item, "tags", tags)
+        return True
 
     # Mutations ---------------------------------------------------------------
     async def create_item_for_node(self, node: Node) -> NodeItem:
@@ -158,7 +227,10 @@ class NodeService:
         if new_slug is not None and new_slug != item.slug:
             # Нормализуем/валидируем slug: требуем 16-символьный hex без префиксов
             import re as _re
-            from app.domains.nodes.infrastructure.models.node import generate_slug as _gen
+
+            from app.domains.nodes.infrastructure.models.node import (
+                generate_slug as _gen,
+            )
 
             candidate = str(new_slug or "").strip().lower()
             # Если передан вид "quest-xxxx" или любой другой — игнорируем и генерируем новый
@@ -237,49 +309,9 @@ class NodeService:
             node.media = list(media)
             changed = True
 
-        # Accept tags from multiple keys: "tags", "tagSlugs", "tag_slugs"
-        if (
-            "tags" in data
-            or "tagSlugs" in data
-            or "tag_slugs" in data
-        ):
-            raw_slugs = (
-                data.get("tags")
-                if data.get("tags") is not None
-                else data.get("tag_slugs", data.get("tagSlugs"))
-            )
-            new_tag_slugs = [str(s) for s in (raw_slugs or []) if isinstance(s, str)]
-            res = await self._db.execute(
-                select(Tag.slug)
-                .join(NodeTag, Tag.id == NodeTag.tag_id)
-                .where(NodeTag.node_id == node.id)
-            )
-            existing_slugs = set(res.scalars().all())
-            if set(new_tag_slugs) != existing_slugs:
-                changed = True
-            if new_tag_slugs:
-                tag_res = await self._db.execute(
-                    select(Tag).where(
-                        Tag.slug.in_(new_tag_slugs),
-                        Tag.workspace_id == item.workspace_id,
-                    )
-                )
-                tags = list(tag_res.scalars().all())
-            else:
-                tags = []
-            set_committed_value(node, "tags", [])
-            node.tags = tags
-            await self._db.execute(
-                delete(ContentTag).where(ContentTag.content_id == item.id)
-            )
-            for t in tags:
-                await NodeItemDAO.attach_tag(
-                    self._db,
-                    node_id=item.id,
-                    tag_id=t.id,
-                    workspace_id=item.workspace_id,
-                )
-            set_committed_value(item, "tags", tags)
+        tags_changed = await self._apply_tags(item=item, node=node, data=data)
+        if tags_changed:
+            changed = True
 
         if changed and item.status == Status.published:
             item.status = Status.draft
@@ -292,62 +324,6 @@ class NodeService:
         node.updated_at = datetime.utcnow()
         item.updated_by_user_id = actor_id
         item.updated_at = datetime.utcnow()
-
-        # Обработка тегов: поддерживаем несколько ключей (tags | tagSlugs | tag_slugs)
-        raw_tags = data.get("tags") or data.get("tagSlugs") or data.get("tag_slugs")
-        if isinstance(raw_tags, (list, tuple)):
-            desired_slugs: set[str] = set()
-            for t in raw_tags:
-                if isinstance(t, str):
-                    s = t.strip().lower()
-                    if s:
-                        desired_slugs.add(s)
-                elif isinstance(t, dict):
-                    s = str(t.get("slug") or t.get("value") or t.get("id") or "").strip().lower()
-                    if s:
-                        desired_slugs.add(s)
-
-            # Текущие слуги
-            current_slugs: set[str] = {getattr(t, "slug", "") for t in (item.tags or []) if getattr(t, "slug", "")}
-            to_add = sorted(desired_slugs - current_slugs)
-            to_remove = sorted(current_slugs - desired_slugs)
-
-            if to_add:
-                res = await self._db.execute(
-                    select(Tag).where(
-                        Tag.workspace_id == item.workspace_id,
-                        Tag.slug.in_(to_add),
-                    )
-                )
-                existing = {t.slug: t for t in res.scalars().all()}
-                for slug in to_add:
-                    tag = existing.get(slug)
-                    if tag is None:
-                        # создаём отсутствующий тег в текущем воркспейсе
-                        tag = Tag(workspace_id=item.workspace_id, slug=slug, name=slug)
-                        self._db.add(tag)
-                        await self._db.flush()
-                    await NodeItemDAO.attach_tag(
-                        self._db,
-                        node_id=item.id,
-                        tag_id=tag.id,
-                        workspace_id=item.workspace_id,
-                    )
-
-            if to_remove:
-                res = await self._db.execute(
-                    select(Tag).where(
-                        Tag.workspace_id == item.workspace_id,
-                        Tag.slug.in_(to_remove),
-                    )
-                )
-                for tag in res.scalars().all():
-                    await NodeItemDAO.detach_tag(
-                        self._db,
-                        node_id=item.id,
-                        tag_id=tag.id,
-                        workspace_id=item.workspace_id,
-                    )
 
         await self._db.commit()
         # Обновим объект, чтобы отдать актуальные связи
