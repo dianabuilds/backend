@@ -1,4 +1,5 @@
 import type { OutputData } from "../types/editorjs";
+import { sanitizeHtml } from "../utils/sanitizeHtml";
 
 interface Block {
   id?: string;
@@ -21,7 +22,9 @@ export default function EditorJSViewer({ value, className }: Props) {
   const data: EditorData = (value && typeof value === "object" ? value : { blocks: [] });
   const blocks = Array.isArray(data.blocks) ? data.blocks : [];
 
-  const renderHTML = (html?: string) => <span dangerouslySetInnerHTML={{ __html: html || "" }} />;
+  const renderHTML = (html?: string) => (
+    <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(html || "") }} />
+  );
 
   // Нормализация URL изображений (см. также в редакторе)
   const resolveUrl = (u?: string): string => {

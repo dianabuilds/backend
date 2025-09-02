@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { sanitizeHtml } from "../../../utils/sanitizeHtml";
 
 // -----------------------------
 // Types
@@ -44,7 +45,10 @@ function RenderBlocks({ blocks, invert }: { blocks: Block[]; invert?: boolean })
         }
         if (b.type === "paragraph") {
           return (
-            <p key={b.id} dangerouslySetInnerHTML={{ __html: String(b.data?.text || "") }} />
+            <p
+              key={b.id}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(String(b.data?.text || "")) }}
+            />
           );
         }
         if (b.type === "image") {
@@ -64,7 +68,11 @@ function RenderBlocks({ blocks, invert }: { blocks: Block[]; invert?: boolean })
         if (b.type === "quote") {
           return (
             <blockquote key={b.id}>
-              <p dangerouslySetInnerHTML={{ __html: String(b.data?.text || "") }} />
+              <p
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeHtml(String(b.data?.text || "")),
+                }}
+              />
               {b.data?.caption && (
                 <cite className="block text-sm opacity-70">{b.data.caption}</cite>
               )}
