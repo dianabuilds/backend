@@ -5,11 +5,19 @@ from datetime import datetime
 from typing import Annotated, Literal, TypedDict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Response
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    Header,
+    HTTPException,
+    Path,
+    Query,
+    Response,
+)
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.domains.tags.models import Tag, ContentTag
 
 from app.core.db.session import get_db
 from app.core.log_events import cache_invalidate
@@ -62,60 +70,6 @@ def _serialize(item: NodeItem) -> dict:
         "summary": item.summary,
         "status": item.status.value,
     }
-
-
-async def _fetch_tags(db: AsyncSession, *, content_id: int) -> list[str]:
-    res = await db.execute(
-        select(Tag.slug).join(ContentTag, ContentTag.tag_id == Tag.id).where(
-            ContentTag.content_id == content_id
-        )
-    )
-    return [r[0] for r in res.all()]
-
-def _to_dict(obj: object) -> dict:
-    """
-    Преобразовать ответ (Pydantic v2/v1 модель или dict) в обычный словарь.
-    """
-    if isinstance(obj, dict):
-        return dict(obj)
-    # Pydantic v2
-    md = getattr(obj, "model_dump", None)
-    if callable(md):
-        try:
-            return md()  # type: ignore[no-any-return]
-        except Exception:
-            pass
-    # Pydantic v1
-    d = getattr(obj, "dict", None)
-    if callable(d):
-        try:
-            return d()  # type: ignore[no-any-return]
-        except Exception:
-            pass
-    # Фолбэк
-    try:
-        return dict(obj)  # type: ignore[arg-type]
-    except Exception:
-        return {"value": obj}
-
-async def _normalize_node_payload(
-    db: AsyncSession, payload: object, *, content_id: int
-) -> dict:
-    """
-    Удаляем legacy‑поля (nodeType/type/summary) и гарантируем присутствие тегов.
-    Принимает Pydantic‑модель или dict, возвращает dict.
-    """
-    data = _to_dict(payload)
-    # Удаляем типы и summary
-    data.pop("nodeType", None)
-    data.pop("type", None)
-    data.pop("summary", None)
-    # Проставляем теги, если их нет
-    tags = data.get("tags")
-    if not isinstance(tags, list):
-        tags = await _fetch_tags(db, content_id=content_id)
-        data["tags"] = tags
-    return data
 
 
 class AdminNodeListParams(TypedDict, total=False):
@@ -216,7 +170,13 @@ async def list_nodes_admin(
 @router.post("", summary="Create node (admin)")
 async def create_node_admin(
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
-    payload: dict | None = None,
+    payload: dict | None = Body(
+        default=None,
+        example={
+            "title": "New quest",
+            "content": {"time": 0, "blocks": [], "version": "2.30.7"},
+        },
+    ),
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
@@ -356,7 +316,12 @@ async def get_node_by_id_admin(
 async def update_node_by_id_admin(
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     id: Annotated[int, Path(...)],  # noqa: B008
-    payload: dict,
+    payload: dict = Body(
+        example={
+            "title": "Updated quest",
+            "content": {"time": 0, "blocks": [], "version": "2.30.7"},
+        }
+    ),
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):

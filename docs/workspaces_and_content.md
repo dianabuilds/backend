@@ -183,7 +183,7 @@ Content-Type: application/json
 { "content": { "time": 0, "blocks": [], "version": "2.30.7" } }
 ```
 
-Legacy `nodes` field is rejected with HTTP 422.
+Legacy `nodes` field has been removed; use `content` instead.
 Publishing:
 
 ```bash
