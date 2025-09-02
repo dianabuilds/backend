@@ -63,7 +63,7 @@ export async function publishQuest(
   questId: string,
   opts: {
     access: PublishAccess;
-    cover_url?: string | null;
+    coverUrl?: string | null;
     style_preset?: string | null;
   },
 ) {
@@ -71,7 +71,7 @@ export async function publishQuest(
     `/admin/quests/${encodeURIComponent(questId)}/publish`,
     {
       access: opts.access,
-      cover_url: opts.cover_url || null,
+      coverUrl: opts.coverUrl || null,
       style_preset: opts.style_preset || null,
     },
   );

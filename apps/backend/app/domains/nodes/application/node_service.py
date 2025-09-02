@@ -335,9 +335,8 @@ class NodeService:
                 node.content = parsed  # type: ignore[assignment]
             changed = True
 
-        cover_url = data.get("cover_url", data.get("coverUrl"))
-        if ("cover_url" in data or "coverUrl" in data) and cover_url != node.cover_url:
-            node.cover_url = cover_url  # type: ignore[assignment]
+        if (cover := data.get("coverUrl")) is not None and cover != node.coverUrl:
+            node.coverUrl = cover  # type: ignore[assignment]
             changed = True
 
         media = data.get("media")

@@ -37,5 +37,5 @@ class AutofixReport(BaseModel):
 
 class PublishRequest(BaseModel):
     access: Literal["premium_only", "everyone", "early_access"] = "everyone"
-    cover_url: str | None = None
+    coverUrl: str | None = None
     style_preset: str | None = None

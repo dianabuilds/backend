@@ -105,13 +105,13 @@ async def test_update_content_resets_status(db: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_cover_url_resets_status(db: AsyncSession) -> None:
+async def test_update_coverUrl_resets_status(db: AsyncSession) -> None:
     ws, user_id, node, item = await _prepare_published(db)
     svc = NodeService(db)
-    await svc.update(ws.id, item.id, {"cover_url": "http://x"}, actor_id=user_id)
+    await svc.update(ws.id, item.id, {"coverUrl": "http://x"}, actor_id=user_id)
     refreshed_node = await db.get(Node, node.id)
     refreshed_item = await db.get(NodeItem, item.id)
-    assert refreshed_node.cover_url == "http://x"
+    assert refreshed_node.coverUrl == "http://x"
     assert refreshed_item.status == Status.draft
 
 
@@ -192,7 +192,7 @@ async def test_update_multiple_fields_resets_status(db: AsyncSession) -> None:
         item.id,
         {
             "content": {"y": 2},
-            "cover_url": "http://img",
+            "coverUrl": "http://img",
             "media": ["m"],
             "tags": ["a", "b"],
         },
@@ -209,7 +209,7 @@ async def test_update_multiple_fields_resets_status(db: AsyncSession) -> None:
     )
     item_obj = item_db.scalar_one()
     assert node_obj.content == {"y": 2}
-    assert node_obj.cover_url == "http://img"
+    assert node_obj.coverUrl == "http://img"
     assert node_obj.media == ["m"]
     assert sorted(t.slug for t in node_obj.tags) == ["a", "b"]
     assert sorted(t.slug for t in item_obj.tags) == ["a", "b"]

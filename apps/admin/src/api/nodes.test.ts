@@ -25,15 +25,14 @@ describe('patchNode', () => {
       'ws1',
       {
         coverUrl: 'x',
-        cover_url: 'x',
         media: ['m1'],
         mediaUrls: ['m1'],
         media_urls: ['m1'],
         tags: ['t1'],
         tagSlugs: ['t1'],
         tag_slugs: ['t1'],
-      },
-      1,
-    );
+  },
+  1,
+);
   });
 });

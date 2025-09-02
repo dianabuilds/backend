@@ -34,9 +34,6 @@ function enrichPayload(payload: NodeMutationPayload): Record<string, unknown> {
     body.tagSlugs = body.tags as unknown as string[] | null;
     body.tag_slugs = body.tags as unknown as string[] | null;
   }
-  if (body.coverUrl !== undefined && body.cover_url === undefined) {
-    body.cover_url = body.coverUrl;
-  }
   if (body.media !== undefined && !('mediaUrls' in body) && !('media_urls' in body)) {
     body.mediaUrls = body.media;
     body.media_urls = body.media;

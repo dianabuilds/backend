@@ -139,10 +139,9 @@ export async function createNode(workspaceId: string): Promise<NodeOut> {
 }
 
 export interface NodeResponse extends NodeOut {
-    cover_url?: string | null;
     tag_slugs?: string[];
     tagSlugs?: string[];
-    cover?: { url?: string | null; cover_url?: string | null } | null;
+    cover?: { url?: string | null } | null;
     nodeId?: number | null;
   contentId?: number;
 }
@@ -190,9 +189,6 @@ export async function patchNode(
     }
 
     // Normalize cover URL
-    if (body.coverUrl !== undefined && body.cover_url === undefined) {
-        body.cover_url = body.coverUrl;
-    }
 
     // Normalize media field
     if (body.media !== undefined && !body.mediaUrls && !body.media_urls) {

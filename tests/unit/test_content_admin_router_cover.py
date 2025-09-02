@@ -64,7 +64,7 @@ async def app_client():
 
 
 @pytest.mark.asyncio
-async def test_cover_url_saved_when_using_cover_key(app_client):
+async def test_cover_saved_when_using_cover_key(app_client):
     client, ws_id, async_session = app_client
     async with async_session() as session:
         node = Node(

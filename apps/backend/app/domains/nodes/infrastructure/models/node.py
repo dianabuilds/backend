@@ -113,7 +113,7 @@ class Node(Base):
                 parsed = json.loads(m)
                 if isinstance(parsed, dict):
                     try:
-                        setattr(self, "_meta_cache", {"raw": m, "parsed": parsed})
+                        self._meta_cache = {"raw": m, "parsed": parsed}
                     except Exception:
                         # instance may be in a state where setattr is blocked; ignore
                         pass
@@ -143,6 +143,14 @@ class Node(Base):
         meta = dict(self._meta_dict())
         meta["cover_url"] = value
         self.meta = meta
+
+    @property
+    def coverUrl(self) -> str | None:
+        return self.cover_url
+
+    @coverUrl.setter
+    def coverUrl(self, value: str | None) -> None:
+        self.cover_url = value
 
     @property
     def media(self) -> list[str]:

@@ -96,7 +96,7 @@ export default function QuestsList() {
       setPublishing(true);
       await publishQuest(id, {
         access: publishAccess,
-        cover_url: publishCover || undefined,
+        coverUrl: publishCover || undefined,
       });
       setPublishing(false);
       setActiveQuestId(null);

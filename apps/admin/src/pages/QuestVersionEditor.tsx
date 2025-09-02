@@ -25,7 +25,7 @@ interface NodeEditorData {
   title: string;
   slug: string;
   subtitle: string;
-  cover_url: string | null;
+  coverUrl: string | null;
   tags: string[];
   allow_comments: boolean;
   is_premium_only: boolean;
@@ -279,7 +279,7 @@ export default function QuestVersionEditor() {
       title: n.title,
       slug: "",
       subtitle: "",
-      cover_url: null,
+      coverUrl: null,
       tags: [],
       allow_comments: true,
       is_premium_only: false,
@@ -1069,7 +1069,7 @@ export default function QuestVersionEditor() {
                 title: editorNode.title,
                 slug: editorNode.slug,
                 tags: editorNode.tags.map((t) => t.slug),
-                cover: editorNode.cover_url,
+                cover: editorNode.coverUrl,
                 onTitleChange: (v) =>
                   setEditorNode((p) => (p ? { ...p, title: v } : p)),
                 onSlugChange: (v: string) =>
@@ -1089,7 +1089,7 @@ export default function QuestVersionEditor() {
                       : p,
                   ),
                 onCoverChange: (url) =>
-                  setEditorNode((p) => (p ? { ...p, cover_url: url } : p)),
+                  setEditorNode((p) => (p ? { ...p, coverUrl: url } : p)),
               }}
                 content={{
                   initial: editorNode.contentData,
