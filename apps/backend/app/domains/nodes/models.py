@@ -47,6 +47,7 @@ class NodeItem(Base):
         secondary="content_tags",
         back_populates="content_items",
         overlaps="tag",
+        lazy="selectin",
     )
 
 
@@ -76,17 +77,25 @@ class NodePublishJob(Base):
     __tablename__ = "node_publish_jobs"
 
     id = sa.Column("id_bigint", sa.BigInteger, primary_key=True)
-    workspace_id = sa.Column(UUID(), sa.ForeignKey("workspaces.id"), nullable=False, index=True)
-    node_id = sa.Column(sa.BigInteger, sa.ForeignKey("nodes.id"), nullable=False, index=True)
+    workspace_id = sa.Column(
+        UUID(), sa.ForeignKey("workspaces.id"), nullable=False, index=True
+    )
+    node_id = sa.Column(
+        sa.BigInteger, sa.ForeignKey("nodes.id"), nullable=False, index=True
+    )
     content_id = sa.Column(
         sa.BigInteger,
         sa.ForeignKey("content_items.id_bigint"),
         nullable=False,
         index=True,
     )
-    access = sa.Column(sa.String, nullable=False, default="everyone")  # everyone|premium_only|early_access
+    access = sa.Column(
+        sa.String, nullable=False, default="everyone"
+    )  # everyone|premium_only|early_access
     scheduled_at = sa.Column(sa.DateTime, nullable=False, index=True)
-    status = sa.Column(sa.String, nullable=False, default="pending", index=True)  # pending|running|done|canceled|failed
+    status = sa.Column(
+        sa.String, nullable=False, default="pending", index=True
+    )  # pending|running|done|canceled|failed
     error = sa.Column(sa.Text, nullable=True)
     created_by_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=True)
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
