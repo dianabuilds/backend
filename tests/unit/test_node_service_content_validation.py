@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import sys
 import uuid
 from pathlib import Path
 
 import pytest
-from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -17,7 +18,7 @@ from app.schemas.nodes_common import Status, Visibility
 
 
 @pytest.mark.asyncio
-async def test_update_rejects_legacy_nodes_field() -> None:
+async def test_update_accepts_content_field() -> None:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
         await conn.run_sync(Workspace.__table__.create)
@@ -53,8 +54,31 @@ async def test_update_rejects_legacy_nodes_field() -> None:
         session.add_all([node, item])
         await session.commit()
 
+        import app.domains.nodes.application.node_service as ns
+
+        class _DummyNavSvc:
+            async def invalidate_navigation_cache(self, *args, **kwargs) -> None:  # noqa: ANN002
+                return None
+
+        class _DummyNavCache:
+            async def invalidate_navigation_by_node(self, *args, **kwargs) -> None:  # noqa: ANN002
+                return None
+
+            async def invalidate_modes_by_node(self, *args, **kwargs) -> None:  # noqa: ANN002
+                return None
+
+            async def invalidate_compass_all(self) -> None:  # noqa: D401
+                return None
+
+        ns.navsvc = _DummyNavSvc()
+        ns.navcache = _DummyNavCache()
+
         service = NodeService(session)
-        with pytest.raises(HTTPException) as exc:
-            await service.update(workspace_id, item.id, {"nodes": {}}, actor_id=actor_id)
-        assert exc.value.status_code == 422
-        assert exc.value.detail == "Field 'nodes' is deprecated; use 'content' instead"
+        await service.update(
+            workspace_id,
+            item.id,
+            {"content": {"time": 0, "blocks": [], "version": "2.30.7"}},
+            actor_id=actor_id,
+        )
+        await session.refresh(node)
+        assert node.content == {"time": 0, "blocks": [], "version": "2.30.7"}

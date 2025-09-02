@@ -321,12 +321,6 @@ class NodeService:
             node.title = str(title)
 
         # Content is provided under `content`
-        if "nodes" in data:
-            logger.warning("Received legacy 'nodes' field in update payload")
-            raise HTTPException(
-                status_code=422,
-                detail="Field 'nodes' is deprecated; use 'content' instead",
-            )
         raw_content = data.get("content")
         if raw_content is not None and raw_content != node.content:
             if isinstance(raw_content, dict | list):
