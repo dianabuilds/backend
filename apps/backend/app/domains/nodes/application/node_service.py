@@ -84,18 +84,12 @@ class NodeService:
         await NodePatchDAO.overlay(self._db, [item])
         return item
 
-    async def _apply_tags(
-        self,
-        *,
-        item: NodeItem,
-        node: Node,
-        data: dict[str, Any],
-    ) -> bool:
+    @staticmethod
+    def _normalize_tags(data: dict[str, Any]) -> list[str] | None:
         raw = data.get("tags") or data.get("tagSlugs") or data.get("tag_slugs")
-        if not isinstance(raw, (list, tuple)):
-            return False
-
-        desired_slugs: list[str] = []
+        if not isinstance(raw, list | tuple):
+            return None
+        slugs: list[str] = []
         for t in raw:
             if isinstance(t, str):
                 s = t.strip().lower()
@@ -107,8 +101,19 @@ class NodeService:
                 )
             else:
                 continue
-            if s and s not in desired_slugs:
-                desired_slugs.append(s)
+            if s and s not in slugs:
+                slugs.append(s)
+        return slugs
+
+    async def _sync_tags(
+        self,
+        *,
+        item: NodeItem,
+        node: Node,
+        tags: list[str] | None,
+    ) -> bool:
+        if not tags:
+            return False
 
         res = await self._db.execute(
             select(Tag.slug)
@@ -116,42 +121,39 @@ class NodeService:
             .where(ContentTag.content_id == item.id)
         )
         current_slugs = set(res.scalars().all())
-        if current_slugs == set(desired_slugs):
+        if current_slugs == set(tags):
             return False
 
-        if desired_slugs:
-            res = await self._db.execute(
-                select(Tag).where(
-                    Tag.workspace_id == item.workspace_id,
-                    Tag.slug.in_(desired_slugs),
-                )
+        res = await self._db.execute(
+            select(Tag).where(
+                Tag.workspace_id == item.workspace_id,
+                Tag.slug.in_(tags),
             )
-            existing = {t.slug: t for t in res.scalars().all()}
-        else:
-            existing = {}
+        )
+        existing = {t.slug: t for t in res.scalars().all()}
 
-        tags: list[Tag] = []
-        for slug in desired_slugs:
+        tag_objs: list[Tag] = []
+        for slug in tags:
             tag = existing.get(slug)
             if tag is None:
                 tag = Tag(workspace_id=item.workspace_id, slug=slug, name=slug)
                 self._db.add(tag)
                 await self._db.flush()
-            tags.append(tag)
+            tag_objs.append(tag)
 
         set_committed_value(node, "tags", [])
-        node.tags = tags
+        node.tags = tag_objs
         await self._db.execute(
             delete(ContentTag).where(ContentTag.content_id == item.id)
         )
-        for t in tags:
+        for t in tag_objs:
             await NodeItemDAO.attach_tag(
                 self._db,
                 node_id=item.id,
                 tag_id=t.id,
                 workspace_id=item.workspace_id,
             )
-        set_committed_value(item, "tags", tags)
+        set_committed_value(item, "tags", tag_objs)
         return True
 
     # Mutations ---------------------------------------------------------------
@@ -233,7 +235,7 @@ class NodeService:
             )
 
             candidate = str(new_slug or "").strip().lower()
-            # Если передан вид "quest-xxxx" или любой другой — игнорируем и генерируем новый
+            # Игнорируем нестандартные значения (например, "quest-xxxx")
             if not _re.fullmatch(r"[a-f0-9]{16}", candidate):
                 candidate = _gen()
 
@@ -292,7 +294,7 @@ class NodeService:
             )
         raw_content = data.get("content")
         if raw_content is not None and raw_content != node.content:
-            if isinstance(raw_content, (dict, list)):
+            if isinstance(raw_content, dict | list):
                 node.content = raw_content  # type: ignore[assignment]
             else:
                 try:
@@ -314,7 +316,8 @@ class NodeService:
             node.media = list(media)
             changed = True
 
-        tags_changed = await self._apply_tags(item=item, node=node, data=data)
+        tag_slugs = self._normalize_tags(data)
+        tags_changed = await self._sync_tags(item=item, node=node, tags=tag_slugs)
         if tags_changed:
             changed = True
 

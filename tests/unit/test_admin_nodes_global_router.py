@@ -89,6 +89,31 @@ async def test_get_global_node(app_and_session):
 
 
 @pytest.mark.asyncio
+async def test_get_global_node_includes_tags(app_and_session):
+    app, async_session = app_and_session
+    async with async_session() as session:
+        tag = Tag(id=uuid.uuid4(), slug="t1", name="T1", workspace_id=uuid.uuid4())
+        node = Node(
+            id=4,
+            slug="n4",
+            title="N4",
+            content={},
+            media=[],
+            author_id=uuid.uuid4(),
+            tags=[tag],
+        )
+        session.add_all([tag, node])
+        await session.commit()
+        node_id = node.id
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.get(f"/admin/nodes/{node_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["tags"] == ["t1"]
+
+
+@pytest.mark.asyncio
 async def test_put_global_node_updates(app_and_session):
     app, async_session = app_and_session
     async with async_session() as session:

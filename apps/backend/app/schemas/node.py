@@ -98,10 +98,22 @@ class NodeOut(NodeBase):
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")
     popularity_score: float = Field(alias="popularityScore")
+    tags: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(
         from_attributes=True, alias_generator=to_camel, populate_by_name=True
     )
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _parse_tags(cls, v: Any) -> list[str]:  # noqa: ANN001
+        if v is None:
+            return []
+        if isinstance(v, list):
+            if v and isinstance(v[0], str):
+                return v
+            return [getattr(t, "slug", str(t)) for t in v]
+        return []
 
     @model_validator(mode="after")
     def _normalize_output(self) -> NodeOut:
