@@ -57,6 +57,8 @@ jobs:
           pip install pre-commit
       - name: Lint
         run: pre-commit run --all-files
+      - name: Verify router map
+        run: python scripts/check_router_map.py
       - name: Run tests
         env:
           DATABASE__HOST: localhost
