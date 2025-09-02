@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import time as _t
 from datetime import datetime
 from typing import Annotated, Literal, TypedDict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Path, Query, Response
-import time as _t
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Response
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -23,6 +24,7 @@ from app.domains.nodes.application.query_models import (
     PageRequest,
     QueryContext,
 )
+from app.domains.nodes.content_admin_router import _resolve_content_item_id
 from app.domains.nodes.content_admin_router import (
     get_node_by_id as _content_get_node_by_id,
 )
@@ -33,7 +35,7 @@ from app.domains.nodes.content_admin_router import (
     update_node_by_id as _content_update_node_by_id,
 )
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.nodes.models import NodeItem
+from app.domains.nodes.models import NodeItem, NodePublishJob
 from app.domains.nodes.schemas.node import NodeBulkOperation, NodeBulkPatch, NodeOut
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.workspaces import WorkspaceType
@@ -337,117 +339,110 @@ async def publish_node_by_id_admin(
     )
 
 
-    class SchedulePublishIn(BaseModel):
-        run_at: datetime
-        access: Literal["everyone", "premium_only", "early_access"] = "everyone"
+class SchedulePublishIn(BaseModel):
+    run_at: datetime
+    access: Literal["everyone", "premium_only", "early_access"] = "everyone"
 
 
-    @router.get("/{id}/publish_info", summary="Publish status and schedule (admin)")
-    async def get_publish_info(
-        workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
-        id: Annotated[int, Path(...)],  # noqa: B008
-        current_user=Depends(admin_required),  # noqa: B008
-        db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
-    ):
-        """
-        Возвращает информацию о публикации:
-        - статус контента (draft/published)
-        - published_at (если есть)
-        - запланированная публикация (если есть pending‑джоб)
-        """
-        # Резолвим контент
-        content_id = await _resolve_content_item_id(db, workspace_id=workspace_id, node_pk=id)
-        item = await db.get(NodeItem, content_id)
-        if not item or item.workspace_id != workspace_id:
-            raise HTTPException(status_code=404, detail="Node not found")
+@router.get("/{id}/publish_info", summary="Publish status and schedule (admin)")
+async def get_publish_info(
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    id: Annotated[int, Path(...)],  # noqa: B008
+    current_user=Depends(admin_required),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+):
+    """Возвращает статус публикации и запланированную публикацию."""
+    item = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_or_item_id=id
+    )
+    if item.workspace_id != workspace_id:
+        raise HTTPException(status_code=404, detail="Node not found")
 
-        res = await db.execute(
-            select(NodePublishJob).where(
-                NodePublishJob.workspace_id == workspace_id,
-                NodePublishJob.node_id == id,
-                NodePublishJob.status == "pending",
-            )
+    res = await db.execute(
+        select(NodePublishJob).where(
+            NodePublishJob.workspace_id == workspace_id,
+            NodePublishJob.node_id == id,
+            NodePublishJob.status == "pending",
         )
-        job = res.scalar_one_or_none()
+    )
+    job = res.scalar_one_or_none()
 
-        status = item.status.value if hasattr(item.status, "value") else str(item.status)
-        payload = {
-            "status": status,
-            "published_at": item.published_at.isoformat() if item.published_at else None,
-            "scheduled": None,
+    status = item.status.value if hasattr(item.status, "value") else str(item.status)
+    payload = {
+        "status": status,
+        "published_at": item.published_at.isoformat() if item.published_at else None,
+        "scheduled": None,
+    }
+    if job:
+        payload["scheduled"] = {
+            "run_at": job.scheduled_at.isoformat(),
+            "access": job.access,
+            "status": job.status,
         }
-        if job:
-            payload["scheduled"] = {
-                "run_at": job.scheduled_at.isoformat(),
-                "access": job.access,
-                "status": job.status,
-            }
-        return payload
+    return payload
 
 
-    @router.post("/{id}/schedule_publish", summary="Schedule publish by date/time (admin)")
-    async def schedule_publish(
-        payload: SchedulePublishIn,
-        workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
-        id: Annotated[int, Path(...)],  # noqa: B008
-        current_user=Depends(admin_required),  # noqa: B008
-        db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
-    ):
-        """
-        Создаёт/заменяет задание на публикацию.
-        Используем числовой node.id; внутри разрешаем UUID контента.
-        """
-        content_id = await _resolve_content_item_id(db, workspace_id=workspace_id, node_pk=id)
+@router.post("/{id}/schedule_publish", summary="Schedule publish by date/time (admin)")
+async def schedule_publish(
+    payload: SchedulePublishIn,
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    id: Annotated[int, Path(...)],  # noqa: B008
+    current_user=Depends(admin_required),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008,
+):
+    """Создаёт или заменяет задание на публикацию."""
+    item = await _resolve_content_item_id(
+        db, workspace_id=workspace_id, node_or_item_id=id
+    )
 
-        # Удаляем существующие pending для этой ноды
-        res = await db.execute(
-            select(NodePublishJob).where(
-                NodePublishJob.workspace_id == workspace_id,
-                NodePublishJob.node_id == id,
-                NodePublishJob.status == "pending",
-            )
+    res = await db.execute(
+        select(NodePublishJob).where(
+            NodePublishJob.workspace_id == workspace_id,
+            NodePublishJob.node_id == id,
+            NodePublishJob.status == "pending",
         )
-        existing = res.scalar_one_or_none()
-        if existing:
-            existing.status = "canceled"
+    )
+    existing = res.scalar_one_or_none()
+    if existing:
+        existing.status = "canceled"
 
-        job = NodePublishJob(
-            workspace_id=workspace_id,
-            node_id=id,
-            content_id=content_id,
-            access=payload.access,
-            scheduled_at=payload.run_at,
-            status="pending",
-            created_by_user_id=current_user.id,
-        )
-        db.add(job)
-        await db.commit()
-        return {
-            "scheduled": {
-                "run_at": job.scheduled_at.isoformat(),
-                "access": job.access,
-                "status": job.status,
-            }
+    job = NodePublishJob(
+        workspace_id=workspace_id,
+        node_id=id,
+        content_id=item.id,
+        access=payload.access,
+        scheduled_at=payload.run_at,
+        status="pending",
+        created_by_user_id=current_user.id,
+    )
+    db.add(job)
+    await db.commit()
+    return {
+        "scheduled": {
+            "run_at": job.scheduled_at.isoformat(),
+            "access": job.access,
+            "status": job.status,
         }
+    }
 
 
-    @router.delete("/{id}/schedule_publish", summary="Cancel scheduled publish (admin)")
-    async def cancel_scheduled_publish(
-        workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
-        id: Annotated[int, Path(...)],  # noqa: B008
-        current_user=Depends(admin_required),  # noqa: B008
-        db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
-    ):
-        res = await db.execute(
-            select(NodePublishJob).where(
-                NodePublishJob.workspace_id == workspace_id,
-                NodePublishJob.node_id == id,
-                NodePublishJob.status == "pending",
-            )
+@router.delete("/{id}/schedule_publish", summary="Cancel scheduled publish (admin)")
+async def cancel_scheduled_publish(
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    id: Annotated[int, Path(...)],  # noqa: B008
+    current_user=Depends(admin_required),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008,
+):
+    res = await db.execute(
+        select(NodePublishJob).where(
+            NodePublishJob.workspace_id == workspace_id,
+            NodePublishJob.node_id == id,
+            NodePublishJob.status == "pending",
         )
-        job = res.scalar_one_or_none()
-        if not job:
-            return {"canceled": False}
-        job.status = "canceled"
-        await db.commit()
-        return {"canceled": True}
+    )
+    job = res.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Publish job not found")
+    job.status = "canceled"
+    await db.commit()
+    return {"canceled": True}
