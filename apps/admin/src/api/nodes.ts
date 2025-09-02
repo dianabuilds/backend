@@ -188,14 +188,6 @@ export async function patchNode(
         delete body.content;
     }
 
-    // Normalize cover URL
-
-    // Normalize media field
-    if (body.media !== undefined && !body.mediaUrls && !body.media_urls) {
-        body.mediaUrls = body.media;
-        body.media_urls = body.media;
-    }
-
     // Expand tag slugs aliases
     if (body.tags !== undefined && !body.tagSlugs && !body.tag_slugs) {
         body.tagSlugs = body.tags;
