@@ -47,10 +47,10 @@ export interface PreviewLinkResponse {
 export async function createPreviewLink(
   workspace_id: string,
 ): Promise<PreviewLinkResponse> {
-  const res = await api.post<PreviewLinkResponse>(
-    `/admin/workspaces/${encodeURIComponent(workspace_id)}/preview/link`,
-    {},
-  );
+  // Корректный эндпоинт — без workspace в пути. workspace_id передаём в теле.
+  const res = await api.post<PreviewLinkResponse>(`/admin/preview/link`, {
+    workspace_id,
+  });
   return res.data as PreviewLinkResponse;
 }
 
