@@ -174,8 +174,6 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         "reactions": node_data.reactions or {},
         "popularityScore": node_data.popularity_score or 0.0,
         # Provide both snake_case and camelCase explicitly
-        "tag_slugs": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
-        "tagSlugs": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
         "tags": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
     }
     # Informational: list unsupported blocks in content to help clients decide

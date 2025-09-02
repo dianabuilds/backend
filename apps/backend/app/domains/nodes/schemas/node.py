@@ -49,7 +49,6 @@ class AdminNodeOut(BaseModel):
     published_at: datetime | None = Field(default=None, alias="publishedAt")
     created_at: datetime | None = Field(default=None, alias="createdAt")
     updated_at: datetime | None = Field(default=None, alias="updatedAt")
-    tag_slugs: list[str] = Field(default_factory=list, alias="tagSlugs")
     tags: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(

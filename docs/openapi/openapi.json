@@ -26409,13 +26409,6 @@
             "type": "object",
             "title": "Reactions"
           },
-          "tagSlugs": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Tagslugs"
-          },
           "tags": {
             "items": {
               "type": "string"
