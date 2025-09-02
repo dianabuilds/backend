@@ -146,16 +146,24 @@ class NodeService:
         node: Node,
         tags: list[str] | None,
     ) -> bool:
-        if not tags:
-            return False
-
         res = await self._db.execute(
-            select(Tag.slug)
+            select(Tag)
             .join(ContentTag, Tag.id == ContentTag.tag_id)
             .where(ContentTag.content_id == item.id)
         )
-        current_slugs = set(res.scalars().all())
+        existing_tags = list(res.scalars().all())
+        current_slugs = {t.slug for t in existing_tags}
+
+        if not tags:
+            set_committed_value(node, "tags", existing_tags)
+            node.tags = existing_tags
+            set_committed_value(item, "tags", existing_tags)
+            return False
+
         if current_slugs == set(tags):
+            set_committed_value(node, "tags", existing_tags)
+            node.tags = existing_tags
+            set_committed_value(item, "tags", existing_tags)
             return False
 
         res = await self._db.execute(
@@ -354,6 +362,7 @@ class NodeService:
 
         tags = self._normalize_tags(data)
         tags_changed = await self._sync_tags(item=item, node=node, tags=tags)
+        await self._db.refresh(item, attribute_names=["tags"])
         if tags_changed:
             changed = True
 
@@ -370,12 +379,6 @@ class NodeService:
         item.updated_at = datetime.utcnow()
 
         await self._db.commit()
-        # Обновим объект, чтобы отдать актуальные связи
-        try:
-            await self._db.refresh(item)
-        except Exception:
-            pass
-
         if changed:
             await navsvc.invalidate_navigation_cache(self._db, node)
             await navcache.invalidate_navigation_by_node(node.slug)
