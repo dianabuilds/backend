@@ -47,7 +47,7 @@ jobs:
             ${{ runner.os }}-eslint-
       - name: Lint
         working-directory: apps/admin
-        run: pnpm run lint --if-present -- --max-warnings=0 --cache
+        run: pnpm run lint -- --max-warnings=0 --cache
       - name: Typecheck
         working-directory: apps/admin
         run: pnpm run typecheck --if-present -- --max-warnings=0
