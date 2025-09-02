@@ -70,8 +70,18 @@ declare module "@editorjs/checklist" {
   const Checklist: ToolConstructable;
   export default Checklist;
 }
+// Некоторые сборки Vite/TS в режиме bundler резолвят типы до конкретных .mjs
+// Добавляем алиасы для подмодулей, чтобы подавить TS7016
+declare module "@editorjs/checklist/dist/checklist.mjs" {
+  const Checklist: ToolConstructable;
+  export default Checklist;
+}
 
 declare module "@editorjs/image" {
+  const ImageTool: ToolConstructable;
+  export default ImageTool;
+}
+declare module "@editorjs/image/dist/image.mjs" {
   const ImageTool: ToolConstructable;
   export default ImageTool;
 }
@@ -80,8 +90,16 @@ declare module "@editorjs/table" {
   const Table: ToolConstructable;
   export default Table;
 }
+declare module "@editorjs/table/dist/table.mjs" {
+  const Table: ToolConstructable;
+  export default Table;
+}
 
 declare module "@editorjs/quote" {
+  const Quote: ToolConstructable;
+  export default Quote;
+}
+declare module "@editorjs/quote/dist/quote.mjs" {
   const Quote: ToolConstructable;
   export default Quote;
 }
@@ -90,13 +108,25 @@ declare module "@editorjs/delimiter" {
   const Delimiter: ToolConstructable;
   export default Delimiter;
 }
+declare module "@editorjs/delimiter/dist/delimiter.mjs" {
+  const Delimiter: ToolConstructable;
+  export default Delimiter;
+}
 
 declare module "@editorjs/list" {
   const List: ToolConstructable;
   export default List;
 }
+declare module "@editorjs/list/dist/list.mjs" {
+  const List: ToolConstructable;
+  export default List;
+}
 
 declare module "@editorjs/header" {
+  const Header: ToolConstructable;
+  export default Header;
+}
+declare module "@editorjs/header/dist/header.mjs" {
   const Header: ToolConstructable;
   export default Header;
 }

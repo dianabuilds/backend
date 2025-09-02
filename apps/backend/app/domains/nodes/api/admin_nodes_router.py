@@ -5,6 +5,7 @@ from typing import Annotated, Literal, TypedDict
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Path, Query, Response
+import time as _t
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -126,10 +127,30 @@ async def list_nodes_admin(
     ctx = QueryContext(user=current_user, is_admin=True)
     svc = NodeQueryService(db)
     page = PageRequest(limit=limit, offset=offset)
+    t0 = _t.perf_counter()
     etag = await svc.compute_nodes_etag(spec, ctx, page)
+    t_etag = _t.perf_counter()
     nodes = await svc.list_nodes(spec, page, ctx)
+    t_list = _t.perf_counter()
     try:
         response.headers["ETag"] = etag
+    except Exception:
+        pass
+    try:
+        # Lightweight server-side timing to quickly spot DB vs. app overhead
+        import logging as _logging
+
+        _logging.getLogger(__name__).info(
+            "admin.nodes_list_timing",
+            extra={
+                "workspace_id": str(workspace_id),
+                "compute_etag_ms": int((t_etag - t0) * 1000),
+                "list_nodes_ms": int((t_list - t_etag) * 1000),
+                "total_ms": int((t_list - t0) * 1000),
+                "limit": int(limit or 0),
+                "offset": int(offset or 0),
+            },
+        )
     except Exception:
         pass
     return nodes
@@ -138,11 +159,24 @@ async def list_nodes_admin(
 @router.post("", summary="Create node (admin)")
 async def create_node_admin(
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    payload: dict | None = None,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
     item = await svc.create(workspace_id, actor_id=current_user.id)
+    # Если в теле пришёл title/slug/content и т.п. — применим сразу же
+    if payload:
+        try:
+            item = await svc.update(
+                workspace_id,
+                item.id,
+                payload,
+                actor_id=current_user.id,
+            )
+        except Exception:
+            # не валим создание, если патч не применился; вернём базовый item
+            pass
     return _serialize(item)
 
 

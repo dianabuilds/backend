@@ -109,24 +109,13 @@ class NodeService:
         return item
 
     async def create(self, workspace_id: UUID | None, *, actor_id: UUID) -> NodeItem:
-        item = await NodeItemDAO.create(
-            self._db,
-            workspace_id=workspace_id,
-            type="quest",
-            slug=f"quest-{uuid4().hex[:8]}",
-            title="New quest",
-            created_by_user_id=actor_id,
-            status=Status.draft,
-            visibility=Visibility.private,
-            version=1,
-        )
-
-        # Синхронно создаём запись в таблице nodes с тем же идентификатором/slug,
-        # чтобы элемент сразу отображался в админ-списках, работающих по таблице nodes.
+        # В некоторых установках колонка content_items.node_id имеет NOT NULL.
+        # Поэтому сначала создаём инфраструктурный Node, затем вставляем NodeItem
+        # со ссылкой на node_id в одном транзакционном потоке.
         node = Node(
             workspace_id=workspace_id,
-            slug=item.slug,
-            title=item.title,
+            # slug генерируется по умолчанию (hex) через Node.generate_slug
+            title="New quest",
             author_id=actor_id,
             status=Status.draft,
             visibility=Visibility.private,
@@ -134,8 +123,22 @@ class NodeService:
             updated_by_user_id=actor_id,
         )
         self._db.add(node)
-        await self._db.commit()
-        item.node_id = node.id
+        await self._db.flush()
+
+        item = await NodeItemDAO.create(
+            self._db,
+            node_id=node.id,
+            workspace_id=workspace_id,
+            type="quest",
+            # синхронизируем slug c Node (hex-значение)
+            slug=node.slug,
+            title=node.title,
+            created_by_user_id=actor_id,
+            status=Status.draft,
+            visibility=Visibility.private,
+            version=1,
+        )
+
         await self._db.commit()
         return item
 
@@ -225,10 +228,18 @@ class NodeService:
             node.media = list(media)
             changed = True
 
-        if "tags" in data:
-            new_tag_slugs = [
-                str(s) for s in data.get("tags") or [] if isinstance(s, str)
-            ]
+        # Accept tags from multiple keys: "tags", "tagSlugs", "tag_slugs"
+        if (
+            "tags" in data
+            or "tagSlugs" in data
+            or "tag_slugs" in data
+        ):
+            raw_slugs = (
+                data.get("tags")
+                if data.get("tags") is not None
+                else data.get("tag_slugs", data.get("tagSlugs"))
+            )
+            new_tag_slugs = [str(s) for s in (raw_slugs or []) if isinstance(s, str)]
             res = await self._db.execute(
                 select(Tag.slug)
                 .join(NodeTag, Tag.id == NodeTag.tag_id)
@@ -293,11 +304,39 @@ class NodeService:
         *,
         actor_id: UUID,
         access: Literal["everyone", "premium_only", "early_access"] = "everyone",
+        scheduled_at: datetime | None = None,
     ) -> NodeItem:
         item = await self.get(workspace_id, node_id)
         validate_transition(item.status, Status.published)
 
-        # Обновляем состояние контентного элемента
+        # Если указано будущее время — сохраняем расписание и не публикуем сразу
+        if scheduled_at and scheduled_at > datetime.utcnow():
+            node = await self._db.get(Node, item.node_id) if item.node_id else None
+            if node is None:
+                node = Node(
+                    workspace_id=item.workspace_id,
+                    slug=item.slug,
+                    title=item.title,
+                    author_id=item.created_by_user_id or actor_id,
+                    status=item.status,
+                    visibility=item.visibility,
+                    created_by_user_id=item.created_by_user_id,
+                    updated_by_user_id=actor_id,
+                )
+                self._db.add(node)
+                await self._db.commit()
+                item.node_id = node.id
+            # persist schedule in Node.meta
+            meta = node._meta_dict()
+            meta["scheduled_at"] = scheduled_at.isoformat()
+            node.meta = meta
+            item.updated_by_user_id = actor_id
+            node.updated_by_user_id = actor_id
+            node.updated_at = datetime.utcnow()
+            await self._db.commit()
+            return item
+
+        # Немедленная публикация
         if access == "early_access":
             item.visibility = Visibility.unlisted
         else:
@@ -328,6 +367,14 @@ class NodeService:
         node.visibility = (
             Visibility.unlisted if access == "early_access" else Visibility.public
         )
+        # очистим отложенную публикацию, если была
+        try:
+            meta = node._meta_dict()
+            if "scheduled_at" in meta:
+                meta.pop("scheduled_at", None)
+                node.meta = meta
+        except Exception:
+            pass
         node.updated_by_user_id = actor_id
         node.updated_at = datetime.utcnow()
 

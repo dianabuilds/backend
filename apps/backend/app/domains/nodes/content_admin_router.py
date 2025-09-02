@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from typing import Annotated, Literal
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -43,6 +44,17 @@ type_router = APIRouter(prefix="/types")
 class PublishIn(BaseModel):
     access: Literal["everyone", "premium_only", "early_access"] = "everyone"
     cover: str | None = None
+    scheduled_at: datetime | None = None
+
+    model_config = {
+        "populate_by_name": True,
+        "json_schema_extra": {
+            "examples": [
+                {"access": "everyone"},
+                {"access": "everyone", "scheduled_at": "2025-09-20T10:00:00Z"},
+            ]
+        },
+    }
 
 
 def _serialize(item: NodeItem, node: Node | None = None) -> dict:
@@ -127,6 +139,7 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         "summary": item.summary,
         "status": item.status.value,
         "publishedAt": item.published_at.isoformat() if item.published_at else None,
+        "scheduledAt": (getattr(node_data, "_meta_dict")() or {}).get("scheduled_at"),
         "createdAt": item.created_at.isoformat() if item.created_at else None,
         "updatedAt": item.updated_at.isoformat() if item.updated_at else None,
         # admin editor expects content and cover fields in payload
@@ -234,15 +247,36 @@ async def get_node_by_id(
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
+    import time as _t
+    t0 = _t.perf_counter()
     node_item = await _resolve_content_item_id(
         db, workspace_id=workspace_id, node_or_item_id=node_id
     )
+    t_resolve = _t.perf_counter()
     svc = NodeService(db)
     item = await svc.get(workspace_id, node_item.id)
+    t_item = _t.perf_counter()
     node = await db.scalar(
         select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags))
     )
-    return _serialize(item, node)
+    t_node = _t.perf_counter()
+    payload = _serialize(item, node)
+    t_ser = _t.perf_counter()
+    try:
+        logger.info(
+            "admin.node_timing",
+            extra={
+                "node_id": item.id,
+                "resolve_ms": int((t_resolve - t0) * 1000),
+                "item_ms": int((t_item - t_resolve) * 1000),
+                "node_ms": int((t_node - t_item) * 1000),
+                "serialize_ms": int((t_ser - t_node) * 1000),
+                "total_ms": int((t_ser - t0) * 1000),
+            },
+        )
+    except Exception:
+        pass
+    return payload
 
 
 @id_router.patch(
@@ -331,6 +365,7 @@ async def publish_node_by_id(
         node_item.id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
+        scheduled_at=(payload.scheduled_at if payload else None),
     )
     await publish_content(
         node_id=item.id,
@@ -487,6 +522,7 @@ async def publish_node(
         node_item.id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
+        scheduled_at=(payload.scheduled_at if payload else None),
     )
     await publish_content(
         node_id=item.id,

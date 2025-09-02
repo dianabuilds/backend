@@ -1,5 +1,5 @@
 import type EditorJS from "@editorjs/editorjs";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 import { wsApi } from "../api/wsApi";
 import { compressImage } from "../utils/compressImage";
@@ -30,12 +30,13 @@ export default function EditorJSEmbed({
   const lastRendered = useRef<string>("");
   const applyingExternal = useRef(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   // Преобразуем относительный URL (/static/uploads/...) в абсолютный к backend origin (в dev 5173–5176) или VITE_API_BASE
   const resolveUrl = (u?: string): string => {
     if (!u) return "";
     try {
-      // База для относительных ссылок: VITE_API_BASE или dev-мэппинг на :8000, иначе текущий origin
+      // База для относительных ссылок: VITE_API_BASE или dev-маппинг на :8000, иначе текущий origin
       let base = "";
       const envBase = (
         import.meta as { env?: Record<string, string | undefined> }
@@ -45,7 +46,8 @@ export default function EditorJSEmbed({
       } else if (typeof window !== "undefined" && window.location) {
         const port = window.location.port;
         if (port && ["5173", "5174", "5175", "5176"].includes(port)) {
-          // В dev всегда идём на http://:8000 (бэкенд без TLS), иначе возможен нерабочий https://:8000
+          // В dev намеренно используем http://:8000 (бэкенд без TLS).
+          // Это устранение mixed-content и проблем с самоподписанными сертификатами.
           base = `http://${window.location.hostname}:8000`;
         } else {
           base = `${window.location.protocol}//${window.location.host}`;
@@ -86,6 +88,26 @@ export default function EditorJSEmbed({
 
   // removed waitForImage helper (unused)
 
+  // Унифицированный помощник отрисовки данных в EditorJS
+  const renderEditor = useCallback(async (inst: any, data: OutputData) => {
+    try {
+      if (inst?.isReady && typeof inst.isReady.then === "function") {
+        await inst.isReady;
+      }
+      if (inst?.render) {
+        await inst.render(data as any);
+      } else {
+        const blocks = (data as any)?.blocks || (data as any)?.data?.blocks;
+        if (Array.isArray(blocks) && inst?.blocks?.render) {
+          await inst.blocks.render(blocks);
+        }
+      }
+    } catch (e) {
+      // логируем, но не прерываем поток — важнее не ломать ввод пользователя
+      console.error("EditorJS render failed", e);
+    }
+  }, []);
+
   useEffect(() => {
     let destroyed = false;
 
@@ -102,15 +124,17 @@ export default function EditorJSEmbed({
 
         if (destroyed) return;
 
+        const initialData: OutputData = (value as OutputData) || {
+          time: Date.now(),
+          blocks: [{ type: "paragraph", data: { text: "" } }],
+          version: "2.30.7",
+        };
+
         const instance = new EditorJS({
         holder: holderId.current,
         minHeight,
         placeholder: placeholder || "Напишите описание, легенду или сценарий…",
-        data: value || {
-          time: Date.now(),
-          blocks: [{ type: "paragraph", data: { text: "" } }],
-          version: "2.30.7",
-        },
+        data: initialData,
         tools: {
           header: Header,
           list: List,
@@ -127,13 +151,13 @@ export default function EditorJSEmbed({
                     const compressed = await compressImage(file);
                     const form = new FormData();
                     form.append("file", compressed);
-                    const res = await wsApi.request<unknown>("/admin/media", {
+                    const res = await wsApi.request<any>("/admin/media", {
                       method: "POST",
                       body: form,
                       raw: true,
                       workspace: "query",
                     });
-                    const rawUrl = extractUrl(res?.data);
+                    const rawUrl = extractUrl((res as any)?.data ?? res);
                     const url = resolveUrl(rawUrl);
                     if (!url) throw new Error("Empty URL from /media");
                     const normalized: ImageUploadResult = {
@@ -171,7 +195,7 @@ export default function EditorJSEmbed({
           if (changeTimer.current) window.clearTimeout(changeTimer.current);
           changeTimer.current = window.setTimeout(async () => {
             try {
-              const data = await instance.save();
+              const data = (await instance.save()) as unknown as OutputData;
               onChange(data);
               try {
                 lastRendered.current = JSON.stringify(data);
@@ -185,12 +209,22 @@ export default function EditorJSEmbed({
         },
       });
 
-        editorRef.current = instance;
-        try {
-          onReady?.({ save: () => instance.save() });
-        } catch {
-          // ignore
-        }
+      editorRef.current = instance;
+      // Зафиксируем исходные данные, чтобы избежать немедленного повторного render(value)
+      try {
+        lastRendered.current = JSON.stringify(initialData);
+      } catch {
+        // ignore
+      }
+      try {
+          onReady?.({
+            save: async () => (await instance.save()) as unknown as OutputData,
+          });
+      } catch {
+        // ignore
+      }
+      // Помечаем, что инстанс готов к синхронизации с актуальным value
+      setInitialized(true);
       } catch (e) {
         if (destroyed) return;
         console.error("EditorJS failed to load", e);
@@ -211,6 +245,29 @@ export default function EditorJSEmbed({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holderId.current]);
 
+  // Одноразовая синхронизация после инициализации редактора на случай,
+  // когда value уже успело прийти до того, как EditorJS был создан.
+  useEffect(() => {
+    if (!initialized) return;
+    const inst = editorRef.current;
+    if (!inst || !value) return;
+    let incoming = "";
+    try {
+      incoming = JSON.stringify(value);
+    } catch {
+      // ignore
+    }
+    if (!incoming || incoming === lastRendered.current) return;
+    applyingExternal.current = true;
+    const doRender = async () => {
+      await renderEditor(inst, value as OutputData);
+      lastRendered.current = incoming;
+      applyingExternal.current = false;
+    };
+    void doRender();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized]);
+
   // When value prop changes after async load, re-render the editor content
   useEffect(() => {
     const inst = editorRef.current;
@@ -223,29 +280,13 @@ export default function EditorJSEmbed({
     }
     if (!incoming || incoming === lastRendered.current) return;
     applyingExternal.current = true;
-    // Prefer blocks.render for broad compatibility across EditorJS versions
-    const render = async () => {
-      try {
-        // Wait until the editor is ready
-        if ((inst as any).isReady && typeof (inst as any).isReady.then === 'function') {
-          await (inst as any).isReady;
-        }
-        const blocks = (value as any)?.blocks || (value as any)?.data?.blocks;
-        if (Array.isArray(blocks) && (inst as any).blocks?.render) {
-          await (inst as any).blocks.render(blocks);
-        } else if ((inst as any).render) {
-          // Fallback to full render if available
-          await (inst as any).render(value as any);
-        }
-        lastRendered.current = incoming;
-      } catch (e) {
-        console.error('EditorJS render failed', e);
-      } finally {
-        applyingExternal.current = false;
-      }
+    const doRender = async () => {
+      await renderEditor(inst, value as OutputData);
+      lastRendered.current = incoming;
+      applyingExternal.current = false;
     };
-    render();
-  }, [value]);
+    void doRender();
+  }, [value, renderEditor]);
 
   if (loadError) {
     return (

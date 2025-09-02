@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { createNode, listNodes, type NodeListParams, patchNode } from '../api/nodes';
+import { listNodes, type NodeListParams } from '../api/nodes';
 import { createPreviewLink } from '../api/preview';
 import { wsApi } from '../api/wsApi';
 import FlagsCell from '../components/FlagsCell';
@@ -13,9 +13,9 @@ import { useToast } from '../components/ToastProvider';
 import WorkspaceControlPanel from '../components/WorkspaceControlPanel';
 import WorkspaceSelector from '../components/WorkspaceSelector';
 import { ensureArray } from '../shared/utils';
-import type { OutputData } from '../types/editorjs';
+// import removed: draft modal editor deleted
 import { confirmWithEnv } from '../utils/env';
-import { safeLocalStorage } from '../utils/safeStorage';
+// import removed (draft persistence no longer used)
 import { useWorkspace } from '../workspace/WorkspaceContext';
 
 type NodeItem = {
@@ -58,35 +58,7 @@ function normalizeNode(raw: any): NodeItem {
   };
 }
 
-interface NodeEditorData {
-  id: number | undefined;
-  title: string;
-  slug: string;
-  subtitle: string;
-  cover_url: string | null;
-  tags: TagOut[];
-  allow_comments: boolean;
-  is_premium_only: boolean;
-  contentData: OutputData;
-}
-
-function makeDraft(): NodeEditorData {
-  return {
-    id: undefined,
-    title: '',
-    slug: '',
-    subtitle: '',
-    cover_url: null,
-    tags: [] as TagOut[],
-    allow_comments: true,
-    is_premium_only: false,
-    contentData: {
-      time: Date.now(),
-      blocks: [{ type: 'paragraph', data: { text: '' } }],
-      version: '2.30.7',
-    },
-  };
-}
+// draft modal editor removed
 
 type ChangeSet = Partial<
   Pick<NodeItem, 'is_visible' | 'is_public' | 'premium_only' | 'is_recommendable'>
@@ -158,27 +130,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
   const [applying, setApplying] = useState(false);
 
   // Модалка создания ноды
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [draft, setDraft] = useState<NodeEditorData>(() => {
-    const raw = safeLocalStorage.getItem('node-draft');
-    if (raw) {
-      try {
-        return JSON.parse(raw) as NodeEditorData;
-      } catch {
-        /* ignore */
-      }
-    }
-    return makeDraft();
-  });
-  const canSave = useMemo(() => !!draft.title.trim(), [draft.title]);
-
-  useEffect(() => {
-    try {
-      safeLocalStorage.setItem('node-draft', JSON.stringify(draft));
-    } catch {
-      /* ignore */
-    }
-  }, [draft]);
+  // modal-based creation removed; use /nodes/new route
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -476,67 +428,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     });
   };
 
-  // Создание ноды
-  const doCreate = async () => {
-    if (!canSave) return;
-    const payload: Record<string, any> = {
-      title: draft.title.trim(),
-      content: draft.contentData,
-      allow_comments: draft.allow_comments,
-      is_premium_only: draft.is_premium_only,
-      tags: draft.tags.map((t) => t.slug),
-    };
-    const blocks = Array.isArray(draft.contentData?.blocks) ? draft.contentData.blocks : [];
-    const media = blocks
-      .filter((b: any) => b.type === 'image' && b.data?.file?.url)
-      .map((b: any) => String(b.data.file.url));
-    if (media.length) payload.media = media;
-    if (draft.cover_url || media.length) payload.cover_url = draft.cover_url || media[0];
-
-    const created = await createNode(workspaceId);
-    const nodeId =
-      (created as any)?.id ??
-      (created as any)?.uuid ??
-      (created as any)?._id ?? 0;
-    await patchNode(workspaceId, nodeId, payload);
-    return { ...created, id: nodeId } as any;
-  };
-
-  const handleCommit = async (action: 'save' | 'next') => {
-    if (creatingRef.current) return;
-    creatingRef.current = true;
-    try {
-      const created = await doCreate();
-      try {
-        safeLocalStorage.removeItem('node-draft');
-        safeLocalStorage.removeItem('node-draft-content');
-      } catch {
-        /* ignore */
-      }
-      if (action === 'next') {
-        setDraft(makeDraft());
-      } else {
-        setEditorOpen(false);
-      }
-      await refetch();
-      if (created?.slug) {
-        addToast({
-          title: 'Node created',
-          description: `Slug: ${created.slug}`,
-          variant: 'success',
-        });
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      addToast({
-        title: 'Failed to create node',
-        description: msg,
-        variant: 'error',
-      });
-    } finally {
-      creatingRef.current = false;
-    }
-  };
+  // Создание перенесено на страницу /nodes/new
 
   const previewSelected = async (id: number) => {
     if (!workspaceId) return;
@@ -782,11 +674,11 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
               type="button"
               className="px-3 py-1 rounded bg-blue-600 text-white"
               onClick={() => {
-                setDraft(makeDraft());
-                setEditorOpen(true);
+                const qs = workspaceId ? `?workspace_id=${encodeURIComponent(workspaceId)}` : '';
+                navigate(`/nodes/new${qs}`);
               }}
             >
-              Create node
+              Add node
             </button>
           </div>
         </div>
@@ -1087,66 +979,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
           </>
         )}
 
-        {editorOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white w-full max-w-[95vw] md:max-w-7xl max-h-[92vh] flex flex-col">
-              <ContentEditor
-                nodeId={draft.id}
-                data-node="node"
-                title={draft.title || 'New node'}
-                statuses={['draft']}
-                versions={[1]}
-                onSave={() => handleCommit('save')}
-                onClose={() => setEditorOpen(false)}
-                toolbar={
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      aria-label="Save"
-                      className="px-2 py-1 border rounded bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={!canSave || creatingRef.current}
-                      onClick={() => handleCommit('save')}
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Save and Next"
-                      className="px-2 py-1 border rounded bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={!canSave || creatingRef.current}
-                      onClick={() => handleCommit('next')}
-                    >
-                      Save & Next
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Close editor"
-                      className="px-2 py-1 border rounded bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      onClick={() => setEditorOpen(false)}
-                    >
-                      Close
-                    </button>
-                  </div>
-                }
-                general={{
-                  title: draft.title,
-                  slug: draft.slug,
-                  tags: draft.tags,
-                  cover: draft.cover_url,
-                  onTitleChange: (v) => setDraft((d) => ({ ...d, title: v })),
-                  onSlugChange: (v) => setDraft((d) => ({ ...d, slug: v })),
-                  onTagsChange: (t) => setDraft((d) => ({ ...d, tags: t })),
-                  onCoverChange: (url) => setDraft((d) => ({ ...d, cover_url: url })),
-                }}
-                content={{
-                  initial: draft.contentData,
-                  onSave: (d) => setDraft((prev) => ({ ...prev, contentData: d })),
-                  storageKey: 'node-draft-content',
-                }}
-              />
-            </div>
-          </div>
-        )}
+        {/* Удалена модалка создания ноды. Используйте кнопку "Add node" → /nodes/new */}
 
         {/* Moderation modal: hide with reason */}
         {modOpen && (

@@ -101,11 +101,24 @@ class Node(Base):
         if isinstance(m, dict):
             return m
         if isinstance(m, str):
+            # Memoize parsed meta to avoid repeated json.loads on every accessor
+            cache = getattr(self, "_meta_cache", None)
+            if isinstance(cache, dict) and cache.get("raw") is m:
+                parsed = cache.get("parsed")
+                if isinstance(parsed, dict):
+                    return parsed
             try:
                 import json
 
                 parsed = json.loads(m)
-                return parsed if isinstance(parsed, dict) else {}
+                if isinstance(parsed, dict):
+                    try:
+                        setattr(self, "_meta_cache", {"raw": m, "parsed": parsed})
+                    except Exception:
+                        # instance may be in a state where setattr is blocked; ignore
+                        pass
+                    return parsed
+                return {}
             except Exception:
                 return {}
         return {}

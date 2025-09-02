@@ -56,8 +56,9 @@ export const nodesApi = {
   },
   create(workspaceId: string | undefined, payload: NodeMutationPayload) {
     const body = enrichPayload(payload);
-    return client.put<NodeMutationPayload, NodeOut>(
-      withQuery(base(workspaceId), { next: 1 }),
+    // Backend expects POST /admin/workspaces/{ws}/nodes for creation
+    return client.post<NodeMutationPayload, NodeOut>(
+      base(workspaceId),
       body,
     );
   },
