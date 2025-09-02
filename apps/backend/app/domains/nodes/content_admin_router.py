@@ -12,12 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.db.session import get_db
-from app.domains.nodes.application.node_service import NodeService
-from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.application.editorjs_renderer import (
     collect_unknown_blocks,
     render_html,
 )
+from app.domains.nodes.application.node_service import NodeService
+from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.schemas.node import AdminNodeList, AdminNodeOut
 from app.domains.nodes.service import publish_content
@@ -85,14 +85,40 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         "blocks": [],
         "version": "2.30.7",
     }
-    content_value = node_data.content if node_data.content else editorjs_default
+
+    raw_content = node_data.content
+    if isinstance(raw_content, str):
+        try:
+            import json as _json
+
+            parsed = _json.loads(raw_content)
+        except Exception:
+            parsed = None
+    else:
+        parsed = raw_content
+
+    if isinstance(parsed, list):
+        content_value = {
+            "time": int(__import__("time").time() * 1000),
+            "blocks": parsed,
+            "version": "2.30.7",
+        }
+    elif isinstance(parsed, dict):
+        content_value = parsed
+    else:
+        content_value = editorjs_default
+
+    meta_dict = getattr(node_data, "_meta_dict", lambda: {})().copy()
+    meta_dict.pop("content", None)
 
     payload = {
         "id": node_pk,
         "contentId": item.id,
         "nodeId": node_pk,
         "workspace_id": str(item.workspace_id),  # kept for compatibility
-        "workspaceId": str(item.workspace_id),   # explicit camelCase for clients not using aliases
+        "workspaceId": str(
+            item.workspace_id
+        ),  # explicit camelCase for clients not using aliases
         "nodeType": item.type,
         "type": item.type,  # legacy
         "slug": item.slug,
@@ -119,7 +145,7 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         "premiumOnly": node_data.premium_only,
         "nftRequired": node_data.nft_required,
         "aiGenerated": node_data.ai_generated,
-        "meta": getattr(node_data, "_meta_dict", lambda: {})(),
+        "meta": meta_dict,
         "authorId": str(node_data.author_id) if node_data.author_id else None,
         "createdByUserId": (
             str(node_data.created_by_user_id)
