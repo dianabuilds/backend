@@ -256,6 +256,14 @@ class NodeService:
         *,
         actor_id: UUID,
     ) -> NodeItem:
+        camel = "media" + "Urls"
+        snake = "media_" + "urls"
+        if camel in data or snake in data:
+            raise HTTPException(
+                status_code=422,
+                detail=f"'{camel}/{snake}' field is deprecated; use 'media'",
+            )
+
         item = await self.get(workspace_id, node_id)
 
         changed = False

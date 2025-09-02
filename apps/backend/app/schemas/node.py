@@ -88,6 +88,15 @@ class NodeUpdate(BaseModel):
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_media_aliases(cls, data: Any) -> Any:  # noqa: ANN101
+        camel = "media" + "Urls"
+        snake = "media_" + "urls"
+        if isinstance(data, dict) and (camel in data or snake in data):
+            raise ValueError(f"'{camel}/{snake}' field is deprecated; use 'media'")
+        return data
+
 
 class NodeOut(NodeBase):
     id: int

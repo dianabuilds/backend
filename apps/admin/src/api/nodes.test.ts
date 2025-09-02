@@ -11,7 +11,7 @@ describe('patchNode', () => {
     expect(spy).toHaveBeenCalledWith(123, 'ws1', { nodes: { foo: 'bar' } }, 1);
   });
 
-  it('expands cover, media and tag aliases and waits for echo by default', async () => {
+  it('expands tag aliases and waits for echo by default', async () => {
     const spy = vi
       .spyOn(AdminService, 'updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch')
       .mockResolvedValue({} as any);
@@ -26,13 +26,11 @@ describe('patchNode', () => {
       {
         coverUrl: 'x',
         media: ['m1'],
-        mediaUrls: ['m1'],
-        media_urls: ['m1'],
         tags: ['t1'],
         tagSlugs: ['t1'],
         tag_slugs: ['t1'],
-  },
-  1,
-);
+      },
+      1,
+    );
   });
 });
