@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import types
 import uuid
 from pathlib import Path
 
@@ -10,12 +11,12 @@ import pytest_asyncio
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import selectinload, sessionmaker
-import types
 
 os.environ.setdefault("TESTING", "true")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
 from app.domains.nodes.application.node_service import NodeService
+
 module_name = "app.domains.nodes.application.editorjs_renderer"
 sys.modules.setdefault(
     module_name,
@@ -24,18 +25,19 @@ sys.modules.setdefault(
         render_html=lambda _: "",
     ),
 )
-from app.domains.nodes.content_admin_router import _serialize
-from app.domains.nodes.dao import NodeItemDAO
-from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.nodes.models import NodeItem, NodePatch
-from app.domains.quests.infrastructure.models.navigation_cache_models import (
+from app.domains.nodes.content_admin_router import _serialize  # noqa: E402
+from app.domains.nodes.dao import NodeItemDAO  # noqa: E402
+from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
+from app.domains.nodes.models import NodeItem, NodePatch  # noqa: E402
+from app.domains.quests.infrastructure.models.navigation_cache_models import (  # noqa: E402
     NavigationCache,
 )
-from app.domains.tags.infrastructure.models.tag_models import NodeTag
-from app.domains.tags.models import ContentTag, Tag
-from app.domains.users.infrastructure.models.user import User
-from app.domains.workspaces.infrastructure.models import Workspace
-from app.schemas.nodes_common import Status, Visibility
+from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
+from app.domains.tags.models import ContentTag, Tag  # noqa: E402
+from app.domains.users.infrastructure.models.user import User  # noqa: E402
+from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.schemas.node import NodeOut  # noqa: E402
+from app.schemas.nodes_common import Status, Visibility  # noqa: E402
 
 
 @pytest_asyncio.fixture()
@@ -174,6 +176,7 @@ async def test_update_creates_new_tag_and_serializes(db: AsyncSession) -> None:
     assert payload["tags"] == ["fresh"]
     assert [t.slug for t in node_obj.tags] == ["fresh"]
     assert [t.slug for t in item_obj.tags] == ["fresh"]
+    assert NodeOut.model_validate(node_obj).tags == ["fresh"]
 
 
 @pytest.mark.asyncio

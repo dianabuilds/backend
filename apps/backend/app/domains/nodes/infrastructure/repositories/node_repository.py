@@ -17,6 +17,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.nodes.infrastructure.models.node import Node
@@ -47,7 +48,7 @@ class NodeRepositoryAdapter(INodeRepository):
     ) -> Node | None:
         if self._repo and workspace_id is not None:
             return await self._repo.get_by_slug(slug, workspace_id=workspace_id)
-        query = select(Node).where(Node.slug == slug)
+        query = select(Node).options(selectinload(Node.tags)).where(Node.slug == slug)
         if workspace_id is None:
             query = query.where(Node.workspace_id.is_(None))
         else:
@@ -55,9 +56,7 @@ class NodeRepositoryAdapter(INodeRepository):
         res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
-    async def get_by_id(
-        self, node_id: int, workspace_id: UUID | None
-    ) -> Node | None:
+    async def get_by_id(self, node_id: int, workspace_id: UUID | None) -> Node | None:
         """Fetch node by numeric primary key."""
         if self._repo and workspace_id is not None:
             # The legacy repository uses UUID identifiers; fall back to direct query
@@ -65,7 +64,7 @@ class NodeRepositoryAdapter(INodeRepository):
                 return await self._repo.get_by_id(node_id, workspace_id=workspace_id)  # type: ignore[arg-type]
             except Exception:
                 pass
-        query = select(Node).where(Node.id == node_id)
+        query = select(Node).options(selectinload(Node.tags)).where(Node.id == node_id)
         if workspace_id is None:
             query = query.where(Node.workspace_id.is_(None))
         else:
@@ -139,9 +138,7 @@ class NodeRepositoryAdapter(INodeRepository):
             query = query.where(Node.workspace_id.is_(None))
         else:
             query = query.where(Node.workspace_id == workspace_id)
-        query = (
-            query.order_by(Node.created_at.desc()).offset(offset).limit(limit)
-        )
+        query = query.order_by(Node.created_at.desc()).offset(offset).limit(limit)
         res = await self._db.execute(query)
         return list(res.scalars().all())
 
