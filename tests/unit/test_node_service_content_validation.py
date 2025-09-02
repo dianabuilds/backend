@@ -57,3 +57,4 @@ async def test_update_rejects_legacy_nodes_field() -> None:
         with pytest.raises(HTTPException) as exc:
             await service.update(workspace_id, item.id, {"nodes": {}}, actor_id=actor_id)
         assert exc.value.status_code == 422
+        assert exc.value.detail == "Field 'nodes' is deprecated; use 'content' instead"

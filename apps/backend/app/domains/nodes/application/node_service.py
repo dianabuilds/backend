@@ -5,6 +5,8 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
+import logging
+
 from fastapi import HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +24,8 @@ from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import validate_transition
 from app.domains.tags.models import ContentTag, Tag
 from app.schemas.nodes_common import Status, Visibility
+
+logger = logging.getLogger(__name__)
 
 navcache = NavigationCacheService(CoreCacheAdapter())
 navsvc = NavigationService()
@@ -288,6 +292,7 @@ class NodeService:
 
         # Content is provided under `content`
         if "nodes" in data:
+            logger.warning("Received legacy 'nodes' field in update payload")
             raise HTTPException(
                 status_code=422,
                 detail="Field 'nodes' is deprecated; use 'content' instead",
