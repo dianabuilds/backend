@@ -30,12 +30,9 @@ export interface SimulatePreviewResponse {
 export async function simulatePreview(
   body: SimulatePreviewRequest,
 ): Promise<SimulatePreviewResponse> {
-  const { workspace_id, ...payload } = body;
   const res = await api.post<SimulatePreviewResponse>(
-    `/admin/workspaces/${encodeURIComponent(
-      workspace_id,
-    )}/preview/transitions/simulate`,
-    payload,
+    `/admin/preview/transitions/simulate`,
+    body,
   );
   return res.data ?? {};
 }
