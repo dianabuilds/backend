@@ -59,10 +59,11 @@ class NodeBase(BaseModel):
 
 
 class NodeCreate(NodeBase):
-    pass
+    slug: str | None = None
 
 
 class NodeUpdate(BaseModel):
+    slug: str | None = None
     title: str | None = None
     is_visible: bool | None = Field(
         default=None,
