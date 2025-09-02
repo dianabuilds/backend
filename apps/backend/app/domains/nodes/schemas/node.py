@@ -31,7 +31,7 @@ class AdminNodeOut(BaseModel):
     status: Status
     meta: dict = Field(default_factory=dict)
     content: dict | list | None = None
-    cover_url: str | None = Field(default=None, alias="coverUrl")
+    coverUrl: str | None = None
     media: list[str] = Field(default_factory=list)
     is_public: bool = Field(alias="isPublic")
     is_visible: bool = Field(default=True, alias="isVisible")

@@ -14,7 +14,7 @@ interface LocalNode {
   backendId?: string; // id ноды на сервере, если создана
   title: string;
   subtitle?: string;
-  cover_url?: string | null;
+  coverUrl?: string | null;
   tags?: string[];
   allow_comments?: boolean;
   is_premium_only?: boolean;
@@ -87,7 +87,7 @@ export default function QuestEditor() {
         id,
         title: "New node",
         subtitle: "",
-        cover_url: null,
+        coverUrl: null,
         tags: [],
         allow_comments: true,
         is_premium_only: false,
@@ -232,7 +232,7 @@ export default function QuestEditor() {
           .filter((b: any) => b.type === "image" && b.data?.file?.url)
           .map((b: any) => String(b.data.file.url));
         if (media.length) payload.media = media;
-        if (n.cover_url || media.length) payload.cover_url = n.cover_url || media[0];
+        if (n.coverUrl || media.length) payload.coverUrl = n.coverUrl || media[0];
         const res = await api.post("/nodes", payload);
         const created = (res.data || {}) as any;
         const backendId = created.id || created.node_id || created.uuid || created.slug || created._id;
@@ -494,8 +494,8 @@ export default function QuestEditor() {
               </div>
             </div>
             <div className="p-2 h-[calc(100%-32px)] text-sm text-gray-600 overflow-hidden">
-              {n.cover_url && (
-                <img src={n.cover_url} alt="" className="w-full h-24 object-cover rounded mb-2 border" />
+              {n.coverUrl && (
+                <img src={n.coverUrl} alt="" className="w-full h-24 object-cover rounded mb-2 border" />
               )}
               <div
                 style={{
@@ -533,7 +533,7 @@ export default function QuestEditor() {
                     id: n.id,
                     title: n.title,
                     subtitle: n.subtitle || "",
-                    cover_url: n.cover_url || null,
+                    coverUrl: n.coverUrl || null,
                     tags: n.tags || [],
                     allow_comments: n.allow_comments ?? true,
                     is_premium_only: n.is_premium_only ?? false,
@@ -551,7 +551,7 @@ export default function QuestEditor() {
                       ...n,
                       title: patch.title ?? n.title,
                       subtitle: patch.subtitle ?? n.subtitle,
-                      cover_url: patch.cover_url ?? n.cover_url,
+                      coverUrl: patch.coverUrl ?? n.coverUrl,
                       tags: patch.tags ?? n.tags,
                       allow_comments: patch.allow_comments ?? n.allow_comments,
                       is_premium_only: patch.is_premium_only ?? n.is_premium_only,

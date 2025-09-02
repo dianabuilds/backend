@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Literal
 from datetime import datetime
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -139,14 +139,14 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         "summary": item.summary,
         "status": item.status.value,
         "publishedAt": item.published_at.isoformat() if item.published_at else None,
-        "scheduledAt": (getattr(node_data, "_meta_dict")() or {}).get("scheduled_at"),
+        "scheduledAt": (node_data._meta_dict() or {}).get("scheduled_at"),
         "createdAt": item.created_at.isoformat() if item.created_at else None,
         "updatedAt": item.updated_at.isoformat() if item.updated_at else None,
         # admin editor expects content and cover fields in payload
         "content": content_value,
         # Pre-rendered HTML for preview clients
         "contentHtml": render_html(content_value),
-        "coverUrl": node_data.cover_url if node_data.cover_url is not None else None,
+        "coverUrl": node_data.coverUrl if node_data.coverUrl is not None else None,
         "coverAssetId": getattr(node_data, "cover_asset_id", None),
         "coverMeta": getattr(node_data, "cover_meta", None),
         "coverAlt": getattr(node_data, "cover_alt", None) or "",
@@ -246,6 +246,7 @@ async def get_node_by_id(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     import time as _t
+
     t0 = _t.perf_counter()
     node_item = await _resolve_content_item_id(
         db, workspace_id=workspace_id, node_or_item_id=node_id

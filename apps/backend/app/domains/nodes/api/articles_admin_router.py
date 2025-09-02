@@ -74,7 +74,7 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         "createdAt": item.created_at.isoformat() if item.created_at else None,
         "updatedAt": item.updated_at.isoformat() if item.updated_at else None,
         "content": node_data.content,
-        "coverUrl": node_data.cover_url,
+        "coverUrl": node_data.coverUrl,
         "media": node_data.media,
         "isPublic": node_data.is_public,
         "isVisible": node_data.is_visible,

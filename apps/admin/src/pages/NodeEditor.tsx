@@ -85,7 +85,7 @@ function normalizeCoverUrl(src: any): string | null {
   if (!src) return null;
   if (typeof src === 'string') return src;
   const obj = (src as any).cover ?? src;
-  return (obj as any).coverUrl ?? (obj as any).cover_url ?? (obj as any).url ?? null;
+  return (obj as any).coverUrl ?? (obj as any).url ?? null;
 }
 
 function normalizeTags(input: any): string[] {
@@ -364,7 +364,6 @@ function NodeEditorInner({
 
       const updatedCover = resolveAssetUrl(
         (updated as any).coverUrl ??
-          (updated as any).cover_url ??
           (nodeRef.current as any).coverUrl ??
           null,
       );
@@ -451,7 +450,6 @@ function NodeEditorInner({
     if ('coverUrl' in patch) {
       const raw = patch.coverUrl ?? null;
       enriched.coverUrl = raw; // camelCase
-      enriched.cover_url = raw; // snake_case
       localNext.coverUrl = resolveAssetUrl(raw);
     }
 
@@ -717,7 +715,7 @@ function NodeEditorInner({
               coverAlt: c.alt,
               coverMeta: c.meta,
             }));
-            // Отправляем PATCH с оригинальным URL (без резолва), дублируется в cover_url внутри handleDraftChange
+            // Отправляем PATCH с оригинальным URL (без резолва)
             handleDraftChange({ coverUrl: c.url });
           }}
           onStatusChange={(isPublic, updated) => {

@@ -73,7 +73,7 @@ export function useNodeEditor(
         id: (data as any).id,
         title: (data as any).title ?? "",
         slug: (data as any).slug ?? "",
-        coverUrl: (data as any).coverUrl ?? (data as any).cover_url ?? null,
+        coverUrl: (data as any).coverUrl ?? null,
         media: ((data as any).media as string[] | undefined) ?? [],
         tags: normalizeTags(data),
         isPublic: (data as any).isPublic ?? (data as any).is_public ?? false,
