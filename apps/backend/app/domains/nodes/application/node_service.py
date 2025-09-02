@@ -156,22 +156,31 @@ class NodeService:
 
         new_slug = data.get("slug")
         if new_slug is not None and new_slug != item.slug:
+            # Нормализуем/валидируем slug: требуем 16-символьный hex без префиксов
+            import re as _re
+            from app.domains.nodes.infrastructure.models.node import generate_slug as _gen
+
+            candidate = str(new_slug or "").strip().lower()
+            # Если передан вид "quest-xxxx" или любой другой — игнорируем и генерируем новый
+            if not _re.fullmatch(r"[a-f0-9]{16}", candidate):
+                candidate = _gen()
+
             # Проверяем уникальность slug среди NodeItem
             res = await self._db.execute(
                 select(NodeItem).where(
-                    NodeItem.slug == new_slug, NodeItem.id != item.id
+                    NodeItem.slug == candidate, NodeItem.id != item.id
                 )
             )
             if res.scalar_one_or_none():
                 raise HTTPException(status_code=409, detail="Slug already exists")
 
             # Проверяем уникальность slug среди Node
-            res = await self._db.execute(select(Node).where(Node.slug == new_slug))
+            res = await self._db.execute(select(Node).where(Node.slug == candidate))
             existing_node = res.scalar_one_or_none()
             if existing_node and existing_node.id != item.node_id:
                 raise HTTPException(status_code=409, detail="Slug already exists")
 
-            item.slug = str(new_slug)
+            item.slug = candidate
             changed = True
 
         title = data.get("title")

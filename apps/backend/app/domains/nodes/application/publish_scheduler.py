@@ -1,0 +1,53 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Iterable
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.domains.nodes.application.node_service import NodeService
+from app.domains.nodes.models import NodeItem, NodePublishJob
+
+
+async def process_due_jobs(db: AsyncSession, *, limit: int = 50) -> dict:
+    """
+    Выполнить отложенные публикации, срок которых наступил.
+    Возвращает отчёт о выполненных заданиях.
+    """
+    now = datetime.now(timezone.utc).replace(tzinfo=None)  # БД хранит naive UTC
+    res = await db.execute(
+        select(NodePublishJob)
+        .where(NodePublishJob.status == "pending", NodePublishJob.scheduled_at <= now)
+        .limit(limit)
+    )
+    jobs: Iterable[NodePublishJob] = list(res.scalars().all())
+    svc = NodeService(db)
+    executed: list[str] = []
+    failed: list[str] = []
+
+    for job in jobs:
+        try:
+            item: NodeItem | None = await db.get(NodeItem, job.content_id)
+            if not item or item.workspace_id != job.workspace_id:
+                job.status = "failed"
+                job.error = "Content not found"
+                failed.append(str(job.id))
+                continue
+            # Публикация согласно access
+            await svc.publish(
+                workspace_id=item.workspace_id,
+                node_type=item.type,
+                node_id=item.id,
+                actor_id=job.created_by_user_id or item.created_by_user_id,
+                access=job.access,  # type: ignore[arg-type]
+            )
+            job.status = "done"
+            job.executed_at = datetime.utcnow()
+            executed.append(str(job.id))
+        except Exception as e:
+            job.status = "failed"
+            job.error = str(e)
+            failed.append(str(job.id))
+    await db.commit()
+    return {"executed": executed, "failed": failed}

@@ -64,3 +64,30 @@ class NodePatch(Base):
     created_by_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=True)
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
     reverted_at = sa.Column(sa.DateTime, nullable=True)
+
+
+class NodePublishJob(Base):
+    """
+    Задание на отложенную публикацию контента, связанного с нодой.
+    Храним и node_id (числовой PK из nodes), и content_id (BigInt из content_items),
+    чтобы быстро резолвить обе стороны без UUID в контексте нод.
+    """
+
+    __tablename__ = "node_publish_jobs"
+
+    id = sa.Column("id_bigint", sa.BigInteger, primary_key=True)
+    workspace_id = sa.Column(UUID(), sa.ForeignKey("workspaces.id"), nullable=False, index=True)
+    node_id = sa.Column(sa.BigInteger, sa.ForeignKey("nodes.id"), nullable=False, index=True)
+    content_id = sa.Column(
+        sa.BigInteger,
+        sa.ForeignKey("content_items.id_bigint"),
+        nullable=False,
+        index=True,
+    )
+    access = sa.Column(sa.String, nullable=False, default="everyone")  # everyone|premium_only|early_access
+    scheduled_at = sa.Column(sa.DateTime, nullable=False, index=True)
+    status = sa.Column(sa.String, nullable=False, default="pending", index=True)  # pending|running|done|canceled|failed
+    error = sa.Column(sa.Text, nullable=True)
+    created_by_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=True)
+    created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
+    executed_at = sa.Column(sa.DateTime, nullable=True)
