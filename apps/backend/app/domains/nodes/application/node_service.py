@@ -120,7 +120,7 @@ class NodeService:
 
     @staticmethod
     def _normalize_tags(data: dict[str, Any]) -> list[str] | None:
-        raw = data.get("tags") or data.get("tagSlugs") or data.get("tag_slugs")
+        raw = data.get("tags")
         if not isinstance(raw, list | tuple):
             return None
         slugs: list[str] = []
@@ -351,8 +351,8 @@ class NodeService:
             node.media = list(media)
             changed = True
 
-        tag_slugs = self._normalize_tags(data)
-        tags_changed = await self._sync_tags(item=item, node=node, tags=tag_slugs)
+        tags = self._normalize_tags(data)
+        tags_changed = await self._sync_tags(item=item, node=node, tags=tags)
         if tags_changed:
             changed = True
 

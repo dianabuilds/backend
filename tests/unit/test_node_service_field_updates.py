@@ -154,7 +154,7 @@ async def test_update_tags_resets_status(db: AsyncSession) -> None:
 async def test_update_creates_new_tag_and_serializes(db: AsyncSession) -> None:
     ws, user_id, node, item = await _prepare_published(db)
     svc = NodeService(db)
-    await svc.update(ws.id, item.id, {"tagSlugs": ["fresh"]}, actor_id=user_id)
+    await svc.update(ws.id, item.id, {"tags": ["fresh"]}, actor_id=user_id)
 
     res = await db.execute(
         sa.select(Tag).where(Tag.workspace_id == ws.id, Tag.slug == "fresh")

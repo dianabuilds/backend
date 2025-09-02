@@ -98,7 +98,6 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         "views": node_data.views,
         "reactions": node_data.reactions or {},
         "popularityScore": node_data.popularity_score,
-        "tag_slugs": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
         "tags": node_data.tag_slugs if hasattr(node_data, "tag_slugs") else [],
     }
 
