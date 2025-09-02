@@ -15,6 +15,10 @@ from sqlalchemy.orm import sessionmaker
 os.environ.setdefault("TESTING", "true")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
+import hashlib
+
+from slugify import slugify
+
 from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.dao import NodeItemDAO
 from app.domains.nodes.infrastructure.models.node import Node
@@ -78,6 +82,7 @@ async def test_update_syncs_slug_between_item_and_node(db: AsyncSession) -> None
 
     service = NodeService(db)
     updated = await service.update(ws.id, item.id, {"slug": "new"}, actor_id=user_id)
-    assert updated.slug == "new"
+    expected = hashlib.sha256(slugify("new").encode()).hexdigest()[:16]
+    assert updated.slug == expected
     node_db = await db.get(Node, node.id)
-    assert node_db.slug == "new"
+    assert node_db.slug == expected

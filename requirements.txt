@@ -32,6 +32,7 @@ python-dotenv>=1.0.0
 # Utilities
 python-multipart>=0.0.6
 requests>=2.31.0
+python-slugify>=8.0.1
 
 # Testing
 httpx>=0.24

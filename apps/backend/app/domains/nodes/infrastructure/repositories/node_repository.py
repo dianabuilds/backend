@@ -12,9 +12,12 @@ available the adapter will delegate to it automatically.
 
 from __future__ import annotations
 
+import hashlib
+import re
 from datetime import datetime
 from uuid import UUID
 
+from slugify import slugify
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -40,6 +43,20 @@ class NodeRepositoryAdapter(INodeRepository):
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
         self._repo = _LegacyNodeRepository(db) if _LegacyNodeRepository else None
+
+        self._hex_re = re.compile(r"[a-f0-9]{16}")
+
+    async def _unique_slug(self, base: str, *, skip_id: int | None = None) -> str:
+        slug_base = slugify(base) or "node"
+        idx = 0
+        while True:
+            text = slug_base if idx == 0 else f"{slug_base}-{idx}"
+            candidate = hashlib.sha256(text.encode()).hexdigest()[:16]
+            res = await self._db.execute(select(Node).where(Node.slug == candidate))
+            existing = res.scalar_one_or_none()
+            if not existing or existing.id == skip_id:
+                return candidate
+            idx += 1
 
     # ------------------------------------------------------------------
     # Basic getters
@@ -79,8 +96,18 @@ class NodeRepositoryAdapter(INodeRepository):
     ) -> Node:
         if self._repo and workspace_id is not None:
             return await self._repo.create(payload, author_id, workspace_id)
+        candidate = (payload.slug or "").strip().lower()
+        if candidate and self._hex_re.fullmatch(candidate):
+            res = await self._db.execute(select(Node).where(Node.slug == candidate))
+            if res.scalar_one_or_none():
+                candidate = await self._unique_slug(candidate)
+        else:
+            base = candidate or (payload.title or "node")
+            candidate = await self._unique_slug(base)
+
         node = Node(
             title=payload.title,
+            slug=candidate,
             author_id=author_id,
             workspace_id=workspace_id,
             is_visible=payload.is_visible,
@@ -101,8 +128,22 @@ class NodeRepositoryAdapter(INodeRepository):
     async def update(self, node: Node, payload: NodeUpdate, actor_id: UUID) -> Node:
         if self._repo:
             return await self._repo.update(node, payload, actor_id)
-        for field, value in payload.model_dump(exclude_unset=True).items():
+        data = payload.model_dump(exclude_unset=True)
+        slug_candidate = data.pop("slug", None)
+        for field, value in data.items():
             setattr(node, field, value)
+        if slug_candidate is not None:
+            candidate = (slug_candidate or "").strip().lower()
+            if candidate and self._hex_re.fullmatch(candidate):
+                res = await self._db.execute(
+                    select(Node).where(Node.slug == candidate, Node.id != node.id)
+                )
+                if res.scalar_one_or_none():
+                    candidate = await self._unique_slug(candidate, skip_id=node.id)
+            else:
+                base = candidate or data.get("title") or node.title or "node"
+                candidate = await self._unique_slug(base, skip_id=node.id)
+            node.slug = candidate
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = actor_id
         await self._db.commit()

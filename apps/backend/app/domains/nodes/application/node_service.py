@@ -1,13 +1,15 @@
 # mypy: ignore-errors
 from __future__ import annotations
 
+import hashlib
+import logging
+import re
 from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-import logging
-
 from fastapi import HTTPException
+from slugify import slugify
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import set_committed_value
@@ -30,6 +32,8 @@ logger = logging.getLogger(__name__)
 navcache = NavigationCacheService(CoreCacheAdapter())
 navsvc = NavigationService()
 
+HEX_RE = re.compile(r"[a-f0-9]{16}")
+
 
 class NodeService:
     """Service layer for managing graph nodes."""
@@ -38,6 +42,32 @@ class NodeService:
         """Initialize service."""
 
         self._db = db
+
+    async def _unique_slug(
+        self,
+        base: str,
+        *,
+        skip_item_id: int | None = None,
+        skip_node_id: int | None = None,
+    ) -> str:
+        slug_base = slugify(base) or "node"
+        idx = 0
+        while True:
+            text = slug_base if idx == 0 else f"{slug_base}-{idx}"
+            candidate = hashlib.sha256(text.encode()).hexdigest()[:16]
+            res = await self._db.execute(
+                select(NodeItem).where(NodeItem.slug == candidate)
+            )
+            existing_item = res.scalar_one_or_none()
+            if existing_item and existing_item.id != skip_item_id:
+                idx += 1
+                continue
+            res = await self._db.execute(select(Node).where(Node.slug == candidate))
+            existing_node = res.scalar_one_or_none()
+            if existing_node and existing_node.id != skip_node_id:
+                idx += 1
+                continue
+            return candidate
 
     # Queries -----------------------------------------------------------------
     async def list(
@@ -187,10 +217,12 @@ class NodeService:
         # В некоторых установках колонка content_items.node_id имеет NOT NULL.
         # Поэтому сначала создаём инфраструктурный Node, затем вставляем NodeItem
         # со ссылкой на node_id в одном транзакционном потоке.
+        title = "New quest"
+        slug = await self._unique_slug(title)
         node = Node(
             workspace_id=workspace_id,
-            # slug генерируется по умолчанию (hex) через Node.generate_slug
-            title="New quest",
+            slug=slug,
+            title=title,
             author_id=actor_id,
             status=Status.draft,
             visibility=Visibility.private,
@@ -205,9 +237,8 @@ class NodeService:
             node_id=node.id,
             workspace_id=workspace_id,
             type="quest",
-            # синхронизируем slug c Node (hex-значение)
-            slug=node.slug,
-            title=node.title,
+            slug=slug,
+            title=title,
             created_by_user_id=actor_id,
             status=Status.draft,
             visibility=Visibility.private,
@@ -230,36 +261,35 @@ class NodeService:
         changed = False
 
         new_slug = data.get("slug")
-        if new_slug is not None and new_slug != item.slug:
-            # Нормализуем/валидируем slug: требуем 16-символьный hex без префиксов
-            import re as _re
-
-            from app.domains.nodes.infrastructure.models.node import (
-                generate_slug as _gen,
-            )
-
-            candidate = str(new_slug or "").strip().lower()
-            # Игнорируем нестандартные значения (например, "quest-xxxx")
-            if not _re.fullmatch(r"[a-f0-9]{16}", candidate):
-                candidate = _gen()
-
-            # Проверяем уникальность slug среди NodeItem
-            res = await self._db.execute(
-                select(NodeItem).where(
-                    NodeItem.slug == candidate, NodeItem.id != item.id
+        if new_slug is not None:
+            candidate = str(new_slug).strip().lower()
+            if candidate and HEX_RE.fullmatch(candidate):
+                res = await self._db.execute(
+                    select(NodeItem).where(
+                        NodeItem.slug == candidate, NodeItem.id != item.id
+                    )
                 )
-            )
-            if res.scalar_one_or_none():
-                raise HTTPException(status_code=409, detail="Slug already exists")
-
-            # Проверяем уникальность slug среди Node
-            res = await self._db.execute(select(Node).where(Node.slug == candidate))
-            existing_node = res.scalar_one_or_none()
-            if existing_node and existing_node.id != item.node_id:
-                raise HTTPException(status_code=409, detail="Slug already exists")
-
-            item.slug = candidate
-            changed = True
+                existing_item = res.scalar_one_or_none()
+                res = await self._db.execute(select(Node).where(Node.slug == candidate))
+                existing_node = res.scalar_one_or_none()
+                if existing_item or (
+                    existing_node and existing_node.id != item.node_id
+                ):
+                    candidate = await self._unique_slug(
+                        candidate,
+                        skip_item_id=item.id,
+                        skip_node_id=item.node_id,
+                    )
+            else:
+                base = candidate or data.get("title") or item.title
+                candidate = await self._unique_slug(
+                    base,
+                    skip_item_id=item.id,
+                    skip_node_id=item.node_id,
+                )
+            if candidate != item.slug:
+                item.slug = candidate
+                changed = True
 
         title = data.get("title")
         if title is not None and title != item.title:
