@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -17,6 +19,12 @@ def _harden_set_cookie_line(line: str, is_https: bool) -> str:
     if name not in target:
         return line
 
+    default_samesite = settings.cookie.samesite.capitalize() or "Lax"
+    desired = f"samesite={default_samesite.lower()}"
+    if "samesite=" in lower and desired not in lower:
+        line = re.sub(r"(?i)samesite=[^;]*", f"SameSite={default_samesite}", line)
+        lower = line.lower()
+
     parts = [line.rstrip("; ")]
     # HttpOnly
     if "httponly" not in lower:
@@ -24,9 +32,9 @@ def _harden_set_cookie_line(line: str, is_https: bool) -> str:
     # Secure
     if "secure" not in lower and (settings.is_production or is_https):
         parts.append("Secure")
-    # SameSite (по умолчанию Lax)
+    # SameSite
     if "samesite=" not in lower:
-        parts.append("SameSite=Lax")
+        parts.append(f"SameSite={default_samesite}")
     # Path
     if (
         " path=" not in lower
