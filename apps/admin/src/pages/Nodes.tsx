@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/rules-of-hooks, react-hooks/exhaustive-deps */
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { listNodes, type NodeListParams } from '../api/nodes';
@@ -8,14 +8,11 @@ import { createPreviewLink } from '../api/preview';
 import { wsApi } from '../api/wsApi';
 import FlagsCell from '../components/FlagsCell';
 import StatusBadge from '../components/StatusBadge';
-import type { TagOut } from '../components/tags/TagPicker';
 import { useToast } from '../components/ToastProvider';
 import WorkspaceControlPanel from '../components/WorkspaceControlPanel';
 import WorkspaceSelector from '../components/WorkspaceSelector';
 import { ensureArray } from '../shared/utils';
-// import removed: draft modal editor deleted
 import { confirmWithEnv } from '../utils/env';
-// import removed (draft persistence no longer used)
 import { useWorkspace } from '../workspace/WorkspaceContext';
 
 type NodeItem = {
@@ -34,32 +31,6 @@ type NodeItem = {
 };
 
 const EMPTY_NODES: NodeItem[] = [];
-
-// Нормализуем поля ответа API (camelCase -> snake_case) и приводим тип
-function normalizeNode(raw: any): NodeItem {
-  const n = raw || {};
-  return {
-    ...n,
-    id: Number(n.id ?? n.uuid ?? n._id),
-    title: n.title ?? n.name ?? undefined,
-    slug: n.slug,
-    status: n.status ?? n.state ?? undefined,
-    is_visible: typeof n.is_visible === 'boolean' ? n.is_visible : Boolean(n.isVisible),
-    is_public: typeof n.is_public === 'boolean' ? n.is_public : Boolean(n.isPublic),
-    premium_only: typeof n.premium_only === 'boolean' ? n.premium_only : Boolean(n.premiumOnly),
-    is_recommendable:
-      typeof n.is_recommendable === 'boolean'
-        ? n.is_recommendable
-        : typeof n.isRecommendable === 'boolean'
-          ? n.isRecommendable
-          : true,
-    created_at: n.created_at ?? n.createdAt ?? undefined,
-    updated_at: n.updated_at ?? n.updatedAt ?? undefined,
-    type: n.type ?? n.node_type ?? n.nodeType ?? undefined,
-  };
-}
-
-// draft modal editor removed
 
 type ChangeSet = Partial<
   Pick<NodeItem, 'is_visible' | 'is_public' | 'premium_only' | 'is_recommendable'>
@@ -129,9 +100,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     [pending],
   );
   const [applying, setApplying] = useState(false);
-
-  // Модалка создания ноды
-  // modal-based creation removed; use /nodes/{type}/new route
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -255,9 +223,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     }
   };
 
-  // Moderation sidebar removed — отдельные состояния/загрузки скрытых нод не нужны
-
-  const creatingRef = useRef(false);
   const {
     data: nodesData = EMPTY_NODES,
     isLoading,
@@ -290,8 +255,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
       if (premium !== 'all') params.premium_only = premium === 'true';
       if (recommendable !== 'all') params.recommendable = recommendable === 'true';
       const res = await listNodes(workspaceId, params);
-      const raw = ensureArray<any>(res) as any[];
-      return raw.map((x) => normalizeNode(x));
+      return ensureArray<NodeItem>(res);
     },
     enabled: !!workspaceId,
     placeholderData: (prev) => prev,
@@ -309,7 +273,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     const arr = nodesData || [];
     setItems(arr);
     setHasMore(arr.length === limit);
-    const snap = new Map<string, NodeItem>();
+    const snap = new Map<number, NodeItem>();
     arr.forEach((n: NodeItem) => snap.set(n.id, { ...n }));
     setBaseline(snap);
     setPending(new Map());
@@ -429,8 +393,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     });
   };
 
-// Создание перенесено на страницу /nodes/{type}/new
-
   const previewSelected = async (id: number) => {
     if (!workspaceId) return;
     const node = items.find((n) => n.id === id);
@@ -505,8 +467,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [selected, items, workspaceId, navigate, applyChanges]);
-
-  // Moderation actions by slug (hide/restore) удалены вместе с боковой панелью.
 
   return (
     <div className="flex gap-6">
@@ -982,8 +942,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
           </>
         )}
 
-        {/* Удалена модалка создания ноды. Используйте кнопку "Add node" → /nodes/{type}/new */}
-
         {/* Moderation modal: hide with reason */}
         {modOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -1022,7 +980,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
         )}
       </div>
 
-      {/* Moderation sidebar removed: управление скрытием ведём через общий список и фильтр visible/hidden */}
     </div>
   );
 }
