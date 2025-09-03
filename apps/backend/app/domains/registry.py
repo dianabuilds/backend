@@ -307,7 +307,7 @@ def register_domain_routers(app: FastAPI) -> None:
         raise RuntimeError("Failed to load admin workspaces router") from exc
     # Admin nodes content
     try:
-        from app.domains.nodes.api.content_router import (
+        from app.domains.nodes.content_admin_router import (
             router as admin_nodes_content_router,
         )
 
