@@ -1,5 +1,21 @@
-export default function PublishingTab() {
+import PublishControls from '../publish/PublishControls';
+
+interface PublishingTabProps {
+  workspaceId: string;
+  nodeId: number;
+  onChanged?: () => void;
+}
+
+export default function PublishingTab({
+  workspaceId,
+  nodeId,
+  onChanged,
+}: PublishingTabProps) {
   return (
-    <div className="text-sm text-gray-500">No publishing content yet.</div>
+    <PublishControls
+      workspaceId={workspaceId}
+      nodeId={nodeId}
+      onChanged={onChanged}
+    />
   );
 }

@@ -6,6 +6,7 @@ import { createNode, getNode, patchNode } from '../api/nodes';
 import { useAuth } from '../auth/AuthContext';
 import ContentTab from '../components/content/ContentTab';
 import GeneralTab from '../components/content/GeneralTab';
+import PublishingTab from '../components/content/PublishingTab';
 import ErrorBanner from '../components/ErrorBanner';
 import NodeSidebar from '../components/NodeSidebar';
 import StatusBadge from '../components/StatusBadge';
@@ -388,6 +389,29 @@ function NodeEditorInner({
 
   const unsaved = pending > 0 || saving;
 
+  const refreshPublishInfo = async () => {
+    try {
+      const updated = await getNode(workspaceId, Number(nodeRef.current.id));
+      setNode((prev) => ({
+        ...prev,
+        isPublic:
+          (updated as any).isPublic ??
+          (updated as any).is_public ??
+          prev.isPublic,
+        publishedAt:
+          (updated as any).publishedAt ??
+          (updated as any).published_at ??
+          prev.publishedAt,
+        updatedAt:
+          (updated as any).updatedAt ??
+          (updated as any).updated_at ??
+          prev.updatedAt,
+      }));
+    } catch {
+      // ignore
+    }
+  };
+
   const handleDraftChange = (patch: Partial<NodeDraft> & Record<string, any>) => {
     // Приводим патч к формату, который гарантированно примет API (snake_case/camelCase)
     const enriched: Record<string, any> = { ...patch };
@@ -661,6 +685,11 @@ function NodeEditorInner({
           <ContentTab
             value={node.content}
             onChange={canEdit ? (d) => handleDraftChange({ content: d }) : undefined}
+          />
+          <PublishingTab
+            workspaceId={workspaceId}
+            nodeId={Number(node.id)}
+            onChanged={refreshPublishInfo}
           />
         </div>
         <NodeSidebar
