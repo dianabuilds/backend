@@ -9,6 +9,7 @@ import {
   schedulePublish,
   type PublishInfo,
 } from '../../api/publish';
+import { patchNode } from '../../api/nodes';
 import { useToast } from '../ToastProvider';
 
 type Props = {
@@ -103,6 +104,18 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
     },
   });
 
+  const mUnpublish = useMutation({
+    mutationFn: () => patchNode(workspaceId, nodeId, { isPublic: false }),
+    onSuccess: async () => {
+      addToast({ title: 'Снято с публикации', variant: 'success' });
+      await qc.invalidateQueries({ queryKey: ['publish-info', workspaceId, nodeId] });
+      onChanged?.();
+    },
+    onError: (e: any) => {
+      addToast({ title: 'Не удалось снять с публикации', description: String(e?.message || e), variant: 'error' });
+    },
+  });
+
   const scheduled = data?.scheduled?.status === 'pending';
 
   return (
@@ -177,6 +190,15 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
               disabled={disabled || mCancel.isPending}
             >
               Отменить расписание
+            </button>
+          )}
+          {data?.status === 'published' && (
+            <button
+              className="px-3 py-1 rounded bg-red-600 text-white disabled:opacity-50"
+              onClick={() => mUnpublish.mutate()}
+              disabled={disabled || mUnpublish.isPending}
+            >
+              Снять с публикации
             </button>
           )}
         </div>
