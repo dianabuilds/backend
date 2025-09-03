@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
 from typing import Annotated, Any
@@ -12,6 +13,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import cache as shared_cache
 from app.core.config import settings
 from app.core.db.session import get_db
 from app.core.redis_utils import create_async_redis
@@ -25,6 +27,9 @@ except Exception:  # pragma: no cover - optional dependency
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+READYZ_CACHE_TTL = 5
 
 
 @router.get("/health", include_in_schema=False)
@@ -99,6 +104,12 @@ async def _check_payment_service(timeout: float) -> bool:
 
 @router.get("/readyz", include_in_schema=False)
 async def readyz(db: Annotated[AsyncSession, Depends(get_db)]) -> JSONResponse:
+    cache_key = "ops:readyz"
+    cached = await shared_cache.get(cache_key)
+    if cached:
+        data = json.loads(cached)
+        return JSONResponse(status_code=data["status"], content=data["body"])
+
     obs = settings.observability
     db_timeout = obs.db_check_timeout_ms / 1000
     redis_timeout = obs.redis_check_timeout_ms / 1000
@@ -141,4 +152,6 @@ async def readyz(db: Annotated[AsyncSession, Depends(get_db)]) -> JSONResponse:
             status = 503
             logger.warning("%s_check_failed %r", name, value)
 
+    payload = {"status": status, "body": result}
+    await shared_cache.set(cache_key, json.dumps(payload), READYZ_CACHE_TTL)
     return JSONResponse(status_code=status, content=result)
