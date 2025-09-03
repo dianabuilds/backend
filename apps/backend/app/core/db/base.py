@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 from sqlalchemy.ext.declarative import declared_attr
@@ -25,7 +27,7 @@ from app.core.policy import policy  # noqa: E402
 if not policy.allow_write:
     from app.domains.users.infrastructure.models.user import User  # noqa
 else:
-    from app.core.idempotency_models import IdempotencyKey  # noqa
+    from app.models.idempotency import IdempotencyKey  # noqa
     from app.models.outbox import OutboxEvent  # noqa
     from app.domains.nodes.infrastructure.models.node import Node  # noqa
     from app.domains.nodes.models import NodeItem  # noqa
