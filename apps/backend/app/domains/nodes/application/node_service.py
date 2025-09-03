@@ -287,30 +287,35 @@ class NodeService:
         new_slug = data.get("slug")
         if new_slug is not None:
             candidate = str(new_slug).strip().lower()
-            if candidate and HEX_RE.fullmatch(candidate):
-                res = await self._db.execute(
-                    select(NodeItem).where(
-                        NodeItem.slug == candidate, NodeItem.id != item.id
+            if candidate:
+                if HEX_RE.fullmatch(candidate):
+                    res = await self._db.execute(
+                        select(NodeItem).where(
+                            NodeItem.slug == candidate, NodeItem.id != item.id
+                        )
                     )
-                )
-                existing_item = res.scalar_one_or_none()
-                res = await self._db.execute(select(Node).where(Node.slug == candidate))
-                existing_node = res.scalar_one_or_none()
-                if existing_item or (
-                    existing_node and existing_node.id != item.node_id
-                ):
+                    existing_item = res.scalar_one_or_none()
+                    res = await self._db.execute(
+                        select(Node).where(Node.slug == candidate)
+                    )
+                    existing_node = res.scalar_one_or_none()
+                    if existing_item or (
+                        existing_node and existing_node.id != item.node_id
+                    ):
+                        candidate = await self._unique_slug(
+                            candidate,
+                            skip_item_id=item.id,
+                            skip_node_id=item.node_id,
+                        )
+                else:
                     candidate = await self._unique_slug(
                         candidate,
                         skip_item_id=item.id,
                         skip_node_id=item.node_id,
                     )
             else:
-                base = candidate or data.get("title") or item.title
-                candidate = await self._unique_slug(
-                    base,
-                    skip_item_id=item.id,
-                    skip_node_id=item.node_id,
-                )
+                base = data.get("title") or item.title
+                candidate = await self._unique_slug(base)
             if candidate != item.slug:
                 item.slug = candidate
                 changed = True
