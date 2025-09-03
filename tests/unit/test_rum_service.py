@@ -1,0 +1,35 @@
+import sys
+from pathlib import Path
+
+import fakeredis.aioredis
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
+
+from app.domains.telemetry.application.rum_service import RumMetricsService
+from app.domains.telemetry.infrastructure.repositories.rum_repository import (
+    RumRedisRepository,
+)
+
+
+@pytest.mark.asyncio
+async def test_rum_service_summary() -> None:
+    redis = fakeredis.aioredis.FakeRedis(decode_responses=True)
+    repo = RumRedisRepository(redis, key="test:rum")
+    service = RumMetricsService(repo)
+
+    await service.record({"event": "login_attempt", "data": {"dur_ms": 120}})
+    await service.record(
+        {
+            "event": "navigation",
+            "data": {"ttfb": 20, "domContentLoaded": 30, "loadEvent": 40},
+        }
+    )
+
+    events = await service.list_events(10)
+    assert events[0]["event"] == "navigation"
+    assert events[1]["event"] == "login_attempt"
+
+    summary = await service.summary(10)
+    assert summary["counts"]["login_attempt"] == 1
+    assert summary["navigation_avg"]["ttfb_ms"] == 20.0
