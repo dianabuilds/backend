@@ -19,14 +19,14 @@ class Base(DeclarativeBase):
         return cls.__name__.lower()
 
 
-from app.core.policy import policy
+from app.core.policy import policy  # noqa: E402
 
 # Import all models here so Base has them registered
 if not policy.allow_write:
     from app.domains.users.infrastructure.models.user import User  # noqa
 else:
     from app.core.idempotency_models import IdempotencyKey  # noqa
-    from app.core.outbox_models import OutboxEvent  # noqa
+    from app.models.outbox import OutboxEvent  # noqa
     from app.domains.nodes.infrastructure.models.node import Node  # noqa
     from app.domains.nodes.models import NodeItem  # noqa
     from app.domains.tags.infrastructure.models.tag_models import TagAlias  # noqa

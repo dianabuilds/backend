@@ -8,8 +8,8 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.outbox_models import OutboxEvent, OutboxStatus
 from app.core.preview import PreviewContext
+from app.models.outbox import OutboxEvent, OutboxStatus
 
 
 async def emit(
