@@ -37,7 +37,6 @@ export type AdminNodeOut = {
     media?: Array<string>;
     isPublic?: boolean;
     reactions?: Record<string, any>;
-    tagSlugs?: Array<string>;
     tags?: Array<string>;
 };
 

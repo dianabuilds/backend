@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import uuid
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi import HTTPException
@@ -94,7 +95,17 @@ async def test_update_accepts_content_field() -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_rejects_media_aliases() -> None:
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("media" + "Urls", ["m1"]),
+        ("media_" + "urls", ["m1"]),
+        ("tagSlugs", ["t1"]),
+        ("tag_slugs", ["t1"]),
+        ("nodes", []),
+    ],
+)
+async def test_update_rejects_legacy_fields(field: str, value: list[Any]) -> None:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
         await conn.run_sync(Workspace.__table__.create)
@@ -156,21 +167,19 @@ async def test_update_rejects_media_aliases() -> None:
         ns.navcache = _DummyNavCache()
 
         service = NodeService(session)
-        deprecated = "media" + "Urls"
         with pytest.raises(HTTPException) as exc:
             await service.update(
                 workspace_id,
                 item.id,
-                {deprecated: ["m1"]},
+                {field: value},
                 actor_id=actor_id,
             )
         assert exc.value.status_code == 422
 
 
-def test_node_update_rejects_media_aliases() -> None:
+def test_node_update_rejects_legacy_fields() -> None:
     camel = "media" + "Urls"
     snake = "media_" + "urls"
-    with pytest.raises(ValidationError):
-        NodeUpdate.model_validate({camel: []})
-    with pytest.raises(ValidationError):
-        NodeUpdate.model_validate({snake: []})
+    for field in [camel, snake, "tagSlugs", "tag_slugs", "nodes"]:
+        with pytest.raises(ValidationError):
+            NodeUpdate.model_validate({field: []})

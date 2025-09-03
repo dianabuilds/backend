@@ -90,11 +90,22 @@ class NodeUpdate(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _reject_media_aliases(cls, data: Any) -> Any:  # noqa: ANN101
+    def _reject_legacy_fields(cls, data: Any) -> Any:  # noqa: ANN101
         camel = "media" + "Urls"
         snake = "media_" + "urls"
-        if isinstance(data, dict) and (camel in data or snake in data):
-            raise ValueError(f"'{camel}/{snake}' field is deprecated; use 'media'")
+        forbidden = {
+            camel: "media",
+            snake: "media",
+            "tagSlugs": "tags",
+            "tag_slugs": "tags",
+            "nodes": "content",
+        }
+        if isinstance(data, dict):
+            for field, replacement in forbidden.items():
+                if field in data:
+                    raise ValueError(
+                        f"'{field}' field is deprecated; use '{replacement}'"
+                    )
         return data
 
 

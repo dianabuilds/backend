@@ -32,21 +32,11 @@ export interface NodeListParams {
 
 export interface NodePatchParams {
     title?: string | null;
-    /**
-     * Field used by newer API versions for node content.
-     * We keep it flexible to allow any structure.
-     */
-    nodes?: unknown;
-    /**
-     * Backwards compatible field name for node content. When present it will
-     * be mapped to `nodes` before sending the request.
-     */
+    /** Node content as EditorJS document. */
     content?: unknown;
     media?: string[] | null;
     coverUrl?: string | null;
-    /**
-     * List of tag slugs. Aliases `tagSlugs`/`tag_slugs` will be sent automatically.
-     */
+    /** List of tag slugs. */
     tags?: string[] | null;
     isPublic?: boolean | null;
     isVisible?: boolean | null;
@@ -139,8 +129,6 @@ export async function createNode(workspaceId: string): Promise<NodeOut> {
 }
 
 export interface NodeResponse extends NodeOut {
-    tag_slugs?: string[];
-    tagSlugs?: string[];
     cover?: { url?: string | null } | null;
     nodeId?: number | null;
   contentId?: number;
@@ -182,17 +170,6 @@ export async function patchNode(
     opts: { signal?: AbortSignal; next?: boolean } = {},
 ): Promise<NodeResponse> {
     const body: Record<string, unknown> = { ...patch };
-
-    if (body.content !== undefined) {
-        body.nodes = body.content;
-        delete body.content;
-    }
-
-    // Expand tag slugs aliases
-    if (body.tags !== undefined && !body.tagSlugs && !body.tag_slugs) {
-        body.tagSlugs = body.tags;
-        body.tag_slugs = body.tags;
-    }
 
     const res = await AdminService.updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch(
         id,
