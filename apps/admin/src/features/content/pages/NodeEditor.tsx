@@ -7,6 +7,8 @@ import { Button } from "../../../shared/ui";
 import { useWorkspace } from "../../../workspace/WorkspaceContext";
 import NodeSidebar from "../components/NodeSidebar";
 import useNodeEditor from "../hooks/useNodeEditor";
+import PublishControls from "../../../components/publish/PublishControls";
+import { nodesApi } from "../api/nodes.api";
 
 export default function NodeEditorPage() {
   const { type = "article", id = "new" } = useParams<{ type?: string; id?: string }>();
@@ -17,6 +19,18 @@ export default function NodeEditorPage() {
     workspaceId,
     idParam as any,
   );
+
+  const refreshPublishInfo = async () => {
+    if (!workspaceId || !node.id) return;
+    try {
+      const updated = await nodesApi.get(workspaceId, node.id);
+      update({
+        isPublic: (updated as any).isPublic ?? (updated as any).is_public ?? false,
+      });
+    } catch {
+      // ignore
+    }
+  };
 
   if (!workspaceId) return <div>Workspace not selected</div>;
   if (loading) return <div>Loading...</div>;
@@ -83,6 +97,13 @@ export default function NodeEditorPage() {
                 minHeight={400}
               />
             </div>
+            {node.id ? (
+              <PublishControls
+                workspaceId={workspaceId}
+                nodeId={node.id}
+                onChanged={refreshPublishInfo}
+              />
+            ) : null}
           </div>
           <aside className="w-72 bg-gray-50 border-l p-4 space-y-4 overflow-y-auto">
             <NodeSidebar node={node} onChange={update} />
