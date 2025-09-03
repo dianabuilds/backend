@@ -5,8 +5,8 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.search.models import ConfigVersion, SearchRelevanceActive
 from app.domains.search.application.ports.relevance_port import IRelevanceRepository
+from app.models.search_config import ConfigVersion, SearchRelevanceActive
 from app.schemas.search_settings import RelevancePayload
 
 
