@@ -12,8 +12,13 @@ interface Job {
   finished_at?: string | null;
 }
 
+interface QueueStats {
+  pending: number;
+  active: number;
+}
+
 interface Queues {
-  [name: string]: number;
+  [name: string]: QueueStats;
 }
 
 function statusVariant(status: string): "ok" | "warn" | "danger" {
@@ -95,9 +100,9 @@ export default function JobsTab() {
         <>
           {Object.keys(queues).length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {Object.entries(queues).map(([name, size]) => (
+              {Object.entries(queues).map(([name, stats]) => (
                 <Pill key={name} variant="warn">
-                  {name}: {size}
+                  {name}: {stats.pending}/{stats.active}
                 </Pill>
               ))}
             </div>

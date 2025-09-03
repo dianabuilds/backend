@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
@@ -30,3 +31,17 @@ async def recent_jobs(
 ) -> list[BackgroundJobHistoryOut]:
     jobs = await JobsService.get_recent(db, limit=10)
     return [BackgroundJobHistoryOut.model_validate(j) for j in jobs]
+
+
+class QueueStats(BaseModel):
+    pending: int
+    active: int
+
+
+@router.get(
+    "/queues",
+    summary="Get queue sizes",
+    response_model=dict[str, QueueStats],
+)
+async def queue_sizes() -> dict[str, QueueStats]:
+    return await JobsService.get_queue_stats()
