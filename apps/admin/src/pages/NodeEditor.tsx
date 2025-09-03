@@ -98,12 +98,9 @@ function normalizeTags(input: any): string[] {
       .map((t) => (typeof t === 'string' ? t : (t && (t.slug || t.name)) || null))
       .filter(Boolean) as string[];
   }
-  // возможен вариант { tag_slugs: [...] } или { tagSlugs: [...] }
-  if (Array.isArray((input as any).tag_slugs)) {
-    return ((input as any).tag_slugs as any[]).map(String);
-  }
-  if (Array.isArray((input as any).tagSlugs)) {
-    return ((input as any).tagSlugs as any[]).map(String);
+  // возможен вариант { tags: [...] }
+  if (Array.isArray((input as any).tags)) {
+    return ((input as any).tags as any[]).map(String);
   }
   return [];
 }
@@ -157,9 +154,7 @@ export default function NodeEditor() {
         const n = await getNode(workspaceId, id);
 
         const normalizedCover = resolveAssetUrl(normalizeCoverUrl(n));
-        const normalizedTags = normalizeTags(
-          (n as any).tags ?? (n as any).tag_slugs ?? (n as any).tagSlugs,
-        );
+        const normalizedTags = normalizeTags((n as any).tags);
         const normalizedType = normalizeNodeType(n) ?? 'article';
         const rawContent: unknown = (n as any).content;
         let normalizedContent: OutputData;
@@ -368,7 +363,7 @@ function NodeEditorInner({
           null,
       );
       const updatedTags = normalizeTags(
-        (updated as any).tags ?? (updated as any).tag_slugs ?? nodeRef.current.tags,
+        (updated as any).tags ?? nodeRef.current.tags,
       );
 
       setNode((prev) => ({
@@ -408,9 +403,7 @@ function NodeEditorInner({
     // Теги: важно отправлять даже пустой массив для снятия всех тегов
     if ('tags' in patch) {
       const tags = normalizeTags(patch.tags);
-      enriched.tags = tags; // camelCase
-      enriched.tag_slugs = tags; // snake_case
-      enriched.tagSlugs = tags; // альтернативный camelCase
+      enriched.tags = tags;
       localNext.tags = tags;
     }
 

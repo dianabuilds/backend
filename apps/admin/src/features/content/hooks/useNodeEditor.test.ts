@@ -10,7 +10,8 @@ describe('normalizeTags', () => {
     expect(normalizeTags([{ slug: 'a' }, { name: 'B' }])).toEqual(['a', 'B']);
   });
 
-  it('reads nested tagSlugs', () => {
-    expect(normalizeTags({ tagSlugs: ['x', 'y'] })).toEqual(['x', 'y']);
+  it('reads nested tags', () => {
+    expect(normalizeTags({ tags: ['x', 'y'] })).toEqual(['x', 'y']);
+    expect(normalizeTags({ meta: { tags: ['a'] } })).toEqual(['a']);
   });
 });

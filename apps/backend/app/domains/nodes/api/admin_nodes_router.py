@@ -170,11 +170,13 @@ async def list_nodes_admin(
 @router.post("", summary="Create node (admin)")
 async def create_node_admin(
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
-    payload: dict | None = Body(
+    payload: dict | None = Body(  # noqa: B008
         default=None,
         example={
             "title": "New quest",
             "content": {"time": 0, "blocks": [], "version": "2.30.7"},
+            "tags": ["intro"],
+            "media": ["https://example.com/image.png"],
         },
     ),
     current_user=Depends(admin_required),  # noqa: B008
@@ -316,10 +318,12 @@ async def get_node_by_id_admin(
 async def update_node_by_id_admin(
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
     id: Annotated[int, Path(...)],  # noqa: B008
-    payload: dict = Body(
+    payload: dict = Body(  # noqa: B008
         example={
             "title": "Updated quest",
             "content": {"time": 0, "blocks": [], "version": "2.30.7"},
+            "tags": ["intro"],
+            "media": ["https://example.com/image.png"],
         }
     ),
     current_user=Depends(admin_required),  # noqa: B008

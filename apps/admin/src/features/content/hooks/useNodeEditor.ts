@@ -7,16 +7,8 @@ import type { NodeEditorData } from "../model/node";
 
 export function normalizeTags(src: unknown): string[] {
   // Пытаемся найти массив тегов в разных местах ответа
-  const top: any =
-    (src as any)?.tagSlugs ??
-    (src as any)?.tag_slugs ??
-    (src as any)?.tags;
-
-  const meta: any =
-    (src as any)?.meta?.tagSlugs ??
-    (src as any)?.meta?.tag_slugs ??
-    (src as any)?.meta?.tags;
-
+  const top: any = (src as any)?.tags;
+  const meta: any = (src as any)?.meta?.tags;
   const input: any = Array.isArray(top) ? top : Array.isArray(meta) ? meta : src;
 
   if (!Array.isArray(input)) return [];

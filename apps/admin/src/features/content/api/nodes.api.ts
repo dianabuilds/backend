@@ -22,23 +22,12 @@ export interface NodeMutationPayload {
   coverUrl?: string | null;
   media?: string[] | null;
   tags?: string[] | null;
-  tagSlugs?: string[] | null;
   // EditorJS document
   content?: unknown;
 }
 
 function enrichPayload(payload: NodeMutationPayload): Record<string, unknown> {
-  const body: Record<string, unknown> = { ...payload };
-  // Дублируем теги вне зависимости от пустоты массива: ключевое — наличие ключа 'tags'
-  if ('tags' in body && !('tagSlugs' in body) && !('tag_slugs' in body)) {
-    body.tagSlugs = body.tags as unknown as string[] | null;
-    body.tag_slugs = body.tags as unknown as string[] | null;
-  }
-  // Совместимость с более старыми эндпоинтами, ожидающими 'nodes' вместо 'content'
-  if (body.content !== undefined && (body as any).nodes === undefined) {
-    (body as any).nodes = body.content;
-  }
-  return body;
+  return { ...payload };
 }
 
 export const nodesApi = {

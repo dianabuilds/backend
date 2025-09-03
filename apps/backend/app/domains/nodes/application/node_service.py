@@ -266,11 +266,19 @@ class NodeService:
     ) -> NodeItem:
         camel = "media" + "Urls"
         snake = "media_" + "urls"
-        if camel in data or snake in data:
-            raise HTTPException(
-                status_code=422,
-                detail=f"'{camel}/{snake}' field is deprecated; use 'media'",
-            )
+        legacy = {
+            camel: "media",
+            snake: "media",
+            "tagSlugs": "tags",
+            "tag_slugs": "tags",
+            "nodes": "content",
+        }
+        for field, replacement in legacy.items():
+            if field in data:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"'{field}' field is deprecated; use '{replacement}'",
+                )
 
         item = await self.get(workspace_id, node_id)
 
