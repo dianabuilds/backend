@@ -6,7 +6,7 @@ import { createNode, getNode, patchNode } from '../api/nodes';
 import { useAuth } from '../auth/AuthContext';
 import ContentTab from '../components/content/ContentTab';
 import GeneralTab from '../components/content/GeneralTab';
-import PublishingTab from '../components/content/PublishingTab';
+import PublishControls from '../components/publish/PublishControls';
 import ErrorBanner from '../components/ErrorBanner';
 import NodeSidebar from '../components/NodeSidebar';
 import StatusBadge from '../components/StatusBadge';
@@ -686,7 +686,7 @@ function NodeEditorInner({
             value={node.content}
             onChange={canEdit ? (d) => handleDraftChange({ content: d }) : undefined}
           />
-          <PublishingTab
+          <PublishControls
             workspaceId={workspaceId}
             nodeId={Number(node.id)}
             onChanged={refreshPublishInfo}
