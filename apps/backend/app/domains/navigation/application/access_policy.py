@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
 import sys
 import types
 from datetime import datetime
 from types import SimpleNamespace
-
-import anyio
 
 mod = sys.modules.get("app.domains.users.application.nft_service")
 if isinstance(mod, SimpleNamespace):
@@ -40,10 +39,3 @@ async def has_access_async(
     if node.nft_required and not await user_has_nft(user, node.nft_required):
         return False
     return True
-
-
-def has_access(
-    node: Node, user: User | None, preview: PreviewContext | None = None
-) -> bool:
-    """Synchronous wrapper kept for backward compatibility."""
-    return anyio.run(has_access_async, node, user, preview)
