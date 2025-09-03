@@ -4,23 +4,23 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.db.query import (
-    NodeFilterSpec as LegacySpec,
-)
-from app.core.db.query import (
+from app.domains.nodes.application.node_query_service import (
     NodeQueryService as LegacyNodeQueryService,
-)
-from app.core.db.query import (
-    PageRequest as LegacyPage,
-)
-from app.core.db.query import (
-    QueryContext as LegacyCtx,
 )
 from app.domains.nodes.application.ports.node_query_port import INodeQueryService
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
     PageRequest,
     QueryContext,
+)
+from app.domains.nodes.application.query_models import (
+    NodeFilterSpec as LegacySpec,
+)
+from app.domains.nodes.application.query_models import (
+    PageRequest as LegacyPage,
+)
+from app.domains.nodes.application.query_models import (
+    QueryContext as LegacyCtx,
 )
 from app.domains.nodes.infrastructure.models.node import Node
 
