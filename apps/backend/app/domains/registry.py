@@ -130,14 +130,6 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load premium router. Startup aborted")
         raise RuntimeError("Failed to load premium router") from exc
-    # Premium Admin
-    try:
-        from app.domains.premium.api_admin import router as premium_admin_router
-
-        app.include_router(premium_admin_router)
-    except Exception as exc:
-        logger.exception("Failed to load premium admin router. Startup aborted")
-        raise RuntimeError("Failed to load premium admin router") from exc
 
     # Media
     try:
