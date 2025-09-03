@@ -164,8 +164,6 @@ class NodePatchDAO:
         if not items:
             return
         ids = [i.id for i in items]
-        for item in items:
-            await db.refresh(item)
         stmt = select(NodePatch).where(
             NodePatch.node_id.in_(ids),
             NodePatch.reverted_at.is_(None),
