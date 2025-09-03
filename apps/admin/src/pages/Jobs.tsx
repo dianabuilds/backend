@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import Pill from "../components/Pill";
 
 interface Job {
   id: string;
@@ -10,14 +11,14 @@ interface Job {
   finished_at?: string | null;
 }
 
-function statusClass(status: string) {
+function statusVariant(status: string): "ok" | "warn" | "danger" {
   switch (status) {
     case "success":
-      return "bg-green-600";
+      return "ok";
     case "failed":
-      return "bg-rose-600";
+      return "danger";
     default:
-      return "bg-gray-600";
+      return "warn";
   }
 }
 
@@ -63,12 +64,8 @@ export default function Jobs() {
             {jobs.map((job) => (
               <tr key={job.id} className="border-b">
                 <td className="p-2">{job.name}</td>
-                <td className="p-2">
-                  <span
-                    className={`px-2 py-1 rounded text-white ${statusClass(job.status)}`}
-                  >
-                    {job.status}
-                  </span>
+                <td className="p-2 align-middle">
+                  <Pill variant={statusVariant(job.status)}>{job.status}</Pill>
                 </td>
                 <td className="p-2">
                   {new Date(job.started_at).toLocaleString()}
