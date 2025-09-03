@@ -25,7 +25,7 @@ export default function DraftIssuesWidget({
   });
   return (
     <Card>
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-4 sm:p-6 space-y-2">
         <h2 className="font-semibold">Drafts with issues</h2>
         <ul className="mb-2 list-disc pl-5 text-sm">
           {data.map((d) => (

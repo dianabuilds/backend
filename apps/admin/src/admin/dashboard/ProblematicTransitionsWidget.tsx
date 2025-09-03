@@ -9,7 +9,7 @@ export default function ProblematicTransitionsWidget({
 }) {
   return (
     <Card>
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-4 sm:p-6 space-y-2">
         <h2 className="font-semibold">Problematic transitions</h2>
         <ul className="text-sm space-y-1">
           <li>Node #450 — CTR 0.2%</li>
