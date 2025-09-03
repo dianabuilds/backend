@@ -3,30 +3,29 @@ import { useNavigate, useParams } from "react-router-dom";
 import EditorJSEmbed from "../../../components/EditorJSEmbed";
 import FieldCover from "../../../components/fields/FieldCover";
 import FieldTags from "../../../components/fields/FieldTags";
+import PublishControls from "../../../components/publish/PublishControls";
 import { Button } from "../../../shared/ui";
 import { useWorkspace } from "../../../workspace/WorkspaceContext";
+import { nodesApi } from "../api/nodes.api";
 import NodeSidebar from "../components/NodeSidebar";
 import useNodeEditor from "../hooks/useNodeEditor";
-import PublishControls from "../../../components/publish/PublishControls";
-import { nodesApi } from "../api/nodes.api";
 
 export default function NodeEditorPage() {
   const { type = "article", id = "new" } = useParams<{ type?: string; id?: string }>();
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
-  const idParam = id === 'new' ? 'new' : Number(id);
+  const idParam: number | "new" = id === "new" ? "new" : Number(id);
   const { node, update, save, loading, error, isSaving } = useNodeEditor(
-    workspaceId,
-    idParam as any,
+    workspaceId || "",
+    idParam,
   );
 
   const refreshPublishInfo = async () => {
     if (!workspaceId || !node.id) return;
     try {
-      const updated = await nodesApi.get(workspaceId, node.id);
-      update({
-        isPublic: (updated as any).isPublic ?? (updated as any).is_public ?? false,
-      });
+      type MaybePublic = { isPublic?: boolean; is_public?: boolean };
+      const updated = (await nodesApi.get(workspaceId, node.id)) as unknown as MaybePublic;
+      update({ isPublic: updated.isPublic ?? updated.is_public ?? false });
     } catch {
       // ignore
     }

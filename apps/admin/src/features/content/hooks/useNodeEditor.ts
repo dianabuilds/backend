@@ -25,16 +25,16 @@ export function normalizeTags(src: unknown): string[] {
 }
 
 export function useNodeEditor(
-  workspaceId: string | undefined,
+  workspaceId: string,
   id: number | "new",
 ) {
   const queryClient = useQueryClient();
   const isNew = id === "new";
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["node", workspaceId ?? "global", id],
+    queryKey: ["node", workspaceId || "global", id],
     queryFn: () => nodesApi.get(workspaceId, id as number),
-    enabled: !isNew,
+    enabled: !!workspaceId && !isNew,
   });
 
   const [node, setNode] = useState<NodeEditorData>({
@@ -92,7 +92,7 @@ export function useNodeEditor(
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["node", workspaceId ?? "global", id],
+        queryKey: ["node", workspaceId || "global", id],
       });
     },
   });

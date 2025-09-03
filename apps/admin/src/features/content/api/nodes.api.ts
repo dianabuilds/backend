@@ -1,10 +1,8 @@
 import type { NodeOut } from "../../../openapi";
 import { client } from "../../../shared/api/client";
 
-const base = (workspaceId?: string) =>
-  workspaceId
-    ? `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes`
-    : "/admin/nodes";
+const base = (workspaceId: string) =>
+  `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes`;
 
 function withQuery(baseUrl: string, params?: Record<string, unknown>) {
   if (!params) return baseUrl;
@@ -31,13 +29,13 @@ function enrichPayload(payload: NodeMutationPayload): Record<string, unknown> {
 }
 
 export const nodesApi = {
-  list(workspaceId?: string, params?: Record<string, unknown>) {
+  list(workspaceId: string, params?: Record<string, unknown>) {
     return client.get<NodeOut[]>(withQuery(base(workspaceId), params));
   },
-  get(workspaceId: string | undefined, id: number) {
+  get(workspaceId: string, id: number) {
     return client.get<NodeOut>(`${base(workspaceId)}/${encodeURIComponent(String(id))}`);
   },
-  create(workspaceId: string | undefined, payload: NodeMutationPayload) {
+  create(workspaceId: string, payload: NodeMutationPayload) {
     const body = enrichPayload(payload);
     // Backend expects POST /admin/workspaces/{ws}/nodes for creation
     return client.post<NodeMutationPayload, NodeOut>(
@@ -45,7 +43,7 @@ export const nodesApi = {
       body,
     );
   },
-  update(workspaceId: string | undefined, id: number, payload: NodeMutationPayload) {
+  update(workspaceId: string, id: number, payload: NodeMutationPayload) {
     const body = enrichPayload(payload);
     const url = withQuery(
       `${base(workspaceId)}/${encodeURIComponent(String(id))}`,
@@ -53,7 +51,7 @@ export const nodesApi = {
     );
     return client.patch<NodeMutationPayload, NodeOut>(url, body);
   },
-  delete(workspaceId: string | undefined, id: number) {
+  delete(workspaceId: string, id: number) {
     return client.del<void>(`${base(workspaceId)}/${encodeURIComponent(String(id))}`);
   },
 };
