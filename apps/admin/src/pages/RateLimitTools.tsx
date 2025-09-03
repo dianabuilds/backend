@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { api } from "../api/client";
 import Tooltip from "../components/Tooltip";
+import Pill from "../components/Pill";
 
 interface RateRules {
   enabled: boolean;
@@ -90,9 +91,9 @@ export default function RateLimitTools() {
       {error && <p className="text-red-600">{error}</p>}
       {rules && (
         <div className="mb-4 flex items-center gap-2">
-          <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-sm">
+          <Pill variant={rules.enabled ? "ok" : "warn"} className="text-sm">
             {rules.enabled ? "Enabled" : "Disabled"}
-          </span>
+          </Pill>
           <button
             onClick={toggle}
             disabled={toggling}
