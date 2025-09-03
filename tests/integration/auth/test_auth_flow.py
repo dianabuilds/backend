@@ -85,6 +85,14 @@ async def test_login_form_success(client: AsyncClient, test_user):
 
 
 @pytest.mark.asyncio
+async def test_login_alias_signin(client: AsyncClient, test_user):
+    login_data = {"username": "testuser", "password": "Password123"}
+    resp = await client.post("/auth/signin", json=login_data)
+    assert resp.status_code == 200
+    assert "access_token" in resp.json()
+
+
+@pytest.mark.asyncio
 async def test_refresh_renews_tokens(client: AsyncClient, test_user):
     login_data = {"username": "testuser", "password": "Password123"}
     resp = await client.post("/auth/login", json=login_data)
