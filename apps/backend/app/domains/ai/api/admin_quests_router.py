@@ -28,7 +28,6 @@ from app.domains.ai.schemas.ai_quests import (
     GenerationJobOut,
     TickIn,
 )
-from app.domains.ai.schemas.ai_settings import AISettingsIn, AISettingsOut
 from app.domains.ai.schemas.worlds import (
     CharacterIn,
     CharacterOut,
@@ -41,6 +40,7 @@ from app.domains.users.infrastructure.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required_dep = require_admin_role({"admin", "moderator"})
+CurrentUser = Annotated[User, Depends(admin_required)]
 
 router = APIRouter(
     prefix="/admin/ai/quests",
@@ -68,7 +68,7 @@ async def list_world_templates(
 async def generate_ai_quest(
     body: GenerateQuestIn,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    current=Depends(admin_required),
+    current: CurrentUser = ...,
     reuse: bool = True,
     preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ) -> GenerationEnqueued:
@@ -157,7 +157,11 @@ async def simulate_complete(
 
     # Создадим черновой квест при необходимости
     if not job.result_quest_id:
-        title = f"AI Quest ({job.params.get('structure','?')}/{job.params.get('length','?')}/{job.params.get('tone','?')})"
+        title = (
+            f"AI Quest ({job.params.get('structure','?')}/"
+            f"{job.params.get('length','?')}/"
+            f"{job.params.get('tone','?')})"
+        )
         q = Quest(
             title=title,
             subtitle=None,
@@ -235,7 +239,8 @@ async def tick_job(
 
     logs = list(job.logs or [])
     logs.append(
-        f"[{datetime.utcnow().isoformat()}] Tick {payload.delta}%{(' - ' + payload.message) if payload.message else ''}"
+        f"[{datetime.utcnow().isoformat()}] Tick {payload.delta}%"
+        f"{(' - ' + payload.message) if payload.message else ''}"
     )
     job.logs = logs
 
@@ -399,58 +404,3 @@ async def delete_character(
     await db.delete(c)
     await db.commit()
     return {"ok": True}
-
-
-# -------- AI Settings --------
-
-
-@router.get(
-    "/settings", response_model=AISettingsOut, summary="Get AI provider settings"
-)
-async def get_ai_settings(
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _: Annotated[Depends, Depends(admin_required)] = ...,
-) -> AISettingsOut:
-    res = await db.execute(select(AISettings).limit(1))
-    s = res.scalar_one_or_none()
-    if not s:
-        return AISettingsOut(
-            provider=None, base_url=None, model=None, has_api_key=False
-        )
-    return AISettingsOut(
-        provider=s.provider,
-        base_url=s.base_url,
-        model=s.model,
-        has_api_key=bool(s.api_key),
-    )
-
-
-@router.put(
-    "/settings", response_model=AISettingsOut, summary="Update AI provider settings"
-)
-async def put_ai_settings(
-    body: AISettingsIn,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    current: Annotated[User, Depends(admin_required)] = ...,
-) -> AISettingsOut:
-    res = await db.execute(select(AISettings).limit(1))
-    s = res.scalar_one_or_none()
-    if not s:
-        s = AISettings()
-        db.add(s)
-    if body.provider is not None:
-        s.provider = body.provider
-    if body.base_url is not None:
-        s.base_url = body.base_url
-    if body.model is not None:
-        s.model = body.model
-    if body.api_key is not None:
-        s.api_key = body.api_key or None
-    await db.commit()
-    await db.refresh(s)
-    return AISettingsOut(
-        provider=s.provider,
-        base_url=s.base_url,
-        model=s.model,
-        has_api_key=bool(s.api_key),
-    )
