@@ -25,7 +25,7 @@ export default function ModerationQueueWidget({
   });
   return (
     <Card>
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-4 sm:p-6 space-y-2">
         <h2 className="font-semibold">Moderation queue</h2>
         {data.length === 0 ? (
           <p className="text-sm text-gray-500">No items</p>

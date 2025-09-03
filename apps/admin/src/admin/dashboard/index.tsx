@@ -46,35 +46,35 @@ export default function Dashboard() {
         </div>
       </header>
       <main className="p-6 space-y-6">
-        <div className="grid grid-cols-5 gap-4">
-          <Card className="p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <Card className="p-4 sm:p-6">
             <h2 className="text-sm font-medium text-gray-500">Active users (24h)</h2>
             <p className="text-2xl font-bold">0</p>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4 sm:p-6">
             <h2 className="text-sm font-medium text-gray-500">Incidents (24h)</h2>
             <p className="text-2xl font-bold text-red-600">0</p>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4 sm:p-6">
             <h2 className="text-sm font-medium text-gray-500">Active premium</h2>
             <p className="text-2xl font-bold">1</p>
             <span className="text-xs text-green-600">+0% vs last week</span>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4 sm:p-6">
             <h2 className="text-sm font-medium text-gray-500">New nodes (7d)</h2>
             <p className="text-2xl font-bold">0</p>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4 sm:p-6">
             <h2 className="text-sm font-medium text-gray-500">Dead-end %</h2>
             <p className="text-2xl font-bold text-yellow-600">0%</p>
           </Card>
         </div>
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {widgetComponents}
         </div>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           <Card>
-            <div className="p-4 space-y-2">
+            <div className="p-4 sm:p-6 space-y-2">
               <h2 className="font-semibold">Payments</h2>
               <ul className="text-sm space-y-1">
                 <li>User X — Premium+ — $14.99</li>
@@ -83,7 +83,7 @@ export default function Dashboard() {
             </div>
           </Card>
           <Card>
-            <div className="p-4 space-y-2">
+            <div className="p-4 sm:p-6 space-y-2">
               <h2 className="font-semibold">Top searches</h2>
               <ul className="text-sm space-y-1">
                 <li>“коты” — 12 results</li>
@@ -92,7 +92,7 @@ export default function Dashboard() {
             </div>
           </Card>
           <Card>
-            <div className="p-4 space-y-2">
+            <div className="p-4 sm:p-6 space-y-2">
               <h2 className="font-semibold">Feature flags</h2>
               <ul className="text-sm space-y-1">
                 <li>New Compass UI — on</li>

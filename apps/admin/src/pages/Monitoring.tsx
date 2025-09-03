@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import RumTab from "../features/monitoring/RumTab";
 import RateLimitsTab from "../features/monitoring/RateLimitsTab";
@@ -18,6 +18,7 @@ type TabId = (typeof tabs)[number]["id"];
 
 export default function Monitoring() {
   const [active, setActive] = useState<TabId>("rum");
+  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({} as Record<TabId, HTMLButtonElement | null>);
 
   return (
     <div className="p-4 space-y-4">
@@ -27,14 +28,29 @@ export default function Monitoring() {
         aria-label="Monitoring sections"
         className="flex gap-2 border-b"
       >
-        {tabs.map((tab) => (
+        {tabs.map((tab, idx) => (
           <button
             key={tab.id}
             id={`${tab.id}-tab`}
             role="tab"
             aria-selected={active === tab.id}
             aria-controls={`${tab.id}-panel`}
+            tabIndex={active === tab.id ? 0 : -1}
+            ref={(el) => {
+              tabRefs.current[tab.id] = el;
+            }}
             onClick={() => setActive(tab.id)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                e.preventDefault();
+                const newIndex =
+                  (idx + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) %
+                  tabs.length;
+                const newTab = tabs[newIndex];
+                setActive(newTab.id);
+                tabRefs.current[newTab.id]?.focus();
+              }
+            }}
             className={`px-3 py-1 text-sm border-b-2 ${
               active === tab.id ? "border-blue-500" : "border-transparent"
             }`}
