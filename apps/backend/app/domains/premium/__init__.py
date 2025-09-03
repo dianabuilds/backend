@@ -6,5 +6,7 @@ Premium домен: тарифы, подписки, квоты/лимиты.
 - services/plans.py       -> domains/premium/plans.py
 - services/user_quota.py  -> domains/premium/quotas.py
 - api/admin_premium.py    -> domains/premium/api_admin.py
-- api/premium_limits.py   -> domains/premium/api_public.py
+- api/premium_limits.py   -> domains/premium/api/public_router.py
 """
+
+from __future__ import annotations
