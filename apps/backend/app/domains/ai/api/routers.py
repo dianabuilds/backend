@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
 from fastapi import APIRouter
 
 # Агрегирующий роутер домена AI.
@@ -27,9 +28,6 @@ from app.domains.ai.api.admin_quests_router import (
 )
 from app.domains.ai.api.admin_rate_limits_router import (
     router as admin_ai_rate_limits_router,  # noqa: E402
-)
-from app.domains.ai.api.settings_router import (
-    compat_router as admin_ai_settings_compat_router,
 )
 from app.domains.ai.api.settings_router import (  # noqa: E402
     router as admin_ai_settings_router,
@@ -67,6 +65,5 @@ if admin_ai_validation_router is not None:
     router.include_router(admin_ai_validation_router)
 router.include_router(admin_embedding_router)
 router.include_router(admin_ai_settings_router)
-router.include_router(admin_ai_settings_compat_router)
 router.include_router(admin_ai_user_pref_router)
 router.include_router(admin_ai_usage_router)

@@ -15,18 +15,14 @@ from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 router = APIRouter(
     prefix="/admin/ai", tags=["admin-ai-settings"], responses=ADMIN_AUTH_RESPONSES
 )
-compat_router = APIRouter(
-    prefix="/admin/ai/quests",
-    tags=["admin-ai-settings-compat"],
-    responses=ADMIN_AUTH_RESPONSES,
-)
 
 admin_required = require_admin_role()
+AdminRequired = Annotated[None, Depends(admin_required)]
 
 
 @router.get("/settings")
 async def get_settings(
-    _=Depends(admin_required), db: Annotated[AsyncSession, Depends(get_db)] = ...
+    _: AdminRequired, db: Annotated[AsyncSession, Depends(get_db)] = ...
 ) -> dict[str, Any]:
     service = SettingsService(AISettingsRepository(db))
     return await service.get_ai_settings()
@@ -35,7 +31,7 @@ async def get_settings(
 @router.put("/settings")
 async def put_settings(
     payload: dict[str, Any],
-    _=Depends(admin_required),
+    _: AdminRequired,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict[str, Any]:
     provider = payload.get("provider")
@@ -53,20 +49,3 @@ async def put_settings(
         model_map=model_map if isinstance(model_map, dict) else None,
         cb=cb if isinstance(cb, dict) else None,
     )
-
-
-@compat_router.get("/settings")
-async def get_settings_compat(
-    _=Depends(admin_required), db: Annotated[AsyncSession, Depends(get_db)] = ...
-) -> dict[str, Any]:
-    service = SettingsService(AISettingsRepository(db))
-    return await service.get_ai_settings()
-
-
-@compat_router.put("/settings")
-async def put_settings_compat(
-    payload: dict[str, Any],
-    _=Depends(admin_required),
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
-) -> dict[str, Any]:
-    return await put_settings(payload, _, db)

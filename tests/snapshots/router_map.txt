@@ -16,7 +16,6 @@
 /admin/ai/quests/jobs_cursor
 /admin/ai/quests/jobs_paged
 /admin/ai/quests/rate_limits
-/admin/ai/quests/settings
 /admin/ai/quests/stats
 /admin/ai/quests/templates
 /admin/ai/quests/versions/{version_id}/validation
