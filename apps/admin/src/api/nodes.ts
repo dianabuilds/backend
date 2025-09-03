@@ -90,33 +90,11 @@ export async function listNodes(
         return data;
     };
 
-    // 1) Основной админ-маршрут: /admin/workspaces/{ws}/nodes
-    const adminByPath = `/admin/workspaces/${encodeURIComponent(
+    // Единственный актуальный маршрут: /admin/workspaces/{ws}/nodes
+    const url = `/admin/workspaces/${encodeURIComponent(
         workspaceId,
     )}/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
-    try {
-        return await getWithCache(adminByPath);
-    } catch (e: unknown) {
-        const status = (e as { response?: { status?: number } }).response?.status;
-        if (status !== 404) throw e;
-    }
-
-    // 2) Альтернативный админ-маршрут: /admin/nodes?workspace_id={ws}
-    const adminByQuery = `/admin/nodes${
-        qs.toString() ? `?${qs.toString()}&` : '?'
-    }workspace_id=${encodeURIComponent(workspaceId)}`;
-    try {
-        return await getWithCache(adminByQuery);
-    } catch (e: unknown) {
-        const status = (e as { response?: { status?: number } }).response?.status;
-        if (status !== 404) throw e;
-    }
-
-    // 3) Публичный список (вернёт только видимые/опубликованные)
-    const publicUrl = `/workspaces/${encodeURIComponent(
-        workspaceId,
-    )}/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
-    return await getWithCache(publicUrl);
+    return await getWithCache(url);
 }
 
 export async function createNode(workspaceId: string): Promise<NodeOut> {
