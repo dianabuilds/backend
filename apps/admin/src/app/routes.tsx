@@ -134,7 +134,7 @@ const protectedChildren: RouteObject[] = [
   { path: "settings/feature-flags", element: <FeatureFlagsPage /> },
   { path: "tools/cache", element: <CacheTools /> },
   { path: "tools/rate-limit", element: <RateLimitTools /> },
-  { path: "tools/monitoring", element: <Monitoring /> },
+  { path: "monitoring", element: <Monitoring /> },
   { path: "tools/restrictions", element: <Restrictions /> },
   { path: "tools/audit", element: <AuditLog /> },
   { path: "tools/flags", element: <FeatureFlagsPage /> },
