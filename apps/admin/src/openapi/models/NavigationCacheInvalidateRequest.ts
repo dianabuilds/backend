@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type NavigationCacheInvalidateRequest = {
-    scope: NavigationCacheInvalidateRequest.scope;
     node_slug?: (string | null);
+    scope: NavigationCacheInvalidateRequest.scope;
     user_id?: (string | null);
 };
 export namespace NavigationCacheInvalidateRequest {

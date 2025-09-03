@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QuestTransition = {
-    from_node_key: string;
-    to_node_key: string;
-    label?: (string | null);
     condition?: (Record<string, any> | null);
+    from_node_key: string;
+    label?: (string | null);
+    to_node_key: string;
 };
 

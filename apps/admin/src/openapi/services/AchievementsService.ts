@@ -80,6 +80,33 @@ export class AchievementsService {
         });
     }
     /**
+     * Delete achievement
+     * @param achievementId
+     * @param workspaceId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deleteAchievementAdminAdminAchievementsAchievementIdDelete(
+        achievementId: string,
+        workspaceId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/admin/achievements/{achievement_id}',
+            path: {
+                'achievement_id': achievementId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Update achievement
      * @param achievementId
      * @param workspaceId
@@ -103,33 +130,6 @@ export class AchievementsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete achievement
-     * @param achievementId
-     * @param workspaceId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deleteAchievementAdminAdminAchievementsAchievementIdDelete(
-        achievementId: string,
-        workspaceId: string,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/admin/achievements/{achievement_id}',
-            path: {
-                'achievement_id': achievementId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,

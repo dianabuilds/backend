@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type NavigationCacheSetRequest = {
     node_slug: string;
-    user_id?: (string | null);
     payload: Record<string, any>;
+    user_id?: (string | null);
 };
 

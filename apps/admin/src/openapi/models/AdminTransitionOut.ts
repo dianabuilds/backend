@@ -4,13 +4,13 @@
 /* eslint-disable */
 import type { NodeTransitionType } from './NodeTransitionType';
 export type AdminTransitionOut = {
-    id: string;
+    created_at: string;
+    created_by: string;
     from_slug: string;
+    id: string;
+    label: (string | null);
     to_slug: string;
     type: NodeTransitionType;
     weight: number;
-    label: (string | null);
-    created_by: string;
-    created_at: string;
 };
 

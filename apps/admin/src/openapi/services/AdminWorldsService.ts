@@ -59,23 +59,50 @@ export class AdminWorldsService {
         });
     }
     /**
-     * Update world template
-     * @param worldId
+     * Delete character
+     * @param charId
      * @param workspaceId
-     * @param requestBody
-     * @returns WorldTemplateOut Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
-    public static updateWorldAdminWorldsWorldIdPatch(
-        worldId: string,
+    public static deleteCharacterAdminWorldsCharactersCharIdDelete(
+        charId: string,
         workspaceId: string,
-        requestBody: WorldTemplateIn,
-    ): CancelablePromise<WorldTemplateOut> {
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/admin/worlds/characters/{char_id}',
+            path: {
+                'char_id': charId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update character
+     * @param charId
+     * @param workspaceId
+     * @param requestBody
+     * @returns CharacterOut Successful Response
+     * @throws ApiError
+     */
+    public static updateCharacterAdminWorldsCharactersCharIdPatch(
+        charId: string,
+        workspaceId: string,
+        requestBody: CharacterIn,
+    ): CancelablePromise<CharacterOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/admin/worlds/{world_id}',
+            url: '/admin/worlds/characters/{char_id}',
             path: {
-                'world_id': worldId,
+                'char_id': charId,
             },
             query: {
                 'workspace_id': workspaceId,
@@ -109,6 +136,37 @@ export class AdminWorldsService {
             query: {
                 'workspace_id': workspaceId,
             },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update world template
+     * @param worldId
+     * @param workspaceId
+     * @param requestBody
+     * @returns WorldTemplateOut Successful Response
+     * @throws ApiError
+     */
+    public static updateWorldAdminWorldsWorldIdPatch(
+        worldId: string,
+        workspaceId: string,
+        requestBody: WorldTemplateIn,
+    ): CancelablePromise<WorldTemplateOut> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/admin/worlds/{world_id}',
+            path: {
+                'world_id': worldId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
@@ -167,64 +225,6 @@ export class AdminWorldsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update character
-     * @param charId
-     * @param workspaceId
-     * @param requestBody
-     * @returns CharacterOut Successful Response
-     * @throws ApiError
-     */
-    public static updateCharacterAdminWorldsCharactersCharIdPatch(
-        charId: string,
-        workspaceId: string,
-        requestBody: CharacterIn,
-    ): CancelablePromise<CharacterOut> {
-        return __request(OpenAPI, {
-            method: 'PATCH',
-            url: '/admin/worlds/characters/{char_id}',
-            path: {
-                'char_id': charId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete character
-     * @param charId
-     * @param workspaceId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deleteCharacterAdminWorldsCharactersCharIdDelete(
-        charId: string,
-        workspaceId: string,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/admin/worlds/characters/{char_id}',
-            path: {
-                'char_id': charId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,

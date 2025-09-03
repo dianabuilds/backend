@@ -6,15 +6,15 @@ import type { WorkspaceRole } from './WorkspaceRole';
 import type { WorkspaceSettings_Output } from './WorkspaceSettings_Output';
 import type { WorkspaceType } from './WorkspaceType';
 export type WorkspaceOut = {
-    id: string;
-    name: string;
-    slug: string;
-    owner_user_id: string;
-    settings_json?: WorkspaceSettings_Output;
-    type: WorkspaceType;
-    is_system: boolean;
     created_at: string;
-    updated_at: string;
+    id: string;
+    is_system: boolean;
+    name: string;
+    owner_user_id: string;
     role?: (WorkspaceRole | null);
+    settings_json?: WorkspaceSettings_Output;
+    slug: string;
+    type: WorkspaceType;
+    updated_at: string;
 };
 

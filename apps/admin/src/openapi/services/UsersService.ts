@@ -9,17 +9,6 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class UsersService {
     /**
-     * Current user
-     * @returns UserOut Successful Response
-     * @throws ApiError
-     */
-    public static readMeUsersMeGet(): CancelablePromise<UserOut> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/users/me',
-        });
-    }
-    /**
      * Delete account
      * @returns any Successful Response
      * @throws ApiError
@@ -27,6 +16,17 @@ export class UsersService {
     public static deleteMeUsersMeDelete(): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'DELETE',
+            url: '/users/me',
+        });
+    }
+    /**
+     * Current user
+     * @returns UserOut Successful Response
+     * @throws ApiError
+     */
+    public static readMeUsersMeGet(): CancelablePromise<UserOut> {
+        return __request(OpenAPI, {
+            method: 'GET',
             url: '/users/me',
         });
     }

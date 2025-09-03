@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type PreviewLinkRequest = {
-    workspace_id: string;
     ttl?: (number | null);
+    workspace_id: string;
 };
 

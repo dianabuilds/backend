@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type FeatureFlagOut = {
-    key: string;
-    value: boolean;
     description?: (string | null);
+    key: string;
     updated_at?: (string | null);
     updated_by?: (string | null);
+    value: boolean;
 };
 

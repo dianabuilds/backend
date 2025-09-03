@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type NodePatchCreate = {
-    node_id: number;
     data: Record<string, any>;
+    node_id: number;
 };
 

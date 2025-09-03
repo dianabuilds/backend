@@ -3,13 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 export type NavigationNodeProblem = {
+    ctr: number;
+    cycle: boolean;
+    dead_end: boolean;
     node_id: string;
     slug: string;
     title?: (string | null);
-    views: number;
     transitions: number;
-    ctr: number;
-    dead_end: boolean;
-    cycle: boolean;
+    views: number;
 };
 

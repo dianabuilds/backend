@@ -3,15 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 export type GenerateQuestIn = {
-    world_template_id?: (string | null);
-    structure: string;
-    length: string;
-    tone: string;
-    genre: string;
-    locale?: (string | null);
     extras?: (Record<string, any> | null);
+    genre: string;
+    length: string;
+    locale?: (string | null);
     model?: (string | null);
     remember?: boolean;
+    structure: string;
+    tone: string;
     workspace_id?: (string | null);
+    world_template_id?: (string | null);
 };
 

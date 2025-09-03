@@ -3,15 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QuestVersionOut = {
-    number: number;
-    status: string;
-    meta?: (Record<string, any> | null);
-    id: string;
-    quest_id: string;
     created_at: string;
     created_by?: (string | null);
+    id: string;
+    meta?: (Record<string, any> | null);
+    number: number;
+    parent_version_id?: (string | null);
+    quest_id: string;
     released_at?: (string | null);
     released_by?: (string | null);
-    parent_version_id?: (string | null);
+    status: string;
 };
 

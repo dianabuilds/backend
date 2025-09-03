@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type SimulateResult = {
-    steps?: Array<Record<string, any>>;
     rewards?: Array<Record<string, any>>;
+    steps?: Array<Record<string, any>>;
 };
 

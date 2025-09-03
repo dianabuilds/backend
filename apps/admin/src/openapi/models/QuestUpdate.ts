@@ -3,22 +3,22 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QuestUpdate = {
-    title?: (string | null);
-    subtitle?: (string | null);
-    description?: (string | null);
-    cover_image?: (string | null);
-    tags?: Array<string>;
-    price?: (number | null);
-    is_premium_only?: boolean;
-    entry_node_id?: (string | null);
-    nodes?: Array<string>;
-    custom_transitions?: (Record<string, any> | null);
     allow_comments?: boolean;
-    structure?: (string | null);
-    length?: (string | null);
-    tone?: (string | null);
-    genre?: (string | null);
-    locale?: (string | null);
     cost_generation?: (number | null);
+    cover_image?: (string | null);
+    custom_transitions?: (Record<string, any> | null);
+    description?: (string | null);
+    entry_node_id?: (string | null);
+    genre?: (string | null);
+    is_premium_only?: boolean;
+    length?: (string | null);
+    locale?: (string | null);
+    nodes?: Array<string>;
+    price?: (number | null);
+    structure?: (string | null);
+    subtitle?: (string | null);
+    tags?: Array<string>;
+    title?: (string | null);
+    tone?: (string | null);
 };
 

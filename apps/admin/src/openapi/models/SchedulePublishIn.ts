@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type PublishIn = {
-    access?: PublishIn.access;
-    cover?: (string | null);
+export type SchedulePublishIn = {
+    access?: SchedulePublishIn.access;
+    run_at: string;
 };
-export namespace PublishIn {
+export namespace SchedulePublishIn {
     export enum access {
         EVERYONE = 'everyone',
         PREMIUM_ONLY = 'premium_only',

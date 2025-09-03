@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 export type UserOut = {
-    id: string;
+    avatar_url?: (string | null);
+    bio?: (string | null);
     created_at: string;
     email?: (string | null);
-    wallet_address?: (string | null);
+    id: string;
     is_active: boolean;
-    username?: (string | null);
-    bio?: (string | null);
-    avatar_url?: (string | null);
     role: string;
+    username?: (string | null);
+    wallet_address?: (string | null);
 };
 

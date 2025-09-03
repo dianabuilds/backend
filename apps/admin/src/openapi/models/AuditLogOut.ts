@@ -3,17 +3,17 @@
 /* tslint:disable */
 /* eslint-disable */
 export type AuditLogOut = {
-    id: string;
-    actor_id?: (string | null);
     action: string;
-    resource_type?: (string | null);
-    resource_id?: (string | null);
-    workspace_id?: (string | null);
-    before?: (Record<string, any> | null);
+    actor_id?: (string | null);
     after?: (Record<string, any> | null);
-    ip?: (string | null);
-    user_agent?: (string | null);
+    before?: (Record<string, any> | null);
     created_at: string;
     extra?: (Record<string, any> | null);
+    id: string;
+    ip?: (string | null);
+    resource_id?: (string | null);
+    resource_type?: (string | null);
+    user_agent?: (string | null);
+    workspace_id?: (string | null);
 };
 

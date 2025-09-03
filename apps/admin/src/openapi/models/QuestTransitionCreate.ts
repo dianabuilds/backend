@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QuestTransitionCreate = {
-    toStepId: string;
-    label?: (string | null);
     condition?: (Record<string, any> | null);
+    label?: (string | null);
+    toStepId: string;
 };
 

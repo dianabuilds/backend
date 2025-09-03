@@ -45,6 +45,6 @@ class INodeRepository(Protocol):
         ...
 
     async def bulk_set_visibility(
-        self, node_ids: list[UUID], is_visible: bool, workspace_id: UUID | None
+        self, node_ids: list[int], is_visible: bool, workspace_id: UUID | None
     ) -> int:  # pragma: no cover
         ...

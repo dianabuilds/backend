@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type NodePatchOut = {
+    created_at: string;
+    data: Record<string, any>;
     id: number;
     node_id: number;
-    data: Record<string, any>;
-    created_at: string;
     reverted_at?: (string | null);
 };
 
