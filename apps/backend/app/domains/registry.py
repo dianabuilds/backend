@@ -447,18 +447,6 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load admin navigation router. Startup aborted")
         raise RuntimeError("Failed to load admin navigation router") from exc
-    # Admin moderation cases
-    try:
-        from app.domains.moderation.api.cases_router import (
-            router as admin_moderation_cases_router,
-        )
-
-        app.include_router(admin_moderation_cases_router)
-    except Exception as exc:
-        logger.exception(
-            "Failed to load admin moderation cases router. Startup aborted"
-        )
-        raise RuntimeError("Failed to load admin moderation cases router") from exc
     # Admin restrictions
     try:
         from app.domains.moderation.api.restrictions_router import (
