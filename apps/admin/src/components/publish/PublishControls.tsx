@@ -2,11 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
 import {
-  AccessMode,
   cancelScheduledPublish,
   getPublishInfo,
   publishNow,
   schedulePublish,
+  type AccessMode,
   type PublishInfo,
 } from '../../api/publish';
 import { patchNode } from '../../api/nodes';
