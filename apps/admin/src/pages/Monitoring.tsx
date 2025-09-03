@@ -4,14 +4,14 @@ import RumTab from "../features/monitoring/RumTab";
 import RateLimitsTab from "../features/monitoring/RateLimitsTab";
 import CacheTab from "../features/monitoring/CacheTab";
 import AuditLogTab from "../features/monitoring/AuditLogTab";
-import Jobs from "./Jobs";
+import JobsTab from "../features/monitoring/JobsTab";
 
 const tabs = [
   { id: "rum", label: "RUM", component: <RumTab /> },
   { id: "rate-limits", label: "Rate limits", component: <RateLimitsTab /> },
   { id: "cache", label: "Cache", component: <CacheTab /> },
   { id: "audit-log", label: "Audit log", component: <AuditLogTab /> },
-  { id: "jobs", label: "Jobs", component: <Jobs /> },
+  { id: "jobs", label: "Jobs", component: <JobsTab /> },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
