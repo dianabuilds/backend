@@ -56,7 +56,7 @@ export async function createPreviewLink(
  * Открывает превью ноды в новой вкладке.
  * Универсально обрабатывает:
  * - числовой id (например, 60) или строку с числом ("60")
- * - путь вида "/nodes/60"
+ * - путь вида "/nodes/article/60"
  * - slug строки (в этом случае используем токен‑превью со start=<slug>)
  *
  * Для id всегда формируем admin‑маршрут:
@@ -70,7 +70,7 @@ export async function openNodePreview(
 ): Promise<void> {
   const raw = ref == null ? '' : String(ref).trim();
 
-  // 1) Если это путь "/nodes/{id}" — вытащим id
+  // 1) Если это путь "/nodes/.../{id}" — вытащим id
   let idStr: string | null = null;
   if (raw.startsWith('/nodes/')) {
     idStr = raw.split('/').filter(Boolean).pop() || null;
