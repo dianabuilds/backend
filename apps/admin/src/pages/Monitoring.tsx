@@ -1,14 +1,14 @@
 import { useState } from "react";
 
 import RumTab from "../features/monitoring/RumTab";
-import RateLimitTools from "./RateLimitTools";
+import RateLimitsTab from "../features/monitoring/RateLimitsTab";
 import CacheTools from "./CacheTools";
 import AuditLog from "./AuditLog";
 import Jobs from "./Jobs";
 
 const tabs = [
   { id: "rum", label: "RUM", component: <RumTab /> },
-  { id: "rate-limits", label: "Rate limits", component: <RateLimitTools /> },
+  { id: "rate-limits", label: "Rate limits", component: <RateLimitsTab /> },
   { id: "cache", label: "Cache", component: <CacheTools /> },
   { id: "audit-log", label: "Audit log", component: <AuditLog /> },
   { id: "jobs", label: "Jobs", component: <Jobs /> },
