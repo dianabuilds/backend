@@ -117,15 +117,11 @@ const protectedChildren: RouteObject[] = [
   { path: "quests", element: <Quests /> },
   { path: "quests/:id", element: <QuestEditor /> },
   { path: "quests/:id/versions/:versionId", element: <QuestVersionEditor /> },
-    // Newer editor/preview routes with explicit type
-    { path: "nodes/:type/:id/validate", element: <ValidationReport /> },
-    { path: "nodes/:type/:id/preview", element: <NodePreview /> },
-    { path: "nodes/:type/:id", element: <NodeEditor /> },
-    // Backward compatibility for older links without type
-    { path: "nodes/:id/validate", element: <ValidationReport /> },
-    { path: "nodes/:id/preview", element: <NodePreview /> },
-    { path: "nodes/:id", element: <NodeEditor /> },
-    { path: "nodes/:id/diff", element: <NodeDiff /> },
+  // Newer editor/preview routes with explicit type
+  { path: "nodes/:type/:id/validate", element: <ValidationReport /> },
+  { path: "nodes/:type/:id/preview", element: <NodePreview /> },
+  { path: "nodes/:type/:id/diff", element: <NodeDiff /> },
+  { path: "nodes/:type/:id", element: <NodeEditor /> },
   { path: "search", element: <SearchTop /> },
   { path: "settings/authentication", element: <Authentication /> },
   { path: "settings/payments", element: <PaymentsGateways /> },

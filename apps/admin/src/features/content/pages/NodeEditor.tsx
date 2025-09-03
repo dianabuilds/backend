@@ -66,7 +66,7 @@ export default function NodeEditorPage() {
             <Button onClick={() => navigate(-1)}>Close</Button>
             <Button
               onClick={() => {
-                const base = type ? `/nodes/${type}/${id}` : `/nodes/${id}`;
+                const base = `/nodes/${type}/${id}`;
                 const qs = workspaceId ? `?workspace_id=${workspaceId}` : '';
                 navigate(`${base}/preview${qs}`);
               }}

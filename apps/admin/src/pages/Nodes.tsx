@@ -55,6 +55,7 @@ function normalizeNode(raw: any): NodeItem {
           : true,
     created_at: n.created_at ?? n.createdAt ?? undefined,
     updated_at: n.updated_at ?? n.updatedAt ?? undefined,
+    type: n.type ?? n.node_type ?? n.nodeType ?? undefined,
   };
 }
 
@@ -130,7 +131,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
   const [applying, setApplying] = useState(false);
 
   // Модалка создания ноды
-  // modal-based creation removed; use /nodes/new route
+  // modal-based creation removed; use /nodes/{type}/new route
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -428,7 +429,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     });
   };
 
-  // Создание перенесено на страницу /nodes/new
+// Создание перенесено на страницу /nodes/{type}/new
 
   const previewSelected = async (id: number) => {
     if (!workspaceId) return;
@@ -436,7 +437,8 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     if (!node) return;
     try {
       const { url } = await createPreviewLink(workspaceId);
-      window.open(`${url}/nodes/${id}`, '_blank');
+      const t = node.type || nodeType || 'article';
+      window.open(`${url}/nodes/${t}/${id}`, '_blank');
     } catch (e) {
       addToast({
         title: 'Preview failed',
@@ -484,7 +486,8 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
         if (first) {
           const item = baseline.get(first);
           if (item) {
-            navigate(`/nodes/${first}?workspace_id=${workspaceId}`);
+            const t = item.type || nodeType || 'article';
+            navigate(`/nodes/${t}/${first}?workspace_id=${workspaceId}`);
           }
         }
       } else if (e.key === 'p' || e.key === 'P') {
@@ -675,7 +678,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
               className="px-3 py-1 rounded bg-blue-600 text-white"
               onClick={() => {
                 const qs = workspaceId ? `?workspace_id=${encodeURIComponent(workspaceId)}` : '';
-                navigate(`/nodes/new${qs}`);
+                navigate(`/nodes/${nodeType || 'article'}/new${qs}`);
               }}
             >
               Add node
@@ -918,9 +921,8 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
                           type="button"
                           className="px-2 py-1 border rounded"
                           onClick={() => {
-                            navigate(
-                              `/nodes/${n.id}?workspace_id=${workspaceId}`,
-                            );
+                            const t = n.type || nodeType || 'article';
+                            navigate(`/nodes/${t}/${n.id}?workspace_id=${workspaceId}`);
                           }}
                         >
                           Edit
@@ -932,7 +934,8 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
                             if (!workspaceId) return;
                             try {
                               const { url } = await createPreviewLink(workspaceId);
-                              window.open(`${url}/nodes/${n.id}`, '_blank');
+                              const t = n.type || nodeType || 'article';
+                              window.open(`${url}/nodes/${t}/${n.id}`, '_blank');
                             } catch (e) {
                               addToast({
                                 title: 'Preview failed',
@@ -979,7 +982,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
           </>
         )}
 
-        {/* Удалена модалка создания ноды. Используйте кнопку "Add node" → /nodes/new */}
+        {/* Удалена модалка создания ноды. Используйте кнопку "Add node" → /nodes/{type}/new */}
 
         {/* Moderation modal: hide with reason */}
         {modOpen && (

@@ -257,8 +257,8 @@ function NodeCreate({ workspaceId, nodeType }: { workspaceId: string; nodeType: 
       const t = nodeType === 'article' || nodeType === 'quest' ? nodeType : 'article';
       const n = await createNode(workspaceId);
       const path = workspaceId
-        ? `/nodes/${n.id}?workspace_id=${workspaceId}`
-        : `/nodes/${n.id}`;
+        ? `/nodes/${t}/${n.id}?workspace_id=${workspaceId}`
+        : `/nodes/${t}/${n.id}`;
       navigate(path, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -267,7 +267,11 @@ function NodeCreate({ workspaceId, nodeType }: { workspaceId: string; nodeType: 
   };
 
   const handleClose = () => {
-    navigate(workspaceId ? `/nodes?workspace_id=${workspaceId}` : '/nodes');
+    navigate(
+      workspaceId
+        ? `/nodes?workspace_id=${workspaceId}&type=${nodeType}`
+        : `/nodes?type=${nodeType}`,
+    );
   };
 
   return (
@@ -556,9 +560,10 @@ function NodeEditorInner({
 
   const handleCreate = () => {
     if (!canEdit) return;
+    const t = node.nodeType || 'article';
     const path = workspaceId
-      ? `/nodes/new?workspace_id=${workspaceId}`
-      : `/nodes/new`;
+      ? `/nodes/${t}/new?workspace_id=${workspaceId}`
+      : `/nodes/${t}/new`;
     navigate(path);
   };
 
@@ -566,7 +571,12 @@ function NodeEditorInner({
     if (unsaved && !window.confirm('Discard unsaved changes?')) {
       return;
     }
-    navigate(workspaceId ? `/nodes?workspace_id=${workspaceId}` : '/nodes');
+    const t = node.nodeType || 'article';
+    navigate(
+      workspaceId
+        ? `/nodes?workspace_id=${workspaceId}&type=${t}`
+        : `/nodes?type=${t}`,
+    );
   };
 
   // изменения контента из EditorJS → в очередь PATCH
@@ -645,7 +655,7 @@ function NodeEditorInner({
               )}
               {node.id && (
                 <a
-                  href={`/nodes/${node.id}`}
+                  href={`/nodes/${node.nodeType || 'article'}/${node.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-2 py-1 border rounded"
