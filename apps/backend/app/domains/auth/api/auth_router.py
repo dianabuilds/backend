@@ -142,6 +142,26 @@ async def login(
     return tokens
 
 
+router.add_api_route(
+    "/signin",
+    login,
+    methods=["POST"],
+    response_model=LoginResponse,
+    dependencies=[Depends(_login_rate_limit)],
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/json": {"schema": LoginSchema.model_json_schema()},
+                "application/x-www-form-urlencoded": {
+                    "schema": LoginSchema.model_json_schema()
+                },
+            },
+        }
+    },
+)
+
+
 @router.post("/refresh", response_model=LoginResponse)
 async def refresh(
     request: Request,

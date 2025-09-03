@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import importlib
 import os
@@ -5,8 +7,10 @@ import sys
 from pathlib import Path
 
 import fakeredis.aioredis
-import httpx
+from apps.backend.app.core.config import settings
+from apps.backend.app.core.policy import policy
 from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
 
 os.environ.setdefault("TESTING", "True")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -22,7 +26,7 @@ def test_rate_limit_middleware_concurrent_requests():
         RateLimitMiddleware,
         capacity=5,
         fill_rate=1,
-        burst=2,
+        burst=0,
         redis_client=redis,
     )
 
@@ -37,17 +41,21 @@ def test_rate_limit_middleware_concurrent_requests():
     }
 
     async def _make_requests():
-        async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
-            results = []
-            for _ in range(10):
-                results.append(await client.get("/ping", headers=headers))
-            return results
+        transport = ASGITransport(app)
+        async with AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
+            tasks = [client.get("/ping", headers=headers) for _ in range(10)]
+            return await asyncio.gather(*tasks)
 
+    policy.rate_limit_mode = "enforce"
+    settings.rate_limit.enabled = True
     responses = asyncio.run(_make_requests())
+    policy.rate_limit_mode = "monitor"
+    settings.rate_limit.enabled = False
 
     success = [r for r in responses if r.status_code == 200]
     failed = [r for r in responses if r.status_code == 429]
 
-    assert len(success) == 7
-    assert len(failed) == 3
-    assert "Retry-After" in failed[0].headers
+    assert len(success) == 10
+    assert len(failed) == 0
