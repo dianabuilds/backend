@@ -1,4 +1,4 @@
-from uuid import UUID
+from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
@@ -36,4 +36,4 @@ class TagMerge(BaseModel):
 
 
 class TagDetachRequest(BaseModel):
-    node_ids: list[UUID] | None = None
+    node_ids: list[int] | None = None

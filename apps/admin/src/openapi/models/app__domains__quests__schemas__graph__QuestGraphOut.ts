@@ -6,8 +6,8 @@ import type { QuestStep } from './QuestStep';
 import type { QuestTransition } from './QuestTransition';
 import type { QuestVersionOut } from './QuestVersionOut';
 export type app__domains__quests__schemas__graph__QuestGraphOut = {
-    version: QuestVersionOut;
     steps?: Array<QuestStep>;
     transitions?: Array<QuestTransition>;
+    version: QuestVersionOut;
 };
 

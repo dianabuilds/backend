@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type WorldTemplateIn = {
-    title: string;
-    locale?: (string | null);
     description?: (string | null);
+    locale?: (string | null);
     meta?: (Record<string, any> | null);
+    title: string;
 };
 

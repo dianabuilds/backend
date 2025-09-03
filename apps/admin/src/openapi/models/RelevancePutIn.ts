@@ -4,9 +4,9 @@
 /* eslint-disable */
 import type { RelevancePayload } from './RelevancePayload';
 export type RelevancePutIn = {
-    payload: RelevancePayload;
-    dryRun?: boolean;
-    sample?: Array<string>;
     comment?: (string | null);
+    dryRun?: boolean;
+    payload: RelevancePayload;
+    sample?: Array<string>;
 };
 

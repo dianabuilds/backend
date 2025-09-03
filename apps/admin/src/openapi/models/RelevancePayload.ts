@@ -6,8 +6,8 @@ import type { RelevanceBoosts } from './RelevanceBoosts';
 import type { RelevanceQueryParams } from './RelevanceQueryParams';
 import type { RelevanceWeights } from './RelevanceWeights';
 export type RelevancePayload = {
-    weights?: RelevanceWeights;
     boosts?: RelevanceBoosts;
     query?: RelevanceQueryParams;
+    weights?: RelevanceWeights;
 };
 

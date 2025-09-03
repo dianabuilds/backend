@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type UserUpdate = {
-    username?: (string | null);
-    bio?: (string | null);
     avatar_url?: (string | null);
+    bio?: (string | null);
+    username?: (string | null);
 };
 

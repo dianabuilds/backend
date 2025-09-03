@@ -5,10 +5,10 @@
 import type { WorkspaceSettings_Input } from './WorkspaceSettings_Input';
 import type { WorkspaceType } from './WorkspaceType';
 export type WorkspaceUpdate = {
-    name?: (string | null);
-    slug?: (string | null);
-    settings?: (WorkspaceSettings_Input | null);
-    type?: (WorkspaceType | null);
     is_system?: (boolean | null);
+    name?: (string | null);
+    settings?: (WorkspaceSettings_Input | null);
+    slug?: (string | null);
+    type?: (WorkspaceType | null);
 };
 

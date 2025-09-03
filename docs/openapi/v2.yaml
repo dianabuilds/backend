@@ -239,9 +239,10 @@ paths:
       tags:
       - metrics
       summary: Rum Metrics
-      description: 'Приёмник простых RUM-событий с фронтенда.
-
-        Тело: { event: str, ts: int, url: str, data: any }'
+      description: "\u041F\u0440\u0438\u0451\u043C\u043D\u0438\u043A \u043F\u0440\u043E\
+        \u0441\u0442\u044B\u0445 RUM-\u0441\u043E\u0431\u044B\u0442\u0438\u0439 \u0441\
+        \ \u0444\u0440\u043E\u043D\u0442\u0435\u043D\u0434\u0430.\n\u0422\u0435\u043B\
+        \u043E: { event: str, ts: int, url: str, data: any }"
       operationId: rum_metrics_metrics_rum_post
       responses:
         '200':
@@ -257,7 +258,10 @@ paths:
       tags:
       - admin-telemetry
       summary: List Rum Events
-      description: 'Админ: последние RUM-события (по убыванию времени).'
+      description: "\u0410\u0434\u043C\u0438\u043D: \u043F\u043E\u0441\u043B\u0435\
+        \u0434\u043D\u0438\u0435 RUM-\u0441\u043E\u0431\u044B\u0442\u0438\u044F (\u043F\
+        \u043E \u0443\u0431\u044B\u0432\u0430\u043D\u0438\u044E \u0432\u0440\u0435\
+        \u043C\u0435\u043D\u0438)."
       operationId: list_rum_events_admin_telemetry_rum_get
       security:
       - bearerAuth: []
@@ -293,13 +297,15 @@ paths:
       tags:
       - admin-telemetry
       summary: Rum Summary
-      description: 'Админ: сводка по последним событиям.
-
-        - counts по event
-
-        - средняя длительность login_attempt.dur_ms
-
-        - навигационные тайминги (средние по окну): ttfb, domContentLoaded, loadEvent'
+      description: "\u0410\u0434\u043C\u0438\u043D: \u0441\u0432\u043E\u0434\u043A\
+        \u0430 \u043F\u043E \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u043C\
+        \ \u0441\u043E\u0431\u044B\u0442\u0438\u044F\u043C.\n- counts \u043F\u043E\
+        \ event\n- \u0441\u0440\u0435\u0434\u043D\u044F\u044F \u0434\u043B\u0438\u0442\
+        \u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C login_attempt.dur_ms\n- \u043D\
+        \u0430\u0432\u0438\u0433\u0430\u0446\u0438\u043E\u043D\u043D\u044B\u0435 \u0442\
+        \u0430\u0439\u043C\u0438\u043D\u0433\u0438 (\u0441\u0440\u0435\u0434\u043D\
+        \u0438\u0435 \u043F\u043E \u043E\u043A\u043D\u0443): ttfb, domContentLoaded,\
+        \ loadEvent"
       operationId: rum_summary_admin_telemetry_rum_summary_get
       security:
       - bearerAuth: []
@@ -1700,7 +1706,11 @@ paths:
       tags:
       - admin-ai-quests
       summary: Get Rate Limits
-      description: Текущие рантайм-лимиты RPM по провайдерам и моделям (оверрайды).
+      description: "\u0422\u0435\u043A\u0443\u0449\u0438\u0435 \u0440\u0430\u043D\u0442\
+        \u0430\u0439\u043C-\u043B\u0438\u043C\u0438\u0442\u044B RPM \u043F\u043E \u043F\
+        \u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430\u043C \u0438 \u043C\
+        \u043E\u0434\u0435\u043B\u044F\u043C (\u043E\u0432\u0435\u0440\u0440\u0430\
+        \u0439\u0434\u044B)."
       operationId: get_rate_limits_admin_ai_quests_rate_limits_get
       responses:
         '200':
@@ -1717,10 +1727,13 @@ paths:
       tags:
       - admin-ai-quests
       summary: Set Rate Limits
-      description: "Установить рантайм-лимиты RPM.\nФормат:\n{\n  \"providers\": {\
-        \ \"openai\": 60, \"anthropic\": 30, \"openai_compatible\": 45 },\n  \"models\"\
-        : { \"gpt-4o-mini\": 120, \"claude-3-haiku\": 100 }\n}\nЗначения null/0/\"\
-        \" — удаляют оверрайд."
+      description: "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0440\
+        \u0430\u043D\u0442\u0430\u0439\u043C-\u043B\u0438\u043C\u0438\u0442\u044B\
+        \ RPM.\n\u0424\u043E\u0440\u043C\u0430\u0442:\n{\n  \"providers\": { \"openai\"\
+        : 60, \"anthropic\": 30, \"openai_compatible\": 45 },\n  \"models\": { \"\
+        gpt-4o-mini\": 120, \"claude-3-haiku\": 100 }\n}\n\u0417\u043D\u0430\u0447\
+        \u0435\u043D\u0438\u044F null/0/\"\" \u2014 \u0443\u0434\u0430\u043B\u044F\
+        \u044E\u0442 \u043E\u0432\u0435\u0440\u0440\u0430\u0439\u0434."
       operationId: set_rate_limits_admin_ai_quests_rate_limits_post
       requestBody:
         content:
@@ -1752,8 +1765,12 @@ paths:
       tags:
       - admin-ai-quests
       summary: Get Ai Worker Stats
-      description: 'Сводка по задачам/стадиям генерации: счётчики, среднее время,
-        стоимость, токены.'
+      description: "\u0421\u0432\u043E\u0434\u043A\u0430 \u043F\u043E \u0437\u0430\
+        \u0434\u0430\u0447\u0430\u043C/\u0441\u0442\u0430\u0434\u0438\u044F\u043C\
+        \ \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u0438: \u0441\u0447\u0451\
+        \u0442\u0447\u0438\u043A\u0438, \u0441\u0440\u0435\u0434\u043D\u0435\u0435\
+        \ \u0432\u0440\u0435\u043C\u044F, \u0441\u0442\u043E\u0438\u043C\u043E\u0441\
+        \u0442\u044C, \u0442\u043E\u043A\u0435\u043D\u044B."
       operationId: get_ai_worker_stats_admin_ai_quests_stats_get
       responses:
         '200':
@@ -1817,10 +1834,14 @@ paths:
         required: false
         schema:
           type: boolean
-          description: Пересчитать отчёт принудительно
+          description: "\u041F\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\
+            \u044C \u043E\u0442\u0447\u0451\u0442 \u043F\u0440\u0438\u043D\u0443\u0434\
+            \u0438\u0442\u0435\u043B\u044C\u043D\u043E"
           default: false
           title: Recalc
-        description: Пересчитать отчёт принудительно
+        description: "\u041F\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\
+          \u044C \u043E\u0442\u0447\u0451\u0442 \u043F\u0440\u0438\u043D\u0443\u0434\
+          \u0438\u0442\u0435\u043B\u044C\u043D\u043E"
       responses:
         '200':
           description: Successful Response
@@ -1841,7 +1862,9 @@ paths:
     get:
       tags:
       - admin
-      summary: Проверка статуса embedding-провайдера
+      summary: "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0441\u0442\u0430\
+        \u0442\u0443\u0441\u0430 embedding-\u043F\u0440\u043E\u0432\u0430\u0439\u0434\
+        \u0435\u0440\u0430"
       operationId: embedding_status_admin_embedding_status_get
       responses:
         '200':
@@ -1886,7 +1909,10 @@ paths:
     post:
       tags:
       - admin
-      summary: Протестировать векторизацию произвольного текста
+      summary: "\u041F\u0440\u043E\u0442\u0435\u0441\u0442\u0438\u0440\u043E\u0432\
+        \u0430\u0442\u044C \u0432\u0435\u043A\u0442\u043E\u0440\u0438\u0437\u0430\u0446\
+        \u0438\u044E \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u043B\u044C\u043D\u043E\
+        \u0433\u043E \u0442\u0435\u043A\u0441\u0442\u0430"
       operationId: embedding_test_admin_embedding_test_post
       requestBody:
         content:
@@ -10072,7 +10098,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AdminNodeOut'
         '401':
           description: Unauthorized
           nodes:
@@ -10146,17 +10173,93 @@ paths:
               type: object
               additionalProperties: true
               title: Payload
-            example:
-              content:
-                time: 0
-                blocks: []
-                version: '2.30.7'
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AdminNodeOut'
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - admin
+      summary: Replace node item by id
+      operationId: replace_node_by_id_admin_workspaces__workspace_id__nodes__node_id__put
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Node Id
+      - name: workspace_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Workspace Id
+      - name: next
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+          title: Next
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              title: Payload
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminNodeOut'
         '401':
           description: Unauthorized
           nodes:
@@ -10221,7 +10324,7 @@ paths:
           application/json:
             schema:
               anyOf:
-              - $ref: '#/components/schemas/PublishIn'
+              - $ref: '#/components/schemas/app__domains__nodes__content_admin_router__PublishIn'
               - type: 'null'
               title: Payload
       responses:
@@ -10229,7 +10332,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AdminNodeOut'
         '401':
           description: Unauthorized
           nodes:
@@ -10316,7 +10420,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AdminNodeList'
         '401':
           description: Unauthorized
           nodes:
@@ -10380,7 +10485,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AdminNodeOut'
         '401':
           description: Unauthorized
           nodes:
@@ -10451,7 +10557,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AdminNodeOut'
         '401':
           description: Unauthorized
           nodes:
@@ -10536,7 +10643,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AdminNodeOut'
         '401':
           description: Unauthorized
           nodes:
@@ -10607,7 +10715,7 @@ paths:
           application/json:
             schema:
               anyOf:
-              - $ref: '#/components/schemas/PublishIn'
+              - $ref: '#/components/schemas/app__domains__nodes__content_admin_router__PublishIn'
               - type: 'null'
               title: Payload
       responses:
@@ -10615,7 +10723,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AdminNodeOut'
         '401':
           description: Unauthorized
           nodes:
@@ -10685,7 +10794,7 @@ paths:
           application/json:
             schema:
               anyOf:
-              - $ref: '#/components/schemas/PublishIn'
+              - $ref: '#/components/schemas/app__domains__nodes__content_admin_router__PublishIn'
               - type: 'null'
               title: Payload
       responses:
@@ -10693,7 +10802,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AdminNodeOut'
         '401':
           description: Unauthorized
           nodes:
@@ -10970,7 +11080,7 @@ paths:
           application/json:
             schema:
               anyOf:
-              - $ref: '#/components/schemas/PublishIn'
+              - $ref: '#/components/schemas/app__domains__nodes__api__articles_admin_router__PublishIn'
               - type: 'null'
               title: Payload
       responses:
@@ -11261,6 +11371,25 @@ paths:
           type: string
           format: uuid
           title: Workspace Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - type: object
+                additionalProperties: true
+              - type: 'null'
+              title: Payload
+            example:
+              title: New quest
+              content:
+                time: 0
+                blocks: []
+                version: 2.30.7
+              tags:
+              - intro
+              media:
+              - https://example.com/image.png
       responses:
         '200':
           description: Successful Response
@@ -11438,11 +11567,17 @@ paths:
       tags:
       - admin
       summary: Get node by ID (admin, full)
-      description: 'Единая точка для загрузки полной ноды по ID (числовой node.id).
-
-        Резолвит UUID контента и делегирует в реализацию контент‑роутера,
-
-        чтобы вернуть все данные ноды.'
+      description: "\u0415\u0434\u0438\u043D\u0430\u044F \u0442\u043E\u0447\u043A\u0430\
+        \ \u0434\u043B\u044F \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 \u043F\
+        \u043E\u043B\u043D\u043E\u0439 \u043D\u043E\u0434\u044B \u043F\u043E ID (\u0447\
+        \u0438\u0441\u043B\u043E\u0432\u043E\u0439 node.id).\n\u0414\u0435\u043B\u0435\
+        \u0433\u0438\u0440\u0443\u0435\u0442 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\
+        \u043A\u0443 \u0432 \u043A\u043E\u043D\u0442\u0435\u043D\u0442\u2011\u0440\
+        \u043E\u0443\u0442\u0435\u0440, \u043A\u043E\u0442\u043E\u0440\u044B\u0439\
+        \ \u0441\u0430\u043C\u043E\u0441\u0442\u043E\u044F\u0442\u0435\u043B\u044C\
+        \u043D\u043E\n\u0440\u0435\u0437\u043E\u043B\u0432\u0438\u0442 \u0438\u0434\
+        \u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440 \u043A\u043E\
+        \u043D\u0442\u0435\u043D\u0442\u0430."
       operationId: get_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__get
       security:
       - bearerAuth: []
@@ -11507,9 +11642,16 @@ paths:
       tags:
       - admin
       summary: Update node by ID (admin, full)
-      description: 'Обновление полной ноды по числовому ID с возвратом полного объекта.
-
-        Резолвим UUID контента и делегируем в контент‑роутер.'
+      description: "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u043F\
+        \u043E\u043B\u043D\u043E\u0439 \u043D\u043E\u0434\u044B \u043F\u043E \u0447\
+        \u0438\u0441\u043B\u043E\u0432\u043E\u043C\u0443 ID \u0441 \u0432\u043E\u0437\
+        \u0432\u0440\u0430\u0442\u043E\u043C \u043F\u043E\u043B\u043D\u043E\u0433\u043E\
+        \ \u043E\u0431\u044A\u0435\u043A\u0442\u0430.\n\u0414\u0435\u043B\u0435\u0433\
+        \u0438\u0440\u0443\u0435\u043C \u0432 \u043A\u043E\u043D\u0442\u0435\u043D\
+        \u0442\u2011\u0440\u043E\u0443\u0442\u0435\u0440, \u043A\u043E\u0442\u043E\
+        \u0440\u044B\u0439 \u0440\u0435\u0437\u043E\u043B\u0432\u0438\u0442 \u0438\
+        \u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440 \u043A\
+        \u043E\u043D\u0442\u0435\u043D\u0442\u0430."
       operationId: update_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__patch
       security:
       - bearerAuth: []
@@ -11535,6 +11677,16 @@ paths:
               type: object
               additionalProperties: true
               title: Payload
+            example:
+              title: Updated quest
+              content:
+                time: 0
+                blocks: []
+                version: 2.30.7
+              tags:
+              - intro
+              media:
+              - https://example.com/image.png
       responses:
         '200':
           description: Successful Response
@@ -11583,10 +11735,16 @@ paths:
       tags:
       - admin
       summary: Publish node by ID (admin)
-      description: 'Публикация ноды по числовому ID. Возвращает обновлённую полную
-        ноду.
-
-        Резолвим UUID контента и делегируем в контент‑роутер.'
+      description: "\u041F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u044F \u043D\
+        \u043E\u0434\u044B \u043F\u043E \u0447\u0438\u0441\u043B\u043E\u0432\u043E\
+        \u043C\u0443 ID. \u0412\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442\
+        \ \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D\u043D\u0443\u044E \u043F\
+        \u043E\u043B\u043D\u0443\u044E \u043D\u043E\u0434\u0443.\n\u0414\u0435\u043B\
+        \u0435\u0433\u0438\u0440\u0443\u0435\u043C \u0432 \u043A\u043E\u043D\u0442\
+        \u0435\u043D\u0442\u2011\u0440\u043E\u0443\u0442\u0435\u0440, \u043A\u043E\
+        \u0442\u043E\u0440\u044B\u0439 \u0440\u0435\u0437\u043E\u043B\u0432\u0438\u0442\
+        \ \u0438\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\
+        \u0440 \u043A\u043E\u043D\u0442\u0435\u043D\u0442\u0430."
       operationId: publish_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__publish_post
       security:
       - bearerAuth: []
@@ -11619,6 +11777,338 @@ paths:
           content:
             application/json:
               schema: {}
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/workspaces/{workspace_id}/nodes/{id}/publish_info:
+    get:
+      tags:
+      - admin
+      summary: Publish status and schedule (admin)
+      description: "\u0412\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 \u0441\
+        \u0442\u0430\u0442\u0443\u0441 \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\
+        \u0438\u0438 \u0438 \u0437\u0430\u043F\u043B\u0430\u043D\u0438\u0440\u043E\
+        \u0432\u0430\u043D\u043D\u0443\u044E \u043F\u0443\u0431\u043B\u0438\u043A\u0430\
+        \u0446\u0438\u044E."
+      operationId: get_publish_info_admin_workspaces__workspace_id__nodes__id__publish_info_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Workspace Id
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/workspaces/{workspace_id}/nodes/{id}/schedule_publish:
+    post:
+      tags:
+      - admin
+      summary: Schedule publish by date/time (admin)
+      description: "\u0421\u043E\u0437\u0434\u0430\u0451\u0442 \u0438\u043B\u0438\
+        \ \u0437\u0430\u043C\u0435\u043D\u044F\u0435\u0442 \u0437\u0430\u0434\u0430\
+        \u043D\u0438\u0435 \u043D\u0430 \u043F\u0443\u0431\u043B\u0438\u043A\u0430\
+        \u0446\u0438\u044E."
+      operationId: schedule_publish_admin_workspaces__workspace_id__nodes__id__schedule_publish_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Workspace Id
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchedulePublishIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - admin
+      summary: Cancel scheduled publish (admin)
+      operationId: cancel_scheduled_publish_admin_workspaces__workspace_id__nodes__id__schedule_publish_delete
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Workspace Id
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/nodes/{node_id}:
+    get:
+      tags:
+      - admin
+      summary: Get global node by ID
+      operationId: get_global_node_by_id_admin_nodes__node_id__get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Node Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeOut'
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - admin
+      summary: Update global node by ID
+      operationId: update_global_node_by_id_admin_nodes__node_id__put
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Node Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NodeUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeOut'
         '401':
           description: Unauthorized
           nodes:
@@ -13151,8 +13641,9 @@ paths:
       tags:
       - admin
       summary: Metrics Timeseries
-      description: 'Таймсерии: counts per status class (2xx/4xx/5xx) и p95 latency
-        по бакетам.'
+      description: "\u0422\u0430\u0439\u043C\u0441\u0435\u0440\u0438\u0438: counts\
+        \ per status class (2xx/4xx/5xx) \u0438 p95 latency \u043F\u043E \u0431\u0430\
+        \u043A\u0435\u0442\u0430\u043C."
       operationId: metrics_timeseries_admin_metrics_timeseries_get
       security:
       - bearerAuth: []
@@ -13221,7 +13712,8 @@ paths:
       tags:
       - admin
       summary: Metrics Top Endpoints
-      description: Топ маршрутов по p95 | error_rate | rps.
+      description: "\u0422\u043E\u043F \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\
+        \u0432 \u043F\u043E p95 | error_rate | rps."
       operationId: metrics_top_endpoints_admin_metrics_endpoints_top_get
       security:
       - bearerAuth: []
@@ -13298,7 +13790,8 @@ paths:
       tags:
       - admin
       summary: Metrics Errors Recent
-      description: Последние ошибки (4xx/5xx).
+      description: "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435 \u043E\u0448\
+        \u0438\u0431\u043A\u0438 (4xx/5xx)."
       operationId: metrics_errors_recent_admin_metrics_errors_recent_get
       security:
       - bearerAuth: []
@@ -15966,6 +16459,172 @@ components:
       - to_slug
       - created_at
       title: AdminEchoTraceOut
+    AdminNodeList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AdminNodeOut'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: AdminNodeList
+    AdminNodeOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        contentId:
+          type: integer
+          title: Contentid
+        nodeId:
+          type: integer
+          title: Nodeid
+        workspaceId:
+          type: string
+          format: uuid
+          title: Workspaceid
+        nodeType:
+          type: string
+          title: Nodetype
+        type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Type
+        slug:
+          type: string
+          title: Slug
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        status:
+          $ref: '#/components/schemas/Status'
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+        content:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - items: {}
+            type: array
+          - type: 'null'
+          title: Content
+        coverUrl:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Coverurl
+        media:
+          items:
+            type: string
+          type: array
+          title: Media
+        isPublic:
+          type: boolean
+          title: Ispublic
+        isVisible:
+          type: boolean
+          title: Isvisible
+          default: true
+        allowFeedback:
+          type: boolean
+          title: Allowfeedback
+          default: true
+        isRecommendable:
+          type: boolean
+          title: Isrecommendable
+          default: true
+        premiumOnly:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Premiumonly
+        nftRequired:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nftrequired
+        aiGenerated:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Aigenerated
+        authorId:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Authorid
+        createdByUserId:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Createdbyuserid
+        updatedByUserId:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Updatedbyuserid
+        views:
+          type: integer
+          title: Views
+          default: 0
+        reactions:
+          additionalProperties: true
+          type: object
+          title: Reactions
+        popularityScore:
+          type: number
+          title: Popularityscore
+          default: 0.0
+        publishedAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Publishedat
+        createdAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Createdat
+        updatedAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Updatedat
+        tags:
+          items:
+            type: string
+          type: array
+          title: Tags
+      type: object
+      required:
+      - id
+      - contentId
+      - nodeId
+      - workspaceId
+      - nodeType
+      - slug
+      - status
+      - isPublic
+      title: AdminNodeOut
+      description: Detailed node payload used by the admin UI.
     AdminTransitionOut:
       properties:
         id:
@@ -16231,7 +16890,8 @@ components:
         text:
           type: string
           title: Text
-          description: Текст для эмбеддинга
+          description: "\u0422\u0435\u043A\u0441\u0442 \u0434\u043B\u044F \u044D\u043C\
+            \u0431\u0435\u0434\u0434\u0438\u043D\u0433\u0430"
       type: object
       title: Body_embedding_test_admin_embedding_test_post
     Body_upload_media_admin_admin_media_post:
@@ -17094,6 +17754,11 @@ components:
           type: boolean
           title: Isrecommendable
           default: true
+        slug:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Slug
       type: object
       title: NodeCreate
     NodeNotificationSettingsOut:
@@ -17192,6 +17857,11 @@ components:
         popularityScore:
           type: number
           title: Popularityscore
+        tags:
+          items:
+            type: string
+          type: array
+          title: Tags
       type: object
       required:
       - id
@@ -17428,6 +18098,11 @@ components:
       title: NodeTransitionUpdate
     NodeUpdate:
       properties:
+        slug:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Slug
         title:
           anyOf:
           - type: string
@@ -17597,23 +18272,6 @@ components:
       required:
       - workspace_id
       title: PreviewLinkRequest
-    PublishIn:
-      properties:
-        access:
-          type: string
-          enum:
-          - everyone
-          - premium_only
-          - early_access
-          title: Access
-          default: everyone
-        cover:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Cover
-      type: object
-      title: PublishIn
     QuestBuyIn:
       properties:
         payment_token:
@@ -18619,6 +19277,24 @@ components:
       - key
       - rule
       title: RuleUpdatePayload
+    SchedulePublishIn:
+      properties:
+        run_at:
+          type: string
+          format: date-time
+          title: Run At
+        access:
+          type: string
+          enum:
+          - everyone
+          - premium_only
+          - early_access
+          title: Access
+          default: everyone
+      type: object
+      required:
+      - run_at
+      title: SchedulePublishIn
     SearchOverviewOut:
       properties:
         zrr:
@@ -18729,6 +19405,14 @@ components:
           title: Rewards
       type: object
       title: SimulateResult
+    Status:
+      type: string
+      enum:
+      - draft
+      - in_review
+      - published
+      - archived
+      title: Status
     TagCreate:
       properties:
         slug:
@@ -19478,6 +20162,50 @@ components:
       - workspace_id
       - start
       title: SimulateRequest
+    app__domains__nodes__api__articles_admin_router__PublishIn:
+      properties:
+        access:
+          type: string
+          enum:
+          - everyone
+          - premium_only
+          - early_access
+          title: Access
+          default: everyone
+        cover:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cover
+      type: object
+      title: PublishIn
+    app__domains__nodes__content_admin_router__PublishIn:
+      properties:
+        access:
+          type: string
+          enum:
+          - everyone
+          - premium_only
+          - early_access
+          title: Access
+          default: everyone
+        cover:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cover
+        scheduled_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Scheduled At
+      type: object
+      title: PublishIn
+      examples:
+      - access: everyone
+      - access: everyone
+        scheduled_at: '2025-09-20T10:00:00Z'
     app__domains__quests__schemas__graph__QuestGraphOut:
       properties:
         version:

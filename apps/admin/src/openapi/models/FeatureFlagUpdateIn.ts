@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type FeatureFlagUpdateIn = {
-    value?: (boolean | null);
     description?: (string | null);
+    value?: (boolean | null);
 };
 

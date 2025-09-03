@@ -3,11 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 export type VersionSummary = {
-    id: string;
-    quest_id: string;
-    number: number;
-    status: string;
     created_at: string;
+    id: string;
+    number: number;
+    quest_id: string;
     released_at?: (string | null);
+    status: string;
 };
 

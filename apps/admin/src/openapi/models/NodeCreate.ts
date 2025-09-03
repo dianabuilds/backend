@@ -3,13 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 export type NodeCreate = {
-    title?: (string | null);
-    isVisible?: boolean;
-    meta?: Record<string, any>;
-    premium_only?: (boolean | null);
-    nftRequired?: (string | null);
     aiGenerated?: (boolean | null);
     allow_feedback?: boolean;
     isRecommendable?: boolean;
+    isVisible?: boolean;
+    meta?: Record<string, any>;
+    nftRequired?: (string | null);
+    premium_only?: (boolean | null);
+    slug?: (string | null);
+    title?: (string | null);
 };
 

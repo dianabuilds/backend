@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QuestStep = {
+    content?: (Record<string, any> | null);
     key: string;
+    rewards?: (Record<string, any> | null);
     title: string;
     type?: string;
-    content?: (Record<string, any> | null);
-    rewards?: (Record<string, any> | null);
 };
 

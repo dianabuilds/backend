@@ -4,7 +4,7 @@
 /* eslint-disable */
 import type { WorkspaceRole } from './WorkspaceRole';
 export type WorkspaceMemberIn = {
-    user_id: string;
     role: WorkspaceRole;
+    user_id: string;
 };
 

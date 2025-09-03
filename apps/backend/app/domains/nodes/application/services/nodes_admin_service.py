@@ -19,7 +19,7 @@ class NodesAdminService:
     async def bulk_set_visibility(
         self,
         db: AsyncSession,
-        node_ids: list[UUID],
+        node_ids: list[int],
         is_visible: bool,
         workspace_id: UUID,
     ) -> int:

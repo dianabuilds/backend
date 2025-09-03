@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type AISettingsIn = {
-    provider?: (string | null);
+    api_key?: (string | null);
     base_url?: (string | null);
     model?: (string | null);
-    api_key?: (string | null);
+    provider?: (string | null);
 };
 

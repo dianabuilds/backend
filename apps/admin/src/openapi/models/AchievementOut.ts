@@ -3,11 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 export type AchievementOut = {
-    id: string;
     code: string;
-    title: string;
     description?: (string | null);
     icon?: (string | null);
+    id: string;
+    title: string;
     unlocked: boolean;
     unlocked_at?: (string | null);
 };

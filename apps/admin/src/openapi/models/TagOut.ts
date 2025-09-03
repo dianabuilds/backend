@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type TagOut = {
-    slug: string;
-    name: string;
     count?: number;
+    name: string;
+    slug: string;
 };
 
