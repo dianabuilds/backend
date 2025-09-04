@@ -8,15 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.domains.moderation.infrastructure.models.moderation_case_models import (
-    CaseAttachment,
-    CaseEvent,
     CaseLabel,
     CaseNote,
     ModerationCase,
 )
 from app.schemas.moderation_cases import (
+    CaseAttachmentOut,
     CaseClose,
     CaseCreate,
+    CaseEventOut,
     CaseFullResponse,
     CaseListItem,
     CaseListResponse,
@@ -24,28 +24,33 @@ from app.schemas.moderation_cases import (
     CaseNoteOut,
     CaseOut,
     CasePatch,
-    CaseAttachmentOut,
-    CaseEventOut,
 )
 
 
 class CasesService:
     async def list_cases(
-        self, db: AsyncSession, page: int = 1, size: int = 20
+        self,
+        db: AsyncSession,
+        page: int = 1,
+        size: int = 20,
+        statuses: list[str] | None = None,
     ) -> CaseListResponse:
+        stmt = select(ModerationCase)
+        if statuses:
+            stmt = stmt.where(ModerationCase.status.in_(statuses))
         stmt = (
-            select(ModerationCase)
-            .order_by(ModerationCase.created_at.desc())
+            stmt.order_by(ModerationCase.created_at.desc())
             .offset((page - 1) * size)
             .limit(size)
-            .options(
-                selectinload(ModerationCase.labels).selectinload(CaseLabel.label)
-            )
+            .options(selectinload(ModerationCase.labels).selectinload(CaseLabel.label))
         )
         res = await db.execute(stmt)
         cases = res.scalars().all()
 
-        total = await db.scalar(select(func.count()).select_from(ModerationCase))
+        total_stmt = select(func.count()).select_from(ModerationCase)
+        if statuses:
+            total_stmt = total_stmt.where(ModerationCase.status.in_(statuses))
+        total = await db.scalar(total_stmt)
 
         items = [
             CaseListItem(

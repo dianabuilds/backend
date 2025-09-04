@@ -1,27 +1,16 @@
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db.session import get_db
+from app.domains.moderation.application import CasesService
+from app.schemas.moderation_cases import CaseListResponse
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-
-class QueueItem(BaseModel):
-    id: UUID
-    type: str
-    reason: str
-    status: str = "pending"
-
-
-# simple in-memory queue store for demo purposes
-QUEUE: list[QueueItem] = [
-    QueueItem(id=uuid4(), type="user", reason="spam"),
-    QueueItem(id=uuid4(), type="content", reason="abuse"),
-]
-
-
+cases_service = CasesService()
 admin_required = require_admin_role()
 
 router = APIRouter(
@@ -32,39 +21,12 @@ router = APIRouter(
 )
 
 
-def _find_item(item_id: UUID) -> QueueItem:
-    for item in QUEUE:
-        if item.id == item_id:
-            return item
-    raise HTTPException(status_code=404, detail="Item not found")
-
-
-@router.get("/queue", response_model=list[QueueItem])
+@router.get("/queue", response_model=CaseListResponse)
 async def list_queue(
-    type: str | None = None, status: str | None = None
-) -> list[QueueItem]:
-    items = QUEUE
-    if type:
-        items = [i for i in items if i.type == type]
-    if status:
-        items = [i for i in items if i.status == status]
-    return items
-
-
-@router.get("/queue/{item_id}", response_model=QueueItem)
-async def get_queue_item(item_id: UUID) -> QueueItem:
-    return _find_item(item_id)
-
-
-@router.post("/queue/{item_id}/approve")
-async def approve_item(item_id: UUID) -> dict[str, str]:
-    item = _find_item(item_id)
-    item.status = "approved"
-    return {"status": "ok"}
-
-
-@router.post("/queue/{item_id}/reject")
-async def reject_item(item_id: UUID) -> dict[str, str]:
-    item = _find_item(item_id)
-    item.status = "rejected"
-    return {"status": "ok"}
+    page: int = 1,
+    size: int = 20,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+) -> CaseListResponse:
+    return await cases_service.list_cases(
+        db, page=page, size=size, statuses=["new", "in_progress"]
+    )
