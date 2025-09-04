@@ -7,7 +7,9 @@ from types import SimpleNamespace
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.deps.guards import check_transition
 from app.core.preview import PreviewContext
+from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.navigation_cache_models import (
     NavigationCache,
@@ -58,6 +60,33 @@ class NavigationService:
             preview=preview,
         )
 
+    async def _filter_transitions(
+        self,
+        db: AsyncSession,
+        transitions: list[dict[str, object]],
+        user: User | None,
+        preview: PreviewContext | None,
+    ) -> list[dict[str, object]]:
+        """Apply access checks to cached transitions."""
+        allowed: list[dict[str, object]] = []
+        for t in transitions:
+            slug = t.get("slug")
+            if not slug:
+                continue
+            result = await db.execute(select(Node).where(Node.slug == slug))
+            node = result.scalars().first()
+            if not node:
+                continue
+            if not await has_access_async(node, user, preview):
+                continue
+            transition = SimpleNamespace(
+                id=t.get("id") or slug,
+                condition=t.get("condition"),
+            )
+            if await check_transition(transition, user, preview):
+                allowed.append(t)
+        return allowed
+
     async def generate_transitions(
         self,
         db: AsyncSession,
@@ -73,7 +102,8 @@ class NavigationService:
         data = result.scalar_one_or_none()
         if not data:
             return []
-        return data.get("transitions", [])
+        transitions: list[dict[str, object]] = data.get("transitions", [])
+        return await self._filter_transitions(db, transitions, user, preview)
 
     async def get_navigation(
         self,
@@ -89,6 +119,10 @@ class NavigationService:
         )
         data = result.scalar_one_or_none()
         if data:
+            transitions: list[dict[str, object]] = data.get("transitions", [])
+            data["transitions"] = await self._filter_transitions(
+                db, transitions, user, preview
+            )
             return data
         return {
             "mode": "auto",
