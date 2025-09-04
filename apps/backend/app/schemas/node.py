@@ -165,6 +165,11 @@ class NodeBulkPatchChanges(BaseModel):
     """Changes to apply in bulk operations."""
 
     is_visible: bool | None = Field(default=None, alias="isVisible")
+    is_public: bool | None = Field(
+        default=None,
+        alias="isPublic",
+        validation_alias=AliasChoices("is_public", "isPublic"),
+    )
     premium_only: bool | None = Field(
         default=None,
         alias="premiumOnly",

@@ -272,8 +272,11 @@ async def bulk_patch_nodes(
             await db.delete(node)
             continue
         was_visible = node.is_visible
+        was_public = node.is_public
         if changes.is_visible is not None:
             node.is_visible = changes.is_visible
+        if changes.is_public is not None:
+            node.is_public = changes.is_public
         if changes.premium_only is not None:
             node.premium_only = changes.premium_only
         if changes.is_recommendable is not None:
@@ -284,8 +287,10 @@ async def bulk_patch_nodes(
         node.updated_by_user_id = current_user.id
         updated_ids.append(node.id)
         if (
-            changes.is_visible is not None and changes.is_visible != was_visible
-        ) or changes.workspace_id is not None:
+            (changes.is_visible is not None and changes.is_visible != was_visible)
+            or (changes.is_public is not None and changes.is_public != was_public)
+            or changes.workspace_id is not None
+        ):
             invalidate_slugs.append(node.slug)
             try:
                 await navsvc.invalidate_navigation_cache(db, node)
