@@ -5,6 +5,7 @@ from prometheus_client import generate_latest
 
 from app.core.config import settings
 from app.core.metrics import metrics_storage
+from app.core.transition_metrics import prometheus as core_transition_prometheus
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.domains.telemetry.application.metrics_registry import llm_metrics
 from app.domains.telemetry.application.transition_metrics_facade import (
@@ -23,6 +24,7 @@ async def metrics() -> Response:
     text = (
         generate_latest().decode()
         + metrics_storage.prometheus()
+        + core_transition_prometheus()
         + llm_metrics.prometheus()
         + worker_metrics.prometheus()
         + event_metrics.prometheus()

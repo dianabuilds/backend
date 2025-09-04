@@ -4,12 +4,12 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from app.core.metrics import (
+from app.core.metrics import metrics_storage
+from app.core.transition_metrics import (
     _fallback_used_counts,
     _no_route_counts,
     _transition_counts,
     _transition_lock,
-    metrics_storage,
     record_fallback_used,
     record_no_route,
     record_route_length,
