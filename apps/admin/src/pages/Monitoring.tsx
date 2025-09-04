@@ -1,76 +1,35 @@
-import { useRef, useState } from "react";
-
-import RumTab from "../features/monitoring/RumTab";
-import RateLimitsTab from "../features/monitoring/RateLimitsTab";
-import CacheTab from "../features/monitoring/CacheTab";
+import { Card } from "../components/ui/card";
 import AuditLogTab from "../features/monitoring/AuditLogTab";
+import CacheTab from "../features/monitoring/CacheTab";
 import JobsTab from "../features/monitoring/JobsTab";
-
-const tabs = [
-  { id: "rum", label: "RUM", component: <RumTab /> },
-  { id: "rate-limits", label: "Rate limits", component: <RateLimitsTab /> },
-  { id: "cache", label: "Cache", component: <CacheTab /> },
-  { id: "audit-log", label: "Audit log", component: <AuditLogTab /> },
-  { id: "jobs", label: "Jobs", component: <JobsTab /> },
-] as const;
-
-type TabId = (typeof tabs)[number]["id"];
+import RateLimitsTab from "../features/monitoring/RateLimitsTab";
+import RumTab from "../features/monitoring/RumTab";
 
 export default function Monitoring() {
-  const [active, setActive] = useState<TabId>("rum");
-  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({} as Record<TabId, HTMLButtonElement | null>);
-
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-lg font-semibold">Monitoring</h1>
-      <div
-        role="tablist"
-        aria-label="Monitoring sections"
-        className="flex gap-2 border-b"
-      >
-        {tabs.map((tab, idx) => (
-          <button
-            key={tab.id}
-            id={`${tab.id}-tab`}
-            role="tab"
-            aria-selected={active === tab.id}
-            aria-controls={`${tab.id}-panel`}
-            tabIndex={active === tab.id ? 0 : -1}
-            ref={(el) => {
-              tabRefs.current[tab.id] = el;
-            }}
-            onClick={() => setActive(tab.id)}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-                e.preventDefault();
-                const newIndex =
-                  (idx + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) %
-                  tabs.length;
-                const newTab = tabs[newIndex];
-                setActive(newTab.id);
-                tabRefs.current[newTab.id]?.focus();
-              }
-            }}
-            className={`px-3 py-1 text-sm border-b-2 ${
-              active === tab.id ? "border-blue-500" : "border-transparent"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      {tabs.map((tab) => (
-        <div
-          key={tab.id}
-          role="tabpanel"
-          id={`${tab.id}-panel`}
-          aria-labelledby={`${tab.id}-tab`}
-          hidden={active !== tab.id}
-          className="mt-4"
-        >
-          {active === tab.id ? tab.component : null}
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      <header className="sticky top-0 z-20 bg-white border-b px-6 py-3">
+        <h1 className="font-bold text-xl">Monitoring</h1>
+      </header>
+      <main className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card>
+            <RumTab />
+          </Card>
+          <Card>
+            <RateLimitsTab />
+          </Card>
+          <Card>
+            <CacheTab />
+          </Card>
+          <Card>
+            <AuditLogTab />
+          </Card>
+          <Card>
+            <JobsTab />
+          </Card>
         </div>
-      ))}
+      </main>
     </div>
   );
 }
