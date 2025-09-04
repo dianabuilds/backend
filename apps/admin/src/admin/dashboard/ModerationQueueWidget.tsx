@@ -4,11 +4,15 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '../../components/ui/card';
 import { api } from '../../api/client';
 
-interface QueueItem {
+interface CaseItem {
   id: string;
   type: string;
-  reason: string;
   status: string;
+  summary: string;
+}
+
+interface QueueResponse {
+  items: CaseItem[];
 }
 
 export default function ModerationQueueWidget({
@@ -18,26 +22,27 @@ export default function ModerationQueueWidget({
   query: string;
   refreshInterval: number;
 }) {
-  const { data = [] } = useQuery<QueueItem[]>({
+  const { data } = useQuery<QueueResponse>({
     queryKey: ['widget', query],
     queryFn: async () => (await api.get(query)).data,
     refetchInterval: refreshInterval,
   });
+  const items = data?.items ?? [];
   return (
     <Card>
       <CardContent className="p-4 sm:p-6 space-y-2">
         <h2 className="font-semibold">Moderation queue</h2>
-        {data.length === 0 ? (
+        {items.length === 0 ? (
           <p className="text-sm text-gray-500">No items</p>
         ) : (
           <ul className="text-sm space-y-1">
-            {data.map((item) => (
+            {items.map((item) => (
               <li key={item.id}>
                 <Link
                   to={`/moderation?status=${item.status}`}
                   className="hover:underline"
                 >
-                  [{item.type}] {item.reason} - {item.status}
+                  [{item.type}] {item.summary} - {item.status}
                 </Link>
               </li>
             ))}
