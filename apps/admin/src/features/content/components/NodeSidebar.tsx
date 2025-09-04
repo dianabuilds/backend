@@ -1,5 +1,5 @@
 import PublishControls from "../../../components/publish/PublishControls";
-import { Button, TextInput } from "../../../shared/ui";
+import { TextInput } from "../../../shared/ui";
 import type { NodeEditorData } from "../model/node";
 
 interface NodeSidebarProps {
@@ -42,20 +42,6 @@ export default function NodeSidebar({
           </div>
         </details>
       </section>
-
-      <section>
-        <h3 className="font-semibold text-gray-700">Validation</h3>
-        <Button className="mt-2 bg-blue-500 text-white">
-          Run validation
-        </Button>
-      </section>
-
-      <details>
-        <summary className="cursor-pointer font-semibold text-gray-700">
-          Advanced
-        </summary>
-        <p className="mt-2 text-xs text-gray-400">Extra options...</p>
-      </details>
     </div>
   );
 }
