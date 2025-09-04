@@ -78,12 +78,11 @@ async def metrics_reliability(
     workspace: Annotated[str | None, Query()] = None,
 ) -> ReliabilityMetrics:
     seconds = 3600
-    recent = metrics_storage._select_recent(seconds, workspace)
-    total = len(recent)
-    durations = [r.duration_ms for r in recent]
-    p95 = _percentile(durations, 0.95) if durations else 0.0
-    count_4xx = sum(1 for r in recent if 400 <= r.status_code < 500)
-    count_5xx = sum(1 for r in recent if r.status_code >= 500)
+    data = metrics_storage.reliability(seconds, workspace)
+    total = data["total"]
+    p95 = data["p95"]
+    count_4xx = data["count_4xx"]
+    count_5xx = data["count_5xx"]
     rps = total / seconds if seconds else 0.0
 
     stats = transition_stats()

@@ -112,6 +112,21 @@ class MetricsStorage:
             "count_429": count_429,
         }
 
+    def reliability(self, range_seconds: int, workspace_id: str | None = None) -> dict:
+        """Return p95 latency and error counters for the given period."""
+        recent = self._select_recent(range_seconds, workspace_id)
+        durations = [r.duration_ms for r in recent]
+        total = len(durations)
+        p95 = _percentile(durations, 0.95) if durations else 0.0
+        count_4xx = sum(1 for r in recent if 400 <= r.status_code < 500)
+        count_5xx = sum(1 for r in recent if r.status_code >= 500)
+        return {
+            "total": total,
+            "p95": p95,
+            "count_4xx": count_4xx,
+            "count_5xx": count_5xx,
+        }
+
     def timeseries(
         self, range_seconds: int, step_seconds: int, workspace_id: str | None = None
     ) -> dict:

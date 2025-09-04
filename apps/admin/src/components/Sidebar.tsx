@@ -118,7 +118,7 @@ function MenuItem({
 
   if (item.divider) {
     return (
-      <div role="separator" className="my-2 border-t border-gray-700" />
+      <div role="separator" className="my-2 border-t border-gray-600" />
     );
   }
 
@@ -135,7 +135,7 @@ function MenuItem({
         <NavLink
           to={to}
           className={({ isActive: exact }) =>
-            `block py-1 px-2 rounded hover:bg-gray-800 ${
+            `block py-1 px-2 rounded hover:bg-gray-700 ${
               isActive || exact ? "font-semibold" : ""
             }`
           }
@@ -166,7 +166,7 @@ function MenuItem({
     return (
       <div>
         <button
-          className={`w-full flex items-center justify-between text-left py-1 px-2 rounded hover:bg-gray-800 ${
+          className={`w-full flex items-center justify-between text-left py-1 px-2 rounded hover:bg-gray-700 ${
             isActive ? "font-semibold" : ""
           }`}
           style={{ paddingLeft: padding }}
@@ -203,7 +203,7 @@ function MenuItem({
         href={item.path}
         target="_blank"
         rel="noreferrer"
-        className="block py-1 px-2 rounded hover:bg-gray-800"
+        className="block py-1 px-2 rounded hover:bg-gray-700"
         style={{ paddingLeft: padding }}
         title={collapsed ? item.label : undefined}
       >
@@ -219,7 +219,7 @@ function MenuItem({
       <NavLink
         to={to}
         className={({ isActive: exact }) =>
-          `block py-1 px-2 rounded hover:bg-gray-800 ${
+          `block py-1 px-2 rounded hover:bg-gray-700 ${
             isActive || exact ? "font-semibold" : ""
           }`
         }
@@ -234,7 +234,7 @@ function MenuItem({
 
   return (
     <div
-      className="py-1 px-2 text-gray-400"
+      className="py-1 px-2 text-gray-300"
       style={{ paddingLeft: padding }}
       title={collapsed ? item.label : undefined}
     >
@@ -294,7 +294,7 @@ export default function Sidebar() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="h-4 bg-gray-800 rounded animate-pulse"
+              className="h-4 bg-gray-700 rounded animate-pulse"
             />
           ))}
         </div>
@@ -310,7 +310,7 @@ export default function Sidebar() {
           <nav className="space-y-1">
             <NavLink
               to="/"
-              className="block py-1 px-2 rounded hover:bg-gray-800"
+              className="block py-1 px-2 rounded hover:bg-gray-700"
             >
               Dashboard
             </NavLink>
@@ -339,11 +339,11 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`${collapsed ? "w-16" : "w-64"} bg-gray-900 text-gray-100 p-4 shadow-sm`}
+      className={`${collapsed ? "w-16" : "w-64"} bg-gray-800 text-gray-200 p-4 shadow-sm`}
       aria-label="Sidebar navigation"
     >
       <button
-        className="mb-4 p-2 rounded hover:bg-gray-800"
+        className="mb-4 p-2 rounded hover:bg-gray-700"
         onClick={toggleCollapsed}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         aria-expanded={!collapsed}
