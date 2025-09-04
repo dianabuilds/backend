@@ -24,8 +24,8 @@ type NodeItem = {
   is_public: boolean;
   premium_only: boolean;
   is_recommendable: boolean;
-  created_at?: string;
-  updated_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
   type?: string;
   [k: string]: any;
 };
@@ -873,10 +873,10 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
                         />
                       </td>
                       <td className="p-2">
-                        {n.created_at ? new Date(n.created_at).toLocaleString() : '-'}
+                        {n.createdAt ? new Date(n.createdAt).toLocaleString() : '-'}
                       </td>
                       <td className="p-2">
-                        {n.updated_at ? new Date(n.updated_at).toLocaleString() : '-'}
+                        {n.updatedAt ? new Date(n.updatedAt).toLocaleString() : '-'}
                       </td>
                       <td className="p-2 space-x-2">
                         <button
