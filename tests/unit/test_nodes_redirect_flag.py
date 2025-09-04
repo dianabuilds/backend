@@ -30,6 +30,7 @@ security_stub.auth_user = lambda: None
 sys.modules["app.security"] = security_stub
 
 from app.core import policy as core_policy  # noqa: E402
+from app.core.feature_flags import FeatureFlagKey  # noqa: E402
 
 core_policy.policy.allow_write = False
 import app.domains.navigation.application.traces_service as traces_service  # noqa: E402
@@ -43,7 +44,7 @@ from app.domains.nodes.api.nodes_router import router as nodes_router  # noqa: E
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
 from app.domains.nodes.models import NodeItem  # noqa: E402
 from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
-from app.domains.tags.models import Tag  # noqa: E402
+from app.domains.tags.models import ContentTag, Tag  # noqa: E402
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 from app.schemas.nodes_common import Status, Visibility  # noqa: E402
@@ -57,6 +58,7 @@ async def app_and_session():
         await conn.run_sync(Node.__table__.create)
         await conn.run_sync(NodeItem.__table__.create)
         await conn.run_sync(Tag.__table__.create)
+        await conn.run_sync(ContentTag.__table__.create)
         await conn.run_sync(NodeTag.__table__.create)
         await conn.run_sync(FeatureFlag.__table__.create)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -105,7 +107,7 @@ async def test_nodes_redirect_flag(app_and_session):
         session.add(node)
         await session.flush()
         item = NodeItem(
-            id=uuid.uuid4(),
+            id=1,
             node_id=node.id,
             workspace_id=ws.id,
             type="quest",
@@ -116,7 +118,9 @@ async def test_nodes_redirect_flag(app_and_session):
             created_by_user_id=user.id,
         )
         session.add(item)
-        session.add(FeatureFlag(key="quests.nodes_redirect", value=True))
+        session.add(
+            FeatureFlag(key=FeatureFlagKey.QUESTS_NODES_REDIRECT.value, value=True)
+        )
         await session.commit()
 
     transport = ASGITransport(app=app)

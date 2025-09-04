@@ -53,7 +53,7 @@ from app.schemas.notification_settings import (
 )
 from app.security import require_ws_guest, require_ws_viewer
 from app.schemas.nodes_common import Status
-from app.core.feature_flags import get_effective_flags
+from app.core.feature_flags import FeatureFlagKey, get_effective_flags
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -179,7 +179,7 @@ async def read_node(
     item = res.scalar_one_or_none()
     if item and item.type == "quest":
         flags = await get_effective_flags(db, request.headers.get("X-Preview-Flags"))
-        if "quests.nodes_redirect" in flags:
+        if FeatureFlagKey.QUESTS_NODES_REDIRECT.value in flags:
             return RedirectResponse(
                 url=f"/quests/{node.id}/versions/current?workspace_id={workspace_id}",
                 status_code=307,
