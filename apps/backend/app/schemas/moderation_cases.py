@@ -24,7 +24,7 @@ class CaseListItem(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class CaseCreateIn(BaseModel):
+class CaseCreate(BaseModel):
     type: str
     summary: str
     details: str | None = None
@@ -37,7 +37,7 @@ class CaseCreateIn(BaseModel):
     assignee_id: UUID | None = None
 
 
-class CasePatchIn(BaseModel):
+class CasePatch(BaseModel):
     summary: str | None = None
     details: str | None = None
     priority: str | None = None
@@ -56,7 +56,7 @@ class CaseNoteOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class CaseNoteCreateIn(BaseModel):
+class CaseNoteCreate(BaseModel):
     text: str
     internal: bool | None = True
 
@@ -72,7 +72,7 @@ class CaseAttachmentOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class CaseAttachmentCreateIn(BaseModel):
+class CaseAttachmentCreate(BaseModel):
     url: str
     title: str | None = None
     media_type: str | None = None
@@ -88,7 +88,7 @@ class CaseEventOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class CaseFull(BaseModel):
+class CaseOut(BaseModel):
     id: UUID
     created_at: datetime
     updated_at: datetime
@@ -120,17 +120,24 @@ class CaseListResponse(BaseModel):
     total: int
 
 
-class CloseCaseIn(BaseModel):
+class CaseClose(BaseModel):
     resolution: str  # resolved | rejected
     reason_code: str | None = None
     reason_text: str | None = None
 
 
-class EscalateIn(BaseModel):
+class CaseEscalate(BaseModel):
     to_role: str | None = None
     reason_text: str | None = None
 
 
-class LabelsPatchIn(BaseModel):
+class CaseLabelsPatch(BaseModel):
     add: list[str] | None = None
     remove: list[str] | None = None
+
+
+class CaseFullResponse(BaseModel):
+    case: CaseOut
+    notes: list[CaseNoteOut]
+    attachments: list[CaseAttachmentOut]
+    events: list[CaseEventOut]

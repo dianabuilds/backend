@@ -387,7 +387,7 @@
           "metrics"
         ],
         "summary": "Rum Metrics",
-        "description": "Приёмник простых RUM-событий с фронтенда.\nТело: { event: str, ts: int, url: str, data: any }",
+        "description": "\u041f\u0440\u0438\u0451\u043c\u043d\u0438\u043a \u043f\u0440\u043e\u0441\u0442\u044b\u0445 RUM-\u0441\u043e\u0431\u044b\u0442\u0438\u0439 \u0441 \u0444\u0440\u043e\u043d\u0442\u0435\u043d\u0434\u0430.\n\u0422\u0435\u043b\u043e: { event: str, ts: int, url: str, data: any }",
         "operationId": "rum_metrics_metrics_rum_post",
         "responses": {
           "200": {
@@ -411,7 +411,7 @@
           "admin-telemetry"
         ],
         "summary": "List Rum Events",
-        "description": "Админ: последние RUM-события (по убыванию времени).",
+        "description": "\u0410\u0434\u043c\u0438\u043d: \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 RUM-\u0441\u043e\u0431\u044b\u0442\u0438\u044f (\u043f\u043e \u0443\u0431\u044b\u0432\u0430\u043d\u0438\u044e \u0432\u0440\u0435\u043c\u0435\u043d\u0438).",
         "operationId": "list_rum_events_admin_telemetry_rum_get",
         "security": [
           {
@@ -467,7 +467,7 @@
           "admin-telemetry"
         ],
         "summary": "Rum Summary",
-        "description": "Админ: сводка по последним событиям.\n- counts по event\n- средняя длительность login_attempt.dur_ms\n- навигационные тайминги (средние по окну): ttfb, domContentLoaded, loadEvent",
+        "description": "\u0410\u0434\u043c\u0438\u043d: \u0441\u0432\u043e\u0434\u043a\u0430 \u043f\u043e \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u043c \u0441\u043e\u0431\u044b\u0442\u0438\u044f\u043c.\n- counts \u043f\u043e event\n- \u0441\u0440\u0435\u0434\u043d\u044f\u044f \u0434\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c login_attempt.dur_ms\n- \u043d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u043e\u043d\u043d\u044b\u0435 \u0442\u0430\u0439\u043c\u0438\u043d\u0433\u0438 (\u0441\u0440\u0435\u0434\u043d\u0438\u0435 \u043f\u043e \u043e\u043a\u043d\u0443): ttfb, domContentLoaded, loadEvent",
         "operationId": "rum_summary_admin_telemetry_rum_summary_get",
         "security": [
           {
@@ -2592,7 +2592,7 @@
           "admin-ai-quests"
         ],
         "summary": "Get Rate Limits",
-        "description": "Текущие рантайм-лимиты RPM по провайдерам и моделям (оверрайды).",
+        "description": "\u0422\u0435\u043a\u0443\u0449\u0438\u0435 \u0440\u0430\u043d\u0442\u0430\u0439\u043c-\u043b\u0438\u043c\u0438\u0442\u044b RPM \u043f\u043e \u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440\u0430\u043c \u0438 \u043c\u043e\u0434\u0435\u043b\u044f\u043c (\u043e\u0432\u0435\u0440\u0440\u0430\u0439\u0434\u044b).",
         "operationId": "get_rate_limits_admin_ai_quests_rate_limits_get",
         "responses": {
           "200": {
@@ -2619,7 +2619,7 @@
           "admin-ai-quests"
         ],
         "summary": "Set Rate Limits",
-        "description": "Установить рантайм-лимиты RPM.\nФормат:\n{\n  \"providers\": { \"openai\": 60, \"anthropic\": 30, \"openai_compatible\": 45 },\n  \"models\": { \"gpt-4o-mini\": 120, \"claude-3-haiku\": 100 }\n}\nЗначения null/0/\"\" — удаляют оверрайд.",
+        "description": "\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0440\u0430\u043d\u0442\u0430\u0439\u043c-\u043b\u0438\u043c\u0438\u0442\u044b RPM.\n\u0424\u043e\u0440\u043c\u0430\u0442:\n{\n  \"providers\": { \"openai\": 60, \"anthropic\": 30, \"openai_compatible\": 45 },\n  \"models\": { \"gpt-4o-mini\": 120, \"claude-3-haiku\": 100 }\n}\n\u0417\u043d\u0430\u0447\u0435\u043d\u0438\u044f null/0/\"\" \u2014 \u0443\u0434\u0430\u043b\u044f\u044e\u0442 \u043e\u0432\u0435\u0440\u0440\u0430\u0439\u0434.",
         "operationId": "set_rate_limits_admin_ai_quests_rate_limits_post",
         "requestBody": {
           "content": {
@@ -2670,7 +2670,7 @@
           "admin-ai-quests"
         ],
         "summary": "Get Ai Worker Stats",
-        "description": "Сводка по задачам/стадиям генерации: счётчики, среднее время, стоимость, токены.",
+        "description": "\u0421\u0432\u043e\u0434\u043a\u0430 \u043f\u043e \u0437\u0430\u0434\u0430\u0447\u0430\u043c/\u0441\u0442\u0430\u0434\u0438\u044f\u043c \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u0438: \u0441\u0447\u0451\u0442\u0447\u0438\u043a\u0438, \u0441\u0440\u0435\u0434\u043d\u0435\u0435 \u0432\u0440\u0435\u043c\u044f, \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c, \u0442\u043e\u043a\u0435\u043d\u044b.",
         "operationId": "get_ai_worker_stats_admin_ai_quests_stats_get",
         "responses": {
           "200": {
@@ -2770,11 +2770,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "Пересчитать отчёт принудительно",
+              "description": "\u041f\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0442\u0447\u0451\u0442 \u043f\u0440\u0438\u043d\u0443\u0434\u0438\u0442\u0435\u043b\u044c\u043d\u043e",
               "default": false,
               "title": "Recalc"
             },
-            "description": "Пересчитать отчёт принудительно"
+            "description": "\u041f\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0442\u0447\u0451\u0442 \u043f\u0440\u0438\u043d\u0443\u0434\u0438\u0442\u0435\u043b\u044c\u043d\u043e"
           }
         ],
         "responses": {
@@ -2808,7 +2808,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "Проверка статуса embedding-провайдера",
+        "summary": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0441\u0442\u0430\u0442\u0443\u0441\u0430 embedding-\u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440\u0430",
         "operationId": "embedding_status_admin_embedding_status_get",
         "responses": {
           "200": {
@@ -2881,7 +2881,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "Протестировать векторизацию произвольного текста",
+        "summary": "\u041f\u0440\u043e\u0442\u0435\u0441\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432\u0435\u043a\u0442\u043e\u0440\u0438\u0437\u0430\u0446\u0438\u044e \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u043b\u044c\u043d\u043e\u0433\u043e \u0442\u0435\u043a\u0441\u0442\u0430",
         "operationId": "embedding_test_admin_embedding_test_post",
         "requestBody": {
           "content": {
@@ -6989,6 +6989,861 @@
                     "type": "string"
                   },
                   "title": "Response Reject Item Admin Moderation Queue  Item Id  Reject Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/workspaces/{workspace_id}/moderation/nodes/{slug}/hide": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Hide Node",
+        "operationId": "hide_node_admin_workspaces__workspace_id__moderation_nodes__slug__hide_post",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HidePayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Hide Node Admin Workspaces  Workspace Id  Moderation Nodes  Slug  Hide Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/workspaces/{workspace_id}/moderation/nodes/{slug}/restore": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Restore Node",
+        "operationId": "restore_node_admin_workspaces__workspace_id__moderation_nodes__slug__restore_post",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Restore Node Admin Workspaces  Workspace Id  Moderation Nodes  Slug  Restore Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/moderation/cases": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Cases",
+        "operationId": "list_cases_admin_moderation_cases_get",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Case",
+        "operationId": "create_case_admin_moderation_cases_post",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "title": "Response Create Case Admin Moderation Cases Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/moderation/cases/{case_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Case",
+        "operationId": "get_case_admin_moderation_cases__case_id__get",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseFullResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Patch Case",
+        "operationId": "patch_case_admin_moderation_cases__case_id__patch",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CasePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/moderation/cases/{case_id}/notes": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Add Note",
+        "operationId": "add_note_admin_moderation_cases__case_id__notes_post",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseNoteCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseNoteOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/moderation/cases/{case_id}/actions/close": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Close Case",
+        "operationId": "close_case_admin_moderation_cases__case_id__actions_close_post",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseClose"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Close Case Admin Moderation Cases  Case Id  Actions Close Post"
                 }
               }
             }
@@ -18494,7 +19349,7 @@
           "admin"
         ],
         "summary": "Get node by ID (admin, full)",
-        "description": "Единая точка для загрузки полной ноды по ID (числовой node.id).\nДелегирует обработку в контент‑роутер, который самостоятельно\nрезолвит идентификатор контента.",
+        "description": "\u0415\u0434\u0438\u043d\u0430\u044f \u0442\u043e\u0447\u043a\u0430 \u0434\u043b\u044f \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438 \u043f\u043e\u043b\u043d\u043e\u0439 \u043d\u043e\u0434\u044b \u043f\u043e ID (\u0447\u0438\u0441\u043b\u043e\u0432\u043e\u0439 node.id).\n\u0414\u0435\u043b\u0435\u0433\u0438\u0440\u0443\u0435\u0442 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0443 \u0432 \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u2011\u0440\u043e\u0443\u0442\u0435\u0440, \u043a\u043e\u0442\u043e\u0440\u044b\u0439 \u0441\u0430\u043c\u043e\u0441\u0442\u043e\u044f\u0442\u0435\u043b\u044c\u043d\u043e\n\u0440\u0435\u0437\u043e\u043b\u0432\u0438\u0442 \u0438\u0434\u0435\u043d\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u043e\u0440 \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u0430.",
         "operationId": "get_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__get",
         "security": [
           {
@@ -18597,7 +19452,7 @@
           "admin"
         ],
         "summary": "Update node by ID (admin, full)",
-        "description": "Обновление полной ноды по числовому ID с возвратом полного объекта.\nДелегируем в контент‑роутер, который резолвит идентификатор контента.",
+        "description": "\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u043b\u043d\u043e\u0439 \u043d\u043e\u0434\u044b \u043f\u043e \u0447\u0438\u0441\u043b\u043e\u0432\u043e\u043c\u0443 ID \u0441 \u0432\u043e\u0437\u0432\u0440\u0430\u0442\u043e\u043c \u043f\u043e\u043b\u043d\u043e\u0433\u043e \u043e\u0431\u044a\u0435\u043a\u0442\u0430.\n\u0414\u0435\u043b\u0435\u0433\u0438\u0440\u0443\u0435\u043c \u0432 \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u2011\u0440\u043e\u0443\u0442\u0435\u0440, \u043a\u043e\u0442\u043e\u0440\u044b\u0439 \u0440\u0435\u0437\u043e\u043b\u0432\u0438\u0442 \u0438\u0434\u0435\u043d\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u043e\u0440 \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u0430.",
         "operationId": "update_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__patch",
         "security": [
           {
@@ -18728,7 +19583,7 @@
           "admin"
         ],
         "summary": "Publish node by ID (admin)",
-        "description": "Публикация ноды по числовому ID. Возвращает обновлённую полную ноду.\nДелегируем в контент‑роутер, который резолвит идентификатор контента.",
+        "description": "\u041f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u043d\u043e\u0434\u044b \u043f\u043e \u0447\u0438\u0441\u043b\u043e\u0432\u043e\u043c\u0443 ID. \u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 \u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d\u043d\u0443\u044e \u043f\u043e\u043b\u043d\u0443\u044e \u043d\u043e\u0434\u0443.\n\u0414\u0435\u043b\u0435\u0433\u0438\u0440\u0443\u0435\u043c \u0432 \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u2011\u0440\u043e\u0443\u0442\u0435\u0440, \u043a\u043e\u0442\u043e\u0440\u044b\u0439 \u0440\u0435\u0437\u043e\u043b\u0432\u0438\u0442 \u0438\u0434\u0435\u043d\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u043e\u0440 \u043a\u043e\u043d\u0442\u0435\u043d\u0442\u0430.",
         "operationId": "publish_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__publish_post",
         "security": [
           {
@@ -18851,7 +19706,7 @@
           "admin"
         ],
         "summary": "Publish status and schedule (admin)",
-        "description": "Возвращает статус публикации и запланированную публикацию.",
+        "description": "\u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 \u0441\u0442\u0430\u0442\u0443\u0441 \u043f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u0438 \u0438 \u0437\u0430\u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u0443\u044e \u043f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044e.",
         "operationId": "get_publish_info_admin_workspaces__workspace_id__nodes__id__publish_info_get",
         "security": [
           {
@@ -18956,7 +19811,7 @@
           "admin"
         ],
         "summary": "Schedule publish by date/time (admin)",
-        "description": "Создаёт или заменяет задание на публикацию.",
+        "description": "\u0421\u043e\u0437\u0434\u0430\u0451\u0442 \u0438\u043b\u0438 \u0437\u0430\u043c\u0435\u043d\u044f\u0435\u0442 \u0437\u0430\u0434\u0430\u043d\u0438\u0435 \u043d\u0430 \u043f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044e.",
         "operationId": "schedule_publish_admin_workspaces__workspace_id__nodes__id__schedule_publish_post",
         "security": [
           {
@@ -21783,7 +22638,7 @@
           "admin"
         ],
         "summary": "Metrics Timeseries",
-        "description": "Таймсерии: counts per status class (2xx/4xx/5xx) и p95 latency по бакетам.",
+        "description": "\u0422\u0430\u0439\u043c\u0441\u0435\u0440\u0438\u0438: counts per status class (2xx/4xx/5xx) \u0438 p95 latency \u043f\u043e \u0431\u0430\u043a\u0435\u0442\u0430\u043c.",
         "operationId": "metrics_timeseries_admin_metrics_timeseries_get",
         "security": [
           {
@@ -21891,7 +22746,7 @@
           "admin"
         ],
         "summary": "Metrics Top Endpoints",
-        "description": "Топ маршрутов по p95 | error_rate | rps.",
+        "description": "\u0422\u043e\u043f \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u043e\u0432 \u043f\u043e p95 | error_rate | rps.",
         "operationId": "metrics_top_endpoints_admin_metrics_endpoints_top_get",
         "security": [
           {
@@ -22010,7 +22865,7 @@
           "admin"
         ],
         "summary": "Metrics Errors Recent",
-        "description": "Последние ошибки (4xx/5xx).",
+        "description": "\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 \u043e\u0448\u0438\u0431\u043a\u0438 (4xx/5xx).",
         "operationId": "metrics_errors_recent_admin_metrics_errors_recent_get",
         "security": [
           {
@@ -27015,7 +27870,7 @@
           "text": {
             "type": "string",
             "title": "Text",
-            "description": "Текст для эмбеддинга"
+            "description": "\u0422\u0435\u043a\u0441\u0442 \u0434\u043b\u044f \u044d\u043c\u0431\u0435\u0434\u0434\u0438\u043d\u0433\u0430"
           }
         },
         "type": "object",
@@ -27222,6 +28077,763 @@
           "message"
         ],
         "title": "CampaignUpdate"
+      },
+      "CaseAttachmentOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "author_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "media_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "url"
+        ],
+        "title": "CaseAttachmentOut"
+      },
+      "CaseClose": {
+        "properties": {
+          "resolution": {
+            "type": "string",
+            "title": "Resolution"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "reason_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resolution"
+        ],
+        "title": "CaseClose"
+      },
+      "CaseCreate": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "target_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Type"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "reporter_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reporter Id"
+          },
+          "reporter_contact": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reporter Contact"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "summary"
+        ],
+        "title": "CaseCreate"
+      },
+      "CaseEventOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "kind"
+        ],
+        "title": "CaseEventOut"
+      },
+      "CaseFullResponse": {
+        "properties": {
+          "case": {
+            "$ref": "#/components/schemas/CaseOut"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/components/schemas/CaseNoteOut"
+            },
+            "type": "array",
+            "title": "Notes"
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/CaseAttachmentOut"
+            },
+            "type": "array",
+            "title": "Attachments"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/CaseEventOut"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case",
+          "notes",
+          "attachments",
+          "events"
+        ],
+        "title": "CaseFullResponse"
+      },
+      "CaseListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "target_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Type"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "last_event_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Event At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "status",
+          "priority",
+          "summary",
+          "created_at"
+        ],
+        "title": "CaseListItem"
+      },
+      "CaseListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CaseListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "size",
+          "total"
+        ],
+        "title": "CaseListResponse"
+      },
+      "CaseNoteCreate": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "internal": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "CaseNoteCreate"
+      },
+      "CaseNoteOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "author_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "internal": {
+            "type": "boolean",
+            "title": "Internal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "text",
+          "internal"
+        ],
+        "title": "CaseNoteOut"
+      },
+      "CaseOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority"
+          },
+          "reporter_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reporter Id"
+          },
+          "reporter_contact": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reporter Contact"
+          },
+          "target_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Type"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "first_response_due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Response Due At"
+          },
+          "last_event_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Event At"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "updated_at",
+          "type",
+          "status",
+          "priority",
+          "summary"
+        ],
+        "title": "CaseOut"
+      },
+      "CasePatch": {
+        "properties": {
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          }
+        },
+        "type": "object",
+        "title": "CasePatch"
       },
       "ChangePasswordIn": {
         "properties": {
@@ -27841,6 +29453,23 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HidePayload": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "title": "HidePayload"
+      },
       "InvalidatePatternRequest": {
         "properties": {
           "pattern": {
@@ -28277,6 +29906,17 @@
               }
             ],
             "title": "Isvisible"
+          },
+          "is_public": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Public"
           },
           "premium_only": {
             "anyOf": [
