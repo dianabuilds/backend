@@ -1,13 +1,13 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 
-import { LineChart, StackedBars } from "../../components/Charts";
-import SummaryCard from "../../components/SummaryCard";
-import PeriodStepSelector from "../../components/PeriodStepSelector";
-import JsonCard from "../../components/JsonCard";
-import { AdminTelemetryService } from "../../openapi";
+import { LineChart, StackedBars } from '../../components/Charts';
+import JsonCard from '../../components/JsonCard';
+import PeriodStepSelector from '../../components/PeriodStepSelector';
+import SummaryCard from '../../components/SummaryCard';
+import { AdminTelemetryService } from '../../openapi';
 
-type RumEvent = { event: string; ts?: number; url?: string; data?: any };
+type RumEvent = { event: string; ts?: number; url?: string; data?: unknown };
 type RumSummary = {
   window: number;
   counts: Record<string, number>;
@@ -21,17 +21,17 @@ type RumSummary = {
 
 export default function RumTab() {
   const qc = useQueryClient();
-  const [range, setRange] = useState<"1h" | "24h">("1h");
+  const [range, setRange] = useState<'1h' | '24h'>('1h');
   const [step, setStep] = useState<60 | 300>(60);
-  const [eventFilter, setEventFilter] = useState("");
-  const [urlFilter, setUrlFilter] = useState("");
+  const [eventFilter, setEventFilter] = useState('');
+  const [urlFilter, setUrlFilter] = useState('');
 
   const {
     data: summary,
     isFetching: sFetching,
     error: sError,
   } = useQuery({
-    queryKey: ["telemetry", "summary"],
+    queryKey: ['telemetry', 'summary'],
     queryFn: async () =>
       (await AdminTelemetryService.rumSummaryAdminTelemetryRumSummaryGet()) as RumSummary,
     refetchInterval: 5000,
@@ -44,7 +44,7 @@ export default function RumTab() {
     isFetching: eFetching,
     error: eError,
   } = useQuery({
-    queryKey: ["telemetry", "events", range, step],
+    queryKey: ['telemetry', 'events', range, step],
     queryFn: async () =>
       ((await AdminTelemetryService.listRumEventsAdminTelemetryRumGet()) as RumEvent[]) || [],
     refetchInterval: 5000,
@@ -57,9 +57,7 @@ export default function RumTab() {
       const matchEvent = eventFilter
         ? ev.event.toLowerCase().includes(eventFilter.toLowerCase())
         : true;
-      const matchUrl = urlFilter
-        ? ev.url?.toLowerCase().includes(urlFilter.toLowerCase())
-        : true;
+      const matchUrl = urlFilter ? ev.url?.toLowerCase().includes(urlFilter.toLowerCase()) : true;
       return matchEvent && matchUrl;
     });
   }, [events, eventFilter, urlFilter]);
@@ -69,14 +67,14 @@ export default function RumTab() {
   const buckets = useMemo(() => {
     const res = new Map<number, { count: number; loginDur: number; loginCount: number }>();
     const now = Date.now();
-    const rangeMs = range === "1h" ? 3600_000 : 86_400_000;
+    const rangeMs = range === '1h' ? 3600_000 : 86_400_000;
     const from = now - rangeMs;
     filteredEvents.forEach((ev) => {
       if (!ev.ts || ev.ts < from) return;
       const bucket = Math.floor(ev.ts / (step * 1000)) * step * 1000;
       const entry = res.get(bucket) || { count: 0, loginDur: 0, loginCount: 0 };
       entry.count++;
-      if (ev.event === "login_attempt" && typeof ev.data?.ms === "number") {
+      if (ev.event === 'login_attempt' && typeof ev.data?.ms === 'number') {
         entry.loginDur += ev.data.ms;
         entry.loginCount++;
       }
@@ -112,39 +110,43 @@ export default function RumTab() {
 
   const reload = async () => {
     await Promise.all([
-      qc.invalidateQueries({ queryKey: ["telemetry", "summary"] }),
-      qc.invalidateQueries({ queryKey: ["telemetry", "events", range, step] }),
+      qc.invalidateQueries({ queryKey: ['telemetry', 'summary'] }),
+      qc.invalidateQueries({ queryKey: ['telemetry', 'events', range, step] }),
     ]);
   };
 
   return (
     <div className="p-4 space-y-4">
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold">Telemetry — RUM</h1>
-        <PeriodStepSelector
-          range={range}
-          step={step}
-          onRangeChange={setRange}
-          onStepChange={setStep}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <PeriodStepSelector
+            range={range}
+            step={step}
+            onRangeChange={setRange}
+            onStepChange={setStep}
+          />
+          <button
+            onClick={reload}
+            className="text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
+          >
+            Обновить
+          </button>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
         <input
           value={eventFilter}
           onChange={(e) => setEventFilter(e.target.value)}
           placeholder="event"
-          className="text-sm px-2 py-1 border rounded"
+          className="w-40 text-sm px-2 py-1 border rounded"
         />
         <input
           value={urlFilter}
           onChange={(e) => setUrlFilter(e.target.value)}
           placeholder="url"
-          className="text-sm px-2 py-1 border rounded"
+          className="w-40 text-sm px-2 py-1 border rounded"
         />
-        <button
-          onClick={reload}
-          className="ml-auto text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
-        >
-          Обновить
-        </button>
       </div>
       <p className="text-sm text-gray-600 dark:text-gray-400">
         Real user monitoring events. Use range and step to adjust aggregation.
@@ -157,9 +159,7 @@ export default function RumTab() {
         <div className="flex items-end gap-4">
           <StackedBars series={barSeries} highlight={barHighlight} />
           <div>
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-              Login avg (ms)
-            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Login avg (ms)</div>
             <LineChart points={linePoints} highlight={lineHighlight} />
           </div>
         </div>
@@ -167,12 +167,10 @@ export default function RumTab() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          {sFetching && (
-            <div className="text-xs text-gray-500 mt-1">Загрузка…</div>
-          )}
+          {sFetching && <div className="text-xs text-gray-500 mt-1">Загрузка…</div>}
           {sError && (
-            <div className="text-xs text-red-600 mt-1">
-              Ошибка: {(sError as any)?.message}
+            <div className="mt-1 text-xs text-red-600">
+              Ошибка: {sError instanceof Error ? sError.message : String(sError)}
             </div>
           )}
           {summary && (
@@ -180,50 +178,49 @@ export default function RumTab() {
               title="Сводка"
               items={[
                 {
-                  label: "Окно",
+                  label: 'Окно',
                   value: summary.window,
                 },
                 {
-                  label: "Login avg",
-                  value: `${summary.login_attempt_avg_ms ?? "-"} ms`,
+                  label: 'Login avg',
+                  value: `${summary.login_attempt_avg_ms ?? '-'} ms`,
                   highlight: (summary.login_attempt_avg_ms ?? 0) > 1000,
                 },
                 {
-                  label: "TTFB avg",
-                  value: `${summary.navigation_avg.ttfb_ms ?? "-"} ms`,
+                  label: 'TTFB avg',
+                  value: `${summary.navigation_avg.ttfb_ms ?? '-'} ms`,
                   highlight: (summary.navigation_avg.ttfb_ms ?? 0) > 1000,
                 },
                 {
-                  label: "DCL avg",
-                  value: `${summary.navigation_avg.dom_content_loaded_ms ?? "-"} ms`,
-                  highlight:
-                    (summary.navigation_avg.dom_content_loaded_ms ?? 0) > 1000,
+                  label: 'DCL avg',
+                  value: `${summary.navigation_avg.dom_content_loaded_ms ?? '-'} ms`,
+                  highlight: (summary.navigation_avg.dom_content_loaded_ms ?? 0) > 1000,
                 },
                 {
-                  label: "Load avg",
-                  value: `${summary.navigation_avg.load_event_ms ?? "-"} ms`,
+                  label: 'Load avg',
+                  value: `${summary.navigation_avg.load_event_ms ?? '-'} ms`,
                   highlight: (summary.navigation_avg.load_event_ms ?? 0) > 1000,
                 },
                 ...Object.entries(counts).map(([k, v]) => ({
                   label: k,
                   value: v,
-                  highlight: k.includes("error") && v > 0,
+                  highlight: k.includes('error') && v > 0,
                 })),
               ]}
             />
           )}
         </div>
 
-        <div className="md:col-span-2 rounded border p-3">
+        <div className="md:col-span-2 rounded border p-3 bg-white shadow-sm dark:bg-gray-900">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">Лента событий</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">Лента событий</div>
             {eFetching || sFetching ? (
               <div className="text-xs text-gray-500">Обновление…</div>
             ) : null}
           </div>
           {eError ? (
-            <div className="text-xs text-red-600 mt-1">
-              Ошибка: {(eError as any)?.message}
+            <div className="mt-1 text-xs text-red-600">
+              Ошибка: {eError instanceof Error ? eError.message : String(eError)}
             </div>
           ) : null}
           <div className="mt-2 overflow-x-auto">
@@ -240,10 +237,10 @@ export default function RumTab() {
                 {filteredEvents.map((ev, idx) => (
                   <tr key={idx} className="border-t">
                     <td className="px-2 py-1">
-                      {ev.ts ? new Date(ev.ts).toLocaleTimeString() : "-"}
+                      {ev.ts ? new Date(ev.ts).toLocaleTimeString() : '-'}
                     </td>
                     <td className="px-2 py-1">{ev.event}</td>
-                    <td className="px-2 py-1">{ev.url || "-"}</td>
+                    <td className="px-2 py-1">{ev.url || '-'}</td>
                     <td className="px-2 py-1">
                       <JsonCard data={ev.data ?? {}} />
                     </td>
@@ -264,4 +261,3 @@ export default function RumTab() {
     </div>
   );
 }
-
