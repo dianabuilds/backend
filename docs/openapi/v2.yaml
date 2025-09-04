@@ -4646,6 +4646,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /moderation/cases:
+    post:
+      tags:
+      - moderation
+      summary: Create Moderation Case
+      operationId: create_case_moderation_cases_post
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseCreate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    title: Id
+                type: object
+                title: Response Create Case Moderation Cases Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
     post:
       tags:
       - admin
@@ -17474,6 +17507,25 @@ components:
       - created_at
       - url
       title: CaseAttachmentOut
+    CaseAttachmentCreate:
+      properties:
+        url:
+          type: string
+          title: Url
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        media_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Media Type
+      type: object
+      required:
+      - url
+      title: CaseAttachmentCreate
     CaseClose:
       properties:
         resolution:
@@ -17545,6 +17597,13 @@ components:
             format: uuid
           - type: 'null'
           title: Assignee Id
+        attachments:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/CaseAttachmentCreate'
+            type: array
+          - type: 'null'
+          title: Attachments
       type: object
       required:
       - type

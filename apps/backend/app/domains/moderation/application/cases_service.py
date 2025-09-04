@@ -9,14 +9,15 @@ from sqlalchemy.orm import selectinload
 
 from app.domains.moderation.infrastructure.models.moderation_case_models import (
     CaseAttachment,
-    CaseEvent,
     CaseLabel,
     CaseNote,
     ModerationCase,
 )
 from app.schemas.moderation_cases import (
+    CaseAttachmentOut,
     CaseClose,
     CaseCreate,
+    CaseEventOut,
     CaseFullResponse,
     CaseListItem,
     CaseListResponse,
@@ -24,8 +25,6 @@ from app.schemas.moderation_cases import (
     CaseNoteOut,
     CaseOut,
     CasePatch,
-    CaseAttachmentOut,
-    CaseEventOut,
 )
 
 
@@ -38,9 +37,7 @@ class CasesService:
             .order_by(ModerationCase.created_at.desc())
             .offset((page - 1) * size)
             .limit(size)
-            .options(
-                selectinload(ModerationCase.labels).selectinload(CaseLabel.label)
-            )
+            .options(selectinload(ModerationCase.labels).selectinload(CaseLabel.label))
         )
         res = await db.execute(stmt)
         cases = res.scalars().all()
@@ -67,8 +64,19 @@ class CasesService:
         return CaseListResponse(items=items, page=page, size=size, total=total or 0)
 
     async def create_case(self, db: AsyncSession, data: CaseCreate) -> UUID:
-        case = ModerationCase(**data.model_dump(exclude={"labels"}))
+        case = ModerationCase(**data.model_dump(exclude={"labels", "attachments"}))
         db.add(case)
+        await db.flush()
+
+        for att in data.attachments or []:
+            db.add(
+                CaseAttachment(
+                    case_id=case.id,
+                    author_id=data.reporter_id,
+                    **att.model_dump(),
+                )
+            )
+
         await db.commit()
         await db.refresh(case)
         return case.id
