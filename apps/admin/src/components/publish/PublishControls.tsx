@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type HTMLAttributes,useMemo, useState } from 'react';
+import { type HTMLAttributes, useMemo, useState } from 'react';
 
 import { patchNode } from '../../api/nodes';
 import {
@@ -11,6 +11,7 @@ import {
   schedulePublish,
 } from '../../api/publish';
 import { useToast } from '../ToastProvider';
+import { Button, TextInput } from '../../shared/ui';
 
 type Props = {
   workspaceId: string;
@@ -141,8 +142,8 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
     mUnpublish.isPending;
 
   return (
-    <div className={className}>
-      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+    <div className={`space-y-4 ${className ?? ''}`.trim()}>
+      <div className="flex items-center gap-2 text-sm text-gray-600">
         <span>Статус:</span>
         {isLoading || isMutating ? (
           <Spinner data-testid="status-spinner" className="text-gray-400" />
@@ -158,14 +159,14 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
         </button>
       </div>
 
-      <div className="flex flex-col gap-3 p-3 border rounded-md">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="font-medium">Доступ:</label>
+      <div className="space-y-4 p-4 border rounded-md bg-gray-50">
+        <div className="space-y-1">
+          <label className="font-medium">Доступ</label>
           <select
             value={access}
             onChange={(e) => setAccess(e.target.value as AccessMode)}
             disabled={disabled}
-            className="border rounded px-2 py-1"
+            className="w-full border rounded px-2 py-1"
           >
             <option value="everyone">Всем</option>
             <option value="premium_only">Только премиум</option>
@@ -173,52 +174,53 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
           </select>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="font-medium">Режим:</label>
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              checked={mode === 'now'}
-              onChange={() => setMode('now')}
-            />
-            Опубликовать сейчас
-          </label>
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              checked={mode === 'schedule'}
-              onChange={() => setMode('schedule')}
-            />
-            Запланировать
-          </label>
-          {mode === 'schedule' && (
-            <input
-              type="datetime-local"
-              value={when}
-              onChange={(e) => setWhen(e.target.value)}
-              className="border rounded px-2 py-1"
-            />
-          )}
+        <div className="space-y-1">
+          <label className="font-medium">Режим</label>
+          <div className="flex flex-col gap-1">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                checked={mode === 'now'}
+                onChange={() => setMode('now')}
+              />
+              Опубликовать сейчас
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                checked={mode === 'schedule'}
+                onChange={() => setMode('schedule')}
+              />
+              Запланировать
+            </label>
+            {mode === 'schedule' && (
+              <TextInput
+                type="datetime-local"
+                value={when}
+                onChange={(e) => setWhen(e.target.value)}
+                className="w-full"
+              />
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            className="px-3 py-1 rounded bg-green-600 text-white disabled:opacity-50"
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            className="bg-green-600 text-white disabled:opacity-50"
             onClick={() => (mode === 'now' ? mPublish.mutate() : mSchedule.mutate())}
             disabled={disabled || mPublish.isPending || mSchedule.isPending}
           >
             {mPublish.isPending || mSchedule.isPending ? (
-              <Spinner
-                data-testid="publish-spinner"
-                className="text-white"
-              />
+              <Spinner data-testid="publish-spinner" className="text-white" />
+            ) : mode === 'now' ? (
+              'Опубликовать'
             ) : (
-              mode === 'now' ? 'Опубликовать' : 'Запланировать'
+              'Запланировать'
             )}
-          </button>
+          </Button>
           {scheduled && (
-            <button
-              className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50"
+            <Button
+              className="bg-gray-200 disabled:opacity-50"
               onClick={() => mCancel.mutate()}
               disabled={disabled || mCancel.isPending}
             >
@@ -230,11 +232,11 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
               ) : (
                 'Отменить расписание'
               )}
-            </button>
+            </Button>
           )}
           {data?.status === 'published' && (
-            <button
-              className="px-3 py-1 rounded bg-red-600 text-white disabled:opacity-50"
+            <Button
+              className="bg-red-600 text-white disabled:opacity-50"
               onClick={() => mUnpublish.mutate()}
               disabled={disabled || mUnpublish.isPending}
             >
@@ -246,7 +248,7 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
               ) : (
                 'Снять с публикации'
               )}
-            </button>
+            </Button>
           )}
         </div>
       </div>
