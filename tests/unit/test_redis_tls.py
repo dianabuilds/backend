@@ -1,14 +1,12 @@
 import importlib
 import ssl
 import sys
-from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from app.core.redis_utils import create_async_redis
+from app.core.redis_utils import create_async_redis  # noqa: E402
 
 
 def test_rediss_no_ssl_kwarg(monkeypatch: pytest.MonkeyPatch) -> None:

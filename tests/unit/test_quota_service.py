@@ -2,18 +2,16 @@ import importlib
 import os
 import sys
 from datetime import UTC, datetime
-from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
 
 os.environ.setdefault("TESTING", "True")
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from app.core.cache import cache as shared_cache
-from app.core.preview import PreviewContext
-from app.domains.quota.application.quota_service import QuotaService
+from app.core.cache import cache as shared_cache  # noqa: E402
+from app.core.preview import PreviewContext  # noqa: E402
+from app.domains.quota.application.quota_service import QuotaService  # noqa: E402
 
 
 async def _clear():

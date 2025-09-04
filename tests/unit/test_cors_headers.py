@@ -1,8 +1,3 @@
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
 from starlette.testclient import TestClient
 
 from app.main import app
@@ -16,7 +11,8 @@ def test_cors_allows_custom_headers():
             "Origin": "http://client.example",
             "Access-Control-Request-Method": "POST",
             "Access-Control-Request-Headers": (
-                "x-feature-flags, x-preview-token, x-workspace-id, x-blocksketch-workspace-id"
+                "x-feature-flags, x-preview-token, "
+                "x-workspace-id, x-blocksketch-workspace-id"
             ),
         },
     )

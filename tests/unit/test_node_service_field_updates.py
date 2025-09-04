@@ -4,7 +4,6 @@ import os
 import sys
 import types
 import uuid
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -13,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import selectinload, sessionmaker
 
 os.environ.setdefault("TESTING", "true")
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
 from app.domains.nodes.application.node_service import NodeService
 

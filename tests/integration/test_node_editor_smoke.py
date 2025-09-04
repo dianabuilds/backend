@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import os
-import sys
 import types
 import uuid
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -14,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("TESTING", "true")
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
 from app.core.db.session import get_db
 from app.domains.nodes.api import admin_nodes_router

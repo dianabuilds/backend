@@ -1,14 +1,12 @@
 import importlib
 import sys
 import types
-from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
 # Ensure "app" package resolves correctly
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 

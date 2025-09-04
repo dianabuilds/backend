@@ -3,7 +3,6 @@ import importlib
 import os
 import sys
 from datetime import UTC, datetime
-from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -13,7 +12,6 @@ from fastapi.testclient import TestClient
 os.environ.setdefault("TESTING", "True")
 os.environ["BUILD_VERSION"] = "123"
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from apps.backend.app.api import ops as ops_module  # noqa: E402

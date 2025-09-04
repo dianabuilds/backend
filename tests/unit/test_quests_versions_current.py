@@ -2,7 +2,6 @@ import importlib
 import sys
 import types
 import uuid
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -12,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 # Ensure app package resolves
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 domains_module = importlib.import_module("apps.backend.app.domains")
@@ -27,7 +25,7 @@ sys.modules["app.security"] = security_stub
 
 from app.api import deps as api_deps  # noqa: E402
 from app.core.db.session import get_db  # noqa: E402
-from app.domains.quests.api.versions_router import (
+from app.domains.quests.api.versions_router import (  # noqa: E402
     router as versions_router,  # noqa: E402
 )
 from app.domains.quests.infrastructure.models.quest_models import Quest  # noqa: E402

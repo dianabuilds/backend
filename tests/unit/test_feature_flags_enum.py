@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 import sys
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -10,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 # Ensure "app" package resolves correctly
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 

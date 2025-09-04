@@ -2,18 +2,16 @@ import asyncio
 import importlib
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 from types import SimpleNamespace
 
 from hypothesis import given
 from hypothesis import strategies as st
 
 # Ensure apps package is importable
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from apps.backend.app.core.preview import PreviewContext
-from apps.backend.app.domains.navigation.application.transition_router import (
+from apps.backend.app.core.preview import PreviewContext  # noqa: E402
+from apps.backend.app.domains.navigation.application.transition_router import (  # noqa: E402
     CompassPolicy,
     ManualPolicy,
     NoRouteReason,

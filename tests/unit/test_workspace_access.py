@@ -1,21 +1,19 @@
 import importlib
 import sys
 import uuid
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.domains.quests.infrastructure.models.quest_models import Quest
-from app.domains.quests.queries import get_for_view
-from app.domains.workspaces.infrastructure.models import Workspace
-from app.schemas.nodes_common import Status, Visibility
+from app.domains.quests.infrastructure.models.quest_models import Quest  # noqa: E402
+from app.domains.quests.queries import get_for_view  # noqa: E402
+from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.schemas.nodes_common import Status, Visibility  # noqa: E402
 
 
 @pytest.mark.asyncio

@@ -1,12 +1,10 @@
 import importlib
 import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from apps.backend.app.domains.ai.pipeline_impl import _build_fallback_chain
 from apps.backend.app.domains.ai.providers import OpenAICompatibleProvider
+
+sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 
 def test_build_chain_with_openai_compatible():

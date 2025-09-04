@@ -7,7 +7,6 @@ import importlib
 import os
 import sys
 from collections.abc import AsyncGenerator
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -36,7 +35,6 @@ os.environ["CORS_ALLOW_HEADERS"] = (
 
 
 # Импортируем только то, что нам нужно
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from tests.integration.db_utils import TestUser, get_db_url, setup_test_db  # noqa: E402

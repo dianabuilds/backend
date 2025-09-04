@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import sys
 import types
-from pathlib import Path
 from uuid import uuid4
 
 # Ensure backend app package on path
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
 module_name = "app.domains.nodes.application.editorjs_renderer"
 sys.modules.setdefault(

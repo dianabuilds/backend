@@ -2,11 +2,9 @@ import asyncio
 import importlib
 import sys
 import uuid
-from pathlib import Path
 from types import SimpleNamespace
 
 # Ensure apps package is importable
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402

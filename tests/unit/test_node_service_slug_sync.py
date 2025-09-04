@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import os
-import sys
 import uuid
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -13,7 +11,6 @@ from sqlalchemy.orm import sessionmaker
 
 # Ensure app package resolves and run in testing mode
 os.environ.setdefault("TESTING", "true")
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
 import hashlib
 

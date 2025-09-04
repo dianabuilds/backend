@@ -3,16 +3,14 @@ import importlib
 import sys
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 from types import SimpleNamespace
 
 # Ensure apps package is importable
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.core.preview import PreviewContext
-from app.domains.navigation.application.transition_router import (
+from app.core.preview import PreviewContext  # noqa: E402
+from app.domains.navigation.application.transition_router import (  # noqa: E402
     RandomPolicy,
     TransitionProvider,
     TransitionRouter,
