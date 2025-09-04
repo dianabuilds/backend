@@ -7,7 +7,6 @@ import { listNodes, type NodeListParams } from '../api/nodes';
 import { createPreviewLink } from '../api/preview';
 import { wsApi } from '../api/wsApi';
 import FlagsCell from '../components/FlagsCell';
-import StatusBadge from '../components/StatusBadge';
 import { useToast } from '../components/ToastProvider';
 import WorkspaceControlPanel from '../components/WorkspaceControlPanel';
 import WorkspaceSelector from '../components/WorkspaceSelector';
@@ -796,7 +795,6 @@ export default function Nodes() {
                   </th>
                   <th className="p-2">ID</th>
                   <th className="p-2">Title</th>
-                  <th className="p-2">Status</th>
                   <th className="p-2">Flags</th>
                   <th className="p-2">Created</th>
                   <th className="p-2">Updated</th>
@@ -841,7 +839,6 @@ export default function Nodes() {
                           )}
                         </div>
                       </td>
-                      <td className="p-2">{n.status ? <StatusBadge status={n.status} /> : '-'}</td>
                       <td className="p-2 text-center">
                         <FlagsCell
                           value={{
