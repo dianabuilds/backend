@@ -1,6 +1,6 @@
 /* eslint-disable simple-import-sort/imports */
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
 vi.mock("../features/monitoring/RumTab", () => ({ default: () => <div>RUM</div> }));
@@ -12,12 +12,27 @@ vi.mock("../features/monitoring/JobsTab", () => ({ default: () => <div>Jobs</div
 import Monitoring from "./Monitoring";
 
 describe("Monitoring dashboard", () => {
-  it("renders all monitoring widgets", () => {
+  it("switches between monitoring sections", () => {
     render(<Monitoring />);
+    const tabs = [
+      { label: "Telemetry", content: "RUM" },
+      { label: "Rate limits", content: "Rate" },
+      { label: "Cache", content: "Cache" },
+      { label: "Audit log", content: "Audit" },
+      { label: "Jobs", content: "Jobs" },
+    ];
+
+    tabs.forEach(({ label }) => {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+    });
+
     expect(screen.getByText("RUM")).toBeInTheDocument();
-    expect(screen.getByText("Rate")).toBeInTheDocument();
-    expect(screen.getByText("Cache")).toBeInTheDocument();
-    expect(screen.getByText("Audit")).toBeInTheDocument();
-    expect(screen.getByText("Jobs")).toBeInTheDocument();
+
+    tabs.slice(1).forEach(({ label, content }) => {
+      fireEvent.click(screen.getByRole("button", { name: label }));
+      expect(
+        screen.getByText(content, { selector: "div" })
+      ).toBeInTheDocument();
+    });
   });
 });
