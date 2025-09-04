@@ -14,6 +14,7 @@ from app.domains.moderation.infrastructure.models.moderation_case_models import 
     CaseLabel,
     CaseNote,
     ModerationCase,
+    ModerationLabel,
 )
 from app.providers.case_notifier import ICaseNotifier
 from app.schemas.moderation_cases import (
@@ -22,6 +23,7 @@ from app.schemas.moderation_cases import (
     CaseCreate,
     CaseEventOut,
     CaseFullResponse,
+    CaseLabelsPatch,
     CaseListItem,
     CaseListResponse,
     CaseNoteCreate,
@@ -119,7 +121,7 @@ class CasesService:
                 CaseEvent(
                     case_id=case.id,
                     kind="assign",
-                    payload={"assignee_id": str(updates["assignee_id"])}
+                    payload={"assignee_id": str(updates["assignee_id"])},
                 )
             )
         if "status" in updates and updates["status"] != case.status:
@@ -133,6 +135,68 @@ class CasesService:
             )
         for field in set(updates) - {"assignee_id", "status"}:
             setattr(case, field, updates[field])
+        if events:
+            case.last_event_at = now
+            db.add_all(events)
+        case.updated_at = now
+        await db.commit()
+        await db.refresh(case, attribute_names=["labels"])
+        return self._to_case_out(case)
+
+    async def patch_labels(
+        self, db: AsyncSession, case_id: UUID, patch: CaseLabelsPatch
+    ) -> CaseOut | None:
+        case = await db.get(ModerationCase, case_id)
+        if not case:
+            return None
+        await db.refresh(case, attribute_names=["labels"])
+
+        now = datetime.utcnow()
+        events: list[CaseEvent] = []
+
+        add = patch.add or []
+        remove = patch.remove or []
+
+        if add:
+            res = await db.execute(
+                select(ModerationLabel).where(ModerationLabel.name.in_(add))
+            )
+            existing = {lbl.name: lbl for lbl in res.scalars()}
+            for name in add:
+                label = existing.get(name)
+                if not label:
+                    label = ModerationLabel(name=name)
+                    db.add(label)
+                    await db.flush()
+                if not any(cl.label_id == label.id for cl in case.labels):
+                    db.add(CaseLabel(case_id=case.id, label_id=label.id))
+                    events.append(
+                        CaseEvent(
+                            case_id=case.id,
+                            kind="add_label",
+                            payload={"label": name},
+                        )
+                    )
+
+        if remove:
+            res = await db.execute(
+                select(CaseLabel, ModerationLabel)
+                .join(ModerationLabel)
+                .where(
+                    CaseLabel.case_id == case.id,
+                    ModerationLabel.name.in_(remove),
+                )
+            )
+            for cl, lbl in res.all():
+                events.append(
+                    CaseEvent(
+                        case_id=case.id,
+                        kind="remove_label",
+                        payload={"label": lbl.name},
+                    )
+                )
+                await db.delete(cl)
+
         if events:
             case.last_event_at = now
             db.add_all(events)

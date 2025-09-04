@@ -13,6 +13,7 @@ from app.schemas.moderation_cases import (
     CaseClose,
     CaseCreate,
     CaseFullResponse,
+    CaseLabelsPatch,
     CaseListResponse,
     CaseNoteCreate,
     CaseNoteOut,
@@ -80,6 +81,18 @@ async def patch_case(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> CaseOut:
     case = await cases_service.patch_case(db, case_id, patch)
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    return case
+
+
+@router.patch("/{case_id}/labels", response_model=CaseOut)
+async def patch_labels(
+    case_id: UUID,
+    patch: CaseLabelsPatch,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+) -> CaseOut:
+    case = await cases_service.patch_labels(db, case_id, patch)
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
     return case

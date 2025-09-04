@@ -13,7 +13,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_db
-from app.domains.moderation.api.cases_router import router, admin_required
+from app.domains.moderation.api.cases_router import admin_required, router
 from app.domains.moderation.infrastructure.models.moderation_case_models import (
     CaseAttachment,
     CaseEvent,
@@ -80,3 +80,29 @@ async def test_case_creation_and_listing(app_and_session):
         resp = await client.get("/admin/moderation/cases")
         data = resp.json()
         assert data["total"] == 1
+
+
+@pytest.mark.asyncio
+async def test_patch_labels_endpoint(app_and_session):
+    app, _ = app_and_session
+    admin = types.SimpleNamespace(id=uuid.uuid4())
+    app.dependency_overrides[admin_required] = lambda: admin
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        payload = {"type": "support_request", "summary": "hi"}
+        resp = await client.post("/admin/moderation/cases", json=payload)
+        case_id = resp.json()["id"]
+
+        resp = await client.patch(
+            f"/admin/moderation/cases/{case_id}/labels", json={"add": ["spam"]}
+        )
+        assert resp.status_code == 200
+        assert resp.json()["labels"] == ["spam"]
+
+        resp = await client.patch(
+            f"/admin/moderation/cases/{case_id}/labels",
+            json={"add": ["bug"], "remove": ["spam"]},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["labels"] == ["bug"]
