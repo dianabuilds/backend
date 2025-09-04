@@ -40,6 +40,6 @@ class TransitionsService:
         transitions: Iterable[NodeTransition] = result.scalars().all()
         allowed: list[NodeTransition] = []
         for t in transitions:
-            if check_transition(t, user, preview):
+            if await check_transition(t, user, preview):
                 allowed.append(t)
         return allowed
