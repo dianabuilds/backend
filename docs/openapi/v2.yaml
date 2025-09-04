@@ -4433,6 +4433,541 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /admin/workspaces/{workspace_id}/moderation/nodes/{slug}/hide:
+    post:
+      tags:
+      - admin
+      summary: Hide Node
+      operationId: hide_node_admin_workspaces__workspace_id__moderation_nodes__slug__hide_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Workspace Id
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Slug
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HidePayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Hide Node Admin Workspaces  Workspace Id  Moderation
+                  Nodes  Slug  Hide Post
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/workspaces/{workspace_id}/moderation/nodes/{slug}/restore:
+    post:
+      tags:
+      - admin
+      summary: Restore Node
+      operationId: restore_node_admin_workspaces__workspace_id__moderation_nodes__slug__restore_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Workspace Id
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Slug
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Restore Node Admin Workspaces  Workspace Id  Moderation
+                  Nodes  Slug  Restore Post
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/moderation/cases:
+    get:
+      tags:
+      - admin
+      summary: List Cases
+      operationId: list_cases_admin_moderation_cases_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Page
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseListResponse'
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - admin
+      summary: Create Case
+      operationId: create_case_admin_moderation_cases_post
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                  format: uuid
+                title: Response Create Case Admin Moderation Cases Post
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/moderation/cases/{case_id}:
+    get:
+      tags:
+      - admin
+      summary: Get Case
+      operationId: get_case_admin_moderation_cases__case_id__get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Case Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseFullResponse'
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - admin
+      summary: Patch Case
+      operationId: patch_case_admin_moderation_cases__case_id__patch
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Case Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasePatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseOut'
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/moderation/cases/{case_id}/notes:
+    post:
+      tags:
+      - admin
+      summary: Add Note
+      operationId: add_note_admin_moderation_cases__case_id__notes_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Case Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseNoteCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseNoteOut'
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/moderation/cases/{case_id}/actions/close:
+    post:
+      tags:
+      - admin
+      summary: Close Case
+      operationId: close_case_admin_moderation_cases__case_id__actions_close_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Case Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseClose'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Close Case Admin Moderation Cases  Case Id  Actions
+                  Close Post
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /notifications:
     get:
       tags:
@@ -16904,6 +17439,447 @@ components:
       - title
       - message
       title: CampaignUpdate
+    CaseAttachmentOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        author_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Author Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        url:
+          type: string
+          title: Url
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        media_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Media Type
+      type: object
+      required:
+      - id
+      - created_at
+      - url
+      title: CaseAttachmentOut
+    CaseClose:
+      properties:
+        resolution:
+          type: string
+          title: Resolution
+        reason_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason Code
+        reason_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason Text
+      type: object
+      required:
+      - resolution
+      title: CaseClose
+    CaseCreate:
+      properties:
+        type:
+          type: string
+          title: Type
+        summary:
+          type: string
+          title: Summary
+        details:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Details
+        target_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Type
+        target_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Id
+        reporter_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Reporter Id
+        reporter_contact:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporter Contact
+        priority:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Priority
+        labels:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Labels
+        assignee_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Assignee Id
+      type: object
+      required:
+      - type
+      - summary
+      title: CaseCreate
+    CaseEventOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        actor_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Actor Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        kind:
+          type: string
+          title: Kind
+        payload:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Payload
+      type: object
+      required:
+      - id
+      - created_at
+      - kind
+      title: CaseEventOut
+    CaseFullResponse:
+      properties:
+        case:
+          $ref: '#/components/schemas/CaseOut'
+        notes:
+          items:
+            $ref: '#/components/schemas/CaseNoteOut'
+          type: array
+          title: Notes
+        attachments:
+          items:
+            $ref: '#/components/schemas/CaseAttachmentOut'
+          type: array
+          title: Attachments
+        events:
+          items:
+            $ref: '#/components/schemas/CaseEventOut'
+          type: array
+          title: Events
+      type: object
+      required:
+      - case
+      - notes
+      - attachments
+      - events
+      title: CaseFullResponse
+    CaseListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        type:
+          type: string
+          title: Type
+        status:
+          type: string
+          title: Status
+        priority:
+          type: string
+          title: Priority
+        summary:
+          type: string
+          title: Summary
+        target_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Type
+        target_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Id
+        assignee_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Assignee Id
+        labels:
+          items:
+            type: string
+          type: array
+          title: Labels
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        due_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Due At
+        last_event_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Event At
+      type: object
+      required:
+      - id
+      - type
+      - status
+      - priority
+      - summary
+      - created_at
+      title: CaseListItem
+    CaseListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/CaseListItem'
+          type: array
+          title: Items
+        page:
+          type: integer
+          title: Page
+        size:
+          type: integer
+          title: Size
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - page
+      - size
+      - total
+      title: CaseListResponse
+    CaseNoteCreate:
+      properties:
+        text:
+          type: string
+          title: Text
+        internal:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Internal
+          default: true
+      type: object
+      required:
+      - text
+      title: CaseNoteCreate
+    CaseNoteOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        author_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Author Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        text:
+          type: string
+          title: Text
+        internal:
+          type: boolean
+          title: Internal
+      type: object
+      required:
+      - id
+      - created_at
+      - text
+      - internal
+      title: CaseNoteOut
+    CaseOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        type:
+          type: string
+          title: Type
+        status:
+          type: string
+          title: Status
+        priority:
+          type: string
+          title: Priority
+        reporter_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Reporter Id
+        reporter_contact:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporter Contact
+        target_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Type
+        target_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Id
+        summary:
+          type: string
+          title: Summary
+        details:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Details
+        assignee_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Assignee Id
+        due_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Due At
+        first_response_due_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: First Response Due At
+        last_event_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Event At
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+        reason_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason Code
+        resolution:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resolution
+        labels:
+          items:
+            type: string
+          type: array
+          title: Labels
+      type: object
+      required:
+      - id
+      - created_at
+      - updated_at
+      - type
+      - status
+      - priority
+      - summary
+      title: CaseOut
+    CasePatch:
+      properties:
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        details:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Details
+        priority:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Priority
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        assignee_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Assignee Id
+        due_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Due At
+      type: object
+      title: CasePatch
     ChangePasswordIn:
       properties:
         old_password:
@@ -17277,6 +18253,15 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    HidePayload:
+      properties:
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+      type: object
+      title: HidePayload
     InvalidatePatternRequest:
       properties:
         pattern:
@@ -17573,6 +18558,11 @@ components:
           - type: boolean
           - type: 'null'
           title: Isvisible
+        is_public:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Public
         premium_only:
           anyOf:
           - type: boolean
