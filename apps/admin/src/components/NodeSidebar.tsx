@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 
 import { listFlags } from '../api/flags';
-import { patchNode, recomputeNodeEmbedding } from '../api/nodes';
+import { patchNode } from '../api/nodes';
 import { wsApi } from '../api/wsApi';
 import { useAuth } from '../auth/AuthContext';
 import { compressImage } from '../utils/compressImage';
@@ -23,7 +23,6 @@ interface NodeSidebarProps {
     createdAt: string;
     updatedAt: string;
     isPublic: boolean;
-    isVisible: boolean;
     publishedAt: string | null;
     nodeType: string;
     coverUrl: string | null;
@@ -38,10 +37,8 @@ interface NodeSidebarProps {
   onCoverChange?: (data: CoverChange) => void;
   onStatusChange?: (isPublic: boolean, updatedAt?: string) => void;
   onScheduleChange?: (publishedAt: string | null, updatedAt?: string) => void;
-  onHiddenChange?: (hidden: boolean, updatedAt?: string) => void;
   onAllowFeedbackChange?: (allow: boolean, updatedAt?: string) => void;
   onPremiumOnlyChange?: (premium: boolean, updatedAt?: string) => void;
-  hasChanges?: boolean;
 }
 
 export default function NodeSidebar({
@@ -51,10 +48,8 @@ export default function NodeSidebar({
   onCoverChange,
   onStatusChange,
   onScheduleChange,
-  onHiddenChange,
   onAllowFeedbackChange,
   onPremiumOnlyChange,
-  hasChanges,
 }: NodeSidebarProps) {
   const { user } = useAuth();
   const role = user?.role;
@@ -92,14 +87,12 @@ export default function NodeSidebar({
   const [slugError, setSlugError] = useState<string | null>(null);
 
   const [statusSaving, setStatusSaving] = useState(false);
-  const [hiddenSaving, setHiddenSaving] = useState(false);
   const [allowSaving, setAllowSaving] = useState(false);
   const [premiumSaving, setPremiumSaving] = useState(false);
   const [scheduleValue, setScheduleValue] = useState(
     node.publishedAt ? node.publishedAt.slice(0, 16) : '',
   );
   const [scheduleSaving, setScheduleSaving] = useState(false);
-  const [recomputing, setRecomputing] = useState(false);
 
   useEffect(() => {
     setScheduleValue(node.publishedAt ? node.publishedAt.slice(0, 16) : '');
@@ -205,21 +198,6 @@ export default function NodeSidebar({
     }
   };
 
-  const handleHiddenChange = async (checked: boolean) => {
-    setHiddenSaving(true);
-    try {
-      const res = await patchNode(workspaceId, node.id, {
-        isVisible: !checked,
-        updatedAt: node.updatedAt,
-      });
-      const updated = res.updatedAt ?? node.updatedAt;
-      const hidden = res.isVisible !== undefined ? !res.isVisible : checked;
-      onHiddenChange?.(hidden, updated);
-    } finally {
-      setHiddenSaving(false);
-    }
-  };
-
   const handleAllowFeedbackChange = async (checked: boolean) => {
     setAllowSaving(true);
     try {
@@ -264,15 +242,6 @@ export default function NodeSidebar({
       onScheduleChange?.(publishedAt, updated);
     } finally {
       setScheduleSaving(false);
-    }
-  };
-
-  const handleRecompute = async () => {
-    setRecomputing(true);
-    try {
-      await recomputeNodeEmbedding(node.id);
-    } finally {
-      setRecomputing(false);
     }
   };
 
@@ -484,31 +453,7 @@ export default function NodeSidebar({
           ) : null}
         </div>
       </details>
-      {canModerate ? (
-        <details>
-          <summary className="cursor-pointer font-semibold">Advanced</summary>
-          <div className="mt-2 space-y-2 text-sm">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={!node.isVisible}
-                onChange={(e) => handleHiddenChange(e.target.checked)}
-                disabled={hiddenSaving}
-              />
-              Hide from navigation
-            </label>
-            <button
-              type="button"
-              className="px-2 py-1 border rounded text-xs"
-              onClick={handleRecompute}
-              disabled={recomputing || !!hasChanges}
-            >
-              {recomputing ? 'Recomputing...' : 'Recompute embedding'}
-            </button>
-            <div>Type: {node.nodeType}</div>
-          </div>
-        </details>
-      ) : null}
+      {canModerate ? <div>Type: {node.nodeType}</div> : null}
 
       {slugModal ? (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">

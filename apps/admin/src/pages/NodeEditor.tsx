@@ -699,7 +699,6 @@ function NodeEditorInner({
             createdAt: node.createdAt,
             updatedAt: node.updatedAt,
             isPublic: node.isPublic,
-            isVisible: node.isVisible,
             publishedAt: node.publishedAt,
             nodeType: node.nodeType,
             coverUrl: node.coverUrl,
@@ -754,15 +753,6 @@ function NodeEditorInner({
               updatedAt: updated ?? prev.updatedAt,
             }))
           }
-          onHiddenChange={(hidden, updated) => {
-            const isVisible = !hidden;
-            handleDraftChange({ isVisible });
-            setNode((prev) => ({
-              ...prev,
-              isVisible,
-              updatedAt: updated ?? prev.updatedAt,
-            }));
-          }}
           onAllowFeedbackChange={(allow, updated) => {
             handleDraftChange({ allowFeedback: allow });
             setNode((prev) => ({
@@ -779,7 +769,6 @@ function NodeEditorInner({
               updatedAt: updated ?? prev.updatedAt,
             }));
           }}
-          hasChanges={unsaved}
         />
       </div>
     </div>
