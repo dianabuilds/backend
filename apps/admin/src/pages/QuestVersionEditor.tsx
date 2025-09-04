@@ -19,6 +19,7 @@ import ContentPicker from "../components/ContentPicker";
 import PlaythroughPanel from "../components/PlaythroughPanel";
 import type { OutputData } from "../types/editorjs";
 import PageLayout from "./_shared/PageLayout";
+import { confirmDialog } from "../shared/ui";
 
 interface NodeEditorData {
   id: number;
@@ -358,9 +359,9 @@ export default function QuestVersionEditor() {
     }
   };
 
-  const deleteNode = (key: string) => {
+  const deleteNode = async (key: string) => {
     if (!graph) return;
-    const ok = confirm(
+    const ok = await confirmDialog(
       `Delete node "${key}"? All connected edges will be removed.`,
     );
     if (!ok) return;
@@ -715,7 +716,7 @@ export default function QuestVersionEditor() {
                       </button>
                       <button
                         className="px-2 py-0.5 rounded border text-red-600 border-red-300"
-                        onClick={() => deleteNode(n.key)}
+                        onClick={() => void deleteNode(n.key)}
                         title="Delete node"
                       >
                         Delete

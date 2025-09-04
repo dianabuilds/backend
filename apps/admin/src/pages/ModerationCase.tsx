@@ -10,6 +10,7 @@ import {
   type CaseFullResponse,
 } from "../api/moderationCases";
 import PageLayout from "./_shared/PageLayout";
+import { promptDialog } from "../shared/ui";
 
 export default function ModerationCase() {
   const { id } = useParams<{ id: string }>();
@@ -65,7 +66,7 @@ export default function ModerationCase() {
 
   const onClose = async (resolution: "resolved" | "rejected") => {
     if (!id) return;
-    const reason = prompt("Reason code or text (optional):") || undefined;
+      const reason = (await promptDialog("Reason code or text (optional):")) || undefined;
     await closeCase(id, resolution, reason, reason);
     nav("/moderation");
   };

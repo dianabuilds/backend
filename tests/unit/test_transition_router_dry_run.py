@@ -10,11 +10,11 @@ app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
 from app.core.preview import PreviewContext  # noqa: E402
-from app.domains.navigation.application.transition_router import (  # noqa: E402
-    RandomPolicy,
+from app.domains.navigation.application.policies import RandomPolicy  # noqa: E402
+from app.domains.navigation.application.providers import (  # noqa: E402
     TransitionProvider,
-    TransitionRouter,
 )
+from app.domains.navigation.application.router import TransitionRouter  # noqa: E402
 
 
 @dataclass

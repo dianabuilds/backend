@@ -15,6 +15,7 @@ import type { OutputData } from '../types/editorjs';
 import { usePatchQueue } from '../utils/usePatchQueue';
 import { useUnsavedChanges } from '../utils/useUnsavedChanges';
 import { useWorkspace } from '../workspace/WorkspaceContext';
+import { confirmDialog } from '../shared/ui';
 
 type NodeEditorData = {
   id: number;
@@ -556,8 +557,8 @@ function NodeEditorInner({
     navigate(path);
   };
 
-  const handleClose = () => {
-    if (unsaved && !window.confirm('Discard unsaved changes?')) {
+  const handleClose = async () => {
+    if (unsaved && !(await confirmDialog('Discard unsaved changes?'))) {
       return;
     }
     const t = node.nodeType || 'article';

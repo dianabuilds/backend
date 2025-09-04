@@ -7,6 +7,7 @@ import {
   listCases,
 } from "../api/moderationCases";
 import PageLayout from "./_shared/PageLayout";
+import { promptDialog } from "../shared/ui";
 
 export default function ModerationInbox() {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export default function ModerationInbox() {
   }, []);
 
   const onCreate = async () => {
-    const summary = prompt("Summary of case:");
+      const summary = await promptDialog("Summary of case:");
     if (!summary) return;
     const id = await createCase({ type: "support_request", summary });
     navigate(`/moderation/cases/${id}`);

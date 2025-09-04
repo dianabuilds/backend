@@ -16,7 +16,7 @@ from app.core.preview import PreviewContext, PreviewMode  # isort: skip
 from app.core.rng import next_seed
 from app.core.transition_metrics import record_no_route, record_route_length
 from app.domains.navigation.application.navigation_service import NavigationService
-from app.domains.navigation.application.transition_router import (
+from app.domains.navigation.application.router import (
     NoRouteReason,
     _compute_entropy,
 )

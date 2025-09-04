@@ -106,3 +106,30 @@ async def test_patch_labels_endpoint(app_and_session):
         )
         assert resp.status_code == 200
         assert resp.json()["labels"] == ["bug"]
+        
+@pytest.mark.asyncio
+async def test_close_case(app_and_session):
+    app, session_factory = app_and_session
+    admin = types.SimpleNamespace(id=uuid.uuid4())
+    app.dependency_overrides[admin_required] = lambda: admin
+
+    async with session_factory() as session:
+        case = ModerationCase(type="support_request", summary="close me")
+        session.add(case)
+        await session.commit()
+        case_id = case.id
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            f"/admin/moderation/cases/{case_id}/actions/close",
+            json={"resolution": "resolved"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
+
+    async with session_factory() as session:
+        refreshed = await session.get(ModerationCase, case_id)
+        assert refreshed.status == "resolved"
+        assert refreshed.resolution == "resolved"
+

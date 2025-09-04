@@ -8,9 +8,14 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { AppProviders } from "./app/providers";
 import { initPreviewTokenFromUrl } from "./utils/previewToken";
+import { alertDialog } from "./shared/ui";
 
 // Initialize preview token if present in URL before any API calls
 initPreviewTokenFromUrl();
+
+// Replace default alert with styled modal
+// eslint-disable-next-line no-alert
+window.alert = alertDialog;
 
 const routeId = (window as any).__ROUTE_ID__;
 console.log("route_id:", routeId);

@@ -257,8 +257,9 @@ class CasesService:
         )
         db.add(event)
         case.last_event_at = now
+        case.updated_at = now
         await db.commit()
-        await db.refresh(case)
+        await db.refresh(case, attribute_names=["labels"])
         return self._to_case_out(case)
 
     async def get_case(
