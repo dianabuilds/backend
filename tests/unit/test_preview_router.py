@@ -25,7 +25,7 @@ sys.modules.setdefault(
     types.SimpleNamespace(user_has_nft=lambda *args, **kwargs: False),
 )
 
-from apps.backend.app.domains.navigation.application.transition_router import (  # noqa: E402
+from apps.backend.app.domains.navigation.application.router import (  # noqa: E402
     TransitionResult,
     TransitionTrace,
 )
