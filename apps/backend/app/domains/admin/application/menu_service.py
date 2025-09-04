@@ -21,10 +21,26 @@ BASE_MENU: list[dict] = [
         "order": 1,
     },
     {
+        "id": "monitoring",
+        "label": "Monitoring",
+        "path": "/monitoring",
+        "icon": "activity",
+        "order": 2,
+        "roles": ["admin"],
+    },
+    {
+        "id": "notifications",
+        "label": "Notifications",
+        "path": "/notifications",
+        "icon": "notifications",
+        "order": 3,
+        "roles": ["admin"],
+    },
+    {
         "id": "content",
         "label": "Content",
         "icon": "file",
-        "order": 2,
+        "order": 4,
         "children": [
             {
                 "id": "nodes",
@@ -75,7 +91,7 @@ BASE_MENU: list[dict] = [
         "id": "global-settings",
         "label": "Global settings",
         "icon": "settings",
-        "order": 3,
+        "order": 5,
         "roles": ["admin"],
         "children": [
             {
@@ -120,7 +136,7 @@ BASE_MENU: list[dict] = [
         "id": "administration",
         "label": "Administration",
         "icon": "users",
-        "order": 4,
+        "order": 6,
         "children": [
             {
                 "id": "users-list",
@@ -168,7 +184,7 @@ BASE_MENU: list[dict] = [
         "id": "navigation",
         "label": "Navigation",
         "icon": "navigation",
-        "order": 5,
+        "order": 7,
         "children": [
             {
                 "id": "navigation-main",
@@ -199,22 +215,6 @@ BASE_MENU: list[dict] = [
                 "order": 4,
             },
         ],
-    },
-    {
-        "id": "notifications",
-        "label": "Notifications",
-        "path": "/notifications",
-        "icon": "notifications",
-        "order": 6,
-        "roles": ["admin"],
-    },
-    {
-        "id": "monitoring",
-        "label": "Monitoring",
-        "path": "/monitoring",
-        "icon": "activity",
-        "order": 7,
-        "roles": ["admin"],
     },
 ]
 
