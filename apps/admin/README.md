@@ -14,6 +14,39 @@ The admin UI talks to the backend using two helpers:
 - `⌘K` / `Ctrl+K` — open the command palette for quick navigation to **Status**, **Limits** and **Trace** pages.
 - `Esc` — close the command palette.
 
+## Status and Flags
+
+Admin tables separate workflow **Status** from boolean **Flags**.
+
+### Status
+
+The **Status** column is read-only and reflects the backend's `workflow.status` field:
+
+- 📝 **Draft**
+- 🔍 **In review**
+- ✅ **Published**
+- 🗄️ **Archived**
+
+### Flags
+
+The **Flags** column groups toggleable icons. Clicking an icon sends a `PATCH` request to flip the corresponding field and updates the row on success:
+
+- 💎 **Premium** – gated for paying users.
+- ⭐ **Recommendable** – eligible for recommendations.
+- 👁️ / 🚫 **Visibility** – controls whether the item is visible.
+
+### Icon legend
+
+| Icon | Meaning |
+| ---- | ------- |
+| 📝 | Draft |
+| 🔍 | In review |
+| ✅ | Published |
+| 🗄️ | Archived |
+| 💎 | Premium flag |
+| ⭐ | Recommendable flag |
+| 👁️ / 🚫 | Visible / hidden |
+
 ## UI components
 
 ### Tooltip
