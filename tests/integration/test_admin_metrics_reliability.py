@@ -18,7 +18,7 @@ from app.domains.telemetry.api import admin_metrics_router
 
 
 @pytest.mark.asyncio
-async def test_metrics_reliability():
+async def test_metrics_reliability(monkeypatch):
     app = FastAPI()
     app.include_router(admin_metrics_router.router)
 
@@ -44,6 +44,15 @@ async def test_metrics_reliability():
     record_no_route("ws1")
     record_fallback_used("ws1")
 
+    called = {"flag": False}
+    real = metrics_storage.reliability
+
+    def spy(range_seconds: int, workspace_id: str | None = None) -> dict:
+        called["flag"] = True
+        return real(range_seconds, workspace_id)
+
+    monkeypatch.setattr(metrics_storage, "reliability", spy)
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get(
@@ -57,3 +66,4 @@ async def test_metrics_reliability():
     assert data["no_route_percent"] == 50.0
     assert data["fallback_percent"] == 50.0
     assert data["rps"] == pytest.approx(3 / 3600)
+    assert called["flag"] is True
