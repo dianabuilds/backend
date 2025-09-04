@@ -15,16 +15,35 @@ export function sendRUM(event: string, data: RUMPayload = {}): void {
       const blob = new Blob([payload], { type: "application/json" });
       (navigator as Navigator & { sendBeacon?: (url: string, data: BodyInit) => void }).sendBeacon?.(RUM_ENDPOINT, blob);
     } else {
-      fetch(RUM_ENDPOINT, {
+      void fetch(RUM_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: payload,
         credentials: "include",
         keepalive: true,
-      }).catch(() => void 0);
+      })
+        .then((response) => {
+          if (!response.ok) {
+            console.error(`RUM request failed with status ${response.status}`);
+            switch (response.status) {
+              case 405:
+                console.error("RUM endpoint method not allowed");
+                break;
+              case 422:
+                console.error("RUM payload validation failed");
+                break;
+              case 500:
+                console.error("RUM internal server error");
+                break;
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("RUM request error", error);
+        });
     }
-  } catch {
-    // ignore
+  } catch (error) {
+    console.error("Unexpected error sending RUM", error);
   }
 }
 
