@@ -201,11 +201,19 @@ BASE_MENU: list[dict] = [
         ],
     },
     {
+        "id": "notifications",
+        "label": "Notifications",
+        "path": "/notifications",
+        "icon": "notifications",
+        "order": 6,
+        "roles": ["admin"],
+    },
+    {
         "id": "monitoring",
         "label": "Monitoring",
         "path": "/monitoring",
         "icon": "activity",
-        "order": 6,
+        "order": 7,
         "roles": ["admin"],
     },
 ]
