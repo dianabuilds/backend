@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import sys
 import uuid
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -10,8 +8,6 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
 from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.infrastructure.models.node import Node

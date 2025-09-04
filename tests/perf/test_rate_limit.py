@@ -4,7 +4,6 @@ import asyncio
 import importlib
 import os
 import sys
-from pathlib import Path
 
 import fakeredis.aioredis
 from apps.backend.app.core.config import settings
@@ -13,7 +12,6 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 os.environ.setdefault("TESTING", "True")
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from apps.backend.app.core.rate_limit import RateLimitMiddleware  # noqa: E402

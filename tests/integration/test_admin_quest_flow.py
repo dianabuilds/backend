@@ -3,7 +3,6 @@ import os
 import sys
 import types
 import uuid
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -14,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Ensure app package is importable
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
@@ -22,7 +20,7 @@ from app.api.admin.quests.steps import (  # noqa: E402
     admin_required,
     graph_router,
 )
-from app.api.admin.quests.steps import (
+from app.api.admin.quests.steps import (  # noqa: E402
     router as steps_router,
 )
 from app.core.db.adapters import UUID as UUIDType  # noqa: E402

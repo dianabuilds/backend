@@ -1,11 +1,7 @@
 import logging
-import sys
-from pathlib import Path
 
 import fakeredis.aioredis
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
 from app.domains.telemetry.application.rum_service import RumMetricsService
 from app.domains.telemetry.infrastructure.repositories.rum_repository import (

@@ -1,19 +1,17 @@
 import importlib
 import sys
-from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 # Ensure app package resolves
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.domains.search.api.admin_router import admin_required
-from app.domains.search.api.admin_router import router as admin_router
-from app.domains.search.application.stats_service import search_stats
+from app.domains.search.api.admin_router import admin_required  # noqa: E402
+from app.domains.search.api.admin_router import router as admin_router  # noqa: E402
+from app.domains.search.application.stats_service import search_stats  # noqa: E402
 
 
 @pytest.mark.asyncio

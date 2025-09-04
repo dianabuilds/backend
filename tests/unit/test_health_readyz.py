@@ -4,13 +4,11 @@ import asyncio
 import importlib
 import os
 import sys
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 os.environ.setdefault("TESTING", "True")
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from app.api import health as health_module  # noqa: E402

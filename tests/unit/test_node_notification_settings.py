@@ -2,21 +2,19 @@ import importlib
 import os
 import sys
 import uuid
-from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 os.environ["TESTING"] = "True"
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from app.domains.notifications.infrastructure.models.notification_settings_models import (
+from app.domains.notifications.infrastructure.models.notification_settings_models import (  # noqa: E402, E501
     NodeNotificationSetting,
 )
-from app.domains.notifications.infrastructure.repositories.settings_repository import (
+from app.domains.notifications.infrastructure.repositories.settings_repository import (  # noqa: E402
     NodeNotificationSettingsRepository,
 )
 

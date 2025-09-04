@@ -2,14 +2,12 @@ import importlib
 import sys
 import types
 import uuid
-from pathlib import Path
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 # Ensure app package is importable as in existing tests
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
@@ -21,18 +19,20 @@ security_stub.require_ws_editor = lambda *a, **k: None
 security_stub.require_ws_owner = lambda *a, **k: None
 sys.modules.setdefault("app.security", security_stub)
 
-from fastapi import HTTPException
+from fastapi import HTTPException  # noqa: E402
 
-from app.core.preview import PreviewContext
-from app.domains.ai.infrastructure.models.ai_settings import AISettings
-from app.domains.ai.infrastructure.models.generation_models import GenerationJob
-from app.domains.ai.services.generation import (
+from app.core.preview import PreviewContext  # noqa: E402
+from app.domains.ai.infrastructure.models.ai_settings import AISettings  # noqa: E402
+from app.domains.ai.infrastructure.models.generation_models import (  # noqa: E402
+    GenerationJob,
+)
+from app.domains.ai.services.generation import (  # noqa: E402
     enqueue_generation_job,
     process_next_generation_job,
 )
-from app.domains.workspaces.api import put_ai_presets
-from app.domains.workspaces.infrastructure.models import Workspace
-from app.schemas.workspaces import WorkspaceSettings
+from app.domains.workspaces.api import put_ai_presets  # noqa: E402
+from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.schemas.workspaces import WorkspaceSettings  # noqa: E402
 
 
 @pytest.mark.asyncio

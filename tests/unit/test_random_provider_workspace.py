@@ -3,13 +3,11 @@ import importlib
 import sys
 import types
 import uuid
-from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 # Ensure apps package is importable
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 stub = types.ModuleType("nft_service")
 

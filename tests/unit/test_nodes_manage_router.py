@@ -2,7 +2,6 @@ import importlib
 import sys
 import types
 import uuid
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -12,14 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 # Ensure app package resolves
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
 from app.api import deps as api_deps  # noqa: E402
 from app.core import workspace_context as ws_ctx  # noqa: E402
 from app.core.db.session import get_db  # noqa: E402
-from app.domains.navigation.api.nodes_manage_router import (
+from app.domains.navigation.api.nodes_manage_router import (  # noqa: E402
     router as manage_router,  # noqa: E402
 )
 from app.domains.navigation.infrastructure.models.transition_models import (  # noqa: E402

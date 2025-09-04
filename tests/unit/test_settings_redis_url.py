@@ -1,10 +1,8 @@
 import importlib
 import sys
-from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from app.core.settings import Settings  # noqa: E402
