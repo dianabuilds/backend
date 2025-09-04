@@ -18,11 +18,23 @@ def collect_ids(items):
     return res
 
 
+def find_item(items, target_id):
+    for item in items:
+        if item.id == target_id:
+            return item
+        found = find_item(item.children, target_id)
+        if found:
+            return found
+    return None
+
+
 def test_admin_sees_all_sections():
     user = SimpleNamespace(role="admin")
     menu = build_menu(user, [])
     ids = collect_ids(menu.items)
     assert {"content", "navigation", "monitoring", "administration"}.issubset(ids)
+    monitoring = find_item(menu.items, "monitoring")
+    assert monitoring and monitoring.path == "/monitoring"
 
 
 def test_moderator_moderation_flag():
