@@ -7,7 +7,12 @@ import PeriodStepSelector from '../../components/PeriodStepSelector';
 import SummaryCard from '../../components/SummaryCard';
 import { AdminTelemetryService } from '../../openapi';
 
-type RumEvent = { event: string; ts?: number; url?: string; data?: unknown };
+export type RumEvent = {
+  event: string;
+  ts?: number;
+  url?: string;
+  data?: { dur_ms?: number } & Record<string, unknown>;
+};
 type RumSummary = {
   window: number;
   counts: Record<string, number>;
@@ -74,8 +79,8 @@ export default function RumTab() {
       const bucket = Math.floor(ev.ts / (step * 1000)) * step * 1000;
       const entry = res.get(bucket) || { count: 0, loginDur: 0, loginCount: 0 };
       entry.count++;
-      if (ev.event === 'login_attempt' && typeof ev.data?.ms === 'number') {
-        entry.loginDur += ev.data.ms;
+      if (ev.event === 'login_attempt' && typeof ev.data?.dur_ms === 'number') {
+        entry.loginDur += ev.data.dur_ms;
         entry.loginCount++;
       }
       res.set(bucket, entry);
