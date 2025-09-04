@@ -1,15 +1,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { addNote, closeCase, getCaseFull } from "../api/moderationCases";
+import {
+  addAttachment,
+  addNote,
+  closeCase,
+  getCaseFull,
+  patchLabels,
+  type CaseFullResponse,
+} from "../api/moderationCases";
 import PageLayout from "./_shared/PageLayout";
 
 export default function ModerationCase() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
-  const [data, setData] = useState<any | null>(null);
+  const [data, setData] = useState<CaseFullResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+  const [attachmentUrl, setAttachmentUrl] = useState("");
 
   const load = async () => {
     if (!id) return;
@@ -31,6 +40,26 @@ export default function ModerationCase() {
     if (!id || !note.trim()) return;
     await addNote(id, note, true);
     setNote("");
+    await load();
+  };
+
+  const onAddLabel = async () => {
+    if (!id || !newLabel.trim()) return;
+    await patchLabels(id, { add: [newLabel.trim()] });
+    setNewLabel("");
+    await load();
+  };
+
+  const onRemoveLabel = async (label: string) => {
+    if (!id) return;
+    await patchLabels(id, { remove: [label] });
+    await load();
+  };
+
+  const onAddAttachment = async () => {
+    if (!id || !attachmentUrl.trim()) return;
+    await addAttachment(id, { url: attachmentUrl.trim() });
+    setAttachmentUrl("");
     await load();
   };
 
@@ -68,7 +97,7 @@ export default function ModerationCase() {
           <div className="col-span-2">
             <div className="rounded border p-3 mb-4">
               <h2 className="font-semibold mb-2">Details</h2>
-              <div className="text-sm">
+              <div className="text-sm space-y-1">
                 <div>
                   <b>Type:</b> {data.case.type}
                 </div>
@@ -86,11 +115,42 @@ export default function ModerationCase() {
                   {data.case.target_id || ""}
                 </div>
                 <div>
-                  <b>Labels:</b> {data.case.labels.join(", ")}
+                  <b>Labels:</b>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {data.case.labels.map((l) => (
+                      <span
+                        key={l}
+                        className="inline-flex items-center bg-gray-200 px-2 py-0.5 rounded"
+                      >
+                        {l}
+                        <button
+                          className="ml-1 text-xs text-red-600"
+                          onClick={() => onRemoveLabel(l)}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    {data.case.labels.length === 0 && <span>-</span>}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      className="border rounded px-2 py-1 flex-1"
+                      placeholder="Add label"
+                      value={newLabel}
+                      onChange={(e) => setNewLabel(e.target.value)}
+                    />
+                    <button
+                      className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-800"
+                      onClick={onAddLabel}
+                    >
+                      Add label
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="rounded border p-3">
+            <div className="rounded border p-3 mb-4">
               <h2 className="font-semibold mb-2">Notes</h2>
               <div className="flex gap-2 mb-2">
                 <input
@@ -107,7 +167,7 @@ export default function ModerationCase() {
                 </button>
               </div>
               <div className="space-y-2">
-                {data.notes.map((n: any) => (
+                {data.notes.map((n) => (
                   <div key={n.id} className="border rounded p-2">
                     <div className="text-xs text-gray-500">
                       {new Date(n.created_at).toLocaleString()} —{" "}
@@ -118,12 +178,46 @@ export default function ModerationCase() {
                 ))}
               </div>
             </div>
+            <div className="rounded border p-3">
+              <h2 className="font-semibold mb-2">Attachments</h2>
+              <div className="flex gap-2 mb-2">
+                <input
+                  className="border rounded px-2 py-1 flex-1"
+                  placeholder="Attachment URL"
+                  value={attachmentUrl}
+                  onChange={(e) => setAttachmentUrl(e.target.value)}
+                />
+                <button
+                  className="px-3 py-1 rounded bg-blue-600 text-white"
+                  onClick={onAddAttachment}
+                >
+                  Upload
+                </button>
+              </div>
+              <ul className="text-sm space-y-1">
+                {data.attachments.map((a) => (
+                  <li key={a.id}>
+                    <a
+                      href={a.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      {a.title || a.url}
+                    </a>
+                  </li>
+                ))}
+                {data.attachments.length === 0 && (
+                  <li className="text-gray-500">No attachments</li>
+                )}
+              </ul>
+            </div>
           </div>
           <div>
             <div className="rounded border p-3">
               <h2 className="font-semibold mb-2">Timeline</h2>
               <ul className="text-sm space-y-2">
-                {data.events.map((e: any) => (
+                {data.events.map((e) => (
                   <li key={e.id}>
                     <div className="text-xs text-gray-500">
                       {new Date(e.created_at).toLocaleString()}

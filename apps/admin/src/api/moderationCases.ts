@@ -81,11 +81,41 @@ export async function addNote(
   return res.data!;
 }
 
+export interface CaseOut {
+  id: string;
+  type: string;
+  status: string;
+  priority: string;
+  summary: string;
+  details?: string | null;
+  target_type?: string | null;
+  target_id?: string | null;
+  assignee_id?: string | null;
+  labels: string[];
+}
+
+export interface CaseAttachment {
+  id: string;
+  author_id?: string | null;
+  created_at: string;
+  url: string;
+  title?: string | null;
+  media_type?: string | null;
+}
+
+export interface CaseEvent {
+  id: string;
+  actor_id?: string | null;
+  created_at: string;
+  kind: string;
+  payload?: Record<string, unknown> | null;
+}
+
 export interface CaseFullResponse {
-  case: any;
+  case: CaseOut;
   notes: CaseNote[];
-  attachments: any[];
-  events: any[];
+  attachments: CaseAttachment[];
+  events: CaseEvent[];
 }
 export async function getCaseFull(id: string): Promise<CaseFullResponse> {
   const res = await api.get<CaseFullResponse>(`/admin/moderation/cases/${id}`);
@@ -103,4 +133,29 @@ export async function closeCase(
     reason_code,
     reason_text,
   });
+}
+
+export interface CaseLabelsPatch {
+  add?: string[];
+  remove?: string[];
+}
+
+export async function patchLabels(
+  id: string,
+  patch: CaseLabelsPatch,
+): Promise<void> {
+  await api.patch(`/admin/moderation/cases/${id}/labels`, patch);
+}
+
+export interface CaseAttachmentCreate {
+  url: string;
+  title?: string;
+  media_type?: string;
+}
+
+export async function addAttachment(
+  id: string,
+  data: CaseAttachmentCreate,
+): Promise<void> {
+  await api.post(`/admin/moderation/cases/${id}/attachments`, data);
 }
