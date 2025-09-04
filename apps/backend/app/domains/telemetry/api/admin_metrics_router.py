@@ -46,9 +46,10 @@ def _parse_range(range_str: str) -> int:
 @router.get("/summary", response_model=MetricsSummary)
 async def metrics_summary(
     range: Annotated[str, Query()] = "1h",
+    workspace: Annotated[str | None, Query()] = None,
 ) -> MetricsSummary:  # noqa: A002
     seconds = _parse_range(range)
-    summary = metrics_storage.summary(seconds)
+    summary = metrics_storage.summary(seconds, workspace)
     return MetricsSummary(**summary)
 
 
@@ -56,6 +57,7 @@ async def metrics_summary(
 async def metrics_timeseries(
     range: Annotated[str, Query()] = "1h",  # noqa: A002
     step: Annotated[int, Query(ge=10, le=600)] = 60,
+    workspace: Annotated[str | None, Query()] = None,
 ):
     """
     Таймсерии: counts per status class (2xx/4xx/5xx) и p95 latency по бакетам.
@@ -66,7 +68,7 @@ async def metrics_timeseries(
         step = 60
     elif step > 300:
         step = 300
-    data = metrics_storage.timeseries(seconds, step)
+    data = metrics_storage.timeseries(seconds, step, workspace)
     return data
 
 
@@ -75,9 +77,7 @@ async def metrics_reliability(
     workspace: Annotated[str | None, Query()] = None,
 ) -> ReliabilityMetrics:
     seconds = 3600
-    recent = metrics_storage._select_recent(seconds)
-    if workspace:
-        recent = [r for r in recent if r.workspace_id == workspace]
+    recent = metrics_storage._select_recent(seconds, workspace)
     total = len(recent)
     durations = [r.duration_ms for r in recent]
     p95 = _percentile(durations, 0.95) if durations else 0.0
@@ -116,21 +116,25 @@ async def metrics_top_endpoints(
     range: Annotated[str, Query()] = "1h",  # noqa: A002
     by: Annotated[str, Query(pattern="^(p95|error_rate|rps)$")] = "p95",
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    workspace: Annotated[str | None, Query()] = None,
 ):
     """
     Топ маршрутов по p95 | error_rate | rps.
     """
     seconds = _parse_range(range)
-    data = metrics_storage.top_endpoints(seconds, limit, by)
+    data = metrics_storage.top_endpoints(seconds, limit, by, workspace)
     return {"items": data}
 
 
 @router.get("/errors/recent")
-async def metrics_errors_recent(limit: Annotated[int, Query(ge=1, le=500)] = 100):
+async def metrics_errors_recent(
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    workspace: Annotated[str | None, Query()] = None,
+):
     """
     Последние ошибки (4xx/5xx).
     """
-    return {"items": metrics_storage.recent_errors(limit)}
+    return {"items": metrics_storage.recent_errors(limit, workspace)}
 
 
 @router.get("/transitions")

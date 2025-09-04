@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from __future__ import annotations
 
 import json
@@ -129,14 +130,21 @@ class MetricsStorage:
         with self._lock:
             self._records.clear()
 
-    def _select_recent(self, range_seconds: int) -> list[RequestRecord]:
+    def _select_recent(
+        self, range_seconds: int, workspace_id: str | None = None
+    ) -> list[RequestRecord]:
         now = time.time()
         cutoff = now - range_seconds
         with self._lock:
-            return [r for r in self._records if r.ts >= cutoff]
+            return [
+                r
+                for r in self._records
+                if r.ts >= cutoff
+                and (workspace_id is None or r.workspace_id == workspace_id)
+            ]
 
-    def summary(self, range_seconds: int) -> dict:
-        recent = self._select_recent(range_seconds)
+    def summary(self, range_seconds: int, workspace_id: str | None = None) -> dict:
+        recent = self._select_recent(range_seconds, workspace_id)
         total = len(recent)
         if total == 0:
             return {
@@ -163,11 +171,13 @@ class MetricsStorage:
             "count_429": count_429,
         }
 
-    def timeseries(self, range_seconds: int, step_seconds: int) -> dict:
+    def timeseries(
+        self, range_seconds: int, step_seconds: int, workspace_id: str | None = None
+    ) -> dict:
         """Вернуть таймсерии: counts per status class и p95 latency по бакетам."""
         if step_seconds <= 0:
             step_seconds = 60
-        recent = self._select_recent(range_seconds)
+        recent = self._select_recent(range_seconds, workspace_id)
         if not recent:
             return {
                 "step": step_seconds,
@@ -218,9 +228,15 @@ class MetricsStorage:
             "p95": p95_points,
         }
 
-    def top_endpoints(self, range_seconds: int, limit: int, sort_by: str) -> list[dict]:
+    def top_endpoints(
+        self,
+        range_seconds: int,
+        limit: int,
+        sort_by: str,
+        workspace_id: str | None = None,
+    ) -> list[dict]:
         """Топ маршрутов по p95 | error_rate | rps."""
-        recent = self._select_recent(range_seconds)
+        recent = self._select_recent(range_seconds, workspace_id)
         if not recent:
             return []
 
@@ -257,14 +273,18 @@ class MetricsStorage:
             )
         return out
 
-    def recent_errors(self, limit: int = 100) -> list[dict]:
+    def recent_errors(
+        self, limit: int = 100, workspace_id: str | None = None
+    ) -> list[dict]:
         """Последние ошибки (4xx/5xx)."""
         with self._lock:
             # идем с конца дека
             it: Iterable[RequestRecord] = reversed(self._records)
             out: list[dict] = []
             for r in it:
-                if r.status_code >= 400:
+                if r.status_code >= 400 and (
+                    workspace_id is None or r.workspace_id == workspace_id
+                ):
                     out.append(
                         {
                             "ts": int(r.ts),
@@ -318,12 +338,16 @@ class MetricsStorage:
         with _transition_lock:
             lat = list(_route_latencies)
             rates = list(_repeat_rates)
-            lengths = {ws: list(v) for ws, v in _route_lengths.items()}
+            lengths: dict[str, list[int]] = {
+                ws: list(v) for ws, v in _route_lengths.items()
+            }
             entropies = {ws: list(v) for ws, v in _tag_entropies.items()}
             totals = dict(_transition_counts)
             no_routes = dict(_no_route_counts)
             fallbacks = dict(_fallback_used_counts)
-            prev_lengths = {ws: list(v) for ws, v in _preview_route_lengths.items()}
+            prev_lengths: dict[str, list[int]] = {
+                ws: list(v) for ws, v in _preview_route_lengths.items()
+            }
             prev_totals = dict(_preview_transition_counts)
             prev_no_routes = dict(_preview_no_route_counts)
         lines.append("# HELP route_latency_ms Route latency milliseconds")
@@ -375,16 +399,16 @@ class MetricsStorage:
             lines.append(f'tag_entropy_avg{{workspace="{ws}"}} {avg}')
         lines.append("# HELP route_length Route length")
         lines.append("# TYPE route_length summary")
-        for ws, vals in lengths.items():
-            avg = sum(vals) / len(vals) if vals else 0.0
-            p95 = _percentile(vals, 0.95) if vals else 0.0
+        for ws, lens in lengths.items():
+            avg = sum(lens) / len(lens) if lens else 0.0
+            p95 = _percentile(lens, 0.95) if lens else 0.0
             lines.append(f'route_length_avg{{workspace="{ws}"}} {avg}')
             lines.append(f'route_length_p95{{workspace="{ws}"}} {p95}')
         lines.append("# HELP preview_route_length Route length in preview")
         lines.append("# TYPE preview_route_length summary")
-        for ws, vals in prev_lengths.items():
-            avg = sum(vals) / len(vals) if vals else 0.0
-            p95 = _percentile(vals, 0.95) if vals else 0.0
+        for ws, lens in prev_lengths.items():
+            avg = sum(lens) / len(lens) if lens else 0.0
+            p95 = _percentile(lens, 0.95) if lens else 0.0
             lines.append(f'preview_route_length_avg{{workspace="{ws}"}} {avg}')
             lines.append(f'preview_route_length_p95{{workspace="{ws}"}} {p95}')
         return "\n".join(lines) + "\n"
