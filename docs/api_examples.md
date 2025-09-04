@@ -16,7 +16,16 @@ All API errors follow a unified structure:
 ```
 
 Clients can rely on the ``code`` field for machine readable handling of
-different error scenarios.
+different error scenarios. Supported mappings are:
+
+- 400 → ``BAD_REQUEST``
+- 401 → ``AUTH_REQUIRED``
+- 403 → ``FORBIDDEN``
+- 404 → ``NOT_FOUND``
+- 405 → ``METHOD_NOT_ALLOWED``
+- 409 → ``CONFLICT``
+- 422 → ``VALIDATION_ERROR``
+- 429 → ``RATE_LIMITED``
 
 ## HTTPie
 
