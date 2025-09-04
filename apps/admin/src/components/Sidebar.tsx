@@ -28,6 +28,24 @@ function useExpandedState() {
   return { expanded, toggle, setOpen };
 }
 
+function useCollapsedState() {
+  const KEY = "adminSidebarCollapsed";
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return safeLocalStorage.getItem(KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    safeLocalStorage.setItem(KEY, String(collapsed));
+  }, [collapsed]);
+  const toggle = useCallback(() => {
+    setCollapsed((c) => !c);
+  }, []);
+  return { collapsed, toggle };
+}
+
 /**
  * Приводит путь из меню к виду, совместимому с Router basename.
  * - Из абсолютного URL берёт pathname
@@ -66,19 +84,21 @@ function MenuItem({
   activePath,
   expanded,
   toggle,
+  collapsed,
 }: {
   item: AdminMenuItem;
   level: number;
   activePath: string;
   expanded: Record<string, boolean>;
   toggle: (id: string) => void;
+  collapsed: boolean;
 }) {
   const Icon = getIconComponent(item.icon);
 
   const content = (
     <div className="flex items-center gap-2">
       <Icon className="w-4 h-4" aria-hidden />
-      <span>{item.label}</span>
+      <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
     </div>
   );
 
@@ -91,7 +111,7 @@ function MenuItem({
     );
   }
 
-  const padding = 8 + level * 12;
+  const padding = collapsed ? 8 : 8 + level * 12;
 
   if (item.children && item.children.length > 0) {
     // Если только один дочерний элемент и у родителя нет собственного path —
@@ -108,6 +128,7 @@ function MenuItem({
           }
           style={{ paddingLeft: padding }}
           aria-current={isActive ? "page" : undefined}
+          title={collapsed ? only.label : undefined}
         >
           {content}
         </NavLink>
@@ -139,6 +160,7 @@ function MenuItem({
           onClick={() => toggle(item.id)}
           aria-expanded={open}
           aria-controls={`group-${item.id}`}
+          title={collapsed ? item.label : undefined}
         >
           {content}
           <span aria-hidden>{open ? "▾" : "▸"}</span>
@@ -153,6 +175,7 @@ function MenuItem({
                 activePath={activePath}
                 expanded={expanded}
                 toggle={toggle}
+                collapsed={collapsed}
               />
             ))}
           </div>
@@ -169,6 +192,7 @@ function MenuItem({
         rel="noreferrer"
         className="block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
         style={{ paddingLeft: padding }}
+        title={collapsed ? item.label : undefined}
       >
         {content}
       </a>
@@ -186,6 +210,7 @@ function MenuItem({
         }
         style={{ paddingLeft: padding }}
         aria-current={isActive ? "page" : undefined}
+        title={collapsed ? item.label : undefined}
       >
         {content}
       </NavLink>
@@ -193,7 +218,11 @@ function MenuItem({
   }
 
   return (
-    <div className="py-1 px-2 text-gray-500" style={{ paddingLeft: padding }}>
+    <div
+      className="py-1 px-2 text-gray-500"
+      style={{ paddingLeft: padding }}
+      title={collapsed ? item.label : undefined}
+    >
       {content}
     </div>
   );
@@ -205,6 +234,7 @@ export default function Sidebar() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { expanded, toggle } = useExpandedState();
+  const { collapsed, toggle: toggleCollapsed } = useCollapsedState();
   const { user } = useAuth();
 
   const filterByRole = useCallback(
@@ -283,17 +313,28 @@ export default function Sidebar() {
             activePath={location.pathname}
             expanded={expanded}
             toggle={toggle}
+            collapsed={collapsed}
           />
         ))}
       </nav>
     );
-  }, [loading, error, items, location.pathname, expanded, toggle]);
+  }, [loading, error, items, location.pathname, expanded, toggle, collapsed]);
+
+  const MenuIcon = getIconComponent("menu");
 
   return (
     <aside
-      className="w-64 bg-white dark:bg-gray-900 p-4 shadow-sm"
+      className={`${collapsed ? "w-16" : "w-64"} bg-white dark:bg-gray-900 p-4 shadow-sm`}
       aria-label="Sidebar navigation"
     >
+      <button
+        className="mb-4 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+        onClick={toggleCollapsed}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-expanded={!collapsed}
+      >
+        <MenuIcon className="w-5 h-5" aria-hidden />
+      </button>
       {content}
     </aside>
   );

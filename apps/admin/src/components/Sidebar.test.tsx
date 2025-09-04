@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
@@ -67,5 +67,17 @@ describe("Sidebar", () => {
     expect(await screen.findByText("Content")).toBeInTheDocument();
     expect(await screen.findByText("Navigation")).toBeInTheDocument();
     expect(await screen.findByText("Monitoring")).toBeInTheDocument();
+  });
+
+  it("can collapse and expand", async () => {
+    (getAdminMenu as any).mockResolvedValue({ items: [] });
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+    const btn = await screen.findByLabelText("Collapse sidebar");
+    fireEvent.click(btn);
+    expect(await screen.findByLabelText("Expand sidebar")).toBeInTheDocument();
   });
 });
