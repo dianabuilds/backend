@@ -7,6 +7,7 @@ import { listNodes, type NodeListParams } from '../api/nodes';
 import { createPreviewLink } from '../api/preview';
 import { wsApi } from '../api/wsApi';
 import FlagsCell from '../components/FlagsCell';
+import StatusCell from '../components/StatusCell';
 import { useToast } from '../components/ToastProvider';
 import WorkspaceControlPanel from '../components/WorkspaceControlPanel';
 import WorkspaceSelector from '../components/WorkspaceSelector';
@@ -20,7 +21,7 @@ import {
   TableCell,
 } from '../components/ui/table';
 import { Button } from '../shared/ui';
-import type { Status } from '../openapi';
+import type { Status as NodeStatus } from '../openapi';
 import { ensureArray } from '../shared/utils';
 import { notify } from '../utils/notify';
 import { useWorkspace } from '../workspace/WorkspaceContext';
@@ -29,7 +30,7 @@ type NodeItem = {
   id: number;
   title?: string;
   slug?: string;
-  status?: Status;
+  status?: NodeStatus;
   is_visible: boolean;
   is_public: boolean;
   premium_only: boolean;
@@ -72,8 +73,8 @@ export default function Nodes() {
     const vis = searchParams.get('visible');
     return vis === 'true' ? 'visible' : vis === 'false' ? 'hidden' : 'all';
   });
-  const [status, setStatus] = useState<Status | 'all'>(
-    () => (searchParams.get('status') as Status | null) || 'all',
+  const [status, setStatus] = useState<NodeStatus | 'all'>(
+    () => (searchParams.get('status') as NodeStatus | null) || 'all',
   );
   const [isPublic, setIsPublic] = useState<'all' | 'true' | 'false'>(
     () => searchParams.get('is_public') ?? 'all',
@@ -804,7 +805,8 @@ export default function Nodes() {
                     </TableHead>
                     <TableHead>ID</TableHead>
                     <TableHead>Title</TableHead>
-                    <TableHead className="text-center">Flags</TableHead>
+                    <TableHead className="w-32 text-center">Status</TableHead>
+                    <TableHead className="w-32 text-center">Flags</TableHead>
                     <TableHead className="hidden md:table-cell">Created</TableHead>
                     <TableHead className="hidden md:table-cell">Updated</TableHead>
                     <TableHead>Actions</TableHead>
@@ -845,7 +847,10 @@ export default function Nodes() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="w-32 text-center">
+                          <StatusCell status={n.status as any} />
+                        </TableCell>
+                        <TableCell className="w-32 text-center">
                           <FlagsCell
                             value={{
                               is_visible: n.is_visible,
@@ -898,7 +903,7 @@ export default function Nodes() {
                   })}
                   {items.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="p-4 text-center text-gray-500">
+                      <TableCell colSpan={8} className="p-4 text-center text-gray-500">
                         No nodes found
                       </TableCell>
                     </TableRow>
