@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from typing import Any
@@ -9,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domains.navigation.application.cache_singleton import navcache
 
 from .models import NodeCreated, NodePublished, NodeUpdated
+
+logger = logging.getLogger(__name__)
 
 
 class _Handlers:
@@ -38,7 +41,9 @@ class _Handlers:
         try:
             await navcache.invalidate_compass_all()
         except Exception:
-            pass
+            logger.exception(
+                "navcache.invalidate_compass_all_failed", extra={"event": event}
+            )
 
     async def handle_node_updated(self, event: NodeUpdated) -> None:
         async with self.db_session() as session:
@@ -47,23 +52,30 @@ class _Handlers:
             try:
                 await navcache.invalidate_navigation_by_node(event.slug)
             except Exception:
-                pass
+                logger.exception(
+                    "navcache.invalidate_navigation_by_node_failed",
+                    extra={"event": event},
+                )
         try:
             await navcache.invalidate_compass_all()
         except Exception:
-            pass
+            logger.exception(
+                "navcache.invalidate_compass_all_failed", extra={"event": event}
+            )
 
     async def handle_node_published(self, event: NodePublished) -> None:
         try:
             await self.index_content(event.node_id)
         except Exception:
-            pass
+            logger.exception("index_content_failed", extra={"event": event})
         try:
             await navcache.invalidate_navigation_by_node(event.slug)
             await navcache.invalidate_modes_by_node(event.slug)
             await navcache.invalidate_compass_all()
         except Exception:
-            pass
+            logger.exception(
+                "navcache.invalidate_post_publish_failed", extra={"event": event}
+            )
 
 
 handlers = _Handlers()
