@@ -81,7 +81,7 @@ export default function PaymentsGateways() {
   };
 
   const remove = async (id: string) => {
-    if (!confirmWithEnv("Удалить шлюз?")) return;
+    if (!(await confirmWithEnv("Удалить шлюз?"))) return;
     await api.del(`/admin/payments/gateways/${encodeURIComponent(id)}`);
     await qc.invalidateQueries({ queryKey: ["payments", "gateways"] });
   };

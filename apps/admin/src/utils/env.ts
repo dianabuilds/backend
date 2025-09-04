@@ -1,3 +1,5 @@
+import { confirmDialog } from "../shared/ui";
+
 function getEnv() {
   try {
     return (
@@ -15,6 +17,6 @@ export const isLocal = ENV_MODE === "local";
 export const isPreviewEnv = ["local", "dev", "test"].includes(ENV_MODE);
 export const ADMIN_DEV_TOOLS = getEnv().ADMIN_DEV_TOOLS === "1";
 
-export function confirmWithEnv(message: string) {
-  return window.confirm(`${message}\n\nEnvironment: ${ENV_MODE}`);
+export async function confirmWithEnv(message: string): Promise<boolean> {
+  return await confirmDialog(`${message}\n\nEnvironment: ${ENV_MODE}`);
 }

@@ -153,9 +153,9 @@ export default function Tags() {
                           className="text-red-600 border-red-300"
                           onClick={async () => {
                             if (!t.id) return;
-                            const ok = confirmWithEnv(
-                              `Delete tag "${t.name || t.slug}"? This cannot be undone.`,
-                            );
+                              const ok = await confirmWithEnv(
+                                `Delete tag "${t.name || t.slug}"? This cannot be undone.`,
+                              );
                             if (!ok) return;
                             try {
                               await deleteAdminTag(t.id);

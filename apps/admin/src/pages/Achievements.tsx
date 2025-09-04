@@ -128,7 +128,7 @@ export default function Achievements() {
   };
 
   const onDelete = async (row: AchievementAdmin) => {
-    if (!confirmWithEnv(`Delete achievement "${row.title}"?`)) return;
+    if (!(await confirmWithEnv(`Delete achievement "${row.title}"?`))) return;
     try {
       await deleteAdminAchievement(row.id);
       await reload();

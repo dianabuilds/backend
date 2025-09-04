@@ -357,7 +357,7 @@ export default function AIQuests() {
   };
 
   const removeWorld = async (id: string) => {
-    if (!confirmWithEnv("Удалить мир со всеми персонажами?")) return;
+    if (!(await confirmWithEnv("Удалить мир со всеми персонажами?"))) return;
     try {
       await api.request(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`, {
         method: "DELETE",
@@ -393,7 +393,7 @@ export default function AIQuests() {
   };
 
   const removeCharacter = async (id: string) => {
-    if (!confirmWithEnv("Удалить персонажа?")) return;
+    if (!(await confirmWithEnv("Удалить персонажа?"))) return;
     try {
       await api.request(
         `/admin/ai/quests/characters/${encodeURIComponent(id)}`,

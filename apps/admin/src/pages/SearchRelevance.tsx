@@ -7,6 +7,7 @@ import {
   getRelevance,
 } from "../api/searchSettings";
 import PageLayout from "./_shared/PageLayout";
+import { promptDialog } from "../shared/ui";
 
 export default function SearchRelevance() {
   const [payload, setPayload] = useState<RelevancePayload>({
@@ -58,8 +59,8 @@ export default function SearchRelevance() {
     }
   };
 
-  const onApply = async () => {
-    const comment = prompt("Comment for audit (optional):") || undefined;
+    const onApply = async () => {
+      const comment = (await promptDialog("Comment for audit (optional):")) || undefined;
     const res = await applyRelevance(payload, comment);
     setVersion(res.version);
     alert("Applied");

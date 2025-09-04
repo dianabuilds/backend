@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { api } from "../api/client";
+import { confirmDialog } from "../shared/ui";
 import DataTable from "../components/DataTable";
 import type { Column } from "../components/DataTable.helpers";
 import TabRouter from "../components/TabRouter";
@@ -155,7 +156,7 @@ function SettingsTabs() {
     await qc.invalidateQueries({ queryKey: ["ai", "providers"] });
   };
   const removeProvider = async (id: string) => {
-    if (!confirm("Delete provider?")) return;
+    if (!(await confirmDialog("Delete provider?"))) return;
     await api.del(`/admin/ai/system/providers/${encodeURIComponent(id)}`);
     await qc.invalidateQueries({ queryKey: ["ai", "providers"] });
   };
@@ -182,7 +183,7 @@ function SettingsTabs() {
     await qc.invalidateQueries({ queryKey: ["ai", "models"] });
   };
   const removeModel = async (id: string) => {
-    if (!confirm("Delete model?")) return;
+    if (!(await confirmDialog("Delete model?"))) return;
     await api.del(`/admin/ai/system/models/${encodeURIComponent(id)}`);
     await qc.invalidateQueries({ queryKey: ["ai", "models"] });
   };
@@ -202,7 +203,7 @@ function SettingsTabs() {
     await qc.invalidateQueries({ queryKey: ["ai", "prices"] });
   };
   const removePrice = async (id: string) => {
-    if (!confirm("Delete price?")) return;
+    if (!(await confirmDialog("Delete price?"))) return;
     await api.del(`/admin/ai/system/prices/${encodeURIComponent(id)}`);
     await qc.invalidateQueries({ queryKey: ["ai", "prices"] });
   };

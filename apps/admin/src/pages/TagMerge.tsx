@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { applyMerge, dryRunMerge } from "../api/tags";
 import PageLayout from "./_shared/PageLayout";
+import { promptDialog } from "../shared/ui";
 
 export default function TagMerge() {
   const [fromId, setFromId] = useState("");
@@ -24,8 +25,8 @@ export default function TagMerge() {
     }
   };
 
-  const onApply = async () => {
-    const reason = prompt("Reason (optional):") || undefined;
+    const onApply = async () => {
+      const reason = (await promptDialog("Reason (optional):")) || undefined;
     setLoading(true);
     try {
       const r = await applyMerge(fromId.trim(), toId.trim(), reason);

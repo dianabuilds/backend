@@ -64,7 +64,7 @@ export default function PremiumPlans() {
   };
 
   const remove = async (id: string) => {
-    if (!confirmWithEnv("Удалить тариф?")) return;
+    if (!(await confirmWithEnv("Удалить тариф?"))) return;
     await api.del(`/admin/premium/plans/${encodeURIComponent(id)}`);
     await qc.invalidateQueries({ queryKey: ["premium", "plans"] });
   };
