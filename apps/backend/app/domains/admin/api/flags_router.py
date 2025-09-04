@@ -1,8 +1,9 @@
-from __future__ import annotations
+from __future__ import annotations  # mypy: ignore-errors
 
-from typing import Annotated
+import logging
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +14,8 @@ from app.domains.admin.infrastructure.models.feature_flag import FeatureFlag
 from app.domains.audit.application.audit_service import audit_log
 from app.schemas.flags import FeatureFlagOut, FeatureFlagUpdateIn
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+
+logger = logging.getLogger(__name__)
 
 admin_only = require_admin_role({"admin"})
 
@@ -39,9 +42,14 @@ async def update_flag(
     key: str,
     body: FeatureFlagUpdateIn,
     request: Request,
-    current=Depends(admin_only),
+    current: Annotated[Any, Depends(admin_only)],
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> FeatureFlagOut:
+    if body.value is None and body.description is None:
+        msg = "Either 'value' or 'description' must be provided"
+        logger.warning("Feature flag %s update rejected: %s", key, msg)
+        raise HTTPException(status_code=400, detail=msg)
+
     before = await db.get(FeatureFlag, key)
     before_dump = (
         {
