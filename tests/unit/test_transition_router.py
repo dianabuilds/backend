@@ -11,12 +11,16 @@ from hypothesis import strategies as st
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from apps.backend.app.core.preview import PreviewContext  # noqa: E402
-from apps.backend.app.domains.navigation.application.transition_router import (  # noqa: E402
+from apps.backend.app.domains.navigation.application.policies import (  # noqa: E402
     CompassPolicy,
     ManualPolicy,
-    NoRouteReason,
     RandomPolicy,
+)
+from apps.backend.app.domains.navigation.application.providers import (  # noqa: E402
     TransitionProvider,
+)
+from apps.backend.app.domains.navigation.application.router import (  # noqa: E402
+    NoRouteReason,
     TransitionRouter,
 )
 
