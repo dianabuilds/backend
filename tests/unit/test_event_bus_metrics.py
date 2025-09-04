@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/backend"))
 
 from app.domains.system.events import (  # noqa: E402
     AchievementUnlocked,
+    EventBus,
     NodePublished,
     get_event_bus,
 )
@@ -20,7 +21,7 @@ from app.domains.telemetry.application.event_metrics_facade import (
 
 @pytest.mark.asyncio
 async def test_event_bus_counts_events() -> None:
-    event_metrics._counters.clear()
+    event_metrics.reset()
     bus = get_event_bus()
     ws_id = uuid.uuid4()
     await bus.publish(
@@ -41,3 +42,45 @@ async def test_event_bus_counts_events() -> None:
     snapshot = event_metrics.snapshot()
     assert snapshot[str(ws_id)]["node.publish"] == 1
     assert snapshot[str(ws_id)]["achievement"] == 1
+
+
+@pytest.mark.asyncio
+async def test_handler_metrics_success() -> None:
+    event_metrics.reset()
+    bus = EventBus()
+
+    async def handler(event: NodePublished) -> None:
+        return None
+
+    bus.subscribe(NodePublished, handler)
+    await bus.publish(
+        NodePublished(
+            node_id=1,
+            slug="s",
+            author_id=uuid.uuid4(),
+            workspace_id=uuid.uuid4(),
+        )
+    )
+    assert event_metrics._handler_counts["node.publish"]["handler"]["success"] == 1
+    assert event_metrics._handler_time_count["node.publish"]["handler"] == 1
+
+
+@pytest.mark.asyncio
+async def test_handler_metrics_failure() -> None:
+    event_metrics.reset()
+    bus = EventBus()
+
+    async def failing(event: NodePublished) -> None:
+        raise RuntimeError("boom")
+
+    bus.subscribe(NodePublished, failing)
+    await bus.publish(
+        NodePublished(
+            node_id=1,
+            slug="s",
+            author_id=uuid.uuid4(),
+            workspace_id=uuid.uuid4(),
+        )
+    )
+    assert event_metrics._handler_counts["node.publish"]["failing"]["failure"] == 1
+    assert event_metrics._handler_time_count["node.publish"]["failing"] == 1
