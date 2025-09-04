@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import EditorJSEmbed from "../../../components/EditorJSEmbed";
 import FieldCover from "../../../components/fields/FieldCover";
 import FieldTags from "../../../components/fields/FieldTags";
-import PublishControls from "../../../components/publish/PublishControls";
 import { Button } from "../../../shared/ui";
 import { useWorkspace } from "../../../workspace/WorkspaceContext";
 import { nodesApi } from "../api/nodes.api";
@@ -96,16 +95,17 @@ export default function NodeEditorPage() {
                 minHeight={400}
               />
             </div>
-            {node.id ? (
-              <PublishControls
-                workspaceId={workspaceId}
-                nodeId={node.id}
-                onChanged={refreshPublishInfo}
-              />
-            ) : null}
           </div>
-          <aside className="w-72 bg-gray-50 border-l p-4 space-y-4 overflow-y-auto">
-            <NodeSidebar node={node} onChange={update} />
+          <aside
+            className="w-72 bg-gray-50 border-l p-4 space-y-4 overflow-y-auto"
+            data-testid="sidebar"
+          >
+            <NodeSidebar
+              node={node}
+              workspaceId={workspaceId}
+              onChange={update}
+              onPublishChange={refreshPublishInfo}
+            />
           </aside>
         </div>
       </main>
