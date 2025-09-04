@@ -80,4 +80,19 @@ describe("Sidebar", () => {
     fireEvent.click(btn);
     expect(await screen.findByLabelText("Expand sidebar")).toBeInTheDocument();
   });
+
+  it("renders default icons for known items", async () => {
+    (getAdminMenu as any).mockResolvedValue({
+      items: [{ id: "nodes", label: "Nodes", path: "/nodes" }],
+    });
+    const { container } = render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("Nodes")).toBeInTheDocument();
+    const svg = container.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+    expect(svg?.classList.contains("lucide-menu")).toBe(false);
+  });
 });

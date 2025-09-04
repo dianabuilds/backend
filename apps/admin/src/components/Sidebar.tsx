@@ -6,6 +6,20 @@ import { useAuth } from "../auth/AuthContext";
 import { getIconComponent } from "../icons/registry";
 import { safeLocalStorage } from "../utils/safeStorage";
 
+const defaultIcons: Record<string, string> = {
+  dashboard: "home",
+  "users-list": "users",
+  nodes: "database",
+  quests: "flag",
+  navigation: "compass",
+  "navigation-main": "compass",
+  "nav-transitions": "shuffle",
+  monitoring: "activity",
+  traces: "search",
+  content: "file",
+  administration: "settings",
+};
+
 function useExpandedState() {
   const KEY = "adminSidebarExpanded";
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
@@ -93,7 +107,7 @@ function MenuItem({
   toggle: (id: string) => void;
   collapsed: boolean;
 }) {
-  const Icon = getIconComponent(item.icon);
+  const Icon = getIconComponent(item.icon || defaultIcons[item.id]);
 
   const content = (
     <div className="flex items-center gap-2">
@@ -104,10 +118,7 @@ function MenuItem({
 
   if (item.divider) {
     return (
-      <div
-        role="separator"
-        className="my-2 border-t border-gray-200 dark:border-gray-700"
-      />
+      <div role="separator" className="my-2 border-t border-gray-700" />
     );
   }
 
@@ -124,7 +135,9 @@ function MenuItem({
         <NavLink
           to={to}
           className={({ isActive: exact }) =>
-            `block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${isActive || exact ? "font-semibold" : ""}`
+            `block py-1 px-2 rounded hover:bg-gray-800 ${
+              isActive || exact ? "font-semibold" : ""
+            }`
           }
           style={{ paddingLeft: padding }}
           aria-current={isActive ? "page" : undefined}
@@ -153,7 +166,7 @@ function MenuItem({
     return (
       <div>
         <button
-          className={`w-full flex items-center justify-between text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
+          className={`w-full flex items-center justify-between text-left py-1 px-2 rounded hover:bg-gray-800 ${
             isActive ? "font-semibold" : ""
           }`}
           style={{ paddingLeft: padding }}
@@ -190,7 +203,7 @@ function MenuItem({
         href={item.path}
         target="_blank"
         rel="noreferrer"
-        className="block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+        className="block py-1 px-2 rounded hover:bg-gray-800"
         style={{ paddingLeft: padding }}
         title={collapsed ? item.label : undefined}
       >
@@ -206,7 +219,9 @@ function MenuItem({
       <NavLink
         to={to}
         className={({ isActive: exact }) =>
-          `block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${isActive || exact ? "font-semibold" : ""}`
+          `block py-1 px-2 rounded hover:bg-gray-800 ${
+            isActive || exact ? "font-semibold" : ""
+          }`
         }
         style={{ paddingLeft: padding }}
         aria-current={isActive ? "page" : undefined}
@@ -219,7 +234,7 @@ function MenuItem({
 
   return (
     <div
-      className="py-1 px-2 text-gray-500"
+      className="py-1 px-2 text-gray-400"
       style={{ paddingLeft: padding }}
       title={collapsed ? item.label : undefined}
     >
@@ -279,7 +294,7 @@ export default function Sidebar() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"
+              className="h-4 bg-gray-800 rounded animate-pulse"
             />
           ))}
         </div>
@@ -295,7 +310,7 @@ export default function Sidebar() {
           <nav className="space-y-1">
             <NavLink
               to="/"
-              className="block py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="block py-1 px-2 rounded hover:bg-gray-800"
             >
               Dashboard
             </NavLink>
@@ -324,11 +339,11 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`${collapsed ? "w-16" : "w-64"} bg-white dark:bg-gray-900 p-4 shadow-sm`}
+      className={`${collapsed ? "w-16" : "w-64"} bg-gray-900 text-gray-100 p-4 shadow-sm`}
       aria-label="Sidebar navigation"
     >
       <button
-        className="mb-4 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+        className="mb-4 p-2 rounded hover:bg-gray-800"
         onClick={toggleCollapsed}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         aria-expanded={!collapsed}
