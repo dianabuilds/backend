@@ -1,15 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { type HTMLAttributes,useMemo, useState } from 'react';
 
+import { patchNode } from '../../api/nodes';
 import {
+  type AccessMode,
   cancelScheduledPublish,
   getPublishInfo,
+  type PublishInfo,
   publishNow,
   schedulePublish,
-  type AccessMode,
-  type PublishInfo,
 } from '../../api/publish';
-import { patchNode } from '../../api/nodes';
 import { useToast } from '../ToastProvider';
 
 type Props = {
@@ -36,6 +36,19 @@ function toUTCISOFromLocal(localValue: string): string {
   // local datetime-local -> ISO UTC
   const local = new Date(localValue);
   return new Date(local.getTime() - local.getTimezoneOffset() * 60000).toISOString();
+}
+
+function Spinner(
+  props: HTMLAttributes<HTMLSpanElement>,
+) {
+  return (
+    <span
+      {...props}
+      className={`inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin ${
+        props.className ?? ''
+      }`}
+    />
+  );
 }
 
 export default function PublishControls({ workspaceId, nodeId, disabled, onChanged, className }: Props) {
@@ -75,8 +88,9 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
       await qc.invalidateQueries({ queryKey: ['publish-info', workspaceId, nodeId] });
       onChanged?.();
     },
-    onError: (e: any) => {
-      addToast({ title: 'Ошибка публикации', description: String(e?.message || e), variant: 'error' });
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e);
+      addToast({ title: 'Ошибка публикации', description: msg, variant: 'error' });
     },
   });
 
@@ -87,8 +101,9 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
       await qc.invalidateQueries({ queryKey: ['publish-info', workspaceId, nodeId] });
       onChanged?.();
     },
-    onError: (e: any) => {
-      addToast({ title: 'Не удалось запланировать', description: String(e?.message || e), variant: 'error' });
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e);
+      addToast({ title: 'Не удалось запланировать', description: msg, variant: 'error' });
     },
   });
 
@@ -99,8 +114,9 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
       await qc.invalidateQueries({ queryKey: ['publish-info', workspaceId, nodeId] });
       onChanged?.();
     },
-    onError: (e: any) => {
-      addToast({ title: 'Не удалось отменить', description: String(e?.message || e), variant: 'error' });
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e);
+      addToast({ title: 'Не удалось отменить', description: msg, variant: 'error' });
     },
   });
 
@@ -111,22 +127,32 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
       await qc.invalidateQueries({ queryKey: ['publish-info', workspaceId, nodeId] });
       onChanged?.();
     },
-    onError: (e: any) => {
-      addToast({ title: 'Не удалось снять с публикации', description: String(e?.message || e), variant: 'error' });
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e);
+      addToast({ title: 'Не удалось снять с публикации', description: msg, variant: 'error' });
     },
   });
 
   const scheduled = data?.scheduled?.status === 'pending';
+  const isMutating =
+    mPublish.isPending ||
+    mSchedule.isPending ||
+    mCancel.isPending ||
+    mUnpublish.isPending;
 
   return (
     <div className={className}>
       <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
         <span>Статус:</span>
-        <span className="font-medium">{isLoading ? 'Загрузка…' : statusText}</span>
+        {isLoading || isMutating ? (
+          <Spinner data-testid="status-spinner" className="text-gray-400" />
+        ) : (
+          <span className="font-medium">{statusText}</span>
+        )}
         <button
           className="ml-auto text-xs underline text-blue-600"
           onClick={() => refetch()}
-          disabled={isLoading}
+          disabled={isLoading || isMutating}
         >
           Обновить
         </button>
@@ -181,7 +207,14 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
             onClick={() => (mode === 'now' ? mPublish.mutate() : mSchedule.mutate())}
             disabled={disabled || mPublish.isPending || mSchedule.isPending}
           >
-            {mode === 'now' ? 'Опубликовать' : 'Запланировать'}
+            {mPublish.isPending || mSchedule.isPending ? (
+              <Spinner
+                data-testid="publish-spinner"
+                className="text-white"
+              />
+            ) : (
+              mode === 'now' ? 'Опубликовать' : 'Запланировать'
+            )}
           </button>
           {scheduled && (
             <button
@@ -189,7 +222,14 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
               onClick={() => mCancel.mutate()}
               disabled={disabled || mCancel.isPending}
             >
-              Отменить расписание
+              {mCancel.isPending ? (
+                <Spinner
+                  data-testid="cancel-spinner"
+                  className="text-gray-600"
+                />
+              ) : (
+                'Отменить расписание'
+              )}
             </button>
           )}
           {data?.status === 'published' && (
@@ -198,7 +238,14 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
               onClick={() => mUnpublish.mutate()}
               disabled={disabled || mUnpublish.isPending}
             >
-              Снять с публикации
+              {mUnpublish.isPending ? (
+                <Spinner
+                  data-testid="unpublish-spinner"
+                  className="text-white"
+                />
+              ) : (
+                'Снять с публикации'
+              )}
             </button>
           )}
         </div>
