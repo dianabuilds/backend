@@ -416,7 +416,7 @@ export default function Nodes() {
   const deleteSelected = async () => {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    if (!confirmWithEnv(`Delete ${ids.length} node${ids.length === 1 ? '' : 's'}?`)) return;
+    if (!(await confirmWithEnv(`Delete ${ids.length} node${ids.length === 1 ? '' : 's'}?`))) return;
     try {
       for (const id of ids) {
         await wsApi.delete(

@@ -119,7 +119,7 @@ export default function WorldsPage() {
   };
 
   const removeWorld = async (id: string) => {
-    if (!confirmWithEnv("Удалить мир со всеми персонажами?")) return;
+    if (!(await confirmWithEnv("Удалить мир со всеми персонажами?"))) return;
     try {
       await removeWorldMutation.mutateAsync(id);
       if (id === selectedWorld) setSelectedWorld("");
@@ -140,7 +140,7 @@ export default function WorldsPage() {
   };
 
   const removeCharacter = async (id: string) => {
-    if (!confirmWithEnv("Удалить персонажа?")) return;
+    if (!(await confirmWithEnv("Удалить персонажа?"))) return;
     try {
       await removeCharacterMutation.mutateAsync(id);
     } catch (e) {

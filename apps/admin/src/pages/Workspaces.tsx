@@ -7,6 +7,7 @@ import type { WorkspaceMemberOut } from "../openapi";
 import { useToast } from "../components/ToastProvider";
 import PageLayout from "./_shared/PageLayout";
 import { ensureArray } from "../shared/utils";
+import { confirmDialog, promptDialog } from "../shared/ui";
 
 export default function Workspaces() {
   const { addToast } = useToast();
@@ -41,17 +42,20 @@ export default function Workspaces() {
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ["workspaces-list"] });
 
-  const handleCreate = async () => {
-    const name = prompt("Workspace name?");
-    if (!name) return;
-    const slug =
-      prompt("Slug?", name.toLowerCase().replace(/[^a-z0-9]+/g, "-")) || "";
-    const type =
-      (prompt("Type (team/personal/global)?", "team") as
-        | "team"
-        | "personal"
-        | "global"
-        | null) || "team";
+    const handleCreate = async () => {
+      const name = await promptDialog("Workspace name?");
+      if (!name) return;
+      const slug =
+        (await promptDialog(
+          "Slug?",
+          name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        )) || "";
+      const type =
+        ((await promptDialog("Type (team/personal/global)?", "team")) as
+          | "team"
+          | "personal"
+          | "global"
+          | null) || "team";
     try {
       await api.post("/admin/workspaces", { name, slug, type });
       refresh();
@@ -65,16 +69,16 @@ export default function Workspaces() {
     }
   };
 
-  const handleEdit = async (ws: Workspace) => {
-    const name = prompt("Workspace name?", ws.name);
-    if (!name) return;
-    const slug = prompt("Slug?", ws.slug) || ws.slug;
-    const type =
-      (prompt("Type (team/personal/global)?", ws.type) as
-        | "team"
-        | "personal"
-        | "global"
-        | null) || ws.type;
+    const handleEdit = async (ws: Workspace) => {
+      const name = await promptDialog("Workspace name?", ws.name);
+      if (!name) return;
+      const slug = (await promptDialog("Slug?", ws.slug)) || ws.slug;
+      const type =
+        ((await promptDialog("Type (team/personal/global)?", ws.type)) as
+          | "team"
+          | "personal"
+          | "global"
+          | null) || ws.type;
     try {
       await api.patch(`/admin/workspaces/${ws.id}`, { name, slug, type });
       refresh();
@@ -88,8 +92,8 @@ export default function Workspaces() {
     }
   };
 
-  const handleDelete = async (ws: Workspace) => {
-    if (!confirm(`Delete workspace "${ws.name}"?`)) return;
+    const handleDelete = async (ws: Workspace) => {
+      if (!(await confirmDialog(`Delete workspace "${ws.name}"?`))) return;
     try {
       await api.del(`/admin/workspaces/${ws.id}`);
       refresh();
