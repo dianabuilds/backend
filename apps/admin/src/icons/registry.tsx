@@ -5,6 +5,8 @@ import {
   Bell,
   Box,
   Database,
+  Compass,
+  Shuffle,
   Flag,
   ExternalLink,
   FileText,
@@ -40,7 +42,9 @@ export type IconName =
   | "lock"
   | "credit-card"
   | "plug"
-  | "flag";
+  | "flag"
+  | "compass"
+  | "shuffle";
 
 export const iconRegistry: Record<string, React.ComponentType<any>> = {
   home: Home,
@@ -63,6 +67,8 @@ export const iconRegistry: Record<string, React.ComponentType<any>> = {
   "credit-card": CreditCard,
   plug: Plug,
   flag: Flag,
+  compass: Compass,
+  shuffle: Shuffle,
 };
 
 export function getIconComponent(
