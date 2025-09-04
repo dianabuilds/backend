@@ -1,70 +1,31 @@
-import { useState } from "react";
-import { confirmWithEnv } from "../utils/env";
+import { useMemo, useState } from "react";
 
-import { api } from "../api/client";
+import {
+  type AchievementAdmin,
+  createAdminAchievement,
+  deleteAdminAchievement,
+  grantAchievement,
+  listAdminAchievements,
+  revokeAchievement,
+  updateAdminAchievement,
+} from "../api/achievements";
 import { useToast } from "../components/ToastProvider";
-import ConditionEditor, { type Condition } from "./_shared/ConditionEditor";
+import { useModal,usePaginatedList } from "../shared/hooks";
 import {
   Button,
+  Modal,
   PageLayout,
+  SearchBar,
   Table,
   TextInput,
-  SearchBar,
 } from "../shared/ui";
-import { usePaginatedList } from "../shared/hooks";
-import { ensureArray, withQueryParams } from "../shared/utils";
-
-type AchievementAdmin = {
-  id: string;
-  code: string;
-  title: string;
-  description?: string | null;
-  icon?: string | null;
-  visible: boolean;
-  condition: Record<string, any>;
-};
-
-// API helpers
-async function listAdminAchievements(params: {
-  q?: string;
-  limit?: number;
-  offset?: number;
-}): Promise<AchievementAdmin[]> {
-  const res = await api.get<AchievementAdmin[]>(
-    withQueryParams("/admin/achievements", params),
-  );
-  return ensureArray<AchievementAdmin>(res.data);
-}
-async function createAdminAchievement(
-  body: Partial<AchievementAdmin> & { code: string; title: string },
-): Promise<AchievementAdmin> {
-  const res = await api.post<AchievementAdmin>("/admin/achievements", body);
-  return res.data as any;
-}
-async function updateAdminAchievement(
-  id: string,
-  patch: Partial<AchievementAdmin>,
-): Promise<AchievementAdmin> {
-  const res = await api.patch<AchievementAdmin>(
-    `/admin/achievements/${encodeURIComponent(id)}`,
-    patch,
-  );
-  return res.data as any;
-}
-async function deleteAdminAchievement(id: string): Promise<void> {
-  await api.del(`/admin/achievements/${encodeURIComponent(id)}`);
-}
-async function grantAchievement(id: string, user_id: string) {
-  await api.post(`/admin/achievements/${id}/grant`, { user_id });
-}
-async function revokeAchievement(id: string, user_id: string) {
-  await api.post(`/admin/achievements/${id}/revoke`, { user_id });
-}
+import { confirmWithEnv } from "../utils/env";
+import ConditionEditor, { type Condition } from "./_shared/ConditionEditor";
 
 export default function Achievements() {
   const { addToast } = useToast();
-
   const [q, setQ] = useState("");
+
   const {
     items,
     loading,
@@ -81,12 +42,10 @@ export default function Achievements() {
     listAdminAchievements({ ...params, q }),
   );
 
-  const handleSearch = async () => {
-    reset();
-    await reload();
-  };
+  const createModal = useModal();
+  const assignModal = useModal();
 
-  // Create form
+  // create modal state
   const [cCode, setCCode] = useState("");
   const [cTitle, setCTitle] = useState("");
   const [cDesc, setCDesc] = useState("");
@@ -98,25 +57,38 @@ export default function Achievements() {
     count: 1,
   });
 
-  // Edit state
+  // edit state
   const [editId, setEditId] = useState<string | null>(null);
-  const [editConditions, setEditConditions] = useState<
-    Record<string, Condition>
-  >({});
+  const [editConditions, setEditConditions] = useState<Record<string, Condition>>(
+    {},
+  );
 
-  // Grant/Revoke
-  const [userId, setUserId] = useState("");
+  // assign modal state
+  const [aUser, setAUser] = useState("");
+  const [aCode, setACode] = useState("");
+  const [aAction, setAAction] = useState<"grant" | "revoke">("grant");
+  const [aReason, setAReason] = useState("");
+
+  const achievementMap = useMemo(
+    () => Object.fromEntries(items.map((a) => [a.code, a.id])),
+    [items],
+  );
+
+  const handleSearch = async () => {
+    reset();
+    await reload();
+  };
 
   const onCreate = async () => {
     if (!cCode.trim() || !cTitle.trim()) return;
     try {
-      const created = await createAdminAchievement({
+      await createAdminAchievement({
         code: cCode.trim(),
         title: cTitle.trim(),
         description: cDesc.trim() || undefined,
         icon: cIcon.trim() || undefined,
         visible: cVisible,
-        condition: cCond as any,
+        condition: cCond as unknown as AchievementAdmin["condition"],
       });
       setCCode("");
       setCTitle("");
@@ -124,6 +96,7 @@ export default function Achievements() {
       setCIcon("");
       setCVisible(true);
       setCCond({ type: "event_count", event: "some_event", count: 1 });
+      createModal.close();
       reset();
       await reload();
       addToast({ title: "Achievement created", variant: "success" });
@@ -141,8 +114,7 @@ export default function Achievements() {
     patch: Partial<AchievementAdmin>,
   ) => {
     try {
-      const updated = await updateAdminAchievement(row.id, patch);
-      void updated;
+      await updateAdminAchievement(row.id, patch);
       setEditId(null);
       await reload();
       addToast({ title: "Saved", variant: "success" });
@@ -170,85 +142,67 @@ export default function Achievements() {
     }
   };
 
-  const handleGrant = async (id: string) => {
-    if (!userId) return;
+  const handleAssign = async () => {
+    const id = achievementMap[aCode.trim()];
+    if (!id || !aUser.trim()) {
+      addToast({
+        title: "Invalid input",
+        description: "Provide existing code and user",
+        variant: "error",
+      });
+      return;
+    }
     try {
-      await grantAchievement(id, userId);
-      addToast({ title: "Achievement granted", variant: "success" });
+      if (aAction === "grant") {
+        await grantAchievement(id, aUser.trim(), aReason.trim() || undefined);
+        addToast({ title: "Achievement granted", variant: "success" });
+      } else {
+        await revokeAchievement(id, aUser.trim(), aReason.trim() || undefined);
+        addToast({ title: "Achievement revoked", variant: "success" });
+      }
+      assignModal.close();
     } catch (e) {
       addToast({
-        title: "Failed to grant",
+        title: "Failed to apply",
         description: e instanceof Error ? e.message : String(e),
         variant: "error",
       });
     }
   };
 
-  const handleRevoke = async (id: string) => {
-    if (!userId) return;
-    try {
-      await revokeAchievement(id, userId);
-      addToast({ title: "Achievement revoked", variant: "success" });
-    } catch (e) {
-      addToast({
-        title: "Failed to revoke",
-        description: e instanceof Error ? e.message : String(e),
-        variant: "error",
-      });
-    }
+  const exportLocal = () => {
+    const blob = new Blob([JSON.stringify(items, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "achievements.json";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <PageLayout title="Achievements">
-      <div className="mb-6 rounded border p-3">
-        <h2 className="font-semibold mb-2">Create achievement</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <input
-            className="border rounded px-2 py-1"
-            placeholder="code"
-            value={cCode}
-            onChange={(e) => setCCode(e.target.value)}
-          />
-          <input
-            className="border rounded px-2 py-1"
-            placeholder="title"
-            value={cTitle}
-            onChange={(e) => setCTitle(e.target.value)}
-          />
-          <input
-            className="border rounded px-2 py-1 md:col-span-2"
-            placeholder="description (optional)"
-            value={cDesc}
-            onChange={(e) => setCDesc(e.target.value)}
-          />
-          <input
-            className="border rounded px-2 py-1"
-            placeholder="icon (optional)"
-            value={cIcon}
-            onChange={(e) => setCIcon(e.target.value)}
-          />
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={cVisible}
-              onChange={(e) => setCVisible(e.target.checked)}
-            />
-            Visible
-          </label>
-          <div className="md:col-span-2">
-            <ConditionEditor value={cCond} onChange={setCCond} />
-          </div>
-        </div>
-        <div className="mt-2">
-          <button
-            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
-            onClick={onCreate}
+    <PageLayout
+      title="Achievements"
+      actions={
+        <div className="flex gap-2">
+          <Button onClick={createModal.open}>Create achievement</Button>
+          <Button
+            onClick={() => {
+              setAAction("grant");
+              setACode("");
+              setAUser("");
+              setAReason("");
+              assignModal.open();
+            }}
           >
-            Create
-          </button>
+            Grant/Revoke
+          </Button>
+          <Button onClick={exportLocal}>Export</Button>
         </div>
-      </div>
-
+      }
+    >
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <SearchBar
           value={q}
@@ -264,9 +218,7 @@ export default function Achievements() {
             max={1000}
             value={limit}
             onChange={(e) =>
-              setLimit(
-                Math.max(1, Math.min(1000, Number(e.target.value) || 1)),
-              )
+              setLimit(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))
             }
             className="w-20"
           />
@@ -305,14 +257,7 @@ export default function Achievements() {
                     a.visible,
                     JSON.stringify(a.condition ?? {}, null, 2),
                   ]
-                : [
-                    a.code,
-                    a.title,
-                    a.description || "",
-                    a.icon || "",
-                    a.visible,
-                    "",
-                  ];
+                : [a.code, a.title, a.description || "", a.icon || "", a.visible, ""];
               return (
                 <tr key={a.id} className="border-b align-top">
                   <td className="p-2 font-mono">
@@ -367,14 +312,17 @@ export default function Achievements() {
                           placeholder="icon"
                         />
                         <ConditionEditor
-                          value={editConditions[a.id] ?? (a.condition as any)}
+                          value={
+                            editConditions[a.id] ??
+                            (a.condition as unknown as Condition)
+                          }
                           onChange={(v) =>
                             setEditConditions((m) => ({ ...m, [a.id]: v }))
                           }
                         />
                       </div>
                     ) : (
-                      (a.description ?? "")
+                      a.description ?? ""
                     )}
                   </td>
                   <td className="p-2 space-x-2">
@@ -386,11 +334,12 @@ export default function Achievements() {
                             setEditId(a.id);
                             setEditConditions((m) => ({
                               ...m,
-                              [a.id]: (a.condition as any) || {
-                                type: "event_count",
-                                event: "some_event",
-                                count: 1,
-                              },
+                              [a.id]:
+                                (a.condition as unknown as Condition) || {
+                                  type: "event_count",
+                                  event: "some_event",
+                                  count: 1,
+                                },
                             }));
                           }}
                         >
@@ -404,17 +353,15 @@ export default function Achievements() {
                         </button>
                         <button
                           className="px-2 py-1 rounded border"
-                          disabled={!userId}
-                          onClick={() => handleGrant(a.id)}
+                          onClick={() => {
+                            setAAction("grant");
+                            setACode(a.code);
+                            setAUser("");
+                            setAReason("");
+                            assignModal.open();
+                          }}
                         >
                           Grant
-                        </button>
-                        <button
-                          className="px-2 py-1 rounded border"
-                          disabled={!userId}
-                          onClick={() => handleRevoke(a.id)}
-                        >
-                          Revoke
                         </button>
                       </>
                     ) : (
@@ -429,7 +376,7 @@ export default function Achievements() {
                               icon: a.icon || undefined,
                               visible: a.visible,
                               condition:
-                                (editConditions[a.id] as any) ??
+                                (editConditions[a.id] as unknown as AchievementAdmin["condition"]) ??
                                 (a.condition || {}),
                             };
                             await onSave(a, patch);
@@ -460,17 +407,87 @@ export default function Achievements() {
         </Table>
       )}
 
-      <div className="mt-6">
-        <h2 className="font-semibold mb-2">Grant/Revoke achievement</h2>
-        <div className="flex items-center gap-2 mb-2">
-          <input
-            className="border rounded px-2 py-1"
-            placeholder="user_id"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
+      <Modal
+        isOpen={createModal.isOpen}
+        onClose={createModal.close}
+        title="Create achievement"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <TextInput
+            placeholder="code"
+            value={cCode}
+            onChange={(e) => setCCode(e.target.value)}
           />
+          <TextInput
+            placeholder="title"
+            value={cTitle}
+            onChange={(e) => setCTitle(e.target.value)}
+          />
+          <TextInput
+            className="md:col-span-2"
+            placeholder="description (optional)"
+            value={cDesc}
+            onChange={(e) => setCDesc(e.target.value)}
+          />
+          <TextInput
+            placeholder="icon (optional)"
+            value={cIcon}
+            onChange={(e) => setCIcon(e.target.value)}
+          />
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={cVisible}
+              onChange={(e) => setCVisible(e.target.checked)}
+            />
+            Visible
+          </label>
+          <div className="md:col-span-2">
+            <ConditionEditor value={cCond} onChange={setCCond} />
+          </div>
+          <div className="md:col-span-2 mt-2 flex justify-end gap-2">
+            <Button onClick={onCreate}>Create</Button>
+            <Button onClick={createModal.close}>Cancel</Button>
+          </div>
         </div>
-      </div>
+      </Modal>
+
+      <Modal
+        isOpen={assignModal.isOpen}
+        onClose={assignModal.close}
+        title="Grant/Revoke achievement"
+      >
+        <div className="space-y-2">
+          <TextInput
+            placeholder="user_id"
+            value={aUser}
+            onChange={(e) => setAUser(e.target.value)}
+          />
+          <TextInput
+            placeholder="achievement code"
+            value={aCode}
+            onChange={(e) => setACode(e.target.value)}
+          />
+          <select
+            value={aAction}
+            onChange={(e) => setAAction(e.target.value as "grant" | "revoke")}
+            className="border rounded px-2 py-1 w-full"
+          >
+            <option value="grant">grant</option>
+            <option value="revoke">revoke</option>
+          </select>
+          <TextInput
+            placeholder="reason (optional)"
+            value={aReason}
+            onChange={(e) => setAReason(e.target.value)}
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button onClick={handleAssign}>Apply</Button>
+            <Button onClick={assignModal.close}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
     </PageLayout>
   );
 }
+
