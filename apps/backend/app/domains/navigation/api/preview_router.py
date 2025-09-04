@@ -101,7 +101,7 @@ async def simulate_transitions(
 
     seed = payload.seed if payload.seed is not None else next_seed()
     preview = PreviewContext(mode=payload.preview_mode, seed=seed)
-    res = await svc.build_route(db, node, None, preview=preview)
+    res = await svc.build_route(db, node, None, preview=preview, mode=payload.mode)
     tags = [getattr(t, "slug", t) for t in getattr(res.next, "tags", []) or []]
     tag_entropy = _compute_entropy(tags)
     chosen_trace = next((t for t in res.trace if t.chosen), None)
