@@ -49,6 +49,16 @@ def upgrade() -> None:
         ),
         if_not_exists=True,
     )
+    op.add_column(
+        "moderation_labels",
+        sa.Column(
+            "created_at",
+            sa.DateTime(),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        if_not_exists=True,
+    )
     op.create_index(
         "ix_moderation_labels_created_at",
         "moderation_labels",
