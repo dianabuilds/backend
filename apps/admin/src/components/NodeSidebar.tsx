@@ -3,7 +3,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 
 import { listFlags } from '../api/flags';
-import { patchNode } from '../api/nodes';
+import {
+  patchNode,
+  publishNode,
+  archiveNode,
+  duplicateNode,
+  previewNode,
+} from '../api/nodes';
 import { wsApi } from '../api/wsApi';
 import { useAuth } from '../auth/AuthContext';
 import { compressImage } from '../utils/compressImage';
@@ -245,6 +251,38 @@ export default function NodeSidebar({
     }
   };
 
+  const handlePublish = async () => {
+    await publishNode(workspaceId, Number(node.id));
+    onStatusChange?.(true);
+  };
+
+  const handleHide = async () => {
+    await patchNode(workspaceId, node.id, { isPublic: false, updatedAt: node.updatedAt });
+    onStatusChange?.(false);
+  };
+
+  const handleArchive = async () => {
+    await archiveNode(workspaceId, Number(node.id));
+  };
+
+  const handleMakePublic = async () => {
+    await patchNode(workspaceId, node.id, { premiumOnly: false, updatedAt: node.updatedAt });
+    onPremiumOnlyChange?.(false);
+  };
+
+  const handleMakePremium = async () => {
+    await patchNode(workspaceId, node.id, { premiumOnly: true, updatedAt: node.updatedAt });
+    onPremiumOnlyChange?.(true);
+  };
+
+  const handleDuplicate = async () => {
+    await duplicateNode(workspaceId, Number(node.id));
+  };
+
+  const handlePreview = async () => {
+    await previewNode(workspaceId, Number(node.id));
+  };
+
   const copy = (v: string) => {
     if (typeof navigator !== 'undefined') {
       void navigator.clipboard?.writeText(v);
@@ -275,6 +313,44 @@ export default function NodeSidebar({
 
   return (
     <div className="w-64 border-l p-4 overflow-y-auto space-y-4">
+      <details open>
+        <summary className="cursor-pointer font-semibold">Actions</summary>
+        <div className="mt-2 space-y-4 text-sm">
+          <div>
+            <div className="font-semibold">Visibility</div>
+            <div className="mt-1 flex flex-col gap-1">
+              <button type="button" className="underline text-left" onClick={handlePublish}>
+                Publish
+              </button>
+              <button type="button" className="underline text-left" onClick={handleHide}>
+                Hide
+              </button>
+              <button type="button" className="underline text-left" onClick={handleArchive}>
+                Archive
+              </button>
+            </div>
+          </div>
+          <div>
+            <div className="font-semibold">Access</div>
+            <div className="mt-1 flex flex-col gap-1">
+              <button type="button" className="underline text-left" onClick={handleMakePublic}>
+                Public
+              </button>
+              <button type="button" className="underline text-left" onClick={handleMakePremium}>
+                Premium
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <button type="button" className="underline text-left" onClick={handleDuplicate}>
+              Duplicate
+            </button>
+            <button type="button" className="underline text-left" onClick={handlePreview}>
+              Preview
+            </button>
+          </div>
+        </div>
+      </details>
       {nodesCover ? (
         <details open>
           <summary className="cursor-pointer font-semibold">Cover</summary>
