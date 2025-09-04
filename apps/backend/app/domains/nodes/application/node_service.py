@@ -379,6 +379,14 @@ class NodeService:
         if tags_changed:
             changed = True
 
+        if data.get("isPublic") is False:
+            item.status = Status.draft
+            item.visibility = Visibility.private
+            item.published_at = None
+            node.status = Status.draft
+            node.visibility = Visibility.private
+            changed = True
+
         if changed and item.status == Status.published:
             item.status = Status.draft
             item.visibility = Visibility.private
@@ -468,6 +476,7 @@ class NodeService:
             await self._db.commit()
             item.node_id = node.id
 
+        node.status = Status.published
         # Проставляем флаги доступа и прочие поля
         node.premium_only = access == "premium_only"
         node.visibility = (
