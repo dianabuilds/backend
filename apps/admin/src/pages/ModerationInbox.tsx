@@ -12,6 +12,9 @@ export default function ModerationInbox() {
   const navigate = useNavigate();
   const [items, setItems] = useState<CaseListItem[]>([]);
   const [q, setQ] = useState("");
+  const [status, setStatus] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [priority, setPriority] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +22,14 @@ export default function ModerationInbox() {
     setLoading(true);
     setError(null);
     try {
-      const res = await listCases({ q, page: 1, size: 50 });
+      const res = await listCases({
+        q,
+        status,
+        type: typeFilter,
+        priority,
+        page: 1,
+        size: 50,
+      });
       setItems(res.items);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -102,13 +112,45 @@ export default function ModerationInbox() {
         </button>
       }
     >
-      <div className="flex gap-2 mb-3">
+      <div className="flex gap-2 mb-3 flex-wrap items-center">
         <input
           className="border rounded px-2 py-1 w-64"
           placeholder="Search..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
+        <select
+          className="border rounded px-2 py-1"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="">All statuses</option>
+          <option value="new">New</option>
+          <option value="in_progress">In progress</option>
+          <option value="resolved">Resolved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select
+          className="border rounded px-2 py-1"
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+        >
+          <option value="">All types</option>
+          <option value="support_request">Support request</option>
+          <option value="complaint_content">Content complaint</option>
+          <option value="complaint_user">User complaint</option>
+          <option value="appeal">Appeal</option>
+        </select>
+        <select
+          className="border rounded px-2 py-1"
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+        >
+          <option value="">Any priority</option>
+          <option value="P0">P0</option>
+          <option value="P1">P1</option>
+          <option value="P2">P2</option>
+        </select>
         <button
           className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
           onClick={load}

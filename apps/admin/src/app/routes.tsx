@@ -90,8 +90,22 @@ const protectedChildren: RouteObject[] = [
   { path: "tags", element: <Tags /> },
   { path: "tags/merge", element: <TagMerge /> },
   { path: "transitions", element: <Transitions /> },
-  { path: "moderation", element: <ModerationInbox /> },
-  { path: "moderation/cases/:id", element: <ModerationCase /> },
+  {
+    path: "moderation",
+    element: (
+      <ProtectedRoute roles={["admin", "moderator", "support"]}>
+        <ModerationInbox />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "moderation/cases/:id",
+    element: (
+      <ProtectedRoute roles={["admin", "moderator", "support"]}>
+        <ModerationCase />
+      </ProtectedRoute>
+    ),
+  },
   { path: "navigation", element: <Navigation /> },
   { path: "navigation/problems", element: <NavigationProblems /> },
   { path: "traces", element: <Traces /> },

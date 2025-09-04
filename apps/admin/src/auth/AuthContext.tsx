@@ -26,6 +26,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   ready: boolean;
+  hasRole: (...roles: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -33,6 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   logout: () => {},
   ready: false,
+  hasRole: () => false,
 });
 
 function isAllowed(role: string): boolean {
@@ -169,7 +171,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, ready }}>
+    <AuthContext.Provider
+      value={{ user, login, logout, ready, hasRole: (...roles) => (user ? roles.includes(user.role) : false) }}
+    >
       {children}
     </AuthContext.Provider>
   );
