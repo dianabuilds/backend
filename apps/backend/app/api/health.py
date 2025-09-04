@@ -97,7 +97,10 @@ async def _check_payment_service(timeout: float) -> bool:
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.get(url)
-            return resp.status_code < 500
+            if 200 <= resp.status_code < 300:
+                return True
+            logger.warning("payment_health_failed status=%s", resp.status_code)
+            return False
     except Exception:
         return False
 
