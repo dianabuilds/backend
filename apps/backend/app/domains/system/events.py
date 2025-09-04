@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+from collections import deque
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -9,6 +11,8 @@ from uuid import UUID, uuid4
 
 from app.domains.navigation.application.cache_singleton import navcache
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -74,9 +78,11 @@ async def _record_metric(event: Any) -> None:
 
 
 class EventBus:
-    def __init__(self) -> None:
+    def __init__(self, processed_maxlen: int = 1024) -> None:
         self._handlers: dict[type, list[Callable[[Any], Awaitable[None]]]] = {}
-        self._processed: set[str] = set()
+        self._processed: deque[str] = deque()
+        self._processed_set: set[str] = set()
+        self._processed_maxlen = processed_maxlen
 
     def subscribe(
         self, event_type: type, handler: Callable[[Any], Awaitable[None]]
@@ -88,9 +94,13 @@ class EventBus:
         if event_id is None:
             event_id = uuid4().hex
             event.id = event_id
-        if event_id in self._processed:
+        if event_id in self._processed_set:
             return
-        self._processed.add(event_id)
+        self._processed.append(event_id)
+        self._processed_set.add(event_id)
+        if len(self._processed) > self._processed_maxlen:
+            old = self._processed.popleft()
+            self._processed_set.discard(old)
         handlers = self._handlers.get(type(event), [])
         for h in handlers:
             attempts = 0
@@ -101,6 +111,9 @@ class EventBus:
                 except Exception:
                     attempts += 1
                     if attempts >= 3:
+                        logger.exception(
+                            "event handler failed after %s attempts", attempts
+                        )
                         break
                     await asyncio.sleep(0)
 
