@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from types import SimpleNamespace
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,12 +14,49 @@ from app.domains.quests.infrastructure.models.navigation_cache_models import (
 )
 from app.domains.users.infrastructure.models.user import User
 
+from .policies import CompassPolicy, ManualPolicy, RandomPolicy
+from .providers import CompassProvider, ManualTransitionsProvider, RandomProvider
+from .router import TransitionResult, TransitionRouter
+
 logger = logging.getLogger(__name__)
 
 
 class NavigationService:
     def __init__(self) -> None:
-        pass
+        policies = [
+            ManualPolicy(ManualTransitionsProvider()),
+            CompassPolicy(CompassProvider()),
+            RandomPolicy(RandomProvider()),
+        ]
+        self._router = TransitionRouter(
+            policies,
+            not_repeat_last=5,
+            no_repeat_window=50,
+            repeat_threshold=0.5,
+            repeat_decay=0.8,
+            max_visits=5,
+        )
+
+    async def build_route(
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: User | None,
+        preview: PreviewContext | None = None,
+    ) -> TransitionResult:
+        budget = SimpleNamespace(
+            max_time_ms=1000,
+            max_queries=1000,
+            max_filters=1000,
+            fallback_chain=[],
+        )
+        return await self._router.route(
+            db,
+            node,
+            user,
+            budget,
+            preview=preview,
+        )
 
     async def generate_transitions(
         self,
