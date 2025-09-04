@@ -7,6 +7,7 @@
  */
 export type NodeBulkPatchChanges = {
     isVisible?: (boolean | null);
+    is_public?: (boolean | null);
     premium_only?: (boolean | null);
     isRecommendable?: (boolean | null);
     workspaceId?: (string | null);

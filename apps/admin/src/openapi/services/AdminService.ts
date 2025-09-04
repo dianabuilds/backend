@@ -22,6 +22,14 @@ import type { Body_embedding_test_admin_embedding_test_post } from '../models/Bo
 import type { BroadcastCreate } from '../models/BroadcastCreate';
 import type { BulkIds } from '../models/BulkIds';
 import type { CampaignUpdate } from '../models/CampaignUpdate';
+import type { CaseClose } from '../models/CaseClose';
+import type { CaseCreate } from '../models/CaseCreate';
+import type { CaseFullResponse } from '../models/CaseFullResponse';
+import type { CaseListResponse } from '../models/CaseListResponse';
+import type { CaseNoteCreate } from '../models/CaseNoteCreate';
+import type { CaseNoteOut } from '../models/CaseNoteOut';
+import type { CaseOut } from '../models/CaseOut';
+import type { CasePatch } from '../models/CasePatch';
 import type { CharacterIn } from '../models/CharacterIn';
 import type { CharacterOut } from '../models/CharacterOut';
 import type { FeatureFlagOut } from '../models/FeatureFlagOut';
@@ -29,6 +37,7 @@ import type { FeatureFlagUpdateIn } from '../models/FeatureFlagUpdateIn';
 import type { GenerateQuestIn } from '../models/GenerateQuestIn';
 import type { GenerationEnqueued } from '../models/GenerationEnqueued';
 import type { GenerationJobOut } from '../models/GenerationJobOut';
+import type { HidePayload } from '../models/HidePayload';
 import type { InvalidatePatternRequest } from '../models/InvalidatePatternRequest';
 import type { MetricsSummary } from '../models/MetricsSummary';
 import type { NavigationCacheInvalidateRequest } from '../models/NavigationCacheInvalidateRequest';
@@ -63,6 +72,7 @@ import type { RateLimitDisablePayload } from '../models/RateLimitDisablePayload'
 import type { RelevanceApplyOut } from '../models/RelevanceApplyOut';
 import type { RelevanceGetOut } from '../models/RelevanceGetOut';
 import type { RelevancePutIn } from '../models/RelevancePutIn';
+import type { ReliabilityMetrics } from '../models/ReliabilityMetrics';
 import type { RestrictionAdminCreate } from '../models/RestrictionAdminCreate';
 import type { RestrictionAdminUpdate } from '../models/RestrictionAdminUpdate';
 import type { RestrictionOut } from '../models/RestrictionOut';
@@ -974,6 +984,206 @@ export class AdminService {
             path: {
                 'item_id': itemId,
             },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Hide Node
+     * @param workspaceId
+     * @param slug
+     * @param requestBody
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static hideNodeAdminWorkspacesWorkspaceIdModerationNodesSlugHidePost(
+        workspaceId: string,
+        slug: string,
+        requestBody: HidePayload,
+    ): CancelablePromise<Record<string, string>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/workspaces/{workspace_id}/moderation/nodes/{slug}/hide',
+            path: {
+                'workspace_id': workspaceId,
+                'slug': slug,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Restore Node
+     * @param workspaceId
+     * @param slug
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static restoreNodeAdminWorkspacesWorkspaceIdModerationNodesSlugRestorePost(
+        workspaceId: string,
+        slug: string,
+    ): CancelablePromise<Record<string, string>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/workspaces/{workspace_id}/moderation/nodes/{slug}/restore',
+            path: {
+                'workspace_id': workspaceId,
+                'slug': slug,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List Cases
+     * @param page
+     * @param size
+     * @returns CaseListResponse Successful Response
+     * @throws ApiError
+     */
+    public static listCasesAdminModerationCasesGet(
+        page: number = 1,
+        size: number = 20,
+    ): CancelablePromise<CaseListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/moderation/cases',
+            query: {
+                'page': page,
+                'size': size,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Case
+     * @param requestBody
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static createCaseAdminModerationCasesPost(
+        requestBody: CaseCreate,
+    ): CancelablePromise<Record<string, string>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/moderation/cases',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Case
+     * @param caseId
+     * @returns CaseFullResponse Successful Response
+     * @throws ApiError
+     */
+    public static getCaseAdminModerationCasesCaseIdGet(
+        caseId: string,
+    ): CancelablePromise<CaseFullResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/moderation/cases/{case_id}',
+            path: {
+                'case_id': caseId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Patch Case
+     * @param caseId
+     * @param requestBody
+     * @returns CaseOut Successful Response
+     * @throws ApiError
+     */
+    public static patchCaseAdminModerationCasesCaseIdPatch(
+        caseId: string,
+        requestBody: CasePatch,
+    ): CancelablePromise<CaseOut> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/admin/moderation/cases/{case_id}',
+            path: {
+                'case_id': caseId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Add Note
+     * @param caseId
+     * @param requestBody
+     * @returns CaseNoteOut Successful Response
+     * @throws ApiError
+     */
+    public static addNoteAdminModerationCasesCaseIdNotesPost(
+        caseId: string,
+        requestBody: CaseNoteCreate,
+    ): CancelablePromise<CaseNoteOut> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/moderation/cases/{case_id}/notes',
+            path: {
+                'case_id': caseId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Close Case
+     * @param caseId
+     * @param requestBody
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static closeCaseAdminModerationCasesCaseIdActionsClosePost(
+        caseId: string,
+        requestBody: CaseClose,
+    ): CancelablePromise<Record<string, string>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/moderation/cases/{case_id}/actions/close',
+            path: {
+                'case_id': caseId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
@@ -2638,31 +2848,6 @@ export class AdminService {
         });
     }
     /**
-     * Validate article (admin)
-     * @param nodeId
-     * @param workspaceId
-     * @returns ValidateResult Successful Response
-     * @throws ApiError
-     */
-    public static validateArticleAdminWorkspacesWorkspaceIdArticlesNodeIdValidatePost(
-        nodeId: number,
-        workspaceId: string,
-    ): CancelablePromise<ValidateResult> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/articles/{node_id}/validate',
-            path: {
-                'node_id': nodeId,
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List nodes (admin)
      * List nodes in workspace.
      *
@@ -4059,6 +4244,28 @@ export class AdminService {
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
+            },
+        });
+    }
+    /**
+     * Metrics Reliability
+     * @param workspace
+     * @returns ReliabilityMetrics Successful Response
+     * @throws ApiError
+     */
+    public static metricsReliabilityAdminMetricsReliabilityGet(
+        workspace?: string,
+    ): CancelablePromise<ReliabilityMetrics> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/metrics/reliability',
+            query: {
+                'workspace': workspace,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
             },
         });
     }
