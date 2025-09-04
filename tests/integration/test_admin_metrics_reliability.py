@@ -3,13 +3,10 @@ from __future__ import annotations
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from tests.transition_metrics import reset_transition_metrics
 
 from app.core.metrics import metrics_storage
 from app.core.transition_metrics import (
-    _fallback_used_counts,
-    _no_route_counts,
-    _transition_counts,
-    _transition_lock,
     record_fallback_used,
     record_no_route,
     record_route_length,
@@ -31,10 +28,7 @@ async def test_metrics_reliability(monkeypatch):
     app.dependency_overrides[dep] = lambda: None
 
     metrics_storage.reset()
-    with _transition_lock:
-        _transition_counts.clear()
-        _no_route_counts.clear()
-        _fallback_used_counts.clear()
+    reset_transition_metrics()
 
     metrics_storage.record(100, 200, "GET", "/x", "ws1")
     metrics_storage.record(120, 404, "GET", "/x", "ws1")

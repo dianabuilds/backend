@@ -1,18 +1,12 @@
 from __future__ import annotations
 
+from tests.transition_metrics import reset_transition_metrics
+
 from app.core import transition_metrics as tm
 
 
 def setup_function() -> None:
-    with tm._transition_lock:
-        tm._route_lengths.clear()
-        tm._tag_entropies.clear()
-        tm._transition_counts.clear()
-        tm._no_route_counts.clear()
-        tm._fallback_used_counts.clear()
-        tm._preview_route_lengths.clear()
-        tm._preview_transition_counts.clear()
-        tm._preview_no_route_counts.clear()
+    reset_transition_metrics()
 
 
 def test_transition_stats() -> None:
