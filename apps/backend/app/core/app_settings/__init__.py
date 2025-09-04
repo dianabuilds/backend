@@ -8,6 +8,7 @@ from .database import DatabaseSettings
 from .embedding import EmbeddingSettings
 from .jwt import JwtSettings
 from .logging import LoggingSettings
+from .moderation_cases import ModerationSettings
 from .navigation import NavigationSettings
 from .observability import ObservabilitySettings
 from .payment import PaymentSettings
@@ -36,4 +37,5 @@ __all__ = [
     "RealIPSettings",
     "ObservabilitySettings",
     "AuthSettings",
+    "ModerationSettings",
 ]
