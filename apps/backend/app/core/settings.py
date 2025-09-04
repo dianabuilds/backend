@@ -19,6 +19,7 @@ from .app_settings import (
     EmbeddingSettings,
     JwtSettings,
     LoggingSettings,
+    ModerationSettings,
     NavigationSettings,
     ObservabilitySettings,
     PaymentSettings,
@@ -213,6 +214,7 @@ class Settings(ProjectSettings):
     real_ip: RealIPSettings = RealIPSettings()
     observability: ObservabilitySettings = ObservabilitySettings()
     auth: AuthSettings = AuthSettings()
+    moderation: ModerationSettings = ModerationSettings()
 
     def model_post_init(self, __context: dict[str, Any]) -> None:  # type: ignore[override]
         defaults = _ENV_DEFAULTS.get(self.env_mode, {})

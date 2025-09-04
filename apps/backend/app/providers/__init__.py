@@ -5,6 +5,12 @@ from punq import Container
 from app.core.settings import EnvMode, Settings
 
 from .ai import FakeAIProvider, IAIProvider, RealAIProvider, SandboxAIProvider
+from .case_notifier import (
+    FakeCaseNotifier,
+    ICaseNotifier,
+    RealCaseNotifier,
+    SandboxCaseNotifier,
+)
 from .email import FakeEmail, IEmail, RealEmail, SandboxEmail
 from .media_storage import (
     FakeMediaStorage,
@@ -22,24 +28,28 @@ ENV_PROVIDER_MAP: dict[EnvMode, EnvMap] = {
         IPayments: FakePayments,
         IEmail: FakeEmail,
         IMediaStorage: FakeMediaStorage,
+        ICaseNotifier: FakeCaseNotifier,
     },
     EnvMode.test: {
         IAIProvider: FakeAIProvider,
         IPayments: FakePayments,
         IEmail: FakeEmail,
         IMediaStorage: FakeMediaStorage,
+        ICaseNotifier: FakeCaseNotifier,
     },
     EnvMode.staging: {
         IAIProvider: SandboxAIProvider,
         IPayments: SandboxPayments,
         IEmail: SandboxEmail,
         IMediaStorage: SandboxMediaStorage,
+        ICaseNotifier: SandboxCaseNotifier,
     },
     EnvMode.production: {
         IAIProvider: RealAIProvider,
         IPayments: RealPayments,
         IEmail: RealEmail,
         IMediaStorage: RealMediaStorage,
+        ICaseNotifier: RealCaseNotifier,
     },
 }
 
@@ -56,5 +66,6 @@ __all__ = [
     "IPayments",
     "IEmail",
     "IMediaStorage",
+    "ICaseNotifier",
     "register_providers",
 ]

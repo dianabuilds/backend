@@ -28,3 +28,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces \
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <token>" \
 poetry run uvicorn apps.backend.app.main:app
 ```
+
+## Moderation case SLA and notifications
+
+When a moderation case is created the service computes `first_response_due_at` and `due_at` based on `MODERATION_FIRST_RESPONSE_MINUTES` and `MODERATION_RESOLUTION_MINUTES` settings. Notifications are sent to configured emails and an optional Slack webhook so missing responses can be tracked.

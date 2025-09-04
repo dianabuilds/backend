@@ -3,11 +3,12 @@ from __future__ import annotations
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
 from app.domains.moderation.application import CasesService
+from app.providers.case_notifier import ICaseNotifier
 from app.schemas.moderation_cases import (
     CaseClose,
     CaseCreate,
@@ -22,6 +23,17 @@ from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 cases_service = CasesService()
 admin_required = require_admin_role()
+
+
+def get_notifier(request: Request) -> ICaseNotifier | None:
+    container = getattr(request.app.state, "container", None)
+    if container:
+        try:
+            return container.resolve(ICaseNotifier)
+        except Exception:
+            return None
+    return None
+
 
 router = APIRouter(
     prefix="/admin/moderation/cases",
@@ -44,8 +56,9 @@ async def list_cases(
 async def create_case(
     body: CaseCreate,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+    notifier: Annotated[ICaseNotifier | None, Depends(get_notifier)] = None,
 ) -> dict[str, UUID]:
-    case_id = await cases_service.create_case(db, body)
+    case_id = await cases_service.create_case(db, body, notifier)
     return {"id": case_id}
 
 
@@ -92,7 +105,9 @@ async def close_case(
     current: Annotated[Any, Depends(admin_required)],
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict[str, str]:
-    res = await cases_service.close_case(db, case_id, payload, getattr(current, "id", None))
+    res = await cases_service.close_case(
+        db, case_id, payload, getattr(current, "id", None)
+    )
     if not res:
         raise HTTPException(status_code=404, detail="Case not found")
     return {"status": "ok"}

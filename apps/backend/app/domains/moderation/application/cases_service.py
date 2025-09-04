@@ -7,12 +7,15 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.settings import get_settings
 from app.domains.moderation.infrastructure.models.moderation_case_models import (
     CaseAttachment,
+    CaseEvent,
     CaseLabel,
     CaseNote,
     ModerationCase,
 )
+from app.providers.case_notifier import ICaseNotifier
 from app.schemas.moderation_cases import (
     CaseAttachmentOut,
     CaseClose,
@@ -72,8 +75,17 @@ class CasesService:
         ]
         return CaseListResponse(items=items, page=page, size=size, total=total or 0)
 
-    async def create_case(self, db: AsyncSession, data: CaseCreate) -> UUID:
-        case = ModerationCase(**data.model_dump(exclude={"labels", "attachments"}))
+    async def create_case(
+        self, db: AsyncSession, data: CaseCreate, notifier: ICaseNotifier | None = None
+    ) -> UUID:
+        settings = get_settings().moderation
+        now = datetime.utcnow()
+        case = ModerationCase(
+            **data.model_dump(exclude={"labels", "attachments"}),
+            first_response_due_at=now + settings.first_response_delta(),
+            due_at=now + settings.resolution_delta(),
+            last_event_at=now,
+        )
         db.add(case)
         await db.flush()
 
@@ -88,6 +100,8 @@ class CasesService:
 
         await db.commit()
         await db.refresh(case)
+        if notifier:
+            await notifier.case_created(case.id)
         return case.id
 
     async def patch_case(
@@ -96,11 +110,35 @@ class CasesService:
         case = await db.get(ModerationCase, case_id)
         if not case:
             return None
-        for field, value in patch.model_dump(exclude_none=True).items():
-            setattr(case, field, value)
-        case.updated_at = datetime.utcnow()
+        updates = patch.model_dump(exclude_none=True)
+        now = datetime.utcnow()
+        events: list[CaseEvent] = []
+        if "assignee_id" in updates and updates["assignee_id"] != case.assignee_id:
+            case.assignee_id = updates["assignee_id"]
+            events.append(
+                CaseEvent(
+                    case_id=case.id,
+                    kind="assign",
+                    payload={"assignee_id": str(updates["assignee_id"])}
+                )
+            )
+        if "status" in updates and updates["status"] != case.status:
+            case.status = updates["status"]
+            events.append(
+                CaseEvent(
+                    case_id=case.id,
+                    kind="status_change",
+                    payload={"status": updates["status"]},
+                )
+            )
+        for field in set(updates) - {"assignee_id", "status"}:
+            setattr(case, field, updates[field])
+        if events:
+            case.last_event_at = now
+            db.add_all(events)
+        case.updated_at = now
         await db.commit()
-        await db.refresh(case)
+        await db.refresh(case, attribute_names=["labels"])
         return self._to_case_out(case)
 
     async def add_note(
@@ -120,6 +158,15 @@ class CasesService:
             internal=note.internal if note.internal is not None else True,
         )
         db.add(note_obj)
+        await db.flush()
+        event = CaseEvent(
+            case_id=case_id,
+            actor_id=author_id,
+            kind="add_note",
+            payload={"note_id": str(note_obj.id)},
+        )
+        db.add(event)
+        case.last_event_at = datetime.utcnow()
         await db.commit()
         await db.refresh(note_obj)
         return CaseNoteOut.model_validate(note_obj, from_attributes=True)
@@ -137,7 +184,15 @@ class CasesService:
         case.status = "resolved" if payload.resolution == "resolved" else "rejected"
         case.resolution = payload.resolution
         case.reason_code = payload.reason_code
-        case.last_event_at = datetime.utcnow()
+        now = datetime.utcnow()
+        event = CaseEvent(
+            case_id=case.id,
+            actor_id=actor_id,
+            kind="status_change",
+            payload={"status": case.status, "resolution": case.resolution},
+        )
+        db.add(event)
+        case.last_event_at = now
         await db.commit()
         await db.refresh(case)
         return self._to_case_out(case)
