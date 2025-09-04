@@ -13,6 +13,13 @@ export interface AdminNodeItem extends NodeOut {
 
 const listCache = new Map<string, { etag: string | null; data: AdminNodeItem[] }>();
 
+type RawAdminNodeItem = Omit<AdminNodeItem, 'createdAt' | 'updatedAt'> & {
+    createdAt?: string;
+    updatedAt?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
 export interface NodeListParams {
     author?: string;
     tags?: string;
@@ -85,7 +92,12 @@ export async function listNodes(
             err.response = {status: 404};
             throw err;
         }
-        const data = Array.isArray(res.data) ? res.data : [];
+        const raw: RawAdminNodeItem[] = Array.isArray(res.data) ? (res.data as RawAdminNodeItem[]) : [];
+        const data = raw.map(({ created_at, updated_at, createdAt, updatedAt, ...rest }) => ({
+            ...rest,
+            createdAt: createdAt ?? created_at ?? '',
+            updatedAt: updatedAt ?? updated_at ?? '',
+        })) as AdminNodeItem[];
         if (res.etag) listCache.set(url, {etag: res.etag, data});
         return data;
     };

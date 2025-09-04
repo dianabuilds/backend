@@ -30,16 +30,29 @@ describe('patchNode', () => {
 
 describe('listNodes', () => {
   it('requests admin workspace route only', async () => {
-    const spy = vi
-      .spyOn(wsApi, 'get')
-      .mockResolvedValue({ status: 200, data: [{ status: 'ok' }] } as never);
+    const spy = vi.spyOn(wsApi, 'get').mockResolvedValue({
+      status: 200,
+      data: [
+        {
+          status: 'ok',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-02T00:00:00Z',
+        },
+      ],
+    } as never);
     const res = await listNodes('ws1');
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(
       '/admin/workspaces/ws1/nodes',
       expect.objectContaining({ workspace: false, raw: true, acceptNotModified: true }),
     );
-    expect(res).toEqual([{ status: 'ok' }]);
+    expect(res).toEqual([
+      {
+        status: 'ok',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-02T00:00:00Z',
+      },
+    ]);
   });
 
   it('propagates 404 errors', async () => {
