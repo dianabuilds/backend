@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { listNodes, type NodeListParams } from '../api/nodes';
-import type { Status } from '../openapi';
 import { createPreviewLink } from '../api/preview';
 import { wsApi } from '../api/wsApi';
 import FlagsCell from '../components/FlagsCell';
@@ -12,6 +11,7 @@ import StatusBadge from '../components/StatusBadge';
 import { useToast } from '../components/ToastProvider';
 import WorkspaceControlPanel from '../components/WorkspaceControlPanel';
 import WorkspaceSelector from '../components/WorkspaceSelector';
+import type { Status } from '../openapi';
 import { ensureArray } from '../shared/utils';
 import { confirmWithEnv } from '../utils/env';
 import { useWorkspace } from '../workspace/WorkspaceContext';
@@ -36,11 +36,7 @@ const EMPTY_NODES: NodeItem[] = [];
 type ChangeKey = 'is_visible' | 'is_public' | 'premium_only' | 'is_recommendable';
 type ChangeSet = Partial<Record<ChangeKey, boolean>>;
 
-interface NodesProps {
-  initialType?: string;
-}
-
-export default function Nodes({ initialType = '' }: NodesProps = {}) {
+export default function Nodes() {
   const { addToast } = useToast();
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
@@ -67,7 +63,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     const vis = searchParams.get('visible');
     return vis === 'true' ? 'visible' : vis === 'false' ? 'hidden' : 'all';
   });
-  const [nodeType, setNodeType] = useState(() => searchParams.get('type') || initialType);
   const [status, setStatus] = useState<Status | 'all'>(
     () => (searchParams.get('status') as Status | null) || 'all',
   );
@@ -106,7 +101,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
   useEffect(() => {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
-    if (nodeType) params.set('type', nodeType);
     if (status !== 'all') params.set('status', status);
     if (visibility !== 'all') params.set('visible', visibility === 'visible' ? 'true' : 'false');
     if (isPublic !== 'all') params.set('is_public', isPublic);
@@ -119,7 +113,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     }
   }, [
     q,
-    nodeType,
     status,
     visibility,
     isPublic,
@@ -236,7 +229,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
       'nodes',
       workspaceId,
       q,
-      nodeType,
       status,
       visibility,
       isPublic,
@@ -404,7 +396,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     if (!node) return;
     try {
       const { url } = await createPreviewLink(workspaceId);
-      const t = node.type || nodeType || 'article';
+      const t = node.type || 'article';
       window.open(`${url}/nodes/${t}/${id}`, '_blank');
     } catch (e) {
       addToast({
@@ -453,7 +445,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
         if (first) {
           const item = baseline.get(first);
           if (item) {
-            const t = item.type || nodeType || 'article';
+            const t = item.type || 'article';
             navigate(`/nodes/${t}/${first}?workspace_id=${workspaceId}`);
           }
         }
@@ -486,19 +478,6 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by title or slug..."
-            className="border rounded px-2 py-1"
-          />
-          <input
-            value={nodeType}
-            onChange={(e) => {
-              setNodeType(e.target.value);
-              setPage(0);
-              setTimeout(() => {
-                setPage(0);
-                void refetch();
-              });
-            }}
-            placeholder="node type"
             className="border rounded px-2 py-1"
           />
           <select
@@ -643,7 +622,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
               className="px-3 py-1 rounded bg-blue-600 text-white"
               onClick={() => {
                 const qs = workspaceId ? `?workspace_id=${encodeURIComponent(workspaceId)}` : '';
-                navigate(`/nodes/${nodeType || 'article'}/new${qs}`);
+                navigate(`/nodes/article/new${qs}`);
               }}
             >
               Add node
@@ -886,7 +865,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
                           type="button"
                           className="px-2 py-1 border rounded"
                           onClick={() => {
-                            const t = n.type || nodeType || 'article';
+                            const t = n.type || 'article';
                             navigate(`/nodes/${t}/${n.id}?workspace_id=${workspaceId}`);
                           }}
                         >
@@ -899,7 +878,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
                             if (!workspaceId) return;
                             try {
                               const { url } = await createPreviewLink(workspaceId);
-                              const t = n.type || nodeType || 'article';
+                              const t = n.type || 'article';
                               window.open(`${url}/nodes/${t}/${n.id}`, '_blank');
                             } catch (e) {
                               addToast({
