@@ -4,6 +4,7 @@ import uuid
 
 import pytest
 import pytest_asyncio
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -20,6 +21,7 @@ from app.domains.moderation.infrastructure.models.moderation_case_models import 
 from app.schemas.moderation_cases import (
     CaseAttachmentCreate,
     CaseCreate,
+    CaseLabelsPatch,
     CasePatch,
 )
 
@@ -68,3 +70,33 @@ async def test_patch_missing_case_returns_none(session_factory: sessionmaker) ->
     async with session_factory() as db:
         res = await service.patch_case(db, uuid.uuid4(), CasePatch(summary="x"))
         assert res is None
+
+
+@pytest.mark.asyncio
+async def test_patch_labels_adds_and_removes(session_factory: sessionmaker) -> None:
+    service = CasesService()
+    async with session_factory() as db:
+        case = ModerationCase(type="support_request", summary="s")
+        db.add(case)
+        await db.commit()
+        await db.refresh(case)
+
+        label = ModerationLabel(name="spam")
+        db.add(label)
+        await db.flush()
+        db.add(CaseLabel(case_id=case.id, label_id=label.id))
+        await db.commit()
+
+        res = await service.patch_labels(
+            db, case.id, CaseLabelsPatch(add=["bug"], remove=["spam"])
+        )
+        assert res is not None
+        assert set(res.labels) == {"bug"}
+
+        evs = (
+            (await db.execute(select(CaseEvent).where(CaseEvent.case_id == case.id)))
+            .scalars()
+            .all()
+        )
+        kinds = {e.kind for e in evs}
+        assert "add_label" in kinds and "remove_label" in kinds
