@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
-from app.core.metrics import _percentile, metrics_storage, transition_stats
+from app.core.metrics import metrics_storage, transition_stats
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -77,12 +77,11 @@ async def metrics_reliability(
     workspace: Annotated[str | None, Query()] = None,
 ) -> ReliabilityMetrics:
     seconds = 3600
-    recent = metrics_storage._select_recent(seconds, workspace)
-    total = len(recent)
-    durations = [r.duration_ms for r in recent]
-    p95 = _percentile(durations, 0.95) if durations else 0.0
-    count_4xx = sum(1 for r in recent if 400 <= r.status_code < 500)
-    count_5xx = sum(1 for r in recent if r.status_code >= 500)
+    data = metrics_storage.reliability(seconds, workspace)
+    total = data["total"]
+    p95 = data["p95"]
+    count_4xx = data["count_4xx"]
+    count_5xx = data["count_5xx"]
     rps = total / seconds if seconds else 0.0
 
     stats = transition_stats()
