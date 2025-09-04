@@ -59,7 +59,16 @@ async def _check_redis() -> bool:
         client = create_async_redis(url, decode_responses=True, connect_timeout=2.0)
         await client.ping()
         return True
-    except Exception:
+    except Exception as exc:
+        status = getattr(
+            getattr(exc, "response", None),
+            "status_code",
+            getattr(exc, "status_code", None),
+        )
+        if status:
+            logger.exception("redis_check_failed status=%s", status)
+        else:
+            logger.exception("redis_check_failed")
         return False
 
 
@@ -74,7 +83,16 @@ async def _check_queue() -> bool:
         writer.close()
         await writer.wait_closed()
         return True
-    except Exception:
+    except Exception as exc:
+        status = getattr(
+            getattr(exc, "response", None),
+            "status_code",
+            getattr(exc, "status_code", None),
+        )
+        if status:
+            logger.exception("queue_check_failed status=%s", status)
+        else:
+            logger.exception("queue_check_failed")
         return False
 
 
@@ -85,7 +103,16 @@ async def _check_ai_service(timeout: float) -> bool:
     try:
         vec = await asyncio.to_thread(get_embedding, "health check")
         return isinstance(vec, list) and len(vec) > 0
-    except Exception:
+    except Exception as exc:
+        status = getattr(
+            getattr(exc, "response", None),
+            "status_code",
+            getattr(exc, "status_code", None),
+        )
+        if status:
+            logger.exception("ai_service_check_failed status=%s", status)
+        else:
+            logger.exception("ai_service_check_failed")
         return False
 
 
