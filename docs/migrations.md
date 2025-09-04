@@ -43,3 +43,20 @@ for each node without one.
 The migration in `content_items_bigint_migration.md` converts `content_items`
 and `node_patches` identifiers to bigint sequences. Refer to that document for
 upgrade and rollback instructions.
+
+## Moderation Tables
+
+Migration `20260120_create_moderation_tables` adds the core moderation schema:
+
+- `moderation_cases` — tracked cases, indexed by `status`, `assignee_id`, `created_at`.
+- `moderation_labels` — reusable labels for categorising cases.
+- `case_labels` — association table between cases and labels.
+- `case_notes` — freeform notes linked to a case.
+- `case_attachments` — file references attached to a case.
+- `case_events` — history of case events and status changes.
+
+Apply with:
+
+```bash
+alembic upgrade head
+```
