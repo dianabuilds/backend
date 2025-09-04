@@ -27,6 +27,16 @@ async def fetch_active_alerts() -> list[dict[str, Any]]:
             resp = await client.get(url)
             resp.raise_for_status()
             data = resp.json()
+    except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code
+        logger = logging.getLogger(__name__)
+        if status in {405, 422, 500}:
+            logger.warning(
+                "Prometheus alerts endpoint returned HTTP %s for %s", status, url
+            )
+        else:
+            logger.warning("HTTP %s when fetching alerts from %s", status, url)
+        return []
     except Exception as e:  # pragma: no cover - network errors
         logging.getLogger(__name__).warning(
             "Failed to fetch alerts from %s", url, exc_info=e
