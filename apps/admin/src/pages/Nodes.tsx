@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { listNodes, type NodeListParams } from '../api/nodes';
+import type { Status } from '../openapi';
 import { createPreviewLink } from '../api/preview';
 import { wsApi } from '../api/wsApi';
 import FlagsCell from '../components/FlagsCell';
@@ -19,7 +20,7 @@ type NodeItem = {
   id: number;
   title?: string;
   slug?: string;
-  status?: string;
+  status?: Status;
   is_visible: boolean;
   is_public: boolean;
   premium_only: boolean;
@@ -67,7 +68,9 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
     return vis === 'true' ? 'visible' : vis === 'false' ? 'hidden' : 'all';
   });
   const [nodeType, setNodeType] = useState(() => searchParams.get('type') || initialType);
-  const [status, setStatus] = useState(() => searchParams.get('status') || 'all');
+  const [status, setStatus] = useState<Status | 'all'>(
+    () => (searchParams.get('status') as Status | null) || 'all',
+  );
   const [isPublic, setIsPublic] = useState<'all' | 'true' | 'false'>(
     () => searchParams.get('is_public') ?? 'all',
   );

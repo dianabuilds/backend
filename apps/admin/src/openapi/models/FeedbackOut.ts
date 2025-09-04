@@ -3,12 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 export type FeedbackOut = {
-    author_id: string;
     content: string;
-    created_at: string;
-    id: string;
     is_anonymous?: boolean;
-    is_hidden: boolean;
+    id: string;
     node_id: string;
+    author_id: string;
+    created_at: string;
+    is_hidden: boolean;
 };
 

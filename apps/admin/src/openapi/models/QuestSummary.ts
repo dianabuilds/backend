@@ -4,10 +4,10 @@
 /* eslint-disable */
 import type { VersionSummary } from './VersionSummary';
 export type QuestSummary = {
-    current_version_id?: (string | null);
     id: string;
     slug: string;
     title: string;
+    current_version_id?: (string | null);
     versions?: Array<VersionSummary>;
 };
 

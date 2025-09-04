@@ -3,22 +3,22 @@
 /* tslint:disable */
 /* eslint-disable */
 export type GenerationJobOut = {
-    cost?: (number | null);
-    created_at: string;
-    created_by?: (string | null);
-    error?: (string | null);
-    finished_at?: (string | null);
     id: string;
-    logs?: null;
+    status: string;
+    created_at: string;
+    started_at?: (string | null);
+    finished_at?: (string | null);
+    created_by?: (string | null);
+    provider?: (string | null);
     model?: (string | null);
     params: Record<string, any>;
-    progress?: number;
-    provider?: (string | null);
     result_quest_id?: (string | null);
     result_version_id?: (string | null);
-    reused?: boolean;
-    started_at?: (string | null);
-    status: string;
+    cost?: (number | null);
     token_usage?: (Record<string, any> | null);
+    reused?: boolean;
+    progress?: number;
+    logs?: null;
+    error?: (string | null);
 };
 

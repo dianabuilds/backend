@@ -4,8 +4,8 @@
 /* eslint-disable */
 export type QueueItem = {
     id: string;
+    type: string;
     reason: string;
     status?: string;
-    type: string;
 };
 

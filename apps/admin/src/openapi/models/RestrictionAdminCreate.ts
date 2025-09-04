@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RestrictionAdminCreate = {
-    expires_at?: (string | null);
-    reason?: (string | null);
-    type: RestrictionAdminCreate.type;
     user_id: string;
+    type: RestrictionAdminCreate.type;
+    reason?: (string | null);
+    expires_at?: (string | null);
 };
 export namespace RestrictionAdminCreate {
     export enum type {

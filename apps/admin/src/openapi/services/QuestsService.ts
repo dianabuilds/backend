@@ -109,155 +109,22 @@ export class QuestsService {
         });
     }
     /**
-     * Get version graph
-     * @param versionId
+     * Get quest
+     * Fetch a quest by slug, ensuring access permissions.
+     * @param slug
      * @param workspaceId
-     * @returns app__domains__quests__schemas__graph__QuestGraphOut Successful Response
+     * @returns QuestOut Successful Response
      * @throws ApiError
      */
-    public static getGraphQuestsVersionsVersionIdGraphGet(
-        versionId: string,
+    public static getQuestQuestsSlugGet(
+        slug: string,
         workspaceId: string,
-    ): CancelablePromise<app__domains__quests__schemas__graph__QuestGraphOut> {
+    ): CancelablePromise<QuestOut> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/quests/versions/{version_id}/graph',
+            url: '/quests/{slug}',
             path: {
-                'version_id': versionId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Replace version graph
-     * @param versionId
-     * @param workspaceId
-     * @param requestBody
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static putGraphQuestsVersionsVersionIdGraphPut(
-        versionId: string,
-        workspaceId: string,
-        requestBody: QuestGraphIn,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'PUT',
-            url: '/quests/versions/{version_id}/graph',
-            path: {
-                'version_id': versionId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Publish version
-     * @param versionId
-     * @param workspaceId
-     * @returns QuestVersionOut Successful Response
-     * @throws ApiError
-     */
-    public static publishVersionQuestsVersionsVersionIdPublishPost(
-        versionId: string,
-        workspaceId: string,
-    ): CancelablePromise<QuestVersionOut> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/quests/versions/{version_id}/publish',
-            path: {
-                'version_id': versionId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Simulate version graph
-     * @param versionId
-     * @param workspaceId
-     * @param requestBody
-     * @returns SimulateResult Successful Response
-     * @throws ApiError
-     */
-    public static simulateVersionQuestsVersionsVersionIdSimulatePost(
-        versionId: string,
-        workspaceId: string,
-        requestBody: SimulateIn,
-    ): CancelablePromise<SimulateResult> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/quests/versions/{version_id}/simulate',
-            path: {
-                'version_id': versionId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Validate version graph
-     * @param versionId
-     * @param workspaceId
-     * @returns ValidateResult Successful Response
-     * @throws ApiError
-     */
-    public static validateVersionQuestsVersionsVersionIdValidatePost(
-        versionId: string,
-        workspaceId: string,
-    ): CancelablePromise<ValidateResult> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/quests/versions/{version_id}/validate',
-            path: {
-                'version_id': versionId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete quest
-     * Soft delete a quest owned by the current user.
-     * @param questId
-     * @param workspaceId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deleteQuestQuestsQuestIdDelete(
-        questId: string,
-        workspaceId: string,
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/quests/{quest_id}',
-            path: {
-                'quest_id': questId,
+                'slug': slug,
             },
             query: {
                 'workspace_id': workspaceId,
@@ -298,69 +165,20 @@ export class QuestsService {
         });
     }
     /**
-     * Buy quest
-     * Purchase access to a paid quest.
+     * Delete quest
+     * Soft delete a quest owned by the current user.
      * @param questId
-     * @param requestBody
+     * @param workspaceId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static buyQuestQuestsQuestIdBuyPost(
-        questId: string,
-        requestBody: QuestBuyIn,
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/quests/{quest_id}/buy',
-            path: {
-                'quest_id': questId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get quest node
-     * Return node details within a quest and update progress.
-     * @param questId
-     * @param nodeId
-     * @returns NodeOut Successful Response
-     * @throws ApiError
-     */
-    public static getQuestNodeQuestsQuestIdNodesNodeIdGet(
-        questId: string,
-        nodeId: string,
-    ): CancelablePromise<NodeOut> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/quests/{quest_id}/nodes/{node_id}',
-            path: {
-                'quest_id': questId,
-                'node_id': nodeId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get progress
-     * Retrieve progress of the current user in a quest.
-     * @param questId
-     * @param workspaceId
-     * @returns QuestProgressOut Successful Response
-     * @throws ApiError
-     */
-    public static getProgressQuestsQuestIdProgressGet(
+    public static deleteQuestQuestsQuestIdDelete(
         questId: string,
         workspaceId: string,
-    ): CancelablePromise<QuestProgressOut> {
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/quests/{quest_id}/progress',
+            method: 'DELETE',
+            url: '/quests/{quest_id}',
             path: {
                 'quest_id': questId,
             },
@@ -419,6 +237,81 @@ export class QuestsService {
             query: {
                 'workspace_id': workspaceId,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get progress
+     * Retrieve progress of the current user in a quest.
+     * @param questId
+     * @param workspaceId
+     * @returns QuestProgressOut Successful Response
+     * @throws ApiError
+     */
+    public static getProgressQuestsQuestIdProgressGet(
+        questId: string,
+        workspaceId: string,
+    ): CancelablePromise<QuestProgressOut> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/quests/{quest_id}/progress',
+            path: {
+                'quest_id': questId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get quest node
+     * Return node details within a quest and update progress.
+     * @param questId
+     * @param nodeId
+     * @returns NodeOut Successful Response
+     * @throws ApiError
+     */
+    public static getQuestNodeQuestsQuestIdNodesNodeIdGet(
+        questId: string,
+        nodeId: string,
+    ): CancelablePromise<NodeOut> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/quests/{quest_id}/nodes/{node_id}',
+            path: {
+                'quest_id': questId,
+                'node_id': nodeId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Buy quest
+     * Purchase access to a paid quest.
+     * @param questId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static buyQuestQuestsQuestIdBuyPost(
+        questId: string,
+        requestBody: QuestBuyIn,
+    ): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/quests/{quest_id}/buy',
+            path: {
+                'quest_id': questId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -500,34 +393,6 @@ export class QuestsService {
         });
     }
     /**
-     * Delete draft version
-     * @param questId
-     * @param versionId
-     * @param workspaceId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deleteVersionQuestsQuestIdVersionsVersionIdDelete(
-        questId: string,
-        versionId: string,
-        workspaceId: string,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/quests/{quest_id}/versions/{version_id}',
-            path: {
-                'quest_id': questId,
-                'version_id': versionId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Get quest version
      * @param questId
      * @param versionId
@@ -556,22 +421,157 @@ export class QuestsService {
         });
     }
     /**
-     * Get quest
-     * Fetch a quest by slug, ensuring access permissions.
-     * @param slug
+     * Delete draft version
+     * @param questId
+     * @param versionId
      * @param workspaceId
-     * @returns QuestOut Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
-    public static getQuestQuestsSlugGet(
-        slug: string,
+    public static deleteVersionQuestsQuestIdVersionsVersionIdDelete(
+        questId: string,
+        versionId: string,
         workspaceId: string,
-    ): CancelablePromise<QuestOut> {
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/quests/{quest_id}/versions/{version_id}',
+            path: {
+                'quest_id': questId,
+                'version_id': versionId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get version graph
+     * @param versionId
+     * @param workspaceId
+     * @returns app__domains__quests__schemas__graph__QuestGraphOut Successful Response
+     * @throws ApiError
+     */
+    public static getGraphQuestsVersionsVersionIdGraphGet(
+        versionId: string,
+        workspaceId: string,
+    ): CancelablePromise<app__domains__quests__schemas__graph__QuestGraphOut> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/quests/{slug}',
+            url: '/quests/versions/{version_id}/graph',
             path: {
-                'slug': slug,
+                'version_id': versionId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Replace version graph
+     * @param versionId
+     * @param workspaceId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static putGraphQuestsVersionsVersionIdGraphPut(
+        versionId: string,
+        workspaceId: string,
+        requestBody: QuestGraphIn,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/quests/versions/{version_id}/graph',
+            path: {
+                'version_id': versionId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Validate version graph
+     * @param versionId
+     * @param workspaceId
+     * @returns ValidateResult Successful Response
+     * @throws ApiError
+     */
+    public static validateVersionQuestsVersionsVersionIdValidatePost(
+        versionId: string,
+        workspaceId: string,
+    ): CancelablePromise<ValidateResult> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/quests/versions/{version_id}/validate',
+            path: {
+                'version_id': versionId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Simulate version graph
+     * @param versionId
+     * @param workspaceId
+     * @param requestBody
+     * @returns SimulateResult Successful Response
+     * @throws ApiError
+     */
+    public static simulateVersionQuestsVersionsVersionIdSimulatePost(
+        versionId: string,
+        workspaceId: string,
+        requestBody: SimulateIn,
+    ): CancelablePromise<SimulateResult> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/quests/versions/{version_id}/simulate',
+            path: {
+                'version_id': versionId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Publish version
+     * @param versionId
+     * @param workspaceId
+     * @returns QuestVersionOut Successful Response
+     * @throws ApiError
+     */
+    public static publishVersionQuestsVersionsVersionIdPublishPost(
+        versionId: string,
+        workspaceId: string,
+    ): CancelablePromise<QuestVersionOut> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/quests/versions/{version_id}/publish',
+            path: {
+                'version_id': versionId,
             },
             query: {
                 'workspace_id': workspaceId,

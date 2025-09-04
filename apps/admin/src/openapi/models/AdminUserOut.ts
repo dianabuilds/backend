@@ -4,17 +4,17 @@
 /* eslint-disable */
 import type { RestrictionOut } from './RestrictionOut';
 export type AdminUserOut = {
-    avatar_url?: (string | null);
-    bio?: (string | null);
+    id: string;
     created_at: string;
     email?: (string | null);
-    id: string;
+    wallet_address?: (string | null);
     is_active: boolean;
+    username?: (string | null);
+    bio?: (string | null);
+    avatar_url?: (string | null);
+    role: string;
     is_premium: boolean;
     premium_until?: (string | null);
     restrictions?: Array<RestrictionOut>;
-    role: string;
-    username?: (string | null);
-    wallet_address?: (string | null);
 };
 

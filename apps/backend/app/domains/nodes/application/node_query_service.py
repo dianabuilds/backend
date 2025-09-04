@@ -45,6 +45,8 @@ class NodeQueryService:
             clauses.append(Node.author_id == spec.author_id)
         if spec.workspace_id is not None:
             clauses.append(Node.workspace_id == spec.workspace_id)
+        if spec.status is not None:
+            clauses.append(Node.status == spec.status)
         if spec.created_from:
             clauses.append(Node.created_at >= spec.created_from)
         if spec.created_to:
@@ -96,6 +98,8 @@ class NodeQueryService:
             clauses.append(Node.author_id == spec.author_id)
         if spec.workspace_id is not None:
             clauses.append(Node.workspace_id == spec.workspace_id)
+        if spec.status is not None:
+            clauses.append(Node.status == spec.status)
         if spec.created_from:
             clauses.append(Node.created_at >= spec.created_from)
         if spec.created_to:

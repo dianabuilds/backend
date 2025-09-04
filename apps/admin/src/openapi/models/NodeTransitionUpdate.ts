@@ -5,11 +5,11 @@
 import type { NodeTransitionType } from './NodeTransitionType';
 import type { TransitionCondition } from './TransitionCondition';
 export type NodeTransitionUpdate = {
-    condition?: (TransitionCondition | null);
     from_slug?: (string | null);
-    label?: (string | null);
     to_slug?: (string | null);
+    label?: (string | null);
     type?: (NodeTransitionType | null);
+    condition?: (TransitionCondition | null);
     weight?: (number | null);
 };
 

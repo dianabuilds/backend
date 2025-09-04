@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type LoginResponse = {
-    access_token: string;
-    csrf_token?: (string | null);
     ok?: boolean;
+    csrf_token?: (string | null);
+    access_token: string;
     refresh_token?: (string | null);
     token_type?: string;
 };

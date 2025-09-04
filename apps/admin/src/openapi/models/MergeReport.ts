@@ -3,11 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 export type MergeReport = {
-    aliases_moved: number;
-    content_touched: number;
-    errors?: Array<string>;
     from: Record<string, any>;
     to: Record<string, any>;
+    content_touched: number;
+    aliases_moved: number;
     warnings?: Array<string>;
+    errors?: Array<string>;
 };
 

@@ -4,8 +4,8 @@
 /* eslint-disable */
 import type { RelevancePayload } from './RelevancePayload';
 export type RelevanceGetOut = {
+    version: number;
     payload: RelevancePayload;
     updated_at: string;
-    version: number;
 };
 

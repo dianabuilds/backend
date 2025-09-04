@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RestrictionAdminUpdate = {
-    expires_at?: (string | null);
     reason?: (string | null);
+    expires_at?: (string | null);
 };
 

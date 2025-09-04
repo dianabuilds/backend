@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type ValidateResult = {
-    errors?: Array<string>;
     ok: boolean;
+    errors?: Array<string>;
     warnings?: Array<string>;
 };
 

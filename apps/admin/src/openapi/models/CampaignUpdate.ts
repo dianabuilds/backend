@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CampaignUpdate = {
-    message: string;
     title: string;
+    message: string;
 };
 

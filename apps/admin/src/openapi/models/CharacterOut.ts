@@ -3,15 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CharacterOut = {
-    created_at: string;
-    created_by_user_id?: (string | null);
-    description?: (string | null);
     id: string;
+    world_id: string;
     name: string;
     role?: (string | null);
+    description?: (string | null);
     traits?: (Record<string, any> | null);
+    created_at: string;
     updated_at: string;
+    created_by_user_id?: (string | null);
     updated_by_user_id?: (string | null);
-    world_id: string;
 };
 

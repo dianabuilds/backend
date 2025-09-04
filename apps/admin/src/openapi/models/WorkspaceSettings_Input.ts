@@ -5,8 +5,8 @@
 import type { NotificationRules } from './NotificationRules';
 export type WorkspaceSettings_Input = {
     ai_presets?: Record<string, any>;
-    features?: Record<string, boolean>;
-    limits?: Record<string, number>;
     notifications?: NotificationRules;
+    limits?: Record<string, number>;
+    features?: Record<string, boolean>;
 };
 

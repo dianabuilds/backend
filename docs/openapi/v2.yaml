@@ -380,6 +380,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
+  /auth/signin:
+    post:
+      tags:
+      - auth
+      summary: Login
+      operationId: login_auth_signin_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                login:
+                  type: string
+                  title: Login
+                password:
+                  type: string
+                  title: Password
+              additionalProperties: false
+              type: object
+              required:
+              - login
+              - password
+              title: LoginSchema
+          application/x-www-form-urlencoded:
+            schema:
+              properties:
+                login:
+                  type: string
+                  title: Login
+                password:
+                  type: string
+                  title: Password
+              additionalProperties: false
+              type: object
+              required:
+              - login
+              - password
+              title: LoginSchema
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
   /auth/refresh:
     post:
       tags:
@@ -1448,115 +1494,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /admin/ai/quests/settings:
-    get:
-      tags:
-      - admin-ai-settings-compat
-      summary: Get Settings Compat
-      operationId: get_settings_compat_admin_ai_quests_settings_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                additionalProperties: true
-                type: object
-                title: Response Get Settings Compat Admin Ai Quests Settings Get
-        '401':
-          description: Unauthorized
-          nodes:
-            application/json:
-              examples:
-                missing:
-                  summary: Missing token
-                  value:
-                    error:
-                      code: AUTH_REQUIRED
-                      message: Authorization required
-                invalid:
-                  summary: Invalid token
-                  value:
-                    error:
-                      code: INVALID_TOKEN
-                      message: Invalid authentication token
-                expired:
-                  summary: Expired token
-                  value:
-                    error:
-                      code: TOKEN_EXPIRED
-                      message: Token has expired
-        '403':
-          description: Forbidden
-          nodes:
-            application/json:
-              example:
-                error:
-                  code: FORBIDDEN
-                  message: Forbidden
-      security:
-      - bearerAuth: []
-    put:
-      tags:
-      - admin-ai-settings-compat
-      summary: Put Settings Compat
-      operationId: put_settings_compat_admin_ai_quests_settings_put
-      requestBody:
-        content:
-          application/json:
-            schema:
-              additionalProperties: true
-              type: object
-              title: Payload
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                additionalProperties: true
-                type: object
-                title: Response Put Settings Compat Admin Ai Quests Settings Put
-        '401':
-          description: Unauthorized
-          nodes:
-            application/json:
-              examples:
-                missing:
-                  summary: Missing token
-                  value:
-                    error:
-                      code: AUTH_REQUIRED
-                      message: Authorization required
-                invalid:
-                  summary: Invalid token
-                  value:
-                    error:
-                      code: INVALID_TOKEN
-                      message: Invalid authentication token
-                expired:
-                  summary: Expired token
-                  value:
-                    error:
-                      code: TOKEN_EXPIRED
-                      message: Token has expired
-        '403':
-          description: Forbidden
-          nodes:
-            application/json:
-              example:
-                error:
-                  code: FORBIDDEN
-                  message: Forbidden
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-      security:
-      - bearerAuth: []
   /admin/ai/quests/jobs/{job_id}/logs:
     get:
       tags:
@@ -8548,6 +8485,55 @@ paths:
                   message: Forbidden
       security:
       - bearerAuth: []
+  /admin/jobs/queues:
+    get:
+      tags:
+      - admin
+      summary: Get queue sizes
+      operationId: queue_sizes_admin_jobs_queues_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  $ref: '#/components/schemas/QueueStats'
+                type: object
+                title: Response Queue Sizes Admin Jobs Queues Get
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+      security:
+      - bearerAuth: []
   /admin/dashboard:
     get:
       tags:
@@ -11233,6 +11219,14 @@ paths:
           type: string
           default: updated_desc
           title: Sort
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/Status'
+          - type: 'null'
+          title: Status
       - name: visible
         in: query
         required: false
@@ -16219,53 +16213,6 @@ paths:
               schema: {}
 components:
   schemas:
-    AISettingsIn:
-      properties:
-        provider:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Provider
-        base_url:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Base Url
-        model:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Model
-        api_key:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Api Key
-      type: object
-      title: AISettingsIn
-    AISettingsOut:
-      properties:
-        provider:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Provider
-        base_url:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Base Url
-        model:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Model
-        has_api_key:
-          type: boolean
-          title: Has Api Key
-          default: false
-      type: object
-      title: AISettingsOut
     AchievementAdminOut:
       properties:
         id:
@@ -19024,6 +18971,19 @@ components:
       - type
       - reason
       title: QueueItem
+    QueueStats:
+      properties:
+        pending:
+          type: integer
+          title: Pending
+        active:
+          type: integer
+          title: Active
+      type: object
+      required:
+      - pending
+      - active
+      title: QueueStats
     RateLimitDisablePayload:
       properties:
         disabled:
