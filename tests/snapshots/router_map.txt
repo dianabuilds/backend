@@ -57,9 +57,6 @@
 /admin/metrics/timeseries
 /admin/metrics/transitions
 /admin/moderation/queue
-/admin/moderation/queue/{item_id}
-/admin/moderation/queue/{item_id}/approve
-/admin/moderation/queue/{item_id}/reject
 /admin/navigation/cache/invalidate
 /admin/navigation/cache/set
 /admin/navigation/pgvector/status

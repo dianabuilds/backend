@@ -19,6 +19,7 @@ def upgrade() -> None:
         sa.Column(
             "created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
         ),
+        if_not_exists=True,
     )
     op.create_index(
         "ix_moderation_cases_status",
@@ -46,6 +47,7 @@ def upgrade() -> None:
         sa.Column(
             "created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
         ),
+        if_not_exists=True,
     )
     op.create_index(
         "ix_moderation_labels_created_at",
@@ -67,6 +69,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["label_id"], ["moderation_labels.id"], ondelete="CASCADE"
         ),
+        if_not_exists=True,
     )
     op.create_index(
         "ix_case_labels_created_at",
@@ -87,6 +90,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["case_id"], ["moderation_cases.id"], ondelete="CASCADE"
         ),
+        if_not_exists=True,
     )
     op.create_index(
         "ix_case_notes_case_id",
@@ -112,6 +116,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["case_id"], ["moderation_cases.id"], ondelete="CASCADE"
         ),
+        if_not_exists=True,
     )
     op.create_index(
         "ix_case_attachments_case_id",
@@ -138,6 +143,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["case_id"], ["moderation_cases.id"], ondelete="CASCADE"
         ),
+        if_not_exists=True,
     )
     op.create_index(
         "ix_case_events_case_id",
@@ -156,7 +162,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_case_events_created_at", table_name="case_events", if_exists=True)
     op.drop_index("ix_case_events_case_id", table_name="case_events", if_exists=True)
-    op.drop_table("case_events")
+    op.drop_table("case_events", if_exists=True)
 
     op.drop_index(
         "ix_case_attachments_created_at", table_name="case_attachments", if_exists=True
@@ -164,21 +170,21 @@ def downgrade() -> None:
     op.drop_index(
         "ix_case_attachments_case_id", table_name="case_attachments", if_exists=True
     )
-    op.drop_table("case_attachments")
+    op.drop_table("case_attachments", if_exists=True)
 
     op.drop_index("ix_case_notes_created_at", table_name="case_notes", if_exists=True)
     op.drop_index("ix_case_notes_case_id", table_name="case_notes", if_exists=True)
-    op.drop_table("case_notes")
+    op.drop_table("case_notes", if_exists=True)
 
     op.drop_index("ix_case_labels_created_at", table_name="case_labels", if_exists=True)
-    op.drop_table("case_labels")
+    op.drop_table("case_labels", if_exists=True)
 
     op.drop_index(
         "ix_moderation_labels_created_at",
         table_name="moderation_labels",
         if_exists=True,
     )
-    op.drop_table("moderation_labels")
+    op.drop_table("moderation_labels", if_exists=True)
 
     op.drop_index(
         "ix_moderation_cases_created_at", table_name="moderation_cases", if_exists=True
@@ -189,4 +195,4 @@ def downgrade() -> None:
     op.drop_index(
         "ix_moderation_cases_status", table_name="moderation_cases", if_exists=True
     )
-    op.drop_table("moderation_cases")
+    op.drop_table("moderation_cases", if_exists=True)
