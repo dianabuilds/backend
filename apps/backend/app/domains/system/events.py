@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections import deque
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -104,9 +105,13 @@ class EventBus:
         handlers = self._handlers.get(type(event), [])
         for h in handlers:
             attempts = 0
+            total_ms = 0.0
+            success = False
             while True:
+                start = time.perf_counter()
                 try:
                     await h(event)
+                    success = True
                     break
                 except Exception:
                     attempts += 1
@@ -116,6 +121,16 @@ class EventBus:
                         )
                         break
                     await asyncio.sleep(0)
+                finally:
+                    end = time.perf_counter()
+                    total_ms += (end - start) * 1000
+            name = EVENT_METRIC_NAMES.get(type(event), type(event).__name__)
+            event_metrics.record_handler(
+                name,
+                getattr(h, "__name__", h.__class__.__name__),
+                success,
+                total_ms,
+            )
 
 
 class _Handlers:
