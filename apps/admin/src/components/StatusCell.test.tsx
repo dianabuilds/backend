@@ -2,13 +2,26 @@ import "@testing-library/jest-dom";
 
 import { render, screen } from "@testing-library/react";
 
-import StatusCell from "./StatusCell";
+import StatusCell, { type Status } from "./StatusCell";
 
 describe("StatusCell", () => {
-  it("highlights active status icon", () => {
-    render(<StatusCell status="published" />);
-    expect(screen.getByLabelText("Published")).toHaveClass("text-green-600");
-    expect(screen.getByLabelText("Draft")).toHaveClass("text-gray-400");
-  });
+  const cases: [Status, string, string][] = [
+    ["draft", "Draft", "text-gray-600"],
+    ["in_review", "In review", "text-blue-600"],
+    ["published", "Published", "text-green-600"],
+    ["archived", "Archived", "text-red-600"],
+  ];
+
+  it.each(cases)(
+    "renders %s status with proper icon and tooltip",
+    (status, label, color) => {
+      render(<StatusCell status={status} />);
+      const el = screen.getByLabelText(label);
+      expect(el).toBeInTheDocument();
+      expect(el.tagName.toLowerCase()).toBe("svg");
+      expect(el).toHaveAttribute("title", label);
+      expect(el).toHaveClass(color);
+    },
+  );
 });
 
