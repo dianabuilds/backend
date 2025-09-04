@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.domains.moderation.infrastructure.models.moderation_case_models import (
+    CaseAttachment,
     CaseLabel,
     CaseNote,
     ModerationCase,
@@ -72,8 +73,19 @@ class CasesService:
         return CaseListResponse(items=items, page=page, size=size, total=total or 0)
 
     async def create_case(self, db: AsyncSession, data: CaseCreate) -> UUID:
-        case = ModerationCase(**data.model_dump(exclude={"labels"}))
+        case = ModerationCase(**data.model_dump(exclude={"labels", "attachments"}))
         db.add(case)
+        await db.flush()
+
+        for att in data.attachments or []:
+            db.add(
+                CaseAttachment(
+                    case_id=case.id,
+                    author_id=data.reporter_id,
+                    **att.model_dump(),
+                )
+            )
+
         await db.commit()
         await db.refresh(case)
         return case.id

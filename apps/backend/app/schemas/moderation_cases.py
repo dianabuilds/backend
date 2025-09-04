@@ -35,6 +35,7 @@ class CaseCreate(BaseModel):
     priority: str | None = None
     labels: list[str] | None = None
     assignee_id: UUID | None = None
+    attachments: list[CaseAttachmentCreate] | None = None
 
 
 class CasePatch(BaseModel):
