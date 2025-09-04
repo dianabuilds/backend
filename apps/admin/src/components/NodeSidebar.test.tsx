@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import NodeSidebar from "./NodeSidebar";
@@ -10,6 +10,10 @@ vi.mock("../api/flags", () => ({
 
 vi.mock("../api/nodes", () => ({
   patchNode: vi.fn().mockResolvedValue({}),
+  publishNode: vi.fn().mockResolvedValue({}),
+  archiveNode: vi.fn().mockResolvedValue({}),
+  duplicateNode: vi.fn().mockResolvedValue({}),
+  previewNode: vi.fn().mockResolvedValue({}),
 }));
 
 vi.mock("../api/wsApi", () => ({
@@ -42,10 +46,13 @@ describe("NodeSidebar", () => {
     premiumOnly: false,
   };
 
-  it("does not render Advanced section", async () => {
+  it("renders actions menu and calls publish", async () => {
+    const { publishNode } = await import("../api/nodes");
     render(<NodeSidebar node={node} workspaceId="ws" />);
-    await screen.findByText("Metadata");
-    expect(screen.queryByText("Advanced")).toBeNull();
+    await screen.findByText("Visibility");
+    const btn = screen.getByRole("button", { name: /Publish/i });
+    fireEvent.click(btn);
+    expect(publishNode).toHaveBeenCalled();
   });
 });
 

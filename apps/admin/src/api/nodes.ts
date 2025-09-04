@@ -183,6 +183,31 @@ export async function publishNode(
     return res as NodeOut;
 }
 
+export async function archiveNode(workspaceId: string, id: number): Promise<void> {
+    await wsApi.post(
+        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/archive`,
+        undefined,
+        { workspace: false },
+    );
+}
+
+export async function duplicateNode(workspaceId: string, id: number): Promise<NodeOut> {
+    const res = await wsApi.post<undefined, NodeOut>(
+        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/duplicate`,
+        undefined,
+        { workspace: false },
+    );
+    return res;
+}
+
+export async function previewNode(workspaceId: string, id: number): Promise<void> {
+    await wsApi.post(
+        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/preview`,
+        undefined,
+        { workspace: false },
+    );
+}
+
 export async function simulateNode(
     workspaceId: string,
     id: number,
