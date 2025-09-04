@@ -75,6 +75,10 @@ def upgrade() -> None:
         ),
         if_not_exists=True,
     )
+    op.execute(
+        "ALTER TABLE case_labels "
+        "ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT now()"
+    )
     op.create_index(
         "ix_case_labels_created_at",
         "case_labels",
