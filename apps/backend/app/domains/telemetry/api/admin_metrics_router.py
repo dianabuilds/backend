@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
-from app.core.metrics import metrics_storage, transition_stats
+from app.core.metrics import _percentile, metrics_storage, transition_stats
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -25,6 +25,15 @@ class MetricsSummary(BaseModel):
     p95_latency: float
     p99_latency: float
     count_429: int
+
+
+class ReliabilityMetrics(BaseModel):
+    rps: float
+    p95: float
+    count_4xx: int
+    count_5xx: int
+    no_route_percent: float
+    fallback_percent: float
 
 
 _RANGE_MAP = {"1h": 3600, "24h": 24 * 3600}
@@ -59,6 +68,47 @@ async def metrics_timeseries(
         step = 300
     data = metrics_storage.timeseries(seconds, step)
     return data
+
+
+@router.get("/reliability", response_model=ReliabilityMetrics)
+async def metrics_reliability(
+    workspace: Annotated[str | None, Query()] = None,
+) -> ReliabilityMetrics:
+    seconds = 3600
+    recent = metrics_storage._select_recent(seconds)
+    if workspace:
+        recent = [r for r in recent if r.workspace_id == workspace]
+    total = len(recent)
+    durations = [r.duration_ms for r in recent]
+    p95 = _percentile(durations, 0.95) if durations else 0.0
+    count_4xx = sum(1 for r in recent if 400 <= r.status_code < 500)
+    count_5xx = sum(1 for r in recent if r.status_code >= 500)
+    rps = total / seconds if seconds else 0.0
+
+    stats = transition_stats()
+    if workspace:
+        ws_stats = stats.get(workspace, {})
+        no_route_percent = ws_stats.get("no_route_percent", 0.0)
+        fallback_percent = ws_stats.get("fallback_used_percent", 0.0)
+    else:
+        if stats:
+            no_route_percent = sum(
+                s.get("no_route_percent", 0.0) for s in stats.values()
+            ) / len(stats)
+            fallback_percent = sum(
+                s.get("fallback_used_percent", 0.0) for s in stats.values()
+            ) / len(stats)
+        else:
+            no_route_percent = 0.0
+            fallback_percent = 0.0
+    return ReliabilityMetrics(
+        rps=rps,
+        p95=p95,
+        count_4xx=count_4xx,
+        count_5xx=count_5xx,
+        no_route_percent=no_route_percent,
+        fallback_percent=fallback_percent,
+    )
 
 
 @router.get("/endpoints/top")

@@ -4579,6 +4579,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /moderation/cases:
+    post:
+      tags:
+      - moderation
+      summary: Create Moderation Case
+      operationId: create_case_moderation_cases_post
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseCreate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                title: Response Create Case Moderation Cases Post
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    title: Id
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /admin/moderation/cases:
     get:
       tags:
@@ -4640,39 +4673,6 @@ paths:
                 error:
                   code: FORBIDDEN
                   message: Forbidden
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /moderation/cases:
-    post:
-      tags:
-      - moderation
-      summary: Create Moderation Case
-      operationId: create_case_moderation_cases_post
-      security:
-      - bearerAuth: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CaseCreate'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                properties:
-                  id:
-                    type: string
-                    format: uuid
-                    title: Id
-                type: object
-                title: Response Create Case Moderation Cases Post
         '422':
           description: Validation Error
           content:
@@ -16713,6 +16713,65 @@ paths:
           content:
             application/json:
               schema: {}
+  /admin/metrics/reliability:
+    get:
+      tags:
+      - admin
+      summary: Metrics Reliability
+      operationId: metrics_reliability_admin_metrics_reliability_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: workspace
+        in: query
+        required: false
+        schema:
+          type: string
+          title: Workspace
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReliabilityMetrics'
+        '401':
+          description: Unauthorized
+          nodes:
+            application/json:
+              examples:
+                missing:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: AUTH_REQUIRED
+                      message: Authorization required
+                invalid:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid authentication token
+                expired:
+                  summary: Expired token
+                  value:
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: Token has expired
+        '403':
+          description: Forbidden
+          nodes:
+            application/json:
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: Forbidden
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     AchievementAdminOut:
@@ -21167,6 +21226,35 @@ components:
       required:
       - version
       title: QuestGraphOut
+    ReliabilityMetrics:
+      title: ReliabilityMetrics
+      type: object
+      properties:
+        rps:
+          type: number
+          title: Rps
+        p95:
+          type: number
+          title: P95
+        count_4xx:
+          type: integer
+          title: Count 4Xx
+        count_5xx:
+          type: integer
+          title: Count 5Xx
+        no_route_percent:
+          type: number
+          title: No Route Percent
+        fallback_percent:
+          type: number
+          title: Fallback Percent
+      required:
+      - rps
+      - p95
+      - count_4xx
+      - count_5xx
+      - no_route_percent
+      - fallback_percent
   securitySchemes:
     bearerAuth:
       type: http
