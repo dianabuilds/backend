@@ -8,6 +8,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from app.domains.navigation.application.cache_singleton import navcache
+from app.domains.telemetry.application.event_metrics_facade import event_metrics
 
 
 @dataclass(frozen=True)
@@ -15,6 +16,7 @@ class NodePublished:
     node_id: int
     slug: str
     author_id: UUID
+    workspace_id: UUID | None = None
     id: str = field(default_factory=lambda: uuid4().hex)
 
 
@@ -23,6 +25,7 @@ class NodeArchived:
     node_id: int
     slug: str
     author_id: UUID
+    workspace_id: UUID | None = None
     id: str = field(default_factory=lambda: uuid4().hex)
 
 
@@ -31,6 +34,7 @@ class NodeCreated:
     node_id: int
     slug: str
     author_id: UUID
+    workspace_id: UUID | None = None
     id: str = field(default_factory=lambda: uuid4().hex)
 
 
@@ -39,8 +43,34 @@ class NodeUpdated:
     node_id: int
     slug: str
     author_id: UUID
+    workspace_id: UUID | None = None
     tags_changed: bool = False
     id: str = field(default_factory=lambda: uuid4().hex)
+
+
+@dataclass(frozen=True)
+class AchievementUnlocked:
+    achievement_id: UUID
+    user_id: UUID
+    workspace_id: UUID
+    id: str = field(default_factory=lambda: uuid4().hex)
+
+
+EVENT_METRIC_NAMES: dict[type, str] = {
+    NodeCreated: "node.created",
+    NodeUpdated: "node.updated",
+    NodePublished: "node.publish",
+    NodeArchived: "node.archived",
+    AchievementUnlocked: "achievement",
+}
+
+
+async def _record_metric(event: Any) -> None:
+    name = EVENT_METRIC_NAMES.get(type(event))
+    if not name:
+        return
+    ws = getattr(event, "workspace_id", None)
+    event_metrics.inc(name, str(ws) if ws is not None else None)
 
 
 class EventBus:
@@ -139,6 +169,8 @@ def register_handlers() -> None:
     global _registered
     if _registered:
         return
+    for ev in EVENT_METRIC_NAMES:
+        _bus.subscribe(ev, _record_metric)
     _bus.subscribe(NodeCreated, handlers.handle_node_created)
     _bus.subscribe(NodeUpdated, handlers.handle_node_updated)
     _bus.subscribe(NodePublished, handlers.handle_node_published)
@@ -155,6 +187,7 @@ __all__ = [
     "NodeUpdated",
     "NodePublished",
     "NodeArchived",
+    "AchievementUnlocked",
     "get_event_bus",
     "register_handlers",
     "handlers",

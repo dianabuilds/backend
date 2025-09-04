@@ -131,7 +131,12 @@ async def create_node(
     repo = NodeRepository(db)
     node = await repo.create(payload, current_user.id, workspace_id)
     await get_event_bus().publish(
-        NodeCreated(node_id=node.id, slug=node.slug, author_id=current_user.id)
+        NodeCreated(
+            node_id=node.id,
+            slug=node.slug,
+            author_id=current_user.id,
+            workspace_id=workspace_id,
+        )
     )
     return {"slug": node.slug}
 
@@ -222,6 +227,7 @@ async def update_node(
             node_id=node.id,
             slug=node.slug,
             author_id=current_user.id,
+            workspace_id=workspace_id,
         )
     )
     return node

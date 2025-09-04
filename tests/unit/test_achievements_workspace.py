@@ -4,6 +4,7 @@ import sys
 import uuid
 from pathlib import Path
 
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -11,15 +12,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.core.db.base import Base  # noqa: E402
-from app.core.preview import PreviewContext
+from app.core.preview import PreviewContext  # noqa: E402
 from app.domains.achievements.application.achievements_service import (  # noqa: E402
     AchievementsService,
 )
 from app.domains.achievements.infrastructure.models.achievement_models import (  # noqa: E402
     Achievement,
+    UserAchievement,
 )
-from app.domains.achievements.infrastructure.repositories.achievements_repository import (  # noqa: E402
+from app.domains.achievements.infrastructure.repositories.achievements_repository import (  # noqa: E402,E501
     AchievementsRepository,
 )
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
@@ -35,7 +36,12 @@ def test_process_event_isolated_by_workspace() -> None:
     async def _run() -> None:
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(User.__table__.create)
+            await conn.run_sync(Workspace.__table__.create)
+            await conn.run_sync(Achievement.__table__.create)
+            await conn.run_sync(UserAchievement.__table__.create)
+            await conn.run_sync(Notification.__table__.create)
+            await conn.run_sync(UserEventCounter.__table__.create)
         async_session = sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
         )
@@ -92,7 +98,13 @@ def test_repository_isolated_by_workspace() -> None:
     async def _run() -> None:
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(User.__table__.create)
+            await conn.run_sync(Workspace.__table__.create)
+            await conn.run_sync(Achievement.__table__.create)
+            await conn.run_sync(UserAchievement.__table__.create)
+            Node.__table__.c.id.type = sa.Integer()
+            await conn.run_sync(Node.__table__.create)
+            await conn.run_sync(UserEventCounter.__table__.create)
         async_session = sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
         )
@@ -101,9 +113,27 @@ def test_repository_isolated_by_workspace() -> None:
             user = User(id=uuid.uuid4())
             w1 = Workspace(id=uuid.uuid4(), name="W1", slug="w1", owner_user_id=user.id)
             w2 = Workspace(id=uuid.uuid4(), name="W2", slug="w2", owner_user_id=user.id)
-            n1 = Node(workspace_id=w1.id, content={}, author_id=user.id, views=10)
-            n2 = Node(workspace_id=w1.id, content={}, author_id=user.id, views=5)
-            n3 = Node(workspace_id=w2.id, content={}, author_id=user.id, views=20)
+            n1 = Node(
+                workspace_id=w1.id,
+                slug="n1",
+                content={},
+                author_id=user.id,
+                views=10,
+            )
+            n2 = Node(
+                workspace_id=w1.id,
+                slug="n2",
+                content={},
+                author_id=user.id,
+                views=5,
+            )
+            n3 = Node(
+                workspace_id=w2.id,
+                slug="n3",
+                content={},
+                author_id=user.id,
+                views=20,
+            )
             session.add_all([user, w1, w2, n1, n2, n3])
             await session.commit()
 
