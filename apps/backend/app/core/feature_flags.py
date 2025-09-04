@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from enum import StrEnum
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,12 +11,23 @@ from app.domains.admin.infrastructure.models.feature_flag import FeatureFlag
 _CACHE_TTL = 30  # seconds
 _cache: tuple[float, dict[str, bool]] | None = None
 
+
 # Predefined feature flags available in the system with optional descriptions.
-KNOWN_FLAGS: dict[str, str] = {
-    "moderation.enabled": "Enable moderation section in admin UI",
-    "payments": "Enable payments module",
-    "ai.validation": "Enable AI-based validation for nodes",
-    "quests.nodes_redirect": "Redirect /nodes/:slug to /quests/{id}/versions/current",
+class FeatureFlagKey(StrEnum):
+    MODERATION_ENABLED = "moderation.enabled"
+    PAYMENTS = "payments"
+    AI_VALIDATION = "ai.validation"
+    QUESTS_NODES_REDIRECT = "quests.nodes_redirect"
+
+
+# Predefined feature flags available in the system with optional descriptions.
+KNOWN_FLAGS: dict[FeatureFlagKey, str] = {
+    FeatureFlagKey.MODERATION_ENABLED: "Enable moderation section in admin UI",
+    FeatureFlagKey.PAYMENTS: "Enable payments module",
+    FeatureFlagKey.AI_VALIDATION: "Enable AI-based validation for nodes",
+    FeatureFlagKey.QUESTS_NODES_REDIRECT: (
+        "Redirect /nodes/:slug to /quests/{id}/versions/current"
+    ),
 }
 
 
@@ -33,10 +45,17 @@ async def ensure_known_flags(db: AsyncSession) -> None:
     """Ensure that all KNOWN_FLAGS exist in the database."""
     res = await db.execute(select(FeatureFlag.key))
     existing = set(res.scalars().all())
+
+    for key in existing:
+        try:
+            FeatureFlagKey(key)
+        except ValueError as exc:  # pragma: no cover - defensive
+            raise ValueError(f"Unknown feature flag: {key}") from exc
+
     created = False
     for key, desc in KNOWN_FLAGS.items():
-        if key not in existing:
-            db.add(FeatureFlag(key=key, value=False, description=desc))
+        if key.value not in existing:
+            db.add(FeatureFlag(key=key.value, value=False, description=desc))
             created = True
     if created:
         await db.flush()
@@ -68,15 +87,20 @@ async def get_effective_flags(db: AsyncSession, preview_header: str | None) -> s
 
 async def set_flag(
     db: AsyncSession,
-    key: str,
+    key: FeatureFlagKey | str,
     value: bool | None = None,
     description: str | None = None,
     updated_by: str | None = None,
 ) -> FeatureFlag:
-    existing = await db.get(FeatureFlag, key)
+    try:
+        key_enum = FeatureFlagKey(key)
+    except ValueError as exc:
+        raise ValueError(f"Unknown feature flag: {key}") from exc
+
+    existing = await db.get(FeatureFlag, key_enum.value)
     if existing is None:
         existing = FeatureFlag(
-            key=key, value=bool(value) if value is not None else False
+            key=key_enum.value, value=bool(value) if value is not None else False
         )
         db.add(existing)
     if value is not None:
