@@ -1,14 +1,29 @@
+import PublishControls from "../../../components/publish/PublishControls";
 import { Button, TextInput } from "../../../shared/ui";
 import type { NodeEditorData } from "../model/node";
 
 interface NodeSidebarProps {
   node: NodeEditorData;
+  workspaceId: string;
   onChange: (patch: Partial<NodeEditorData>) => void;
+  onPublishChange?: () => void;
 }
 
-export default function NodeSidebar({ node, onChange }: NodeSidebarProps) {
+export default function NodeSidebar({
+  node,
+  workspaceId,
+  onChange,
+  onPublishChange,
+}: NodeSidebarProps) {
   return (
     <div className="space-y-6">
+      {node.id ? (
+        <PublishControls
+          workspaceId={workspaceId}
+          nodeId={node.id}
+          onChanged={onPublishChange}
+        />
+      ) : null}
       <section>
         <h3 className="font-semibold text-gray-700">Metadata</h3>
         <details className="mt-2">

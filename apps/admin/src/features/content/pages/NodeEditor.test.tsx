@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
@@ -43,6 +43,7 @@ describe('NodeEditorPage', () => {
         </Routes>
       </MemoryRouter>
     );
-    expect(getByTestId('publish-controls')).toBeInTheDocument();
+    const sidebar = getByTestId('sidebar');
+    expect(within(sidebar).getByTestId('publish-controls')).toBeInTheDocument();
   });
 });
