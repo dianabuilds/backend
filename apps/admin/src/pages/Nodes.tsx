@@ -22,7 +22,7 @@ import {
 import { Button } from '../shared/ui';
 import type { Status } from '../openapi';
 import { ensureArray } from '../shared/utils';
-import { confirmWithEnv } from '../utils/env';
+import { notify } from '../utils/notify';
 import { useWorkspace } from '../workspace/WorkspaceContext';
 
 type NodeItem = {
@@ -149,14 +149,11 @@ export default function Nodes() {
     } else {
       // Восстановление: confirm и прямой вызов
       if (!node.slug) {
-        addToast({
-          title: 'Restore failed',
-          description: 'Slug is missing',
-          variant: 'error',
-        });
+        const msg = 'Slug is missing';
+        notify(`Restore failed: ${msg}`);
+        addToast({ title: 'Restore failed', description: msg, variant: 'error' });
         return;
       }
-      if (!confirmWithEnv('Restore this node?')) return;
       (async () => {
         try {
           setModBusy(true);
@@ -171,15 +168,14 @@ export default function Nodes() {
             m.set(node.id, { ...base, is_visible: true });
             return m;
           });
+          notify('Node restored');
           addToast({ title: 'Node restored', variant: 'success' });
           // Фоновая верификация
           await refetch();
         } catch (e) {
-          addToast({
-            title: 'Restore failed',
-            description: e instanceof Error ? e.message : String(e),
-            variant: 'error',
-          });
+          const msg = e instanceof Error ? e.message : String(e);
+          notify(`Restore failed: ${msg}`);
+          addToast({ title: 'Restore failed', description: msg, variant: 'error' });
         } finally {
           setModBusy(false);
         }
