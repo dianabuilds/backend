@@ -4,6 +4,8 @@ import logging
 from statistics import mean
 from typing import Any
 
+from pydantic import BaseModel, ValidationError
+
 from app.core.config import settings
 from app.core.redis_utils import create_async_redis
 from app.domains.telemetry.application.ports.rum_port import IRumRepository
@@ -14,6 +16,13 @@ from app.domains.telemetry.infrastructure.repositories.rum_repository import (
 log = logging.getLogger(__name__)
 
 
+class RUMEvent(BaseModel):
+    event: str
+    ts: int
+    url: str
+    data: dict[str, Any] | None = None
+
+
 class RumMetricsService:
     def __init__(self, repo: IRumRepository | None) -> None:
         self._repo = repo
@@ -22,7 +31,12 @@ class RumMetricsService:
         if self._repo is None:
             return
         try:
-            await self._repo.add(payload)
+            event = RUMEvent.model_validate(payload)
+        except ValidationError:
+            log.warning("invalid RUM event payload: %s", payload)
+            return
+        try:
+            await self._repo.add(event.model_dump())
         except Exception:  # pragma: no cover - safety
             log.exception("failed to store RUM event")
 
