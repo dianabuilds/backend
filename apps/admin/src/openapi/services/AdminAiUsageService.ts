@@ -44,19 +44,19 @@ export class AdminAiUsageService {
         });
     }
     /**
-     * Usage by model in workspace
+     * Usage by user in workspace
      * @param workspaceId
      * @param format
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getUsageByModelAdminAiUsageWorkspacesWorkspaceIdModelsGet(
+    public static getUsageByUserAdminAiUsageWorkspacesWorkspaceIdUsersGet(
         workspaceId: string,
         format?: (string | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/ai/usage/workspaces/{workspace_id}/models',
+            url: '/admin/ai/usage/workspaces/{workspace_id}/users',
             path: {
                 'workspace_id': workspaceId,
             },
@@ -71,19 +71,19 @@ export class AdminAiUsageService {
         });
     }
     /**
-     * Usage by user in workspace
+     * Usage by model in workspace
      * @param workspaceId
      * @param format
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getUsageByUserAdminAiUsageWorkspacesWorkspaceIdUsersGet(
+    public static getUsageByModelAdminAiUsageWorkspacesWorkspaceIdModelsGet(
         workspaceId: string,
         format?: (string | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/ai/usage/workspaces/{workspace_id}/users',
+            url: '/admin/ai/usage/workspaces/{workspace_id}/models',
             path: {
                 'workspace_id': workspaceId,
             },

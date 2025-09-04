@@ -4,12 +4,12 @@
 /* eslint-disable */
 import type { NotificationType } from './NotificationType';
 export type NotificationOut = {
-    created_at: string;
     id: string;
-    is_preview: boolean;
-    message: string;
-    read_at: (string | null);
     title: string;
+    message: string;
+    created_at: string;
+    read_at: (string | null);
     type: NotificationType;
+    is_preview: boolean;
 };
 

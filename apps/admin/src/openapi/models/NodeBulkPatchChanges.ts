@@ -6,10 +6,10 @@
  * Changes to apply in bulk operations.
  */
 export type NodeBulkPatchChanges = {
-    delete?: (boolean | null);
-    isRecommendable?: (boolean | null);
     isVisible?: (boolean | null);
     premium_only?: (boolean | null);
+    isRecommendable?: (boolean | null);
     workspaceId?: (string | null);
+    delete?: (boolean | null);
 };
 

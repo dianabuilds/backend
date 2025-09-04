@@ -77,100 +77,6 @@ export class NodesService {
         });
     }
     /**
-     * Get node notification settings
-     * @param nodeId
-     * @param workspaceId
-     * @param xWorkspaceId
-     * @returns NodeNotificationSettingsOut Successful Response
-     * @throws ApiError
-     */
-    public static getNodeNotificationSettingsNodesNodeIdNotificationSettingsGet(
-        nodeId: number,
-        workspaceId: string,
-        xWorkspaceId?: (string | null),
-    ): CancelablePromise<NodeNotificationSettingsOut> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/nodes/{node_id}/notification-settings',
-            path: {
-                'node_id': nodeId,
-            },
-            headers: {
-                'X-Workspace-Id': xWorkspaceId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update node notification settings
-     * @param nodeId
-     * @param workspaceId
-     * @param requestBody
-     * @param xWorkspaceId
-     * @returns NodeNotificationSettingsOut Successful Response
-     * @throws ApiError
-     */
-    public static updateNodeNotificationSettingsNodesNodeIdNotificationSettingsPatch(
-        nodeId: number,
-        workspaceId: string,
-        requestBody: NodeNotificationSettingsUpdate,
-        xWorkspaceId?: (string | null),
-    ): CancelablePromise<NodeNotificationSettingsOut> {
-        return __request(OpenAPI, {
-            method: 'PATCH',
-            url: '/nodes/{node_id}/notification-settings',
-            path: {
-                'node_id': nodeId,
-            },
-            headers: {
-                'X-Workspace-Id': xWorkspaceId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete node
-     * @param slug
-     * @param workspaceId
-     * @param xWorkspaceId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deleteNodeNodesSlugDelete(
-        slug: string,
-        workspaceId: string,
-        xWorkspaceId?: (string | null),
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/nodes/{slug}',
-            path: {
-                'slug': slug,
-            },
-            headers: {
-                'X-Workspace-Id': xWorkspaceId,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Get node
      * @param slug
      * @param workspaceId
@@ -220,6 +126,100 @@ export class NodesService {
             url: '/nodes/{slug}',
             path: {
                 'slug': slug,
+            },
+            headers: {
+                'X-Workspace-Id': xWorkspaceId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete node
+     * @param slug
+     * @param workspaceId
+     * @param xWorkspaceId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deleteNodeNodesSlugDelete(
+        slug: string,
+        workspaceId: string,
+        xWorkspaceId?: (string | null),
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/nodes/{slug}',
+            path: {
+                'slug': slug,
+            },
+            headers: {
+                'X-Workspace-Id': xWorkspaceId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get node notification settings
+     * @param nodeId
+     * @param workspaceId
+     * @param xWorkspaceId
+     * @returns NodeNotificationSettingsOut Successful Response
+     * @throws ApiError
+     */
+    public static getNodeNotificationSettingsNodesNodeIdNotificationSettingsGet(
+        nodeId: number,
+        workspaceId: string,
+        xWorkspaceId?: (string | null),
+    ): CancelablePromise<NodeNotificationSettingsOut> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/nodes/{node_id}/notification-settings',
+            path: {
+                'node_id': nodeId,
+            },
+            headers: {
+                'X-Workspace-Id': xWorkspaceId,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update node notification settings
+     * @param nodeId
+     * @param workspaceId
+     * @param requestBody
+     * @param xWorkspaceId
+     * @returns NodeNotificationSettingsOut Successful Response
+     * @throws ApiError
+     */
+    public static updateNodeNotificationSettingsNodesNodeIdNotificationSettingsPatch(
+        nodeId: number,
+        workspaceId: string,
+        requestBody: NodeNotificationSettingsUpdate,
+        xWorkspaceId?: (string | null),
+    ): CancelablePromise<NodeNotificationSettingsOut> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/nodes/{node_id}/notification-settings',
+            path: {
+                'node_id': nodeId,
             },
             headers: {
                 'X-Workspace-Id': xWorkspaceId,
@@ -397,94 +397,6 @@ export class NodesService {
         });
     }
     /**
-     * Get node notification settings
-     * @param nodeId
-     * @param workspaceId
-     * @param xWorkspaceId
-     * @returns NodeNotificationSettingsOut Successful Response
-     * @throws ApiError
-     */
-    public static getNodeNotificationSettingsWorkspacesWorkspaceIdNodesNodeIdNotificationSettingsGet(
-        nodeId: number,
-        workspaceId: string,
-        xWorkspaceId?: (string | null),
-    ): CancelablePromise<NodeNotificationSettingsOut> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/workspaces/{workspace_id}/nodes/{node_id}/notification-settings',
-            path: {
-                'node_id': nodeId,
-                'workspace_id': workspaceId,
-            },
-            headers: {
-                'X-Workspace-Id': xWorkspaceId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update node notification settings
-     * @param nodeId
-     * @param workspaceId
-     * @param requestBody
-     * @param xWorkspaceId
-     * @returns NodeNotificationSettingsOut Successful Response
-     * @throws ApiError
-     */
-    public static updateNodeNotificationSettingsWorkspacesWorkspaceIdNodesNodeIdNotificationSettingsPatch(
-        nodeId: number,
-        workspaceId: string,
-        requestBody: NodeNotificationSettingsUpdate,
-        xWorkspaceId?: (string | null),
-    ): CancelablePromise<NodeNotificationSettingsOut> {
-        return __request(OpenAPI, {
-            method: 'PATCH',
-            url: '/workspaces/{workspace_id}/nodes/{node_id}/notification-settings',
-            path: {
-                'node_id': nodeId,
-                'workspace_id': workspaceId,
-            },
-            headers: {
-                'X-Workspace-Id': xWorkspaceId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete node
-     * @param slug
-     * @param workspaceId
-     * @param xWorkspaceId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deleteNodeWorkspacesWorkspaceIdNodesSlugDelete(
-        slug: string,
-        workspaceId: string,
-        xWorkspaceId?: (string | null),
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/workspaces/{workspace_id}/nodes/{slug}',
-            path: {
-                'slug': slug,
-                'workspace_id': workspaceId,
-            },
-            headers: {
-                'X-Workspace-Id': xWorkspaceId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Get node
      * @param slug
      * @param workspaceId
@@ -532,6 +444,94 @@ export class NodesService {
             url: '/workspaces/{workspace_id}/nodes/{slug}',
             path: {
                 'slug': slug,
+                'workspace_id': workspaceId,
+            },
+            headers: {
+                'X-Workspace-Id': xWorkspaceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete node
+     * @param slug
+     * @param workspaceId
+     * @param xWorkspaceId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deleteNodeWorkspacesWorkspaceIdNodesSlugDelete(
+        slug: string,
+        workspaceId: string,
+        xWorkspaceId?: (string | null),
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/workspaces/{workspace_id}/nodes/{slug}',
+            path: {
+                'slug': slug,
+                'workspace_id': workspaceId,
+            },
+            headers: {
+                'X-Workspace-Id': xWorkspaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get node notification settings
+     * @param nodeId
+     * @param workspaceId
+     * @param xWorkspaceId
+     * @returns NodeNotificationSettingsOut Successful Response
+     * @throws ApiError
+     */
+    public static getNodeNotificationSettingsWorkspacesWorkspaceIdNodesNodeIdNotificationSettingsGet(
+        nodeId: number,
+        workspaceId: string,
+        xWorkspaceId?: (string | null),
+    ): CancelablePromise<NodeNotificationSettingsOut> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/workspaces/{workspace_id}/nodes/{node_id}/notification-settings',
+            path: {
+                'node_id': nodeId,
+                'workspace_id': workspaceId,
+            },
+            headers: {
+                'X-Workspace-Id': xWorkspaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update node notification settings
+     * @param nodeId
+     * @param workspaceId
+     * @param requestBody
+     * @param xWorkspaceId
+     * @returns NodeNotificationSettingsOut Successful Response
+     * @throws ApiError
+     */
+    public static updateNodeNotificationSettingsWorkspacesWorkspaceIdNodesNodeIdNotificationSettingsPatch(
+        nodeId: number,
+        workspaceId: string,
+        requestBody: NodeNotificationSettingsUpdate,
+        xWorkspaceId?: (string | null),
+    ): CancelablePromise<NodeNotificationSettingsOut> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/workspaces/{workspace_id}/nodes/{node_id}/notification-settings',
+            path: {
+                'node_id': nodeId,
                 'workspace_id': workspaceId,
             },
             headers: {

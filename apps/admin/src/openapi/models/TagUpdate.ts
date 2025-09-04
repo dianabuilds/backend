@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type TagUpdate = {
-    hidden?: (boolean | null);
     name?: (string | null);
+    hidden?: (boolean | null);
 };
 

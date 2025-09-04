@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type AliasOut = {
-    alias: string;
     id: string;
+    alias: string;
     type: string;
 };
 

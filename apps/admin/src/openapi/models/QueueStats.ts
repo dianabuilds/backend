@@ -2,9 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type UserUpdate = {
-    username?: (string | null);
-    bio?: (string | null);
-    avatar_url?: (string | null);
+export type QueueStats = {
+    pending: number;
+    active: number;
 };
 

@@ -4,10 +4,10 @@
 /* eslint-disable */
 import type { BroadcastFilters } from './BroadcastFilters';
 export type BroadcastCreate = {
-    dry_run?: boolean;
-    filters?: (BroadcastFilters | null);
-    message: string;
     title: string;
+    message: string;
     type?: string;
+    filters?: (BroadcastFilters | null);
+    dry_run?: boolean;
 };
 

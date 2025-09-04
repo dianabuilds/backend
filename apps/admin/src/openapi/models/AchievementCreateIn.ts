@@ -4,10 +4,10 @@
 /* eslint-disable */
 export type AchievementCreateIn = {
     code: string;
-    condition?: Record<string, any>;
+    title: string;
     description?: (string | null);
     icon?: (string | null);
-    title: string;
     visible?: boolean;
+    condition?: Record<string, any>;
 };
 

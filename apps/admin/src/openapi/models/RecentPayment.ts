@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RecentPayment = {
-    amount: number;
     id: string;
-    status: string;
-    tariff: (string | null);
     user_id: string;
+    tariff: (string | null);
+    amount: number;
+    status: string;
 };
 

@@ -6,9 +6,9 @@
  * Schema for manual transition conditions.
  */
 export type TransitionCondition = {
-    cooldown?: (number | null);
-    nft_required?: (string | null);
     premium_required?: (boolean | null);
+    nft_required?: (string | null);
     tags?: (Array<string> | null);
+    cooldown?: (number | null);
 };
 

@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type NodeNotificationSettingsOut = {
-    enabled: boolean;
     nodeId: number;
+    enabled: boolean;
 };
 

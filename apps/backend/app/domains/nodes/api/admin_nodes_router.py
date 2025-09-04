@@ -47,6 +47,7 @@ from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem, NodePublishJob
 from app.domains.nodes.schemas.node import NodeBulkOperation, NodeBulkPatch, NodeOut
 from app.domains.workspaces.infrastructure.models import Workspace
+from app.schemas.nodes_common import Status
 from app.schemas.workspaces import WorkspaceType
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -88,6 +89,7 @@ class AdminNodeListParams(TypedDict, total=False):
     date_from: datetime
     date_to: datetime
     q: str
+    status: Status
 
 
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin)")
@@ -105,6 +107,7 @@ async def list_nodes_admin(
         ],
         Query(),
     ] = "updated_desc",
+    status: Annotated[Status | None, Query()] = None,
     visible: bool | None = None,
     premium_only: bool | None = None,
     recommendable: bool | None = None,
@@ -134,6 +137,7 @@ async def list_nodes_admin(
         created_to=date_to,
         q=q,
         sort=sort,
+        status=status,
     )
     ctx = QueryContext(user=current_user, is_admin=True)
     svc = NodeQueryService(db)

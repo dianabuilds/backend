@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CharacterIn = {
-    description?: (string | null);
     name: string;
     role?: (string | null);
+    description?: (string | null);
     traits?: (Record<string, any> | null);
 };
 

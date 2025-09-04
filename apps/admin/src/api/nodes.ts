@@ -1,4 +1,4 @@
-import {AdminService, type NodeOut, type PublishIn, type ValidateResult} from '../openapi';
+import {AdminService, type NodeOut, type PublishIn, type Status, type ValidateResult} from '../openapi';
 import type {ApiResponse} from './client';
 import {wsApi} from './wsApi';
 
@@ -34,7 +34,7 @@ export interface NodeListParams {
     date_from?: string;
     date_to?: string;
     q?: string;
-    status?: string;
+    status?: Status;
 }
 
 export interface NodePatchParams {

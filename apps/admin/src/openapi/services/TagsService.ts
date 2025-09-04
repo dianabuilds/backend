@@ -10,17 +10,6 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class TagsService {
     /**
-     * Tags Health
-     * @returns string Successful Response
-     * @throws ApiError
-     */
-    public static tagsHealthTagsHealthGet(): CancelablePromise<Record<string, string>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/tags/_health',
-        });
-    }
-    /**
      * List tags
      * Retrieve available tags with optional search and popularity filter.
      * @param workspaceId
@@ -78,31 +67,6 @@ export class TagsService {
         });
     }
     /**
-     * Delete tag
-     * @param slug
-     * @param workspaceId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deleteTagTagsTagsSlugDelete(
-        slug: string,
-        workspaceId: string,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/tags/tags/{slug}',
-            path: {
-                'slug': slug,
-            },
-            query: {
-                'workspace_id': workspaceId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Get tag
      * @param slug
      * @param workspaceId
@@ -154,6 +118,42 @@ export class TagsService {
             errors: {
                 422: `Validation Error`,
             },
+        });
+    }
+    /**
+     * Delete tag
+     * @param slug
+     * @param workspaceId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deleteTagTagsTagsSlugDelete(
+        slug: string,
+        workspaceId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/tags/tags/{slug}',
+            path: {
+                'slug': slug,
+            },
+            query: {
+                'workspace_id': workspaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Tags Health
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static tagsHealthTagsHealthGet(): CancelablePromise<Record<string, string>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/tags/_health',
         });
     }
 }

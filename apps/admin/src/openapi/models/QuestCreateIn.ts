@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type QuestCreateIn = {
     key?: (string | null);
-    tags?: (Array<string> | null);
     title: string;
+    tags?: (Array<string> | null);
 };
 

@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type TagCreate = {
-    name: string;
     slug: string;
+    name: string;
 };
 

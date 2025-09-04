@@ -14,19 +14,75 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AdminTagsService {
     /**
-     * Create tag
-     * @param requestBody
+     * List tags with usage
+     * @param q
+     * @param limit
+     * @param offset
      * @returns TagListItem Successful Response
      * @throws ApiError
      */
-    public static createTagAdminTagsPost(
-        requestBody: TagCreate,
-    ): CancelablePromise<TagListItem> {
+    public static listTagsAdminTagsListGet(
+        q?: (string | null),
+        limit: number = 200,
+        offset?: number,
+    ): CancelablePromise<Array<TagListItem>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/tags/list',
+            query: {
+                'q': q,
+                'limit': limit,
+                'offset': offset,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List tag aliases
+     * @param tagId
+     * @returns AliasOut Successful Response
+     * @throws ApiError
+     */
+    public static getAliasesAdminTagsTagIdAliasesGet(
+        tagId: string,
+    ): CancelablePromise<Array<AliasOut>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/tags/{tag_id}/aliases',
+            path: {
+                'tag_id': tagId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Add tag alias
+     * @param tagId
+     * @param alias
+     * @returns AliasOut Successful Response
+     * @throws ApiError
+     */
+    public static postAliasAdminTagsTagIdAliasesPost(
+        tagId: string,
+        alias: string,
+    ): CancelablePromise<AliasOut> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/tags/',
-            body: requestBody,
-            mediaType: 'application/json',
+            url: '/admin/tags/{tag_id}/aliases',
+            path: {
+                'tag_id': tagId,
+            },
+            query: {
+                'alias': alias,
+            },
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
@@ -49,6 +105,27 @@ export class AdminTagsService {
             path: {
                 'alias_id': aliasId,
             },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Merge tags (dry-run/apply)
+     * @param requestBody
+     * @returns MergeReport Successful Response
+     * @throws ApiError
+     */
+    public static mergeTagsAdminTagsMergePost(
+        requestBody: MergeIn,
+    ): CancelablePromise<MergeReport> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/tags/merge',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
@@ -122,45 +199,17 @@ export class AdminTagsService {
         });
     }
     /**
-     * List tags with usage
-     * @param q
-     * @param limit
-     * @param offset
+     * Create tag
+     * @param requestBody
      * @returns TagListItem Successful Response
      * @throws ApiError
      */
-    public static listTagsAdminTagsListGet(
-        q?: (string | null),
-        limit: number = 200,
-        offset?: number,
-    ): CancelablePromise<Array<TagListItem>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/admin/tags/list',
-            query: {
-                'q': q,
-                'limit': limit,
-                'offset': offset,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Merge tags (dry-run/apply)
-     * @param requestBody
-     * @returns MergeReport Successful Response
-     * @throws ApiError
-     */
-    public static mergeTagsAdminTagsMergePost(
-        requestBody: MergeIn,
-    ): CancelablePromise<MergeReport> {
+    public static createTagAdminTagsPost(
+        requestBody: TagCreate,
+    ): CancelablePromise<TagListItem> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/tags/merge',
+            url: '/admin/tags/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -184,55 +233,6 @@ export class AdminTagsService {
             url: '/admin/tags/{tag_id}',
             path: {
                 'tag_id': tagId,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List tag aliases
-     * @param tagId
-     * @returns AliasOut Successful Response
-     * @throws ApiError
-     */
-    public static getAliasesAdminTagsTagIdAliasesGet(
-        tagId: string,
-    ): CancelablePromise<Array<AliasOut>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/admin/tags/{tag_id}/aliases',
-            path: {
-                'tag_id': tagId,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Add tag alias
-     * @param tagId
-     * @param alias
-     * @returns AliasOut Successful Response
-     * @throws ApiError
-     */
-    public static postAliasAdminTagsTagIdAliasesPost(
-        tagId: string,
-        alias: string,
-    ): CancelablePromise<AliasOut> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/admin/tags/{tag_id}/aliases',
-            path: {
-                'tag_id': tagId,
-            },
-            query: {
-                'alias': alias,
             },
             errors: {
                 401: `Unauthorized`,

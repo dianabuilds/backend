@@ -12,69 +12,6 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AuthService {
     /**
-     * Change Password
-     * @param requestBody
-     * @param authorization
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static changePasswordAuthChangePasswordPost(
-        requestBody: ChangePasswordIn,
-        authorization: string = '',
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/auth/change-password',
-            headers: {
-                'authorization': authorization,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Evm Nonce
-     * @param userId User ID
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static evmNonceAuthEvmNonceGet(
-        userId?: string,
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/auth/evm/nonce',
-            query: {
-                'user_id': userId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Evm Verify
-     * @param requestBody
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static evmVerifyAuthEvmVerifyPost(
-        requestBody: EVMVerify,
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/auth/evm/verify',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Login
      * @param requestBody
      * @returns LoginResponse Successful Response
@@ -94,14 +31,22 @@ export class AuthService {
         });
     }
     /**
-     * Logout
-     * @returns any Successful Response
+     * Login
+     * @param requestBody
+     * @returns LoginResponse Successful Response
      * @throws ApiError
      */
-    public static logoutAuthLogoutPost(): CancelablePromise<Record<string, any>> {
+    public static loginAuthSigninPost(
+        requestBody: {
+            login: string;
+            password: string;
+        },
+    ): CancelablePromise<LoginResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/auth/logout',
+            url: '/auth/signin',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -157,6 +102,80 @@ export class AuthService {
             query: {
                 'token': token,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Change Password
+     * @param requestBody
+     * @param authorization
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static changePasswordAuthChangePasswordPost(
+        requestBody: ChangePasswordIn,
+        authorization: string = '',
+    ): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/auth/change-password',
+            headers: {
+                'authorization': authorization,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Logout
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static logoutAuthLogoutPost(): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/auth/logout',
+        });
+    }
+    /**
+     * Evm Nonce
+     * @param userId User ID
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static evmNonceAuthEvmNonceGet(
+        userId?: string,
+    ): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/auth/evm/nonce',
+            query: {
+                'user_id': userId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Evm Verify
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static evmVerifyAuthEvmVerifyPost(
+        requestBody: EVMVerify,
+    ): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/auth/evm/verify',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

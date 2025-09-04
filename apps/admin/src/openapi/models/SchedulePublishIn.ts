@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type SchedulePublishIn = {
-    access?: SchedulePublishIn.access;
     run_at: string;
+    access?: SchedulePublishIn.access;
 };
 export namespace SchedulePublishIn {
     export enum access {
