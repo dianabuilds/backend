@@ -13,6 +13,7 @@ from app.core.preview import PreviewContext  # isort: skip
 
 if TYPE_CHECKING:  # pragma: no cover - used for type hints only
     from app.domains.navigation.application.compass_service import CompassService
+    from app.domains.navigation.application.echo_service import EchoService
     from app.domains.navigation.application.transitions_service import (
         TransitionsService,
     )
@@ -80,6 +81,29 @@ class CompassProvider(TransitionProvider):
     ) -> Sequence[Node]:
         nodes = await self._service.get_compass_nodes(
             db, node, user, self._limit, preview=preview
+        )
+        return [n for n in nodes if n.workspace_id == workspace_id]
+
+
+class EchoProvider(TransitionProvider):
+    def __init__(self, service: EchoService | None = None, limit: int = 3) -> None:
+        if service is None:
+            from app.domains.navigation.application.echo_service import EchoService
+
+            service = EchoService()
+        self._service = service
+        self._limit = limit
+
+    async def get_transitions(
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: User | None,
+        workspace_id: UUID,
+        preview: PreviewContext | None = None,
+    ) -> Sequence[Node]:
+        nodes = await self._service.get_echo_transitions(
+            db, node, self._limit, user=user, preview=preview
         )
         return [n for n in nodes if n.workspace_id == workspace_id]
 

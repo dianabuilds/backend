@@ -16,6 +16,8 @@ from app.domains.navigation.api import preview_router as preview_module
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.infrastructure.models import Workspace
+from app.domains.tags.infrastructure.models.tag_models import NodeTag
+from app.domains.tags.models import Tag
 
 
 @pytest_asyncio.fixture()
@@ -25,6 +27,8 @@ async def preview_setup(monkeypatch):
         await conn.run_sync(Workspace.__table__.create)
         await conn.run_sync(User.__table__.create)
         await conn.run_sync(Node.__table__.create)
+        await conn.run_sync(Tag.__table__.create)
+        await conn.run_sync(NodeTag.__table__.create)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     app = FastAPI()
@@ -45,7 +49,7 @@ async def preview_setup(monkeypatch):
         def __init__(self) -> None:
             self._router = types.SimpleNamespace(history=[])
 
-        async def build_route(self, db, node, user, preview=None):
+        async def build_route(self, db, node, user, preview=None, mode=None):
             trace = [DummyTrace(chosen=True, policy="p")]
             return types.SimpleNamespace(
                 next=types.SimpleNamespace(slug="n2", tags=[]),

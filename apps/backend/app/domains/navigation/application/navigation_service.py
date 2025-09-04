@@ -16,8 +16,13 @@ from app.domains.quests.infrastructure.models.navigation_cache_models import (
 )
 from app.domains.users.infrastructure.models.user import User
 
-from .policies import CompassPolicy, ManualPolicy, RandomPolicy
-from .providers import CompassProvider, ManualTransitionsProvider, RandomProvider
+from .policies import CompassPolicy, EchoPolicy, ManualPolicy, RandomPolicy
+from .providers import (
+    CompassProvider,
+    EchoProvider,
+    ManualTransitionsProvider,
+    RandomProvider,
+)
 from .router import TransitionResult, TransitionRouter
 
 logger = logging.getLogger(__name__)
@@ -27,6 +32,7 @@ class NavigationService:
     def __init__(self) -> None:
         policies = [
             ManualPolicy(ManualTransitionsProvider()),
+            EchoPolicy(EchoProvider()),
             CompassPolicy(CompassProvider()),
             RandomPolicy(RandomProvider()),
         ]
@@ -45,6 +51,8 @@ class NavigationService:
         node: Node,
         user: User | None,
         preview: PreviewContext | None = None,
+        *,
+        mode: str | None = None,
     ) -> TransitionResult:
         budget = SimpleNamespace(
             max_time_ms=1000,
@@ -57,6 +65,7 @@ class NavigationService:
             node,
             user,
             budget,
+            mode=mode,
             preview=preview,
         )
 

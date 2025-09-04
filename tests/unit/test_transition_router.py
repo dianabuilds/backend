@@ -13,6 +13,7 @@ sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 from apps.backend.app.core.preview import PreviewContext  # noqa: E402
 from apps.backend.app.domains.navigation.application.policies import (  # noqa: E402
     CompassPolicy,
+    EchoPolicy,
     ManualPolicy,
     RandomPolicy,
 )
@@ -77,7 +78,7 @@ class ConditionalPolicy(ManualPolicy):
     name = "conditional"
 
 
-async def _build_route(router, start, steps, seed=None):
+async def _build_route(router, start, steps, seed=None, mode=None):
     budget = SimpleNamespace(
         max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
     )
@@ -85,7 +86,9 @@ async def _build_route(router, start, steps, seed=None):
     current = start
     preview = PreviewContext(seed=seed) if seed is not None else PreviewContext()
     for _ in range(steps):
-        result = await router.route(None, current, None, budget, preview=preview)
+        result = await router.route(
+            None, current, None, budget, mode=mode, preview=preview
+        )
         if result.next is None:
             break
         current = result.next
@@ -181,6 +184,19 @@ def test_policy_priority():
     )
     route = asyncio.run(_build_route(router, start, 1))
     assert [n.slug for n in route] == ["start", "p1"]
+
+
+def test_mode_priority_echo():
+    start = DummyNode("start")
+    manual_provider = StaticProvider({"start": [DummyNode("m1")]})
+    echo_provider = StaticProvider({"start": [DummyNode("e1")]})
+    policies = [
+        ManualPolicy(manual_provider),
+        EchoPolicy(echo_provider),
+    ]
+    router = TransitionRouter(policies, not_repeat_last=0)
+    route = asyncio.run(_build_route(router, start, 1, mode="echo"))
+    assert [n.slug for n in route] == ["start", "e1"]
 
 
 def test_fallback_chain_sequence():

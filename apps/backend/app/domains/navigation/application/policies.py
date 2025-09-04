@@ -103,6 +103,38 @@ class CompassPolicy(Policy):
         return None, TransitionTrace(candidate_slugs, filtered, {}, None)
 
 
+class EchoPolicy(Policy):
+    name = "echo"
+
+    async def choose(
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: User | None,
+        history: deque[str],
+        repeat_filter: RepeatFilter,
+        preview: PreviewContext | None = None,
+    ) -> tuple[Node | None, TransitionTrace]:
+        try:
+            candidates = await self.provider.get_transitions(
+                db, node, user, node.workspace_id, preview=preview
+            )
+        except TypeError:
+            candidates = await self.provider.get_transitions(
+                db, node, user, node.workspace_id
+            )
+        candidate_slugs = [n.slug for n in candidates]
+        filtered = [n.slug for n in candidates if n.slug in history]
+        candidates = [n for n in candidates if n.slug not in history]
+        candidates, filt2 = repeat_filter.filter(candidates)
+        filtered.extend(filt2)
+        from .router import TransitionTrace
+
+        for n in candidates:
+            return n, TransitionTrace(candidate_slugs, filtered, {}, n.slug)
+        return None, TransitionTrace(candidate_slugs, filtered, {}, None)
+
+
 class RandomPolicy(Policy):
     name = "random"
 

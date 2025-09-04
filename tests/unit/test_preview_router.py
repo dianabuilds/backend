@@ -41,6 +41,8 @@ from app.domains.navigation.api.preview_router import (  # noqa: E402
     simulate_transitions,
 )
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
+from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
+from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 from app.models.event_counter import UserEventCounter  # noqa: E402
@@ -77,7 +79,7 @@ class DummyNavigationService:
         self._router = DummyRouter()
         DummyNavigationService.last_instance = self
 
-    async def build_route(self, db, node, user, preview=None):
+    async def build_route(self, db, node, user, preview=None, mode=None):
         budget = SimpleNamespace(
             max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
         )
@@ -90,7 +92,13 @@ def test_dry_run_seed_and_no_side_effects(monkeypatch):
 
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(Workspace.__table__.create)
+            await conn.run_sync(User.__table__.create)
+            await conn.run_sync(Node.__table__.create)
+            await conn.run_sync(Tag.__table__.create)
+            await conn.run_sync(NodeTag.__table__.create)
+            await conn.run_sync(UserEventCounter.__table__.create)
+            await conn.run_sync(UserAchievement.__table__.create)
         async_session = sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
         )
@@ -98,7 +106,13 @@ def test_dry_run_seed_and_no_side_effects(monkeypatch):
         async with async_session() as session:
             user = User(id=uuid.uuid4())
             ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
-            node = Node(workspace_id=ws.id, slug="start", content={}, author_id=user.id)
+            node = Node(
+                id=1,
+                workspace_id=ws.id,
+                slug="start",
+                content={},
+                author_id=user.id,
+            )
             counter = UserEventCounter(
                 workspace_id=ws.id, user_id=user.id, event="evt", count=0
             )
@@ -170,7 +184,13 @@ def test_read_only_renders_route_without_transition(monkeypatch):
 
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(Workspace.__table__.create)
+            await conn.run_sync(User.__table__.create)
+            await conn.run_sync(Node.__table__.create)
+            await conn.run_sync(Tag.__table__.create)
+            await conn.run_sync(NodeTag.__table__.create)
+            await conn.run_sync(UserEventCounter.__table__.create)
+            await conn.run_sync(UserAchievement.__table__.create)
         async_session = sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
         )
@@ -178,7 +198,13 @@ def test_read_only_renders_route_without_transition(monkeypatch):
         async with async_session() as session:
             user = User(id=uuid.uuid4())
             ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
-            node = Node(workspace_id=ws.id, slug="start", content={}, author_id=user.id)
+            node = Node(
+                id=1,
+                workspace_id=ws.id,
+                slug="start",
+                content={},
+                author_id=user.id,
+            )
             session.add_all([user, ws, node])
             await session.commit()
 
@@ -203,7 +229,11 @@ def test_preview_token_workspace_validation(monkeypatch):
 
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(Workspace.__table__.create)
+            await conn.run_sync(User.__table__.create)
+            await conn.run_sync(Node.__table__.create)
+            await conn.run_sync(Tag.__table__.create)
+            await conn.run_sync(NodeTag.__table__.create)
         async_session = sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
         )
@@ -211,7 +241,13 @@ def test_preview_token_workspace_validation(monkeypatch):
         async with async_session() as session:
             user = User(id=uuid.uuid4())
             ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
-            node = Node(workspace_id=ws.id, slug="start", content={}, author_id=user.id)
+            node = Node(
+                id=1,
+                workspace_id=ws.id,
+                slug="start",
+                content={},
+                author_id=user.id,
+            )
             session.add_all([user, ws, node])
             await session.commit()
 
@@ -245,7 +281,13 @@ def test_returns_seed_for_replay(monkeypatch):
         async with async_session() as session:
             user = User(id=uuid.uuid4())
             ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
-            node = Node(workspace_id=ws.id, slug="start", content={}, author_id=user.id)
+            node = Node(
+                id=uuid.uuid4(),
+                workspace_id=ws.id,
+                slug="start",
+                content={},
+                author_id=user.id,
+            )
             session.add_all([user, ws, node])
             await session.commit()
 
