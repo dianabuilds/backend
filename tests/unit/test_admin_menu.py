@@ -43,6 +43,13 @@ def test_admin_sees_all_sections():
     assert monitoring and monitoring.path == "/monitoring"
 
 
+def test_menu_order_top_sections():
+    user = SimpleNamespace(role="admin")
+    menu = build_menu(user, [])
+    top_ids = [item.id for item in menu.items[:3]]
+    assert top_ids == ["dashboard", "monitoring", "notifications"]
+
+
 def test_moderator_moderation_flag():
     user = SimpleNamespace(role="moderator")
     menu = build_menu(user, ["moderation.enabled"])
