@@ -32,9 +32,8 @@ type NodeItem = {
 
 const EMPTY_NODES: NodeItem[] = [];
 
-type ChangeSet = Partial<
-  Pick<NodeItem, 'is_visible' | 'is_public' | 'premium_only' | 'is_recommendable'>
->;
+type ChangeKey = 'is_visible' | 'is_public' | 'premium_only' | 'is_recommendable';
+type ChangeSet = Partial<Record<ChangeKey, boolean>>;
 
 interface NodesProps {
   initialType?: string;
@@ -284,7 +283,7 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
 
   // Локальные изменения без немедленного вызова API.
   // Для is_visible используем модерационные ручки (hide с причиной / restore) — без staging.
-  const toggleField = (id: number, field: keyof ChangeSet) => {
+  const toggleField = (id: number, field: ChangeKey) => {
     if (field === 'is_visible') {
       const node = items.find((n) => n.id === id);
       if (node) openModerationFor(node);
@@ -302,56 +301,59 @@ export default function Nodes({ initialType = '' }: NodesProps = {}) {
 
     setPending((prev) => {
       const next = new Map(prev);
-      const cs = { ...(next.get(id) || {}) };
-      cs[field] = nextVal;
-      next.set(id, cs);
+      const cs = { ...(next.get(id) || {}) } as ChangeSet;
+      const base = baseline.get(id);
+      const baseVal = base ? (base as any)[field] : undefined;
+      if (baseVal === nextVal) {
+        delete cs[field];
+      } else {
+        cs[field] = nextVal;
+      }
+      if (Object.keys(cs).length === 0) {
+        next.delete(id);
+      } else {
+        next.set(id, cs);
+      }
       return next;
     });
   };
 
   const applyChanges = async () => {
-    if (pending.size === 0) return;
+    if (changesCount === 0) return;
     setApplying(true);
-    const ops: Record<string, string[]> = {
-      hide: [],
-      show: [],
-      public: [],
-      private: [],
-      toggle_premium: [],
-      toggle_recommendable: [],
-    };
+    const groups = new Map<string, { ids: number[]; changes: ChangeSet }>();
 
-    // Строим операции только по реально изменённым полям из pending
     for (const [id, cs] of pending.entries()) {
       const base = baseline.get(id);
       if (!base) continue;
-      if (cs.is_visible !== undefined && cs.is_visible !== base.is_visible) {
-        (cs.is_visible ? ops.show : ops.hide).push(id);
+      const diff: ChangeSet = {};
+      for (const key of Object.keys(cs) as ChangeKey[]) {
+        const nextVal = cs[key];
+        const baseVal = (base as any)[key];
+        if (nextVal !== undefined && nextVal !== baseVal) {
+          diff[key] = nextVal;
+        }
       }
-      if (cs.is_public !== undefined && cs.is_public !== base.is_public) {
-        (cs.is_public ? ops.public : ops.private).push(id);
-      }
-      if (cs.premium_only !== undefined && cs.premium_only !== base.premium_only) {
-        ops.toggle_premium.push(id);
-      }
-      if (cs.is_recommendable !== undefined && cs.is_recommendable !== base.is_recommendable) {
-        ops.toggle_recommendable.push(id);
+      if (Object.keys(diff).length === 0) continue;
+      const hash = JSON.stringify(diff);
+      const entry = groups.get(hash);
+      if (entry) {
+        entry.ids.push(id);
+      } else {
+        groups.set(hash, { ids: [id], changes: diff });
       }
     }
 
-    let any = false;
     const results: string[] = [];
     try {
-      for (const [op, ids] of Object.entries(ops)) {
-        if (ids.length === 0) continue;
-        any = true;
-        await wsApi.post(`/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/bulk`, {
+      for (const { ids, changes } of groups.values()) {
+        await wsApi.patch(`/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/bulk`, {
           ids,
-          op,
+          changes,
         });
-        results.push(`${op}: ${ids.length}`);
+        results.push(`${Object.keys(changes).join(',')}: ${ids.length}`);
       }
-      if (any) {
+      if (results.length > 0) {
         addToast({
           title: 'Changes applied',
           description: results.join(', '),
