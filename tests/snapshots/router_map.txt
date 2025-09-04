@@ -131,7 +131,6 @@
 /admin/workspaces/{workspace_id}/articles
 /admin/workspaces/{workspace_id}/articles/{node_id}
 /admin/workspaces/{workspace_id}/articles/{node_id}/publish
-/admin/workspaces/{workspace_id}/articles/{node_id}/validate
 /admin/workspaces/{workspace_id}/members
 /admin/workspaces/{workspace_id}/members/{user_id}
 /admin/workspaces/{workspace_id}/nodes

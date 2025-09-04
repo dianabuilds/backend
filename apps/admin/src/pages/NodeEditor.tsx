@@ -11,7 +11,6 @@ import ErrorBanner from '../components/ErrorBanner';
 import NodeSidebar from '../components/NodeSidebar';
 import StatusBadge from '../components/StatusBadge';
 import WorkspaceSelector from '../components/WorkspaceSelector';
-import type { ValidateResult } from '../openapi';
 import type { OutputData } from '../types/editorjs';
 import { usePatchQueue } from '../utils/usePatchQueue';
 import { useUnsavedChanges } from '../utils/useUnsavedChanges';
@@ -535,16 +534,6 @@ function NodeEditorInner({
       }
     : undefined;
 
-  const handleValidation = (res: ValidateResult) => {
-    const errs: { title: string | null; cover: string | null } = { title: null, cover: null };
-    for (const msg of res.errors) {
-      const m = msg.toLowerCase();
-      if (m.includes('title')) errs.title = msg;
-      if (m.includes('cover')) errs.cover = msg;
-    }
-    setFieldErrors((e) => ({ ...e, ...errs }));
-  };
-
   useUnsavedChanges(unsaved);
   useEffect(() => {
     titleRef.current?.focus();
@@ -791,7 +780,6 @@ function NodeEditorInner({
             }));
           }}
           hasChanges={unsaved}
-          onValidation={handleValidation}
         />
       </div>
     </div>

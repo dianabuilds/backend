@@ -13,7 +13,6 @@ from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import publish_content
-from app.schemas.quest_editor import ValidateResult
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -183,19 +182,3 @@ async def publish_article(
         Node, item.node_id or item.id, options=(selectinload(Node.tags),)
     )
     return _serialize(item, node)
-
-
-@router.post(
-    "/{node_id}/validate",
-    summary="Validate article (admin)",
-    response_model=ValidateResult,
-)
-async def validate_article(
-    node_id: int,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
-    current_user=Depends(admin_required),  # noqa: B008
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
-) -> ValidateResult:
-    svc = NodeService(db)
-    await svc.get(workspace_id, node_id)
-    return ValidateResult(ok=True, errors=[], warnings=[])

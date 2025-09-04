@@ -1,4 +1,4 @@
-import {AdminService, type NodeOut, type PublishIn, type Status, type ValidateResult} from '../openapi';
+import {AdminService, type NodeOut, type PublishIn, type Status} from '../openapi';
 import type {ApiResponse} from './client';
 import {wsApi} from './wsApi';
 
@@ -181,15 +181,6 @@ export async function publishNode(
         body,
     );
     return res as NodeOut;
-}
-
-export async function validateNode(workspaceId: string, id: number): Promise<ValidateResult> {
-    const res =
-        await AdminService.validateArticleAdminWorkspacesWorkspaceIdArticlesNodeIdValidatePost(
-            id,
-            workspaceId,
-        );
-    return res;
 }
 
 export async function simulateNode(
