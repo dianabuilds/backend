@@ -46,6 +46,7 @@
 /admin/hotfix/patches
 /admin/hotfix/patches/{patch_id}
 /admin/hotfix/patches/{patch_id}/revert
+/admin/jobs/queues
 /admin/jobs/recent
 /admin/media
 /admin/menu
@@ -56,6 +57,10 @@
 /admin/metrics/summary
 /admin/metrics/timeseries
 /admin/metrics/transitions
+/admin/moderation/cases
+/admin/moderation/cases/{case_id}
+/admin/moderation/cases/{case_id}/actions/close
+/admin/moderation/cases/{case_id}/notes
 /admin/moderation/queue
 /admin/navigation/cache/invalidate
 /admin/navigation/cache/set
@@ -130,6 +135,8 @@
 /admin/workspaces/{workspace_id}/articles/{node_id}/publish
 /admin/workspaces/{workspace_id}/members
 /admin/workspaces/{workspace_id}/members/{user_id}
+/admin/workspaces/{workspace_id}/moderation/nodes/{slug}/hide
+/admin/workspaces/{workspace_id}/moderation/nodes/{slug}/restore
 /admin/workspaces/{workspace_id}/nodes
 /admin/workspaces/{workspace_id}/nodes/bulk
 /admin/workspaces/{workspace_id}/nodes/types/{node_type}
@@ -156,6 +163,7 @@
 /auth/login
 /auth/logout
 /auth/refresh
+/auth/signin
 /auth/signup
 /auth/verify
 /health
@@ -163,6 +171,7 @@
 /media
 /metrics
 /metrics/rum
+/moderation/cases
 /navigation/compass
 /navigation/{slug}
 /nodes
