@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from typing import cast
 
 import requests
 
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def _simple_embedding(text: str) -> list[float]:
-    return SimpleEmbeddingProvider(EMBEDDING_DIM).embed(text)
+    return cast(list[float], SimpleEmbeddingProvider(EMBEDDING_DIM).embed(text))
 
 
 def _make_openai_provider(
@@ -34,13 +35,26 @@ def _make_openai_provider(
             "Content-Type": "application/json",
         }
         payload = {"model": model, "input": text}
-        resp = requests.post(url, json=payload, headers=headers, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        embedding = data["data"][0]["embedding"]
-        if len(embedding) != target_dim:
-            return reduce_vector_dim([float(x) for x in embedding], target_dim)
-        return [float(x) for x in embedding]
+        try:
+            resp = requests.post(url, json=payload, headers=headers, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+            embedding = data["data"][0]["embedding"]
+            if len(embedding) != target_dim:
+                return cast(
+                    list[float],
+                    reduce_vector_dim([float(x) for x in embedding], target_dim),
+                )
+            return [float(x) for x in embedding]
+        except requests.HTTPError as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", "?")
+            logger.error("openai embedding failed: status=%s", status)
+            vec = _simple_embedding(text)
+            return (
+                cast(list[float], reduce_vector_dim(vec, target_dim))
+                if len(vec) != target_dim
+                else vec
+            )
 
     return _provider
 
@@ -56,13 +70,26 @@ def _make_cohere_provider(
             "Content-Type": "application/json",
         }
         payload = {"model": model, "texts": [text]}
-        resp = requests.post(url, json=payload, headers=headers, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        embedding = data.get("embeddings", [[]])[0]
-        if len(embedding) != target_dim:
-            return reduce_vector_dim([float(x) for x in embedding], target_dim)
-        return [float(x) for x in embedding]
+        try:
+            resp = requests.post(url, json=payload, headers=headers, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+            embedding = data.get("embeddings", [[]])[0]
+            if len(embedding) != target_dim:
+                return cast(
+                    list[float],
+                    reduce_vector_dim([float(x) for x in embedding], target_dim),
+                )
+            return [float(x) for x in embedding]
+        except requests.HTTPError as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", "?")
+            logger.error("cohere embedding failed: status=%s", status)
+            vec = _simple_embedding(text)
+            return (
+                cast(list[float], reduce_vector_dim(vec, target_dim))
+                if len(vec) != target_dim
+                else vec
+            )
 
     return _provider
 
@@ -79,19 +106,32 @@ def _make_hf_provider(
     def _provider(text: str) -> list[float]:
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         payload = {"inputs": text}
-        resp = requests.post(base, json=payload, headers=headers, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-        if isinstance(data, dict) and "embedding" in data:
-            embedding = data["embedding"]
-        elif isinstance(data, list):
-            first = data[0]
-            embedding = first.get("embedding") if isinstance(first, dict) else first
-        else:
-            embedding = data
-        if len(embedding) != target_dim:
-            return reduce_vector_dim([float(x) for x in embedding], target_dim)
-        return [float(x) for x in embedding]
+        try:
+            resp = requests.post(base, json=payload, headers=headers, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            if isinstance(data, dict) and "embedding" in data:
+                embedding = data["embedding"]
+            elif isinstance(data, list):
+                first = data[0]
+                embedding = first.get("embedding") if isinstance(first, dict) else first
+            else:
+                embedding = data
+            if len(embedding) != target_dim:
+                return cast(
+                    list[float],
+                    reduce_vector_dim([float(x) for x in embedding], target_dim),
+                )
+            return [float(x) for x in embedding]
+        except requests.HTTPError as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", "?")
+            logger.error("huggingface embedding failed: status=%s", status)
+            vec = _simple_embedding(text)
+            return (
+                cast(list[float], reduce_vector_dim(vec, target_dim))
+                if len(vec) != target_dim
+                else vec
+            )
 
     return _provider
 
@@ -109,7 +149,10 @@ def _make_local_provider(model: str, target_dim: int) -> Callable[[str], list[fl
     def _provider(text: str) -> list[float]:
         vec = st_model.encode(text).tolist()
         if len(vec) != target_dim:
-            return reduce_vector_dim([float(x) for x in vec], target_dim)
+            return cast(
+                list[float],
+                reduce_vector_dim([float(x) for x in vec], target_dim),
+            )
         return [float(x) for x in vec]
 
     return _provider
@@ -136,7 +179,10 @@ def _make_aimlapi_provider(
             logger.error("Invalid embedding response structure: %s; body=%s", e, data)
             raise
         if len(embedding) != target_dim:
-            return reduce_vector_dim([float(x) for x in embedding], target_dim)
+            return cast(
+                list[float],
+                reduce_vector_dim([float(x) for x in embedding], target_dim),
+            )
         return [float(x) for x in embedding]
 
     return _provider
