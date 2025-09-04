@@ -340,12 +340,23 @@ async function request<T = unknown>(url: string, opts: RequestOptions = {}): Pro
       data?.code ||
       data?.error?.code ||
       undefined;
-    const msg =
+    let msg =
       (typeof detail === "object" && detail?.message) ||
       data?.message ||
       data?.error?.message ||
       resp.statusText ||
       "Request failed";
+    switch (resp.status) {
+      case 405:
+        msg = "Метод не поддерживается";
+        break;
+      case 422:
+        msg = "Ошибка валидации";
+        break;
+      case 500:
+        msg = "Внутренняя ошибка сервера";
+        break;
+    }
     throw new ApiError(
       String(msg),
       resp.status,
