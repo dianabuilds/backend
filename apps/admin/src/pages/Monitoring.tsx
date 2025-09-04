@@ -4,6 +4,7 @@ import CacheTab from "../features/monitoring/CacheTab";
 import JobsTab from "../features/monitoring/JobsTab";
 import RateLimitsTab from "../features/monitoring/RateLimitsTab";
 import RumTab from "../features/monitoring/RumTab";
+import { Card, CardContent } from "../components/ui/card";
 
 export default function Monitoring() {
   return (
@@ -11,16 +12,20 @@ export default function Monitoring() {
       <header className="sticky top-0 z-20 bg-white border-b px-6 py-3">
         <h1 className="font-bold text-xl">Monitoring</h1>
       </header>
-      <main className="flex-1">
-        <TabRouter
-          plugins={[
-            { name: "Telemetry", render: () => <RumTab /> },
-            { name: "Rate limits", render: () => <RateLimitsTab /> },
-            { name: "Cache", render: () => <CacheTab /> },
-            { name: "Audit log", render: () => <AuditLogTab /> },
-            { name: "Jobs", render: () => <JobsTab /> },
-          ]}
-        />
+      <main className="flex-1 p-4">
+        <Card className="h-full">
+          <CardContent className="p-0 h-full">
+            <TabRouter
+              plugins={[
+                { name: "Telemetry", render: () => <RumTab /> },
+                { name: "Rate limits", render: () => <RateLimitsTab /> },
+                { name: "Cache", render: () => <CacheTab /> },
+                { name: "Audit log", render: () => <AuditLogTab /> },
+                { name: "Jobs", render: () => <JobsTab /> },
+              ]}
+            />
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
