@@ -3,10 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 
 import { listFlags } from '../api/flags';
-import { patchNode, recomputeNodeEmbedding, validateNode } from '../api/nodes';
+import { patchNode, recomputeNodeEmbedding } from '../api/nodes';
 import { wsApi } from '../api/wsApi';
 import { useAuth } from '../auth/AuthContext';
-import type { ValidateResult } from '../openapi';
 import { compressImage } from '../utils/compressImage';
 
 interface CoverChange {
@@ -43,7 +42,6 @@ interface NodeSidebarProps {
   onAllowFeedbackChange?: (allow: boolean, updatedAt?: string) => void;
   onPremiumOnlyChange?: (premium: boolean, updatedAt?: string) => void;
   hasChanges?: boolean;
-  onValidation?: (res: ValidateResult) => void;
 }
 
 export default function NodeSidebar({
@@ -57,7 +55,6 @@ export default function NodeSidebar({
   onAllowFeedbackChange,
   onPremiumOnlyChange,
   hasChanges,
-  onValidation,
 }: NodeSidebarProps) {
   const { user } = useAuth();
   const role = user?.role;
@@ -102,8 +99,6 @@ export default function NodeSidebar({
     node.publishedAt ? node.publishedAt.slice(0, 16) : '',
   );
   const [scheduleSaving, setScheduleSaving] = useState(false);
-  const [validation, setValidation] = useState<ValidateResult | null>(null);
-  const [validating, setValidating] = useState(false);
   const [recomputing, setRecomputing] = useState(false);
 
   useEffect(() => {
@@ -195,32 +190,9 @@ export default function NodeSidebar({
     setEditing(false);
   };
 
-  const runValidation = async () => {
-    setValidating(true);
-    try {
-      const res = await validateNode(workspaceId, node.id);
-      setValidation(res);
-      onValidation?.(res);
-    } catch {
-      setValidation(null);
-      onValidation?.({ ok: false, errors: ['Validation failed'], warnings: [] });
-    } finally {
-      setValidating(false);
-    }
-  };
-
   const handleStatusChange = async (checked: boolean) => {
     setStatusSaving(true);
     try {
-      if (checked) {
-        const res = await validateNode(workspaceId, node.id);
-        setValidation(res);
-        onValidation?.(res);
-        if (!res.ok) {
-          setStatusSaving(false);
-          return;
-        }
-      }
       const res = await patchNode(workspaceId, node.id, {
         isPublic: checked,
         updatedAt: node.updatedAt,
@@ -510,39 +482,6 @@ export default function NodeSidebar({
               />
             </div>
           ) : null}
-        </div>
-      </details>
-      <details open>
-        <summary className="cursor-pointer font-semibold">Validation</summary>
-        <div className="mt-2 space-y-2 text-sm">
-          <button
-            type="button"
-            className="px-2 py-1 border rounded text-xs"
-            onClick={runValidation}
-            disabled={validating}
-          >
-            {validating ? 'Validating…' : 'Run validation'}
-          </button>
-          {validation ? (
-            validation.ok ? (
-              <div className="text-xs text-green-600">No validation errors.</div>
-            ) : (
-              <div className="space-y-1">
-                {validation.errors.map((err, i) => (
-                  <div key={i} className="text-xs text-red-600">
-                    {err}
-                  </div>
-                ))}
-                {validation.warnings.map((w, i) => (
-                  <div key={i} className="text-xs text-yellow-600">
-                    {w}
-                  </div>
-                ))}
-              </div>
-            )
-          ) : (
-            <div className="text-sm text-gray-500">No validation run.</div>
-          )}
         </div>
       </details>
       {canModerate ? (

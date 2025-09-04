@@ -44,7 +44,6 @@ Before promoting a draft to `published`:
 
 - Title and slug are unique within the workspace.
 - Required tags are assigned and follow the taxonomy rules.
-- `POST /admin/workspaces/{workspace_id}/nodes/{type}/{id}/validate` returns no blocking issues.
 - Cover media and other mandatory fields are set.
 - Peer review is completed (`in_review`).
 - Publish via `POST /admin/workspaces/{workspace_id}/nodes/{type}/{id}/publish` and verify in the
@@ -118,7 +117,6 @@ Common endpoints:
 | Get node | `/admin/workspaces/{id}/nodes/{type}/{id}` |
 | Update node | `/admin/workspaces/{id}/nodes/{type}/{id}` |
 | Publish node | `/admin/workspaces/{id}/nodes/{type}/{id}/publish` |
-| Validate node | `/admin/workspaces/{id}/nodes/{type}/{id}/validate` |
 
 - `GET /admin/workspaces/{id}/nodes` – dashboard with counts of drafts, reviews
   and published items.
@@ -130,8 +128,6 @@ Common endpoints:
 - `PATCH /admin/workspaces/{id}/nodes/{type}/{id}` – update an item.
 - `POST /admin/workspaces/{id}/nodes/{type}/{id}/publish` – mark the item as
   published.
-- `POST /admin/workspaces/{id}/nodes/{type}/{id}/validate` – run validators and
-  return a report.
 
 Identifiers in these endpoints are **UUIDs** of the corresponding ``NodeItem``.
 A numeric ``nodes.id`` is accepted for backward compatibility but clients
