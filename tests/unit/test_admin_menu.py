@@ -32,7 +32,13 @@ def test_admin_sees_all_sections():
     user = SimpleNamespace(role="admin")
     menu = build_menu(user, [])
     ids = collect_ids(menu.items)
-    assert {"content", "navigation", "monitoring", "administration"}.issubset(ids)
+    assert {
+        "content",
+        "navigation",
+        "monitoring",
+        "administration",
+        "notifications",
+    }.issubset(ids)
     monitoring = find_item(menu.items, "monitoring")
     assert monitoring and monitoring.path == "/monitoring"
 
@@ -44,6 +50,7 @@ def test_moderator_moderation_flag():
     assert "moderation" in ids
     assert "premium-plans" not in ids
     assert "cache" not in ids
+    assert "notifications" not in ids
 
 
 def test_user_has_limited_access():
@@ -54,3 +61,4 @@ def test_user_has_limited_access():
     assert "moderation" not in ids
     assert "rum" not in ids
     assert "navigation-main" in ids
+    assert "notifications" not in ids
