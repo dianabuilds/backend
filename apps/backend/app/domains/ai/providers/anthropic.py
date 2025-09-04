@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx
 
+from app.core.errors import ERROR_CODE_MAP, DomainError
 from app.domains.ai.providers.base import (
     LLMProvider,
     LLMRateLimit,
@@ -64,6 +65,20 @@ class AnthropicProvider(LLMProvider):
                         raise LLMRateLimit(resp.text)
                     if resp.status_code >= 500:
                         raise LLMServerError(resp.text)
+                    if 400 <= resp.status_code < 500:
+                        try:
+                            details = resp.json()
+                            message = details.get("message", resp.text)
+                        except Exception:
+                            details = resp.text
+                            message = resp.text
+                        code = ERROR_CODE_MAP.get(resp.status_code, "HTTP_ERROR")
+                        raise DomainError(
+                            code,
+                            message,
+                            status_code=resp.status_code,
+                            details=details,
+                        )
                     resp.raise_for_status()
                     data = resp.json()
                     content = ""
