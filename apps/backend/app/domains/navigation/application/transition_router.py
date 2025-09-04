@@ -18,7 +18,7 @@ from sqlalchemy.future import select
 
 from app.core.preview import PreviewContext  # isort: skip
 from app.core.log_events import no_route, transition_finish, transition_start
-from app.core.metrics import (
+from app.core.transition_metrics import (
     record_fallback_used,
     record_no_route,
     record_repeat_rate,
