@@ -10,6 +10,16 @@ import FlagsCell from '../components/FlagsCell';
 import { useToast } from '../components/ToastProvider';
 import WorkspaceControlPanel from '../components/WorkspaceControlPanel';
 import WorkspaceSelector from '../components/WorkspaceSelector';
+import { Card, CardContent } from '../components/ui/card';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/table';
+import { Button } from '../shared/ui';
 import type { Status } from '../openapi';
 import { ensureArray } from '../shared/utils';
 import { confirmWithEnv } from '../utils/env';
@@ -471,454 +481,451 @@ export default function Nodes() {
 
         <WorkspaceControlPanel />
 
-        {/* Панель поиска и применения изменений */}
-        <div className="mb-3 flex items-center gap-2">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by title or slug..."
-            className="border rounded px-2 py-1"
-          />
-          <select
-            className="border rounded px-2 py-1"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(0);
-              setTimeout(() => {
-                setPage(0);
-                void refetch();
-              });
-            }}
-          >
-            <option value="all">all statuses</option>
-            <option value="draft">draft</option>
-            <option value="in_review">in_review</option>
-            <option value="published">published</option>
-            <option value="archived">archived</option>
-          </select>
-          <select
-            className="border rounded px-2 py-1"
-            value={visibility}
-            onChange={(e) => {
-              setVisibility(e.target.value as any);
-              setPage(0);
-              // Подгружаем заново с новым фильтром
-              setTimeout(() => {
-                setPage(0);
-                void refetch();
-              });
-            }}
-          >
-            <option value="all">all</option>
-            <option value="visible">visible</option>
-            <option value="hidden">hidden</option>
-          </select>
-          <select
-            className="border rounded px-2 py-1"
-            value={isPublic}
-            onChange={(e) => {
-              setIsPublic(e.target.value as any);
-              setPage(0);
-              setTimeout(() => {
-                setPage(0);
-                void refetch();
-              });
-            }}
-          >
-            <option value="all">all</option>
-            <option value="true">public</option>
-            <option value="false">private</option>
-          </select>
-          <select
-            className="border rounded px-2 py-1"
-            value={premium}
-            onChange={(e) => {
-              setPremium(e.target.value as any);
-              setPage(0);
-              setTimeout(() => {
-                setPage(0);
-                void refetch();
-              });
-            }}
-          >
-            <option value="all">all</option>
-            <option value="true">premium</option>
-            <option value="false">free</option>
-          </select>
-          <select
-            className="border rounded px-2 py-1"
-            value={recommendable}
-            onChange={(e) => {
-              setRecommendable(e.target.value as any);
-              setPage(0);
-              setTimeout(() => {
-                setPage(0);
-                void refetch();
-              });
-            }}
-          >
-            <option value="all">all</option>
-            <option value="true">recommendable</option>
-            <option value="false">not recommendable</option>
-          </select>
-          <button
-            type="button"
-            onClick={() => {
-              setPage(0);
-              setPage(0);
-              void refetch();
-            }}
-            className="px-3 py-1 rounded border"
-          >
-            Search
-          </button>
-
-          <label className="ml-2 text-sm text-gray-600">
-            per page:
-            <select
-              className="ml-2 border rounded px-2 py-1"
-              value={limit}
-              onChange={(e) => {
-                const val = Number(e.target.value) || 10;
-                setLimit(val);
-                setPage(0);
-                // перегружаем список с новым лимитом
-                setTimeout(() => {
+        <Card className="sticky top-0 z-10 mb-4">
+          <CardContent className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search by title or slug..."
+                className="border rounded px-2 py-1 flex-1 min-w-[180px]"
+              />
+              <select
+                className="border rounded px-2 py-1"
+                value={status}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setPage(0);
+                  setTimeout(() => {
+                    setPage(0);
+                    void refetch();
+                  });
+                }}
+              >
+                <option value="all">all statuses</option>
+                <option value="draft">draft</option>
+                <option value="in_review">in_review</option>
+                <option value="published">published</option>
+                <option value="archived">archived</option>
+              </select>
+              <select
+                className="border rounded px-2 py-1"
+                value={visibility}
+                onChange={(e) => {
+                  setVisibility(e.target.value as any);
+                  setPage(0);
+                  setTimeout(() => {
+                    setPage(0);
+                    void refetch();
+                  });
+                }}
+              >
+                <option value="all">all</option>
+                <option value="visible">visible</option>
+                <option value="hidden">hidden</option>
+              </select>
+              <select
+                className="border rounded px-2 py-1"
+                value={isPublic}
+                onChange={(e) => {
+                  setIsPublic(e.target.value as any);
+                  setPage(0);
+                  setTimeout(() => {
+                    setPage(0);
+                    void refetch();
+                  });
+                }}
+              >
+                <option value="all">all</option>
+                <option value="true">public</option>
+                <option value="false">private</option>
+              </select>
+              <select
+                className="border rounded px-2 py-1"
+                value={premium}
+                onChange={(e) => {
+                  setPremium(e.target.value as any);
+                  setPage(0);
+                  setTimeout(() => {
+                    setPage(0);
+                    void refetch();
+                  });
+                }}
+              >
+                <option value="all">all</option>
+                <option value="true">premium</option>
+                <option value="false">free</option>
+              </select>
+              <select
+                className="border rounded px-2 py-1"
+                value={recommendable}
+                onChange={(e) => {
+                  setRecommendable(e.target.value as any);
+                  setPage(0);
+                  setTimeout(() => {
+                    setPage(0);
+                    void refetch();
+                  });
+                }}
+              >
+                <option value="all">all</option>
+                <option value="true">recommendable</option>
+                <option value="false">not recommendable</option>
+              </select>
+              <Button
+                type="button"
+                onClick={() => {
+                  setPage(0);
                   setPage(0);
                   void refetch();
-                });
-              }}
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </label>
+                }}
+              >
+                Search
+              </Button>
 
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              className="px-3 py-1 rounded bg-green-600 text-white disabled:opacity-50"
-              disabled={changesCount === 0 || loading || applying}
-              onClick={applyChanges}
-            >
-              {applying
-                ? 'Applying…'
-                : `Apply changes${changesCount > 0 ? ` (${changesCount})` : ''}`}
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1 rounded border disabled:opacity-50"
-              disabled={changesCount === 0 || loading || applying}
-              onClick={discardChanges}
-            >
-              Discard
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1 rounded bg-blue-600 text-white"
-              onClick={() => {
-                const qs = workspaceId ? `?workspace_id=${encodeURIComponent(workspaceId)}` : '';
-                navigate(`/nodes/article/new${qs}`);
-              }}
-            >
-              Add node
-            </button>
-          </div>
-        </div>
+              <label className="ml-2 text-sm text-gray-600">
+                per page:
+                <select
+                  className="ml-2 border rounded px-2 py-1"
+                  value={limit}
+                  onChange={(e) => {
+                    const val = Number(e.target.value) || 10;
+                    setLimit(val);
+                    setPage(0);
+                    setTimeout(() => {
+                      setPage(0);
+                      void refetch();
+                    });
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </label>
+
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  type="button"
+                  className="bg-green-600 text-white disabled:opacity-50"
+                  disabled={changesCount === 0 || loading || applying}
+                  onClick={applyChanges}
+                >
+                  {applying
+                    ? 'Applying…'
+                    : `Apply changes${changesCount > 0 ? ` (${changesCount})` : ''}`}
+                </Button>
+                <Button
+                  type="button"
+                  className="disabled:opacity-50"
+                  disabled={changesCount === 0 || loading || applying}
+                  onClick={discardChanges}
+                >
+                  Discard
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-blue-600 text-white"
+                  onClick={() => {
+                    const qs = workspaceId
+                      ? `?workspace_id=${encodeURIComponent(workspaceId)}`
+                      : '';
+                    navigate(`/nodes/article/new${qs}`);
+                  }}
+                >
+                  Add node
+                </Button>
+              </div>
+            </div>
+            {selected.size > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <span className="self-center text-sm">Selected {selected.size}</span>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setItems(
+                      items.map((n) => (selected.has(n.id) ? { ...n, is_visible: false } : n)),
+                    );
+                    setPending((p) => {
+                      const m = new Map(p);
+                      Array.from(selected).forEach((id) => {
+                        const cs = { ...(m.get(id) || {}) };
+                        cs.is_visible = false;
+                        m.set(id, cs);
+                      });
+                      return m;
+                    });
+                  }}
+                >
+                  Hide
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setItems(
+                      items.map((n) => (selected.has(n.id) ? { ...n, is_visible: true } : n)),
+                    );
+                    setPending((p) => {
+                      const m = new Map(p);
+                      Array.from(selected).forEach((id) => {
+                        const cs = { ...(m.get(id) || {}) };
+                        cs.is_visible = true;
+                        m.set(id, cs);
+                      });
+                      return m;
+                    });
+                  }}
+                >
+                  Show
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setItems(
+                      items.map((n) => (selected.has(n.id) ? { ...n, is_public: true } : n)),
+                    );
+                    setPending((p) => {
+                      const m = new Map(p);
+                      Array.from(selected).forEach((id) => {
+                        const cs = { ...(m.get(id) || {}) };
+                        cs.is_public = true;
+                        m.set(id, cs);
+                      });
+                      return m;
+                    });
+                  }}
+                >
+                  Public
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setItems(
+                      items.map((n) => (selected.has(n.id) ? { ...n, is_public: false } : n)),
+                    );
+                    setPending((p) => {
+                      const m = new Map(p);
+                      Array.from(selected).forEach((id) => {
+                        const cs = { ...(m.get(id) || {}) };
+                        cs.is_public = false;
+                        m.set(id, cs);
+                      });
+                      return m;
+                    });
+                  }}
+                >
+                  Private
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setItems(
+                      items.map((n) => (selected.has(n.id) ? { ...n, premium_only: true } : n)),
+                    );
+                    setPending((p) => {
+                      const m = new Map(p);
+                      Array.from(selected).forEach((id) => {
+                        const cs = { ...(m.get(id) || {}) };
+                        cs.premium_only = true;
+                        m.set(id, cs);
+                      });
+                      return m;
+                    });
+                  }}
+                >
+                  Premium
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setItems(
+                      items.map((n) =>
+                        selected.has(n.id) ? { ...n, premium_only: false } : n,
+                      ),
+                    );
+                    setPending((p) => {
+                      const m = new Map(p);
+                      Array.from(selected).forEach((id) => {
+                        const cs = { ...(m.get(id) || {}) };
+                        cs.premium_only = false;
+                        m.set(id, cs);
+                      });
+                      return m;
+                    });
+                  }}
+                >
+                  Free
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setItems(
+                      items.map((n) =>
+                        selected.has(n.id)
+                          ? { ...n, is_recommendable: !n.is_recommendable }
+                          : n,
+                      ),
+                    );
+                    setPending((p) => {
+                      const m = new Map(p);
+                      Array.from(selected).forEach((id) => {
+                        const cs = { ...(m.get(id) || {}) };
+                        cs.is_recommendable = !(baseline.get(id)?.is_recommendable ?? false);
+                        m.set(id, cs);
+                      });
+                      return m;
+                    });
+                  }}
+                >
+                  Toggle recommendable
+                </Button>
+                <Button type="button" className="ml-auto" onClick={() => setSelected(new Set())}>
+                  Clear
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {loading && <p>Loading...</p>}
         {errorMsg && <p className="text-red-600">{errorMsg}</p>}
 
-        {/* Bulk по выделению (по-прежнему доступно) */}
-        {selected.size > 0 && (
-          <div className="mb-2 flex gap-2">
-            <span className="self-center text-sm">Selected {selected.size}</span>
-            <button
-              type="button"
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                setItems(items.map((n) => (selected.has(n.id) ? { ...n, is_visible: false } : n)));
-                setPending((p) => {
-                  const m = new Map(p);
-                  Array.from(selected).forEach((id) => {
-                    const cs = { ...(m.get(id) || {}) };
-                    cs.is_visible = false;
-                    m.set(id, cs);
-                  });
-                  return m;
-                });
-              }}
-            >
-              Hide
-            </button>
-            <button
-              type="button"
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                setItems(items.map((n) => (selected.has(n.id) ? { ...n, is_visible: true } : n)));
-                setPending((p) => {
-                  const m = new Map(p);
-                  Array.from(selected).forEach((id) => {
-                    const cs = { ...(m.get(id) || {}) };
-                    cs.is_visible = true;
-                    m.set(id, cs);
-                  });
-                  return m;
-                });
-              }}
-            >
-              Show
-            </button>
-            <button
-              type="button"
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                setItems(items.map((n) => (selected.has(n.id) ? { ...n, is_public: true } : n)));
-                setPending((p) => {
-                  const m = new Map(p);
-                  Array.from(selected).forEach((id) => {
-                    const cs = { ...(m.get(id) || {}) };
-                    cs.is_public = true;
-                    m.set(id, cs);
-                  });
-                  return m;
-                });
-              }}
-            >
-              Public
-            </button>
-            <button
-              type="button"
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                setItems(items.map((n) => (selected.has(n.id) ? { ...n, is_public: false } : n)));
-                setPending((p) => {
-                  const m = new Map(p);
-                  Array.from(selected).forEach((id) => {
-                    const cs = { ...(m.get(id) || {}) };
-                    cs.is_public = false;
-                    m.set(id, cs);
-                  });
-                  return m;
-                });
-              }}
-            >
-              Private
-            </button>
-            <button
-              type="button"
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                setItems(items.map((n) => (selected.has(n.id) ? { ...n, premium_only: true } : n)));
-                setPending((p) => {
-                  const m = new Map(p);
-                  Array.from(selected).forEach((id) => {
-                    const cs = { ...(m.get(id) || {}) };
-                    cs.premium_only = true;
-                    m.set(id, cs);
-                  });
-                  return m;
-                });
-              }}
-            >
-              Premium
-            </button>
-            <button
-              type="button"
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                setItems(
-                  items.map((n) => (selected.has(n.id) ? { ...n, premium_only: false } : n)),
-                );
-                setPending((p) => {
-                  const m = new Map(p);
-                  Array.from(selected).forEach((id) => {
-                    const cs = { ...(m.get(id) || {}) };
-                    cs.premium_only = false;
-                    m.set(id, cs);
-                  });
-                  return m;
-                });
-              }}
-            >
-              Free
-            </button>
-            <button
-              type="button"
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                setItems(
-                  items.map((n) =>
-                    selected.has(n.id) ? { ...n, is_recommendable: !n.is_recommendable } : n,
-                  ),
-                );
-                setPending((p) => {
-                  const m = new Map(p);
-                  Array.from(selected).forEach((id) => {
-                    const cs = { ...(m.get(id) || {}) };
-                    cs.is_recommendable = !(baseline.get(id)?.is_recommendable ?? false);
-                    m.set(id, cs);
-                  });
-                  return m;
-                });
-              }}
-            >
-              Toggle recommendable
-            </button>
-            <button
-              type="button"
-              className="ml-auto px-2 py-1 border rounded"
-              onClick={() => setSelected(new Set())}
-            >
-              Clear
-            </button>
-          </div>
-        )}
-
-        {/* Таблица нод */}
         {!loading && !errorMsg && (
           <>
-            <table className="min-w-full text-sm text-left">
-              <thead>
-                <tr className="border-b">
-                  <th className="p-2">
-                    <input
-                      type="checkbox"
-                      checked={items.length > 0 && selected.size === items.length}
-                      onChange={(e) =>
-                        setSelected(e.target.checked ? new Set(items.map((i) => i.id)) : new Set())
-                      }
-                    />
-                  </th>
-                  <th className="p-2">ID</th>
-                  <th className="p-2">Title</th>
-                  <th className="p-2">Flags</th>
-                  <th className="p-2">Created</th>
-                  <th className="p-2">Updated</th>
-                  <th className="p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((n, i) => {
-                  const base = baseline.get(n.id);
-                  const changed =
-                    !!base &&
-                    (base.is_visible !== n.is_visible ||
-                      base.is_public !== n.is_public ||
-                      base.premium_only !== n.premium_only ||
-                      base.is_recommendable !== n.is_recommendable);
+            <div className="overflow-x-auto">
+              <Table className="min-w-full text-left">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8">
+                      <input
+                        type="checkbox"
+                        checked={items.length > 0 && selected.size === items.length}
+                        onChange={(e) =>
+                          setSelected(e.target.checked ? new Set(items.map((i) => i.id)) : new Set())
+                        }
+                      />
+                    </TableHead>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead className="text-center">Flags</TableHead>
+                    <TableHead className="hidden md:table-cell">Created</TableHead>
+                    <TableHead className="hidden md:table-cell">Updated</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((n, i) => {
+                    const base = baseline.get(n.id);
+                    const changed =
+                      !!base &&
+                      (base.is_visible !== n.is_visible ||
+                        base.is_public !== n.is_public ||
+                        base.premium_only !== n.premium_only ||
+                        base.is_recommendable !== n.is_recommendable);
 
-                  return (
-                    <tr
-                      key={n.id ?? i}
-                      className={`border-b hover:bg-gray-50 dark:hover:bg-gray-800 ${changed ? 'bg-amber-50 dark:bg-amber-900/20' : ''}`}
-                    >
-                      <td className="p-2">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(n.id)}
-                          onChange={() => toggleSelect(n.id)}
-                        />
-                      </td>
-                      <td className="p-2 font-mono">{n.id ?? '-'}</td>
-                      <td className="p-2">
-                        <div className="relative group pr-16">
-                          <div className="font-bold">{n.title?.trim() || 'Untitled'}</div>
-                          <div className="text-gray-500 text-xs font-mono">{n.slug ?? '-'}</div>
-                          {n.slug && (
-                            <button
-                              type="button"
-                              className="absolute top-0 right-0 text-xs text-blue-600 opacity-0 group-hover:opacity-100"
-                              onClick={() => copySlug(n.slug ?? '')}
-                            >
-                              Copy slug
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-2 text-center">
-                        <FlagsCell
-                          value={{
-                            is_visible: n.is_visible,
-                            is_public: n.is_public,
-                            premium_only: n.premium_only,
-                            is_recommendable: n.is_recommendable,
-                          }}
-                          onToggle={(f) => toggleField(n.id, f)}
-                          disabledVisible={applying || loading || modBusy}
-                        />
-                      </td>
-                      <td className="p-2">
-                        {n.createdAt ? new Date(n.createdAt).toLocaleString() : '-'}
-                      </td>
-                      <td className="p-2">
-                        {n.updatedAt ? new Date(n.updatedAt).toLocaleString() : '-'}
-                      </td>
-                      <td className="p-2 space-x-2">
-                        <button
-                          type="button"
-                          className="px-2 py-1 border rounded"
-                          onClick={() => {
-                            const t = n.type || 'article';
-                            navigate(`/nodes/${t}/${n.id}?workspace_id=${workspaceId}`);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="px-2 py-1 border rounded"
-                          onClick={async () => {
-                            if (!workspaceId) return;
-                            try {
-                              const { url } = await createPreviewLink(workspaceId);
+                    return (
+                      <TableRow key={n.id ?? i} className={changed ? 'bg-amber-50 dark:bg-amber-900/20' : ''}>
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            checked={selected.has(n.id)}
+                            onChange={() => toggleSelect(n.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-mono">{n.id ?? '-'}</TableCell>
+                        <TableCell>
+                          <div className="relative group pr-16">
+                            <div className="font-bold">{n.title?.trim() || 'Untitled'}</div>
+                            <div className="text-gray-500 text-xs font-mono">{n.slug ?? '-'}</div>
+                            {n.slug && (
+                              <Button
+                                type="button"
+                                className="absolute top-0 right-0 text-xs text-blue-600 opacity-0 group-hover:opacity-100 border-none px-1 py-0"
+                                onClick={() => copySlug(n.slug ?? '')}
+                              >
+                                Copy slug
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <FlagsCell
+                            value={{
+                              is_visible: n.is_visible,
+                              is_public: n.is_public,
+                              premium_only: n.premium_only,
+                              is_recommendable: n.is_recommendable,
+                            }}
+                            onToggle={(f) => toggleField(n.id, f)}
+                            disabledVisible={applying || loading || modBusy}
+                          />
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {n.createdAt ? new Date(n.createdAt).toLocaleString() : '-'}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {n.updatedAt ? new Date(n.updatedAt).toLocaleString() : '-'}
+                        </TableCell>
+                        <TableCell className="space-x-2">
+                          <Button
+                            type="button"
+                            onClick={() => {
                               const t = n.type || 'article';
-                              window.open(`${url}/nodes/${t}/${n.id}`, '_blank');
-                            } catch (e) {
-                              addToast({
-                                title: 'Preview failed',
-                                description: e instanceof Error ? e.message : String(e),
-                                variant: 'error',
-                              });
-                            }
-                          }}
-                        >
-                          Preview
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="p-4 text-center text-gray-500">
-                      No nodes found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                              navigate(`/nodes/${t}/${n.id}?workspace_id=${workspaceId}`);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={async () => {
+                              if (!workspaceId) return;
+                              try {
+                                const { url } = await createPreviewLink(workspaceId);
+                                const t = n.type || 'article';
+                                window.open(`${url}/nodes/${t}/${n.id}`, '_blank');
+                              } catch (e) {
+                                addToast({
+                                  title: 'Preview failed',
+                                  description: e instanceof Error ? e.message : String(e),
+                                  variant: 'error',
+                                });
+                              }
+                            }}
+                          >
+                            Preview
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {items.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="p-4 text-center text-gray-500">
+                        No nodes found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
             <div className="flex items-center gap-2 mt-2">
-              <button
+              <Button
                 type="button"
-                className="px-2 py-1 border rounded"
                 disabled={page === 0}
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
               >
                 Prev
-              </button>
+              </Button>
               <span className="text-sm">Page {page + 1}</span>
-              <button
+              <Button
                 type="button"
-                className="px-2 py-1 border rounded"
                 disabled={!hasMore}
                 onClick={() => setPage((p) => p + 1)}
               >
                 Next
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -939,22 +946,17 @@ export default function Nodes() {
                 disabled={modBusy}
               />
               <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  className="px-3 py-1 rounded border"
-                  onClick={() => setModOpen(false)}
-                  disabled={modBusy}
-                >
+                <Button type="button" onClick={() => setModOpen(false)} disabled={modBusy}>
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="px-3 py-1 rounded bg-gray-800 text-white disabled:opacity-50"
+                  className="bg-gray-800 text-white disabled:opacity-50"
                   onClick={submitModerationHide}
                   disabled={modBusy}
                 >
                   {modBusy ? 'Hiding…' : 'Hide'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
