@@ -6,13 +6,7 @@ import {
   useState,
 } from "react";
 
-import {
-  api,
-  apiFetch,
-  setAccessToken,
-  setCsrfToken,
-  syncCsrfFromResponse,
-} from "../api/client";
+import { api, apiFetch, setCsrfToken, syncCsrfFromResponse } from "../api/client";
 
 interface User {
   id: string;
@@ -52,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // игнорируем — цель только локально очистить состояние
     }
     setCsrfToken(null);
-    setAccessToken(null);
     setUser(null);
   };
 
@@ -75,48 +68,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = (await resp.json()) as {
         ok: boolean;
         csrf_token?: string;
-        access_token?: string;
       };
       if (!resp.ok || !data.ok) {
         throw new Error("Неверный логин или пароль");
       }
 
-      // Сохраняем CSRF и access_token (для Bearer)
+      // Сохраняем CSRF
       if (data.csrf_token) setCsrfToken(data.csrf_token);
-      if (data.access_token) setAccessToken(data.access_token);
 
-      // 2) Профиль: сначала пробуем без Authorization (чтобы избежать preflight), короткий таймаут
-      let me: User | null = null;
-      try {
-        const meNoAuthResp = await apiFetch("/users/me", {
-          timeoutMs: 20000,
-          skipAuth: true,
-        });
-        if (meNoAuthResp.ok) {
-          me = (await meNoAuthResp.json()) as User;
-        }
-      } catch (e: unknown) {
-        // Если 401 — пробуем повторить с Bearer и большим таймаутом
-        const isUnauthorized =
-          e instanceof Error && /401|unauthorized/i.test(e.message);
-        if (!isUnauthorized) {
-          // Падать не спешим — попробуем с Bearer в любом случае
-        }
-      }
-
-      if (!me) {
-        const meHeaders: Record<string, string> = {};
-        if (data.access_token) {
-          meHeaders["Authorization"] = `Bearer ${data.access_token}`;
-        }
-        const meRes = await api.get<User>("/users/me", {
-          headers: meHeaders,
-          timeoutMs: 60000,
-        });
-        me = meRes.data as User;
-      }
-
+      // 2) Профиль после успешного логина
+      const meRes = await api.get<User>("/users/me", { timeoutMs: 60000 });
+      const me = meRes.data as User;
       if (!me) throw new Error("Не удалось получить профиль");
+
       if (!isAllowed(me.role)) {
         throw new Error("Недостаточно прав");
       }

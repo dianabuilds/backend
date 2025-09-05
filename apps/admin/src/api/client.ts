@@ -4,9 +4,6 @@ import { safeLocalStorage, safeSessionStorage } from "../utils/safeStorage";
 
 let csrfTokenMem: string | null = safeSessionStorage.getItem("csrfToken");
 
-// Храним access_token для Bearer, если cookie недоступны/не прикрепились
-let accessTokenMem: string | null = safeSessionStorage.getItem("accessToken");
-
 // Токен превью-сессии для доступа без авторизации
 let previewTokenMem: string | null = safeSessionStorage.getItem("previewToken");
 
@@ -14,12 +11,6 @@ export function setCsrfToken(token: string | null) {
   csrfTokenMem = token || null;
   if (token) safeSessionStorage.setItem("csrfToken", token);
   else safeSessionStorage.removeItem("csrfToken");
-}
-
-export function setAccessToken(token: string | null) {
-  accessTokenMem = token || null;
-  if (token) safeSessionStorage.setItem("accessToken", token);
-  else safeSessionStorage.removeItem("accessToken");
 }
 
 export function setPreviewToken(token: string | null) {
@@ -39,8 +30,6 @@ export async function syncCsrfFromResponse(resp: Response): Promise<void> {
         | null;
       const token = data && (data.csrf_token || data.csrfToken || data.csrf);
       if (typeof token === "string" && token) setCsrfToken(token);
-      const access = data && (data.access_token || data.accessToken);
-      if (typeof access === "string" && access) setAccessToken(access);
     }
   } catch {
     // игнорируем
@@ -65,13 +54,6 @@ function getCsrfToken(): string {
   return csrfTokenMem || "";
 }
 
-// Достаём access_token: сначала из cookie, затем из sessionStorage
-function getAccessToken(): string {
-  const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
-  if (m) return decodeURIComponent(m[1]);
-  return accessTokenMem || "";
-}
-
 /**
  * Низкоуровневый fetch с поддержкой cookie‑сессии,
  * авторефрешем access/CSRF на 401 и синхронизацией CSRF.
@@ -79,10 +61,10 @@ function getAccessToken(): string {
  */
 export async function apiFetch(
   input: RequestInfo,
-  init: RequestInit & { skipAuth?: boolean } = {},
+  init: RequestInit = {},
   _retry = true,
 ): Promise<Response> {
-  const { skipAuth, ...rest } = init as RequestInit & { skipAuth?: boolean };
+  const rest = init as RequestInit;
   const method = (rest.method || "GET").toUpperCase();
   const headers: Record<string, string> = {
     ...(rest.headers as Record<string, string> | undefined),
@@ -110,18 +92,6 @@ export async function apiFetch(
   const csrf = getCsrfToken();
   if (csrf && !isSafeMethod && !isAuthCall) {
     headers["X-CSRF-Token"] = csrf;
-  }
-
-  // Если явно не передали Authorization — берём токен из cookie/хранилища,
-  // но НИКОГДА не добавляем его автоматически для /auth/*, чтобы избежать preflight/конфликтов.
-  const lowerCaseHeaders = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
-  if (!skipAuth && !("authorization" in lowerCaseHeaders) && !isAuthCall) {
-    const at = getAccessToken();
-    const hasCookieAccess =
-      typeof document !== "undefined" && /(?:^|;\s*)access_token=/.test(document.cookie || "");
-    if (at && (!isSafeMethod || !hasCookieAccess)) {
-      headers["Authorization"] = `Bearer ${at}`;
-    }
   }
 
   if (previewTokenMem) {

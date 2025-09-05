@@ -1,5 +1,4 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { setAccessToken } from './client';
 import {
   cancelScheduledPublish,
   getPublishInfo,
@@ -14,9 +13,8 @@ afterEach(() => {
 });
 
 describe('getPublishInfo', () => {
-  it('requests publish info with auth header', async () => {
+  it('requests publish info without auth header', async () => {
     window.localStorage.setItem('workspaceId', 'ws1');
-    setAccessToken('at');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(
@@ -32,17 +30,18 @@ describe('getPublishInfo', () => {
         method: 'GET',
         headers: expect.objectContaining({
           Accept: 'application/json',
-          Authorization: 'Bearer at',
         }),
+        credentials: 'include',
       }),
     );
+    const call = fetchSpy.mock.calls[0] as [RequestInfo, RequestInit];
+    expect(call[1].headers).not.toHaveProperty('Authorization');
   });
 });
 
 describe('publishNow', () => {
-  it('posts access with auth header', async () => {
+  it('posts access without auth header', async () => {
     window.localStorage.setItem('workspaceId', 'ws1');
-    setAccessToken('at');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
@@ -54,18 +53,19 @@ describe('publishNow', () => {
         headers: expect.objectContaining({
           Accept: 'application/json',
           'Content-Type': 'application/json',
-          Authorization: 'Bearer at',
         }),
+        credentials: 'include',
         body: JSON.stringify({ access: 'early_access' }),
       }),
     );
+    const call = fetchSpy.mock.calls[0] as [RequestInfo, RequestInit];
+    expect(call[1].headers).not.toHaveProperty('Authorization');
   });
 });
 
 describe('schedulePublish', () => {
-  it('posts schedule with auth header', async () => {
+  it('posts schedule without auth header', async () => {
     window.localStorage.setItem('workspaceId', 'ws1');
-    setAccessToken('at');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(
@@ -82,18 +82,19 @@ describe('schedulePublish', () => {
         headers: expect.objectContaining({
           Accept: 'application/json',
           'Content-Type': 'application/json',
-          Authorization: 'Bearer at',
         }),
+        credentials: 'include',
         body: JSON.stringify({ run_at: '2025-01-01T00:00:00Z', access: 'premium_only' }),
       }),
     );
+    const call = fetchSpy.mock.calls[0] as [RequestInfo, RequestInit];
+    expect(call[1].headers).not.toHaveProperty('Authorization');
   });
 });
 
 describe('cancelScheduledPublish', () => {
-  it('sends delete with auth header', async () => {
+  it('sends delete without auth header', async () => {
     window.localStorage.setItem('workspaceId', 'ws1');
-    setAccessToken('at');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(
@@ -109,9 +110,11 @@ describe('cancelScheduledPublish', () => {
         method: 'DELETE',
         headers: expect.objectContaining({
           Accept: 'application/json',
-          Authorization: 'Bearer at',
         }),
+        credentials: 'include',
       }),
     );
+    const call = fetchSpy.mock.calls[0] as [RequestInfo, RequestInit];
+    expect(call[1].headers).not.toHaveProperty('Authorization');
   });
 });
