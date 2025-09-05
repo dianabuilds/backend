@@ -1,6 +1,10 @@
 """Notifications domain package."""
 
+from types import ModuleType
+
 from app.core.policy import policy
+
+_service: ModuleType | None
 
 # Ensure event listeners are registered when package is imported. Skip this
 # during tests to avoid importing the full application graph.

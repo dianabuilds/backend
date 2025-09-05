@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID
 
 from app.domains.achievements.infrastructure.models.achievement_models import (
@@ -9,7 +9,7 @@ from app.domains.achievements.infrastructure.models.achievement_models import (
 )
 
 
-class IAchievementsRepository:
+class IAchievementsRepository(Protocol):
     # User achievements
     async def user_has_achievement(
         self, user_id: UUID, achievement_id: UUID, workspace_id: UUID
@@ -66,14 +66,10 @@ class IAchievementsRepository:
         ...
 
     # CRUD for achievements (admin)
-    async def list_achievements(
-        self, workspace_id: UUID
-    ) -> list[Achievement]:  # pragma: no cover
+    async def list_achievements(self, workspace_id: UUID) -> list[Achievement]:  # pragma: no cover
         ...
 
-    async def exists_code(
-        self, code: str, workspace_id: UUID
-    ) -> bool:  # pragma: no cover
+    async def exists_code(self, code: str, workspace_id: UUID) -> bool:  # pragma: no cover
         ...
 
     async def create_achievement(

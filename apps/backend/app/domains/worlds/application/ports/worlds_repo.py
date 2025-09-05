@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID
 
 from app.domains.ai.infrastructure.models.world_models import Character, WorldTemplate
 
 
-class IWorldsRepository:
-    async def list_worlds(
-        self, workspace_id: UUID
-    ) -> list[WorldTemplate]:  # pragma: no cover
+class IWorldsRepository(Protocol):
+    async def list_worlds(self, workspace_id: UUID) -> list[WorldTemplate]:  # pragma: no cover
         ...
 
     async def get_world(

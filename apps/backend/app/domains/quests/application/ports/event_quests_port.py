@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
+from typing import Protocol
 from uuid import UUID
 
 
-class IEventQuestsRepository:
+class IEventQuestsRepository(Protocol):
     async def get_active_for_node(
         self, workspace_id: UUID, now: datetime, node_id
     ) -> Sequence[object]:  # pragma: no cover - контракт

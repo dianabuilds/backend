@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import difflib
 import json
 from datetime import datetime
@@ -29,9 +30,7 @@ class NodeItemDAO:
         db: AsyncSession, *, workspace_id: UUID | None, node_type: str
     ) -> list[NodeItem]:
         stmt = (
-            select(NodeItem)
-            .options(selectinload(NodeItem.tags))
-            .where(NodeItem.type == node_type)
+            select(NodeItem).options(selectinload(NodeItem.tags)).where(NodeItem.type == node_type)
         )
         if workspace_id is None:
             stmt = stmt.where(NodeItem.workspace_id.is_(None))
@@ -78,9 +77,7 @@ class NodeItemDAO:
         per_page: int = 10,
     ) -> list[NodeItem]:
         stmt = (
-            select(NodeItem)
-            .options(selectinload(NodeItem.tags))
-            .where(NodeItem.type == node_type)
+            select(NodeItem).options(selectinload(NodeItem.tags)).where(NodeItem.type == node_type)
         )
         if workspace_id is None:
             stmt = stmt.where(NodeItem.workspace_id.is_(None))
@@ -88,9 +85,7 @@ class NodeItemDAO:
             stmt = stmt.where(NodeItem.workspace_id == workspace_id)
         if q:
             pattern = f"%{q}%"
-            stmt = stmt.where(
-                or_(NodeItem.title.ilike(pattern), NodeItem.summary.ilike(pattern))
-            )
+            stmt = stmt.where(or_(NodeItem.title.ilike(pattern), NodeItem.summary.ilike(pattern)))
         stmt = stmt.order_by(func.coalesce(NodeItem.published_at, func.now()).desc())
         stmt = stmt.offset((page - 1) * per_page).limit(per_page)
         result = await db.execute(stmt)
@@ -160,7 +155,7 @@ class NodePatchDAO:
         return "\n".join(diff)
 
     @staticmethod
-    async def overlay(db: AsyncSession, items: list[NodeItem]) -> None:
+    async def overlay(db: AsyncSession, items: builtins.list[NodeItem]) -> None:
         if not items:
             return
         ids = [i.id for i in items]

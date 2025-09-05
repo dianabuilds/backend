@@ -27,9 +27,7 @@ class EditorService:
 
         max_num = (
             await db.execute(
-                select(func.max(QuestVersion.number)).where(
-                    QuestVersion.quest_id == quest_id
-                )
+                select(func.max(QuestVersion.number)).where(QuestVersion.quest_id == quest_id)
             )
         ).scalar() or 0
 
@@ -67,9 +65,7 @@ class EditorService:
         await db.flush()
         await self.invalidate_navigation_cache(db)
 
-    async def validate_version(
-        self, db: AsyncSession, version_id: UUID
-    ) -> ValidateResult:
+    async def validate_version(self, db: AsyncSession, version_id: UUID) -> ValidateResult:
         _, steps, transitions = await self.get_version_graph(db, version_id)
         return self.validate_graph(steps, transitions)
 
@@ -125,15 +121,15 @@ class EditorService:
         start_key = next((n.key for n in nodes if n.type == "start"), None)
         if start_key and not errors:
             seen: set[str] = set()
-            stack = [start_key]
-            while stack:
-                cur = stack.pop()
+            dfs_stack = [start_key]
+            while dfs_stack:
+                cur = dfs_stack.pop()
                 if cur in seen:
                     continue
                 seen.add(cur)
                 for nx in adj.get(cur, []):
                     if nx not in seen:
-                        stack.append(nx)
+                        dfs_stack.append(nx)
             for k in node_keys:
                 if k not in seen:
                     if node_map[k].type == "end":
@@ -189,21 +185,15 @@ class EditorService:
                 strongconnect(v)
 
         for comp in sccs:
-            edges_in_comp = [
-                e for e in edges if e.from_node_key in comp and e.to_node_key in comp
-            ]
+            edges_in_comp = [e for e in edges if e.from_node_key in comp and e.to_node_key in comp]
             if len(comp) == 1:
                 if any(
-                    e.from_node_key == comp[0]
-                    and e.to_node_key == comp[0]
-                    and e.condition is None
+                    e.from_node_key == comp[0] and e.to_node_key == comp[0] and e.condition is None
                     for e in edges_in_comp
                 ):
                     errors.append(f"Unconditional loop at node: {comp[0]}")
             elif edges_in_comp and all(e.condition is None for e in edges_in_comp):
-                errors.append(
-                    "Unconditional loop between nodes: " + ", ".join(sorted(comp))
-                )
+                errors.append("Unconditional loop between nodes: " + ", ".join(sorted(comp)))
 
         ok = len([e for e in errors if e]) == 0
         return ValidateResult(ok=ok, errors=errors, warnings=warnings)
@@ -238,9 +228,7 @@ class EditorService:
             if not outs:
                 break
             nxt = outs[0]
-            steps.append(
-                {"edge": f"{nxt.from_node_key}->{nxt.to_node_key}", "label": nxt.label}
-            )
+            steps.append({"edge": f"{nxt.from_node_key}->{nxt.to_node_key}", "label": nxt.label})
             cur = key_to_node.get(nxt.to_node_key)
             if not cur:
                 break
@@ -250,7 +238,5 @@ class EditorService:
     async def invalidate_navigation_cache(self, db: AsyncSession) -> None:
         await self._graph.invalidate_navigation_cache(db)
 
-    async def generate_navigation_cache(
-        self, db: AsyncSession, version_id: UUID
-    ) -> None:
+    async def generate_navigation_cache(self, db: AsyncSession, version_id: UUID) -> None:
         await self._graph.generate_navigation_cache(db, version_id)
