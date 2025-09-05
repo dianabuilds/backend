@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -93,3 +94,13 @@ class WorkspaceMemberOut(BaseModel):
     role: WorkspaceRole
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class WorkspaceCursorPage(BaseModel):
+    """Cursor-paginated list of workspaces."""
+
+    limit: int
+    sort: str
+    order: Literal["asc", "desc"]
+    items: list[WorkspaceWithRoleOut]
+    next_cursor: str | None = None

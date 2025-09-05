@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Basic HTTPie examples for workspace endpoints
 
-# List workspaces
-http GET :8000/admin/workspaces
+# List workspaces (first page, 10 items)
+http GET :8000/admin/workspaces limit==10
 
 # Create a workspace
 http POST :8000/admin/workspaces/123e4567-e89b-12d3-a456-426614174000 name=Demo slug=demo

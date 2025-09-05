@@ -10,14 +10,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
 from app.core.db.session import get_db
+from app.core.pagination import (
+    PageQuery,
+    apply_pagination,
+    apply_sorting,
+    build_cursor_for_last_item,
+    decode_cursor,
+    fetch_page,
+)
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO
 from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 from app.schemas.workspaces import (
+    WorkspaceCursorPage,
     WorkspaceIn,
     WorkspaceMemberIn,
+    WorkspaceOut,
     WorkspaceRole,
     WorkspaceUpdate,
+    WorkspaceWithRoleOut,
 )
 from app.security import auth_user
 
@@ -244,3 +255,56 @@ class WorkspaceService:
             select(WorkspaceMember).where(WorkspaceMember.workspace_id == workspace_id)
         )
         return res.scalars().all()
+
+    @staticmethod
+    async def list_paginated(
+        db: AsyncSession,
+        *,
+        user: User,
+        pq: PageQuery,
+    ) -> WorkspaceCursorPage:
+        stmt = (
+            select(Workspace)
+            .join(WorkspaceMember)
+            .where(WorkspaceMember.user_id == user.id)
+        )
+        stmt = apply_sorting(stmt, model=Workspace, sort_field=pq.sort, order=pq.order)
+        cursor = decode_cursor(pq.cursor) if pq.cursor else None
+        stmt = apply_pagination(
+            stmt,
+            model=Workspace,
+            cursor=cursor,
+            sort_field=pq.sort,
+            order=pq.order,
+        )
+        items, has_next = await fetch_page(stmt, session=db, limit=pq.limit)
+        next_cursor = (
+            build_cursor_for_last_item(items[-1], pq.sort, pq.order)
+            if has_next and items
+            else None
+        )
+        roles: dict[UUID, WorkspaceRole] = {}
+        if items:
+            res = await db.execute(
+                select(WorkspaceMember.workspace_id, WorkspaceMember.role).where(
+                    WorkspaceMember.user_id == user.id,
+                    WorkspaceMember.workspace_id.in_([ws.id for ws in items]),
+                )
+            )
+            roles = {row.workspace_id: row.role for row in res.all()}
+        out: list[WorkspaceWithRoleOut] = []
+        for ws in items:
+            data = WorkspaceOut.model_validate(ws, from_attributes=True)
+            out.append(
+                WorkspaceWithRoleOut(
+                    **data.model_dump(exclude={"role"}),
+                    role=roles.get(ws.id, WorkspaceRole.viewer),
+                )
+            )
+        return WorkspaceCursorPage(
+            limit=pq.limit,
+            sort=pq.sort,
+            order=pq.order,
+            items=out,
+            next_cursor=next_cursor,
+        )

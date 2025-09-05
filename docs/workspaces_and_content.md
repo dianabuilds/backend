@@ -55,7 +55,9 @@ Administrative endpoints exposed by the backend:
 
 ### Workspaces
 
-- `GET /admin/workspaces` – list available workspaces.
+- `GET /admin/workspaces` – list available workspaces. Supports cursor pagination
+  via the `limit`, `cursor`, `sort` (default `created_at`) and `order` query
+  parameters.
 - `POST /admin/workspaces/{workspace_id}` – create a workspace with a fixed ID.
 - `GET /admin/workspaces/{workspace_id}` – fetch workspace metadata.
 - `PATCH /admin/workspaces/{workspace_id}` – update workspace fields.
@@ -64,21 +66,30 @@ Administrative endpoints exposed by the backend:
 Example:
 
 ```bash
-GET /admin/workspaces
+GET /admin/workspaces?limit=2
 ```
 
 ```json
-[
-  {
-    "id": "8b112b04-1769-44ef-abc6-3c7ce7c8de4e",
-    "name": "Main workspace",
-    "slug": "main",
-    "owner_user_id": "720e76fa-1111-2222-3333-444455556666",
-    "settings": {},
-    "created_at": "2024-05-01T12:00:00Z",
-    "updated_at": "2024-05-01T12:00:00Z"
-  }
-]
+{
+  "limit": 2,
+  "sort": "created_at",
+  "order": "desc",
+  "items": [
+    {
+      "id": "8b112b04-1769-44ef-abc6-3c7ce7c8de4e",
+      "name": "Main workspace",
+      "slug": "main",
+      "owner_user_id": "720e76fa-1111-2222-3333-444455556666",
+      "settings": {},
+      "type": "team",
+      "is_system": false,
+      "created_at": "2024-05-01T12:00:00Z",
+      "updated_at": "2024-05-01T12:00:00Z",
+      "role": "owner"
+    }
+  ],
+  "next_cursor": "..."
+}
 ```
 
 Creating a workspace:

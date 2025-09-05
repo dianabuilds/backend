@@ -1,22 +1,23 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 # ruff: noqa: B008
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from jsonschema import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from app.core.db.session import get_db
+from app.core.pagination import parse_page_query
 from app.domains.ai.infrastructure.repositories.usage_repository import (
     AIUsageRepository,
 )
 from app.domains.notifications.application.notify_service import NotifyService
-from app.schemas.notification import NotificationType
-from app.domains.notifications.infrastructure.repositories.notification_repository import (
-    NotificationRepository,
+from app.domains.notifications.infrastructure.repositories import (
+    notification_repository,
 )
 from app.domains.notifications.infrastructure.transports.websocket import (
     WebsocketPusher,
@@ -28,16 +29,17 @@ from app.domains.notifications.validation import validate_notification_rules
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.application.service import WorkspaceService
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
-from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
+from app.domains.workspaces.infrastructure.models import WorkspaceMember
+from app.schemas.notification import NotificationType
 from app.schemas.notification_rules import NotificationRules
 from app.schemas.workspaces import (
+    WorkspaceCursorPage,
     WorkspaceIn,
     WorkspaceMemberIn,
     WorkspaceMemberOut,
     WorkspaceOut,
     WorkspaceSettings,
     WorkspaceUpdate,
-    WorkspaceWithRoleOut,
 )
 from app.security import (
     ADMIN_AUTH_RESPONSES,
@@ -66,24 +68,19 @@ async def create_workspace(
     return workspace
 
 
-@router.get("", response_model=list[WorkspaceWithRoleOut], summary="List workspaces")
+@router.get("", response_model=WorkspaceCursorPage, summary="List workspaces")
 async def list_workspaces(
+    request: Request,
     user: Annotated[User, Depends(auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-) -> list[WorkspaceWithRoleOut]:
-    stmt = (
-        select(Workspace, WorkspaceMember.role)
-        .join(WorkspaceMember)
-        .where(WorkspaceMember.user_id == user.id)
+) -> WorkspaceCursorPage:
+    params: Mapping[str, str] = dict(request.query_params)
+    pq = parse_page_query(
+        params,
+        allowed_sort=["created_at"],
+        default_sort="created_at",
     )
-    result = await db.execute(stmt)
-    workspaces: list[WorkspaceWithRoleOut] = []
-    for ws, role in result.all():
-        data = WorkspaceOut.model_validate(ws, from_attributes=True)
-        workspaces.append(
-            WorkspaceWithRoleOut(**data.model_dump(exclude={"role"}), role=role)
-        )
-    return workspaces
+    return await WorkspaceService.list_paginated(db, user=user, pq=pq)
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceOut, summary="Get workspace")
@@ -213,7 +210,7 @@ async def put_ai_presets(
 
         validate_ai_presets(presets)
     except ValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     settings = WorkspaceSettings.model_validate(workspace.settings_json)
     settings.ai_presets = presets
     workspace.settings_json = settings.model_dump()
@@ -331,7 +328,8 @@ async def get_workspace_usage(
     if alert:
         try:
             notify = NotifyService(
-                NotificationRepository(db), WebsocketPusher(ws_manager)
+                notification_repository.NotificationRepository(db),
+                WebsocketPusher(ws_manager),
             )
             await notify.create_notification(
                 workspace_id=workspace_id,
