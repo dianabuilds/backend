@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from sqlalchemy import Column, ForeignKey, Integer, String
 
-from . import Base
+from app.providers.db.base import Base
+
 from .adapters import UUID
 
 
