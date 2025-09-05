@@ -11,7 +11,7 @@ from .case_notifier import (
     RealCaseNotifier,
     SandboxCaseNotifier,
 )
-from .email import FakeEmail, IEmail, RealEmail, SandboxEmail
+from .email import IEmail, RealEmail
 from .media_storage import (
     FakeMediaStorage,
     IMediaStorage,
@@ -26,21 +26,21 @@ ENV_PROVIDER_MAP: dict[EnvMode, EnvMap] = {
     EnvMode.development: {
         IAIProvider: FakeAIProvider,
         IPayments: FakePayments,
-        IEmail: FakeEmail,
+        IEmail: RealEmail,
         IMediaStorage: FakeMediaStorage,
         ICaseNotifier: FakeCaseNotifier,
     },
     EnvMode.test: {
         IAIProvider: FakeAIProvider,
         IPayments: FakePayments,
-        IEmail: FakeEmail,
+        IEmail: RealEmail,
         IMediaStorage: FakeMediaStorage,
         ICaseNotifier: FakeCaseNotifier,
     },
     EnvMode.staging: {
         IAIProvider: SandboxAIProvider,
         IPayments: SandboxPayments,
-        IEmail: SandboxEmail,
+        IEmail: RealEmail,
         IMediaStorage: SandboxMediaStorage,
         ICaseNotifier: SandboxCaseNotifier,
     },
