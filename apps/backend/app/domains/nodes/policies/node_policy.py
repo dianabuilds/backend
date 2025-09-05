@@ -11,9 +11,7 @@ class NodePolicy:
     """Authorization rules for Node operations."""
 
     @staticmethod
-    def ensure_can_view(
-        node: Node, user: User, preview: PreviewContext | None = None
-    ) -> None:
+    def ensure_can_view(node: Node, user: User, preview: PreviewContext | None = None) -> None:
         """Allow viewing if node is visible or user is owner/mod/admin."""
         role = preview.role if preview and preview.role else user.role
         if node.is_visible:
@@ -28,9 +26,7 @@ class NodePolicy:
         )
 
     @staticmethod
-    def ensure_can_edit(
-        node: Node, user: User, preview: PreviewContext | None = None
-    ) -> None:
+    def ensure_can_edit(node: Node, user: User, preview: PreviewContext | None = None) -> None:
         """Allow editing for owner or moderator/admin."""
         role = preview.role if preview and preview.role else user.role
         if node.author_id == user.id or role in {"moderator", "admin"}:

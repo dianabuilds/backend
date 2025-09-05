@@ -57,9 +57,7 @@ def client() -> TestClient:
 
 
 def test_set_defaults(client: TestClient) -> None:
-    resp = client.post(
-        "/admin/ai/system/defaults", json={"provider": "openai", "model": "gpt-4"}
-    )
+    resp = client.post("/admin/ai/system/defaults", json={"provider": "openai", "model": "gpt-4"})
     assert resp.status_code == 200
     assert resp.json()["provider"] == "openai"
     assert resp.json()["model"] == "gpt-4"

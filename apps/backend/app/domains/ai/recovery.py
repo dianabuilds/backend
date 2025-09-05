@@ -9,9 +9,7 @@ from sqlalchemy.future import select
 from app.domains.ai.infrastructure.models.generation_models import GenerationJob
 
 
-async def recover_stuck_generation_jobs(
-    db: AsyncSession, *, ttl_seconds: int = 3600
-) -> int:
+async def recover_stuck_generation_jobs(db: AsyncSession, *, ttl_seconds: int = 3600) -> int:
     """
     Помечает 'running' задачи как 'failed', если они не обновлялись дольше, чем ttl_seconds.
     Ориентируется на updated_at, затем started_at, затем created_at (fallback).

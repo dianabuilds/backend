@@ -45,9 +45,7 @@ def rate_limit_dep(rule: str):
     """
     times, seconds = _parse_rule(rule)
 
-    async def _callback(
-        request: Request, response: Response, pexpire
-    ):  # pragma: no cover
+    async def _callback(request: Request, response: Response, pexpire):  # pragma: no cover
         ip = get_real_ip(request)
         recent_429.append(
             {
@@ -84,9 +82,7 @@ def rate_limit_dep_key(key: str):
     """
     attr = f"rules_{key}"
 
-    async def _callback(
-        request: Request, response: Response, pexpire
-    ):  # pragma: no cover
+    async def _callback(request: Request, response: Response, pexpire):  # pragma: no cover
         ip = get_real_ip(request)
         rule_str = getattr(settings.rate_limit, attr, "")
         recent_429.append(
@@ -225,9 +221,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             response.headers["Retry-After"] = str(int(retry_after))
         return response
 
-    async def _acquire(
-        self, workspace_id: str, user_id: str, operation: str
-    ) -> tuple[bool, float]:
+    async def _acquire(self, workspace_id: str, user_id: str, operation: str) -> tuple[bool, float]:
         key = f"rl:{workspace_id}:{user_id}:{operation}"
         now = time.time()
         try:

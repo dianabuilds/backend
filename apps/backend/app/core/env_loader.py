@@ -47,11 +47,7 @@ def _load_file(path: Path, override: bool) -> bool:
 
 def _looks_like_json(value: str) -> bool:
     s = value.strip()
-    return (
-        s.startswith("[")
-        or s.startswith("{")
-        or (s.startswith('"') and s.endswith('"'))
-    )
+    return s.startswith("[") or s.startswith("{") or (s.startswith('"') and s.endswith('"'))
 
 
 def _normalize_env_for_pydantic_json() -> None:

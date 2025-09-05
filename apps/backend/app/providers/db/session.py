@@ -61,9 +61,7 @@ def get_engine() -> AsyncEngine:
 
 def get_session_factory():
     engine = get_engine()
-    return sessionmaker(
-        bind=engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
-    )
+    return sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False, autoflush=False)
 
 
 def get_current_session() -> AsyncSession | None:
@@ -110,9 +108,7 @@ async def run_migrations() -> None:
     loop = asyncio.get_running_loop()
 
     def _upgrade() -> None:
-        cfg.set_main_option(
-            "sqlalchemy.url", settings.database_url.replace("asyncpg", "psycopg2")
-        )
+        cfg.set_main_option("sqlalchemy.url", settings.database_url.replace("asyncpg", "psycopg2"))
         command.upgrade(cfg, "heads")
 
     await loop.run_in_executor(None, _upgrade)
@@ -154,8 +150,7 @@ async def check_database_connection(max_retries: int = 5) -> bool:
             retry_count += 1
             wait_time = min(2**retry_count, 30)
             logger.warning(
-                "Database connection attempt %s/%s failed: %s. "
-                "Retrying in %s seconds...",
+                "Database connection attempt %s/%s failed: %s. " "Retrying in %s seconds...",
                 retry_count,
                 max_retries,
                 str(e),

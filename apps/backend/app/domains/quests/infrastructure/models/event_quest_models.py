@@ -33,9 +33,7 @@ class EventQuest(Base):
     __tablename__ = "event_quests"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(
-        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
-    )
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     title = Column(String, nullable=False)
     target_node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False)
     hints_tags = Column(MutableList.as_mutable(ARRAY(String)), default=list)
@@ -50,15 +48,11 @@ class EventQuest(Base):
 
 class EventQuestCompletion(Base):
     __tablename__ = "event_quest_completions"
-    __table_args__ = (
-        UniqueConstraint("quest_id", "user_id", name="uq_event_quest_user"),
-    )
+    __table_args__ = (UniqueConstraint("quest_id", "user_id", name="uq_event_quest_user"),)
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("event_quests.id"), nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
     node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False)
-    workspace_id = Column(
-        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
-    )
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     completed_at = Column(DateTime, default=datetime.utcnow)

@@ -70,19 +70,13 @@ async def test_get_current_version_returns_graph(app_and_session):
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
         session.add(ws)
         quest_id = uuid.uuid4()
-        quest = Quest(
-            id=quest_id, workspace_id=ws.id, slug="q", title="Quest", author_id=user.id
-        )
+        quest = Quest(id=quest_id, workspace_id=ws.id, slug="q", title="Quest", author_id=user.id)
         session.add(quest)
-        version = QuestVersion(
-            id=uuid.uuid4(), quest_id=quest_id, number=1, status="released"
-        )
+        version = QuestVersion(id=uuid.uuid4(), quest_id=quest_id, number=1, status="released")
         session.add(version)
         node_start = QuestGraphNode(version_id=version.id, key="start", title="Start")
         node_end = QuestGraphNode(version_id=version.id, key="end", title="End")
-        edge = QuestGraphEdge(
-            version_id=version.id, from_node_key="start", to_node_key="end"
-        )
+        edge = QuestGraphEdge(version_id=version.id, from_node_key="start", to_node_key="end")
         session.add_all([node_start, node_end, edge])
         await session.commit()
 

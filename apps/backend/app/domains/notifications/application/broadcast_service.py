@@ -110,9 +110,7 @@ def start_campaign_async(campaign_id: UUID) -> None:
 
         enqueue_campaign(campaign_id)
     except Exception as e:  # pragma: no cover - только логирование
-        logger.warning(
-            "notification_broadcast_enqueue_failed cid=%s err=%s", campaign_id, e
-        )
+        logger.warning("notification_broadcast_enqueue_failed cid=%s err=%s", campaign_id, e)
 
 
 async def cancel_campaign(db: AsyncSession, campaign_id: UUID) -> bool:

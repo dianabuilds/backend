@@ -98,9 +98,7 @@ def _make_hf_provider(
     api_base: str, api_key: str, model: str, target_dim: int
 ) -> Callable[[str], list[float]]:
     base = (
-        api_base.rstrip("/")
-        if api_base
-        else f"https://api-inference.huggingface.co/models/{model}"
+        api_base.rstrip("/") if api_base else f"https://api-inference.huggingface.co/models/{model}"
     )
 
     def _provider(text: str) -> list[float]:
@@ -200,9 +198,7 @@ def configure_from_settings() -> None:
 
     if backend == "openai":
         if not settings.embedding.api_key or not settings.embedding.model:
-            logger.warning(
-                "OpenAI embedding is misconfigured. Falling back to 'simple'."
-            )
+            logger.warning("OpenAI embedding is misconfigured. Falling back to 'simple'.")
             register_embedding_provider(_simple_embedding, dim)
             return
         provider = _make_openai_provider(
@@ -221,9 +217,7 @@ def configure_from_settings() -> None:
 
     if backend == "cohere":
         if not settings.embedding.api_key or not settings.embedding.model:
-            logger.warning(
-                "Cohere embedding is misconfigured. Falling back to 'simple'."
-            )
+            logger.warning("Cohere embedding is misconfigured. Falling back to 'simple'.")
             register_embedding_provider(_simple_embedding, dim)
             return
         provider = _make_cohere_provider(
@@ -242,9 +236,7 @@ def configure_from_settings() -> None:
 
     if backend == "huggingface":
         if not settings.embedding.model:
-            logger.warning(
-                "HuggingFace embedding is misconfigured. Falling back to 'simple'."
-            )
+            logger.warning("HuggingFace embedding is misconfigured. Falling back to 'simple'.")
             register_embedding_provider(_simple_embedding, dim)
             return
         provider = _make_hf_provider(
@@ -276,9 +268,7 @@ def configure_from_settings() -> None:
         api_key = (settings.embedding.api_key or "").strip()
         model = (settings.embedding.model or "").strip()
         if not api_base or not api_key or not model:
-            logger.warning(
-                "AIML API embedding is misconfigured. Falling back to 'simple'."
-            )
+            logger.warning("AIML API embedding is misconfigured. Falling back to 'simple'.")
             register_embedding_provider(_simple_embedding, dim)
             return
         provider = _make_aimlapi_provider(

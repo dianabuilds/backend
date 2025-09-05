@@ -81,9 +81,7 @@ async def test_node_service_handles_global_and_workspace_nodes(
     tag = Tag(id=uuid.uuid4(), slug="t1", name="T1", workspace_id=ws.id)
     db.add(tag)
     await db.flush()
-    await NodeItemDAO.attach_tag(
-        db, node_id=ws_item.id, tag_id=tag.id, workspace_id=ws.id
-    )
+    await NodeItemDAO.attach_tag(db, node_id=ws_item.id, tag_id=tag.id, workspace_id=ws.id)
     await db.commit()
 
     svc = NodeService(db)

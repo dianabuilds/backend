@@ -243,13 +243,9 @@ async def main():
         "--users", type=int, default=5, help="Количество пользователей (кроме админа)"
     )
     parser.add_argument("--nodes", type=int, default=30, help="Количество узлов")
-    parser.add_argument(
-        "--transitions", type=int, default=60, help="Количество переходов"
-    )
+    parser.add_argument("--transitions", type=int, default=60, help="Количество переходов")
     parser.add_argument("--echoes", type=int, default=100, help="Количество echo-трасс")
-    parser.add_argument(
-        "--wipe", action="store_true", help="Очистить базу перед заполнением"
-    )
+    parser.add_argument("--wipe", action="store_true", help="Очистить базу перед заполнением")
     parser.add_argument(
         "--no-embeddings", action="store_true", help="Не считать эмбеддинги для узлов"
     )

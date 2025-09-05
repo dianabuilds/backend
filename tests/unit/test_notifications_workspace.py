@@ -23,20 +23,14 @@ def test_list_notifications_scoped_by_workspace() -> None:
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        async_session = sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with async_session() as session:
             user = User(id=uuid.uuid4())
             w1 = Workspace(id=uuid.uuid4(), name="W1", slug="w1", owner_user_id=user.id)
             w2 = Workspace(id=uuid.uuid4(), name="W2", slug="w2", owner_user_id=user.id)
-            n1 = Notification(
-                workspace_id=w1.id, user_id=user.id, title="T1", message="M1"
-            )
-            n2 = Notification(
-                workspace_id=w2.id, user_id=user.id, title="T2", message="M2"
-            )
+            n1 = Notification(workspace_id=w1.id, user_id=user.id, title="T1", message="M1")
+            n2 = Notification(workspace_id=w2.id, user_id=user.id, title="T2", message="M2")
             session.add_all([user, w1, w2, n1, n2])
             await session.commit()
 

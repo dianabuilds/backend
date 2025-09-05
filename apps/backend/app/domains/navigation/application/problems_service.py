@@ -18,9 +18,7 @@ class NavigationProblemsService:
     """Analyse navigation graph for CTR, cycles and dead-ends."""
 
     async def analyse(self, db: AsyncSession) -> list[NavigationNodeProblem]:
-        node_rows = (
-            await db.execute(select(Node.id, Node.slug, Node.title, Node.views))
-        ).all()
+        node_rows = (await db.execute(select(Node.id, Node.slug, Node.title, Node.views))).all()
         nodes: dict[UUID, dict] = {
             row.id: {
                 "slug": row.slug,
@@ -31,9 +29,7 @@ class NavigationProblemsService:
         }
 
         transition_rows = (
-            await db.execute(
-                select(NodeTransition.from_node_id, NodeTransition.to_node_id)
-            )
+            await db.execute(select(NodeTransition.from_node_id, NodeTransition.to_node_id))
         ).all()
 
         adjacency: dict[UUID, list[UUID]] = defaultdict(list)

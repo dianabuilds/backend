@@ -68,9 +68,7 @@ async def create_campaign(
     current_user: Annotated[User, Depends(admin_only)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    filters_dict: dict[str, Any] = (
-        payload.filters.model_dump() if payload.filters else {}
-    )
+    filters_dict: dict[str, Any] = payload.filters.model_dump() if payload.filters else {}
     camp = NotificationCampaign(
         title=payload.title,
         message=payload.message,
@@ -91,9 +89,7 @@ async def list_campaigns(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     stmt = (
-        select(NotificationCampaign)
-        .order_by(NotificationCampaign.created_at.desc())
-        .limit(limit)
+        select(NotificationCampaign).order_by(NotificationCampaign.created_at.desc()).limit(limit)
     )
     result = await db.execute(stmt)
     items = result.scalars().all()
@@ -115,9 +111,7 @@ async def list_campaigns(
 
 
 @router.get("/{campaign_id}", summary="Get campaign")
-async def get_campaign(
-    campaign_id: UUID, db: Annotated[AsyncSession, Depends(get_db)] = ...
-):
+async def get_campaign(campaign_id: UUID, db: Annotated[AsyncSession, Depends(get_db)] = ...):
     camp = await db.get(NotificationCampaign, campaign_id)
     if not camp:
         raise HTTPException(status_code=404, detail="Not found")

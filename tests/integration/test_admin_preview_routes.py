@@ -62,19 +62,14 @@ async def preview_setup(monkeypatch):
             )
 
     monkeypatch.setattr(preview_module, "NavigationService", DummyNavigationService)
-    monkeypatch.setattr(
-        preview_module, "create_preview_token", lambda *a, **k: "fake-token"
-    )
+    monkeypatch.setattr(preview_module, "create_preview_token", lambda *a, **k: "fake-token")
 
     admin_dep = None
     simulate_dep = None
     for route in preview_module.router.routes:
         if route.path == "/admin/preview/link" and "POST" in route.methods:
             admin_dep = route.dependant.dependencies[0].call
-        elif (
-            route.path == "/admin/preview/transitions/simulate"
-            and "POST" in route.methods
-        ):
+        elif route.path == "/admin/preview/transitions/simulate" and "POST" in route.methods:
             simulate_dep = route.dependant.dependencies[0].call
     assert admin_dep and simulate_dep
 
@@ -95,9 +90,7 @@ async def test_create_preview_link_ok(preview_setup):
     app.dependency_overrides[admin_dep] = lambda: None
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post(
-            "/admin/preview/link", json={"workspace_id": str(ws_id)}
-        )
+        resp = await client.post("/admin/preview/link", json={"workspace_id": str(ws_id)})
     assert resp.status_code == 200
     assert resp.json()["url"].endswith("fake-token")
 
@@ -112,9 +105,7 @@ async def test_create_preview_link_forbidden(preview_setup):
     app.dependency_overrides[admin_dep] = forbidden
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post(
-            "/admin/preview/link", json={"workspace_id": str(ws_id)}
-        )
+        resp = await client.post("/admin/preview/link", json={"workspace_id": str(ws_id)})
     assert resp.status_code == 403
 
 

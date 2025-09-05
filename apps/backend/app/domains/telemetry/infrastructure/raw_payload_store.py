@@ -5,7 +5,5 @@ from app.domains.telemetry.application.ports.raw_payloads_port import IRawPayloa
 
 
 class RawPayloadStore(IRawPayloadStore):
-    def put_text(
-        self, prefix: str, data: str, *, filename_hint: str | None = None
-    ) -> str:
+    def put_text(self, prefix: str, data: str, *, filename_hint: str | None = None) -> str:
         return put_text(prefix, data, filename_hint=filename_hint)

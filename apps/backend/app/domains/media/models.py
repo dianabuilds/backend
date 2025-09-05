@@ -15,9 +15,7 @@ class MediaAsset(Base):
     __tablename__ = "media_assets"
 
     id = sa.Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = sa.Column(
-        UUID(), sa.ForeignKey("workspaces.id"), nullable=False, index=True
-    )
+    workspace_id = sa.Column(UUID(), sa.ForeignKey("workspaces.id"), nullable=False, index=True)
     url = sa.Column(sa.String, nullable=False)
     type = sa.Column(sa.String, nullable=False)
     metadata_json = sa.Column(JSONB, nullable=True)

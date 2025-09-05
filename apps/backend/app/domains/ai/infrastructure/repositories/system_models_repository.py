@@ -22,9 +22,7 @@ class AISystemModelRepository:
         name: str | None = None,
         active: bool = True,
     ) -> AISystemModel:
-        result = await self._db.execute(
-            select(AISystemModel).where(AISystemModel.code == code)
-        )
+        result = await self._db.execute(select(AISystemModel).where(AISystemModel.code == code))
         row = result.scalar_one_or_none()
         if row is None:
             row = AISystemModel(

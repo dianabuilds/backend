@@ -124,9 +124,7 @@ def _build_config(fmt: str | None = None) -> dict[str, Any]:
     return config
 
 
-def configure_logging(
-    config: dict[str, Any] | None = None, fmt: str | None = None
-) -> None:
+def configure_logging(config: dict[str, Any] | None = None, fmt: str | None = None) -> None:
     """Configure application logging.
 
     Parameters

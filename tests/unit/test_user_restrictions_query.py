@@ -61,9 +61,7 @@ async def test_get_current_user_fetches_restrictions_once(monkeypatch):
         req = Request(scope)
         statements: list[str] = []
 
-        def count_sql(
-            conn, cursor, statement, parameters, context, executemany
-        ):  # noqa: ANN001
+        def count_sql(conn, cursor, statement, parameters, context, executemany):  # noqa: ANN001
             if statement.startswith("SELECT"):
                 statements.append(statement)
 

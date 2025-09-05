@@ -17,9 +17,7 @@ router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 @router.get("/versions/{version_id}/validation")
 async def get_version_validation(
     version_id: str,
-    recalc: Annotated[
-        bool, Query(description="Пересчитать отчёт принудительно")
-    ] = False,
+    recalc: Annotated[bool, Query(description="Пересчитать отчёт принудительно")] = False,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _admin: Annotated[Any, Depends(admin_required)] = ...,
 ) -> dict[str, Any]:

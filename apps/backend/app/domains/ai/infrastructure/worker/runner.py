@@ -19,9 +19,7 @@ def _make_sessionmaker() -> async_sessionmaker[AsyncSession]:
     if not db_url:
         raise RuntimeError("DATABASE_URL is not set")
     engine = create_async_engine(db_url, pool_pre_ping=True, future=True)
-    return async_sessionmaker(
-        engine, expire_on_commit=False, autoflush=False, autocommit=False
-    )
+    return async_sessionmaker(engine, expire_on_commit=False, autoflush=False, autocommit=False)
 
 
 @asynccontextmanager

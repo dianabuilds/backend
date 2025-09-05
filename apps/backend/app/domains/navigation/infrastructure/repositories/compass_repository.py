@@ -21,9 +21,7 @@ class CompassRepository:
         if bind.dialect.name != "postgresql":
             return None
         try:
-            await self.session.execute(
-                text("SET LOCAL ivfflat.probes = :p"), {"p": probes}
-            )
+            await self.session.execute(text("SET LOCAL ivfflat.probes = :p"), {"p": probes})
             query = text(
                 """
                 SELECT id, embedding_vector <=> :vec AS dist
@@ -63,9 +61,7 @@ class CompassRepository:
         if bind.dialect.name != "postgresql":
             return None
         try:
-            await self.session.execute(
-                text("SET LOCAL ivfflat.probes = :p"), {"p": probes}
-            )
+            await self.session.execute(text("SET LOCAL ivfflat.probes = :p"), {"p": probes})
             query = text(
                 """
                 SELECT id, embedding_vector <=> :vec AS dist

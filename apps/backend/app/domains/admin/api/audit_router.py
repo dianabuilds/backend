@@ -44,9 +44,7 @@ async def list_audit_logs(
     if action:
         stmt = stmt.where(AuditLog.action == action)
     if resource:
-        stmt = stmt.where(
-            or_(AuditLog.resource_type == resource, AuditLog.resource_id == resource)
-        )
+        stmt = stmt.where(or_(AuditLog.resource_type == resource, AuditLog.resource_id == resource))
     if workspace_id:
         stmt = stmt.where(AuditLog.workspace_id == workspace_id)
     if date_from:

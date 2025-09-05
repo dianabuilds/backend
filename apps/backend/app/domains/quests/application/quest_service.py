@@ -9,9 +9,7 @@ from app.domains.quests.application.ports.notifications_port import INotificatio
 
 
 class QuestService:
-    def __init__(
-        self, repo: IEventQuestsRepository, notifier: INotificationPort
-    ) -> None:
+    def __init__(self, repo: IEventQuestsRepository, notifier: INotificationPort) -> None:
         self._repo = repo
         self._notifier = notifier
 

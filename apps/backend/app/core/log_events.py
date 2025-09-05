@@ -94,9 +94,7 @@ def node_autosave_ok(node_id: str, user: str | None) -> None:
 
 
 def node_autosave_fail(node_id: str | None, user: str | None, reason: str) -> None:
-    logger.warning(
-        f"{NODE_AUTOSAVE_FAIL} node={node_id or '-'} user={user or '-'} reason={reason}"
-    )
+    logger.warning(f"{NODE_AUTOSAVE_FAIL} node={node_id or '-'} user={user or '-'} reason={reason}")
 
 
 def node_cover_upload_start(user: str | None) -> None:
@@ -120,6 +118,4 @@ def node_publish_success(node_id: str, user: str | None) -> None:
 
 
 def node_publish_fail(node_id: str | None, user: str | None, reason: str) -> None:
-    logger.warning(
-        f"{NODE_PUBLISH_FAIL} node={node_id or '-'} user={user or '-'} reason={reason}"
-    )
+    logger.warning(f"{NODE_PUBLISH_FAIL} node={node_id or '-'} user={user or '-'} reason={reason}")

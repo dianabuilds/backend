@@ -13,9 +13,7 @@ from app.schemas.quest_validation import ValidationItem, ValidationReport
 from app.validation.base import validator
 
 
-async def validate_version_graph(
-    _db: AsyncSession, _version_id: UUID
-) -> dict[str, Any]:
+async def validate_version_graph(_db: AsyncSession, _version_id: UUID) -> dict[str, Any]:
     """Validate a quest version graph.
 
     Currently returns an empty report compatible with older code.

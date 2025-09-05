@@ -15,9 +15,7 @@ from app.domains.nodes.schemas.node import NodeOut, NodeUpdate
 from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(
-    prefix="/admin/nodes", tags=["admin"], responses=ADMIN_AUTH_RESPONSES
-)
+router = APIRouter(prefix="/admin/nodes", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
 admin_required = require_admin_role()
 
 

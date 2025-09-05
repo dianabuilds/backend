@@ -20,9 +20,7 @@ from app.schemas.worlds import (
 )
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(
-    prefix="/admin/worlds", tags=["admin-worlds"], responses=ADMIN_AUTH_RESPONSES
-)
+router = APIRouter(prefix="/admin/worlds", tags=["admin-worlds"], responses=ADMIN_AUTH_RESPONSES)
 admin_required = require_admin_role({"admin", "moderator"})
 
 
@@ -51,9 +49,7 @@ async def create_world(
     )
 
 
-@router.patch(
-    "/{world_id}", response_model=WorldTemplateOut, summary="Update world template"
-)
+@router.patch("/{world_id}", response_model=WorldTemplateOut, summary="Update world template")
 async def update_world(
     world_id: UUID,
     workspace_id: UUID,
@@ -100,9 +96,7 @@ async def list_characters(
     return await _svc(db).list_characters(world_id, workspace_id)
 
 
-@router.post(
-    "/{world_id}/characters", response_model=CharacterOut, summary="Create character"
-)
+@router.post("/{world_id}/characters", response_model=CharacterOut, summary="Create character")
 async def create_character(
     world_id: UUID,
     workspace_id: UUID,
@@ -122,9 +116,7 @@ async def create_character(
     return ch
 
 
-@router.patch(
-    "/characters/{char_id}", response_model=CharacterOut, summary="Update character"
-)
+@router.patch("/characters/{char_id}", response_model=CharacterOut, summary="Update character")
 async def update_character(
     char_id: UUID,
     workspace_id: UUID,

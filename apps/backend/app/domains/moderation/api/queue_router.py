@@ -27,6 +27,4 @@ async def list_queue(
     size: int = 20,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> CaseListResponse:
-    return await cases_service.list_cases(
-        db, page=page, size=size, statuses=["new", "in_progress"]
-    )
+    return await cases_service.list_cases(db, page=page, size=size, statuses=["new", "in_progress"])

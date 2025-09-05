@@ -42,9 +42,7 @@ async def list_rum_events(
     """
     Админ: последние RUM-события (по убыванию времени).
     """
-    return await rum_service.list_events(
-        event=event, url=url, offset=offset, limit=limit
-    )
+    return await rum_service.list_events(event=event, url=url, offset=offset, limit=limit)
 
 
 @admin_router.get("/rum/summary")

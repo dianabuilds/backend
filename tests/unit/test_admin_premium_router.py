@@ -66,9 +66,7 @@ async def test_admin_premium_router_crud(app_and_session):
 
     update_payload = {"slug": "pro", "title": "Pro Plus"}
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp_update = await ac.put(
-            f"/admin/premium/plans/{plan_id}", json=update_payload
-        )
+        resp_update = await ac.put(f"/admin/premium/plans/{plan_id}", json=update_payload)
     assert resp_update.status_code == 200
     assert resp_update.json()["title"] == "Pro Plus"
 

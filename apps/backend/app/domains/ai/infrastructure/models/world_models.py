@@ -35,21 +35,13 @@ class WorldTemplate(Base):
         nullable=False,
         server_default=Visibility.private.value,
     )
-    created_by_user_id = Column(
-        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
-    )
-    updated_by_user_id = Column(
-        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
-    )
+    created_by_user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    updated_by_user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(
-        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    characters = relationship(
-        "Character", back_populates="world", cascade="all, delete-orphan"
-    )
+    characters = relationship("Character", back_populates="world", cascade="all, delete-orphan")
 
 
 class Character(Base):
@@ -80,16 +72,10 @@ class Character(Base):
         nullable=False,
         server_default=Visibility.private.value,
     )
-    created_by_user_id = Column(
-        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
-    )
-    updated_by_user_id = Column(
-        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
-    )
+    created_by_user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    updated_by_user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(
-        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     world = relationship("WorldTemplate", back_populates="characters")

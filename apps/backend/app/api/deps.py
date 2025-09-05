@@ -24,9 +24,7 @@ from app.security import bearer_scheme
 
 async def get_current_user(
     request: Request,
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None, Security(bearer_scheme)
-    ],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Security(bearer_scheme)],
     db: Annotated[AsyncSession, Depends(get_db)],
     preview: Annotated[PreviewContext, Depends(get_preview_context)],
 ) -> User:
@@ -38,9 +36,7 @@ async def get_current_user(
         token = request.cookies.get("access_token")
     user_id_str = verify_access_token(token) if token else None
     if not user_id_str:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     try:
         user_id = UUID(user_id_str)
     except ValueError as err:
@@ -72,10 +68,7 @@ async def get_current_user(
             (
                 (UserRestriction.user_id == User.id)
                 & (UserRestriction.type.in_(["ban", "post_restrict"]))
-                & (
-                    (UserRestriction.expires_at.is_(None))
-                    | (UserRestriction.expires_at > now)
-                )
+                & ((UserRestriction.expires_at.is_(None)) | (UserRestriction.expires_at > now))
             ),
         )
         .where(User.id == user_id)
@@ -97,9 +90,7 @@ async def get_current_user(
 
 async def get_current_user_optional(
     request: Request,
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None, Security(bearer_scheme)
-    ],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Security(bearer_scheme)],
     db: Annotated[AsyncSession, Depends(get_db)],
     preview: Annotated[PreviewContext, Depends(get_preview_context)],
 ) -> User | None:
@@ -141,10 +132,7 @@ async def get_current_user_optional(
             (
                 (UserRestriction.user_id == User.id)
                 & (UserRestriction.type.in_(["ban", "post_restrict"]))
-                & (
-                    (UserRestriction.expires_at.is_(None))
-                    | (UserRestriction.expires_at > now)
-                )
+                & ((UserRestriction.expires_at.is_(None)) | (UserRestriction.expires_at > now))
             ),
         )
         .where(User.id == user_id)
@@ -205,10 +193,7 @@ def assert_owner_or_role(owner_id: UUID, min_role: str, current_user: User) -> N
         min_role: Minimal role required when user is not the owner.
         current_user: Authenticated user performing the action.
     """
-    if (
-        current_user.id != owner_id
-        and role_order.get(current_user.role, 0) < role_order[min_role]
-    ):
+    if current_user.id != owner_id and role_order.get(current_user.role, 0) < role_order[min_role]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 

@@ -49,9 +49,7 @@ async def test_metrics_reliability(monkeypatch):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get(
-            "/admin/metrics/reliability", params={"workspace": "ws1"}
-        )
+        resp = await client.get("/admin/metrics/reliability", params={"workspace": "ws1"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["count_4xx"] == 1

@@ -25,9 +25,7 @@ class Achievement(Base):
     __tablename__ = "achievements"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(
-        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
-    )
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     code = Column(String, unique=True, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
@@ -54,15 +52,11 @@ class Achievement(Base):
 class UserAchievement(Base):
     __tablename__ = "user_achievements"
 
-    user_id = Column(
-        UUID(), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
-    )
+    user_id = Column(UUID(), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     achievement_id = Column(
         UUID(), ForeignKey("achievements.id", ondelete="CASCADE"), primary_key=True
     )
-    workspace_id = Column(
-        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
-    )
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     unlocked_at = Column(DateTime, default=datetime.utcnow)
 
     achievement = relationship("Achievement", back_populates="users")

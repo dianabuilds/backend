@@ -69,9 +69,7 @@ async def test_create_case(app_and_session):
         case = await session.get(ModerationCase, case_id)
         assert case.reporter_id == user.id
         assert case.reporter_contact == "a@b.c"
-        res = await session.execute(
-            select(CaseAttachment).where(CaseAttachment.case_id == case.id)
-        )
+        res = await session.execute(select(CaseAttachment).where(CaseAttachment.case_id == case.id))
         attachments = res.scalars().all()
         assert len(attachments) == 1
         assert attachments[0].url == "http://example.com/a.png"

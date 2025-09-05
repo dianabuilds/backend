@@ -139,9 +139,7 @@ async def try_acquire(provider: str, *, amount: int = 1) -> bool:
     return await _incr_with_ttl(key, amount, limit)
 
 
-async def try_acquire_model(
-    provider: str, model: str, *, amount: int = 1
-) -> bool | None:
+async def try_acquire_model(provider: str, model: str, *, amount: int = 1) -> bool | None:
     limit = _limit_for_model(model)
     if limit is None:
         return None
@@ -150,9 +148,7 @@ async def try_acquire_model(
     return ok
 
 
-async def try_acquire_for(
-    provider: str, model: str, *, amount: int = 1
-) -> tuple[bool, str | None]:
+async def try_acquire_for(provider: str, model: str, *, amount: int = 1) -> tuple[bool, str | None]:
     m = await try_acquire_model(provider, model, amount=amount)
     if m is False:
         return False, "model"

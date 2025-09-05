@@ -34,9 +34,7 @@ async def _fake_db():
 
 @pytest.fixture(autouse=True)
 def _patch_dependencies(monkeypatch):
-    monkeypatch.setattr(
-        "app.domains.ai.api.system_providers_router.SettingsService", DummyService
-    )
+    monkeypatch.setattr("app.domains.ai.api.system_providers_router.SettingsService", DummyService)
     monkeypatch.setattr(
         "app.domains.ai.api.system_providers_router.AISettingsRepository", DummyRepo
     )

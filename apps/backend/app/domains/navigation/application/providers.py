@@ -79,9 +79,7 @@ class CompassProvider(TransitionProvider):
         workspace_id: UUID,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
-        nodes = await self._service.get_compass_nodes(
-            db, node, user, self._limit, preview=preview
-        )
+        nodes = await self._service.get_compass_nodes(db, node, user, self._limit, preview=preview)
         return [n for n in nodes if n.workspace_id == workspace_id]
 
 

@@ -125,9 +125,7 @@ async def test_refresh_alias_root(client: AsyncClient, test_user):
 
 
 @pytest.mark.asyncio
-async def test_login_uses_json_rate_limit_rule(
-    client: AsyncClient, test_user, monkeypatch
-):
+async def test_login_uses_json_rate_limit_rule(client: AsyncClient, test_user, monkeypatch):
     used: dict[str, str] = {}
 
     async def dummy_dep(request, response):  # noqa: ANN001
@@ -139,9 +137,7 @@ async def test_login_uses_json_rate_limit_rule(
 
     from app.domains.auth.api import auth_router
 
-    monkeypatch.setattr(
-        auth_router, "_rate", types.SimpleNamespace(dependency=fake_dependency)
-    )
+    monkeypatch.setattr(auth_router, "_rate", types.SimpleNamespace(dependency=fake_dependency))
     login_data = {"username": "testuser", "password": "Password123"}
     await client.post("/auth/login", json=login_data)
     assert used["key"] == "login_json"

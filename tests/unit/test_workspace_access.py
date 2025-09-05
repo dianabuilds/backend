@@ -24,12 +24,8 @@ async def test_get_for_view_respects_workspace() -> None:
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
-        w1 = Workspace(
-            id=uuid.uuid4(), name="W1", slug="w1", owner_user_id=uuid.uuid4()
-        )
-        w2 = Workspace(
-            id=uuid.uuid4(), name="W2", slug="w2", owner_user_id=uuid.uuid4()
-        )
+        w1 = Workspace(id=uuid.uuid4(), name="W1", slug="w1", owner_user_id=uuid.uuid4())
+        w2 = Workspace(id=uuid.uuid4(), name="W2", slug="w2", owner_user_id=uuid.uuid4())
         q = Quest(
             workspace_id=w1.id,
             title="Quest",

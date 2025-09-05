@@ -30,9 +30,7 @@ async def has_access_async(
         is_premium = preview.plan == "premium"
     elif user:
         now = preview.now if preview and preview.now else datetime.utcnow()
-        is_premium = user.is_premium and (
-            not user.premium_until or user.premium_until > now
-        )
+        is_premium = user.is_premium and (not user.premium_until or user.premium_until > now)
     if node.premium_only and not is_premium:
         return False
 

@@ -16,9 +16,7 @@ class SearchConfigRepository(IRelevanceRepository):
 
     async def get_active(self) -> tuple[int, RelevancePayload, datetime] | None:
         res = await self._db.execute(
-            select(SearchRelevanceActive)
-            .order_by(SearchRelevanceActive.id.desc())
-            .limit(1)
+            select(SearchRelevanceActive).order_by(SearchRelevanceActive.id.desc()).limit(1)
         )
         row = res.scalars().first()
         if row is None:
@@ -42,9 +40,7 @@ class SearchConfigRepository(IRelevanceRepository):
     async def get_max_version(self) -> int:
         max_ver = (
             await self._db.execute(
-                select(func.max(ConfigVersion.version)).where(
-                    ConfigVersion.type == "relevance"
-                )
+                select(func.max(ConfigVersion.version)).where(ConfigVersion.type == "relevance")
             )
         ).scalar() or 0
         return int(max_ver)

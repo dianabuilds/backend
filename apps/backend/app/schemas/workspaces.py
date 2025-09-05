@@ -59,9 +59,7 @@ class WorkspaceOut(BaseModel):
     name: str
     slug: str
     owner_user_id: UUID
-    settings: WorkspaceSettings = Field(
-        default_factory=WorkspaceSettings, alias="settings_json"
-    )
+    settings: WorkspaceSettings = Field(default_factory=WorkspaceSettings, alias="settings_json")
     type: WorkspaceType
     is_system: bool
     created_at: datetime

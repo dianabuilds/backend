@@ -38,9 +38,7 @@ class _Handlers:
         )
         from app.domains.search.service import index_content
 
-        self.update_node_embedding: Callable[..., Awaitable[Any]] = (
-            update_node_embedding
-        )
+        self.update_node_embedding: Callable[..., Awaitable[Any]] = update_node_embedding
         self.index_content: Callable[..., Awaitable[Any]] = index_content
 
         @asynccontextmanager
@@ -58,9 +56,7 @@ class _Handlers:
         try:
             await navcache.invalidate_compass_all()
         except Exception:
-            logger.exception(
-                "navcache.invalidate_compass_all_failed", extra={"event": event}
-            )
+            logger.exception("navcache.invalidate_compass_all_failed", extra={"event": event})
 
     async def handle_node_updated(self, event: NodeUpdated) -> None:
         async with self.db_session() as session:
@@ -76,9 +72,7 @@ class _Handlers:
         try:
             await navcache.invalidate_compass_all()
         except Exception:
-            logger.exception(
-                "navcache.invalidate_compass_all_failed", extra={"event": event}
-            )
+            logger.exception("navcache.invalidate_compass_all_failed", extra={"event": event})
 
     async def handle_node_published(self, event: NodePublished) -> None:
         try:
@@ -90,9 +84,7 @@ class _Handlers:
             await navcache.invalidate_modes_by_node(event.slug)
             await navcache.invalidate_compass_all()
         except Exception:
-            logger.exception(
-                "navcache.invalidate_post_publish_failed", extra={"event": event}
-            )
+            logger.exception("navcache.invalidate_post_publish_failed", extra={"event": event})
 
     async def handle_achievement_unlocked(self, event: AchievementUnlocked) -> None:
         try:

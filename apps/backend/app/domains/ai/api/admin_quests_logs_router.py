@@ -49,6 +49,4 @@ async def get_generation_job_logs(
             )
         return out
     except Exception as e:
-        raise HTTPException(
-            status_code=404, detail=f"Logs not found or unavailable: {e}"
-        ) from e
+        raise HTTPException(status_code=404, detail=f"Logs not found or unavailable: {e}") from e

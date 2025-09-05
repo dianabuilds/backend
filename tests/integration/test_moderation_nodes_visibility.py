@@ -62,9 +62,7 @@ async def client_with_node():
 async def test_restore_and_hide(client_with_node):
     client, async_session, ws_id, slug = client_with_node
 
-    resp = await client.post(
-        f"/admin/workspaces/{ws_id}/moderation/nodes/{slug}/restore"
-    )
+    resp = await client.post(f"/admin/workspaces/{ws_id}/moderation/nodes/{slug}/restore")
     assert resp.status_code == 200
     async with async_session() as session:
         node = await session.get(Node, 1)

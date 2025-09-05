@@ -29,9 +29,7 @@ class JobStatus(str):
 
 class GenerationJob(Base):
     __tablename__ = "ai_generation_jobs"
-    __table_args__ = (
-        Index("ix_ai_generation_jobs_status_created_at", "status", "created_at"),
-    )
+    __table_args__ = (Index("ix_ai_generation_jobs_status_created_at", "status", "created_at"),)
 
     id = Column(UUID(), primary_key=True, default=uuid4)
 

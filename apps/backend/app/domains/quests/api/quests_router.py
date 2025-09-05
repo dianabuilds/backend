@@ -41,9 +41,7 @@ router = APIRouter(prefix="/quests", tags=["quests"])
 
 
 @router.get("", response_model=list[QuestOut], summary="List quests")
-async def list_quests(
-    workspace_id: UUID, db: Annotated[AsyncSession, Depends(get_db)] = ...
-):
+async def list_quests(workspace_id: UUID, db: Annotated[AsyncSession, Depends(get_db)] = ...):
     """Return all published quests."""
     from app.domains.quests.queries import list_public
 
@@ -91,9 +89,7 @@ async def get_quest(
     from app.domains.quests.queries import get_for_view
 
     try:
-        quest = await get_for_view(
-            db, slug=slug, user=current_user, workspace_id=workspace_id
-        )
+        quest = await get_for_view(db, slug=slug, user=current_user, workspace_id=workspace_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Quest not found") from err
     except PermissionError as err:
@@ -286,9 +282,7 @@ async def get_quest_node(
     from app.domains.quests.gameplay import get_node as get_node_domain
 
     try:
-        node = await get_node_domain(
-            db, quest_id=quest_id, node_id=node_id, user=current_user
-        )
+        node = await get_node_domain(db, quest_id=quest_id, node_id=node_id, user=current_user)
     except ValueError as err:
         msg = str(err)
         if "Quest not found" in msg:

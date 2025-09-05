@@ -86,11 +86,7 @@ class AnthropicProvider(LLMProvider):
                         blocks = data.get("nodes", [])
                         if blocks and isinstance(blocks, list):
                             content = "".join(
-                                [
-                                    blk.get("text", "")
-                                    for blk in blocks
-                                    if isinstance(blk, dict)
-                                ]
+                                [blk.get("text", "") for blk in blocks if isinstance(blk, dict)]
                             )
                     except Exception:
                         content = ""
@@ -113,9 +109,7 @@ class AnthropicProvider(LLMProvider):
                         import random
 
                         sleep_for = (
-                            base_backoff
-                            * (2 ** (attempt - 1))
-                            * (0.8 + 0.4 * random.random())
+                            base_backoff * (2 ** (attempt - 1)) * (0.8 + 0.4 * random.random())
                         )
                     except Exception:
                         sleep_for = base_backoff * (2 ** (attempt - 1))

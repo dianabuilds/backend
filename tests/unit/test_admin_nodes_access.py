@@ -91,9 +91,7 @@ async def test_require_ws_editor_roles() -> None:
         with pytest.raises(HTTPException):
             await require_ws_editor(workspace_id=ws.id, user=user, db=session)
 
-        member = WorkspaceMember(
-            workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer
-        )
+        member = WorkspaceMember(workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer)
         session.add(member)
         await session.commit()
         with pytest.raises(HTTPException):
@@ -126,9 +124,7 @@ async def test_require_ws_viewer_roles() -> None:
         with pytest.raises(HTTPException):
             await require_ws_viewer(workspace_id=ws.id, user=user, db=session)
 
-        member = WorkspaceMember(
-            workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer
-        )
+        member = WorkspaceMember(workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer)
         session.add(member)
         await session.commit()
         res = await require_ws_viewer(workspace_id=ws.id, user=user, db=session)
@@ -156,9 +152,7 @@ async def test_require_ws_guest_roles() -> None:
         with pytest.raises(HTTPException):
             await require_ws_guest(workspace_id=ws.id, user=user, db=session)
 
-        member = WorkspaceMember(
-            workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer
-        )
+        member = WorkspaceMember(workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer)
         session.add(member)
         await session.commit()
         res = await require_ws_guest(workspace_id=ws.id, user=user, db=session)

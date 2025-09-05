@@ -40,15 +40,11 @@ async def test_save_graph_generates_navigation_cache() -> None:
         session.add(version)
         await session.commit()
         steps = [
-            QuestStep(
-                key="start", title="Start", type="start", content={}, rewards=None
-            ),
+            QuestStep(key="start", title="Start", type="start", content={}, rewards=None),
             QuestStep(key="end", title="End", type="end", content={}, rewards=None),
         ]
         transitions = [
-            QuestTransition(
-                from_node_key="start", to_node_key="end", label="go", condition=None
-            )
+            QuestTransition(from_node_key="start", to_node_key="end", label="go", condition=None)
         ]
         await svc.save_graph(session, version.id, steps, transitions)
         await session.commit()

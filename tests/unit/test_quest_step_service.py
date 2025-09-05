@@ -14,9 +14,7 @@ from app.providers.db.adapters import UUID
 Base = declarative_base()
 models_pkg = types.ModuleType("app.models")
 models_pkg.Base = Base
-models_pkg.__path__ = [
-    os.path.join(os.getcwd(), "apps/backend/app/models")
-]  # mark as package
+models_pkg.__path__ = [os.path.join(os.getcwd(), "apps/backend/app/models")]  # mark as package
 sys.modules.setdefault("app.models", models_pkg)
 
 from app.domains.quests.services import QuestStepService  # noqa: E402
@@ -44,9 +42,7 @@ async def test_step_crud_and_order() -> None:
         session.add(quest)
         await session.commit()
 
-        s1 = await svc.create_step(
-            session, quest.id, key="s1", title="Start", type="start"
-        )
+        s1 = await svc.create_step(session, quest.id, key="s1", title="Start", type="start")
         s2 = await svc.create_step(session, quest.id, key="s2", title="Second")
         assert s1.order == 1
         assert s2.order == 2
@@ -80,9 +76,7 @@ async def test_start_step_unique() -> None:
 
         await svc.create_step(session, quest.id, key="s1", title="Start", type="start")
         with pytest.raises(ValueError):
-            await svc.create_step(
-                session, quest.id, key="s2", title="Another", type="start"
-            )
+            await svc.create_step(session, quest.id, key="s2", title="Another", type="start")
 
 
 @pytest.mark.asyncio
@@ -136,9 +130,7 @@ async def test_transition_from_end_step_forbidden() -> None:
         session.add(quest)
         await session.commit()
 
-        end_step = await svc.create_step(
-            session, quest.id, key="end", title="End", type="end"
-        )
+        end_step = await svc.create_step(session, quest.id, key="end", title="End", type="end")
         other_step = await svc.create_step(session, quest.id, key="next", title="Next")
         with pytest.raises(ValueError):
             await svc.create_transition(
@@ -166,9 +158,7 @@ async def test_get_graph_returns_steps_and_transitions() -> None:
 
         s1 = await svc.create_step(session, quest.id, key="s1", title="Start")
         s2 = await svc.create_step(session, quest.id, key="s2", title="End")
-        await svc.create_transition(
-            session, quest.id, from_step_id=s1.id, to_step_id=s2.id
-        )
+        await svc.create_transition(session, quest.id, from_step_id=s1.id, to_step_id=s2.id)
         steps, transitions = await svc.get_graph(session, quest.id)
         assert len(steps) == 2
         assert len(transitions) == 1

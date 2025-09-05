@@ -50,12 +50,8 @@ async def list_jobs_paged(
                 "provider": j.provider,
                 "model": j.model,
                 "params": j.params,
-                "result_quest_id": (
-                    str(j.result_quest_id) if j.result_quest_id else None
-                ),
-                "result_version_id": (
-                    str(j.result_version_id) if j.result_version_id else None
-                ),
+                "result_quest_id": (str(j.result_quest_id) if j.result_quest_id else None),
+                "result_version_id": (str(j.result_version_id) if j.result_version_id else None),
                 "cost": float(j.cost) if j.cost is not None else None,
                 "token_usage": j.token_usage,
                 "reused": bool(j.reused),

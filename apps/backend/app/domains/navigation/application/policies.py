@@ -56,9 +56,7 @@ class ManualPolicy(Policy):
                 db, node, user, node.workspace_id, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(
-                db, node, user, node.workspace_id
-            )
+            candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
@@ -88,9 +86,7 @@ class CompassPolicy(Policy):
                 db, node, user, node.workspace_id, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(
-                db, node, user, node.workspace_id
-            )
+            candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
@@ -120,9 +116,7 @@ class EchoPolicy(Policy):
                 db, node, user, node.workspace_id, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(
-                db, node, user, node.workspace_id
-            )
+            candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
@@ -161,9 +155,7 @@ class RandomPolicy(Policy):
                 db, node, user, node.workspace_id, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(
-                db, node, user, node.workspace_id
-            )
+            candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]

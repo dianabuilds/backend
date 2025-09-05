@@ -22,9 +22,7 @@ class AIModelPriceRepository:
         output_cost: float | None = None,
         currency: str | None = None,
     ) -> AIModelPrice:
-        result = await self._db.execute(
-            select(AIModelPrice).where(AIModelPrice.model == model)
-        )
+        result = await self._db.execute(select(AIModelPrice).where(AIModelPrice.model == model))
         row = result.scalar_one_or_none()
         if row is None:
             row = AIModelPrice(

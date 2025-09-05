@@ -87,9 +87,7 @@ async def test_patch_labels_adds_and_removes(session_factory: sessionmaker) -> N
         db.add(CaseLabel(case_id=case.id, label_id=label.id))
         await db.commit()
 
-        res = await service.patch_labels(
-            db, case.id, CaseLabelsPatch(add=["bug"], remove=["spam"])
-        )
+        res = await service.patch_labels(db, case.id, CaseLabelsPatch(add=["bug"], remove=["spam"]))
         assert res is not None
         assert set(res.labels) == {"bug"}
 

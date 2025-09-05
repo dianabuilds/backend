@@ -74,9 +74,7 @@ def create_refresh_token(user_id) -> str:
 
 def verify_refresh_token(token: str):
     try:
-        payload = jwt.decode(
-            token, settings.jwt.secret, algorithms=[settings.jwt.algorithm]
-        )
+        payload = jwt.decode(token, settings.jwt.secret, algorithms=[settings.jwt.algorithm])
     except jwt.PyJWTError:
         return None
     jti = payload.get("jti")

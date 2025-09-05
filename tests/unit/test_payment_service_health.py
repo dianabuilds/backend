@@ -21,9 +21,7 @@ class DummyResponse:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("status_code", [405, 422, 500])
-async def test_check_payment_service_non_2xx(
-    monkeypatch, caplog, status_code: int
-) -> None:
+async def test_check_payment_service_non_2xx(monkeypatch, caplog, status_code: int) -> None:
     caplog.set_level(logging.WARNING)
     monkeypatch.setattr(settings.payment, "api_base", "http://example.test")
 
@@ -34,14 +32,10 @@ async def test_check_payment_service_non_2xx(
         async def __aenter__(self) -> DummyClient:  # pragma: no cover - simple stub
             return self
 
-        async def __aexit__(
-            self, exc_type, exc, tb
-        ) -> None:  # pragma: no cover - simple stub
+        async def __aexit__(self, exc_type, exc, tb) -> None:  # pragma: no cover - simple stub
             return None
 
-        async def get(
-            self, url: str
-        ) -> DummyResponse:  # pragma: no cover - simple stub
+        async def get(self, url: str) -> DummyResponse:  # pragma: no cover - simple stub
             return DummyResponse(status_code)
 
     monkeypatch.setattr(health_module.httpx, "AsyncClient", DummyClient)

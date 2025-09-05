@@ -82,9 +82,7 @@ class QuestStepOut(QuestStepBase):
     quest_id: UUID = Field(alias="questId")
     order: int
 
-    model_config = ConfigDict(
-        from_attributes=True, alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
 
 class QuestStepPage(BaseModel):
@@ -128,9 +126,7 @@ class QuestTransitionOut(QuestTransitionBase):
     quest_id: UUID = Field(alias="questId")
     from_step_id: UUID = Field(alias="fromStepId")
 
-    model_config = ConfigDict(
-        from_attributes=True, alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
 
 class QuestGraphOut(BaseModel):
@@ -160,18 +156,14 @@ async def list_steps(
     svc = QuestStepService()
     steps = await svc.list_steps(db, quest_id, limit=limit, offset=offset)
     total_res = await db.execute(
-        select(func.count())
-        .select_from(QuestStep)
-        .where(QuestStep.quest_id == quest_id)
+        select(func.count()).select_from(QuestStep).where(QuestStep.quest_id == quest_id)
     )
     total = int(total_res.scalar() or 0)
     items = [QuestStepOut.model_validate(s, from_attributes=True) for s in steps]
     return QuestStepPage(total=total, items=items)
 
 
-@router.post(
-    "", response_model=QuestStepOut, status_code=201, summary="Create quest step"
-)
+@router.post("", response_model=QuestStepOut, status_code=201, summary="Create quest step")
 async def create_step(
     quest_id: UUID,
     payload: QuestStepCreate,
@@ -271,9 +263,7 @@ async def list_transitions(
         raise HTTPException(status_code=404, detail="Step not found")
     svc = QuestStepService()
     transitions = await svc.list_transitions(db, quest_id, from_step_id=step_id)
-    return [
-        QuestTransitionOut.model_validate(t, from_attributes=True) for t in transitions
-    ]
+    return [QuestTransitionOut.model_validate(t, from_attributes=True) for t in transitions]
 
 
 @router.post(
@@ -356,7 +346,5 @@ async def get_graph(
     svc = QuestStepService()
     steps, transitions = await svc.get_graph(db, quest_id)
     step_models = [QuestStepOut.model_validate(s, from_attributes=True) for s in steps]
-    tr_models = [
-        QuestTransitionOut.model_validate(t, from_attributes=True) for t in transitions
-    ]
+    tr_models = [QuestTransitionOut.model_validate(t, from_attributes=True) for t in transitions]
     return QuestGraphOut(steps=step_models, transitions=tr_models)

@@ -51,9 +51,7 @@ class AdminNodeOut(BaseModel):
     updated_at: datetime | None = Field(default=None, alias="updatedAt")
     tags: list[str] = Field(default_factory=list)
 
-    model_config = ConfigDict(
-        from_attributes=True, alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
 
 class AdminNodeList(BaseModel):

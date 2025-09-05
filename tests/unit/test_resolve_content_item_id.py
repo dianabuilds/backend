@@ -55,9 +55,7 @@ async def test_node_only_creates_item(db: AsyncSession) -> None:
     db.add_all([User(id=user_id), ws, node])
     await db.commit()
 
-    item = await _resolve_content_item_id(
-        db, workspace_id=ws.id, node_or_item_id=node.id
-    )
+    item = await _resolve_content_item_id(db, workspace_id=ws.id, node_or_item_id=node.id)
     assert isinstance(item, NodeItem)
     assert item.node_id == node.id
     assert item.workspace_id == ws.id
@@ -91,9 +89,7 @@ async def test_existing_item_by_id(db: AsyncSession) -> None:
     db.add_all([User(id=user_id), ws, node, item])
     await db.commit()
 
-    resolved = await _resolve_content_item_id(
-        db, workspace_id=ws.id, node_or_item_id=item.id
-    )
+    resolved = await _resolve_content_item_id(db, workspace_id=ws.id, node_or_item_id=item.id)
     assert resolved.id == item.id
 
 
@@ -147,8 +143,6 @@ async def test_global_node_resolves(db: AsyncSession) -> None:
     db.add_all([User(id=user_id), ws, node])
     await db.commit()
 
-    item = await _resolve_content_item_id(
-        db, workspace_id=ws.id, node_or_item_id=node.id
-    )
+    item = await _resolve_content_item_id(db, workspace_id=ws.id, node_or_item_id=node.id)
     assert item.node_id == node.id
     assert item.workspace_id is None

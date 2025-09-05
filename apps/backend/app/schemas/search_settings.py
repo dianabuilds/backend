@@ -65,7 +65,5 @@ class SearchOverviewOut(BaseModel):
     zrr: dict = Field(default_factory=lambda: {"value": 0.0, "delta": 0.0})
     ctr: dict = Field(default_factory=lambda: {"value": 0.0, "delta": 0.0})
     latency: dict = Field(default_factory=lambda: {"p95_ms": 0, "p99_ms": 0})
-    index: dict = Field(
-        default_factory=lambda: {"freshness_lag_ms": 0, "last_job": None}
-    )
+    index: dict = Field(default_factory=lambda: {"freshness_lag_ms": 0, "last_job": None})
     activeConfigs: dict = Field(default_factory=dict)

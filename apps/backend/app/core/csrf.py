@@ -60,10 +60,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if method in {"POST", "PUT", "PATCH", "DELETE"}:
             path = request.url.path or ""
             normalized_path = path.removeprefix("/api")
-            if (
-                normalized_path.startswith("/auth")
-                and normalized_path != "/auth/logout"
-            ) or any(
+            if (normalized_path.startswith("/auth") and normalized_path != "/auth/logout") or any(
                 normalized_path.startswith(p) or path.startswith(p)
                 for p in settings.csrf.exempt_paths
             ):
@@ -72,9 +69,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             auth = request.headers.get("Authorization") or ""
             has_bearer = auth.lower().startswith("bearer ")
             session_cookies = {"access_token", "session"}
-            has_session_cookie = any(
-                name in request.cookies for name in session_cookies
-            )
+            has_session_cookie = any(name in request.cookies for name in session_cookies)
 
             # If Authorization Bearer is present and CSRF is not explicitly
             # required for bearer flows, skip CSRF protection, even if cookies
@@ -85,25 +80,19 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
             # If there is no session cookie, and either there is no bearer or
             # bearer explicitly requires CSRF, then skip unless cookie auth is used.
-            if not has_session_cookie and not (
-                has_bearer and settings.csrf.require_for_bearer
-            ):
+            if not has_session_cookie and not (has_bearer and settings.csrf.require_for_bearer):
                 return await call_next(request)
 
             if not self._is_same_origin(request):
                 csrf_cookie = request.cookies.get(settings.csrf.cookie_name)
                 header = request.headers.get(settings.csrf.header_name)
                 if not csrf_cookie:
-                    logger.info(
-                        "CSRF reject: missing cookie %s", settings.csrf.cookie_name
-                    )
+                    logger.info("CSRF reject: missing cookie %s", settings.csrf.cookie_name)
                     return JSONResponse(
                         {"detail": "CSRF token missing or invalid"}, status_code=403
                     )
                 if not header:
-                    logger.info(
-                        "CSRF reject: missing header %s", settings.csrf.header_name
-                    )
+                    logger.info("CSRF reject: missing header %s", settings.csrf.header_name)
                     return JSONResponse(
                         {"detail": "CSRF token missing or invalid"}, status_code=403
                     )

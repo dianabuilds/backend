@@ -51,9 +51,7 @@ async def test_get_queue_stats(monkeypatch):
     def fake_redis(url: str, **_: object):
         return fake
 
-    monkeypatch.setattr(
-        "app.domains.admin.application.jobs_service.create_async_redis", fake_redis
-    )
+    monkeypatch.setattr("app.domains.admin.application.jobs_service.create_async_redis", fake_redis)
     monkeypatch.setattr(
         "app.domains.admin.application.jobs_service.settings",  # type: ignore[attr-defined]
         type("S", (), {"queue_broker_url": "redis://", "async_enabled": True}),

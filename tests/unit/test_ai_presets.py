@@ -106,9 +106,7 @@ async def test_generation_uses_workspace_presets(monkeypatch) -> None:
 
         from app.domains.ai import pipeline as ai_pipeline
 
-        monkeypatch.setattr(
-            ai_pipeline, "run_full_generation", fake_run_full_generation
-        )
+        monkeypatch.setattr(ai_pipeline, "run_full_generation", fake_run_full_generation)
 
         await process_next_generation_job(session)
 
@@ -136,9 +134,7 @@ async def test_generation_merges_sources_and_logs() -> None:
             name="W",
             slug="w",
             owner_user_id=uuid.uuid4(),
-            settings_json=WorkspaceSettings(
-                ai_presets={"system_prompt": "ws-system"}
-            ).model_dump(),
+            settings_json=WorkspaceSettings(ai_presets={"system_prompt": "ws-system"}).model_dump(),
         )
         session.add(ws)
         await session.commit()

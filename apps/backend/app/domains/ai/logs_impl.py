@@ -53,6 +53,4 @@ async def save_stage_log(
         db.add(log)
         await db.flush()
     except Exception as e:
-        logger.warning(
-            "save_stage_log failed for job %s stage %s: %s", job_id, stage, e
-        )
+        logger.warning("save_stage_log failed for job %s stage %s: %s", job_id, stage, e)

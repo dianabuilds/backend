@@ -19,9 +19,7 @@ class PaymentGateway(Protocol):
     slug: str
     type: str
 
-    async def verify(
-        self, *, token: str, amount: int, currency: str | None = None
-    ) -> bool: ...
+    async def verify(self, *, token: str, amount: int, currency: str | None = None) -> bool: ...
 
 
 class CryptoJWTGateway:
@@ -32,9 +30,7 @@ class CryptoJWTGateway:
         self.alg = str(cfg.get("jwt_algorithm", "HS256"))
         self.expected_currency = cfg.get("currency")
 
-    async def verify(
-        self, *, token: str, amount: int, currency: str | None = None
-    ) -> bool:
+    async def verify(self, *, token: str, amount: int, currency: str | None = None) -> bool:
         try:
             data = jwt.decode(token, self.secret, algorithms=[self.alg])
         except jwt.PyJWTError:
@@ -55,9 +51,7 @@ class StripeJWTGateway:
         self.secret = str(cfg.get("jwt_secret", "") or cfg.get("secret", ""))
         self.alg = str(cfg.get("jwt_algorithm", "HS256"))
 
-    async def verify(
-        self, *, token: str, amount: int, currency: str | None = None
-    ) -> bool:
+    async def verify(self, *, token: str, amount: int, currency: str | None = None) -> bool:
         try:
             data = jwt.decode(token, self.secret, algorithms=[self.alg])
         except jwt.PyJWTError:

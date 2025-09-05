@@ -90,9 +90,7 @@ async def publish_quest(
     db: AsyncSession, *, quest_id: UUID, workspace_id: UUID, actor: User
 ) -> Quest:
     """Публикация квеста — делегирует в versions.release_latest с жёсткой валидацией."""
-    return await release_latest(
-        db, quest_id=quest_id, workspace_id=workspace_id, actor=actor
-    )
+    return await release_latest(db, quest_id=quest_id, workspace_id=workspace_id, actor=actor)
 
 
 _KEY_RE = re.compile(r"^[A-Za-z0-9_.:\-]+$")
@@ -127,16 +125,12 @@ def validate_graph_input(
                 "title": n.get("title") or n.get("name") or key,
                 "type": n.get("type") or "normal",
                 "nodes": (n.get("nodes") if isinstance(n.get("nodes"), dict) else None),
-                "rewards": (
-                    n.get("rewards") if isinstance(n.get("rewards"), dict) else None
-                ),
+                "rewards": (n.get("rewards") if isinstance(n.get("rewards"), dict) else None),
             }
         )
     norm_edges: list[dict[str, Any]] = []
     for e in edges or []:
-        fk = str(
-            e.get("from_node_key") or e.get("from") or e.get("source") or ""
-        ).strip()
+        fk = str(e.get("from_node_key") or e.get("from") or e.get("source") or "").strip()
         tk = str(e.get("to_node_key") or e.get("to") or e.get("target") or "").strip()
         if not fk or not tk:
             raise ValueError("Edge must have from/to")
@@ -149,9 +143,7 @@ def validate_graph_input(
                 "from_node_key": fk,
                 "to_node_key": tk,
                 "label": e.get("label") or e.get("choice"),
-                "condition": (
-                    e.get("condition") if isinstance(e.get("condition"), dict) else None
-                ),
+                "condition": (e.get("condition") if isinstance(e.get("condition"), dict) else None),
             }
         )
     return norm_nodes, norm_edges
@@ -173,9 +165,7 @@ async def batch_upsert_graph(
     # Валидируем и нормализуем входные данные
     nodes, edges = validate_graph_input(nodes, edges)
 
-    res = await db.execute(
-        select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
-    )
+    res = await db.execute(select(QuestGraphNode).where(QuestGraphNode.version_id == version_id))
     existing_nodes = {n.key: n for n in res.scalars().all()}
     in_keys = set()
     inserted = updated = deleted = 0
@@ -224,9 +214,7 @@ async def batch_upsert_graph(
             deleted += len(to_delete)
 
     # Recreate edges (нормализованные, гарантированно валидные)
-    await db.execute(
-        delete(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
-    )
+    await db.execute(delete(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))
     edge_count = 0
     for e in edges:
         db.add(
@@ -300,8 +288,7 @@ async def delete_node(
         await db.execute(
             delete(QuestGraphEdge).where(
                 QuestGraphEdge.version_id == version_id,
-                (QuestGraphEdge.from_node_key == key)
-                | (QuestGraphEdge.to_node_key == key),
+                (QuestGraphEdge.from_node_key == key) | (QuestGraphEdge.to_node_key == key),
             )
         )
     await db.execute(

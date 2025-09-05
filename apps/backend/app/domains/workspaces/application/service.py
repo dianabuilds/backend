@@ -54,10 +54,7 @@ async def require_ws_editor(
 ) -> WorkspaceMember | None:
     """Ensure the current user has editor or owner rights in the workspace."""
     m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
-    if not (
-        user.role == "admin"
-        or (m and m.role in (WorkspaceRole.owner, WorkspaceRole.editor))
-    ):
+    if not (user.role == "admin" or (m and m.role in (WorkspaceRole.owner, WorkspaceRole.editor))):
         raise HTTPException(status_code=403, detail="Forbidden")
     return m
 
@@ -83,11 +80,7 @@ async def require_ws_viewer(
     m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
     if not (
         user.role == "admin"
-        or (
-            m
-            and m.role
-            in (WorkspaceRole.owner, WorkspaceRole.editor, WorkspaceRole.viewer)
-        )
+        or (m and m.role in (WorkspaceRole.owner, WorkspaceRole.editor, WorkspaceRole.viewer))
     ):
         raise HTTPException(status_code=403, detail="Forbidden")
     return m
@@ -146,19 +139,13 @@ class WorkspaceService:
             is_system=data.is_system,
         )
         db.add(workspace)
-        db.add(
-            WorkspaceMember(
-                workspace=workspace, user_id=owner.id, role=WorkspaceRole.owner
-            )
-        )
+        db.add(WorkspaceMember(workspace=workspace, user_id=owner.id, role=WorkspaceRole.owner))
         await db.commit()
         await db.refresh(workspace)
         return workspace
 
     @staticmethod
-    async def list_for_user(
-        db: AsyncSession, user: User
-    ) -> list[tuple[Workspace, WorkspaceRole]]:
+    async def list_for_user(db: AsyncSession, user: User) -> list[tuple[Workspace, WorkspaceRole]]:
         stmt = (
             select(Workspace, WorkspaceMember.role)
             .join(WorkspaceMember)
@@ -168,24 +155,18 @@ class WorkspaceService:
         return [(ws, role) for ws, role in result.all()]
 
     @staticmethod
-    async def get_for_user(
-        db: AsyncSession, workspace_id: UUID, user: User
-    ) -> Workspace:
+    async def get_for_user(db: AsyncSession, workspace_id: UUID, user: User) -> Workspace:
         workspace = await WorkspaceDAO.get(db, workspace_id)
         if not workspace:
             raise HTTPException(status_code=404, detail="Workspace not found")
         if user.role != "admin":
-            member = await WorkspaceMemberDAO.get(
-                db, workspace_id=workspace_id, user_id=user.id
-            )
+            member = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
             if not member:
                 raise HTTPException(status_code=403, detail="Forbidden")
         return workspace
 
     @staticmethod
-    async def update(
-        db: AsyncSession, workspace_id: UUID, data: WorkspaceUpdate
-    ) -> Workspace:
+    async def update(db: AsyncSession, workspace_id: UUID, data: WorkspaceUpdate) -> Workspace:
         workspace = await WorkspaceDAO.get(db, workspace_id)
         if not workspace:
             raise HTTPException(status_code=404, detail="Workspace not found")
@@ -204,9 +185,7 @@ class WorkspaceService:
             if not SLUG_RE.fullmatch(data.slug):
                 raise HTTPException(status_code=400, detail="Invalid slug")
             res = await db.execute(
-                select(Workspace).where(
-                    Workspace.slug == data.slug, Workspace.id != workspace_id
-                )
+                select(Workspace).where(Workspace.slug == data.slug, Workspace.id != workspace_id)
             )
             if res.scalars().first():
                 raise HTTPException(status_code=400, detail="Slug already exists")
@@ -233,9 +212,7 @@ class WorkspaceService:
     async def add_member(
         db: AsyncSession, workspace_id: UUID, data: WorkspaceMemberIn
     ) -> WorkspaceMember:
-        existing = await WorkspaceMemberDAO.get(
-            db, workspace_id=workspace_id, user_id=data.user_id
-        )
+        existing = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=data.user_id)
         if existing:
             raise HTTPException(status_code=400, detail="Member already exists")
         member = await WorkspaceMemberDAO.add(
@@ -262,21 +239,15 @@ class WorkspaceService:
         return member
 
     @staticmethod
-    async def remove_member(
-        db: AsyncSession, workspace_id: UUID, user_id: UUID
-    ) -> None:
-        member = await WorkspaceMemberDAO.get(
-            db, workspace_id=workspace_id, user_id=user_id
-        )
+    async def remove_member(db: AsyncSession, workspace_id: UUID, user_id: UUID) -> None:
+        member = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user_id)
         if not member:
             raise HTTPException(status_code=404, detail="Member not found")
         await WorkspaceMemberDAO.remove(db, workspace_id=workspace_id, user_id=user_id)
         await db.commit()
 
     @staticmethod
-    async def list_members(
-        db: AsyncSession, workspace_id: UUID
-    ) -> list[WorkspaceMember]:
+    async def list_members(db: AsyncSession, workspace_id: UUID) -> list[WorkspaceMember]:
         res = await db.execute(
             select(WorkspaceMember).where(WorkspaceMember.workspace_id == workspace_id)
         )
@@ -289,11 +260,7 @@ class WorkspaceService:
         user: User,
         pq: PageQuery,
     ) -> WorkspaceCursorPage:
-        stmt = (
-            select(Workspace)
-            .join(WorkspaceMember)
-            .where(WorkspaceMember.user_id == user.id)
-        )
+        stmt = select(Workspace).join(WorkspaceMember).where(WorkspaceMember.user_id == user.id)
         stmt = apply_sorting(stmt, model=Workspace, sort_field=pq.sort, order=pq.order)
         cursor = decode_cursor(pq.cursor) if pq.cursor else None
         stmt = apply_pagination(
@@ -305,9 +272,7 @@ class WorkspaceService:
         )
         items, has_next = await fetch_page(stmt, session=db, limit=pq.limit)
         next_cursor = (
-            build_cursor_for_last_item(items[-1], pq.sort, pq.order)
-            if has_next and items
-            else None
+            build_cursor_for_last_item(items[-1], pq.sort, pq.order) if has_next and items else None
         )
         roles: dict[UUID, WorkspaceRole] = {}
         if items:

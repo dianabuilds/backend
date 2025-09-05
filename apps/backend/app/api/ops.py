@@ -43,9 +43,7 @@ def _workspace_info(ws: Any) -> dict[str, Any]:
     return {"id": str(ws.id), "slug": ws.slug, "name": ws.name}
 
 
-async def _resolve_workspace(
-    db: AsyncSession, workspace_id: UUID | None
-) -> Workspace | None:
+async def _resolve_workspace(db: AsyncSession, workspace_id: UUID | None) -> Workspace | None:
     if workspace_id:
         return await WorkspaceDAO.get(db, workspace_id)
     # попробуем системный workspace 'main'

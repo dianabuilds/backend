@@ -38,9 +38,7 @@ async def test_processed_limit_allows_reprocessing() -> None:
         seen.append(event.id)
 
     bus.subscribe(NodePublished, handler)
-    events = [
-        NodePublished(node_id=i, slug=f"s{i}", author_id=uuid.uuid4()) for i in range(3)
-    ]
+    events = [NodePublished(node_id=i, slug=f"s{i}", author_id=uuid.uuid4()) for i in range(3)]
     for ev in events:
         await bus.publish(ev)
 

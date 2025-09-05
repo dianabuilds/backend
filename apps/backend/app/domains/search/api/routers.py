@@ -35,12 +35,8 @@ async def search_nodes(
     limit: int = 20,
     offset: int = 0,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
-    user: Annotated[
-        User | None, Depends(get_current_user_optional)
-    ] = ...,  # noqa: B008
-    preview: Annotated[
-        PreviewContext, Depends(get_preview_context)
-    ] = ...,  # noqa: B008
+    user: Annotated[User | None, Depends(get_current_user_optional)] = ...,  # noqa: B008
+    preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,  # noqa: B008
 ):
     stmt = select(Node).where(Node.is_visible)
     if q:
@@ -59,10 +55,7 @@ async def search_nodes(
     nodes = result.scalars().all()
     filtered = [n for n in nodes if await has_access_async(n, user, preview)]
     search_stats.record(q or "", len(filtered))
-    return [
-        {"slug": n.slug, "title": n.title, "tags": n.tag_slugs, "score": 1.0}
-        for n in filtered
-    ]
+    return [{"slug": n.slug, "title": n.title, "tags": n.tag_slugs, "score": 1.0} for n in filtered]
 
 
 @router.get("/search/semantic", summary="Semantic search")
@@ -70,18 +63,12 @@ async def semantic_search(
     q: str,
     limit: int = 20,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
-    user: Annotated[
-        User | None, Depends(get_current_user_optional)
-    ] = ...,  # noqa: B008
-    preview: Annotated[
-        PreviewContext, Depends(get_preview_context)
-    ] = ...,  # noqa: B008
+    user: Annotated[User | None, Depends(get_current_user_optional)] = ...,  # noqa: B008
+    preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,  # noqa: B008
 ):
     query_vec = get_embedding(q)
     repo = CompassRepository(db)
-    candidates = await repo.search_by_vector_pgvector(
-        query_vec, limit, settings.compass.pgv_probes
-    )
+    candidates = await repo.search_by_vector_pgvector(query_vec, limit, settings.compass.pgv_probes)
     results: list[tuple[Node, float]] = []
     if candidates is None:
         stmt = select(Node).where(

@@ -32,9 +32,7 @@ class QuestStep(Base):
     content = Column(JSONB, nullable=True)
     rewards = Column(JSONB, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
-        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
-    )
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     outgoing_transitions = relationship(
         "QuestStepTransition",
@@ -53,9 +51,7 @@ class QuestStep(Base):
 class QuestStepTransition(Base):
     __tablename__ = "quest_step_transitions"
     __table_args__ = (
-        UniqueConstraint(
-            "quest_id", "from_step_id", "to_step_id", name="uq_quest_step_transition"
-        ),
+        UniqueConstraint("quest_id", "from_step_id", "to_step_id", name="uq_quest_step_transition"),
     )
 
     id = Column(UUID(), primary_key=True, default=uuid4)
@@ -65,18 +61,12 @@ class QuestStepTransition(Base):
         nullable=False,
         index=True,
     )
-    from_step_id = Column(
-        UUID(), ForeignKey("quest_steps.id", ondelete="CASCADE"), nullable=False
-    )
-    to_step_id = Column(
-        UUID(), ForeignKey("quest_steps.id", ondelete="CASCADE"), nullable=False
-    )
+    from_step_id = Column(UUID(), ForeignKey("quest_steps.id", ondelete="CASCADE"), nullable=False)
+    to_step_id = Column(UUID(), ForeignKey("quest_steps.id", ondelete="CASCADE"), nullable=False)
     label = Column(String, nullable=True)
     condition = Column(JSONB, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
-        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
-    )
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     from_step = relationship(
         "QuestStep", foreign_keys=[from_step_id], back_populates="outgoing_transitions"

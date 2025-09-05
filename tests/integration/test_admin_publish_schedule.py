@@ -206,9 +206,7 @@ async def test_cancel_scheduled_publish_ok(admin_client):
         session.add(job)
         await session.commit()
 
-    resp = await client.delete(
-        f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish"
-    )
+    resp = await client.delete(f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish")
     assert resp.status_code == 200
     assert resp.json()["canceled"] is True
 
@@ -216,16 +214,12 @@ async def test_cancel_scheduled_publish_ok(admin_client):
 @pytest.mark.asyncio
 async def test_cancel_scheduled_publish_forbidden(forbidden_client):
     client, ws_id, node_id = forbidden_client
-    resp = await client.delete(
-        f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish"
-    )
+    resp = await client.delete(f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish")
     assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_cancel_scheduled_publish_not_found(admin_client):
     client, _, ws_id, node_id, _ = admin_client
-    resp = await client.delete(
-        f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish"
-    )
+    resp = await client.delete(f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish")
     assert resp.status_code == 404

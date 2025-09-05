@@ -29,9 +29,7 @@ class SignupSchema(BaseModel):
     def username_must_be_valid(cls, v: str) -> str:
         if not re.match(r"^[a-zA-Z0-9._]+$", v):
             logger.warning("Invalid username format: %s", v)
-            raise ValueError(
-                "Username can only contain letters, numbers, dots and underscores"
-            )
+            raise ValueError("Username can only contain letters, numbers, dots and underscores")
         if v in {"000", "admin", "root", "system"}:
             logger.warning("Reserved username being used: %s", v)
         return v
@@ -41,11 +39,7 @@ class SignupSchema(BaseModel):
     def password_must_be_valid(cls, v: str) -> str:
         if len(v) < 3:
             raise ValueError("Password must be at least 3 characters long")
-        if (
-            len(v) < 8
-            or not any(c.isupper() for c in v)
-            or not any(c.isdigit() for c in v)
-        ):
+        if len(v) < 8 or not any(c.isupper() for c in v) or not any(c.isdigit() for c in v):
             logger.warning("Weak password being used")
         return v
 
@@ -53,9 +47,7 @@ class SignupSchema(BaseModel):
 class LoginSchema(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
-    login: Annotated[
-        str, Field(validation_alias=AliasChoices("login", "username", "email"))
-    ]
+    login: Annotated[str, Field(validation_alias=AliasChoices("login", "username", "email"))]
     password: str
 
     @classmethod

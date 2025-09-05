@@ -51,9 +51,7 @@ async def simulate_transitions(
 
     seed = payload.seed if payload.seed is not None else next_seed()
     preview = PreviewContext(mode=payload.preview_mode, seed=seed)
-    res = await svc.build_route(
-        db, node, current_user, preview=preview, mode=payload.mode
-    )
+    res = await svc.build_route(db, node, current_user, preview=preview, mode=payload.mode)
     return {
         "next": res.next.slug if res.next else None,
         "reason": res.reason.value if res.reason else None,

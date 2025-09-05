@@ -69,9 +69,7 @@ async def test_resolve_workspace_checks_membership() -> None:
             await resolve_workspace(ws.id, user=user, db=session)
         assert exc.value.status_code == 403
 
-        member = WorkspaceMember(
-            workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer
-        )
+        member = WorkspaceMember(workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer)
         session.add(member)
         await session.commit()
 
@@ -93,9 +91,7 @@ async def test_require_workspace_sets_state() -> None:
         await session.execute(sa.insert(User.__table__).values(id=user_id))
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user_id)
         session.add(ws)
-        member = WorkspaceMember(
-            workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer
-        )
+        member = WorkspaceMember(workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer)
         session.add(member)
         await session.commit()
 

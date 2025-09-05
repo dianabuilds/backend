@@ -67,9 +67,7 @@ async def capture_transaction(
     cfg: dict[str, Any] | None = None
     if gateway_slug:
         res = await db.execute(
-            select(PaymentGatewayConfig).where(
-                PaymentGatewayConfig.slug == gateway_slug
-            )
+            select(PaymentGatewayConfig).where(PaymentGatewayConfig.slug == gateway_slug)
         )
         gw = res.scalars().first()
         if gw:

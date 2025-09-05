@@ -25,8 +25,6 @@ async def test_verify_payment_without_gateways(monkeypatch) -> None:
     monkeypatch.setattr(manager_impl, "load_active_gateways", fake_load_gateways)
     monkeypatch.setattr(manager_impl.payment_service, "verify", fake_verify)
 
-    ok, slug = await manager_impl.verify_payment(
-        None, amount=1, currency=None, token="tkn"
-    )
+    ok, slug = await manager_impl.verify_payment(None, amount=1, currency=None, token="tkn")
     assert ok is True
     assert slug is None

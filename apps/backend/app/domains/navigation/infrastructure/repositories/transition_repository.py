@@ -36,9 +36,7 @@ class TransitionRepository:
             to_node_id=to_node_id,
             type=NodeTransitionType(payload.type),
             condition=(
-                payload.condition.model_dump(exclude_none=True)
-                if payload.condition
-                else {}
+                payload.condition.model_dump(exclude_none=True) if payload.condition else {}
             ),
             weight=payload.weight,
             label=payload.label,

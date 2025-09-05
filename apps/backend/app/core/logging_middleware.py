@@ -31,7 +31,5 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         level = logging.INFO
         if duration_ms >= settings.logging.slow_request_ms:
             level = logging.WARNING
-        logger.log(
-            level, "%s %s %s", request.method, request.url.path, response.status_code
-        )
+        logger.log(level, "%s %s %s", request.method, request.url.path, response.status_code)
         return response

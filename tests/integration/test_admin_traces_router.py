@@ -24,8 +24,8 @@ async def traces_client(db_session: AsyncSession) -> AsyncClient:
         yield db_session
 
     app.dependency_overrides[get_db] = override_db
-    app.dependency_overrides[admin_traces_router.admin_required] = (
-        lambda: types.SimpleNamespace(id=uuid4())
+    app.dependency_overrides[admin_traces_router.admin_required] = lambda: types.SimpleNamespace(
+        id=uuid4()
     )
 
     transport = ASGITransport(app=app)
@@ -36,9 +36,7 @@ async def traces_client(db_session: AsyncSession) -> AsyncClient:
 async def _prepare_traces(db: AsyncSession) -> None:
     await db.execute(text("DROP TABLE IF EXISTS node_traces"))
     await db.execute(text("DROP TABLE IF EXISTS nodes"))
-    await db.execute(
-        text("CREATE TABLE nodes (id INTEGER PRIMARY KEY, slug TEXT NOT NULL)")
-    )
+    await db.execute(text("CREATE TABLE nodes (id INTEGER PRIMARY KEY, slug TEXT NOT NULL)"))
     await db.execute(
         text(
             "CREATE TABLE node_traces ("
@@ -51,9 +49,7 @@ async def _prepare_traces(db: AsyncSession) -> None:
             ")"
         )
     )
-    await db.execute(
-        text("INSERT INTO nodes (id, slug) VALUES (1, 'start'), (2, 'end')")
-    )
+    await db.execute(text("INSERT INTO nodes (id, slug) VALUES (1, 'start'), (2, 'end')"))
     await db.execute(
         text(
             "INSERT INTO node_traces (id, node_id, to_node_id, type, created_at) "
@@ -65,9 +61,7 @@ async def _prepare_traces(db: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_traces_success(
-    traces_client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_list_traces_success(traces_client: AsyncClient, db_session: AsyncSession) -> None:
     await _prepare_traces(db_session)
     resp = await traces_client.get("/admin/traces")
     assert resp.status_code == 200

@@ -58,9 +58,7 @@ async def create_tag(
     _: Annotated[object, Depends(require_ws_editor)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> TagOut:
-    tag = await TagDAO.create(
-        db, workspace_id=workspace_id, slug=body.slug, name=body.name
-    )
+    tag = await TagDAO.create(db, workspace_id=workspace_id, slug=body.slug, name=body.name)
     return TagOut(slug=tag.slug, name=tag.name, count=0)
 
 

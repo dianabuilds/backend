@@ -35,9 +35,7 @@ class AchievementsRepository(IAchievementsRepository):
         )
         return res.scalars().first() is not None
 
-    async def get_achievement(
-        self, achievement_id: UUID, workspace_id: UUID
-    ) -> Achievement | None:
+    async def get_achievement(self, achievement_id: UUID, workspace_id: UUID) -> Achievement | None:
         res = await self._db.execute(
             select(Achievement).where(
                 Achievement.id == achievement_id,
@@ -89,9 +87,7 @@ class AchievementsRepository(IAchievementsRepository):
         return list(res.all())
 
     # Counters/conditions
-    async def increment_counter(
-        self, user_id: UUID, key: str, workspace_id: UUID
-    ) -> None:
+    async def increment_counter(self, user_id: UUID, key: str, workspace_id: UUID) -> None:
         res = await self._db.execute(
             select(UserEventCounter).where(
                 UserEventCounter.user_id == user_id,

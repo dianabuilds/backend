@@ -12,8 +12,7 @@ config = context.config
 sys.path.insert(
     0,
     str(
-        Path(config.config_file_name).resolve().parent
-        / config.get_main_option("prepend_sys_path")
+        Path(config.config_file_name).resolve().parent / config.get_main_option("prepend_sys_path")
     ),
 )
 

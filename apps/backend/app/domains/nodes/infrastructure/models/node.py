@@ -34,16 +34,10 @@ class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    workspace_id = Column(
-        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
-    )
-    slug = Column(
-        String, unique=True, index=True, nullable=False, default=generate_slug
-    )
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=True)
-    embedding_vector = Column(
-        MutableList.as_mutable(VECTOR(settings.embedding.dim)), nullable=True
-    )
+    embedding_vector = Column(MutableList.as_mutable(VECTOR(settings.embedding.dim)), nullable=True)
     author_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
     views = Column(Integer, default=0)
     is_visible = Column(Boolean, default=True, index=True)

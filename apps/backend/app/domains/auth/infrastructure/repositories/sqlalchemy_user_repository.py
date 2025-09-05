@@ -15,9 +15,7 @@ class SqlAlchemyUserRepository(IUserRepository):
         res = await self._db.execute(select(User).where(User.email == email))
         return res.scalars().first()
 
-    async def create(
-        self, *, email: str, password_hash: str, is_active: bool = False
-    ) -> User:
+    async def create(self, *, email: str, password_hash: str, is_active: bool = False) -> User:
         user = User(email=email, password_hash=password_hash, is_active=is_active)
         self._db.add(user)
         await self._db.flush()

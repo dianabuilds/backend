@@ -20,11 +20,7 @@ class QuestStepService:
         limit: int | None = None,
         offset: int | None = None,
     ) -> list[QuestStep]:
-        stmt = (
-            select(QuestStep)
-            .where(QuestStep.quest_id == quest_id)
-            .order_by(QuestStep.order)
-        )
+        stmt = select(QuestStep).where(QuestStep.quest_id == quest_id).order_by(QuestStep.order)
         if offset is not None:
             stmt = stmt.offset(offset)
         if limit is not None:
@@ -45,9 +41,7 @@ class QuestStepService:
     ) -> QuestStep:
         if type == "start":
             res = await db.execute(
-                select(QuestStep).where(
-                    QuestStep.quest_id == quest_id, QuestStep.type == "start"
-                )
+                select(QuestStep).where(QuestStep.quest_id == quest_id, QuestStep.type == "start")
             )
             if res.scalars().first() is not None:
                 raise ValueError("start_step_exists")
@@ -68,9 +62,7 @@ class QuestStepService:
         await db.flush()
         return step
 
-    async def update_step(
-        self, db: AsyncSession, step_id: UUID, **fields: Any
-    ) -> QuestStep:
+    async def update_step(self, db: AsyncSession, step_id: UUID, **fields: Any) -> QuestStep:
         step = await db.get(QuestStep, step_id)
         if step is None:
             raise ValueError("step_not_found")
@@ -132,9 +124,7 @@ class QuestStepService:
         *,
         from_step_id: UUID | None = None,
     ) -> list[QuestStepTransition]:
-        stmt = select(QuestStepTransition).where(
-            QuestStepTransition.quest_id == quest_id
-        )
+        stmt = select(QuestStepTransition).where(QuestStepTransition.quest_id == quest_id)
         if from_step_id is not None:
             stmt = stmt.where(QuestStepTransition.from_step_id == from_step_id)
         res = await db.execute(stmt)

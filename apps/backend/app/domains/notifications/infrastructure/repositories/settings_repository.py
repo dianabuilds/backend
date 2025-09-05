@@ -23,9 +23,7 @@ class NodeNotificationSettingsRepository:
         )
         return res.scalar_one_or_none()
 
-    async def upsert(
-        self, user_id: UUID, node_id: int, enabled: bool
-    ) -> NodeNotificationSetting:
+    async def upsert(self, user_id: UUID, node_id: int, enabled: bool) -> NodeNotificationSetting:
         setting = await self.get(user_id, node_id)
         if setting:
             setting.enabled = enabled

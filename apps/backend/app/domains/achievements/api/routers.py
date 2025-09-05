@@ -140,9 +140,7 @@ async def update_achievement_admin(
 ) -> AchievementAdminOut:
     data = body.model_dump(exclude_unset=True)
     try:
-        item = await _admin_svc(db).update(
-            db, workspace.id, achievement_id, data, current.id
-        )
+        item = await _admin_svc(db).update(db, workspace.id, achievement_id, data, current.id)
     except ValueError as err:
         if str(err) == "code_conflict":
             raise HTTPException(status_code=409, detail="Code already exists") from err
@@ -184,9 +182,7 @@ async def grant_achievement(
     current: Annotated[User, Depends(auth_user)] = ...,
     _: Annotated[object, Depends(require_ws_editor)] = ...,
 ):
-    granted = await _svc(db).grant_manual(
-        db, workspace.id, body.user_id, achievement_id
-    )
+    granted = await _svc(db).grant_manual(db, workspace.id, body.user_id, achievement_id)
     return {"granted": granted}
 
 
@@ -203,9 +199,7 @@ async def revoke_achievement(
     current: Annotated[User, Depends(auth_user)] = ...,
     _: Annotated[object, Depends(require_ws_editor)] = ...,
 ):
-    revoked = await _svc(db).revoke_manual(
-        db, workspace.id, body.user_id, achievement_id
-    )
+    revoked = await _svc(db).revoke_manual(db, workspace.id, body.user_id, achievement_id)
     return {"revoked": revoked}
 
 

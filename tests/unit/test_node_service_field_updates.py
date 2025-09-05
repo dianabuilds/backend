@@ -138,9 +138,7 @@ async def test_update_tags_resets_status(db: AsyncSession) -> None:
     )
     node_obj = node_db.scalar_one()
     item_db = await db.execute(
-        sa.select(NodeItem)
-        .where(NodeItem.id == item.id)
-        .options(selectinload(NodeItem.tags))
+        sa.select(NodeItem).where(NodeItem.id == item.id).options(selectinload(NodeItem.tags))
     )
     item_obj = item_db.scalar_one()
     assert sorted(t.slug for t in node_obj.tags) == ["a", "b"]
@@ -154,18 +152,14 @@ async def test_update_creates_new_tag_and_serializes(db: AsyncSession) -> None:
     svc = NodeService(db)
     await svc.update(ws.id, item.id, {"tags": ["fresh"]}, actor_id=user_id)
 
-    res = await db.execute(
-        sa.select(Tag).where(Tag.workspace_id == ws.id, Tag.slug == "fresh")
-    )
+    res = await db.execute(sa.select(Tag).where(Tag.workspace_id == ws.id, Tag.slug == "fresh"))
     assert res.scalar_one_or_none() is not None
 
     node_db = await db.execute(
         sa.select(Node).where(Node.id == node.id).options(selectinload(Node.tags))
     )
     item_db = await db.execute(
-        sa.select(NodeItem)
-        .where(NodeItem.id == item.id)
-        .options(selectinload(NodeItem.tags))
+        sa.select(NodeItem).where(NodeItem.id == item.id).options(selectinload(NodeItem.tags))
     )
     node_obj = node_db.scalar_one()
     item_obj = item_db.scalar_one()
@@ -201,9 +195,7 @@ async def test_update_multiple_fields_resets_status(db: AsyncSession) -> None:
     )
     node_obj = node_db.scalar_one()
     item_db = await db.execute(
-        sa.select(NodeItem)
-        .where(NodeItem.id == item.id)
-        .options(selectinload(NodeItem.tags))
+        sa.select(NodeItem).where(NodeItem.id == item.id).options(selectinload(NodeItem.tags))
     )
     item_obj = item_db.scalar_one()
     assert node_obj.content == {"y": 2}

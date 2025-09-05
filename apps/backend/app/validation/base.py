@@ -34,9 +34,7 @@ def validator(node_type: str) -> Callable[[Validator], Validator]:
     return decorator
 
 
-async def run_validators(
-    node_type: str, node_id: UUID, db: AsyncSession
-) -> ValidationReport:
+async def run_validators(node_type: str, node_id: UUID, db: AsyncSession) -> ValidationReport:
     """Run all validators for a node type and aggregate their reports."""
 
     report = ValidationReport(errors=0, warnings=0, items=[])

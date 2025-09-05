@@ -6,9 +6,7 @@ from app.domains.users.infrastructure.models.user import User
 
 
 class IUserRepository(Protocol):
-    async def get_by_email(
-        self, email: str
-    ) -> User | None:  # pragma: no cover - контракт
+    async def get_by_email(self, email: str) -> User | None:  # pragma: no cover - контракт
         ...
 
     async def create(
@@ -16,7 +14,5 @@ class IUserRepository(Protocol):
     ) -> User:  # pragma: no cover
         ...
 
-    async def set_password(
-        self, user: User, password_hash: str
-    ) -> None:  # pragma: no cover
+    async def set_password(self, user: User, password_hash: str) -> None:  # pragma: no cover
         ...

@@ -38,9 +38,7 @@ class WorldsService:
         await db.commit()
         return updated
 
-    async def delete_world(
-        self, db: AsyncSession, workspace_id: UUID, world_id: UUID
-    ) -> bool:
+    async def delete_world(self, db: AsyncSession, workspace_id: UUID, world_id: UUID) -> bool:
         world = await self._repo.get_world(world_id, workspace_id)
         if not world:
             return False
@@ -48,9 +46,7 @@ class WorldsService:
         await db.commit()
         return True
 
-    async def list_characters(
-        self, world_id: UUID, workspace_id: UUID
-    ) -> list[Character]:
+    async def list_characters(self, world_id: UUID, workspace_id: UUID) -> list[Character]:
         return await self._repo.list_characters(world_id, workspace_id)
 
     async def create_character(
@@ -83,9 +79,7 @@ class WorldsService:
         await db.commit()
         return ch
 
-    async def delete_character(
-        self, db: AsyncSession, char_id: UUID, workspace_id: UUID
-    ) -> bool:
+    async def delete_character(self, db: AsyncSession, char_id: UUID, workspace_id: UUID) -> bool:
         ch = await self._repo.get_character(char_id, workspace_id)
         if not ch:
             return False

@@ -16,9 +16,7 @@ from app.api import health as health_module  # noqa: E402
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("status_code", [500, 405, 422])
-async def test_check_ai_service_logs_status(
-    monkeypatch, caplog, status_code: int
-) -> None:
+async def test_check_ai_service_logs_status(monkeypatch, caplog, status_code: int) -> None:
     caplog.set_level(logging.ERROR)
 
     def failing_embedding(_: str) -> list[int]:  # pragma: no cover - helper

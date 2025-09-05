@@ -32,9 +32,7 @@ async def list_jobs_cursor(
     _admin=Depends(admin_required),  # noqa: B008
 ):
     params: Mapping[str, str] = dict(request.query_params)
-    pq = parse_page_query(
-        params, allowed_sort=["created_at"], default_sort="created_at"
-    )
+    pq = parse_page_query(params, allowed_sort=["created_at"], default_sort="created_at")
 
     def _status(v: str) -> str:
         allowed = {"queued", "running", "completed", "failed", "canceled"}
@@ -58,9 +56,7 @@ async def list_jobs_cursor(
 
     items, has_next = await fetch_page(stmt, session=db, limit=pq.limit)
     next_cursor = (
-        build_cursor_for_last_item(items[-1], pq.sort, pq.order)
-        if has_next and items
-        else None
+        build_cursor_for_last_item(items[-1], pq.sort, pq.order) if has_next and items else None
     )
 
     out: list[dict[str, Any]] = []
@@ -76,12 +72,8 @@ async def list_jobs_cursor(
                 "provider": j.provider,
                 "model": j.model,
                 "params": j.params,
-                "result_quest_id": (
-                    str(j.result_quest_id) if j.result_quest_id else None
-                ),
-                "result_version_id": (
-                    str(j.result_version_id) if j.result_version_id else None
-                ),
+                "result_quest_id": (str(j.result_quest_id) if j.result_quest_id else None),
+                "result_version_id": (str(j.result_version_id) if j.result_version_id else None),
                 "cost": float(j.cost) if j.cost is not None else None,
                 "token_usage": j.token_usage,
                 "reused": bool(j.reused),

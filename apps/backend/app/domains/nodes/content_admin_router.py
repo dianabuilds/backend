@@ -128,9 +128,7 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         "contentId": item.id,
         "nodeId": node_pk,
         "workspace_id": str(item.workspace_id),  # kept for compatibility
-        "workspaceId": str(
-            item.workspace_id
-        ),  # explicit camelCase for clients not using aliases
+        "workspaceId": str(item.workspace_id),  # explicit camelCase for clients not using aliases
         "nodeType": item.type,
         "type": item.type,  # legacy
         "slug": item.slug,
@@ -227,9 +225,7 @@ async def _resolve_content_item_id(
 
     # Resolve by Node.id (without workspace filter for global nodes)
     res = await db.execute(
-        select(NodeItem)
-        .where(NodeItem.node_id == node.id)
-        .order_by(NodeItem.updated_at.desc())
+        select(NodeItem).where(NodeItem.node_id == node.id).order_by(NodeItem.updated_at.desc())
     )
     item = res.scalar_one_or_none()
     if item is None:
@@ -278,9 +274,7 @@ async def get_node_by_id(
     return payload
 
 
-@id_router.patch(
-    "/{node_id}", response_model=AdminNodeOut, summary="Update node item by id"
-)
+@id_router.patch("/{node_id}", response_model=AdminNodeOut, summary="Update node item by id")
 async def update_node_by_id(
     node_id: Annotated[int, Path(...)],
     payload: dict,
@@ -310,9 +304,7 @@ async def update_node_by_id(
     return _serialize(item, node)
 
 
-@id_router.put(
-    "/{node_id}", response_model=AdminNodeOut, summary="Replace node item by id"
-)
+@id_router.put("/{node_id}", response_model=AdminNodeOut, summary="Replace node item by id")
 async def replace_node_by_id(
     node_id: Annotated[int, Path(...)],
     payload: dict,
@@ -376,9 +368,7 @@ async def publish_node_by_id(
     return _serialize(item, node)
 
 
-@type_router.get(
-    "/{node_type}", response_model=AdminNodeList, summary="List nodes by type"
-)
+@type_router.get("/{node_type}", response_model=AdminNodeList, summary="List nodes by type")
 async def list_nodes(
     node_type: str,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
@@ -401,9 +391,7 @@ async def list_nodes(
     return {"items": [_serialize(i) for i in items]}
 
 
-@type_router.post(
-    "/{node_type}", response_model=AdminNodeOut, summary="Create node item"
-)
+@type_router.post("/{node_type}", response_model=AdminNodeOut, summary="Create node item")
 async def create_node(
     node_type: str,
     workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
@@ -418,9 +406,7 @@ async def create_node(
         )
     svc = NodeService(db)
     item = await svc.create(workspace_id, actor_id=current_user.id)
-    node = await db.get(
-        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
-    )
+    node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
 
@@ -446,9 +432,7 @@ async def get_node(
     )
     svc = NodeService(db)
     item = await svc.get(workspace_id, node_item.id)
-    node = await db.get(
-        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
-    )
+    node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
 
@@ -487,9 +471,7 @@ async def update_node(
         from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 
         ux_metrics.inc_save_next()
-    node = await db.get(
-        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
-    )
+    node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
 

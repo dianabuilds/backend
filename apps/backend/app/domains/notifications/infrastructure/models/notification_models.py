@@ -16,17 +16,13 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(
-        UUID(), ForeignKey("workspaces.id"), nullable=True, index=True
-    )
+    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=True, index=True)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
     message = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     read_at = Column(DateTime, nullable=True)
-    type = Column(
-        SAEnum(NotificationType), nullable=False, default=NotificationType.system
-    )
+    type = Column(SAEnum(NotificationType), nullable=False, default=NotificationType.system)
     placement = Column(
         SAEnum(NotificationPlacement),
         nullable=False,
@@ -45,6 +41,4 @@ class Notification(Base):
     )
     created_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
     updated_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
-    is_preview = Column(
-        Boolean, nullable=False, default=False, server_default="false", index=True
-    )
+    is_preview = Column(Boolean, nullable=False, default=False, server_default="false", index=True)

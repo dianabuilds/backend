@@ -110,9 +110,7 @@ async def create_article(
 ):
     svc = NodeService(db)
     item = await svc.create(workspace_id, actor_id=current_user.id)
-    node = await db.get(
-        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
-    )
+    node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
 
@@ -125,9 +123,7 @@ async def get_article(
 ):
     svc = NodeService(db)
     item = await svc.get(workspace_id, node_id)
-    node = await db.get(
-        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
-    )
+    node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
 
@@ -151,9 +147,7 @@ async def update_article(
         from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 
         ux_metrics.inc_save_next()
-    node = await db.get(
-        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
-    )
+    node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
 
@@ -178,7 +172,5 @@ async def publish_article(
         author_id=current_user.id,
         workspace_id=workspace_id,
     )
-    node = await db.get(
-        Node, item.node_id or item.id, options=(selectinload(Node.tags),)
-    )
+    node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)

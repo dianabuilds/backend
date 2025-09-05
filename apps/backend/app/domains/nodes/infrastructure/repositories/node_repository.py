@@ -42,9 +42,7 @@ class NodeRepository(INodeRepository):
 
     # ------------------------------------------------------------------
     # Basic getters
-    async def get_by_slug(
-        self, slug: str, workspace_id: UUID | None = None
-    ) -> Node | None:
+    async def get_by_slug(self, slug: str, workspace_id: UUID | None = None) -> Node | None:
         query = select(Node).options(selectinload(Node.tags)).where(Node.slug == slug)
         if workspace_id is None:
             query = query.where(Node.workspace_id.is_(None))
@@ -65,9 +63,7 @@ class NodeRepository(INodeRepository):
 
     # ------------------------------------------------------------------
     # Mutating operations
-    async def create(
-        self, payload: NodeCreate, author_id: UUID, workspace_id: UUID | None
-    ) -> Node:
+    async def create(self, payload: NodeCreate, author_id: UUID, workspace_id: UUID | None) -> Node:
         candidate = (payload.slug or "").strip().lower()
         if candidate and self._hex_re.fullmatch(candidate):
             res = await self._db.execute(select(Node).where(Node.slug == candidate))

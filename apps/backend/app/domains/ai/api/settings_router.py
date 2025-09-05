@@ -12,9 +12,7 @@ from app.domains.ai.infrastructure.repositories.settings_repository import (
 from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(
-    prefix="/admin/ai", tags=["admin-ai-settings"], responses=ADMIN_AUTH_RESPONSES
-)
+router = APIRouter(prefix="/admin/ai", tags=["admin-ai-settings"], responses=ADMIN_AUTH_RESPONSES)
 
 admin_required = require_admin_role()
 AdminRequired = Annotated[None, Depends(admin_required)]

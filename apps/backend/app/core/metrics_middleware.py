@@ -14,10 +14,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
         # Не считаем собственные метрики, чтобы не искажать картину
         metrics_path = settings.observability.metrics_path
-        if (
-            request.url.path.startswith("/admin/metrics")
-            or request.url.path == metrics_path
-        ):
+        if request.url.path.startswith("/admin/metrics") or request.url.path == metrics_path:
             return await call_next(request)
         start = time.perf_counter()
         response: Response = await call_next(request)
@@ -35,7 +32,5 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         if workspace_id is not None:
             workspace_id = str(workspace_id)
 
-        metrics_storage.record(
-            duration_ms, response.status_code, method, route_path, workspace_id
-        )
+        metrics_storage.record(duration_ms, response.status_code, method, route_path, workspace_id)
         return response

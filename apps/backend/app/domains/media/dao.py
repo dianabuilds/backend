@@ -27,12 +27,7 @@ class MediaAssetDAO:
         limit: int = 100,
         offset: int = 0,
     ) -> builtins.list[MediaAsset]:
-        stmt = (
-            select(MediaAsset)
-            .order_by(MediaAsset.created_at.desc())
-            .offset(offset)
-            .limit(limit)
-        )
+        stmt = select(MediaAsset).order_by(MediaAsset.created_at.desc()).offset(offset).limit(limit)
         stmt = scope_by_workspace(stmt, workspace_id)
         result = await db.execute(stmt)
         return list(result.scalars().all())

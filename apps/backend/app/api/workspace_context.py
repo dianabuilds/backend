@@ -13,9 +13,7 @@ from app.providers.db.session import get_db
 from app.security import auth_user
 
 
-def get_workspace_id(
-    request: Request, header_wid: UUID | str | None = None
-) -> UUID | None:
+def get_workspace_id(request: Request, header_wid: UUID | str | None = None) -> UUID | None:
     """Extract workspace identifier from path params, headers or query params."""
     if not isinstance(header_wid, str | UUID | type(None)):
         header_wid = None
@@ -33,17 +31,13 @@ def get_workspace_id(
         raise HTTPException(status_code=400, detail="Invalid workspace id") from exc
 
 
-async def resolve_workspace(
-    workspace_id: UUID, user: User, db: AsyncSession
-) -> Workspace:
+async def resolve_workspace(workspace_id: UUID, user: User, db: AsyncSession) -> Workspace:
     """Load workspace and ensure the user is a member or admin."""
     workspace = await WorkspaceDAO.get(db, workspace_id)
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     if user.role != "admin":
-        member = await WorkspaceMemberDAO.get(
-            db, workspace_id=workspace_id, user_id=user.id
-        )
+        member = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
         if not member:
             raise HTTPException(status_code=403, detail="Forbidden")
     return workspace

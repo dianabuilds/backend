@@ -58,9 +58,7 @@ class MetricsStorage:
         now = time.time()
         with self._lock:
             self._records.append(
-                RequestRecord(
-                    now, duration_ms, status_code, method, route, workspace_id
-                )
+                RequestRecord(now, duration_ms, status_code, method, route, workspace_id)
             )
             # Храним не более 24 часов
             cutoff = now - 24 * 3600
@@ -80,8 +78,7 @@ class MetricsStorage:
             return [
                 r
                 for r in self._records
-                if r.ts >= cutoff
-                and (workspace_id is None or r.workspace_id == workspace_id)
+                if r.ts >= cutoff and (workspace_id is None or r.workspace_id == workspace_id)
             ]
 
     def summary(self, range_seconds: int, workspace_id: str | None = None) -> dict:
@@ -159,27 +156,15 @@ class MetricsStorage:
         all_bucket_keys = sorted(buckets.keys())
         series = []
         for cls in classes:
-            points = [
-                {"ts": b, "value": buckets[b].get(cls, 0)} for b in all_bucket_keys
-            ]
+            points = [{"ts": b, "value": buckets[b].get(cls, 0)} for b in all_bucket_keys]
             series.append({"name": cls, "points": points})
         # p95
-        p95_points = [
-            {"ts": b, "value": _percentile(durations[b], 0.95)} for b in all_bucket_keys
-        ]
+        p95_points = [{"ts": b, "value": _percentile(durations[b], 0.95)} for b in all_bucket_keys]
 
         return {
             "step": step_seconds,
-            "from": (
-                min(all_bucket_keys)
-                if all_bucket_keys
-                else int(time.time()) - range_seconds
-            ),
-            "to": (
-                max(all_bucket_keys) + step_seconds
-                if all_bucket_keys
-                else int(time.time())
-            ),
+            "from": (min(all_bucket_keys) if all_bucket_keys else int(time.time()) - range_seconds),
+            "to": (max(all_bucket_keys) + step_seconds if all_bucket_keys else int(time.time())),
             "series": series,
             "p95": p95_points,
         }
@@ -229,9 +214,7 @@ class MetricsStorage:
             )
         return out
 
-    def recent_errors(
-        self, limit: int = 100, workspace_id: str | None = None
-    ) -> list[dict]:
+    def recent_errors(self, limit: int = 100, workspace_id: str | None = None) -> list[dict]:
         """Последние ошибки (4xx/5xx)."""
         with self._lock:
             # идем с конца дека

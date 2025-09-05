@@ -13,9 +13,7 @@ from app.domains.notifications.application.notify_service import NotifyService
 
 
 class FeedbackService:
-    def __init__(
-        self, repo: INodeRepository, notifier: NotifyService | None = None
-    ) -> None:
+    def __init__(self, repo: INodeRepository, notifier: NotifyService | None = None) -> None:
         self._repo = repo
         self._notifier = notifier
 
@@ -28,9 +26,7 @@ class FeedbackService:
         if not node.allow_feedback and node.author_id != current_user.id:
             raise HTTPException(status_code=403, detail="Feedback disabled")
         result = await db.execute(
-            select(Feedback).where(
-                Feedback.node_id == node.id, Feedback.is_hidden.is_(False)
-            )
+            select(Feedback).where(Feedback.node_id == node.id, Feedback.is_hidden.is_(False))
         )
         return result.scalars().all()
 
@@ -55,9 +51,7 @@ class FeedbackService:
         if not node.allow_feedback:
             raise HTTPException(status_code=403, detail="Feedback disabled")
         if not node.is_visible and node.author_id != current_user.id:
-            raise HTTPException(
-                status_code=403, detail="Not authorized to comment on this node"
-            )
+            raise HTTPException(status_code=403, detail="Not authorized to comment on this node")
         feedback = Feedback(
             node_id=node.id,
             author_id=current_user.id,
@@ -108,9 +102,7 @@ class FeedbackService:
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         result = await db.execute(
-            select(Feedback).where(
-                Feedback.id == feedback_id, Feedback.node_id == node.id
-            )
+            select(Feedback).where(Feedback.id == feedback_id, Feedback.node_id == node.id)
         )
         feedback = result.scalars().first()
         if not feedback:

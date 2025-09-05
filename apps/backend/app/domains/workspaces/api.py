@@ -56,9 +56,7 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "", response_model=WorkspaceOut, status_code=201, summary="Create workspace"
-)
+@router.post("", response_model=WorkspaceOut, status_code=201, summary="Create workspace")
 async def create_workspace(
     data: WorkspaceIn,
     user: Annotated[User, Depends(auth_user)] = ...,
@@ -92,9 +90,7 @@ async def get_workspace(
     return await WorkspaceService.get_for_user(db, workspace_id, user)
 
 
-@router.patch(
-    "/{workspace_id}", response_model=WorkspaceOut, summary="Update workspace"
-)
+@router.patch("/{workspace_id}", response_model=WorkspaceOut, summary="Update workspace")
 async def update_workspace(
     workspace_id: UUID,
     data: WorkspaceUpdate,

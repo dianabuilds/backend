@@ -48,33 +48,23 @@ class DashboardService:
             )
         ).scalar() or 0
         active_premium = (
-            await db.execute(
-                select(func.count()).select_from(User).where(User.is_premium)
-            )
+            await db.execute(select(func.count()).select_from(User).where(User.is_premium))
         ).scalar() or 0
-        active_subscriptions, active_subscriptions_change = (
-            await get_active_subscriptions_stats(db)
-        )
+        active_subscriptions, active_subscriptions_change = await get_active_subscriptions_stats(db)
         active_users = (
             await db.execute(
-                select(func.count())
-                .select_from(User)
-                .where(User.last_login_at >= day_ago)
+                select(func.count()).select_from(User).where(User.last_login_at >= day_ago)
             )
         ).scalar() or 0
         nodes_created = (
             await db.execute(
-                select(func.count())
-                .select_from(Node)
-                .where(Node.created_at >= week_ago)
+                select(func.count()).select_from(Node).where(Node.created_at >= week_ago)
             )
         ).scalar() or 0
         nodes_without_outgoing_pct = await nav_stats.get_nodes_without_outgoing_pct(db)
         quests_created = (
             await db.execute(
-                select(func.count())
-                .select_from(Quest)
-                .where(Quest.created_at >= day_ago)
+                select(func.count()).select_from(Quest).where(Quest.created_at >= day_ago)
             )
         ).scalar() or 0
         incidents_count = (
@@ -88,9 +78,7 @@ class DashboardService:
         result = await db.execute(
             select(Node.id, Node.title).order_by(Node.created_at.desc()).limit(5)
         )
-        latest_nodes = [
-            {"id": str(row.id), "title": row.title or ""} for row in result.all()
-        ]
+        latest_nodes = [{"id": str(row.id), "title": row.title or ""} for row in result.all()]
 
         result = await db.execute(
             select(UserRestriction.id, UserRestriction.user_id, UserRestriction.reason)
@@ -115,12 +103,8 @@ class DashboardService:
             redis_ok = False
 
         try:
-            nav_keys = len(
-                await navcache._cache.scan(f"{settings.cache.key_version}:nav*")
-            )
-            comp_keys = len(
-                await navcache._cache.scan(f"{settings.cache.key_version}:comp*")
-            )
+            nav_keys = len(await navcache._cache.scan(f"{settings.cache.key_version}:nav*"))
+            comp_keys = len(await navcache._cache.scan(f"{settings.cache.key_version}:comp*"))
         except Exception:
             nav_keys = 0
             comp_keys = 0

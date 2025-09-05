@@ -84,12 +84,8 @@ def register_domain_routers(app: FastAPI) -> None:
 
         app.include_router(admin_notifications_campaigns_router)
     except Exception as exc:
-        logger.exception(
-            "Failed to load admin notifications campaigns router. Startup aborted"
-        )
-        raise RuntimeError(
-            "Failed to load admin notifications campaigns router"
-        ) from exc
+        logger.exception("Failed to load admin notifications campaigns router. Startup aborted")
+        raise RuntimeError("Failed to load admin notifications campaigns router") from exc
 
     # Payments
     try:
@@ -263,9 +259,7 @@ def register_domain_routers(app: FastAPI) -> None:
 
         app.include_router(quests_admin_validation_router)
     except Exception as exc:
-        logger.exception(
-            "Failed to load quests admin validation router. Startup aborted"
-        )
+        logger.exception("Failed to load quests admin validation router. Startup aborted")
         raise RuntimeError("Failed to load quests admin validation router") from exc
     # Admin users
     try:
@@ -363,9 +357,7 @@ def register_domain_routers(app: FastAPI) -> None:
 
         app.include_router(admin_transitions_simulate_router)
     except Exception as exc:
-        logger.exception(
-            "Failed to load admin transitions simulate router. Startup aborted"
-        )
+        logger.exception("Failed to load admin transitions simulate router. Startup aborted")
         raise RuntimeError("Failed to load admin transitions simulate router") from exc
     # Admin rate limit
     try:
