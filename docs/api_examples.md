@@ -33,7 +33,7 @@ different error scenarios. Supported mappings are:
 
 ```bash
 # list workspaces
-http GET :8000/workspaces
+http GET :8000/workspaces limit==5
 
 # get node by id (UUID)
 http GET :8000/nodes/d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef
