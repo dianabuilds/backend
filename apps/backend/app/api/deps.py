@@ -49,8 +49,9 @@ async def get_current_user(
         ) from err
     # Выбираем только безопасные колонки,
     # чтобы не падать на отсутствующих (например, premium_until)
+    now = preview.now if preview and preview.now else datetime.utcnow()
     result = await db.execute(
-        select(User)
+        select(User, UserRestriction.type)
         .options(
             load_only(
                 User.id,
@@ -66,23 +67,31 @@ async def get_current_user(
                 User.deleted_at,
             )
         )
+        .outerjoin(
+            UserRestriction,
+            (
+                (UserRestriction.user_id == User.id)
+                & (UserRestriction.type.in_(["ban", "post_restrict"]))
+                & (
+                    (UserRestriction.expires_at.is_(None))
+                    | (UserRestriction.expires_at > now)
+                )
+            ),
+        )
         .where(User.id == user_id)
     )
-    user = result.scalars().first()
+    rows = result.all()
+    if not rows:
+        raise HTTPException(status_code=404, detail="User not found")
+    user = rows[0][0]
     if not user or not user.is_active or user.deleted_at is not None:
         raise HTTPException(status_code=404, detail="User not found")
-    now = preview.now if preview and preview.now else datetime.utcnow()
-    result = await db.execute(
-        select(UserRestriction).where(
-            UserRestriction.user_id == user.id,
-            UserRestriction.type == "ban",
-            (UserRestriction.expires_at.is_(None)) | (UserRestriction.expires_at > now),
-        )
-    )
-    if result.scalars().first():
-        raise HTTPException(status_code=403, detail="User is banned")
+    restrictions = {r for _, r in rows if r}
+    user.active_restrictions = restrictions
     request.state.user_id = str(user.id)
     user_id_var.set(str(user.id))
+    if "ban" in restrictions:
+        raise HTTPException(status_code=403, detail="User is banned")
     return user
 
 
@@ -109,21 +118,49 @@ async def get_current_user_optional(
         user_id = UUID(user_id_str)
     except ValueError:
         return None
-    user = await db.get(User, user_id)
-    if not user or not user.is_active or user.deleted_at is not None:
-        return None
     now = preview.now if preview and preview.now else datetime.utcnow()
     result = await db.execute(
-        select(UserRestriction).where(
-            UserRestriction.user_id == user.id,
-            UserRestriction.type == "ban",
-            (UserRestriction.expires_at.is_(None)) | (UserRestriction.expires_at > now),
+        select(User, UserRestriction.type)
+        .options(
+            load_only(
+                User.id,
+                User.created_at,
+                User.email,
+                User.password_hash,
+                User.wallet_address,
+                User.is_active,
+                User.username,
+                User.bio,
+                User.avatar_url,
+                User.role,
+                User.deleted_at,
+            )
         )
+        .outerjoin(
+            UserRestriction,
+            (
+                (UserRestriction.user_id == User.id)
+                & (UserRestriction.type.in_(["ban", "post_restrict"]))
+                & (
+                    (UserRestriction.expires_at.is_(None))
+                    | (UserRestriction.expires_at > now)
+                )
+            ),
+        )
+        .where(User.id == user_id)
     )
-    if result.scalars().first():
+    rows = result.all()
+    if not rows:
         return None
+    user = rows[0][0]
+    if not user or not user.is_active or user.deleted_at is not None:
+        return None
+    restrictions = {r for _, r in rows if r}
+    user.active_restrictions = restrictions
     request.state.user_id = str(user.id)
     user_id_var.set(str(user.id))
+    if "ban" in restrictions:
+        return None
     return user
 
 
@@ -186,18 +223,8 @@ def assert_seniority_over(target_user: User, current_user: User) -> None:
 
 async def ensure_can_post(
     user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-    preview: Annotated[PreviewContext, Depends(get_preview_context)],
 ) -> User:
-    now = preview.now if preview and preview.now else datetime.utcnow()
-    result = await db.execute(
-        select(UserRestriction).where(
-            UserRestriction.user_id == user.id,
-            UserRestriction.type == "post_restrict",
-            (UserRestriction.expires_at.is_(None)) | (UserRestriction.expires_at > now),
-        )
-    )
-    if result.scalars().first():
+    if "post_restrict" in getattr(user, "active_restrictions", set()):
         raise HTTPException(status_code=403, detail="Posting restricted")
     return user
 
