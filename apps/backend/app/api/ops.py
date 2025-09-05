@@ -10,7 +10,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.ops.alerts import router as alerts_router
+from app.admin.ops.audit import router as audit_router
 from app.admin.ops.cors import router as cors_router
+from app.admin.ops.jobs import router as jobs_router
+from app.admin.ops.overview import router as overview_router
 from app.api.health import readyz
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
 from app.domains.workspaces.infrastructure.models import Workspace
@@ -30,6 +33,8 @@ router = APIRouter(
 
 router.include_router(cors_router)
 router.include_router(alerts_router)
+router.include_router(overview_router)
+router.include_router(jobs_router)
 
 CACHE_TTL = 10
 
@@ -115,3 +120,6 @@ async def get_limits(
 
     await shared_cache.set(cache_key, json.dumps(result), CACHE_TTL)
     return result
+
+
+__all__ = ["router", "audit_router", "admin_required"]

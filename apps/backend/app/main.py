@@ -31,6 +31,7 @@ if policy.allow_write:
         RequestsInstrumentor = SQLAlchemyInstrumentor = None  # type: ignore[assignment, misc]
 
 from app.api.health import router as health_router
+from app.api.ops import audit_router
 from app.api.ops import router as ops_router
 from app.core.body_limit import BodySizeLimitMiddleware
 from app.core.config import Settings, get_settings
@@ -198,6 +199,7 @@ app.mount("/static/uploads", uploads_static, name="uploads")
 if settings.observability.health_enabled:
     app.include_router(health_router)
 app.include_router(ops_router)
+app.include_router(audit_router)
 
 if not policy.allow_write:
     # Minimal routers needed for tests

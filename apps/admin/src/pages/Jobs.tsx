@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import { api } from "../api/client";
 import Pill from "../components/Pill";
 
@@ -31,8 +32,8 @@ export default function Jobs() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/admin/jobs/recent");
-      setJobs(res.data as Job[]);
+      const res = await api.get("/admin/ops/jobs");
+      setJobs((res.data.jobs as Job[]) || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -78,7 +79,10 @@ export default function Jobs() {
                 <td className="p-2 space-x-2">
                   <button
                     className="px-2 py-1 bg-amber-600 text-white rounded"
-                    onClick={() => alert("Not implemented")}
+                    onClick={async () => {
+                      await api.post(`/admin/ops/jobs/${job.id}/retry`);
+                      await load();
+                    }}
                   >
                     Перезапустить
                   </button>

@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect } from "react";
-import { useRoutes, useLocation, type RouteObject, Navigate } from "react-router-dom";
+import { Navigate,type RouteObject, useLocation, useRoutes } from "react-router-dom";
 
 import ProtectedRoute from "../components/ProtectedRoute";
-import AdminLayout from "./layouts/AdminLayout";
-import BlankLayout from "./layouts/BlankLayout";
 import { sendRUM } from "../perf/rum";
 import { ADMIN_DEV_TOOLS } from "../utils/env";
+import AdminLayout from "./layouts/AdminLayout";
+import BlankLayout from "./layouts/BlankLayout";
 
 // Lazy-loaded pages
 const Login = lazy(() => import("../pages/Login"));
@@ -65,6 +65,8 @@ const ReliabilityDashboard = lazy(() => import("../pages/ReliabilityDashboard"))
 const Alerts = lazy(() => import("../pages/Alerts"));
 const AIUsage = lazy(() => import("../pages/AIUsage"));
 const Jobs = lazy(() => import("../pages/Jobs"));
+const OpsOverview = lazy(() => import("../pages/OpsOverview"));
+const OpsAudit = lazy(() => import("../pages/OpsAudit"));
 
 function useRouteTelemetry() {
   const location = useLocation();
@@ -150,6 +152,8 @@ const protectedChildren: RouteObject[] = [
   { path: "ops/alerts", element: <Alerts /> },
   { path: "ops/ai-usage", element: <AIUsage /> },
   { path: "ops/jobs", element: <Jobs /> },
+  { path: "ops/overview", element: <OpsOverview /> },
+  { path: "ops/audit", element: <OpsAudit /> },
   { path: "payments", element: <PaymentsGateways /> },
 ];
 
