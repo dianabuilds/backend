@@ -29,14 +29,20 @@ def create_access_token(user_id) -> str:
         "jti": uuid4().hex,
         "iat": datetime.utcnow(),
         "exp": datetime.utcnow() + timedelta(seconds=settings.jwt.expiration),
+        "aud": settings.jwt.audience,
+        "iss": settings.jwt.issuer,
     }
     return jwt.encode(payload, settings.jwt.secret, algorithm=settings.jwt.algorithm)
 
 
-def verify_access_token(token: str):
+def verify_access_token(token: str) -> str | None:
     try:
         payload = jwt.decode(
-            token, settings.jwt.secret, algorithms=[settings.jwt.algorithm]
+            token,
+            settings.jwt.secret,
+            algorithms=[settings.jwt.algorithm],
+            audience=settings.jwt.audience,
+            issuer=settings.jwt.issuer,
         )
     except jwt.PyJWTError:
         return None

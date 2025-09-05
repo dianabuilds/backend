@@ -4,6 +4,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class JwtSettings(BaseSettings):
     secret: str = "test-secret"
     algorithm: str = "HS256"
+    audience: str = "backend"
+    issuer: str = "app"
     # Access token lifetime (in minutes)
     expires_min: int = 60
     # Refresh token lifetime (in days)
