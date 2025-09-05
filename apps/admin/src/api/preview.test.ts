@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { setAccessToken, setPreviewToken } from './client';
+import { setPreviewToken } from './client';
 import * as preview from './preview';
 
 afterEach(() => {
@@ -9,7 +9,6 @@ afterEach(() => {
 
 describe('simulatePreview', () => {
   it('uses proper URL, body and headers with tokens', async () => {
-    setAccessToken('at');
     setPreviewToken('pt');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
@@ -22,18 +21,19 @@ describe('simulatePreview', () => {
         headers: expect.objectContaining({
           Accept: 'application/json',
           'Content-Type': 'application/json',
-          Authorization: 'Bearer at',
           'X-Preview-Token': 'pt',
         }),
+        credentials: 'include',
         body: JSON.stringify({ workspace_id: 'ws1', start: 'start-node' }),
       }),
     );
+    const call = fetchSpy.mock.calls[0] as [RequestInfo, RequestInit];
+    expect(call[1].headers).not.toHaveProperty('Authorization');
   });
 });
 
 describe('createPreviewLink', () => {
   it('posts workspace id with tokens', async () => {
-    setAccessToken('at');
     setPreviewToken('pt');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
@@ -51,18 +51,19 @@ describe('createPreviewLink', () => {
         headers: expect.objectContaining({
           Accept: 'application/json',
           'Content-Type': 'application/json',
-          Authorization: 'Bearer at',
           'X-Preview-Token': 'pt',
         }),
+        credentials: 'include',
         body: JSON.stringify({ workspace_id: 'ws1' }),
       }),
     );
+    const call = fetchSpy.mock.calls[0] as [RequestInfo, RequestInit];
+    expect(call[1].headers).not.toHaveProperty('Authorization');
   });
 });
 
 describe('openNodePreview', () => {
   it('opens assembled URL with encoded slug', async () => {
-    setAccessToken('at');
     setPreviewToken('pt');
     vi.spyOn(global, 'fetch').mockResolvedValue(
       new Response('{"url":"https://example/preview"}', {

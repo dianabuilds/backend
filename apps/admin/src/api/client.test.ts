@@ -52,4 +52,14 @@ describe('request', () => {
       expect((e as ApiError).status).toBe(500);
     }
   });
+
+  it('does not expose tokens or add auth header', async () => {
+    const fetchSpy = vi
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    await api.request('/test');
+    const call = fetchSpy.mock.calls[0] as [RequestInfo, RequestInit];
+    expect(call[1].credentials).toBe('include');
+    expect(call[1].headers).not.toHaveProperty('Authorization');
+  });
 });
