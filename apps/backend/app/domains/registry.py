@@ -76,20 +76,6 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load admin notifications router. Startup aborted")
         raise RuntimeError("Failed to load admin notifications router") from exc
-    # Admin Notifications Broadcast
-    try:
-        from app.domains.notifications.api.broadcast_router import (
-            router as admin_notifications_broadcast_router,
-        )
-
-        app.include_router(admin_notifications_broadcast_router)
-    except Exception as exc:
-        logger.exception(
-            "Failed to load admin notifications broadcast router. Startup aborted"
-        )
-        raise RuntimeError(
-            "Failed to load admin notifications broadcast router"
-        ) from exc
     # Admin Notifications Campaigns
     try:
         from app.domains.notifications.api.campaigns_router import (

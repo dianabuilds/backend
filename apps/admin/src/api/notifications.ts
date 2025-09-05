@@ -1,6 +1,7 @@
 import type {
-  BroadcastCreate,
-  BroadcastFilters,
+  CampaignCreate,
+  CampaignFilters,
+  CampaignUpdate,
   SendNotificationPayload,
 } from "../openapi";
 import { api } from "./client";
@@ -10,6 +11,7 @@ import type { ListResponse } from "./types";
 export interface Campaign {
   id: string;
   title: string;
+  message?: string;
   status: string;
   total: number;
   sent: number;
@@ -18,14 +20,7 @@ export interface Campaign {
   created_at?: string | null;
   started_at?: string | null;
   finished_at?: string | null;
-}
-
-export interface DraftCampaign {
-  id: string;
-  title: string;
-  message: string;
-  status: string;
-  created_at?: string | null;
+  filters?: Record<string, unknown>;
 }
 
 export interface NotificationItem {
@@ -37,19 +32,29 @@ export interface NotificationItem {
   created_at: string;
 }
 
-export async function createBroadcast(
-  payload: BroadcastCreate,
+export async function estimateCampaign(
+  filters: CampaignFilters,
 ): Promise<unknown> {
   const res = await api.post<unknown>(
-    "/admin/notifications/broadcast",
+    "/admin/notifications/campaigns/estimate",
+    filters,
+  );
+  return res.data;
+}
+
+export async function createCampaign(
+  payload: CampaignCreate,
+): Promise<unknown> {
+  const res = await api.post<unknown>(
+    "/admin/notifications/campaigns",
     payload,
   );
   return res.data;
 }
 
-export async function listBroadcasts(): Promise<Campaign[]> {
+export async function listCampaigns(): Promise<Campaign[]> {
   const res = await api.get<ListResponse<Campaign> | Campaign[]>(
-    "/admin/notifications/broadcast",
+    "/admin/notifications/campaigns",
   );
   const d = res.data;
   if (Array.isArray(d)) return d;
@@ -57,33 +62,15 @@ export async function listBroadcasts(): Promise<Campaign[]> {
 }
 
 export async function getCampaign(id: string): Promise<Campaign> {
-  const res = await api.get<Campaign>(`/admin/notifications/broadcast/${id}`);
-  return res.data!;
-}
-
-export async function cancelCampaign(id: string): Promise<unknown> {
-  const res = await api.post<unknown>(
-    `/admin/notifications/broadcast/${id}/cancel`,
-    {},
-  );
-  return res.data;
-}
-
-export async function listCampaigns(): Promise<DraftCampaign[]> {
-  const res = await api.get<DraftCampaign[]>("/admin/notifications/campaigns");
-  return res.data ?? [];
-}
-
-export async function getDraftCampaign(id: string): Promise<DraftCampaign> {
-  const res = await api.get<DraftCampaign>(
+  const res = await api.get<Campaign>(
     `/admin/notifications/campaigns/${id}`,
   );
   return res.data!;
 }
 
-export async function updateDraftCampaign(
+export async function updateCampaign(
   id: string,
-  payload: { title: string; message: string },
+  payload: CampaignUpdate,
 ): Promise<unknown> {
   const res = await api.patch<unknown>(
     `/admin/notifications/campaigns/${id}`,
@@ -92,9 +79,24 @@ export async function updateDraftCampaign(
   return res.data;
 }
 
-export async function sendDraftCampaign(id: string): Promise<unknown> {
+export async function deleteCampaign(id: string): Promise<unknown> {
+  const res = await api.delete<unknown>(
+    `/admin/notifications/campaigns/${id}`,
+  );
+  return res.data;
+}
+
+export async function startCampaign(id: string): Promise<unknown> {
   const res = await api.post<unknown>(
-    `/admin/notifications/campaigns/${id}/send`,
+    `/admin/notifications/campaigns/${id}/start`,
+    {},
+  );
+  return res.data;
+}
+
+export async function cancelCampaign(id: string): Promise<unknown> {
+  const res = await api.post<unknown>(
+    `/admin/notifications/campaigns/${id}/cancel`,
     {},
   );
   return res.data;

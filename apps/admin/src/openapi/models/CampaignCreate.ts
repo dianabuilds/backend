@@ -2,12 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { BroadcastFilters } from './BroadcastFilters';
-export type BroadcastCreate = {
+import type { CampaignFilters } from './CampaignFilters';
+export type CampaignCreate = {
     title: string;
     message: string;
     type?: string;
-    filters?: (BroadcastFilters | null);
-    dry_run?: boolean;
+    filters?: (CampaignFilters | null);
 };
-
