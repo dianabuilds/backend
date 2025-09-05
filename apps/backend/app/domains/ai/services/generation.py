@@ -33,9 +33,7 @@ async def _merge_generation_settings(
     model: str | None,
     workspace_id: UUID | None,
     user_id: UUID | None = None,
-) -> tuple[
-    dict[str, Any], str | None, str | None, dict[str, dict[str, Any]], list[str]
-]:
+) -> tuple[dict[str, Any], str | None, str | None, dict[str, dict[str, Any]], list[str]]:
     """Merge explicit params, user/workspace overrides and global AI settings.
 
     Returns updated ``(params, provider, model, trace, allowed_models)`` where
@@ -77,9 +75,7 @@ async def _merge_generation_settings(
     # 2) User preference
     if user_id is not None:
         try:
-            res = await db.execute(
-                select(UserAIPref).where(UserAIPref.user_id == user_id)
-            )
+            res = await db.execute(select(UserAIPref).where(UserAIPref.user_id == user_id))
             pref = res.scalars().first()
             if pref and pref.model:
                 _set("model", pref.model, "user_pref")
@@ -94,9 +90,7 @@ async def _merge_generation_settings(
                 settings = WorkspaceSettings.model_validate(ws.settings_json)
                 presets = settings.ai_presets or {}
                 params.setdefault("workspace_id", str(workspace_id))
-                allowed_models = [
-                    str(m) for m in presets.get("allowed_models", []) if m
-                ]
+                allowed_models = [str(m) for m in presets.get("allowed_models", []) if m]
                 for key in (
                     "provider",
                     "model",
@@ -104,11 +98,7 @@ async def _merge_generation_settings(
                     "system_prompt",
                     "forbidden",
                 ):
-                    if (
-                        key in presets
-                        and presets[key] is not None
-                        and key not in params
-                    ):
+                    if key in presets and presets[key] is not None and key not in params:
                         _set(key, presets[key], "workspace")
         except Exception:
             pass
@@ -271,11 +261,7 @@ async def process_next_generation_job(db: AsyncSession) -> UUID | None:
         job.token_usage = result.get("token_usage") or {}
         try:
             workspace_id = (job.params or {}).get("workspace_id")
-            usage = (
-                job.token_usage.get("total", {})
-                if isinstance(job.token_usage, dict)
-                else {}
-            )
+            usage = job.token_usage.get("total", {}) if isinstance(job.token_usage, dict) else {}
             tokens = int(usage.get("prompt", 0)) + int(usage.get("completion", 0))
             if workspace_id and job.created_by and tokens > 0:
                 from app.domains.workspaces.limits import consume_workspace_limit
@@ -290,7 +276,6 @@ async def process_next_generation_job(db: AsyncSession) -> UUID | None:
                     scope="month",
                     degrade=True,
                     log=limit_log,
-                    preview=preview,
                 )
                 if limit_log:
                     try:
