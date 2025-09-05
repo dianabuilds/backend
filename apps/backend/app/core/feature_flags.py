@@ -18,13 +18,16 @@ class FeatureFlagKey(StrEnum):
     PAYMENTS = "payments"
     AI_VALIDATION = "ai.validation"
     REFERRALS_PROGRAM = "referrals.program"
+    AI_QUEST_WIZARD = "ai.quest_wizard"
 
 
-# Predefined feature flags available in the system with optional descriptions.
-KNOWN_FLAGS: dict[FeatureFlagKey, str] = {
-    FeatureFlagKey.PAYMENTS: "Enable payments module",
-    FeatureFlagKey.AI_VALIDATION: "Enable AI-based validation for nodes",
-    FeatureFlagKey.REFERRALS_PROGRAM: "Enable referrals program",
+# Predefined feature flags available in the system with optional descriptions
+# and default audience.
+KNOWN_FLAGS: dict[FeatureFlagKey, tuple[str, str]] = {
+    FeatureFlagKey.PAYMENTS: ("Enable payments module", "all"),
+    FeatureFlagKey.AI_VALIDATION: ("Enable AI-based validation for nodes", "all"),
+    FeatureFlagKey.REFERRALS_PROGRAM: ("Enable referrals program", "all"),
+    FeatureFlagKey.AI_QUEST_WIZARD: ("Enable AI Quest Wizard", "premium"),
 }
 
 
@@ -50,9 +53,16 @@ async def ensure_known_flags(db: AsyncSession) -> None:
             raise ValueError(f"Unknown feature flag: {key}") from exc
 
     created = False
-    for key, desc in KNOWN_FLAGS.items():
+    for key, (desc, audience) in KNOWN_FLAGS.items():
         if key.value not in existing:
-            db.add(FeatureFlag(key=key.value, value=False, description=desc))
+            db.add(
+                FeatureFlag(
+                    key=key.value,
+                    value=False,
+                    description=desc,
+                    audience=audience,
+                )
+            )
             created = True
     if created:
         await db.flush()
@@ -113,10 +123,11 @@ async def set_flag(
 
     existing = await db.get(FeatureFlag, key_enum.value)
     if existing is None:
+        default_audience = KNOWN_FLAGS.get(key_enum, ("", "all"))[1]
         existing = FeatureFlag(
             key=key_enum.value,
             value=bool(value) if value is not None else False,
-            audience=audience or "all",
+            audience=audience or default_audience,
         )
         db.add(existing)
     if value is not None:

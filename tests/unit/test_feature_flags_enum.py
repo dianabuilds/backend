@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+from types import SimpleNamespace
 
 import pytest
 import pytest_asyncio
@@ -64,4 +65,23 @@ async def test_referrals_program_toggle(db_session: AsyncSession) -> None:
     await db_session.commit()
     flags = await get_effective_flags(db_session, None, None)
     assert FeatureFlagKey.REFERRALS_PROGRAM.value not in flags
+    invalidate_cache()
+
+
+@pytest.mark.asyncio
+async def test_ai_quest_wizard_premium_audience(db_session: AsyncSession) -> None:
+    await ensure_known_flags(db_session)
+    await db_session.commit()
+    flag = await db_session.get(FeatureFlag, FeatureFlagKey.AI_QUEST_WIZARD.value)
+    assert flag is not None
+    assert flag.audience == "premium"
+
+    await set_flag(db_session, FeatureFlagKey.AI_QUEST_WIZARD, True)
+    await db_session.commit()
+    premium_user = SimpleNamespace(is_premium=True)
+    regular_user = SimpleNamespace(is_premium=False)
+    flags = await get_effective_flags(db_session, None, premium_user)
+    assert FeatureFlagKey.AI_QUEST_WIZARD.value in flags
+    flags = await get_effective_flags(db_session, None, regular_user)
+    assert FeatureFlagKey.AI_QUEST_WIZARD.value not in flags
     invalidate_cache()
