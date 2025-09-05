@@ -31,15 +31,34 @@ async def test_signup_success(client: AsyncClient, db_session: AsyncSession):
     assert response.status_code == 200
     data = response.json()
     assert "verification_token" in data
+    assert "account_slug" in data
 
     # Проверяем, что пользователь создан в БД, используя сырой SQL запрос
-    sql = text("SELECT email, is_active FROM users WHERE username = :username")
+    sql = text("SELECT id, email, is_active FROM users WHERE username = :username")
     result = await db_session.execute(sql, {"username": "newuser"})
     user = result.fetchone()
 
     assert user is not None
-    assert user[0] == "newuser@example.com"
-    assert not user[1]
+    user_id, email, is_active = user
+    assert email == "newuser@example.com"
+    assert not is_active
+
+    # Проверяем создание аккаунта и членства владельца
+    sql = text("SELECT id, slug FROM accounts WHERE owner_user_id = :owner_id")
+    result = await db_session.execute(sql, {"owner_id": user_id})
+    account = result.fetchone()
+    assert account is not None
+    account_id, slug = account
+    assert slug == data["account_slug"]
+
+    sql = text(
+        """SELECT role FROM account_members
+            WHERE account_id = :account_id AND user_id = :user_id"""
+    )
+    result = await db_session.execute(sql, {"account_id": account_id, "user_id": user_id})
+    membership = result.fetchone()
+    assert membership is not None
+    assert membership[0] == "owner"
 
 
 @pytest.mark.asyncio
