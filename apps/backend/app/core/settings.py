@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 from enum import Enum
@@ -32,7 +34,7 @@ from .app_settings import (
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parents[4]
 
 
 class ProjectSettings(BaseSettings):
@@ -40,6 +42,8 @@ class ProjectSettings(BaseSettings):
         case_sensitive=False,
         env_nested_delimiter="__",
         extra="ignore",
+        env_file=BASE_DIR / ".env",
+        env_file_encoding="utf-8",
     )
 
     @classmethod
@@ -51,7 +55,7 @@ class ProjectSettings(BaseSettings):
         dotenv_settings,
         file_secret_settings,
     ):
-        return init_settings, env_settings
+        return init_settings, env_settings, dotenv_settings, file_secret_settings
 
 
 class EnvMode(str, Enum):
