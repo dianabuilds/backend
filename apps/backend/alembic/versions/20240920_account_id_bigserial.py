@@ -28,18 +28,16 @@ def upgrade() -> None:
     op.execute(
         "UPDATE account_members am SET account_id_new = a.id_new FROM accounts a WHERE am.account_id = a.id"
     )
-    op.drop_constraint("workspace_members_pkey", "account_members", type_="primary")
-    op.drop_constraint(
-        "workspace_members_workspace_id_fkey",
-        "account_members",
-        type_="foreignkey",
+    op.execute("ALTER TABLE account_members DROP CONSTRAINT IF EXISTS workspace_members_pkey")
+    op.execute("ALTER TABLE account_members DROP CONSTRAINT IF EXISTS account_members_pkey")
+    op.execute(
+        "ALTER TABLE account_members DROP CONSTRAINT IF EXISTS workspace_members_workspace_id_fkey"
     )
-    op.drop_constraint(
-        "workspaces_pkey",
-        "accounts",
-        type_="primary",
-        cascade=True,
+    op.execute(
+        "ALTER TABLE account_members DROP CONSTRAINT IF EXISTS account_members_account_id_fkey"
     )
+    op.execute("ALTER TABLE accounts DROP CONSTRAINT IF EXISTS workspaces_pkey CASCADE")
+    op.execute("ALTER TABLE accounts DROP CONSTRAINT IF EXISTS accounts_pkey CASCADE")
     op.drop_column("account_members", "account_id")
     op.drop_column("accounts", "id")
     op.alter_column(
