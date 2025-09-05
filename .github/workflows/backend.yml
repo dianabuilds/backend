@@ -66,8 +66,10 @@ jobs:
           path: pip-audit.json
       - name: Fail on critical Python vulnerabilities
         run: python scripts/check_pip_audit.py pip-audit.json
-      - name: Lint
-        run: pre-commit run --all-files
+      - name: Run Ruff (check only)
+        run: pre-commit run ruff --all-files --hook-stage manual
+      - name: Run Black (check only)
+        run: pre-commit run black --all-files --hook-stage manual
       - name: Verify router map
         run: python scripts/check_router_map.py
       - name: Run tests
