@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import asyncio
-import uuid
-from dataclasses import dataclass
-
 import importlib
 import sys
+import uuid
+from dataclasses import dataclass
 
 # Ensure apps package is importable
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from apps.backend.app.domains.navigation.application.providers import EchoProvider
+from apps.backend.app.domains.navigation.application.providers import (  # noqa: E402
+    EchoProvider,
+)
+
+from app.core.preview import PreviewContext  # noqa: E402
 
 
 @dataclass
@@ -20,7 +23,14 @@ class DummyNode:
 
 
 class DummyService:
-    async def get_echo_transitions(self, db, node, limit, user=None, preview=None):
+    async def get_echo_transitions(
+        self,
+        db,
+        node,
+        limit,
+        user=None,
+        preview: PreviewContext | None = None,
+    ):
         other_ws = uuid.uuid4()
         return [
             DummyNode("a", workspace_id=node.workspace_id),

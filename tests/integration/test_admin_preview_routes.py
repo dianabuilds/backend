@@ -11,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.core.preview import PreviewContext
 from app.domains.navigation.api import preview_router as preview_module
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.tags.infrastructure.models.tag_models import NodeTag
@@ -49,7 +50,9 @@ async def preview_setup(monkeypatch):
         def __init__(self) -> None:
             self._router = types.SimpleNamespace(history=[])
 
-        async def build_route(self, db, node, user, preview=None, mode=None):
+        async def build_route(
+            self, db, node, user, preview: PreviewContext | None = None, mode=None
+        ):
             trace = [DummyTrace(chosen=True, policy="p")]
             return types.SimpleNamespace(
                 next=types.SimpleNamespace(slug="n2", tags=[]),
