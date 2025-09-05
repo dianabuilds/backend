@@ -123,7 +123,7 @@ async def list_nodes_admin(
 
     See :class:`AdminNodeListParams` for available query parameters.
     """
-    spec_workspace_id = workspace_id
+    spec_workspace_id: UUID | None = workspace_id
     workspace = await db.get(Workspace, workspace_id)
     if workspace and workspace.is_system and workspace.type == WorkspaceType.global_:
         spec_workspace_id = None
@@ -385,9 +385,7 @@ async def get_publish_info(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     """Возвращает статус публикации и запланированную публикацию."""
-    item = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_or_item_id=id
-    )
+    item = await _resolve_content_item_id(db, workspace_id=workspace_id, node_or_item_id=id)
     if item.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Node not found")
 
@@ -424,9 +422,7 @@ async def schedule_publish(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008,
 ):
     """Создаёт или заменяет задание на публикацию."""
-    item = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_or_item_id=id
-    )
+    item = await _resolve_content_item_id(db, workspace_id=workspace_id, node_or_item_id=id)
 
     res = await db.execute(
         select(NodePublishJob).where(

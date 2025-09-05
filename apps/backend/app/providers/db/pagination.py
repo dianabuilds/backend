@@ -5,7 +5,7 @@ import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -48,9 +48,11 @@ def parse_page_query(
     if not 1 <= limit <= 100:
         raise HTTPException(status_code=400, detail="Invalid limit")
 
-    order = params.get("order", "desc").lower()
-    if order not in ("asc", "desc"):
+    order_raw = params.get("order", "desc").lower()
+    if order_raw not in ("asc", "desc"):
         raise HTTPException(status_code=400, detail="Invalid order")
+
+    order = cast(Literal["asc", "desc"], order_raw)
 
     sort = params.get("sort", default_sort)
     if sort not in allowed_sort:
@@ -58,7 +60,7 @@ def parse_page_query(
 
     cursor = params.get("cursor")
 
-    return PageQuery(limit=limit, cursor=cursor, sort=sort, order=order)  # type: ignore[arg-type]
+    return PageQuery(limit=limit, cursor=cursor, sort=sort, order=order)
 
 
 def _b64encode(data: str) -> str:
@@ -83,7 +85,7 @@ def decode_cursor(cursor: str) -> CursorPayload:
         raise HTTPException(status_code=400, detail="Invalid cursor") from exc
 
 
-def build_cursor_for_last_item(item: Any, sort_field: str, order: str) -> str:
+def build_cursor_for_last_item(item: Any, sort_field: str, order: Literal["asc", "desc"]) -> str:
     value = getattr(item, sort_field)
     if isinstance(value, datetime):
         value = value.isoformat()
@@ -173,9 +175,7 @@ def apply_filters(
         try:
             value = parser(raw)
         except Exception as err:
-            raise HTTPException(
-                status_code=400, detail=f"Invalid filter: {key}"
-            ) from err
+            raise HTTPException(status_code=400, detail=f"Invalid filter: {key}") from err
         stmt = handler(stmt, value)
         applied[key] = value
     return stmt, applied

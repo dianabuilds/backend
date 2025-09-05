@@ -15,6 +15,8 @@ class JSONFormatter(logging.Formatter):
             "msg": record.getMessage(),
         }
         if record.exc_info:
-            base["exc_type"] = record.exc_info[0].__name__
+            exc_type = record.exc_info[0]
+            if exc_type:
+                base["exc_type"] = exc_type.__name__
             base["exc"] = self.formatException(record.exc_info)
         return json.dumps(base, ensure_ascii=False)

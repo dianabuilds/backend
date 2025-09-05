@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -66,9 +67,7 @@ class AchievementsService:
         ach = await self._repo.get_achievement(achievement_id, workspace_id)
         if not ach:
             return False
-        ok = await self._repo.delete_user_achievement(
-            user_id, achievement_id, workspace_id
-        )
+        ok = await self._repo.delete_user_achievement(user_id, achievement_id, workspace_id)
         if ok:
             await db.commit()
         return ok
@@ -81,7 +80,7 @@ class AchievementsService:
         event: str,
         payload: dict[str, Any] | None = None,
         preview: PreviewContext | None = None,
-    ) -> list[Achievement]:
+    ) -> builtins.list[Achievement]:
         """Handle user event and unlock achievements if conditions met."""
 
         payload = payload or {}
@@ -104,9 +103,7 @@ class AchievementsService:
             counter.count = new_count
             await db.flush()
 
-        res = await db.execute(
-            select(Achievement).where(Achievement.workspace_id == workspace_id)
-        )
+        res = await db.execute(select(Achievement).where(Achievement.workspace_id == workspace_id))
         all_achs: list[Achievement] = list(res.scalars().all())
 
         def _match_condition(ach: Achievement) -> bool:

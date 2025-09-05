@@ -31,7 +31,13 @@ def _all_present(modules: Iterable[object]) -> bool:
 
 
 def _parse_headers(header_str: str) -> Sequence[tuple[str, str]]:
-    return tuple(tuple(part.split("=", 1)) for part in header_str.split(",") if "=" in part)
+    headers: list[tuple[str, str]] = []
+    for part in header_str.split(","):
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        headers.append((key, value))
+    return tuple(headers)
 
 
 def setup_otel(service_name: str = "backend") -> PrometheusMetricReader | None:

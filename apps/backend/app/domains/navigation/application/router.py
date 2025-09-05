@@ -164,11 +164,11 @@ class TransitionRouter:
         self.trace.clear()
         seed = preview.seed if preview else None
         if seed is not None:
-            for policy in self.policies:
-                if hasattr(policy, "set_seed"):
-                    policy.set_seed(seed)
-                if hasattr(policy.provider, "set_seed"):
-                    policy.provider.set_seed(seed)
+            for pol in self.policies:
+                if hasattr(pol, "set_seed"):
+                    pol.set_seed(seed)
+                if hasattr(pol.provider, "set_seed"):
+                    pol.provider.set_seed(seed)
 
         history = self.history
         repeat_filter = self.repeat_filter
@@ -179,7 +179,8 @@ class TransitionRouter:
         history.append(start.slug)
         repeat_filter.update(start)
 
-        if mode and (policy := self.policy_map.get(mode)):
+        policy: Policy | None = self.policy_map.get(mode) if mode else None
+        if policy is not None:
             policy_order = [policy] + [p for p in self.policies if p.name != mode]
         elif getattr(budget, "fallback_chain", None):
             policy_order = [
@@ -197,9 +198,7 @@ class TransitionRouter:
         reason: NoRouteReason | None = None
 
         for idx, policy in enumerate(policy_order):
-            candidate, trace = await policy.choose(
-                db, start, user, history, repeat_filter, preview
-            )
+            candidate, trace = await policy.choose(db, start, user, history, repeat_filter, preview)
             trace.policy = policy.name
             self.trace.append(trace)
             queries += 1
@@ -209,9 +208,9 @@ class TransitionRouter:
             if elapsed_ms > getattr(budget, "max_time_ms", float("inf")):
                 reason = NoRouteReason.TIMEOUT
                 break
-            if queries > getattr(
-                budget, "max_queries", float("inf")
-            ) or filtered_total > getattr(budget, "max_filters", float("inf")):
+            if queries > getattr(budget, "max_queries", float("inf")) or filtered_total > getattr(
+                budget, "max_filters", float("inf")
+            ):
                 reason = NoRouteReason.BUDGET_EXCEEDED
                 break
 
@@ -259,6 +258,4 @@ class TransitionRouter:
             record_fallback_used(ws_id)
             transition_metrics.inc_fallback(ws_id, metrics_mode)
         transition_finish(nxt.slug if nxt else None)
-        return TransitionResult(
-            next=nxt, reason=reason, trace=list(self.trace), metrics=metrics
-        )
+        return TransitionResult(next=nxt, reason=reason, trace=list(self.trace), metrics=metrics)
