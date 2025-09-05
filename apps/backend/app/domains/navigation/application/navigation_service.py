@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
 from datetime import datetime
 from types import SimpleNamespace
 
@@ -68,6 +69,19 @@ class NavigationService:
             mode=mode,
             preview=preview,
         )
+
+    async def get_next(
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: User | None,
+        preview: PreviewContext | None = None,
+        *,
+        mode: str | None = None,
+    ) -> TransitionResult:
+        res = await self.build_route(db, node, user, preview=preview, mode=mode)
+        logger.info("navigation.trace", extra={"trace": [asdict(t) for t in res.trace]})
+        return res
 
     async def _filter_transitions(
         self,

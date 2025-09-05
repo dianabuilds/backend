@@ -1,5 +1,11 @@
 # Observability
 
+## Logging
+
+`NavigationService.get_next` writes a trace for each routing decision. The trace lists
+all candidates considered, which ones were filtered out, the selected node and an
+optional reason. Logs include the trace as structured data under the `trace` field.
+
 ## Alert deployment
 
 Prometheus loads alerting rules from `config/prometheus/alerts.yml`. After adding or modifying rules, validate the file and reload Prometheus:

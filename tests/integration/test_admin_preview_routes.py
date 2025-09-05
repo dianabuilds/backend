@@ -43,7 +43,7 @@ async def preview_setup(monkeypatch):
 
     @dataclass
     class DummyTrace:
-        chosen: bool
+        selected: bool
         policy: str | None = None
 
     class DummyNavigationService:
@@ -53,13 +53,16 @@ async def preview_setup(monkeypatch):
         async def build_route(
             self, db, node, user, preview: PreviewContext | None = None, mode=None
         ):
-            trace = [DummyTrace(chosen=True, policy="p")]
+            trace = [DummyTrace(selected=True, policy="p")]
             return types.SimpleNamespace(
                 next=types.SimpleNamespace(slug="n2", tags=[]),
                 reason=None,
                 trace=trace,
                 metrics={},
             )
+
+        async def get_next(self, db, node, user, preview: PreviewContext | None = None, mode=None):
+            return await self.build_route(db, node, user, preview=preview, mode=mode)
 
     monkeypatch.setattr(preview_module, "NavigationService", DummyNavigationService)
     monkeypatch.setattr(preview_module, "create_preview_token", lambda *a, **k: "fake-token")

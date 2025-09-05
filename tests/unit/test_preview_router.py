@@ -65,7 +65,7 @@ class DummyRouter:
         chosen = rng.choice(options)
         if not preview or preview.mode == "off":
             self.history.append(chosen)
-        trace = [TransitionTrace(options, [], {}, chosen)]
+        trace = [TransitionTrace(options, [], chosen)]
         return TransitionResult(next=DummyNode(chosen), reason=None, trace=trace, metrics={})
 
 
@@ -81,6 +81,9 @@ class DummyNavigationService:
             max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
         )
         return await self._router.route(db, node, user, budget, preview=preview)
+
+    async def get_next(self, db, node, user, preview: PreviewContext | None = None, mode=None):
+        return await self.build_route(db, node, user, preview=preview, mode=mode)
 
 
 def test_dry_run_seed_and_no_side_effects(monkeypatch):
