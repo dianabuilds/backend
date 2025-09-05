@@ -150,9 +150,9 @@ export default function Nodes() {
     } else {
       // Восстановление: confirm и прямой вызов
       if (!node.slug) {
-        const msg = 'Slug is missing';
-        notify(`Restore failed: ${msg}`);
-        addToast({ title: 'Restore failed', description: msg, variant: 'error' });
+        const msg = 'Отсутствует slug';
+        notify(`Не удалось восстановить: ${msg}`);
+        addToast({ title: 'Не удалось восстановить', description: msg, variant: 'error' });
         return;
       }
       (async () => {
@@ -169,14 +169,14 @@ export default function Nodes() {
             m.set(node.id, { ...base, is_visible: true });
             return m;
           });
-          notify('Node restored');
-          addToast({ title: 'Node restored', variant: 'success' });
+          notify('Нода восстановлена');
+          addToast({ title: 'Нода восстановлена', variant: 'success' });
           // Фоновая верификация
           await refetch();
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
-          notify(`Restore failed: ${msg}`);
-          addToast({ title: 'Restore failed', description: msg, variant: 'error' });
+          notify(`Не удалось восстановить: ${msg}`);
+          addToast({ title: 'Не удалось восстановить', description: msg, variant: 'error' });
         } finally {
           setModBusy(false);
         }
@@ -188,8 +188,8 @@ export default function Nodes() {
     if (!modTarget) return;
     if (!modTarget.slug) {
       addToast({
-        title: 'Hide failed',
-        description: 'Slug is missing',
+        title: 'Не удалось скрыть',
+        description: 'Отсутствует slug',
         variant: 'error',
       });
       return;
@@ -211,11 +211,11 @@ export default function Nodes() {
         m.set(modTarget.id, { ...base, is_visible: false });
         return m;
       });
-      addToast({ title: 'Node hidden', variant: 'success' });
+      addToast({ title: 'Нода скрыта', variant: 'success' });
       await refetch();
     } catch (e) {
       addToast({
-        title: 'Hide failed',
+        title: 'Не удалось скрыть',
         description: e instanceof Error ? e.message : String(e),
         variant: 'error',
       });
@@ -262,7 +262,7 @@ export default function Nodes() {
     onError: (e) => {
       const msg = e instanceof Error ? e.message : String(e);
       addToast({
-        title: 'Failed to load nodes',
+        title: 'Не удалось загрузить ноды',
         description: msg,
         variant: 'error',
       });
@@ -356,7 +356,7 @@ export default function Nodes() {
       }
       if (results.length > 0) {
         addToast({
-          title: 'Changes applied',
+          title: 'Изменения применены',
           description: results.join(', '),
           variant: 'success',
         });
@@ -367,11 +367,11 @@ export default function Nodes() {
         // Фоновая верификация серверного состояния
         await refetch();
       } else {
-        addToast({ title: 'No changes to apply', variant: 'info' });
+        addToast({ title: 'Нет изменений для применения', variant: 'info' });
       }
     } catch (e) {
       addToast({
-        title: 'Failed to apply changes',
+        title: 'Не удалось применить изменения',
         description: e instanceof Error ? e.message : String(e),
         variant: 'error',
       });
@@ -406,7 +406,7 @@ export default function Nodes() {
       window.open(`${url}/nodes/${t}/${id}`, '_blank');
     } catch (e) {
       addToast({
-        title: 'Preview failed',
+        title: 'Предпросмотр не удалось',
         description: e instanceof Error ? e.message : String(e),
         variant: 'error',
       });
@@ -416,7 +416,7 @@ export default function Nodes() {
   const deleteSelected = async () => {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    if (!(await confirmWithEnv(`Delete ${ids.length} node${ids.length === 1 ? '' : 's'}?`))) return;
+    if (!(await confirmWithEnv(`Удалить ${ids.length} нод${ids.length === 1 ? 'у' : 'ы'}?`))) return;
     try {
       for (const id of ids) {
         await wsApi.delete(
@@ -425,10 +425,10 @@ export default function Nodes() {
       }
       setItems((prev) => prev.filter((n) => !selected.has(n.id)));
       setSelected(new Set());
-      addToast({ title: 'Deleted', variant: 'success' });
+      addToast({ title: 'Удалено', variant: 'success' });
     } catch (e) {
       addToast({
-        title: 'Delete failed',
+        title: 'Не удалось удалить',
         description: e instanceof Error ? e.message : String(e),
         variant: 'error',
       });
@@ -474,7 +474,7 @@ export default function Nodes() {
   return (
     <div className="flex gap-6">
       <div className="flex-1">
-        <h1 className="text-2xl font-bold mb-4">Nodes</h1>
+        <h1 className="text-2xl font-bold mb-4">Ноды</h1>
 
         <WorkspaceControlPanel />
 
@@ -487,7 +487,7 @@ export default function Nodes() {
                   setQ(e.target.value);
                   setPage(0);
                 }}
-                placeholder="Search by title or slug..."
+                placeholder="Поиск по названию или slug..."
                 className="border rounded px-2 py-1 flex-1 min-w-[180px]"
               />
               <select
@@ -498,11 +498,11 @@ export default function Nodes() {
                   setPage(0);
                 }}
               >
-                <option value="all">all statuses</option>
-                <option value="draft">draft</option>
-                <option value="in_review">in_review</option>
-                <option value="published">published</option>
-                <option value="archived">archived</option>
+                <option value="all">Все статусы</option>
+                <option value="draft">черновик</option>
+                <option value="in_review">на проверке</option>
+                <option value="published">опубликовано</option>
+                <option value="archived">архив</option>
               </select>
               <select
                 className="border rounded px-2 py-1"
@@ -512,9 +512,9 @@ export default function Nodes() {
                   setPage(0);
                 }}
               >
-                <option value="all">all</option>
-                <option value="visible">visible</option>
-                <option value="hidden">hidden</option>
+                <option value="all">Все</option>
+                <option value="visible">видимые</option>
+                <option value="hidden">скрытые</option>
               </select>
               <select
                 className="border rounded px-2 py-1"
@@ -524,9 +524,9 @@ export default function Nodes() {
                   setPage(0);
                 }}
               >
-                <option value="all">all</option>
-                <option value="true">public</option>
-                <option value="false">private</option>
+                <option value="all">Все</option>
+                <option value="true">публичные</option>
+                <option value="false">приватные</option>
               </select>
               <select
                 className="border rounded px-2 py-1"
@@ -536,9 +536,9 @@ export default function Nodes() {
                   setPage(0);
                 }}
               >
-                <option value="all">all</option>
-                <option value="true">premium</option>
-                <option value="false">free</option>
+                <option value="all">Все</option>
+                <option value="true">премиум</option>
+                <option value="false">бесплатно</option>
               </select>
               <select
                 className="border rounded px-2 py-1"
@@ -548,16 +548,16 @@ export default function Nodes() {
                   setPage(0);
                 }}
               >
-                <option value="all">all</option>
-                <option value="true">recommendable</option>
-                <option value="false">not recommendable</option>
+                <option value="all">Все</option>
+                <option value="true">рекомендуемые</option>
+                <option value="false">не рекомендуемые</option>
               </select>
               <Button type="button" onClick={() => void refetch()}>
-                Search
+                Поиск
               </Button>
 
               <label className="ml-2 text-sm text-gray-600">
-                per page:
+                на странице:
                 <select
                   className="ml-2 border rounded px-2 py-1"
                   value={limit}
@@ -582,8 +582,8 @@ export default function Nodes() {
                   onClick={applyChanges}
                 >
                   {applying
-                    ? 'Applying…'
-                    : `Apply changes${changesCount > 0 ? ` (${changesCount})` : ''}`}
+                    ? 'Применение…'
+                    : `Применить изменения${changesCount > 0 ? ` (${changesCount})` : ''}`}
                 </Button>
                 <Button
                   type="button"
@@ -591,7 +591,7 @@ export default function Nodes() {
                   disabled={changesCount === 0 || loading || applying}
                   onClick={discardChanges}
                 >
-                  Discard
+                  Отменить
                 </Button>
                 <Button
                   type="button"
@@ -603,13 +603,13 @@ export default function Nodes() {
                     navigate(`/nodes/article/new${qs}`);
                   }}
                 >
-                  Add node
+                  Добавить ноду
                 </Button>
               </div>
             </div>
             {selected.size > 0 && (
               <div className="flex flex-wrap gap-2">
-                <span className="self-center text-sm">Selected {selected.size}</span>
+                <span className="self-center text-sm">Выбрано {selected.size}</span>
                 <Button
                   type="button"
                   onClick={() => {
@@ -627,7 +627,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Hide
+                  Скрыть
                 </Button>
                 <Button
                   type="button"
@@ -646,7 +646,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Show
+                  Показать
                 </Button>
                 <Button
                   type="button"
@@ -665,7 +665,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Public
+                  Публично
                 </Button>
                 <Button
                   type="button"
@@ -684,7 +684,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Private
+                  Приватно
                 </Button>
                 <Button
                   type="button"
@@ -703,7 +703,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Premium
+                  Премиум
                 </Button>
                 <Button
                   type="button"
@@ -724,7 +724,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Free
+                  Бесплатно
                 </Button>
                 <Button
                   type="button"
@@ -747,17 +747,17 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Toggle recommendable
+                  Переключить рекомендование
                 </Button>
                 <Button type="button" className="ml-auto" onClick={() => setSelected(new Set())}>
-                  Clear
+                  Очистить
                 </Button>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {loading && <p>Loading...</p>}
+        {loading && <p>Загрузка...</p>}
         {errorMsg && <p className="text-red-600">{errorMsg}</p>}
 
         {!loading && !errorMsg && (
@@ -776,12 +776,12 @@ export default function Nodes() {
                       />
                     </TableHead>
                     <TableHead>ID</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead className="w-32 text-center">Status</TableHead>
-                    <TableHead className="w-32 text-center">Flags</TableHead>
-                    <TableHead className="hidden md:table-cell">Created</TableHead>
-                    <TableHead className="hidden md:table-cell">Updated</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>Название</TableHead>
+                    <TableHead className="w-32 text-center">Статус</TableHead>
+                    <TableHead className="w-32 text-center">Флаги</TableHead>
+                    <TableHead className="hidden md:table-cell">Создано</TableHead>
+                    <TableHead className="hidden md:table-cell">Обновлено</TableHead>
+                    <TableHead>Действия</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -806,7 +806,7 @@ export default function Nodes() {
                         <TableCell className="font-mono">{n.id ?? '-'}</TableCell>
                         <TableCell>
                           <div className="relative group pr-16">
-                            <div className="font-bold">{n.title?.trim() || 'Untitled'}</div>
+                            <div className="font-bold">{n.title?.trim() || 'Без названия'}</div>
                             <div className="text-gray-500 text-xs font-mono">{n.slug ?? '-'}</div>
                             {n.slug && (
                               <Button
@@ -814,7 +814,7 @@ export default function Nodes() {
                                 className="absolute top-0 right-0 text-xs text-blue-600 opacity-0 group-hover:opacity-100 border-none px-1 py-0"
                                 onClick={() => copySlug(n.slug ?? '')}
                               >
-                                Copy slug
+                                Копировать slug
                               </Button>
                             )}
                           </div>
@@ -848,7 +848,7 @@ export default function Nodes() {
                               navigate(`/nodes/${t}/${n.id}?workspace_id=${workspaceId}`);
                             }}
                           >
-                            Edit
+                            Редактировать
                           </Button>
                           <Button
                             type="button"
@@ -859,15 +859,15 @@ export default function Nodes() {
                                 const t = n.type || 'article';
                                 window.open(`${url}/nodes/${t}/${n.id}`, '_blank');
                               } catch (e) {
-                                addToast({
-                                  title: 'Preview failed',
-                                  description: e instanceof Error ? e.message : String(e),
-                                  variant: 'error',
-                                });
+                                  addToast({
+                                    title: 'Предпросмотр не удалось',
+                                    description: e instanceof Error ? e.message : String(e),
+                                    variant: 'error',
+                                  });
                               }
                             }}
                           >
-                            Preview
+                            Предпросмотр
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -876,7 +876,7 @@ export default function Nodes() {
                   {items.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} className="p-4 text-center text-gray-500">
-                        No nodes found
+                        Ноды не найдены
                       </TableCell>
                     </TableRow>
                   )}
@@ -889,15 +889,15 @@ export default function Nodes() {
                 disabled={page === 0}
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
               >
-                Prev
+                Назад
               </Button>
-              <span className="text-sm">Page {page + 1}</span>
+              <span className="text-sm">Страница {page + 1}</span>
               <Button
                 type="button"
                 disabled={!hasMore}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Next
+                Вперед
               </Button>
             </div>
           </>
@@ -907,20 +907,20 @@ export default function Nodes() {
         {modOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-md rounded bg-white p-4 shadow dark:bg-gray-900">
-              <h3 className="mb-3 text-lg font-semibold">Hide node</h3>
+              <h3 className="mb-3 text-lg font-semibold">Скрыть ноду</h3>
               <p className="mb-2 text-sm text-gray-600">
-                Provide a reason for hiding this node. The action will be logged in audit.
+                Укажите причину скрытия этой ноды. Действие будет записано в аудит.
               </p>
               <input
                 className="mb-3 w-full rounded border px-2 py-1"
-                placeholder="Reason (optional)"
+                placeholder="Причина (необязательно)"
                 value={modReason}
                 onChange={(e) => setModReason(e.target.value)}
                 disabled={modBusy}
               />
               <div className="flex justify-end gap-2">
                 <Button type="button" onClick={() => setModOpen(false)} disabled={modBusy}>
-                  Cancel
+                  Отмена
                 </Button>
                 <Button
                   type="button"
@@ -928,7 +928,7 @@ export default function Nodes() {
                   onClick={submitModerationHide}
                   disabled={modBusy}
                 >
-                  {modBusy ? 'Hiding…' : 'Hide'}
+                  {modBusy ? 'Скрытие…' : 'Скрыть'}
                 </Button>
               </div>
             </div>

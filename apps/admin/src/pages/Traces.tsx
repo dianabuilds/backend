@@ -133,7 +133,7 @@ export default function Traces() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">Traces</h1>
+      <h1 className="text-2xl font-bold mb-2">Трассировки</h1>
       <PeriodStepSelector
         range={range}
         step={step}
@@ -142,76 +142,77 @@ export default function Traces() {
         className="mb-2"
       />
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-        Search and inspect transition traces. Use filters to narrow results.
+        Поиск и просмотр трасс переходов. Используйте фильтры для уточнения
+        результатов.
       </p>
 
       <div className="mb-3 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
         <input
           value={from}
           onChange={(e) => setFrom(e.target.value)}
-          placeholder="from slug"
+          placeholder="Откуда (slug)"
           className="border rounded px-2 py-1"
         />
         <input
           value={to}
           onChange={(e) => setTo(e.target.value)}
-          placeholder="to slug"
+          placeholder="Куда (slug)"
           className="border rounded px-2 py-1"
         />
         <input
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
-          placeholder="user id (UUID)"
+          placeholder="Пользователь ID"
           className="border rounded px-2 py-1"
         />
         <input
           value={source}
           onChange={(e) => setSource(e.target.value)}
-          placeholder="source"
+          placeholder="Источник"
           className="border rounded px-2 py-1"
         />
         <input
           value={channel}
           onChange={(e) => setChannel(e.target.value)}
-          placeholder="channel"
+          placeholder="Канал"
           className="border rounded px-2 py-1"
         />
         <input
           value={type}
           onChange={(e) => setType(e.target.value)}
-          placeholder="type"
+          placeholder="Тип"
           className="border rounded px-2 py-1"
         />
         <input
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
           type="datetime-local"
-          placeholder="date from"
+          placeholder="С даты"
           className="border rounded px-2 py-1"
         />
         <input
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
           type="datetime-local"
-          placeholder="date to"
+          placeholder="По дату"
           className="border rounded px-2 py-1"
         />
       </div>
 
       <div className="mb-3 flex items-center gap-2">
         <button onClick={handleBulkAnon} className="px-3 py-1 rounded border">
-          Bulk Anon
+          Массовая анонимизация
         </button>
         <button
           onClick={handleBulkDelete}
           className="px-3 py-1 rounded border text-red-600"
         >
-          Bulk Delete
+          Массовое удаление
         </button>
       </div>
 
-      {isLoading && <p>Loading...</p>}
-      {error && <p className="text-red-500">Error loading traces</p>}
+      {isLoading && <p>Загрузка...</p>}
+      {error && <p className="text-red-500">Ошибка загрузки трассировок</p>}
       {!isLoading && !error && (
         <table className="min-w-full text-sm text-left">
           <thead>
@@ -223,15 +224,15 @@ export default function Traces() {
                   onChange={toggleAll}
                 />
               </th>
-              <th className="p-2">From</th>
-              <th className="p-2">To</th>
-              <th className="p-2">User</th>
-              <th className="p-2">Type</th>
-              <th className="p-2">Source</th>
-              <th className="p-2">Channel</th>
-              <th className="p-2">Latency</th>
-              <th className="p-2">Created</th>
-              <th className="p-2">Actions</th>
+              <th className="p-2">Откуда</th>
+              <th className="p-2">Куда</th>
+              <th className="p-2">Пользователь</th>
+              <th className="p-2">Тип</th>
+              <th className="p-2">Источник</th>
+              <th className="p-2">Канал</th>
+              <th className="p-2">Задержка</th>
+              <th className="p-2">Создано</th>
+              <th className="p-2">Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -251,7 +252,7 @@ export default function Traces() {
                 </td>
                 <td className="p-2">{t.from_slug ?? "-"}</td>
                 <td className="p-2">{t.to_slug ?? "-"}</td>
-                <td className="p-2">{t.user_id ?? "anon"}</td>
+                <td className="p-2">{t.user_id ?? "анон"}</td>
                 <td className="p-2">{t.type ?? "-"}</td>
                 <td className="p-2">{t.source ?? "-"}</td>
                 <td className="p-2">{t.channel ?? "-"}</td>
@@ -269,7 +270,7 @@ export default function Traces() {
                     }}
                     className="text-blue-600"
                   >
-                    Anon
+                    Анонимизировать
                   </button>
                   <button
                     onClick={async () => {
@@ -278,7 +279,7 @@ export default function Traces() {
                     }}
                     className="text-red-600"
                   >
-                    Del
+                    Удалить
                   </button>
                 </td>
               </tr>
@@ -286,7 +287,7 @@ export default function Traces() {
             {(data?.length || 0) === 0 && (
               <tr>
                 <td colSpan={10} className="p-4 text-center text-gray-500">
-                  No traces found
+                  Трассировки не найдены
                 </td>
               </tr>
             )}
@@ -299,20 +300,20 @@ export default function Traces() {
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           className="px-3 py-1 border rounded"
         >
-          Prev
+          Назад
         </button>
-        <span>Page {page}</span>
+        <span>Страница {page}</span>
         <button
           onClick={() => setPage((p) => p + 1)}
           className="px-3 py-1 border rounded"
         >
-          Next
+          Вперед
         </button>
         <button
           onClick={clearSelection}
           className="ml-auto px-3 py-1 border rounded"
         >
-          Clear selection
+          Сбросить выбор
         </button>
       </div>
     </div>
