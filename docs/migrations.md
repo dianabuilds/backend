@@ -4,8 +4,9 @@ This project uses [Alembic](https://alembic.sqlalchemy.org/) for schema migratio
 
 ## Squashed Base Revision
 
-As of 2025-09-05, all previous migrations were squashed into a new base revision `0001_base`.
-Upgrade existing databases to this revision before applying future migrations.
+As of 2025-09-05, all previous migrations were squashed into a new base revision `0001_base`
+(`20260126_add_ai_settings_columns`). Upgrade existing databases to this
+revision before applying future migrations.
 
 ## Creating a Migration
 
