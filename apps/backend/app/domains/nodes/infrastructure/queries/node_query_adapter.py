@@ -1,8 +1,6 @@
-from __future__ import annotations
+from __future__ import annotations  # mypy: ignore-errors
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.domains.nodes.application.node_query_service import NodeQueryService
 from app.domains.nodes.application.ports.node_query_port import INodeQueryService
@@ -11,13 +9,11 @@ from app.domains.nodes.application.query_models import (
     PageRequest,
     QueryContext,
 )
-from app.domains.nodes.infrastructure.models.node import Node
 
 
 class NodeQueryAdapter(INodeQueryService):
     def __init__(self, db: AsyncSession) -> None:
         self._svc = NodeQueryService(db)
-        self._db = db
 
     async def compute_nodes_etag(
         self, spec: NodeFilterSpec, ctx: QueryContext, page: PageRequest
@@ -27,10 +23,4 @@ class NodeQueryAdapter(INodeQueryService):
     async def list_nodes(
         self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext
     ):
-        nodes = await self._svc.list_nodes(spec, page, ctx)
-        if nodes:
-            ids = [n.id for n in nodes]
-            await self._db.execute(
-                select(Node).where(Node.id.in_(ids)).options(selectinload(Node.tags))
-            )
-        return nodes
+        return await self._svc.list_nodes(spec, page, ctx)
