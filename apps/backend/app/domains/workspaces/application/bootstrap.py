@@ -32,7 +32,10 @@ async def ensure_global_workspace() -> None:
             return
 
         owner_res = await session.execute(
-            select(User).where(User.role == "admin").order_by(User.created_at).limit(1)
+            select(User)
+            .where(User.role.in_(settings.security.admin_roles))
+            .order_by(User.created_at)
+            .limit(1)
         )
         owner = owner_res.scalars().first()
         if not owner:
