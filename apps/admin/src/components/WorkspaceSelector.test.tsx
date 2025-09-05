@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { safeLocalStorage } from "../utils/safeStorage";
-import { WorkspaceBranchProvider } from "../workspace/WorkspaceContext";
+import { WorkspaceBranchProvider, useWorkspace } from "../workspace/WorkspaceContext";
 import WorkspaceSelector from "./WorkspaceSelector";
 
 const queryData = { data: [] as any[], error: null };
@@ -61,6 +61,26 @@ describe("WorkspaceSelector", () => {
     );
     const link = screen.getByText("Создать воркспейс");
     expect(link).toHaveAttribute("href", "/admin/workspaces");
+  });
+
+  it("clears missing workspace", async () => {
+    queryData.data = [];
+    const ShowWs = () => {
+      const { workspaceId } = useWorkspace();
+      return <div data-testid="ws">{workspaceId}</div>;
+    };
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <WorkspaceBranchProvider>
+          <WorkspaceSelector />
+          <ShowWs />
+        </WorkspaceBranchProvider>
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("ws").textContent).toBe(""),
+    );
+    expect(safeLocalStorage.getItem("workspaceId")).toBeNull();
   });
 
   it("shows login banner on error", () => {
