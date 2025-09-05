@@ -37,7 +37,6 @@ describe("Sidebar", () => {
           label: "Navigation",
           children: [
             { id: "navigation-main", label: "Navigation", path: "/navigation", order: 1 },
-            { id: "nav-transitions", label: "Transitions", path: "/transitions", order: 2 },
           ],
         },
         {

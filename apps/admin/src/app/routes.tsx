@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { useRoutes, useLocation, type RouteObject } from "react-router-dom";
+import { useRoutes, useLocation, type RouteObject, Navigate } from "react-router-dom";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import AdminLayout from "./layouts/AdminLayout";
@@ -15,10 +15,9 @@ const Users = lazy(() => import("../pages/Users"));
 const Nodes = lazy(() => import("../pages/Nodes"));
 const Tags = lazy(() => import("../pages/Tags"));
 const TagMerge = lazy(() => import("../pages/TagMerge"));
-const Transitions = lazy(() => import("../pages/Transitions"));
 const ModerationInbox = lazy(() => import("../pages/ModerationInbox"));
 const ModerationCase = lazy(() => import("../pages/ModerationCase"));
-const Navigation = lazy(() => import("../pages/Navigation"));
+const NavigationManager = lazy(() => import("../pages/NavigationManager"));
 const NavigationProblems = lazy(() => import("../pages/NavigationProblems"));
 const Simulation = lazy(() => import("../pages/Simulation"));
 const Echo = lazy(() => import("../pages/Echo"));
@@ -87,7 +86,7 @@ const protectedChildren: RouteObject[] = [
   { path: "nodes", element: <Nodes /> },
   { path: "tags", element: <Tags /> },
   { path: "tags/merge", element: <TagMerge /> },
-  { path: "transitions", element: <Transitions /> },
+  { path: "transitions", element: <Navigate to="/navigation?tab=manual" replace /> },
   {
     path: "moderation",
     element: (
@@ -104,7 +103,7 @@ const protectedChildren: RouteObject[] = [
       </ProtectedRoute>
     ),
   },
-  { path: "navigation", element: <Navigation /> },
+  { path: "navigation", element: <NavigationManager /> },
   { path: "navigation/problems", element: <NavigationProblems /> },
   { path: "traces", element: <Traces /> },
   { path: "notifications", element: <Notifications /> },
