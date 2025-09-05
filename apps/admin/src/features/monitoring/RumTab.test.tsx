@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
 import { AdminTelemetryService } from '../../openapi';
@@ -41,5 +41,30 @@ describe('RumTab', () => {
 
     const path = container.querySelector('svg path');
     expect(path?.getAttribute('d')).toBe('M 4 0');
+  });
+
+  it('requests summary with computed window', async () => {
+    vi.spyOn(
+      AdminTelemetryService,
+      'rumSummaryAdminTelemetryRumSummaryGet',
+    ).mockResolvedValue({
+      window: 60,
+      counts: {},
+      login_attempt_avg_ms: null,
+      navigation_avg: { ttfb_ms: null, dom_content_loaded_ms: null, load_event_ms: null },
+    } as unknown);
+
+    vi.spyOn(AdminTelemetryService, 'listRumEventsAdminTelemetryRumGet').mockResolvedValue([] as unknown as RumEvent[]);
+
+    const qc = new QueryClient();
+    render(
+      <QueryClientProvider client={qc}>
+        <RumTab />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(AdminTelemetryService.rumSummaryAdminTelemetryRumSummaryGet).toHaveBeenCalledWith({ window: 60 });
+    });
   });
 });
