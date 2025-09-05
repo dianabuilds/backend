@@ -51,3 +51,17 @@ def test_json_cors_origins(monkeypatch):
         "https://a.example",
         "https://b.example",
     ]
+
+
+def test_lowercase_cors_origins(monkeypatch):
+    Settings = _load_settings_cls()
+    _set_db_env(monkeypatch)
+    monkeypatch.setenv("cors_allow_origins", "https://a.example, https://b.example")
+    from app.core.env_loader import _normalize_env_for_pydantic_json
+
+    _normalize_env_for_pydantic_json()
+    settings = Settings()
+    assert settings.cors_allow_origins == [
+        "https://a.example",
+        "https://b.example",
+    ]
