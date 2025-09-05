@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
 from uuid import uuid4
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
@@ -9,13 +8,8 @@ from sqlalchemy import Enum as SAEnum
 
 from app.core.db.adapters import UUID
 from app.core.db.base import Base
+from app.schemas.notification import NotificationType
 from app.schemas.nodes_common import Status, Visibility
-
-
-class NotificationType(str, Enum):
-    quest = "quest"
-    system = "system"
-    moderation = "moderation"
 
 
 class Notification(Base):
@@ -23,7 +17,7 @@ class Notification(Base):
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     workspace_id = Column(
-        UUID(), ForeignKey("workspaces.id"), nullable=False, index=True
+        UUID(), ForeignKey("workspaces.id"), nullable=True, index=True
     )
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)

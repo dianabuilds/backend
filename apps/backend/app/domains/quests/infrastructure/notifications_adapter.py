@@ -25,7 +25,13 @@ class NotificationsAdapter(INotificationPort):
         )
 
     async def create_notification(
-        self, user_id: UUID, *, workspace_id: UUID, title: str, message: str, type: Any
+        self,
+        user_id: UUID,
+        *,
+        workspace_id: UUID | None = None,
+        title: str,
+        message: str,
+        type: Any,
     ) -> None:
         await self._service.create_notification(
             workspace_id=workspace_id,

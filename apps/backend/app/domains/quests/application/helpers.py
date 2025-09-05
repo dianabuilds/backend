@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.notifications.infrastructure.models.notification_models import (
-    NotificationType,
-)
+from app.schemas.notification import NotificationType
 from app.domains.quests.application.access_service import AccessService
 from app.domains.quests.application.quest_service import QuestService
 from app.domains.quests.infrastructure.notifications_adapter import NotificationsAdapter

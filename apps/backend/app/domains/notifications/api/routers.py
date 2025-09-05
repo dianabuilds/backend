@@ -26,7 +26,7 @@ from app.domains.notifications.infrastructure.transports.websocket import (
 )
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.application.service import scope_by_workspace
-from app.schemas.notification import NotificationOut
+from app.schemas.notification import NotificationFilter, NotificationOut
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 ws_router = APIRouter()
@@ -34,7 +34,7 @@ ws_router = APIRouter()
 
 @router.get("", response_model=list[NotificationOut], summary="List notifications")
 async def list_notifications(
-    workspace_id: UUID,
+    filters: Annotated[NotificationFilter, Depends()],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -44,7 +44,8 @@ async def list_notifications(
         .where(Notification.is_preview.is_(False))
         .order_by(Notification.created_at.desc())
     )
-    stmt = scope_by_workspace(stmt, workspace_id)
+    if filters.workspace_id:
+        stmt = scope_by_workspace(stmt, filters.workspace_id)
     result = await db.execute(stmt)
     return result.scalars().all()
 
@@ -56,7 +57,7 @@ async def list_notifications(
 )
 async def mark_read(
     notification_id: UUID,
-    workspace_id: UUID,
+    filters: Annotated[NotificationFilter, Depends()],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -65,7 +66,8 @@ async def mark_read(
         Notification.user_id == current_user.id,
         Notification.is_preview.is_(False),
     )
-    stmt = scope_by_workspace(stmt, workspace_id)
+    if filters.workspace_id:
+        stmt = scope_by_workspace(stmt, filters.workspace_id)
     result = await db.execute(stmt)
     notif = result.scalars().first()
     if not notif:

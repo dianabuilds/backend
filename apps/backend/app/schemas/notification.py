@@ -23,3 +23,23 @@ class NotificationOut(BaseModel):
     is_preview: bool
 
     model_config = {"from_attributes": True}
+
+
+class NotificationCreate(BaseModel):
+    workspace_id: UUID | None = None
+    user_id: UUID
+    title: str
+    message: str
+    type: NotificationType = NotificationType.system
+
+
+class NotificationFilter(BaseModel):
+    workspace_id: UUID | None = None
+
+
+__all__ = [
+    "NotificationType",
+    "NotificationOut",
+    "NotificationCreate",
+    "NotificationFilter",
+]

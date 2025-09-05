@@ -16,8 +16,8 @@ from app.domains.notifications.infrastructure.models.campaign_models import (
 )
 from app.domains.notifications.infrastructure.models.notification_models import (
     Notification,
-    NotificationType,
 )
+from app.schemas.notification import NotificationType
 from app.domains.notifications.infrastructure.transports.websocket import (
     manager as ws_manager,
 )
