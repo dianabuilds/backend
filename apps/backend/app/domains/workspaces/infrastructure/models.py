@@ -13,6 +13,7 @@ class Workspace(Account):
         "WorkspaceMember",
         back_populates="workspace",
         cascade="all, delete-orphan",
+        overlaps="account",
     )
 
 
@@ -20,7 +21,11 @@ class WorkspaceMember(AccountMember):
     __tablename__ = AccountMember.__tablename__
     __table__ = AccountMember.__table__
 
-    workspace = relationship("Workspace", back_populates="members")
+    workspace = relationship(
+        "Workspace",
+        back_populates="members",
+        overlaps="account,members",
+    )
 
     @property
     def workspace_id(self):
