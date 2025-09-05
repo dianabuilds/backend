@@ -13,7 +13,6 @@ const defaultIcons: Record<string, string> = {
   quests: "flag",
   navigation: "compass",
   "navigation-main": "compass",
-  "nav-transitions": "shuffle",
   monitoring: "activity",
   traces: "search",
   content: "file",
