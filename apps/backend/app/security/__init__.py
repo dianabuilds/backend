@@ -34,6 +34,8 @@ def verify_jwt(token: str) -> dict[str, Any]:
             token,
             key,
             algorithms=[settings.jwt.algorithm],
+            audience=settings.jwt.audience,
+            issuer=settings.jwt.issuer,
             leeway=settings.jwt.leeway,
         )
     except jwt.ExpiredSignatureError as exc:
@@ -139,9 +141,7 @@ def require_admin_or_preview_token(allowed_roles: set[str] | None = None):
         ] = ...,
         db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
     ):
-        token = request.query_params.get("token") or request.headers.get(
-            "X-Preview-Token"
-        )
+        token = request.query_params.get("token") or request.headers.get("X-Preview-Token")
         if token:
             data = verify_preview_token(token)
             request.state.preview_token = data
