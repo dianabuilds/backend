@@ -28,6 +28,7 @@ export interface NotificationItem {
   title: string;
   message: string;
   type?: string | null;
+  placement?: string | null;
   read_at?: string | null;
   created_at: string;
 }
@@ -104,9 +105,13 @@ export async function cancelCampaign(id: string): Promise<unknown> {
 
 export async function listNotifications(
   workspaceId?: string,
+  placement?: string,
 ): Promise<NotificationItem[]> {
+  const params: Record<string, string> = {};
+  if (workspaceId) params.workspace_id = workspaceId;
+  if (placement) params.placement = placement;
   const res = await api.get<NotificationItem[]>("/notifications", {
-    params: workspaceId ? { workspace_id: workspaceId } : undefined,
+    params: Object.keys(params).length ? params : undefined,
   });
   return ensureArray<NotificationItem>(res.data);
 }

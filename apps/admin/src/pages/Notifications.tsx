@@ -4,6 +4,7 @@ import SendToUserModal from "../components/notifications/SendToUserModal";
 import BroadcastForm from "../components/notifications/BroadcastForm";
 import CampaignTable from "../components/notifications/CampaignTable";
 import UserNotifications from "../components/notifications/UserNotifications";
+import ActiveBanner from "../components/notifications/ActiveBanner";
 
 export default function Notifications() {
   const [sendOpen, setSendOpen] = useState(false);
@@ -12,6 +13,7 @@ export default function Notifications() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Notifications</h1>
+      <ActiveBanner />
       <Tabs defaultValue="campaigns">
         <TabsList className="mb-4">
           <TabsTrigger value="campaigns">Campaigns</TabsTrigger>

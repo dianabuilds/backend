@@ -46,5 +46,6 @@ async def send_notification(
         title=payload.title,
         message=payload.message,
         type=payload.type,
+        placement=payload.placement,
     )
     return {"id": str(notif.id), "status": "queued"}

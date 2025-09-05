@@ -13,6 +13,7 @@ class INotificationRepository(Protocol):
         title: str,
         message: str,
         type: Any,
+        placement: Any,
         is_preview: bool = False,
     ) -> dict[str, Any]:  # pragma: no cover - контракт
         ...

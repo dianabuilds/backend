@@ -15,6 +15,11 @@ class NotificationType(str, Enum):
     purchase = "purchase"
 
 
+class NotificationPlacement(str, Enum):
+    inbox = "inbox"
+    banner = "banner"
+
+
 class NotificationOut(BaseModel):
     id: UUID
     title: str
@@ -22,6 +27,7 @@ class NotificationOut(BaseModel):
     created_at: datetime
     read_at: datetime | None
     type: NotificationType
+    placement: NotificationPlacement = NotificationPlacement.inbox
     is_preview: bool
 
     model_config = {"from_attributes": True}
@@ -33,14 +39,17 @@ class NotificationCreate(BaseModel):
     title: str
     message: str
     type: NotificationType = NotificationType.system
+    placement: NotificationPlacement = NotificationPlacement.inbox
 
 
 class NotificationFilter(BaseModel):
     workspace_id: UUID | None = None
+    placement: NotificationPlacement | None = None
 
 
 __all__ = [
     "NotificationType",
+    "NotificationPlacement",
     "NotificationOut",
     "NotificationCreate",
     "NotificationFilter",

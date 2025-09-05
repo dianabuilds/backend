@@ -8,8 +8,8 @@ from sqlalchemy import Enum as SAEnum
 
 from app.core.db.adapters import UUID
 from app.core.db.base import Base
-from app.schemas.notification import NotificationType
 from app.schemas.nodes_common import Status, Visibility
+from app.schemas.notification import NotificationPlacement, NotificationType
 
 
 class Notification(Base):
@@ -26,6 +26,11 @@ class Notification(Base):
     read_at = Column(DateTime, nullable=True)
     type = Column(
         SAEnum(NotificationType), nullable=False, default=NotificationType.system
+    )
+    placement = Column(
+        SAEnum(NotificationPlacement),
+        nullable=False,
+        default=NotificationPlacement.inbox,
     )
     status = Column(
         SAEnum(Status, name="content_status"),
