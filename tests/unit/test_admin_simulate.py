@@ -10,11 +10,14 @@ sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 
+from app.domains.accounts.infrastructure.models import Account  # noqa: E402
 from app.domains.navigation.api.admin_transitions_simulate import (  # noqa: E402
     SimulateRequest,
     simulate_transitions,
 )
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
+from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
+from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 from app.providers.db.base import Base  # noqa: E402
@@ -24,14 +27,26 @@ def test_simulate_endpoint_returns_trace():
     async def _run():
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(
+                Base.metadata.create_all,
+                tables=[
+                    Account.__table__,
+                    User.__table__,
+                    Node.__table__,
+                    Workspace.__table__,
+                    Tag.__table__,
+                    NodeTag.__table__,
+                ],
+            )
         async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with async_session() as session:
             user = User(id=uuid.uuid4())
-            ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
-            node = Node(workspace_id=ws.id, slug="start", content={}, author_id=user.id)
-            session.add_all([user, ws, node])
+            account = Account(id=1, name="A", slug="a", owner_user_id=user.id)
+            session.add_all([user, account])
+            await session.flush()
+            node = Node(id=1, account_id=account.id, slug="start", content={}, author_id=user.id)
+            session.add(node)
             await session.commit()
 
             payload = SimulateRequest(start="start", seed=1, preview_mode="dry_run")

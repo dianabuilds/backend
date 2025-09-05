@@ -42,28 +42,28 @@ class NodeRepository(INodeRepository):
 
     # ------------------------------------------------------------------
     # Basic getters
-    async def get_by_slug(self, slug: str, workspace_id: UUID | None = None) -> Node | None:
+    async def get_by_slug(self, slug: str, account_id: int | None = None) -> Node | None:
         query = select(Node).options(selectinload(Node.tags)).where(Node.slug == slug)
-        if workspace_id is None:
-            query = query.where(Node.workspace_id.is_(None))
+        if account_id is None:
+            query = query.where(Node.account_id.is_(None))
         else:
-            query = query.where(Node.workspace_id == workspace_id)
+            query = query.where(Node.account_id == account_id)
         res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
-    async def get_by_id(self, node_id: int, workspace_id: UUID | None) -> Node | None:
+    async def get_by_id(self, node_id: int, account_id: int | None) -> Node | None:
         """Fetch node by numeric primary key."""
         query = select(Node).options(selectinload(Node.tags)).where(Node.id == node_id)
-        if workspace_id is None:
-            query = query.where(Node.workspace_id.is_(None))
+        if account_id is None:
+            query = query.where(Node.account_id.is_(None))
         else:
-            query = query.where(Node.workspace_id == workspace_id)
+            query = query.where(Node.account_id == account_id)
         res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
     # ------------------------------------------------------------------
     # Mutating operations
-    async def create(self, payload: NodeCreate, author_id: UUID, workspace_id: UUID | None) -> Node:
+    async def create(self, payload: NodeCreate, author_id: UUID, account_id: int | None) -> Node:
         candidate = (payload.slug or "").strip().lower()
         if candidate and self._hex_re.fullmatch(candidate):
             res = await self._db.execute(select(Node).where(Node.slug == candidate))
@@ -77,7 +77,7 @@ class NodeRepository(INodeRepository):
             title=payload.title,
             slug=candidate,
             author_id=author_id,
-            workspace_id=workspace_id,
+            account_id=account_id,
             is_visible=payload.is_visible,
             meta=payload.meta or {},
             premium_only=payload.premium_only or False,
@@ -90,7 +90,7 @@ class NodeRepository(INodeRepository):
         self._db.add(node)
         await self._db.flush()
         await self._db.commit()
-        loaded = await self.get_by_id(node.id, workspace_id)
+        loaded = await self.get_by_id(node.id, account_id)
         return loaded  # type: ignore[return-value]
 
     async def update(self, node: Node, payload: NodeUpdate, actor_id: UUID) -> Node:
@@ -113,7 +113,7 @@ class NodeRepository(INodeRepository):
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = actor_id
         await self._db.commit()
-        loaded = await self.get_by_id(node.id, node.workspace_id)
+        loaded = await self.get_by_id(node.id, node.account_id)
         return loaded  # type: ignore[return-value]
 
     async def delete(self, node: Node) -> None:
@@ -123,7 +123,7 @@ class NodeRepository(INodeRepository):
     async def increment_views(self, node: Node) -> Node:
         node.views = int(node.views or 0) + 1
         await self._db.commit()
-        loaded = await self.get_by_id(node.id, node.workspace_id)
+        loaded = await self.get_by_id(node.id, node.account_id)
         return loaded  # type: ignore[return-value]
 
     # ------------------------------------------------------------------
@@ -131,28 +131,28 @@ class NodeRepository(INodeRepository):
     async def list_by_author(
         self,
         author_id: UUID,
-        workspace_id: UUID | None,
+        account_id: int | None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Node]:
         query = select(Node).where(Node.author_id == author_id)
-        if workspace_id is None:
-            query = query.where(Node.workspace_id.is_(None))
+        if account_id is None:
+            query = query.where(Node.account_id.is_(None))
         else:
-            query = query.where(Node.workspace_id == workspace_id)
+            query = query.where(Node.account_id == account_id)
         query = query.order_by(Node.created_at.desc()).offset(offset).limit(limit)
         res = await self._db.execute(query)
         return list(res.scalars().all())
 
     async def bulk_set_visibility(
-        self, node_ids: list[int], is_visible: bool, workspace_id: UUID | None
+        self, node_ids: list[int], is_visible: bool, account_id: int | None
     ) -> int:
         if not node_ids:
             return 0
         count = 0
         for nid in node_ids:
             n = await self._db.get(Node, nid)
-            if n is None or n.workspace_id != workspace_id:
+            if n is None or n.account_id != account_id:
                 continue
             n.is_visible = bool(is_visible)
             count += 1

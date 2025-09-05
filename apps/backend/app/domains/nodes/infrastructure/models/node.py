@@ -34,7 +34,7 @@ class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    account_id = Column(BigInteger, ForeignKey("accounts.id"), nullable=False, index=True)
     slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=True)
     embedding_vector = Column(MutableList.as_mutable(VECTOR(settings.embedding.dim)), nullable=True)

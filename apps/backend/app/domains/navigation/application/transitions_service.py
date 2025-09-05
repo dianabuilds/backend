@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -22,7 +21,7 @@ class TransitionsService:
         db: AsyncSession,
         node: Node,
         user: User,
-        workspace_id: UUID,
+        account_id: int,
         transition_type: NodeTransitionType | None = None,
         preview: PreviewContext | None = None,
     ) -> list[NodeTransition]:
@@ -31,7 +30,7 @@ class TransitionsService:
             .join(Node, NodeTransition.to_node_id == Node.id)
             .where(
                 NodeTransition.from_node_id == node.id,
-                Node.workspace_id == workspace_id,
+                Node.account_id == account_id,
             )
         )
         if transition_type is not None:

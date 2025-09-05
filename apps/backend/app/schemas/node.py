@@ -168,7 +168,7 @@ class NodeBulkPatchChanges(BaseModel):
         validation_alias=AliasChoices("premium_only", "is_premium_only", "premiumOnly"),
     )
     is_recommendable: bool | None = Field(default=None, alias="isRecommendable")
-    workspace_id: UUID | None = Field(default=None, alias="workspaceId")
+    account_id: int | None = Field(default=None, alias="accountId")
     delete: bool | None = None
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
