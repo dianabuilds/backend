@@ -10,7 +10,7 @@ from apps.backend.app.providers import (
     register_providers,
 )
 from apps.backend.app.providers.ai import FakeAIProvider
-from apps.backend.app.providers.email import FakeEmail
+from apps.backend.app.providers.email import RealEmail
 from apps.backend.app.providers.media_storage import FakeMediaStorage
 from apps.backend.app.providers.payments import FakePayments
 from punq import Container
@@ -32,7 +32,7 @@ def test_register_providers_uses_fakes():
 
     assert isinstance(container.resolve(IAIProvider), FakeAIProvider)
     assert isinstance(container.resolve(IPayments), FakePayments)
-    assert isinstance(container.resolve(IEmail), FakeEmail)
+    assert isinstance(container.resolve(IEmail), RealEmail)
     assert isinstance(container.resolve(IMediaStorage), FakeMediaStorage)
 
 
