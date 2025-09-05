@@ -4,7 +4,6 @@ import json
 import os
 from datetime import UTC, datetime
 from typing import Annotated, Any
-from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -43,8 +42,8 @@ def _workspace_info(ws: Any) -> dict[str, Any]:
     return {"id": str(ws.id), "slug": ws.slug, "name": ws.name}
 
 
-async def _resolve_workspace(db: AsyncSession, workspace_id: UUID | None) -> Workspace | None:
-    if workspace_id:
+async def _resolve_workspace(db: AsyncSession, workspace_id: int | None) -> Workspace | None:
+    if workspace_id is not None:
         return await WorkspaceDAO.get(db, workspace_id)
     # попробуем системный workspace 'main'
     res = await db.execute(select(Workspace).where(Workspace.slug == "main"))
@@ -59,7 +58,7 @@ async def _resolve_workspace(db: AsyncSession, workspace_id: UUID | None) -> Wor
 @router.get("/status")
 async def get_status(
     db: Annotated[AsyncSession, Depends(get_db)],
-    workspace_id: UUID | None = None,
+    workspace_id: int | None = None,
 ) -> dict[str, Any]:
     # Кэшируем по реальному id (или по ключу 'none', если WS не найден)
     ws = await _resolve_workspace(db, workspace_id)
@@ -84,7 +83,7 @@ async def get_status(
 @router.get("/limits")
 async def get_limits(
     db: Annotated[AsyncSession, Depends(get_db)],
-    workspace_id: UUID | None = None,
+    workspace_id: int | None = None,
 ) -> dict[str, int]:
     ws = await _resolve_workspace(db, workspace_id)
     if not ws:

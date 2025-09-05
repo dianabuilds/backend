@@ -3,9 +3,8 @@ from __future__ import annotations
 import csv
 import io
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Path, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.infrastructure.repositories.usage_repository import (
@@ -68,13 +67,13 @@ async def get_usage_by_workspace(
     response_model=None,
 )
 async def get_usage_by_user(
-    workspace_id: UUID,
+    account_id: Annotated[int, Path(alias="workspace_id")],
     format: Annotated[str | None, Query()] = None,
     _: Annotated[object, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     repo = AIUsageRepository(db)
-    rows = await repo.by_user(workspace_id)
+    rows = await repo.by_user(account_id)
     if format == "csv":
         buf = io.StringIO()
         writer = csv.writer(buf)
@@ -91,13 +90,13 @@ async def get_usage_by_user(
     response_model=None,
 )
 async def get_usage_by_model(
-    workspace_id: UUID,
+    account_id: Annotated[int, Path(alias="workspace_id")],
     format: Annotated[str | None, Query()] = None,
     _: Annotated[object, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     repo = AIUsageRepository(db)
-    rows = await repo.by_model(workspace_id)
+    rows = await repo.by_model(account_id)
     if format == "csv":
         buf = io.StringIO()
         writer = csv.writer(buf)

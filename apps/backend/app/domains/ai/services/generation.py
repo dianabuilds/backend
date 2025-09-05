@@ -31,7 +31,7 @@ async def _merge_generation_settings(
     params: dict[str, Any],
     provider: str | None,
     model: str | None,
-    workspace_id: UUID | None,
+    workspace_id: int | None,
     user_id: UUID | None = None,
 ) -> tuple[dict[str, Any], str | None, str | None, dict[str, dict[str, Any]], list[str]]:
     """Merge explicit params, user/workspace overrides and global AI settings.
@@ -129,7 +129,7 @@ async def enqueue_generation_job(
     params: dict[str, Any],
     provider: str | None = None,
     model: str | None = None,
-    workspace_id: UUID | None = None,
+    workspace_id: int | None = None,
     reuse: bool = True,
     preview: PreviewContext | None = None,
 ) -> GenerationJob:

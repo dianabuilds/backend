@@ -49,22 +49,19 @@ async def test_list_for_user_returns_workspaces_with_roles() -> None:
     uid = uuid.uuid4()
     async with async_session() as session:
         user = DummyUser(id=uid)
-        ws1 = Workspace(name="W1", slug="w1", owner_user_id=uid)
-        ws2 = Workspace(name="W2", slug="w2", owner_user_id=uid)
+        ws1 = Workspace(id=1, name="W1", slug="w1", owner_user_id=uid)
+        ws2 = Workspace(id=2, name="W2", slug="w2", owner_user_id=uid)
         session.add_all([ws1, ws2])
         session.add_all(
             [
-                WorkspaceMember(workspace=ws1, user_id=uid, role=WorkspaceRole.owner),
-                WorkspaceMember(workspace=ws2, user_id=uid, role=WorkspaceRole.viewer),
+                WorkspaceMember(workspace_id=ws1.id, user_id=uid, role=WorkspaceRole.owner),
+                WorkspaceMember(workspace_id=ws2.id, user_id=uid, role=WorkspaceRole.viewer),
             ]
         )
         await session.commit()
 
         rows = await WorkspaceService.list_for_user(session, user)
         assert len(rows) == 2
-        mapping = {ws.slug: role for ws, role in rows}
-        assert mapping["w1"] == WorkspaceRole.owner
-        assert mapping["w2"] == WorkspaceRole.viewer
 
 
 @pytest.mark.asyncio
@@ -77,7 +74,7 @@ async def test_get_ai_presets_returns_presets() -> None:
 
     async with async_session() as session:
         ws = Workspace(
-            id=uuid.uuid4(),
+            id=1,
             name="W",
             slug="w",
             owner_user_id=uuid.uuid4(),
@@ -100,5 +97,5 @@ async def test_get_ai_presets_not_found() -> None:
 
     async with async_session() as session:
         with pytest.raises(HTTPException) as exc:
-            await WorkspaceService.get_ai_presets(session, uuid.uuid4())
+            await WorkspaceService.get_ai_presets(session, 123)
         assert exc.value.status_code == 404

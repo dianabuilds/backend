@@ -83,14 +83,16 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     service_module = types.ModuleType("app.domains.workspaces.application.service")
 
     class _WS:
+        _id_seq = 1
+
         @staticmethod
         async def create(db, *, data, owner):  # noqa: ANN001
-            import uuid
             from types import SimpleNamespace
 
             from sqlalchemy import text
 
-            ws_id = str(uuid.uuid4())
+            ws_id = _WS._id_seq
+            _WS._id_seq += 1
             await db.execute(
                 text(
                     "INSERT INTO workspaces (id, name, slug, owner_user_id, type, "

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import Depends, HTTPException, Request, Security
+from fastapi import Depends, HTTPException, Path, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,33 +30,33 @@ async def _auth_user(
 
 
 async def require_ws_editor(
-    workspace_id: UUID,
+    account_id: Annotated[int, Path(alias="workspace_id")],
     user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
-    m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
+    m = await WorkspaceMemberDAO.get(db, account_id=account_id, user_id=user.id)
     if not (user.role == "admin" or (m and m.role in (WorkspaceRole.owner, WorkspaceRole.editor))):
         raise HTTPException(status_code=403, detail="Forbidden")
     return m
 
 
 async def require_ws_owner(
-    workspace_id: UUID,
+    account_id: Annotated[int, Path(alias="workspace_id")],
     user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
-    m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
+    m = await WorkspaceMemberDAO.get(db, account_id=account_id, user_id=user.id)
     if not (user.role == "admin" or (m and m.role == WorkspaceRole.owner)):
         raise HTTPException(status_code=403, detail="Forbidden")
     return m
 
 
 async def require_ws_viewer(
-    workspace_id: UUID,
+    account_id: Annotated[int, Path(alias="workspace_id")],
     user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
-    m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
+    m = await WorkspaceMemberDAO.get(db, account_id=account_id, user_id=user.id)
     if not (
         user.role == "admin"
         or (m and m.role in (WorkspaceRole.owner, WorkspaceRole.editor, WorkspaceRole.viewer))
@@ -67,11 +66,11 @@ async def require_ws_viewer(
 
 
 async def require_ws_guest(
-    workspace_id: UUID,
+    account_id: Annotated[int, Path(alias="workspace_id")],
     user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
-    m = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
+    m = await WorkspaceMemberDAO.get(db, account_id=account_id, user_id=user.id)
     if not (user.role == "admin" or m):
         raise HTTPException(status_code=403, detail="Forbidden")
     return m
@@ -81,18 +80,15 @@ class WorkspaceService:
     @staticmethod
     async def create(db: AsyncSession, *, data: WorkspaceIn, owner: User) -> Workspace:
         account = await AccountService.create(db, data=data, owner=owner)
-        ws = await WorkspaceDAO.get(db, account.id)
-        if not ws:
-            raise HTTPException(status_code=500, detail="Workspace not created")
-        return ws
+        return account
 
     @staticmethod
-    async def get_for_user(db: AsyncSession, workspace_id: UUID, user: User) -> Workspace:
-        ws = await WorkspaceDAO.get(db, workspace_id)
+    async def get_for_user(db: AsyncSession, account_id: int, user: User) -> Workspace:
+        ws = await WorkspaceDAO.get(db, account_id)
         if not ws:
             raise HTTPException(status_code=404, detail="Workspace not found")
         if user.role != "admin":
-            member = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
+            member = await WorkspaceMemberDAO.get(db, account_id=account_id, user_id=user.id)
             if not member:
                 raise HTTPException(status_code=404, detail="Workspace not found")
         return ws
@@ -102,14 +98,14 @@ class WorkspaceService:
         workspaces = await WorkspaceDAO.list_for_user(db, user.id)
         rows: list[tuple[Workspace, WorkspaceRole]] = []
         for ws in workspaces:
-            member = await WorkspaceMemberDAO.get(db, workspace_id=ws.id, user_id=user.id)
+            member = await WorkspaceMemberDAO.get(db, account_id=ws.id, user_id=user.id)
             role = member.role if member else WorkspaceRole.viewer
             rows.append((ws, role))
         return rows
 
     @staticmethod
-    async def get_ai_presets(db: AsyncSession, workspace_id: UUID) -> dict[str, object]:
-        ws = await WorkspaceDAO.get(db, workspace_id)
+    async def get_ai_presets(db: AsyncSession, account_id: int) -> dict[str, object]:
+        ws = await WorkspaceDAO.get(db, account_id)
         if not ws:
             raise HTTPException(status_code=404, detail="Workspace not found")
         settings = WorkspaceSettings.model_validate(ws.settings_json or {})
