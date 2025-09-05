@@ -125,3 +125,15 @@ def test_alerts_endpoint(monkeypatch):
     resp = client.get("/admin/ops/alerts")
     assert resp.status_code == 200
     assert resp.json()["alerts"][0]["description"] == "boom"
+
+
+def test_alert_resolve_endpoint(monkeypatch):
+    async def fake_resolve(alert_id: str):  # pragma: no cover - helper
+        assert alert_id == "1"
+        return True
+
+    monkeypatch.setattr(alerts_module, "resolve_alert", fake_resolve)
+
+    resp = client.post("/admin/ops/alerts/1/resolve")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "resolved"

@@ -71,6 +71,14 @@ export default function Alerts() {
       {error && (
         <div className="text-sm text-red-600">Failed to load alerts</div>
       )}
+      {resolveMut.isError && (
+        <div className="text-sm text-red-600">
+          {(resolveMut.error as Error)?.message || "Failed to resolve alert"}
+        </div>
+      )}
+      {resolveMut.isSuccess && (
+        <div className="text-sm text-green-600">Alert marked resolved</div>
+      )}
       <div className="flex flex-wrap gap-2 text-sm">
         <input
           type="text"
@@ -127,7 +135,8 @@ export default function Alerts() {
                 {a.status !== "resolved" && (
                   <button
                     onClick={() => a.id && resolveMut.mutate(a.id)}
-                    className="text-green-600 hover:underline"
+                    disabled={resolveMut.isPending}
+                    className="text-green-600 hover:underline disabled:opacity-50"
                   >
                     Mark resolved
                   </button>
