@@ -4,7 +4,8 @@ from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, String, func
 
-from . import Base
+from app.providers.db.base import Base
+
 from .adapters import UUID
 
 
