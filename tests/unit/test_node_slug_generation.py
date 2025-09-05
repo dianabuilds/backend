@@ -14,7 +14,7 @@ os.environ.setdefault("TESTING", "true")
 
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepositoryAdapter,
+    NodeRepository,
 )
 from app.domains.tags.infrastructure.models.tag_models import NodeTag
 from app.domains.tags.models import Tag
@@ -45,7 +45,7 @@ async def test_create_node_generates_slug(db: AsyncSession) -> None:
     db.add_all([User(id=user_id), ws])
     await db.commit()
 
-    repo = NodeRepositoryAdapter(db)
+    repo = NodeRepository(db)
     node = await repo.create(NodeCreate(title="Привет"), user_id, ws.id)
     expected = hashlib.sha256(slugify("Привет").encode()).hexdigest()[:16]
     assert node.slug == expected
@@ -58,7 +58,7 @@ async def test_duplicate_titles_get_unique_slugs(db: AsyncSession) -> None:
     db.add_all([User(id=user_id), ws])
     await db.commit()
 
-    repo = NodeRepositoryAdapter(db)
+    repo = NodeRepository(db)
     node1 = await repo.create(NodeCreate(title="Same"), user_id, ws.id)
     node2 = await repo.create(NodeCreate(title="Same"), user_id, ws.id)
     assert node1.slug != node2.slug

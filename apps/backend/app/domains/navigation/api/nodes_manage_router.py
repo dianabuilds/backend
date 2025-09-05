@@ -18,7 +18,7 @@ from app.domains.navigation.infrastructure.repositories.transition_repository im
     TransitionRepository,
 )
 from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepositoryAdapter,
+    NodeRepository,
 )
 from app.domains.nodes.policies.node_policy import NodePolicy
 from app.domains.users.infrastructure.models.user import User
@@ -43,7 +43,7 @@ async def record_visit(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
-    repo = NodeRepositoryAdapter(db)
+    repo = NodeRepository(db)
     from_node = await repo.get_by_slug(slug, workspace_id)
     if not from_node:
         raise HTTPException(status_code=404, detail="Node not found")
@@ -69,7 +69,7 @@ async def create_transition(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
-    repo = NodeRepositoryAdapter(db)
+    repo = NodeRepository(db)
     from_node = await repo.get_by_slug(slug, workspace_id)
     if not from_node:
         raise HTTPException(status_code=404, detail="Node not found")

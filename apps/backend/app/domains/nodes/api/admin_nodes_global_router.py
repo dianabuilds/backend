@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.core.db.session import get_db
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepositoryAdapter as NodeRepository,
+    NodeRepository,
 )
 from app.domains.nodes.schemas.node import NodeOut, NodeUpdate
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role

@@ -1,13 +1,7 @@
-"""Concrete implementation of :class:`INodeRepository`.
+"""Concrete SQLAlchemy implementation of :class:`INodeRepository`.
 
-The original project relied on a legacy repository located in
-``app.repositories``.  In this kata the legacy module is absent which caused
-import errors and, as a consequence, any router depending on the repository was
-silently skipped.  The admin and public node APIs therefore responded with 404.
-
-This adapter re‑implements the small subset of functionality needed by the
-current tests using plain SQLAlchemy queries.  If the legacy repository becomes
-available the adapter will delegate to it automatically.
+Provides the minimal set of operations required by the current tests without
+any dependency on the legacy repository implementation.
 """
 
 from __future__ import annotations
@@ -26,24 +20,12 @@ from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.nodes.infrastructure.models.node import Node
 from app.schemas.node import NodeCreate, NodeUpdate
 
-try:  # pragma: no cover - optional legacy dependency
-    from app.repositories import NodeRepository as _LegacyNodeRepository  # type: ignore
-except Exception:  # pragma: no cover
-    _LegacyNodeRepository = None
 
-
-class NodeRepositoryAdapter(INodeRepository):
-    """Repository used by API endpoints.
-
-    The implementation delegates to ``_LegacyNodeRepository`` when it is
-    available; otherwise a lightweight SQLAlchemy based version is used.  Only
-    methods required by the tests/admin pages are implemented.
-    """
+class NodeRepository(INodeRepository):
+    """Repository used by API endpoints."""
 
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
-        self._repo = _LegacyNodeRepository(db) if _LegacyNodeRepository else None
-
         self._hex_re = re.compile(r"[a-f0-9]{16}")
 
     async def _unique_slug(self, base: str, *, skip_id: int | None = None) -> str:
@@ -63,8 +45,6 @@ class NodeRepositoryAdapter(INodeRepository):
     async def get_by_slug(
         self, slug: str, workspace_id: UUID | None = None
     ) -> Node | None:
-        if self._repo and workspace_id is not None:
-            return await self._repo.get_by_slug(slug, workspace_id=workspace_id)
         query = select(Node).options(selectinload(Node.tags)).where(Node.slug == slug)
         if workspace_id is None:
             query = query.where(Node.workspace_id.is_(None))
@@ -75,12 +55,6 @@ class NodeRepositoryAdapter(INodeRepository):
 
     async def get_by_id(self, node_id: int, workspace_id: UUID | None) -> Node | None:
         """Fetch node by numeric primary key."""
-        if self._repo and workspace_id is not None:
-            # The legacy repository uses UUID identifiers; fall back to direct query
-            try:
-                return await self._repo.get_by_id(node_id, workspace_id=workspace_id)  # type: ignore[arg-type]
-            except Exception:
-                pass
         query = select(Node).options(selectinload(Node.tags)).where(Node.id == node_id)
         if workspace_id is None:
             query = query.where(Node.workspace_id.is_(None))
@@ -94,8 +68,6 @@ class NodeRepositoryAdapter(INodeRepository):
     async def create(
         self, payload: NodeCreate, author_id: UUID, workspace_id: UUID | None
     ) -> Node:
-        if self._repo and workspace_id is not None:
-            return await self._repo.create(payload, author_id, workspace_id)
         candidate = (payload.slug or "").strip().lower()
         if candidate and self._hex_re.fullmatch(candidate):
             res = await self._db.execute(select(Node).where(Node.slug == candidate))
@@ -126,8 +98,6 @@ class NodeRepositoryAdapter(INodeRepository):
         return loaded  # type: ignore[return-value]
 
     async def update(self, node: Node, payload: NodeUpdate, actor_id: UUID) -> Node:
-        if self._repo:
-            return await self._repo.update(node, payload, actor_id)
         data = payload.model_dump(exclude_unset=True)
         slug_candidate = data.pop("slug", None)
         for field, value in data.items():
@@ -151,15 +121,10 @@ class NodeRepositoryAdapter(INodeRepository):
         return loaded  # type: ignore[return-value]
 
     async def delete(self, node: Node) -> None:
-        if self._repo:
-            await self._repo.delete(node)
-            return
         await self._db.delete(node)
         await self._db.commit()
 
     async def increment_views(self, node: Node) -> Node:
-        if self._repo:
-            return await self._repo.increment_views(node)
         node.views = int(node.views or 0) + 1
         await self._db.commit()
         loaded = await self.get_by_id(node.id, node.workspace_id)
