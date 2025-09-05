@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
     bio TEXT,
     avatar_url TEXT,
     role TEXT DEFAULT 'user',
+    default_workspace_id TEXT,
     last_login_at TIMESTAMP,
     deleted_at TIMESTAMP
 )
@@ -206,6 +207,7 @@ class TestUser:
         self.bio = kwargs.get("bio")
         self.avatar_url = kwargs.get("avatar_url")
         self.role = kwargs.get("role", "user")
+        self.default_workspace_id = kwargs.get("default_workspace_id")
         self.last_login_at = kwargs.get("last_login_at")
         self.deleted_at = kwargs.get("deleted_at")
 
@@ -226,8 +228,9 @@ class TestUser:
             bio=row[9],
             avatar_url=row[10],
             role=row[11],
-            last_login_at=row[12],
-            deleted_at=row[13],
+            default_workspace_id=row[12],
+            last_login_at=row[13],
+            deleted_at=row[14],
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -250,6 +253,7 @@ class TestUser:
             "bio": self.bio,
             "avatar_url": self.avatar_url,
             "role": self.role,
+            "default_workspace_id": self.default_workspace_id,
             "last_login_at": (
                 self.last_login_at.isoformat()
                 if isinstance(self.last_login_at, datetime) and self.last_login_at
