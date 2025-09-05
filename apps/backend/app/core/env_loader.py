@@ -56,8 +56,9 @@ def _looks_like_json(value: str) -> bool:
 
 def _normalize_env_for_pydantic_json() -> None:
     """
-    Преобразует значения, ожидаемые как JSON-массивы, если они заданы как простые строки/CSV.
-    Это нужно для pydantic-settings, который парсит списковые поля через json.loads.
+    Преобразует значения, ожидаемые как JSON-массивы, если они заданы
+    как простые строки/CSV. Это нужно для pydantic-settings, который
+    парсит списковые поля через json.loads.
     """
     list_keys = {
         "APP_CORS_ALLOW_ORIGINS",
@@ -71,11 +72,11 @@ def _normalize_env_for_pydantic_json() -> None:
         "CORS_ALLOWED_METHODS",
         "CORS_ALLOWED_HEADERS",
     }
-    for key in list_keys:
-        val = os.environ.get(key)
-        if val is None:
+    normalized_keys = {k.lower() for k in list_keys}
+    for key, val in list(os.environ.items()):
+        if key.lower() not in normalized_keys:
             continue
-        if _looks_like_json(val):
+        if val is None or _looks_like_json(val):
             continue
         # Разделяем по запятой или точке с запятой
         parts = [p.strip() for p in val.replace(";", ",").split(",") if p.strip()]
