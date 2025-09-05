@@ -483,7 +483,10 @@ export default function Nodes() {
             <div className="flex flex-wrap items-center gap-2">
               <input
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage(0);
+                }}
                 placeholder="Search by title or slug..."
                 className="border rounded px-2 py-1 flex-1 min-w-[180px]"
               />
@@ -491,12 +494,8 @@ export default function Nodes() {
                 className="border rounded px-2 py-1"
                 value={status}
                 onChange={(e) => {
-                  setStatus(e.target.value);
+                  setStatus(e.target.value as any);
                   setPage(0);
-                  setTimeout(() => {
-                    setPage(0);
-                    void refetch();
-                  });
                 }}
               >
                 <option value="all">all statuses</option>
@@ -511,10 +510,6 @@ export default function Nodes() {
                 onChange={(e) => {
                   setVisibility(e.target.value as any);
                   setPage(0);
-                  setTimeout(() => {
-                    setPage(0);
-                    void refetch();
-                  });
                 }}
               >
                 <option value="all">all</option>
@@ -527,10 +522,6 @@ export default function Nodes() {
                 onChange={(e) => {
                   setIsPublic(e.target.value as any);
                   setPage(0);
-                  setTimeout(() => {
-                    setPage(0);
-                    void refetch();
-                  });
                 }}
               >
                 <option value="all">all</option>
@@ -543,10 +534,6 @@ export default function Nodes() {
                 onChange={(e) => {
                   setPremium(e.target.value as any);
                   setPage(0);
-                  setTimeout(() => {
-                    setPage(0);
-                    void refetch();
-                  });
                 }}
               >
                 <option value="all">all</option>
@@ -559,24 +546,13 @@ export default function Nodes() {
                 onChange={(e) => {
                   setRecommendable(e.target.value as any);
                   setPage(0);
-                  setTimeout(() => {
-                    setPage(0);
-                    void refetch();
-                  });
                 }}
               >
                 <option value="all">all</option>
                 <option value="true">recommendable</option>
                 <option value="false">not recommendable</option>
               </select>
-              <Button
-                type="button"
-                onClick={() => {
-                  setPage(0);
-                  setPage(0);
-                  void refetch();
-                }}
-              >
+              <Button type="button" onClick={() => void refetch()}>
                 Search
               </Button>
 
@@ -589,10 +565,6 @@ export default function Nodes() {
                     const val = Number(e.target.value) || 10;
                     setLimit(val);
                     setPage(0);
-                    setTimeout(() => {
-                      setPage(0);
-                      void refetch();
-                    });
                   }}
                 >
                   <option value={10}>10</option>
