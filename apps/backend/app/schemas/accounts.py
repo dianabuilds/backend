@@ -54,7 +54,7 @@ class AccountIn(BaseModel):
 
 
 class AccountOut(BaseModel):
-    id: UUID
+    id: int
     name: str
     slug: str
     owner_user_id: UUID
@@ -86,7 +86,7 @@ class AccountMemberIn(BaseModel):
 
 
 class AccountMemberOut(BaseModel):
-    account_id: UUID
+    account_id: int
     user_id: UUID
     role: AccountRole
 

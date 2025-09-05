@@ -38,7 +38,7 @@ class AccountDAO:
         return account
 
     @staticmethod
-    async def get(db: AsyncSession, account_id: UUID) -> Account | None:
+    async def get(db: AsyncSession, account_id: int) -> Account | None:
         return await db.get(Account, account_id)
 
     @staticmethod
@@ -78,7 +78,7 @@ class AccountDAO:
 
 class AccountMemberDAO:
     @staticmethod
-    async def get(db: AsyncSession, *, account_id: UUID, user_id: UUID) -> AccountMember | None:
+    async def get(db: AsyncSession, *, account_id: int, user_id: UUID) -> AccountMember | None:
         stmt = select(AccountMember).where(
             AccountMember.account_id == account_id,
             AccountMember.user_id == user_id,
@@ -88,7 +88,7 @@ class AccountMemberDAO:
 
     @staticmethod
     async def add(
-        db: AsyncSession, *, account_id: UUID, user_id: UUID, role: AccountRole
+        db: AsyncSession, *, account_id: int, user_id: UUID, role: AccountRole
     ) -> AccountMember:
         member = AccountMember(account_id=account_id, user_id=user_id, role=role)
         db.add(member)
@@ -108,7 +108,7 @@ class AccountMemberDAO:
     async def update_role(
         db: AsyncSession,
         *,
-        account_id: UUID,
+        account_id: int,
         user_id: UUID,
         role: AccountRole,
     ) -> AccountMember | None:
@@ -130,7 +130,7 @@ class AccountMemberDAO:
         return member
 
     @staticmethod
-    async def remove(db: AsyncSession, *, account_id: UUID, user_id: UUID) -> None:
+    async def remove(db: AsyncSession, *, account_id: int, user_id: UUID) -> None:
         member = await AccountMemberDAO.get(db, account_id=account_id, user_id=user_id)
         if member:
             role = member.role
@@ -147,7 +147,7 @@ class AccountMemberDAO:
             )
 
     @staticmethod
-    async def list(db: AsyncSession, *, account_id: UUID) -> builtins.list[AccountMember]:
+    async def list(db: AsyncSession, *, account_id: int) -> builtins.list[AccountMember]:
         stmt = select(AccountMember).where(AccountMember.account_id == account_id)
         result = await db.execute(stmt)
         return list(result.scalars().all())

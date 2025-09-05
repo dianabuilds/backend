@@ -82,7 +82,7 @@ async def list_accounts(
 
 @router.get("/{account_id}", response_model=AccountOut, summary="Get account")
 async def get_account(
-    account_id: UUID,
+    account_id: int,
     user: Annotated[User, Depends(auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> AccountOut:
@@ -91,7 +91,7 @@ async def get_account(
 
 @router.patch("/{account_id}", response_model=AccountOut, summary="Update account")
 async def update_account(
-    account_id: UUID,
+    account_id: int,
     data: AccountUpdate,
     _: Annotated[AccountMember | None, Depends(require_account_editor)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
@@ -101,7 +101,7 @@ async def update_account(
 
 @router.delete("/{account_id}", status_code=204, summary="Delete account")
 async def delete_account(
-    account_id: UUID,
+    account_id: int,
     _: Annotated[AccountMember | None, Depends(require_account_owner)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Response:
@@ -116,7 +116,7 @@ async def delete_account(
     summary="Add account member",
 )
 async def add_member(
-    account_id: UUID,
+    account_id: int,
     data: AccountMemberIn,
     _: Annotated[AccountMember | None, Depends(require_account_owner)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
@@ -130,7 +130,7 @@ async def add_member(
     summary="Update account member",
 )
 async def update_member(
-    account_id: UUID,
+    account_id: int,
     user_id: UUID,
     data: AccountMemberIn,
     _: Annotated[AccountMember | None, Depends(require_account_owner)] = ...,
@@ -147,7 +147,7 @@ async def update_member(
     summary="Remove account member",
 )
 async def remove_member(
-    account_id: UUID,
+    account_id: int,
     user_id: UUID,
     _: Annotated[AccountMember | None, Depends(require_account_owner)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
@@ -162,7 +162,7 @@ async def remove_member(
     summary="List account members",
 )
 async def list_members(
-    account_id: UUID,
+    account_id: int,
     _: Annotated[AccountMember | None, Depends(require_account_owner)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> list[AccountMemberOut]:
@@ -175,7 +175,7 @@ async def list_members(
     summary="Get account AI presets",
 )
 async def get_ai_presets(
-    account_id: UUID,
+    account_id: int,
     _: Annotated[AccountMember | None, Depends(require_account_editor)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict[str, Any]:
@@ -188,7 +188,7 @@ async def get_ai_presets(
     summary="Update account AI presets",
 )
 async def put_ai_presets(
-    account_id: UUID,
+    account_id: int,
     presets: dict[str, Any],
     _: Annotated[AccountMember | None, Depends(require_account_editor)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
@@ -216,7 +216,7 @@ async def put_ai_presets(
     summary="Get account notification rules",
 )
 async def get_notifications(
-    account_id: UUID,
+    account_id: int,
     _: Annotated[AccountMember | None, Depends(require_account_editor)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> NotificationRules:
@@ -233,7 +233,7 @@ async def get_notifications(
     summary="Update account notification rules",
 )
 async def put_notifications(
-    account_id: UUID,
+    account_id: int,
     rules: NotificationRules,
     _: Annotated[AccountMember | None, Depends(require_account_editor)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
@@ -257,7 +257,7 @@ async def put_notifications(
     summary="Get account limits",
 )
 async def get_limits(
-    account_id: UUID,
+    account_id: int,
     _: Annotated[AccountMember | None, Depends(require_account_editor)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict[str, int]:
@@ -274,7 +274,7 @@ async def get_limits(
     summary="Update account limits",
 )
 async def put_limits(
-    account_id: UUID,
+    account_id: int,
     limits: dict[str, int],
     _: Annotated[AccountMember | None, Depends(require_account_editor)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
@@ -295,7 +295,7 @@ async def put_limits(
     summary="Get account AI usage",
 )
 async def get_account_usage(
-    account_id: UUID,
+    account_id: int,
     user: Annotated[User, Depends(auth_user)] = ...,
     _: Annotated[AccountMember | None, Depends(require_account_viewer)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,

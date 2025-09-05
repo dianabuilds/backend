@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS workspace_members (
 
 CREATE_ACCOUNTS_TABLE = """
 CREATE TABLE IF NOT EXISTS accounts (
-    id TEXT PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
     owner_user_id TEXT NOT NULL,
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 CREATE_ACCOUNT_MEMBERS_TABLE = """
 CREATE TABLE IF NOT EXISTS account_members (
-    account_id TEXT NOT NULL,
+    account_id INTEGER NOT NULL,
     user_id TEXT NOT NULL,
     role TEXT NOT NULL,
     permissions_json TEXT DEFAULT '{}',

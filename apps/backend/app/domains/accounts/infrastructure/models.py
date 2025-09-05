@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import uuid4
 
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
@@ -14,7 +13,7 @@ from app.schemas.accounts import AccountKind, AccountRole
 class Account(Base):
     __tablename__ = "accounts"
 
-    id = sa.Column(UUID(), primary_key=True, default=uuid4)
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
     name = sa.Column(sa.String, nullable=False)
     slug = sa.Column(sa.String, nullable=False, unique=True, index=True)
     owner_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=False, index=True)
@@ -45,7 +44,7 @@ class AccountMember(Base):
     __tablename__ = "account_members"
     __table_args__ = (sa.Index("ix_account_members_account_id_role", "account_id", "role"),)
 
-    account_id = sa.Column(UUID(), sa.ForeignKey("accounts.id"), primary_key=True)
+    account_id = sa.Column(sa.BigInteger, sa.ForeignKey("accounts.id"), primary_key=True)
     user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), primary_key=True)
     role = sa.Column(sa.Enum(AccountRole, name="account_role"), nullable=False)
     permissions_json = sa.Column(JSONB, nullable=False, server_default=sa.text("'{}'"))
