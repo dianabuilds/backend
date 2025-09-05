@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.notification import NotificationType
 from app.domains.quests.application.access_service import AccessService
 from app.domains.quests.application.quest_service import QuestService
 from app.domains.quests.infrastructure.notifications_adapter import NotificationsAdapter
@@ -12,6 +11,7 @@ from app.domains.quests.infrastructure.repositories.access_repository import (
 from app.domains.quests.infrastructure.repositories.event_quests_repository import (
     EventQuestsRepository,
 )
+from app.schemas.notification import NotificationType
 
 
 async def check_quest_completion(db: AsyncSession, user, node, workspace_id) -> None:
