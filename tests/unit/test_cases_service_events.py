@@ -13,10 +13,10 @@ from sqlalchemy.orm import sessionmaker
 from app.domains.moderation.application.cases_service import CasesService
 from app.domains.moderation.infrastructure.models.moderation_case_models import (
     CaseEvent,
-    CaseNote,
     CaseLabel,
-    ModerationLabel,
+    CaseNote,
     ModerationCase,
+    ModerationLabel,
 )
 from app.providers.case_notifier import ICaseNotifier
 from app.schemas.moderation_cases import CaseCreate, CaseNoteCreate, CasePatch

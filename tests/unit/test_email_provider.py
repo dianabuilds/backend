@@ -1,9 +1,8 @@
-import pytest
-
-from apps.backend.app.providers.email import RealEmail
-from apps.backend.app.core.settings import Settings
-from apps.backend.app.core.app_settings.smtp import SMTPSettings
 import aiosmtplib
+import pytest
+from apps.backend.app.core.app_settings.smtp import SMTPSettings
+from apps.backend.app.core.settings import Settings
+from apps.backend.app.providers.email import RealEmail
 
 
 @pytest.mark.asyncio
