@@ -51,7 +51,6 @@ const NodeEditor = lazy(() => import("../features/content/pages/NodeEditor"));
 const NodePreview = lazy(() => import("../features/content/pages/NodePreview"));
 const NodeDiff = lazy(() => import("../pages/NodeDiff"));
 const ValidationReport = lazy(() => import("../pages/ValidationReport"));
-const Authentication = lazy(() => import("../pages/Authentication"));
 const PaymentsGateways = lazy(() => import("../pages/PaymentsGateways"));
 const Integrations = lazy(() => import("../pages/Integrations"));
 const FeatureFlagsPage = lazy(() => import("../pages/FeatureFlags"));
@@ -136,7 +135,6 @@ const protectedChildren: RouteObject[] = [
   { path: "nodes/:type/:id/diff", element: <NodeDiff /> },
   { path: "nodes/:type/:id", element: <NodeEditor /> },
   { path: "search", element: <SearchTop /> },
-  { path: "settings/authentication", element: <Authentication /> },
   { path: "settings/payments", element: <PaymentsGateways /> },
   { path: "settings/integrations", element: <Integrations /> },
   { path: "settings/feature-flags", element: <FeatureFlagsPage /> },
