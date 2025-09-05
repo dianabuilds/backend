@@ -42,7 +42,7 @@ class ProjectSettings(BaseSettings):
         case_sensitive=False,
         env_nested_delimiter="__",
         extra="ignore",
-        env_file=BASE_DIR / ".env",
+        env_file=None,
         env_file_encoding="utf-8",
     )
 
@@ -397,6 +397,9 @@ def validate_settings(settings: Settings) -> None:
 
 @lru_cache
 def get_settings() -> Settings:
+    from .env_loader import load_dotenv
+
+    load_dotenv()
     settings = Settings()
     validate_settings(settings)
     return settings
