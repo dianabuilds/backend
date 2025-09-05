@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import func, literal, text
+from sqlalchemy import String, cast, func, literal, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
@@ -90,8 +90,14 @@ async def list_echo_traces(
 
     stmt = (
         select(*cols)
-        .join(from_node, EchoTrace.from_node_id == from_node.id)
-        .join(to_node, EchoTrace.to_node_id == to_node.id)
+        .join(
+            from_node,
+            cast(EchoTrace.from_node_id, String) == cast(from_node.id, String),
+        )
+        .join(
+            to_node,
+            cast(EchoTrace.to_node_id, String) == cast(to_node.id, String),
+        )
     )
 
     if from_slug:
@@ -99,7 +105,7 @@ async def list_echo_traces(
     if to_slug:
         stmt = stmt.where(to_node.slug == to_slug)
     if user_id:
-        stmt = stmt.where(EchoTrace.user_id == user_id)
+        stmt = stmt.where(cast(EchoTrace.user_id, String) == str(user_id))
     if source and has_source:
         stmt = stmt.where(EchoTrace.source == source)
     if channel and has_channel:
@@ -234,9 +240,7 @@ async def recompute_popularity(
     if not nodes:
         return {"updated": 0}
     node_ids = [n.id for n in nodes]
-    count_stmt = select(EchoTrace.to_node_id, func.count()).group_by(
-        EchoTrace.to_node_id
-    )
+    count_stmt = select(EchoTrace.to_node_id, func.count()).group_by(EchoTrace.to_node_id)
     if node_ids:
         count_stmt = count_stmt.where(EchoTrace.to_node_id.in_(node_ids))
     counts = {nid: cnt for nid, cnt in (await db.execute(count_stmt)).all()}

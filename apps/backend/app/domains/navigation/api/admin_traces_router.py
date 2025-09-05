@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import literal, text
+from sqlalchemy import String, cast, literal, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
@@ -70,9 +70,7 @@ async def list_traces(
         present = set(res.scalars().all())
     except Exception:
         try:
-            res = await db.execute(
-                text(f"PRAGMA table_info({NodeTrace.__tablename__})")
-            )
+            res = await db.execute(text(f"PRAGMA table_info({NodeTrace.__tablename__})"))
             present = {row[1] for row in res.all()}
         except Exception:
             present = set()
@@ -86,12 +84,10 @@ async def list_traces(
 
     cols = [
         NodeTrace.id.label("id"),
-        (NodeTrace.user_id if hasattr(NodeTrace, "user_id") else literal(None)).label(
-            "user_id"
+        (NodeTrace.user_id if hasattr(NodeTrace, "user_id") else literal(None)).label("user_id"),
+        (NodeTrace.created_at if hasattr(NodeTrace, "created_at") else literal(None)).label(
+            "created_at"
         ),
-        (
-            NodeTrace.created_at if hasattr(NodeTrace, "created_at") else literal(None)
-        ).label("created_at"),
         from_node.slug.label("from_slug"),
         (to_node.slug if has_to else literal(None)).label("to_slug"),
         (NodeTrace.type if has_type else literal(None)).label("type"),
@@ -101,37 +97,34 @@ async def list_traces(
         (NodeTrace.request_id if has_request else literal(None)).label("request_id"),
     ]
 
-    stmt = select(*cols).join(from_node, NodeTrace.node_id == from_node.id)
+    stmt = select(*cols).join(
+        from_node, cast(NodeTrace.node_id, String) == cast(from_node.id, String)
+    )
     if has_to:
-        stmt = stmt.outerjoin(to_node, text("node_traces.to_node_id") == to_node.id)
+        stmt = stmt.outerjoin(
+            to_node,
+            cast(text("node_traces.to_node_id"), String) == cast(to_node.id, String),
+        )
 
     if from_slug:
         stmt = stmt.where(from_node.slug == from_slug)
     if to_slug:
         if not has_to:
-            raise HTTPException(
-                status_code=400, detail="Filtering by to_slug is not supported"
-            )
+            raise HTTPException(status_code=400, detail="Filtering by to_slug is not supported")
         stmt = stmt.where(to_node.slug == to_slug)
     if user_id and hasattr(NodeTrace, "user_id"):
-        stmt = stmt.where(NodeTrace.user_id == user_id)
+        stmt = stmt.where(cast(NodeTrace.user_id, String) == str(user_id))
     if type:
         if not has_type:
-            raise HTTPException(
-                status_code=400, detail="Filtering by type is not supported"
-            )
+            raise HTTPException(status_code=400, detail="Filtering by type is not supported")
         stmt = stmt.where(NodeTrace.type == type)
     if source:
         if not has_source:
-            raise HTTPException(
-                status_code=400, detail="Filtering by source is not supported"
-            )
+            raise HTTPException(status_code=400, detail="Filtering by source is not supported")
         stmt = stmt.where(NodeTrace.source == source)
     if channel:
         if not has_channel:
-            raise HTTPException(
-                status_code=400, detail="Filtering by channel is not supported"
-            )
+            raise HTTPException(status_code=400, detail="Filtering by channel is not supported")
         stmt = stmt.where(NodeTrace.channel == channel)
     if date_from and hasattr(NodeTrace, "created_at"):
         stmt = stmt.where(NodeTrace.created_at >= date_from)
