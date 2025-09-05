@@ -2,6 +2,11 @@
 
 This project uses [Alembic](https://alembic.sqlalchemy.org/) for schema migrations.
 
+## Squashed Base Revision
+
+As of 2025-09-05, all previous migrations were squashed into a new base revision `0001_base`.
+Upgrade existing databases to this revision before applying future migrations.
+
 ## Creating a Migration
 
 1. Make sure the database schema is up to date:
