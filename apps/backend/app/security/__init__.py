@@ -23,6 +23,7 @@ from .exceptions import (
     InvalidTokenError,
     TokenExpiredError,
 )
+from .passwords import hash_password, verify_password
 
 bearer_scheme = HTTPBearer(auto_error=False, scheme_name="bearerAuth")
 
@@ -246,6 +247,8 @@ __all__ = [
     "verify_preview_token",
     "require_admin_or_preview_token",
     "auth_user",
+    "hash_password",
+    "verify_password",
     "require_ws_editor",
     "require_ws_owner",
     "require_ws_viewer",
