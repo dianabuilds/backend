@@ -1,43 +1,18 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
-import { api } from "../api/client";
 import {
   type BroadcastCreate,
   type Campaign,
+  type NotificationItem,
   createBroadcast,
   listBroadcasts,
+  listNotifications,
+  markNotificationRead,
+  sendNotification,
 } from "../api/notifications";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/ToastProvider";
-import { ensureArray } from "../shared/utils";
-
-interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  type?: string | null;
-  read_at?: string | null;
-  created_at: string;
-}
-
-async function fetchMyNotifications(): Promise<NotificationItem[]> {
-  const res = await api.get("/notifications");
-  return ensureArray<NotificationItem>(res.data);
-}
-
-async function markRead(id: string) {
-  await api.post(`/notifications/${id}/read`, {});
-}
-
-async function sendNotification(payload: {
-  user_id: string;
-  title: string;
-  message: string;
-  type: string;
-}) {
-  await api.post("/admin/notifications", payload);
-}
 
 export default function Notifications() {
   const { user } = useAuth();
@@ -45,7 +20,7 @@ export default function Notifications() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ["notifications"],
-    queryFn: fetchMyNotifications,
+    queryFn: () => listNotifications(),
     refetchInterval: 30000,
   });
 
@@ -75,7 +50,7 @@ export default function Notifications() {
 
   const handleRead = async (id: string) => {
     try {
-      await markRead(id);
+      await markNotificationRead(id);
       qc.invalidateQueries({ queryKey: ["notifications"] });
     } catch (e) {
       addToast({
