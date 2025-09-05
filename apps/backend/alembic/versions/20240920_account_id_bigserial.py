@@ -34,7 +34,12 @@ def upgrade() -> None:
         "account_members",
         type_="foreignkey",
     )
-    op.drop_constraint("workspaces_pkey", "accounts", type_="primary")
+    op.drop_constraint(
+        "workspaces_pkey",
+        "accounts",
+        type_="primary",
+        cascade=True,
+    )
     op.drop_column("account_members", "account_id")
     op.drop_column("accounts", "id")
     op.alter_column(
