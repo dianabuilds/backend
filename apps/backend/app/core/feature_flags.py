@@ -17,12 +17,14 @@ _cache: tuple[float, dict[str, tuple[bool, str]]] | None = None
 class FeatureFlagKey(StrEnum):
     PAYMENTS = "payments"
     AI_VALIDATION = "ai.validation"
+    REFERRALS_PROGRAM = "referrals.program"
 
 
 # Predefined feature flags available in the system with optional descriptions.
 KNOWN_FLAGS: dict[FeatureFlagKey, str] = {
     FeatureFlagKey.PAYMENTS: "Enable payments module",
     FeatureFlagKey.AI_VALIDATION: "Enable AI-based validation for nodes",
+    FeatureFlagKey.REFERRALS_PROGRAM: "Enable referrals program",
 }
 
 

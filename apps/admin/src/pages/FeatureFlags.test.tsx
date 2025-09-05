@@ -67,4 +67,13 @@ describe("FeatureFlagsPage", () => {
       }),
     );
   });
+
+  it("renders referrals program flag", async () => {
+    vi.mocked(listFlags).mockResolvedValue([
+      { key: "referrals.program", value: false, description: "", updated_at: null, updated_by: null },
+    ]);
+    renderPage();
+    await waitFor(() => screen.getByText("referrals.program"));
+    expect(screen.getByText("referrals.program")).toBeInTheDocument();
+  });
 });
