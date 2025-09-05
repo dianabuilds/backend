@@ -15,7 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.core.policy import policy
 from app.core.real_ip import get_real_ip
-from app.core.redis_utils import create_async_redis
+from app.providers.redis_utils import create_async_redis
 
 
 def _parse_rule(rule: str) -> tuple[int, int]:

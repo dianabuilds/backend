@@ -6,7 +6,7 @@ import pytest
 
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from app.core.redis_utils import create_async_redis  # noqa: E402
+from app.providers.redis_utils import create_async_redis  # noqa: E402
 
 
 def test_rediss_no_ssl_kwarg(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -22,11 +22,11 @@ def test_rediss_no_ssl_kwarg(monkeypatch: pytest.MonkeyPatch) -> None:
         return DummyPool()
 
     monkeypatch.setattr(
-        "app.core.redis_utils.redis.BlockingConnectionPool.from_url",
+        "app.providers.redis_utils.redis.BlockingConnectionPool.from_url",
         fake_from_url,
     )
     monkeypatch.setattr(
-        "app.core.redis_utils.redis.Redis",
+        "app.providers.redis_utils.redis.Redis",
         lambda connection_pool, **kwargs: object(),
     )
 

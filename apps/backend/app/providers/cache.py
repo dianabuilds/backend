@@ -14,7 +14,7 @@ except Exception:  # pragma: no cover - optional dependency
 
 from app.core.config import settings
 from app.core.log_events import fallback_hit
-from app.core.redis_utils import create_async_redis
+from app.providers.redis_utils import create_async_redis
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,8 @@ class RedisCache(Cache):
     def __init__(self, url: str) -> None:
         if redis is None:  # pragma: no cover - requires redis
             raise RuntimeError("redis library is not installed")
-        # Используем единый фабричный метод с корректной TLS-конфигурацией и лимитом пула
+        # Используем единый фабричный метод с корректной TLS-конфигурацией
+        # и лимитом пула
         self._redis = create_async_redis(
             url, decode_responses=True, connect_timeout=2.0, max_connections=100
         )

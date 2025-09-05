@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from datetime import datetime
 
-from app.core.cache import cache as shared_cache
+from app.providers.cache import cache as shared_cache
 
 # Рантайм-оверрайды лимитов (в оперативной памяти процесса)
 _provider_limits_override: dict[str, int] = {}
@@ -33,7 +33,10 @@ def set_model_limit(model: str, rpm: int | None) -> None:
 
 
 def set_limits_from_dict(payload: dict) -> None:
-    """Массовая установка лимитов из словаря {"providers": {slug: rpm}, "models": {name: rpm}}."""
+    """Массовая установка лимитов из словаря.
+
+    Формат: {"providers": {slug: rpm}, "models": {name: rpm}}.
+    """
     provs = payload.get("providers") or {}
     mods = payload.get("models") or {}
     if isinstance(provs, dict):

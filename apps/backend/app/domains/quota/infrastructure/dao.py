@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.core.cache import Cache
-from app.core.cache import cache as shared_cache
+from app.providers.cache import Cache
+from app.providers.cache import cache as shared_cache
 
 
 class QuotaCounterDAO:

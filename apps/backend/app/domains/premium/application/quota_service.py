@@ -9,9 +9,9 @@ from typing import Any
 import yaml
 from fastapi import HTTPException
 
-from app.core.cache import Cache
-from app.core.cache import cache as shared_cache
 from app.core.preview import PreviewContext
+from app.providers.cache import Cache
+from app.providers.cache import cache as shared_cache
 
 logger = logging.getLogger(__name__)
 

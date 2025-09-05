@@ -18,7 +18,7 @@ from apps.backend.app.api import ops as ops_module  # noqa: E402
 from fastapi import FastAPI  # noqa: E402
 
 from app.admin.ops import alerts as alerts_module  # noqa: E402
-from app.core.cache import cache as shared_cache  # noqa: E402
+from app.providers.cache import cache as shared_cache  # noqa: E402
 
 app = FastAPI()
 app.include_router(ops_module.router)

@@ -4,7 +4,6 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.cache import cache as shared_cache
 from app.core.preview import PreviewContext
 from app.domains.premium.application.quota_service import (
     QuotaService,
@@ -13,6 +12,7 @@ from app.domains.premium.plans_impl import (
     build_quota_plans_map,
     get_effective_plan_slug,
 )
+from app.providers.cache import cache as shared_cache
 
 _quota_service: QuotaService | None = None
 

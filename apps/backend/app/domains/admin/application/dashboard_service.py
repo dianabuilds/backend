@@ -8,7 +8,6 @@ from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.cache import cache as shared_cache
 from app.core.config import settings
 from app.domains.moderation.infrastructure.models.moderation_models import (
     UserRestriction,
@@ -23,6 +22,7 @@ from app.domains.payments.manager import get_active_subscriptions_stats
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.users.infrastructure.models.user import User
 from app.models.ops_incident import OpsIncident
+from app.providers.cache import cache as shared_cache
 
 CACHE_KEY = "admin:dashboard"
 CACHE_TTL = 60

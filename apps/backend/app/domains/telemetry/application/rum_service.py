@@ -7,11 +7,11 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from app.core.config import settings
-from app.core.redis_utils import create_async_redis
 from app.domains.telemetry.application.ports.rum_port import IRumRepository
 from app.domains.telemetry.infrastructure.repositories.rum_repository import (
     RumRedisRepository,
 )
+from app.providers.redis_utils import create_async_redis
 
 log = logging.getLogger(__name__)
 
