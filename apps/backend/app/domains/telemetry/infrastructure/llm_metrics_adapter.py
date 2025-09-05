@@ -20,7 +20,7 @@ class InMemoryLLMMetricsSink(ILLMMetricsSink):
 
     def inc(self, metric: str, labels: LLMCallLabels, by: int = 1) -> None:
         self.counters[self._k(metric, labels)] = (
-            self.counters.get(self._k(metric, labels), 0) + by
+                self.counters.get(self._k(metric, labels), 0) + by
         )
 
     def observe_latency(self, labels: LLMCallLabels, ms: float) -> None:
@@ -29,7 +29,7 @@ class InMemoryLLMMetricsSink(ILLMMetricsSink):
         self.latency_count[key] = self.latency_count.get(key, 0) + 1
 
     def observe_tokens(
-        self, labels: LLMCallLabels, prompt: int, completion: int
+            self, labels: LLMCallLabels, prompt: int, completion: int
     ) -> None:
         kpr = (labels.provider, labels.model, labels.stage or "unknown", "prompt")
         kco = (labels.provider, labels.model, labels.stage or "unknown", "completion")
@@ -46,7 +46,9 @@ class InMemoryLLMMetricsSink(ILLMMetricsSink):
         lines.append("# TYPE llm_calls_total counter")
         for (metric, provider, model, stage), cnt in self.counters.items():
             lines.append(
-                f'label="deprecated" llm_calls_total{{type="{metric}",provider="{provider}",model="{model}",stage="{stage}"}} {cnt}'
+                'label="deprecated" '
+                f'llm_calls_total{{type="{metric}",provider="{provider}",'
+                f'model="{model}",stage="{stage}"}} {cnt}'
             )
         lines.append("# HELP llm_latency_ms Average LLM latency (ms)")
         lines.append("# TYPE llm_latency_ms gauge")
@@ -60,7 +62,8 @@ class InMemoryLLMMetricsSink(ILLMMetricsSink):
         lines.append("# TYPE llm_tokens_total counter")
         for (provider, model, stage, t), s in self.tokens_sum.items():
             lines.append(
-                f'llm_tokens_total{{provider="{provider}",model="{model}",stage="{stage}",type="{t}"}} {s}'
+                f'llm_tokens_total{{provider="{provider}",model="{model}",'
+                f'stage="{stage}",type="{t}"}} {s}'
             )
         lines.append("# HELP llm_cost_usd_total Total cost (USD)")
         lines.append("# TYPE llm_cost_usd_total counter")

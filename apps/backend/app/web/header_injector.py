@@ -7,7 +7,8 @@ from typing import Any
 class HeaderInjector:
     """
     Простейшая ASGI-обёртка, добавляющая/переопределяющая заголовки ответа.
-    Используется для смонтированных приложений (StaticFiles), которые обходят middleware основного приложения.
+    Используется для смонтированных приложений (StaticFiles),
+    которые обходят middleware основного приложения.
     """
 
     def __init__(self, app, headers: dict[str, str]) -> None:

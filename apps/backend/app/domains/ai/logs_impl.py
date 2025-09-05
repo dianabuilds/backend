@@ -31,7 +31,6 @@ async def save_stage_log(
     try:
         safe_prompt = (prompt or "")[:_MAX_PROMPT]
         full_raw = raw_response or ""
-        # Сохраняем полный raw во внешнее хранилище и готовим усечённую копию для БД (доменные слои telemetry)
         raw_url, truncated = RawPayloadService(RawPayloadStore()).store_large_text(
             full_raw, filename_hint=f"{job_id}-{stage}"
         )

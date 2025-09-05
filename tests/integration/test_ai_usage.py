@@ -23,7 +23,8 @@ async def _create_workspace(db, ws_id, owner_id):
     )
     await db.execute(
         text(
-            "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES (:ws, :user, 'owner')"
+            "INSERT INTO workspace_members (workspace_id, user_id, role) "
+            "VALUES (:ws, :user, 'owner')"
         ),
         {"ws": ws_id, "user": owner_id},
     )

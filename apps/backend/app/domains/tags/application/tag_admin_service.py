@@ -25,7 +25,10 @@ async def _audit(
     reason: str | None = None,
     request=None,
 ) -> None:
-    """Внутренний хелпер: вызов доменного сервиса аудита с извлечением IP/User-Agent из request (если есть)."""
+    """
+    Внутренний хелпер: вызов доменного сервиса аудита с извлечением
+     IP/User-Agent из request (если есть).
+     """
     ip = None
     ua = None
     try:
