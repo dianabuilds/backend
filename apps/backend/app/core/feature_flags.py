@@ -18,7 +18,6 @@ class FeatureFlagKey(StrEnum):
     MODERATION_ENABLED = "moderation.enabled"
     PAYMENTS = "payments"
     AI_VALIDATION = "ai.validation"
-    QUESTS_NODES_REDIRECT = "quests.nodes_redirect"
 
 
 # Predefined feature flags available in the system with optional descriptions.
@@ -26,9 +25,6 @@ KNOWN_FLAGS: dict[FeatureFlagKey, str] = {
     FeatureFlagKey.MODERATION_ENABLED: "Enable moderation section in admin UI",
     FeatureFlagKey.PAYMENTS: "Enable payments module",
     FeatureFlagKey.AI_VALIDATION: "Enable AI-based validation for nodes",
-    FeatureFlagKey.QUESTS_NODES_REDIRECT: (
-        "Redirect /nodes/:slug to /quests/{id}/versions/current"
-    ),
 }
 
 
