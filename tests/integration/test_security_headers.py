@@ -22,7 +22,7 @@ async def test_cookie_security_flags(client: AsyncClient, test_user, monkeypatch
     access_cookie = next(c for c in cookies if c.startswith("access_token="))
     assert "HttpOnly" in access_cookie
     assert "Secure" not in access_cookie
-    assert "SameSite=Strict" in access_cookie
+    assert "SameSite=Lax" in access_cookie
 
 
 @pytest.mark.asyncio
