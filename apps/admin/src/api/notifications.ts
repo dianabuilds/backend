@@ -1,5 +1,10 @@
-import type { BroadcastCreate, BroadcastFilters } from "../openapi";
+import type {
+  BroadcastCreate,
+  BroadcastFilters,
+  SendNotificationPayload,
+} from "../openapi";
 import { api } from "./client";
+import { ensureArray } from "../shared/utils";
 import type { ListResponse } from "./types";
 
 export interface Campaign {
@@ -21,6 +26,15 @@ export interface DraftCampaign {
   message: string;
   status: string;
   created_at?: string | null;
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type?: string | null;
+  read_at?: string | null;
+  created_at: string;
 }
 
 export async function createBroadcast(
@@ -82,6 +96,37 @@ export async function sendDraftCampaign(id: string): Promise<unknown> {
   const res = await api.post<unknown>(
     `/admin/notifications/campaigns/${id}/send`,
     {},
+  );
+  return res.data;
+}
+
+export async function listNotifications(
+  workspaceId?: string,
+): Promise<NotificationItem[]> {
+  const res = await api.get<NotificationItem[]>("/notifications", {
+    params: workspaceId ? { workspace_id: workspaceId } : undefined,
+  });
+  return ensureArray<NotificationItem>(res.data);
+}
+
+export async function markNotificationRead(
+  id: string,
+  workspaceId?: string,
+): Promise<unknown> {
+  const res = await api.post<unknown>(
+    `/notifications/${id}/read`,
+    {},
+    { params: workspaceId ? { workspace_id: workspaceId } : undefined },
+  );
+  return res.data;
+}
+
+export async function sendNotification(
+  payload: SendNotificationPayload,
+): Promise<unknown> {
+  const res = await api.post<unknown>(
+    "/admin/notifications",
+    payload,
   );
   return res.data;
 }

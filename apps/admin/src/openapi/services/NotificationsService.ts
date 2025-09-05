@@ -14,7 +14,7 @@ export class NotificationsService {
      * @throws ApiError
      */
     public static listNotificationsNotificationsGet(
-        workspaceId: string,
+        workspaceId?: string,
     ): CancelablePromise<Array<NotificationOut>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -36,7 +36,7 @@ export class NotificationsService {
      */
     public static markReadNotificationsNotificationIdReadPost(
         notificationId: string,
-        workspaceId: string,
+        workspaceId?: string,
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
