@@ -34,6 +34,12 @@ export default function WorkspaceSelector() {
   }, [workspaceId, data]);
 
   useEffect(() => {
+    if (workspaceId && data && !data.some((ws) => ws.id === workspaceId)) {
+      setWorkspace(undefined);
+    }
+  }, [workspaceId, data, setWorkspace]);
+
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
