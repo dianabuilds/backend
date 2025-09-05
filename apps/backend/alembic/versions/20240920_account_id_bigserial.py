@@ -28,9 +28,13 @@ def upgrade() -> None:
     op.execute(
         "UPDATE account_members am SET account_id_new = a.id_new FROM accounts a WHERE am.account_id = a.id"
     )
-    op.drop_constraint("account_members_pkey", "account_members", type_="primary")
-    op.drop_constraint("account_members_account_id_fkey", "account_members", type_="foreignkey")
-    op.drop_constraint("accounts_pkey", "accounts", type_="primary")
+    op.drop_constraint("workspace_members_pkey", "account_members", type_="primary")
+    op.drop_constraint(
+        "workspace_members_workspace_id_fkey",
+        "account_members",
+        type_="foreignkey",
+    )
+    op.drop_constraint("workspaces_pkey", "accounts", type_="primary")
     op.drop_column("account_members", "account_id")
     op.drop_column("accounts", "id")
     op.alter_column(
