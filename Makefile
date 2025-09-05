@@ -1,4 +1,4 @@
-.PHONY: setup lint type test unit build
+.PHONY: setup lint type unit build
 
 setup:  ## install deps
 	python -m pip install -U pip

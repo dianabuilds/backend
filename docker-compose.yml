@@ -2,15 +2,16 @@ version: "3.9"
 
 services:
   backend:
-    build: ./apps/backend
-    environment:
-      - APP_ENV_MODE=${APP_ENV_MODE}
+    build: .
+    command: make lint type unit
+    volumes:
+      - .:/app
+    env_file:
+      - .env.dev
     depends_on:
       - postgres
       - redis
       - minio
-    ports:
-      - "8000:8000"
     profiles: ["local", "dev", "test"]
 
   admin:
