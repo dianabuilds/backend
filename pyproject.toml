@@ -28,7 +28,6 @@ explicit_package_bases = true
 # ВАЖНО: укажи, ЧТО проверять, вместо "packages = …"
 files = [
   "apps/backend/app",
-  "apps/backend/tests",  # если хочешь типизировать тесты; иначе строку убери
 ]
 
 # Отрежем мусор и виртуальные окружения
