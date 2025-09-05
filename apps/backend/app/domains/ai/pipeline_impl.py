@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -339,6 +340,7 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     )
     if budget_usd > 0 and est is not None and (total_cost + est) > budget_usd:
         raise RuntimeError(f"budget_exceeded:{(total_cost + est):.4f}>{budget_usd:.4f}")
+    start = time.perf_counter()
     prov, res = await _call_with_fallback(
         prompt=prompt_beats,
         system=system_beats,
@@ -382,12 +384,13 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
             stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens
         )
         llm_metrics.observe_cost(stage_labels, cost)
+        ms = (time.perf_counter() - start) * 1000
         try:
             from app.domains.telemetry.application.worker_metrics_facade import (
                 worker_metrics,
             )
 
-            worker_metrics.observe_stage("chapters", ms)
+            worker_metrics.observe_stage("beats", ms)
         except Exception:
             pass
     except Exception:
@@ -431,6 +434,7 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     )
     if budget_usd > 0 and est is not None and (total_cost + est) > budget_usd:
         raise RuntimeError(f"budget_exceeded:{(total_cost + est):.4f}>{budget_usd:.4f}")
+    start = time.perf_counter()
     prov, res = await _call_with_fallback(
         prompt=prompt_ch,
         system=system_ch,
@@ -474,12 +478,13 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
             stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens
         )
         llm_metrics.observe_cost(stage_labels, cost)
+        ms = (time.perf_counter() - start) * 1000
         try:
             from app.domains.telemetry.application.worker_metrics_facade import (
                 worker_metrics,
             )
 
-            worker_metrics.observe_stage("nodes", ms)
+            worker_metrics.observe_stage("chapters", ms)
         except Exception:
             pass
     except Exception:
@@ -523,6 +528,7 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     )
     if budget_usd > 0 and est is not None and (total_cost + est) > budget_usd:
         raise RuntimeError(f"budget_exceeded:{(total_cost + est):.4f}>{budget_usd:.4f}")
+    start = time.perf_counter()
     prov, res = await _call_with_fallback(
         prompt=prompt_nodes,
         system=system_nodes,
@@ -567,12 +573,13 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
             stage_labels, res.usage.prompt_tokens, res.usage.completion_tokens
         )
         llm_metrics.observe_cost(stage_labels, cost)
+        ms = (time.perf_counter() - start) * 1000
         try:
             from app.domains.telemetry.application.worker_metrics_facade import (
                 worker_metrics,
             )
 
-            worker_metrics.observe_stage("beats", ms)
+            worker_metrics.observe_stage("nodes", ms)
         except Exception:
             pass
     except Exception:
