@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.workspaces.application.service import scope_by_workspace
+from app.providers.db.pagination import scope_by_workspace
 
 from .models import MediaAsset
 
