@@ -1,4 +1,6 @@
 // Lightweight RUM helpers: send navigation timings and custom events to backend
+import { apiFetch } from "../lib/http";
+
 type RUMPayload = Record<string, unknown>;
 
 const RUM_ENDPOINT = "/metrics/rum";
@@ -15,11 +17,10 @@ export function sendRUM(event: string, data: RUMPayload = {}): void {
       const blob = new Blob([payload], { type: "application/json" });
       (navigator as Navigator & { sendBeacon?: (url: string, data: BodyInit) => void }).sendBeacon?.(RUM_ENDPOINT, blob);
     } else {
-      void fetch(RUM_ENDPOINT, {
+      void apiFetch(RUM_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: payload,
-        credentials: "include",
         keepalive: true,
       })
         .then((response) => {
