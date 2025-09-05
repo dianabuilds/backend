@@ -1,8 +1,22 @@
 import type { FeatureFlagOut, FeatureFlagUpdateIn } from "../openapi";
 import { api } from "./client";
 
-export async function listFlags(): Promise<FeatureFlagOut[]> {
-  const res = await api.get<FeatureFlagOut[]>("/admin/flags");
+export interface ListFlagsParams {
+  q?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function listFlags(
+  params: ListFlagsParams = {},
+): Promise<FeatureFlagOut[]> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  const res = await api.get<FeatureFlagOut[]>(
+    `/admin/flags${qs.size ? `?${qs.toString()}` : ""}`,
+  );
   return res.data ?? [];
 }
 

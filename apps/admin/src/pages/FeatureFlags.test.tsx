@@ -2,6 +2,7 @@ import "@testing-library/jest-dom";
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { vi } from "vitest";
 
 import { listFlags, updateFlag } from "../api/flags";
@@ -17,42 +18,61 @@ vi.mock("../workspace/WorkspaceContext", () => ({
 }));
 
 function renderPage() {
+  const qc = new QueryClient();
   render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <FeatureFlagsPage />
-    </MemoryRouter>,
+    <QueryClientProvider client={qc}>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <FeatureFlagsPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
 describe("FeatureFlagsPage", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("filters flags by key", async () => {
-    vi.mocked(listFlags).mockResolvedValue([
-      {
-        key: "a",
-        value: false,
-        description: "A",
-        audience: "all",
-        updated_at: null,
-        updated_by: null,
-      },
-      {
-        key: "b",
-        value: false,
-        description: "B",
-        audience: "all",
-        updated_at: null,
-        updated_by: null,
-      },
-    ]);
+  it("filters flags by key via API", async () => {
+    vi.mocked(listFlags)
+      .mockResolvedValueOnce([
+        {
+          key: "a",
+          value: false,
+          description: "A",
+          audience: "all",
+          updated_at: null,
+          updated_by: null,
+        },
+        {
+          key: "b",
+          value: false,
+          description: "B",
+          audience: "all",
+          updated_at: null,
+          updated_by: null,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          key: "a",
+          value: false,
+          description: "A",
+          audience: "all",
+          updated_at: null,
+          updated_by: null,
+        },
+      ]);
     renderPage();
-    await waitFor(() => screen.getByText("a"));
+    await waitFor(() => expect(listFlags).toHaveBeenCalled());
     fireEvent.change(screen.getByLabelText(/filter by key/i), {
       target: { value: "a" },
     });
-    expect(screen.getByText("a")).toBeInTheDocument();
-    expect(screen.queryByText("b")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(listFlags).toHaveBeenLastCalledWith({
+        q: "a",
+        limit: 50,
+        offset: 0,
+      }),
+    );
   });
 
   it("allows editing flag in modal", async () => {
