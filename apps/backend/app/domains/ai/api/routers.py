@@ -35,6 +35,15 @@ from app.domains.ai.api.settings_router import (  # noqa: E402
 from app.domains.ai.api.stats_router import (
     router as admin_ai_stats_router,  # noqa: E402
 )
+from app.domains.ai.api.system_defaults_router import (  # noqa: E402
+    router as admin_ai_system_defaults_router,
+)
+from app.domains.ai.api.system_models_router import (  # noqa: E402
+    router as admin_ai_system_models_router,
+)
+from app.domains.ai.api.system_prices_router import (  # noqa: E402
+    router as admin_ai_system_prices_router,
+)
 from app.domains.ai.api.system_providers_router import (  # noqa: E402
     router as admin_ai_system_providers_router,
 )
@@ -71,3 +80,6 @@ router.include_router(admin_ai_settings_router)
 router.include_router(admin_ai_system_providers_router)
 router.include_router(admin_ai_user_pref_router)
 router.include_router(admin_ai_usage_router)
+router.include_router(admin_ai_system_models_router)
+router.include_router(admin_ai_system_prices_router)
+router.include_router(admin_ai_system_defaults_router)
