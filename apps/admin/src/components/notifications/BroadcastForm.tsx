@@ -1,9 +1,11 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { z } from "zod";
-import { createBroadcast, type BroadcastCreate } from "../../api/notifications";
-import { useToast } from "../ToastProvider";
+
+import { createCampaign, estimateCampaign } from "../../api/notifications";
+import type { CampaignCreate, CampaignFilters } from "../../openapi";
 import Modal from "../../shared/ui/Modal";
-import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "../ToastProvider";
 
 interface Props {
   isOpen: boolean;
@@ -45,7 +47,7 @@ export default function BroadcastForm({ isOpen, onClose }: Props) {
   };
 
   const payloadFilters = useMemo(() => {
-    const f: Record<string, unknown> = {};
+    const f: CampaignFilters = {};
     if (role) f.role = role;
     if (isActive !== "any") f.is_active = isActive === "true";
     if (isPremium !== "any") f.is_premium = isPremium === "true";
@@ -57,17 +59,13 @@ export default function BroadcastForm({ isOpen, onClose }: Props) {
   const doDryRun = async () => {
     if (!validate()) return;
     try {
-      const res = await createBroadcast({
-        title: bTitle,
-        message: bMessage,
-        type: bType,
-        filters: payloadFilters,
-        dry_run: true,
-      } as BroadcastCreate);
-      setEstimate((res as any).total_estimate ?? 0);
+      const res = (await estimateCampaign(payloadFilters)) as {
+        total_estimate?: number;
+      };
+      setEstimate(res.total_estimate ?? 0);
       addToast({
         title: "Estimated recipients",
-        description: String((res as any).total_estimate ?? 0),
+        description: String(res.total_estimate ?? 0),
         variant: "info",
       });
     } catch (e) {
@@ -82,12 +80,13 @@ export default function BroadcastForm({ isOpen, onClose }: Props) {
   const doStart = async () => {
     if (!validate()) return;
     try {
-      await createBroadcast({
+      const payload: CampaignCreate = {
         title: bTitle,
         message: bMessage,
         type: bType,
         filters: payloadFilters,
-      } as BroadcastCreate);
+      };
+      await createCampaign(payload);
       setEstimate(null);
       setBTitle("");
       setBMessage("");
@@ -122,7 +121,11 @@ export default function BroadcastForm({ isOpen, onClose }: Props) {
           <select
             className="border rounded px-2 py-1"
             value={bType}
-            onChange={(e) => setBType(e.target.value as any)}
+            onChange={(e) =>
+              setBType(
+                e.target.value as "system" | "info" | "warning" | "quest",
+              )
+            }
           >
             <option value="system">system</option>
             <option value="info">info</option>

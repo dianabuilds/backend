@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { type Campaign, listBroadcasts } from "../../api/notifications";
+
+import { type Campaign, listCampaigns } from "../../api/notifications";
 
 export default function CampaignTable() {
   const { data, isLoading } = useQuery({
     queryKey: ["campaigns"],
-    queryFn: () => listBroadcasts(),
+    queryFn: () => listCampaigns(),
     refetchInterval: 10000,
   });
 
