@@ -98,10 +98,15 @@
 - Лимиты запросов настраиваются переменными `RATE_LIMIT_*` в `.env`.
 - Импортируйте коллекцию `docs/postman_collection.json` или используйте `docs/httpie_examples.sh` для быстрого теста API.
 
-## Тесты
-```bash
-pytest
-```
+## Форматирование и тестирование
+
+- `pre-commit install`
+- `pre-commit run --all-files`
+- `pytest` для бэкенда; `pnpm test` для фронтенда
+
+Пример рабочего цикла: изменить файл → `pre-commit run --files <file>` → `pytest -k <module>` или `pnpm test <path>` → `git commit`.
+
+CI повторно запускает те же проверки, поэтому локальный прогон экономит время.
 
 ## Сканирование зависимостей
 CI запускает проверки уязвимостей через `pip-audit` для Python и `npm audit` для Node. Локально запустить их можно так:
