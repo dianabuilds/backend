@@ -43,28 +43,23 @@ async def test_signup_success(client: AsyncClient, db_session: AsyncSession):
     assert email == "newuser@example.com"
     assert not is_active
 
-    # Проверяем создание рабочего пространства и членство владельца
-    sql = text("SELECT id, slug, type FROM workspaces WHERE owner_user_id = :owner_id")
+    # Проверяем создание аккаунта и членство владельца
+    sql = text("SELECT id, slug, kind FROM accounts WHERE owner_user_id = :owner_id")
     result = await db_session.execute(sql, {"owner_id": user_id})
-    workspace = result.fetchone()
-    assert workspace is not None
-    workspace_id, slug, type_ = workspace
+    account = result.fetchone()
+    assert account is not None
+    account_id, slug, kind = account
     assert slug == data["account_slug"]
-    assert type_ == "personal"
+    assert kind == "personal"
 
     sql = text(
-        """SELECT role FROM workspace_members
-            WHERE workspace_id = :workspace_id AND user_id = :user_id"""
+        """SELECT role FROM account_members
+            WHERE account_id = :account_id AND user_id = :user_id"""
     )
-    result = await db_session.execute(sql, {"workspace_id": workspace_id, "user_id": user_id})
+    result = await db_session.execute(sql, {"account_id": account_id, "user_id": user_id})
     membership = result.fetchone()
     assert membership is not None
     assert membership[0] == "owner"
-
-    sql = text("SELECT default_workspace_id FROM users WHERE id = :user_id")
-    result = await db_session.execute(sql, {"user_id": user_id})
-    default_ws = result.scalar()
-    assert default_ws == workspace_id
 
 
 @pytest.mark.asyncio

@@ -9,13 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import http_error
 from app.core.security import get_password_hash, verify_password
+from app.domains.accounts.application.service import AccountService
 from app.domains.auth.application.ports.token_port import ITokenService
 from app.domains.auth.infrastructure.nonce_store import NonceStore
 from app.domains.auth.infrastructure.verification_token_store import (
     VerificationTokenStore,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.domains.workspaces.application.service import WorkspaceService
+from app.schemas.accounts import AccountIn, AccountKind
 from app.schemas.auth import (
     EVMVerify,
     LoginResponse,
@@ -23,7 +24,6 @@ from app.schemas.auth import (
     SignupSchema,
     Token,
 )
-from app.schemas.workspaces import WorkspaceIn, WorkspaceType
 
 
 class AuthService:
@@ -79,21 +79,18 @@ class AuthService:
         db.add(user)
         await db.commit()
         await db.refresh(user)
-        workspace = await WorkspaceService.create(
+        account = await AccountService.create(
             db,
-            data=WorkspaceIn(
+            data=AccountIn(
                 name=payload.username,
                 slug=payload.username,
-                kind=WorkspaceType.personal,
+                kind=AccountKind.personal,
             ),
             owner=user,
         )
-        user.default_workspace_id = workspace.id
-        db.add(user)
-        await db.commit()
         token = uuid4().hex
         await self._verification_store.set(token, str(user.id))
-        return {"verification_token": token, "account_slug": workspace.slug}
+        return {"verification_token": token, "account_slug": account.slug}
 
     async def verify_email(self, db: AsyncSession, token: str) -> dict[str, Any]:
         user_id = await self._verification_store.pop(token)
