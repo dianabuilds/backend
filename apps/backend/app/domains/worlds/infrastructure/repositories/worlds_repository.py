@@ -3,11 +3,12 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.infrastructure.models.world_models import Character, WorldTemplate
 from app.domains.worlds.application.ports.worlds_repo import IWorldsRepository
+from app.models.shared_objects import SharedObject
 
 
 class WorldsRepository(IWorldsRepository):
@@ -15,20 +16,38 @@ class WorldsRepository(IWorldsRepository):
         self._db = db
 
     async def list_worlds(self, workspace_id: UUID) -> list[WorldTemplate]:
+        shared_ids = select(SharedObject.object_id).where(
+            SharedObject.object_type == "world",
+            SharedObject.account_id == workspace_id,
+        )
         res = await self._db.execute(
             select(WorldTemplate)
-            .where(WorldTemplate.workspace_id == workspace_id)
+            .where(
+                or_(
+                    WorldTemplate.workspace_id == workspace_id,
+                    WorldTemplate.id.in_(shared_ids),
+                )
+            )
             .order_by(WorldTemplate.created_at.desc())
         )
         return list(res.scalars().all())
 
     async def get_world(self, world_id: UUID, workspace_id: UUID) -> WorldTemplate | None:
-        res = await self._db.execute(
-            select(WorldTemplate).where(
-                WorldTemplate.id == world_id, WorldTemplate.workspace_id == workspace_id
+        res = await self._db.execute(select(WorldTemplate).where(WorldTemplate.id == world_id))
+        world = res.scalar_one_or_none()
+        if not world:
+            return None
+        if world.workspace_id != workspace_id:
+            shared = await self._db.execute(
+                select(SharedObject).where(
+                    SharedObject.object_type == "world",
+                    SharedObject.object_id == world_id,
+                    SharedObject.account_id == workspace_id,
+                )
             )
-        )
-        return res.scalar_one_or_none()
+            if shared.scalars().first() is None:
+                return None
+        return world
 
     async def create_world(
         self, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
