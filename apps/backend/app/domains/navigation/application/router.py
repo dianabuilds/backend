@@ -110,9 +110,9 @@ class RepeatFilter:
 @dataclass
 class TransitionTrace:
     candidates: list[str]
-    filters: list[str]
-    scores: dict
-    chosen: str | None
+    filtered: list[str]
+    selected: str | None
+    reason: str | None = None
     policy: str | None = None
 
 
@@ -202,7 +202,7 @@ class TransitionRouter:
             trace.policy = policy.name
             self.trace.append(trace)
             queries += 1
-            filtered_total += len(trace.filters)
+            filtered_total += len(trace.filtered)
 
             elapsed_ms = (time.monotonic() - start_time) * 1000
             if elapsed_ms > getattr(budget, "max_time_ms", float("inf")):

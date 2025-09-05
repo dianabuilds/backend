@@ -97,10 +97,10 @@ async def simulate_transitions(
 
     seed = payload.seed if payload.seed is not None else next_seed()
     preview = PreviewContext(mode=payload.preview_mode, seed=seed)
-    res = await svc.build_route(db, node, None, preview=preview, mode=payload.mode)
+    res = await svc.get_next(db, node, None, preview=preview, mode=payload.mode)
     tags = [getattr(t, "slug", t) for t in getattr(res.next, "tags", []) or []]
     tag_entropy = _compute_entropy(tags)
-    chosen_trace = next((t for t in res.trace if t.chosen), None)
+    chosen_trace = next((t for t in res.trace if t.selected), None)
     sources = [chosen_trace.policy] if chosen_trace and chosen_trace.policy else []
     source_diversity = 0.0
     if sources:

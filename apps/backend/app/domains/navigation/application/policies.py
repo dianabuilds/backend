@@ -65,8 +65,8 @@ class ManualPolicy(Policy):
         from .router import TransitionTrace
 
         for n in candidates:
-            return n, TransitionTrace(candidate_slugs, filtered, {}, n.slug)
-        return None, TransitionTrace(candidate_slugs, filtered, {}, None)
+            return n, TransitionTrace(candidate_slugs, filtered, n.slug)
+        return None, TransitionTrace(candidate_slugs, filtered, None)
 
 
 class CompassPolicy(Policy):
@@ -95,8 +95,8 @@ class CompassPolicy(Policy):
         from .router import TransitionTrace
 
         for n in candidates:
-            return n, TransitionTrace(candidate_slugs, filtered, {}, n.slug)
-        return None, TransitionTrace(candidate_slugs, filtered, {}, None)
+            return n, TransitionTrace(candidate_slugs, filtered, n.slug)
+        return None, TransitionTrace(candidate_slugs, filtered, None)
 
 
 class EchoPolicy(Policy):
@@ -125,8 +125,8 @@ class EchoPolicy(Policy):
         from .router import TransitionTrace
 
         for n in candidates:
-            return n, TransitionTrace(candidate_slugs, filtered, {}, n.slug)
-        return None, TransitionTrace(candidate_slugs, filtered, {}, None)
+            return n, TransitionTrace(candidate_slugs, filtered, n.slug)
+        return None, TransitionTrace(candidate_slugs, filtered, None)
 
 
 class RandomPolicy(Policy):
@@ -164,6 +164,6 @@ class RandomPolicy(Policy):
         from .router import TransitionTrace
 
         if not candidates:
-            return None, TransitionTrace(candidate_slugs, filtered, {}, None)
+            return None, TransitionTrace(candidate_slugs, filtered, None)
         chosen = self._rnd.choice(candidates)
-        return chosen, TransitionTrace(candidate_slugs, filtered, {}, chosen.slug)
+        return chosen, TransitionTrace(candidate_slugs, filtered, chosen.slug)
