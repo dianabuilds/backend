@@ -21,6 +21,7 @@ def upgrade() -> None:
             """
         )
     )
+    op.execute("DELETE FROM nodes WHERE account_id_int IS NULL")
     op.execute("ALTER TABLE nodes DROP CONSTRAINT IF EXISTS nodes_account_id_fkey")
     op.drop_column("nodes", "account_id")
     op.alter_column("nodes", "account_id_int", new_column_name="account_id", nullable=False)
