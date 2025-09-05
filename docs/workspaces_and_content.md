@@ -15,6 +15,15 @@ roles:
 
 Global **admins** bypass workspace roles and can access any workspace.
 
+## Global workspace
+
+The backend creates a system workspace named **Global** on startup. This
+workspace hosts shared content and is identified by the slug `global`. Users
+whose account role is listed in `settings.security.admin_roles` are
+automatically added to it with at least editor rights; the earliest admin user
+becomes the owner. This guarantees that moderators and other privileged roles
+always retain access to global content.
+
 ## Status lifecycle
 
 Content items progress through a simple workflow:
