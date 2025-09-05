@@ -1,17 +1,19 @@
-.PHONY: up-local up-dev test seed
+.PHONY: setup lint type test unit build
 
-DOCKER_COMPOSE = docker compose
-UP = $(DOCKER_COMPOSE) up -d --build
+setup:  ## install deps
+	python -m pip install -U pip
+	pip install -r requirements.txt
+	pre-commit install
 
-up-local:
-	APP_ENV_MODE=local $(UP) --profile local
+lint:   ## ruff + black --check
+	ruff check .
+	black --check .
 
-up-dev:
-	APP_ENV_MODE=dev $(UP) --profile dev
+type:   ## mypy/pyright
+	mypy apps/backend
 
-test:
-	APP_ENV_MODE=test $(UP) --profile test
-	pytest
+unit:   ## fast tests only
+	pytest -q -m "not slow" --maxfail=1
 
-seed:
-	python scripts/seed_db.py
+build:  ## optional package/build
+	python -m build
