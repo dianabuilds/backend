@@ -47,7 +47,11 @@ export default function FeatureFlagsPage() {
 
   const onSave = async (
     key: string,
-    patch: { description: string; value: boolean },
+    patch: {
+      description: string;
+      value: boolean;
+      audience: FeatureFlag['audience'];
+    },
   ) => {
     try {
       const updated = await updateFlag(key, patch);
@@ -87,8 +91,9 @@ export default function FeatureFlagsPage() {
               <th className="py-2 pr-4">Key</th>
               <th className="py-2 pr-4">Description</th>
               <th className="py-2 pr-4">Enabled</th>
-              <th className="py-2 pr-4">Updated by</th>
+              <th className="py-2 pr-4">Audience</th>
               <th className="py-2 pr-4">Updated</th>
+              <th className="py-2 pr-4">Updated by</th>
             </tr>
           </thead>
           <tbody>
@@ -105,10 +110,11 @@ export default function FeatureFlagsPage() {
                   <td className="py-2 pr-4">
                     <ToggleView checked={!!f.value} />
                   </td>
-                  <td className="py-2 pr-4 text-gray-500">{f.updated_by || '-'}</td>
+                  <td className="py-2 pr-4">{f.audience}</td>
                   <td className="py-2 pr-4 text-gray-500">
                     {f.updated_at ? new Date(f.updated_at).toLocaleString() : '-'}
                   </td>
+                  <td className="py-2 pr-4 text-gray-500">{f.updated_by || '-'}</td>
                 </tr>
               ))}
           </tbody>

@@ -5,5 +5,6 @@
 export type FeatureFlagUpdateIn = {
     value?: (boolean | null);
     description?: (string | null);
+    audience?: ('all' | 'premium' | 'beta' | null);
 };
 

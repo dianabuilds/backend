@@ -29352,6 +29352,15 @@
             "type": "boolean",
             "title": "Value"
           },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "all",
+              "premium",
+              "beta"
+            ],
+            "title": "Audience"
+          },
           "description": {
             "anyOf": [
               {
@@ -29390,7 +29399,8 @@
         "type": "object",
         "required": [
           "key",
-          "value"
+          "value",
+          "audience"
         ],
         "title": "FeatureFlagOut"
       },
@@ -29417,6 +29427,22 @@
               }
             ],
             "title": "Description"
+          },
+          "audience": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "premium",
+                  "beta"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audience"
           }
         },
         "type": "object",

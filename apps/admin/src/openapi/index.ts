@@ -54,7 +54,7 @@ export type { ChangePasswordIn } from './models/ChangePasswordIn';
 export type { CharacterIn } from './models/CharacterIn';
 export type { CharacterOut } from './models/CharacterOut';
 export type { EVMVerify } from './models/EVMVerify';
-export type { FeatureFlagOut } from './models/FeatureFlagOut';
+export { FeatureFlagOut } from './models/FeatureFlagOut';
 export type { FeatureFlagUpdateIn } from './models/FeatureFlagUpdateIn';
 export type { FeedbackCreate } from './models/FeedbackCreate';
 export type { FeedbackOut } from './models/FeedbackOut';
