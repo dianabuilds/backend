@@ -47,15 +47,15 @@ export default function Workspaces() {
     queryClient.invalidateQueries({ queryKey: ["workspaces-list"] });
 
   const handleCreate = async () => {
-    const name = await promptDialog("Workspace name?");
+    const name = await promptDialog("Название воркспейса?");
     if (!name) return;
     const slug =
       (await promptDialog(
-        "Slug?",
+        "Откуда (slug)?",
         name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       )) || "";
     const type =
-      ((await promptDialog("Type (team/personal/global)?", "team")) as
+      ((await promptDialog("Тип (team/personal/global)?", "team")) as
         | "team"
         | "personal"
         | "global"
@@ -63,10 +63,10 @@ export default function Workspaces() {
     try {
       await api.post("/admin/workspaces", { name, slug, type });
       refresh();
-      addToast({ title: "Workspace created", variant: "success" });
+      addToast({ title: "Воркспейс создан", variant: "success" });
     } catch (e) {
       addToast({
-        title: "Failed to create workspace",
+        title: "Не удалось создать воркспейс",
         description: String(e),
         variant: "error",
       });
@@ -74,11 +74,11 @@ export default function Workspaces() {
   };
 
   const handleEdit = async (ws: Workspace) => {
-    const name = await promptDialog("Workspace name?", ws.name);
+    const name = await promptDialog("Название воркспейса?", ws.name);
     if (!name) return;
-    const slug = (await promptDialog("Slug?", ws.slug)) || ws.slug;
+    const slug = (await promptDialog("Откуда (slug)?", ws.slug)) || ws.slug;
     const type =
-      ((await promptDialog("Type (team/personal/global)?", ws.type)) as
+      ((await promptDialog("Тип (team/personal/global)?", ws.type)) as
         | "team"
         | "personal"
         | "global"
@@ -86,10 +86,10 @@ export default function Workspaces() {
     try {
       await api.patch(`/admin/workspaces/${ws.id}`, { name, slug, type });
       refresh();
-      addToast({ title: "Workspace updated", variant: "success" });
+      addToast({ title: "Воркспейс обновлён", variant: "success" });
     } catch (e) {
       addToast({
-        title: "Failed to update workspace",
+        title: "Не удалось обновить воркспейс",
         description: String(e),
         variant: "error",
       });
@@ -97,14 +97,14 @@ export default function Workspaces() {
   };
 
   const handleDelete = async (ws: Workspace) => {
-    if (!(await confirmDialog(`Delete workspace "${ws.name}"?`))) return;
+    if (!(await confirmDialog(`Удалить воркспейс "${ws.name}"?`))) return;
     try {
       await api.del(`/admin/workspaces/${ws.id}`);
       refresh();
-      addToast({ title: "Workspace deleted", variant: "success" });
+      addToast({ title: "Воркспейс удалён", variant: "success" });
     } catch (e) {
       addToast({
-        title: "Failed to delete workspace",
+        title: "Не удалось удалить воркспейс",
         description: String(e),
         variant: "error",
       });
@@ -122,7 +122,7 @@ export default function Workspaces() {
   useEffect(() => {
     if (error) {
       addToast({
-        title: "Failed to load workspaces",
+        title: "Не удалось загрузить воркспейсы",
         description: String(error),
         variant: "error",
       });
@@ -130,11 +130,11 @@ export default function Workspaces() {
   }, [error, addToast]);
 
   return (
-    <PageLayout title="Workspaces">
+    <PageLayout title="Воркспейсы">
       <div className="flex gap-2 mb-4">
         <input
           className="border rounded px-2 py-1"
-          placeholder="Search..."
+          placeholder="Поиск..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -143,27 +143,27 @@ export default function Workspaces() {
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
         >
-          <option value="">All types</option>
-          <option value="team">team</option>
-          <option value="personal">personal</option>
-          <option value="global">global</option>
+          <option value="">Все типы</option>
+          <option value="team">командный</option>
+          <option value="personal">персональный</option>
+          <option value="global">глобальный</option>
         </select>
         <button
           className="px-2 py-1 bg-blue-500 text-white rounded"
           onClick={handleCreate}
         >
-          New workspace
+          Создать воркспейс
         </button>
       </div>
-      {isLoading && <div>Loading...</div>}
+      {isLoading && <div>Загрузка...</div>}
       {!isLoading && !error && (
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b">
-              <th className="p-2 text-left">Name</th>
-              <th className="p-2 text-left">Type</th>
-              <th className="p-2 text-left">Participants</th>
-              <th className="p-2 text-left">Actions</th>
+              <th className="p-2 text-left">Название</th>
+              <th className="p-2 text-left">Тип</th>
+              <th className="p-2 text-left">Участники</th>
+              <th className="p-2 text-left">Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -177,13 +177,13 @@ export default function Workspaces() {
                     className="text-blue-600 hover:underline mr-2"
                     onClick={() => handleEdit(ws)}
                   >
-                    Edit
+                    Редактировать
                   </button>
                   <button
                     className="text-red-600 hover:underline"
                     onClick={() => handleDelete(ws)}
                   >
-                    Delete
+                    Удалить
                   </button>
                 </td>
               </tr>
