@@ -19,6 +19,11 @@ class FeatureFlagKey(StrEnum):
     AI_VALIDATION = "ai.validation"
     REFERRALS_PROGRAM = "referrals.program"
     AI_QUEST_WIZARD = "ai.quest_wizard"
+    CONTENT_SCHEDULING = "content.scheduling"
+    ADMIN_BETA_DASHBOARD = "admin.beta_dashboard"
+    NOTIFICATIONS_DIGEST = "notifications.digest"
+    PREMIUM_GIFTING = "premium.gifting"
+    NODE_NAVIGATION_V2 = "nodes.navigation_v2"
 
 
 # Predefined feature flags available in the system with optional descriptions
@@ -28,6 +33,11 @@ KNOWN_FLAGS: dict[FeatureFlagKey, tuple[str, str]] = {
     FeatureFlagKey.AI_VALIDATION: ("Enable AI-based validation for nodes", "all"),
     FeatureFlagKey.REFERRALS_PROGRAM: ("Enable referrals program", "all"),
     FeatureFlagKey.AI_QUEST_WIZARD: ("Enable AI Quest Wizard", "premium"),
+    FeatureFlagKey.CONTENT_SCHEDULING: ("Enable scheduled publishing for content", "all"),
+    FeatureFlagKey.ADMIN_BETA_DASHBOARD: ("Enable beta version of admin dashboard", "all"),
+    FeatureFlagKey.NOTIFICATIONS_DIGEST: ("Enable daily notifications digest", "all"),
+    FeatureFlagKey.PREMIUM_GIFTING: ("Allow gifting premium subscriptions", "all"),
+    FeatureFlagKey.NODE_NAVIGATION_V2: ("Enable experimental node navigation v2", "all"),
 }
 
 
