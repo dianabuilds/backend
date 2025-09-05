@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from sqlalchemy import Column, DateTime, Integer, String
 
-from . import Base
+from app.providers.db.base import Base
 
 
 class IdempotencyKey(Base):

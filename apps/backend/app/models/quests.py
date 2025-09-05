@@ -6,7 +6,8 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, UniqueCons
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from . import Base
+from app.providers.db.base import Base
+
 from .adapters import JSONB, UUID
 
 

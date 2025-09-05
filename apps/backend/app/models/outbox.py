@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import enum
 from datetime import datetime
 from uuid import uuid4
@@ -5,7 +7,8 @@ from uuid import uuid4
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 
-from . import Base
+from app.providers.db.base import Base
+
 from .adapters import JSONB
 from .adapters import UUID as GUID
 
