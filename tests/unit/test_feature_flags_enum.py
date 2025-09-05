@@ -70,6 +70,25 @@ async def test_referrals_program_toggle(db_session: AsyncSession) -> None:
     invalidate_cache()
 
 
+NEW_FLAGS = [
+    FeatureFlagKey.CONTENT_SCHEDULING,
+    FeatureFlagKey.ADMIN_BETA_DASHBOARD,
+    FeatureFlagKey.NOTIFICATIONS_DIGEST,
+    FeatureFlagKey.PREMIUM_GIFTING,
+    FeatureFlagKey.NODE_NAVIGATION_V2,
+]
+
+
+@pytest.mark.asyncio
+async def test_new_flags_default_off(db_session: AsyncSession) -> None:
+    await ensure_known_flags(db_session)
+    await db_session.commit()
+    flags = await get_effective_flags(db_session, None, None)
+    for flag in NEW_FLAGS:
+        assert flag.value not in flags
+    invalidate_cache()
+
+
 @pytest.mark.asyncio
 async def test_ai_quest_wizard_premium_audience(db_session: AsyncSession) -> None:
     await ensure_known_flags(db_session)
