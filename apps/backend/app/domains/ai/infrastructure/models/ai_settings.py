@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import uuid4
+from typing import Any
 
-from sqlalchemy import Column, DateTime, String, Text
+from sqlalchemy import Column, DateTime, Integer, String, Text
 
-from app.core.db.adapters import UUID
 from app.core.db.base import Base
 
 
 class AISettings(Base):
     __tablename__ = "ai_settings"
 
-    id = Column(UUID(), primary_key=True, default=uuid4)
+    id = Column(Integer, primary_key=True)
     provider = Column(String, nullable=True)
     base_url = Column(String, nullable=True)
     model = Column(String, nullable=True)
@@ -21,3 +20,12 @@ class AISettings(Base):
     updated_at = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+
+    def as_public_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "provider": self.provider,
+            "base_url": self.base_url,
+            "model": self.model,
+            "has_api_key": bool(self.api_key),
+        }
