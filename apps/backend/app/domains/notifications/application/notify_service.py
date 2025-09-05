@@ -22,7 +22,7 @@ class NotifyService:
     async def create_notification(
         self,
         *,
-        workspace_id: UUID,
+        workspace_id: UUID | None = None,
         user_id: UUID,
         title: str,
         message: str,

@@ -14,9 +14,7 @@ from app.domains.ai.infrastructure.repositories.usage_repository import (
     AIUsageRepository,
 )
 from app.domains.notifications.application.notify_service import NotifyService
-from app.domains.notifications.infrastructure.models.notification_models import (
-    NotificationType,
-)
+from app.schemas.notification import NotificationType
 from app.domains.notifications.infrastructure.repositories.notification_repository import (
     NotificationRepository,
 )

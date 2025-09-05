@@ -32,7 +32,7 @@ class InAppNotificationPort(INotificationPort):
         trigger: str,
         user_id: UUID,
         *,
-        workspace_id: UUID,
+        workspace_id: UUID | None = None,
         title: str,
         message: str,
         preview: PreviewContext | None = None,
@@ -40,6 +40,9 @@ class InAppNotificationPort(INotificationPort):
         from app.domains.workspaces.infrastructure.models import Workspace
         from app.schemas.notification_rules import NotificationChannel
         from app.schemas.workspaces import WorkspaceSettings
+
+        if workspace_id is None:
+            return
 
         ws = await self._db.get(Workspace, workspace_id)
         if not ws:

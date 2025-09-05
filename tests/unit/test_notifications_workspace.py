@@ -15,6 +15,7 @@ from app.domains.notifications.infrastructure.models.notification_models import 
 )
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.schemas.notification import NotificationFilter  # noqa: E402
 
 
 def test_list_notifications_scoped_by_workspace() -> None:
@@ -39,12 +40,20 @@ def test_list_notifications_scoped_by_workspace() -> None:
             session.add_all([user, w1, w2, n1, n2])
             await session.commit()
 
+            res_all = await list_notifications(
+                filters=NotificationFilter(), current_user=user, db=session
+            )
             res1 = await list_notifications(
-                workspace_id=w1.id, current_user=user, db=session
+                filters=NotificationFilter(workspace_id=w1.id),
+                current_user=user,
+                db=session,
             )
             res2 = await list_notifications(
-                workspace_id=w2.id, current_user=user, db=session
+                filters=NotificationFilter(workspace_id=w2.id),
+                current_user=user,
+                db=session,
             )
+            assert sorted([r.workspace_id for r in res_all]) == [w1.id, w2.id]
             assert [r.workspace_id for r in res1] == [w1.id]
             assert [r.workspace_id for r in res2] == [w2.id]
 
