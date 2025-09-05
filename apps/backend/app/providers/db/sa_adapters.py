@@ -124,11 +124,11 @@ class VECTOR(TypeDecorator):
             return None
         if dialect.name == "postgresql":
             # For real implementation, convert to tsvector/pgvector input format
-            if isinstance(value, (list, tuple)):
+            if isinstance(value, list | tuple):
                 return " ".join(map(str, value))
             return str(value)
         # For non-PG store as JSON list
-        if isinstance(value, (list, tuple)):
+        if isinstance(value, list | tuple):
             return list(value)
         return [value]
 

@@ -8,7 +8,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.tags.application.tag_admin_service import TagAdminService
 from app.domains.tags.infrastructure.repositories.tag_repository import (
     TagRepositoryAdapter,
@@ -22,6 +21,7 @@ from app.domains.tags.schemas.admin import (
     TagCreate,
     TagListItem,
 )
+from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role({"admin"})

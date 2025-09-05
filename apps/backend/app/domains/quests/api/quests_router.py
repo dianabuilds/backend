@@ -13,7 +13,6 @@ from app.api.deps import (
     get_current_user,
     get_preview_context,
 )
-from app.core.db.session import get_db
 from app.core.preview import PreviewContext
 
 # правила доступа и геймплей вынесены в домен quests
@@ -33,6 +32,7 @@ from app.domains.quests.schemas import (
     QuestUpdate,
 )
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.schemas.node import NodeOut
 
 navcache = NavigationCacheService(CoreCacheAdapter())

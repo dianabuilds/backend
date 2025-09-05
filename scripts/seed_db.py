@@ -25,28 +25,32 @@ current_file = Path(__file__).resolve()
 project_root = current_file.parent.parent
 sys.path.insert(0, str(project_root))
 
-from apps.backend.app.core.config import settings
-from apps.backend.app.core.db.session import create_tables, db_session, init_db
-from apps.backend.app.core.security import get_password_hash
-from apps.backend.app.domains.ai.application.embedding_service import (
+from apps.backend.app.core.config import settings  # noqa: E402
+from apps.backend.app.core.security import get_password_hash  # noqa: E402
+from apps.backend.app.domains.ai.application.embedding_service import (  # noqa: E402
     update_node_embedding,
 )
-from apps.backend.app.domains.navigation.infrastructure.models.echo_models import (
+from apps.backend.app.domains.navigation.infrastructure.models import (  # noqa: E402
+    transition_models as tm,
+)
+from apps.backend.app.domains.navigation.infrastructure.models.echo_models import (  # noqa: E402
     EchoTrace,
 )
-from apps.backend.app.domains.navigation.infrastructure.models.transition_models import (
-    NodeTransition,
-    NodeTransitionType,
+from apps.backend.app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
+from apps.backend.app.domains.users.infrastructure.models.user import User  # noqa: E402
+from apps.backend.app.providers.db.session import (  # noqa: E402
+    create_tables,
+    db_session,
+    init_db,
 )
-from apps.backend.app.domains.nodes.infrastructure.models.node import Node
-from apps.backend.app.domains.users.infrastructure.models.user import User
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
 def rand_username(prefix: str = "user") -> string:
-    return f"{prefix}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=6))}"
+    suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+    return f"{prefix}_{suffix}"
 
 
 def rand_title() -> str:
@@ -85,7 +89,8 @@ def rand_tags() -> list[str]:
 async def wipe_db(session: AsyncSession) -> None:
     """Очищает таблицы (в порядке зависимостей)."""
     logger.info("Wiping existing data...")
-    # Безопасное удаление по порядку (TRUNCATE CASCADE можно, но делаем кросс-совместимо)
+    # Безопасное удаление по порядку (TRUNCATE CASCADE можно,
+    # но делаем кросс-совместимо)
     for table in (
         "echo_trace",
         "node_transitions",
@@ -101,7 +106,7 @@ async def wipe_db(session: AsyncSession) -> None:
 
 async def create_users(session: AsyncSession, count: int) -> list[User]:
     users: list[User] = []
-    for i in range(count):
+    for _i in range(count):
         username = rand_username()
         email = f"{username}@example.com"
         is_premium = random.random() < 0.3
@@ -188,10 +193,10 @@ async def create_nodes(
 
 async def create_transitions(
     session: AsyncSession, nodes: list[Node], users: list[User], count: int
-) -> list[NodeTransition]:
+) -> list[tm.NodeTransition]:
     if len(nodes) < 2:
         return []
-    transitions: list[NodeTransition] = []
+    transitions: list[tm.NodeTransition] = []
     pairs = set()
     max_attempts = count * 3
     attempts = 0
@@ -202,10 +207,10 @@ async def create_transitions(
         if key in pairs:
             continue
         pairs.add(key)
-        t = NodeTransition(
+        t = tm.NodeTransition(
             from_node_id=frm.id,
             to_node_id=to.id,
-            type=NodeTransitionType.manual,
+            type=tm.NodeTransitionType.manual,
             condition={},
             weight=random.randint(1, 5),
             label=random.choice(["Open", "Read more", "Next", "Explore"]),

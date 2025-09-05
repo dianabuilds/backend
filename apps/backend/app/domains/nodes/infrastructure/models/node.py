@@ -19,9 +19,9 @@ from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import relationship
 
 from app.core.config import settings
-from app.core.db.adapters import JSONB, UUID, VECTOR
-from app.core.db.base import Base
 from app.domains.tags.infrastructure.models.tag_models import NodeTag
+from app.providers.db.adapters import JSONB, UUID, VECTOR
+from app.providers.db.base import Base
 from app.schemas.nodes_common import Status, Visibility
 
 

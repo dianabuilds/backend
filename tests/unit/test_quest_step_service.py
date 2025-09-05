@@ -8,7 +8,7 @@ from sqlalchemy import Column
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from app.core.db.adapters import UUID
+from app.providers.db.adapters import UUID
 
 # Provide a minimal ``app.models`` package with Base to satisfy model imports
 Base = declarative_base()

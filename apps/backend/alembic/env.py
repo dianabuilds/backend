@@ -25,7 +25,7 @@ from app.core.env_loader import load_dotenv  # noqa: E402
 load_dotenv()
 
 from app.core.config import settings  # noqa: E402
-from app.core.db.base import Base  # noqa: E402
+from app.providers.db.base import Base  # noqa: E402
 
 target_metadata = Base.metadata
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from app.core.db.session import db_session
 from app.domains.notifications.infrastructure.models.campaign_models import (
     CampaignStatus,
     NotificationCampaign,
@@ -13,6 +12,7 @@ from app.domains.system.events import (
     NodeUpdated,
     get_event_bus,
 )
+from app.providers.db.session import db_session
 
 
 async def _create_campaign(title: str, message: str, author_id: UUID) -> None:

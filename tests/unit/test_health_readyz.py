@@ -13,7 +13,7 @@ sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from app.api import health as health_module  # noqa: E402
 from app.core.cache import cache as shared_cache  # noqa: E402
-from app.core.db.session import get_db  # noqa: E402
+from app.providers.db.session import get_db  # noqa: E402
 
 app = FastAPI()
 app.include_router(health_module.router)

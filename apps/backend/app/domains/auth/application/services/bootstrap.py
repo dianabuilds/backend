@@ -5,9 +5,9 @@ import logging
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.db.session import db_session
 from app.core.security import get_password_hash
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import db_session
 
 logger = logging.getLogger(__name__)
 

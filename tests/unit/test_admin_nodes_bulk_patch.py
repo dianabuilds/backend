@@ -30,7 +30,6 @@ def require_admin_role():
 security_stub.require_admin_role = require_admin_role
 sys.modules.setdefault("app.security", security_stub)
 
-from app.core.db.session import get_db  # noqa: E402
 from app.domains.navigation.infrastructure.models.transition_models import (  # noqa: E402
     NodeTransition,
 )
@@ -41,6 +40,7 @@ from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
 from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
 from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.providers.db.session import get_db  # noqa: E402
 
 
 # Patch navcache to no-op implementation

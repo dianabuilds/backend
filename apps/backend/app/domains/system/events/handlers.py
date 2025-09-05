@@ -45,7 +45,7 @@ class _Handlers:
 
         @asynccontextmanager
         async def _db_session() -> AsyncIterator[AsyncSession]:
-            from app.core.db.session import db_session as real_db_session
+            from app.providers.db.session import db_session as real_db_session
 
             async with real_db_session() as session:
                 yield session

@@ -5,9 +5,9 @@ import logging
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.db.session import db_session
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
+from app.providers.db.session import db_session
 from app.schemas.workspaces import WorkspaceRole, WorkspaceType
 
 logger = logging.getLogger(__name__)

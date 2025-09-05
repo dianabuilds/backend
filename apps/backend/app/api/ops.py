@@ -14,9 +14,9 @@ from app.admin.ops.alerts import router as alerts_router
 from app.admin.ops.cors import router as cors_router
 from app.api.health import readyz
 from app.core.cache import cache as shared_cache
-from app.core.db.session import get_db
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
 from app.domains.workspaces.infrastructure.models import Workspace
+from app.providers.db.session import get_db
 from app.schemas.workspaces import WorkspaceSettings
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 

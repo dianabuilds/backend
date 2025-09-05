@@ -24,7 +24,6 @@ security_stub.auth_user = lambda: None
 sys.modules["app.security"] = security_stub
 
 from app.api import deps as api_deps  # noqa: E402
-from app.core.db.session import get_db  # noqa: E402
 from app.domains.quests.api.versions_router import (  # noqa: E402
     router as versions_router,  # noqa: E402
 )
@@ -36,6 +35,7 @@ from app.domains.quests.infrastructure.models.quest_version_models import (  # n
 )
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.providers.db.session import get_db  # noqa: E402
 
 
 @pytest_asyncio.fixture()

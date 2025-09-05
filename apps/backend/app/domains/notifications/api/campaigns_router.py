@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.db.session import get_db
 from app.domains.notifications.application.broadcast_service import (
     cancel_campaign,
     estimate_recipients,
@@ -20,6 +19,7 @@ from app.domains.notifications.infrastructure.models.campaign_models import (
     NotificationCampaign,
 )
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_only = require_admin_role({"admin"})

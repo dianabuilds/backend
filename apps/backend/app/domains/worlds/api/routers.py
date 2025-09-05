@@ -6,12 +6,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
 from app.domains.worlds.application.worlds_service import WorldsService
 from app.domains.worlds.infrastructure.repositories.worlds_repository import (
     WorldsRepository,
 )
+from app.providers.db.session import get_db
 from app.schemas.worlds import (
     CharacterIn,
     CharacterOut,

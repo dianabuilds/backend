@@ -7,7 +7,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.core.deps import get_storage
 from app.core.log_events import (
     node_cover_upload_fail,
@@ -18,6 +17,7 @@ from app.domains.media.application.ports.storage_port import IStorageGateway
 from app.domains.media.application.storage_service import StorageService
 from app.domains.media.dao import MediaAssetDAO
 from app.domains.media.schemas import MediaAssetOut
+from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_ws_editor
 
 router = APIRouter(

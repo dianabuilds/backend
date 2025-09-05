@@ -5,8 +5,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.moderation.application import CasesService
+from app.providers.db.session import get_db
 from app.schemas.moderation_cases import CaseListResponse
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 

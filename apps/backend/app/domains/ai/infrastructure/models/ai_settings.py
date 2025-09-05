@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, Text
 
-from app.core.db.base import Base
+from app.providers.db.base import Base
 
 
 class AISettings(Base):

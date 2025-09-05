@@ -6,13 +6,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.audit.application.audit_service import audit_log
 from app.domains.search.application.config_service import ConfigService
 from app.domains.search.application.stats_service import search_stats
 from app.domains.search.infrastructure.repositories.search_config_repository import (
     SearchConfigRepository,
 )
+from app.providers.db.session import get_db
 from app.schemas.search_settings import (
     RelevanceApplyOut,
     RelevanceDryRunOut,

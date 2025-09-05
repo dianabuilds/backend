@@ -5,8 +5,8 @@ from uuid import uuid4
 
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Index
 
-from app.core.db.adapters import UUID
-from app.core.db.base import Base
+from app.providers.db.adapters import UUID
+from app.providers.db.base import Base
 
 
 class NodeNotificationSetting(Base):

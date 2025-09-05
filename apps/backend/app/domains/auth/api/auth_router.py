@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.db.session import get_db
 from app.core.errors import http_error
 from app.domains.auth.application.auth_service import AuthService
 from app.domains.auth.infrastructure.mail_adapter import LegacyMailAdapter
@@ -18,6 +17,7 @@ from app.domains.auth.infrastructure.token_adapter import CoreTokenAdapter
 from app.domains.auth.infrastructure.verification_token_store import (
     VerificationTokenStore,
 )
+from app.providers.db.session import get_db
 from app.schemas.auth import (
     EVMVerify,
     LoginResponse,

@@ -7,8 +7,8 @@ import redis
 from rq import Queue
 
 from app.core.config import settings
-from app.core.db.session import get_session_factory
 from app.domains.notifications.application.broadcast_service import run_campaign
+from app.providers.db.session import get_session_factory
 
 _redis_conn: redis.Redis | None = None
 _campaign_queue: Queue | None = None

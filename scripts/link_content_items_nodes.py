@@ -15,7 +15,7 @@ current_file = Path(__file__).resolve()
 project_root = current_file.parent.parent
 sys.path.insert(0, str(project_root))
 
-from apps.backend.app.core.db.session import db_session  # noqa: E402
+from apps.backend.app.providers.db.session import db_session  # noqa: E402
 
 
 async def main() -> None:

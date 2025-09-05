@@ -12,17 +12,17 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.db.session import get_db
+from app.providers.db.session import get_db
 
 _editorjs = types.ModuleType("editorjs_renderer")
 _editorjs.collect_unknown_blocks = lambda *a, **k: []
 _editorjs.render_html = lambda *a, **k: ""
 sys.modules.setdefault("app.domains.nodes.application.editorjs_renderer", _editorjs)
 
-from app.domains.nodes.api import admin_nodes_router
-from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.nodes.models import NodeItem, NodePublishJob
-from app.domains.workspaces.infrastructure.models import Workspace
+from app.domains.nodes.api import admin_nodes_router  # noqa: E402
+from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
+from app.domains.nodes.models import NodeItem, NodePublishJob  # noqa: E402
+from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 
 
 @pytest_asyncio.fixture()

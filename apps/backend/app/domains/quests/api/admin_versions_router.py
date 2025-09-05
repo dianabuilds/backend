@@ -10,7 +10,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_preview_context
-from app.core.db.session import get_db
 from app.core.preview import PreviewContext
 from app.domains.audit.application.audit_service import audit_log
 from app.domains.nodes import service as node_service
@@ -32,6 +31,7 @@ from app.domains.quests.schemas import (
 )
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.schemas.nodes_common import Status
 from app.schemas.quest_editor import (
     QuestCreateIn,

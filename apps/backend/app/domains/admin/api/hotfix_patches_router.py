@@ -5,9 +5,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.nodes.dao import NodePatchDAO
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.schemas.node_patch import (
     NodePatchCreate,
     NodePatchDiffOut,

@@ -7,8 +7,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.db.session import get_db
-from app.core.db.transition_query import TransitionFilterSpec, TransitionQueryService
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
@@ -24,6 +22,11 @@ from app.domains.navigation.schemas.transitions import (
 )
 from app.domains.nodes.application.query_models import PageRequest, QueryContext
 from app.domains.nodes.infrastructure.models.node import Node
+from app.providers.db.session import get_db
+from app.providers.db.transition_query import (
+    TransitionFilterSpec,
+    TransitionQueryService,
+)
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(

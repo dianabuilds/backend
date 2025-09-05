@@ -6,8 +6,8 @@ from uuid import uuid4
 from sqlalchemy import Column, DateTime, String
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 
-from app.core.db.adapters import ARRAY, JSONB, UUID
-from app.core.db.base import Base
+from app.providers.db.adapters import ARRAY, JSONB, UUID
+from app.providers.db.base import Base
 
 
 class NavigationCache(Base):

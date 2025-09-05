@@ -19,11 +19,11 @@ async def _user_has_nft(user, nft):
 stub.user_has_nft = _user_has_nft
 sys.modules.setdefault("app.domains.users.application.nft_service", stub)
 
-from app.core.db.base import Base  # noqa: E402
 from app.domains.navigation.application.providers import RandomProvider  # noqa: E402
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.providers.db.base import Base  # noqa: E402
 
 
 def test_random_provider_scoped_by_workspace() -> None:

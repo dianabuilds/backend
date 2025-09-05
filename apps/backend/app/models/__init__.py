@@ -4,7 +4,7 @@ Expose the declarative Base for Alembic and import only core (non-domain) tables
 Domain models must be imported from app.domains.<domain>.infrastructure.models.
 """
 
-from app.core.db.base import Base  # re-export Base from the DB layer
+from app.providers.db.base import Base  # re-export Base from the DB layer
 
 from . import background_job_history as _background_job_history  # noqa: F401
 from . import event_counter as _event_counter  # noqa: F401

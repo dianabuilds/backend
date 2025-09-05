@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.db.session import get_db
+from app.providers.db.session import get_db
 
 from app.core.preview import PreviewContext, PreviewMode  # isort: skip
 from app.core.rng import next_seed

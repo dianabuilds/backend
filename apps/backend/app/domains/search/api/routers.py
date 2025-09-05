@@ -9,7 +9,6 @@ from sqlalchemy.future import select
 
 from app.api.deps import get_current_user_optional, get_preview_context
 from app.core.config import settings
-from app.core.db.session import get_db
 from app.core.preview import PreviewContext
 from app.domains.ai.application.embedding_service import (
     cosine_similarity,
@@ -23,6 +22,7 @@ from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.search.application.stats_service import search_stats
 from app.domains.tags.models import Tag
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 
 router = APIRouter(tags=["search"])
 

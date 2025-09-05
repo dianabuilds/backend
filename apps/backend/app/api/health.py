@@ -15,9 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import cache as shared_cache
 from app.core.config import settings
-from app.core.db.session import get_db
 from app.core.redis_utils import create_async_redis
 from app.domains.ai.application.embedding_service import get_embedding
+from app.providers.db.session import get_db
 
 try:
     import redis.asyncio as redis  # type: ignore

@@ -6,8 +6,8 @@ from uuid import uuid4
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
 
-from app.core.db.adapters import JSONB, UUID
-from app.core.db.base import Base
+from app.providers.db.adapters import JSONB, UUID
+from app.providers.db.base import Base
 from app.schemas.workspaces import WorkspaceRole, WorkspaceType
 
 

@@ -39,9 +39,9 @@ sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from tests.integration.db_utils import TestUser, get_db_url, setup_test_db  # noqa: E402
 
-from app.core.db.session import get_db  # noqa: E402
 from app.core.security import create_access_token, get_password_hash  # noqa: E402
 from app.main import app  # noqa: E402
+from app.providers.db.session import get_db  # noqa: E402
 
 # Инициализируем тестовую базу данных
 setup_test_db()

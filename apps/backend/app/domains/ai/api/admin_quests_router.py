@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import admin_required, get_preview_context
-from app.core.db.session import get_db
 from app.core.preview import PreviewContext
 from app.domains.ai.infrastructure.models.ai_settings import AISettings
 from app.domains.ai.infrastructure.models.generation_models import (
@@ -37,6 +36,7 @@ from app.domains.ai.schemas.worlds import (
 from app.domains.ai.services.generation import enqueue_generation_job
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required_dep = require_admin_role({"admin", "moderator"})
