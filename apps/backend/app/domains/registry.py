@@ -445,6 +445,15 @@ def register_domain_routers(app: FastAPI) -> None:
         logger.exception("Failed to load admin search router. Startup aborted")
         raise RuntimeError("Failed to load admin search router") from exc
 
+    # Workspaces
+    try:
+        from app.domains.workspaces.api import router as workspaces_router
+
+        app.include_router(workspaces_router)
+    except Exception as exc:
+        logger.exception("Failed to load workspaces router. Startup aborted")
+        raise RuntimeError("Failed to load workspaces router") from exc
+
     # Worlds
     try:
         from app.domains.worlds.api.routers import router as worlds_router
