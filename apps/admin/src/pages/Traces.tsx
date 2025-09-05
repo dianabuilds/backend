@@ -93,9 +93,10 @@ export default function Traces() {
   }, [from, to, userId, source, channel, type, dateFrom, dateTo]);
 
   const queryClient = useQueryClient();
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["traces", page, filters],
     queryFn: () => fetchTraces(page, filters),
+    retry: false,
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["traces"] });
@@ -212,7 +213,17 @@ export default function Traces() {
       </div>
 
       {isLoading && <p>Загрузка...</p>}
-      {error && <p className="text-red-500">Ошибка загрузки трассировок</p>}
+      {error && (
+        <div className="text-red-500">
+          {(error as any)?.response?.data?.detail || (error as Error).message}
+          <button
+            onClick={() => refetch()}
+            className="ml-2 underline"
+          >
+            Повторить
+          </button>
+        </div>
+      )}
       {!isLoading && !error && (
         <table className="min-w-full text-sm text-left">
           <thead>
