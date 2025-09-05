@@ -45,8 +45,8 @@ async def update_flag(
     current: Annotated[Any, Depends(admin_only)],
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> FeatureFlagOut:
-    if body.value is None and body.description is None:
-        msg = "Either 'value' or 'description' must be provided"
+    if body.value is None and body.description is None and body.audience is None:
+        msg = "Either 'value', 'description' or 'audience' must be provided"
         logger.warning("Feature flag %s update rejected: %s", key, msg)
         raise HTTPException(status_code=400, detail=msg)
 
@@ -56,6 +56,7 @@ async def update_flag(
             "key": before.key,
             "value": bool(before.value),
             "description": before.description,
+            "audience": before.audience,
         }
         if before
         else None
@@ -67,12 +68,14 @@ async def update_flag(
         value=body.value,
         description=body.description,
         updated_by=str(getattr(current, "id", "")) or None,
+        audience=body.audience,
     )
 
     after_dump = {
         "key": updated.key,
         "value": bool(updated.value),
         "description": updated.description,
+        "audience": updated.audience,
     }
 
     await audit_log(

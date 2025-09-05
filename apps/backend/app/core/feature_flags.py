@@ -7,9 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.admin.infrastructure.models.feature_flag import FeatureFlag
+from app.domains.users.infrastructure.models.user import User
 
 _CACHE_TTL = 30  # seconds
-_cache: tuple[float, dict[str, bool]] | None = None
+_cache: tuple[float, dict[str, tuple[bool, str]]] | None = None
 
 
 # Predefined feature flags available in the system with optional descriptions.
@@ -35,10 +36,10 @@ def _now() -> float:
     return time.time()
 
 
-async def _load_flags(db: AsyncSession) -> dict[str, bool]:
+async def _load_flags(db: AsyncSession) -> dict[str, tuple[bool, str]]:
     res = await db.execute(select(FeatureFlag))
     items: list[FeatureFlag] = list(res.scalars().all())
-    return {it.key: bool(it.value) for it in items}
+    return {it.key: (bool(it.value), it.audience) for it in items}
 
 
 async def ensure_known_flags(db: AsyncSession) -> None:
@@ -62,7 +63,7 @@ async def ensure_known_flags(db: AsyncSession) -> None:
         invalidate_cache()
 
 
-async def get_flags_map(db: AsyncSession) -> dict[str, bool]:
+async def get_flags_map(db: AsyncSession) -> dict[str, tuple[bool, str]]:
     global _cache
     if _cache and _cache[0] > _now():
         return _cache[1]
@@ -78,9 +79,25 @@ def parse_preview_flags(header_val: str | None) -> set[str]:
     return set(vals)
 
 
-async def get_effective_flags(db: AsyncSession, preview_header: str | None) -> set[str]:
+def _audience_matches(audience: str, user: User | None) -> bool:
+    if audience == "all":
+        return True
+    if audience == "premium":
+        return bool(user and getattr(user, "is_premium", False))
+    if audience == "beta":
+        return bool(user and getattr(user, "is_beta", False))
+    return False
+
+
+async def get_effective_flags(
+    db: AsyncSession, preview_header: str | None, user: User | None
+) -> set[str]:
     base = await get_flags_map(db)
-    active = {k for k, v in base.items() if v}
+    active = {
+        k
+        for k, (v, audience) in base.items()
+        if v and _audience_matches(audience, user)
+    }
     preview = parse_preview_flags(preview_header)
     return active.union(preview)
 
@@ -91,6 +108,7 @@ async def set_flag(
     value: bool | None = None,
     description: str | None = None,
     updated_by: str | None = None,
+    audience: str | None = None,
 ) -> FeatureFlag:
     try:
         key_enum = FeatureFlagKey(key)
@@ -100,7 +118,9 @@ async def set_flag(
     existing = await db.get(FeatureFlag, key_enum.value)
     if existing is None:
         existing = FeatureFlag(
-            key=key_enum.value, value=bool(value) if value is not None else False
+            key=key_enum.value,
+            value=bool(value) if value is not None else False,
+            audience=audience or "all",
         )
         db.add(existing)
     if value is not None:
@@ -109,6 +129,8 @@ async def set_flag(
         existing.description = description
     if updated_by is not None:
         existing.updated_by = updated_by
+    if audience is not None:
+        existing.audience = audience
     # updated_at обновится за счёт onupdate; в async orm произойдёт на flush/commit
     await db.flush()
     # invalidate cache

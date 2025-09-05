@@ -35,7 +35,7 @@ async def get_admin_menu(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Response:
     preview_header = request.headers.get("X-Feature-Flags", "")
-    effective_flags = await get_effective_flags(db, preview_header)
+    effective_flags = await get_effective_flags(db, preview_header, current_user)
     flags: list[str] = sorted(list(effective_flags))
 
     menu, etag, cached = get_cached_menu(current_user, flags)
