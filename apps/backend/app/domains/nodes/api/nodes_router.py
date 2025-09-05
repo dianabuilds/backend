@@ -28,7 +28,7 @@ from app.domains.nodes.application.query_models import (
 )
 from app.domains.nodes.application.node_query_service import NodeQueryService
 from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepositoryAdapter as NodeRepository,
+    NodeRepository,
 )
 from app.domains.nodes.policies.node_policy import NodePolicy
 from app.domains.nodes.schemas.feedback import FeedbackCreate, FeedbackOut
@@ -304,11 +304,11 @@ async def list_feedback(
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import (
-        NodeRepositoryAdapter,
+        NodeRepository,
     )
 
     workspace_id = _ensure_workspace_id(request, workspace_id)
-    service = FeedbackService(NodeRepositoryAdapter(db))
+    service = FeedbackService(NodeRepository(db))
     return await service.list_feedback(db, slug, current_user, workspace_id)
 
 
@@ -325,7 +325,7 @@ async def create_feedback(
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import (
-        NodeRepositoryAdapter,
+        NodeRepository,
     )
     from app.domains.notifications.application.notify_service import NotifyService
     from app.domains.notifications.infrastructure.repositories.notification_repository import (
@@ -340,7 +340,7 @@ async def create_feedback(
 
     notifier = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
     workspace_id = _ensure_workspace_id(request, workspace_id)
-    service = FeedbackService(NodeRepositoryAdapter(db), notifier)
+    service = FeedbackService(NodeRepository(db), notifier)
     return await service.create_feedback(
         db, slug, payload.content, payload.is_anonymous, current_user, workspace_id
     )
@@ -361,11 +361,11 @@ async def delete_feedback(
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import (
-        NodeRepositoryAdapter,
+        NodeRepository,
     )
 
     workspace_id = _ensure_workspace_id(request, workspace_id)
-    service = FeedbackService(NodeRepositoryAdapter(db))
+    service = FeedbackService(NodeRepository(db))
     return await service.delete_feedback(
         db, slug, feedback_id, current_user, workspace_id
     )

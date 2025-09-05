@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
 from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepositoryAdapter,
+    NodeRepository,
 )
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -35,7 +35,7 @@ async def hide_node(
     payload: HidePayload,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict[str, str]:
-    repo = NodeRepositoryAdapter(db)
+    repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, workspace_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
@@ -52,7 +52,7 @@ async def restore_node(
     slug: str,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict[str, str]:
-    repo = NodeRepositoryAdapter(db)
+    repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, workspace_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")

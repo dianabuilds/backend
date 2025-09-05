@@ -15,7 +15,7 @@ from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.dao import NodeItemDAO
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepositoryAdapter,
+    NodeRepository,
 )
 from app.domains.nodes.models import NodeItem, NodePatch
 from app.domains.tags.infrastructure.models.tag_models import NodeTag
@@ -125,7 +125,7 @@ async def test_node_repository_adapter_respects_workspace_filter(
     db.add_all([global_node, ws_node])
     await db.commit()
 
-    repo = NodeRepositoryAdapter(db)
+    repo = NodeRepository(db)
     assert await repo.get_by_slug("gn", None) is not None
     assert await repo.get_by_slug("gn", ws.id) is None
     assert await repo.get_by_slug("wn", ws.id) is not None

@@ -18,7 +18,7 @@ from app.domains.navigation.infrastructure.repositories.transition_repository im
 )
 from app.domains.navigation.policies.transition_policy import TransitionPolicy
 from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepositoryAdapter,
+    NodeRepository,
 )
 from app.domains.users.infrastructure.models.user import User
 
@@ -36,7 +36,7 @@ async def delete_transition(
 ):
     """Delete a specific manual transition between nodes."""
     repo = TransitionRepository(db)
-    node_repo = NodeRepositoryAdapter(db)
+    node_repo = NodeRepository(db)
     transition = await repo.get(transition_id)
     if not transition:
         raise HTTPException(status_code=404, detail="Transition not found")
