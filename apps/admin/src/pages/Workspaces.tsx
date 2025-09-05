@@ -1,13 +1,14 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 
 import { api } from "../api/client";
-import type { Workspace } from "../api/types";
+import { listWorkspaces, type Workspace } from "../api/workspaces";
 import type { WorkspaceMemberOut } from "../openapi";
 import { useToast } from "../components/ToastProvider";
 import PageLayout from "./_shared/PageLayout";
-import { ensureArray } from "../shared/utils";
 import { confirmDialog, promptDialog } from "../shared/ui";
+
+const PAGE_SIZE = 50;
 
 export default function Workspaces() {
   const { addToast } = useToast();
@@ -16,32 +17,41 @@ export default function Workspaces() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
 
-  const { data, isLoading, error } = useQuery({
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ["workspaces-list", search, typeFilter],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (search) params.set("q", search);
-      if (typeFilter) params.set("type", typeFilter);
-      const qs = params.toString() ? `?${params.toString()}` : "";
-      const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
-        `/admin/workspaces${qs}`,
-      );
-      return ensureArray(res.data);
-    },
+    queryFn: ({ pageParam = 0 }) =>
+      listWorkspaces({
+        q: search || undefined,
+        type: typeFilter || undefined,
+        limit: PAGE_SIZE,
+        offset: pageParam * PAGE_SIZE,
+      }),
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.length === PAGE_SIZE ? pages.length : undefined,
+    initialPageParam: 0,
   });
+
+  const workspaces = useMemo(() => data?.pages.flat() ?? [], [data]);
 
   const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   useEffect(() => {
-    if (!data) return;
+    if (workspaces.length === 0) return;
     Promise.all(
-      data.map(async (ws) => {
+      workspaces.map(async (ws) => {
         const res = await api.get<WorkspaceMemberOut[]>(
           `/admin/workspaces/${ws.id}/members`,
         );
         return [ws.id, (res.data ?? []).length] as [string, number];
       }),
     ).then((entries) => setMemberCounts(Object.fromEntries(entries)));
-  }, [data]);
+  }, [workspaces]);
 
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ["workspaces-list"] });
@@ -111,14 +121,6 @@ export default function Workspaces() {
     }
   };
 
-  const filtered = (data || [])
-    .filter(
-      (ws) =>
-        ws.name.toLowerCase().includes(search.toLowerCase()) ||
-        ws.slug.toLowerCase().includes(search.toLowerCase()),
-    )
-    .filter((ws) => !typeFilter || ws.type === typeFilter);
-
   useEffect(() => {
     if (error) {
       addToast({
@@ -157,39 +159,52 @@ export default function Workspaces() {
       </div>
       {isLoading && <div>Загрузка...</div>}
       {!isLoading && !error && (
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="p-2 text-left">Название</th>
-              <th className="p-2 text-left">Тип</th>
-              <th className="p-2 text-left">Участники</th>
-              <th className="p-2 text-left">Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((ws) => (
-              <tr key={ws.id} className="border-b hover:bg-gray-50">
-                <td className="p-2">{ws.name}</td>
-                <td className="p-2 capitalize">{ws.type}</td>
-                <td className="p-2">{memberCounts[ws.id] ?? "-"}</td>
-                <td className="p-2">
-                  <button
-                    className="text-blue-600 hover:underline mr-2"
-                    onClick={() => handleEdit(ws)}
-                  >
-                    Редактировать
-                  </button>
-                  <button
-                    className="text-red-600 hover:underline"
-                    onClick={() => handleDelete(ws)}
-                  >
-                    Удалить
-                  </button>
-                </td>
+        <>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="p-2 text-left">Название</th>
+                <th className="p-2 text-left">Тип</th>
+                <th className="p-2 text-left">Участники</th>
+                <th className="p-2 text-left">Действия</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {workspaces.map((ws) => (
+                <tr key={ws.id} className="border-b hover:bg-gray-50">
+                  <td className="p-2">{ws.name}</td>
+                  <td className="p-2 capitalize">{ws.type}</td>
+                  <td className="p-2">{memberCounts[ws.id] ?? "-"}</td>
+                  <td className="p-2">
+                    <button
+                      className="text-blue-600 hover:underline mr-2"
+                      onClick={() => handleEdit(ws)}
+                    >
+                      Редактировать
+                    </button>
+                    <button
+                      className="text-red-600 hover:underline"
+                      onClick={() => handleDelete(ws)}
+                    >
+                      Удалить
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {hasNextPage && (
+            <div className="mt-4">
+              <button
+                className="px-4 py-2 bg-gray-200 rounded"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? "Загрузка..." : "Загрузить ещё"}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </PageLayout>
   );

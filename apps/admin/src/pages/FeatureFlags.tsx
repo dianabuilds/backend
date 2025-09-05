@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
-import { ApiError } from '../api/client';
-import { type FeatureFlag, listFlags, updateFlag } from '../api/flags';
-import FlagEditModal from '../components/FlagEditModal';
-import PageLayout from './_shared/PageLayout';
+import { ApiError } from "../api/client";
+import { type FeatureFlag, listFlags, updateFlag } from "../api/flags";
+import FlagEditModal from "../components/FlagEditModal";
+import PageLayout from "./_shared/PageLayout";
 
 function ToggleView({ checked }: { checked: boolean }) {
   return (
@@ -16,51 +17,51 @@ function ToggleView({ checked }: { checked: boolean }) {
   );
 }
 
+const PAGE_SIZE = 50;
+
 export default function FeatureFlagsPage() {
-  const [flags, setFlags] = useState<FeatureFlag[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [editing, setEditing] = useState<FeatureFlag | null>(null);
+  const queryClient = useQueryClient();
 
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const items = await listFlags();
-      setFlags(items);
-    } catch (e) {
-      if (e instanceof ApiError) {
-        const msg = typeof e.detail === 'string' ? e.detail : e.message;
-        setError(msg);
-      } else {
-        setError(e instanceof Error ? e.message : String(e));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["feature-flags", filter],
+    queryFn: ({ pageParam = 0 }) =>
+      listFlags({
+        q: filter || undefined,
+        limit: PAGE_SIZE,
+        offset: pageParam * PAGE_SIZE,
+      }),
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.length === PAGE_SIZE ? pages.length : undefined,
+    initialPageParam: 0,
+  });
 
-  useEffect(() => {
-    load();
-  }, []);
+  const flags = useMemo(() => data?.pages.flat() ?? [], [data]);
 
   const onSave = async (
     key: string,
     patch: {
       description: string;
       value: boolean;
-      audience: FeatureFlag['audience'];
+      audience: FeatureFlag["audience"];
     },
   ) => {
     try {
-      const updated = await updateFlag(key, patch);
-      setFlags((arr) => arr.map((x) => (x.key === key ? updated : x)));
+      await updateFlag(key, patch);
       setEditing(null);
+      queryClient.invalidateQueries({ queryKey: ["feature-flags"] });
     } catch (e) {
       const msg =
         e instanceof ApiError
-          ? typeof e.detail === 'string'
+          ? typeof e.detail === "string"
             ? e.detail
             : e.message
           : e instanceof Error
@@ -72,8 +73,14 @@ export default function FeatureFlagsPage() {
 
   return (
     <PageLayout title="Feature Flags" subtitle="Включение/выключение функционала админки">
-      {loading && <div className="animate-pulse text-sm text-gray-500">Loading...</div>}
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {isLoading && (
+        <div className="animate-pulse text-sm text-gray-500">Loading...</div>
+      )}
+      {error && (
+        <div className="text-sm text-red-600">
+          {error instanceof Error ? error.message : String(error)}
+        </div>
+      )}
       <div className="mt-4 mb-2">
         <input
           type="text"
@@ -97,30 +104,40 @@ export default function FeatureFlagsPage() {
             </tr>
           </thead>
           <tbody>
-            {flags
-              .filter((f) => f.key.toLowerCase().includes(filter.toLowerCase()))
-              .map((f) => (
-                <tr
-                  key={f.key}
-                  className="border-t border-gray-200 dark:border-gray-800 cursor-pointer"
-                  onClick={() => setEditing(f)}
-                >
-                  <td className="py-2 pr-4 font-mono">{f.key}</td>
-                  <td className="py-2 pr-4">{f.description || '-'}</td>
-                  <td className="py-2 pr-4">
-                    <ToggleView checked={!!f.value} />
-                  </td>
-                  <td className="py-2 pr-4">{f.audience}</td>
-                  <td className="py-2 pr-4 text-gray-500">
-                    {f.updated_at ? new Date(f.updated_at).toLocaleString() : '-'}
-                  </td>
-                  <td className="py-2 pr-4 text-gray-500">{f.updated_by || '-'}</td>
-                </tr>
-              ))}
+            {flags.map((f) => (
+              <tr
+                key={f.key}
+                className="border-t border-gray-200 dark:border-gray-800 cursor-pointer"
+                onClick={() => setEditing(f)}
+              >
+                <td className="py-2 pr-4 font-mono">{f.key}</td>
+                <td className="py-2 pr-4">{f.description || '-'}</td>
+                <td className="py-2 pr-4">
+                  <ToggleView checked={!!f.value} />
+                </td>
+                <td className="py-2 pr-4">{f.audience}</td>
+                <td className="py-2 pr-4 text-gray-500">
+                  {f.updated_at ? new Date(f.updated_at).toLocaleString() : '-'}
+                </td>
+                <td className="py-2 pr-4 text-gray-500">{f.updated_by || '-'}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
+      {hasNextPage && (
+        <div className="mt-4">
+          <button
+            className="px-4 py-2 bg-gray-200 rounded"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage ? "Loading..." : "Load more"}
+          </button>
+        </div>
+      )}
       <FlagEditModal flag={editing} onClose={() => setEditing(null)} onSave={onSave} />
     </PageLayout>
   );
 }
+
