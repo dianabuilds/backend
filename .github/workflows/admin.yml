@@ -50,6 +50,9 @@ jobs:
         run: |
           npm run generate:types
           git diff --exit-code
+      - name: Prettier check
+        working-directory: apps/admin
+        run: pnpm run prettier:check
       - name: Cache ESLint results
         uses: actions/cache@v4
         with:
