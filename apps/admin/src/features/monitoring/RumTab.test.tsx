@@ -104,4 +104,50 @@ describe('RumTab', () => {
       expect(spy).toHaveBeenLastCalledWith('login', undefined, 50, 50),
     );
   });
+
+  it('filters events by chart click and scrolls table', async () => {
+    const now = Date.now();
+
+    vi.spyOn(
+      AdminTelemetryService,
+      'rumSummaryAdminTelemetryRumSummaryGet',
+    ).mockResolvedValue({
+      window: 60,
+      counts: {},
+      login_attempt_avg_ms: null,
+      navigation_avg: { ttfb_ms: null, dom_content_loaded_ms: null, load_event_ms: null },
+    } as unknown);
+
+    const events: RumEvent[] = [
+      { event: 'a', ts: now } as RumEvent,
+      { event: 'a', ts: now + 60_000 } as RumEvent,
+    ];
+    vi.spyOn(AdminTelemetryService, 'listRumEventsAdminTelemetryRumGet').mockResolvedValue(
+      events as unknown as RumEvent[],
+    );
+
+    const qc = new QueryClient();
+    const { container } = render(
+      <QueryClientProvider client={qc}>
+        <RumTab />
+      </QueryClientProvider>,
+    );
+
+    const firstTime = new Date(now).toLocaleTimeString();
+    const secondTime = new Date(now + 60_000).toLocaleTimeString();
+
+    await screen.findByText(firstTime);
+    await screen.findByText(secondTime);
+
+    const scrollSpy = vi.fn();
+    (HTMLElement.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = scrollSpy;
+
+    const bar = container.querySelector('[data-testid="bar-1"]');
+    expect(bar).toBeTruthy();
+    if (bar) fireEvent.click(bar);
+
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalled());
+    expect(screen.queryByText(firstTime)).toBeNull();
+    expect(screen.getByText(secondTime)).toBeInTheDocument();
+  });
 });
