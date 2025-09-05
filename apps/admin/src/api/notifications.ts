@@ -33,6 +33,10 @@ export interface NotificationItem {
   created_at: string;
 }
 
+export interface DraftCampaign extends Campaign {
+  message: string;
+}
+
 export async function estimateCampaign(
   filters: CampaignFilters,
 ): Promise<unknown> {
@@ -98,6 +102,32 @@ export async function startCampaign(id: string): Promise<unknown> {
 export async function cancelCampaign(id: string): Promise<unknown> {
   const res = await api.post<unknown>(
     `/admin/notifications/campaigns/${id}/cancel`,
+    {},
+  );
+  return res.data;
+}
+
+export async function getDraftCampaign(id: string): Promise<DraftCampaign> {
+  const res = await api.get<DraftCampaign>(
+    `/admin/notifications/campaigns/${id}`,
+  );
+  return res.data!;
+}
+
+export async function updateDraftCampaign(
+  id: string,
+  payload: { title: string; message: string },
+): Promise<unknown> {
+  const res = await api.patch<unknown>(
+    `/admin/notifications/campaigns/${id}`,
+    payload,
+  );
+  return res.data;
+}
+
+export async function sendDraftCampaign(id: string): Promise<unknown> {
+  const res = await api.post<unknown>(
+    `/admin/notifications/campaigns/${id}/start`,
     {},
   );
   return res.data;
