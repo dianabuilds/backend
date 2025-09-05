@@ -167,6 +167,115 @@
         ]
       }
     },
+    "/admin/ops/alerts/{alert_id}/resolve": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Resolve Alert",
+        "description": "Mark alert resolved.",
+        "operationId": "resolve_alert_admin_ops_alerts__alert_id__resolve_post",
+        "parameters": [
+          {
+            "name": "alert_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Alert Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Resolve Alert Admin Ops Alerts Alert Id Resolve Post",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "BAD_GATEWAY",
+                    "message": "Failed to resolve alert"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/admin/ops/status": {
       "get": {
         "tags": [

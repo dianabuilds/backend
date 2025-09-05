@@ -5,7 +5,7 @@ import os
 from typing import Any
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 
@@ -56,3 +56,32 @@ async def get_alerts() -> dict[str, list[dict[str, Any]]]:
 
     alerts = await fetch_active_alerts()
     return {"alerts": alerts}
+
+
+async def resolve_alert(alert_id: str) -> bool:
+    """Mark an alert resolved via Prometheus if configured."""
+
+    base_url = os.getenv("PROMETHEUS_URL")
+    if not base_url:
+        return True
+    url = base_url.rstrip("/") + f"/api/v1/alerts/{alert_id}/resolve"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(url)
+            resp.raise_for_status()
+    except Exception as e:  # pragma: no cover - network errors
+        logging.getLogger(__name__).warning(
+            "Failed to resolve alert %s via %s", alert_id, url, exc_info=e
+        )
+        return False
+    return True
+
+
+@router.post("/alerts/{alert_id}/resolve")
+async def resolve_alert_endpoint(alert_id: str) -> dict[str, str]:
+    """Mark an alert resolved."""
+
+    ok = await resolve_alert(alert_id)
+    if not ok:
+        raise HTTPException(status_code=502, detail="Failed to resolve alert")
+    return {"status": "resolved"}

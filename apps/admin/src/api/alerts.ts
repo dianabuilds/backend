@@ -10,6 +10,10 @@ export interface AlertItem {
   status?: "active" | "resolved";
 }
 
+export interface ResolveAlertResponse {
+  status: string;
+}
+
 export async function getAlerts(): Promise<AlertItem[]> {
   const res = await api.get<any>("/admin/ops/alerts");
   const raw = res.data;
@@ -40,6 +44,7 @@ export async function getAlerts(): Promise<AlertItem[]> {
   }));
 }
 
-export async function resolveAlert(id: string): Promise<void> {
-  await api.post(`/admin/ops/alerts/${id}/resolve`, {});
+export async function resolveAlert(id: string): Promise<ResolveAlertResponse> {
+  const res = await api.post(`/admin/ops/alerts/${id}/resolve`, {});
+  return res.data as ResolveAlertResponse;
 }
