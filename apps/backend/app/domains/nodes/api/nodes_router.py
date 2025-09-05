@@ -5,8 +5,6 @@ from typing import List, Literal, TypedDict, Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
-from fastapi.responses import RedirectResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -32,7 +30,6 @@ from app.domains.nodes.infrastructure.queries.node_query_adapter import NodeQuer
 from app.domains.nodes.infrastructure.repositories.node_repository import (
     NodeRepositoryAdapter as NodeRepository,
 )
-from app.domains.nodes.models import NodeItem
 from app.domains.nodes.policies.node_policy import NodePolicy
 from app.domains.nodes.schemas.feedback import FeedbackCreate, FeedbackOut
 from app.domains.nodes.schemas.node import (
@@ -52,8 +49,6 @@ from app.schemas.notification_settings import (
     NodeNotificationSettingsUpdate,
 )
 from app.security import require_ws_guest, require_ws_viewer
-from app.schemas.nodes_common import Status
-from app.core.feature_flags import FeatureFlagKey, get_effective_flags
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -146,7 +141,7 @@ async def read_node(
     request: Request,
     slug: str,
     workspace_id: UUID | None = None,
-    feature_flags: Annotated[str | None, Header(alias="X-Feature-Flags")] = None,
+    _feature_flags: Annotated[str | None, Header(alias="X-Feature-Flags")] = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
@@ -168,23 +163,6 @@ async def read_node(
         raise HTTPException(status_code=400, detail="workspace_id is required")
     request.state.workspace_id = str(workspace_id)
     await require_ws_guest(workspace_id=workspace_id, user=current_user, db=db)
-    res = await db.execute(
-        select(NodeItem)
-        .where(
-            NodeItem.node_id == node.id,
-            NodeItem.status == Status.published,
-        )
-        .order_by(NodeItem.version.desc())
-        .limit(1)
-    )
-    item = res.scalar_one_or_none()
-    if item and item.type == "quest":
-        flags = await get_effective_flags(db, feature_flags, current_user)
-        if FeatureFlagKey.QUESTS_NODES_REDIRECT.value in flags:
-            return RedirectResponse(
-                url=f"/quests/{node.id}/versions/current?workspace_id={workspace_id}",
-                status_code=307,
-            )
     NodePolicy.ensure_can_view(node, current_user)
     if node.premium_only:
         await require_premium(current_user)
