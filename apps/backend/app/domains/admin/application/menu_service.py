@@ -208,9 +208,7 @@ CACHE_TTL = 45  # seconds
 _menu_cache: dict[tuple[str, tuple[str, ...]], tuple[float, MenuResponse, str]] = {}
 
 
-def _filter_and_convert(
-    items: list[dict], role: str, flags: set[str]
-) -> list[MenuItem]:
+def _filter_and_convert(items: list[dict], role: str, flags: set[str]) -> list[MenuItem]:
     result: list[MenuItem] = []
     for raw in items:
         if raw.get("hidden"):
@@ -246,9 +244,7 @@ def build_menu(user: User, flags: list[str]) -> MenuResponse:
     role = getattr(user, "role", "")
     items = _filter_and_convert(BASE_MENU, role, set(flags))
     items_dump = [item.model_dump(by_alias=True) for item in items]
-    version = hashlib.sha256(
-        json.dumps(items_dump, sort_keys=True).encode()
-    ).hexdigest()
+    version = hashlib.sha256(json.dumps(items_dump, sort_keys=True).encode()).hexdigest()
     return MenuResponse(items=items, version=version, generated_at=datetime.now(UTC))
 
 

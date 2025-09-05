@@ -20,9 +20,7 @@ class AISettings(Base):
     has_api_key = Column(Boolean, default=False)
     api_key = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def as_public_dict(self) -> dict[str, Any]:
         return {

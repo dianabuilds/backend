@@ -17,9 +17,7 @@ from app.providers.db.session import get_db
 from app.schemas.user import AdminUserOut, UserPremiumUpdate, UserRoleUpdate
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(
-    prefix="/admin/users", tags=["admin"], responses=ADMIN_AUTH_RESPONSES
-)
+router = APIRouter(prefix="/admin/users", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
 admin_only = require_admin_role({"admin"})
 admin_required = require_admin_role()
 
@@ -64,9 +62,7 @@ async def list_users(
     user_ids = [u.id for u in users]
     restrictions_map: dict[UUID, list[UserRestriction]] = {}
     if user_ids:
-        res = await db.execute(
-            select(UserRestriction).where(UserRestriction.user_id.in_(user_ids))
-        )
+        res = await db.execute(select(UserRestriction).where(UserRestriction.user_id.in_(user_ids)))
         for r in res.scalars().all():
             restrictions_map.setdefault(r.user_id, []).append(r)
 

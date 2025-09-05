@@ -24,16 +24,12 @@ class QuotaService:
     ``YYYYMMDD`` for day scope and ``YYYYMM`` for month scope.
     """
 
-    def __init__(
-        self, cache: Cache | None = None, plans_file: str | None = None
-    ) -> None:
+    def __init__(self, cache: Cache | None = None, plans_file: str | None = None) -> None:
         # используем общий кэш (Redis при наличии),
         # чтобы квоты были согласованы во всех инстансах
         self.cache = cache or shared_cache
         if plans_file is None:
-            plans_file = str(
-                Path(__file__).resolve().parents[3] / "settings" / "plans.yaml"
-            )
+            plans_file = str(Path(__file__).resolve().parents[3] / "settings" / "plans.yaml")
         try:
             with open(plans_file, encoding="utf-8") as f:
                 self.plans: dict[str, Any] = yaml.safe_load(f) or {}
@@ -79,16 +75,10 @@ class QuotaService:
                 "overage": False,
             }
 
-        now = (
-            preview.now.astimezone(UTC)
-            if preview and preview.now
-            else datetime.now(tz=UTC)
-        )
+        now = preview.now.astimezone(UTC) if preview and preview.now else datetime.now(tz=UTC)
         if scope == "day":
             period = now.strftime("%Y%m%d")
-            reset_at = now.replace(
-                hour=0, minute=0, second=0, microsecond=0
-            ) + timedelta(days=1)
+            reset_at = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         elif scope == "month":
             period = now.strftime("%Y%m")
             first_day = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

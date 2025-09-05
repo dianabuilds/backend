@@ -12,14 +12,10 @@ from app.schemas.premium import SubscriptionPlanIn
 
 class SubscriptionPlanService:
     async def list_plans(self, db: AsyncSession) -> list[SubscriptionPlan]:
-        res = await db.execute(
-            select(SubscriptionPlan).order_by(SubscriptionPlan.order.asc())
-        )
+        res = await db.execute(select(SubscriptionPlan).order_by(SubscriptionPlan.order.asc()))
         return list(res.scalars().all())
 
-    async def create_plan(
-        self, db: AsyncSession, payload: SubscriptionPlanIn
-    ) -> SubscriptionPlan:
+    async def create_plan(self, db: AsyncSession, payload: SubscriptionPlanIn) -> SubscriptionPlan:
         plan = SubscriptionPlan(**payload.model_dump())
         db.add(plan)
         await db.commit()

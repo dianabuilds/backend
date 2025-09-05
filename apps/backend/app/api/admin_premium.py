@@ -40,9 +40,7 @@ async def list_plans(
     return await service.list_plans(db)
 
 
-@router.post(
-    "/plans", response_model=SubscriptionPlanOut, summary="Create subscription plan"
-)
+@router.post("/plans", response_model=SubscriptionPlanOut, summary="Create subscription plan")
 async def create_plan(
     payload: SubscriptionPlanIn,
     db: Annotated[AsyncSession, Depends(get_db)],

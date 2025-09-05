@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +15,7 @@ async def process_due_jobs(db: AsyncSession, *, limit: int = 50) -> dict:
     Выполнить отложенные публикации, срок которых наступил.
     Возвращает отчёт о выполненных заданиях.
     """
-    now = datetime.now(datetime.UTC).replace(tzinfo=None)  # БД хранит naive UTC
+    now = datetime.now(UTC).replace(tzinfo=None)  # БД хранит naive UTC
     res = await db.execute(
         select(NodePublishJob)
         .where(NodePublishJob.status == "pending", NodePublishJob.scheduled_at <= now)

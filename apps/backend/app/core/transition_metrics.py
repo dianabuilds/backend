@@ -28,9 +28,7 @@ def record_repeat_rate(rate: float) -> None:
         _repeat_rates.append(rate)
 
 
-def record_route_length(
-    length: int, workspace_id: str | None, preview: bool = False
-) -> None:
+def record_route_length(length: int, workspace_id: str | None, preview: bool = False) -> None:
     ws = workspace_id or "unknown"
     with _transition_lock:
         if preview:
@@ -76,9 +74,7 @@ def prometheus() -> str:
     with _transition_lock:
         lat = list(_route_latencies)
         rates = list(_repeat_rates)
-        lengths: dict[str, list[int]] = {
-            ws: list(v) for ws, v in _route_lengths.items()
-        }
+        lengths: dict[str, list[int]] = {ws: list(v) for ws, v in _route_lengths.items()}
         entropies = {ws: list(v) for ws, v in _tag_entropies.items()}
         totals = dict(_transition_counts)
         no_routes = dict(_no_route_counts)
@@ -105,9 +101,7 @@ def prometheus() -> str:
         lines.append(f"repeat_rate {sum(rates) / len(rates)}")
     else:
         lines.append("repeat_rate 0")
-    lines.append(
-        "# HELP transition_no_route_percent Percentage of transitions without route"
-    )
+    lines.append("# HELP transition_no_route_percent Percentage of transitions without route")
     lines.append("# TYPE transition_no_route_percent gauge")
     for ws, cnt in no_routes.items():
         total = totals.get(ws, 0)

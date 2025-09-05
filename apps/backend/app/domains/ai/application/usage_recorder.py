@@ -26,9 +26,7 @@ async def record_usage(
     try:
         calc_cost = cost
         if calc_cost is None:
-            calc_cost = estimate_cost_usd(
-                model, usage.prompt_tokens, usage.completion_tokens
-            )
+            calc_cost = estimate_cost_usd(model, usage.prompt_tokens, usage.completion_tokens)
         row = AIUsage(
             workspace_id=workspace_id,
             user_id=user_id,

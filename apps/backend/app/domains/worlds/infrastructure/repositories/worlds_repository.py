@@ -22,9 +22,7 @@ class WorldsRepository(IWorldsRepository):
         )
         return list(res.scalars().all())
 
-    async def get_world(
-        self, world_id: UUID, workspace_id: UUID
-    ) -> WorldTemplate | None:
+    async def get_world(self, world_id: UUID, workspace_id: UUID) -> WorldTemplate | None:
         res = await self._db.execute(
             select(WorldTemplate).where(
                 WorldTemplate.id == world_id, WorldTemplate.workspace_id == workspace_id
@@ -35,9 +33,7 @@ class WorldsRepository(IWorldsRepository):
     async def create_world(
         self, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
     ) -> WorldTemplate:
-        world = WorldTemplate(
-            workspace_id=workspace_id, created_by_user_id=actor_id, **data
-        )
+        world = WorldTemplate(workspace_id=workspace_id, created_by_user_id=actor_id, **data)
         self._db.add(world)
         await self._db.flush()
         await self._db.refresh(world)
@@ -65,9 +61,7 @@ class WorldsRepository(IWorldsRepository):
         await self._db.delete(world)
         await self._db.flush()
 
-    async def list_characters(
-        self, world_id: UUID, workspace_id: UUID
-    ) -> list[Character]:
+    async def list_characters(self, world_id: UUID, workspace_id: UUID) -> list[Character]:
         res = await self._db.execute(
             select(Character)
             .where(
@@ -114,12 +108,8 @@ class WorldsRepository(IWorldsRepository):
         await self._db.delete(character)
         await self._db.flush()
 
-    async def get_character(
-        self, char_id: UUID, workspace_id: UUID
-    ) -> Character | None:
+    async def get_character(self, char_id: UUID, workspace_id: UUID) -> Character | None:
         res = await self._db.execute(
-            select(Character).where(
-                Character.id == char_id, Character.workspace_id == workspace_id
-            )
+            select(Character).where(Character.id == char_id, Character.workspace_id == workspace_id)
         )
         return res.scalar_one_or_none()

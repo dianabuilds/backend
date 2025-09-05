@@ -57,9 +57,7 @@ async def get_usage_by_workspace(
         writer = csv.writer(buf)
         writer.writerow(["workspace_id", "tokens", "cost", "limit", "progress"])
         for r in out:
-            writer.writerow(
-                [r["workspace_id"], r["tokens"], r["cost"], r["limit"], r["progress"]]
-            )
+            writer.writerow([r["workspace_id"], r["tokens"], r["cost"], r["limit"], r["progress"]])
         return Response(buf.getvalue(), media_type="text/csv")
     return out
 

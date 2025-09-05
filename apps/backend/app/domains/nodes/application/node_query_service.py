@@ -24,9 +24,7 @@ class NodeQueryService:
     async def compute_nodes_etag(
         self, spec: NodeFilterSpec, ctx: QueryContext, page: PageRequest
     ) -> str:
-        base = select(
-            func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at)
-        ).join(
+        base = select(func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at)).join(
             NodeItem,
             and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
             isouter=True,

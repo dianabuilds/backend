@@ -37,9 +37,7 @@ class AuthService:
 
     async def login(self, db: AsyncSession, payload: LoginSchema) -> LoginResponse:
         q = await db.execute(
-            select(User).where(
-                or_(User.email == payload.login, User.username == payload.login)
-            )
+            select(User).where(or_(User.email == payload.login, User.username == payload.login))
         )
         user = q.scalars().first()
         if not user or not verify_password(payload.password, user.password_hash or ""):
@@ -51,9 +49,7 @@ class AuthService:
         await db.commit()
         access = self._tokens.create_access_token(str(user.id))
         refresh = self._tokens.create_refresh_token(str(user.id))
-        return LoginResponse(
-            access_token=access, refresh_token=refresh, token_type="bearer"
-        )
+        return LoginResponse(access_token=access, refresh_token=refresh, token_type="bearer")
 
     async def refresh(self, payload: Token) -> LoginResponse:
         sub = self._tokens.verify_refresh_token(payload.token)
@@ -61,9 +57,7 @@ class AuthService:
             raise http_error(401, "Invalid refresh token")
         access = self._tokens.create_access_token(sub)
         refresh = self._tokens.create_refresh_token(sub)
-        return LoginResponse(
-            access_token=access, refresh_token=refresh, token_type="bearer"
-        )
+        return LoginResponse(access_token=access, refresh_token=refresh, token_type="bearer")
 
     async def signup(
         self, db: AsyncSession, payload: SignupSchema, mailer: object

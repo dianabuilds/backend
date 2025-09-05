@@ -26,9 +26,7 @@ class DummyNotifier(ICaseNotifier):
     def __init__(self) -> None:
         self.called_with: uuid.UUID | None = None
 
-    async def case_created(
-        self, case_id: uuid.UUID
-    ) -> None:  # pragma: no cover - simple store
+    async def case_created(self, case_id: uuid.UUID) -> None:  # pragma: no cover - simple store
         self.called_with = case_id
 
 
@@ -75,9 +73,7 @@ async def test_patch_assign_and_add_note_create_events(session: AsyncSession):
 
     assignee = uuid.uuid4()
     await service.patch_case(session, case.id, CasePatch(assignee_id=assignee))
-    note = await service.add_note(
-        session, case.id, CaseNoteCreate(text="hi"), author_id=assignee
-    )
+    note = await service.add_note(session, case.id, CaseNoteCreate(text="hi"), author_id=assignee)
     assert note is not None
     res = await session.execute(select(CaseEvent).where(CaseEvent.case_id == case.id))
     events = res.scalars().all()

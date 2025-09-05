@@ -16,9 +16,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     """Extract or generate correlation id and store in context vars."""
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
-        request_id = request.headers.get("X-Request-ID") or request.headers.get(
-            "X-Correlation-ID"
-        )
+        request_id = request.headers.get("X-Request-ID") or request.headers.get("X-Correlation-ID")
         if not request_id:
             request_id = str(uuid.uuid4())
         token = request_id_var.set(request_id)

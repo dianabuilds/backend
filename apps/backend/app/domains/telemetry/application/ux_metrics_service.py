@@ -30,19 +30,12 @@ class UXMetrics:
 
     def prometheus(self) -> str:
         with self._lock:
-            avg = (
-                sum(self._first_save) / len(self._first_save)
-                if self._first_save
-                else 0.0
-            )
+            avg = sum(self._first_save) / len(self._first_save) if self._first_save else 0.0
             ratio = (
-                self._published_with_tags / self._published_total
-                if self._published_total
-                else 0.0
+                self._published_with_tags / self._published_total if self._published_total else 0.0
             )
             lines = [
-                "# HELP app_ux_time_to_first_save_seconds_avg "
-                "Average time to first save",
+                "# HELP app_ux_time_to_first_save_seconds_avg " "Average time to first save",
                 "# TYPE app_ux_time_to_first_save_seconds_avg gauge",
                 f"app_ux_time_to_first_save_seconds_avg {avg}",
                 "# HELP app_ux_tagged_ratio Ratio of published nodes with tags",

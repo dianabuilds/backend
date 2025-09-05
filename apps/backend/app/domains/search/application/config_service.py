@@ -20,9 +20,7 @@ def _now() -> float:
 
 
 def _checksum(payload: RelevancePayload) -> str:
-    return hashlib.sha256(
-        json.dumps(payload.model_dump(), sort_keys=True).encode()
-    ).hexdigest()
+    return hashlib.sha256(json.dumps(payload.model_dump(), sort_keys=True).encode()).hexdigest()
 
 
 class ConfigService:
@@ -42,9 +40,7 @@ class ConfigService:
         if row is None:
             # создаём дефолт
             payload = RelevancePayload()
-            ts = await self._repo.create_default_active(
-                version=1, payload=payload, updated_by=None
-            )
+            ts = await self._repo.create_default_active(version=1, payload=payload, updated_by=None)
             ConfigService._cache = (_now() + ConfigService._CACHE_TTL, 1, payload, ts)
             return RelevanceGetOut(version=1, payload=payload, updated_at=ts)
 
@@ -62,8 +58,7 @@ class ConfigService:
     ) -> RelevanceDryRunOut:
         # MVP: Возвращаем заглушку диффа — список запросов без реального пересчёта
         diff: list[DryRunDiffItem] = [
-            DryRunDiffItem(query=q, topBefore=[], topAfter=[], moved=[])
-            for q in (sample or [])
+            DryRunDiffItem(query=q, topBefore=[], topAfter=[], moved=[]) for q in (sample or [])
         ]
         warnings: list[str] = []
         return RelevanceDryRunOut(diff=diff, warnings=warnings)
@@ -74,12 +69,8 @@ class ConfigService:
         max_ver = await self._repo.get_max_version()
         ver = int(max_ver) + 1
         cs = _checksum(payload)
-        await self._repo.add_version(
-            version=ver, payload=payload, checksum=cs, created_by=actor_id
-        )
-        ts = await self._repo.set_active(
-            version=ver, payload=payload, updated_by=actor_id
-        )
+        await self._repo.add_version(version=ver, payload=payload, checksum=cs, created_by=actor_id)
+        ts = await self._repo.set_active(version=ver, payload=payload, updated_by=actor_id)
         ConfigService._cache = None  # invalidate cache
         return RelevanceApplyOut(version=ver, payload=payload, updated_at=ts)
 

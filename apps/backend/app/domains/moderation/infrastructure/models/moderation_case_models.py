@@ -45,18 +45,12 @@ class ModerationCase(Base):
     reason_code = Column(String, nullable=True)  # при закрытии
     resolution = Column(String, nullable=True)  # resolved | rejected
 
-    labels = relationship(
-        "CaseLabel", cascade="all, delete-orphan", back_populates="case"
-    )
-    notes = relationship(
-        "CaseNote", cascade="all, delete-orphan", back_populates="case"
-    )
+    labels = relationship("CaseLabel", cascade="all, delete-orphan", back_populates="case")
+    notes = relationship("CaseNote", cascade="all, delete-orphan", back_populates="case")
     attachments = relationship(
         "CaseAttachment", cascade="all, delete-orphan", back_populates="case"
     )
-    events = relationship(
-        "CaseEvent", cascade="all, delete-orphan", back_populates="case"
-    )
+    events = relationship("CaseEvent", cascade="all, delete-orphan", back_populates="case")
 
 
 class ModerationLabel(Base):
@@ -72,9 +66,7 @@ class CaseLabel(Base):
     __tablename__ = "case_labels"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    case_id = Column(
-        UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False
-    )
+    case_id = Column(UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False)
     label_id = Column(
         UUID(), ForeignKey("moderation_labels.id", ondelete="CASCADE"), nullable=False
     )
@@ -87,9 +79,7 @@ class CaseNote(Base):
     __tablename__ = "case_notes"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    case_id = Column(
-        UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False
-    )
+    case_id = Column(UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False)
     author_id = Column(UUID(), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     text = Column(Text, nullable=False)
@@ -102,9 +92,7 @@ class CaseAttachment(Base):
     __tablename__ = "case_attachments"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    case_id = Column(
-        UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False
-    )
+    case_id = Column(UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False)
     author_id = Column(UUID(), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     url = Column(String, nullable=False)
@@ -118,9 +106,7 @@ class CaseEvent(Base):
     __tablename__ = "case_events"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    case_id = Column(
-        UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False
-    )
+    case_id = Column(UUID(), ForeignKey("moderation_cases.id", ondelete="CASCADE"), nullable=False)
     actor_id = Column(UUID(), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     kind = Column(

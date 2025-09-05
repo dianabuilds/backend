@@ -122,9 +122,7 @@ class ARRAY(TypeDecorator):
         # Определяем, нужно ли приводить элементы к числу
         is_numeric = False
         try:
-            is_numeric = issubclass(
-                self.item_type, types.Integer | types.Float | types.Numeric
-            )
+            is_numeric = issubclass(self.item_type, types.Integer | types.Float | types.Numeric)
         except Exception:
             is_numeric = False
 

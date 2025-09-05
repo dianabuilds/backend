@@ -131,9 +131,7 @@ async def update_node_embedding(db: AsyncSession, node: Node) -> None:
     vec = get_embedding(text)
     db_dim = _db_embedding_dim()
     if len(vec) != db_dim:
-        logger.warning(
-            "Embedding length %s != DB column dim %s, adjusting", len(vec), db_dim
-        )
+        logger.warning("Embedding length %s != DB column dim %s, adjusting", len(vec), db_dim)
         vec = reduce_vector_dim(vec, db_dim)
 
     try:

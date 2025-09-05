@@ -12,9 +12,7 @@ pytestmark = pytest.mark.skip("requires full database schema")
 
 
 @pytest.mark.asyncio
-async def test_workspace_node_simulation_trace(
-    client: AsyncClient, auth_headers: dict[str, str]
-):
+async def test_workspace_node_simulation_trace(client: AsyncClient, auth_headers: dict[str, str]):
     # Create workspace
     resp = await client.post(
         "/admin/workspaces",

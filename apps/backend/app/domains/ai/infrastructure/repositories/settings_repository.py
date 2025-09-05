@@ -18,9 +18,7 @@ class AISettingsRepository(IAISettingsRepository):
     async def get_singleton(
         self, *, create_if_missing: bool, defaults: dict[str, Any]
     ) -> AISettings:
-        result = await self._db.execute(
-            select(AISettings).where(AISettings.id == SINGLETON_ID)
-        )
+        result = await self._db.execute(select(AISettings).where(AISettings.id == SINGLETON_ID))
         row = result.scalar_one_or_none()
         if row is None and create_if_missing:
             row = AISettings(

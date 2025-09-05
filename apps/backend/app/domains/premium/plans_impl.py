@@ -23,9 +23,7 @@ async def get_active_plans(db: AsyncSession) -> list[SubscriptionPlan]:
 
 
 async def get_plan_by_slug(db: AsyncSession, slug: str) -> SubscriptionPlan | None:
-    res = await db.execute(
-        select(SubscriptionPlan).where(SubscriptionPlan.slug == slug)
-    )
+    res = await db.execute(select(SubscriptionPlan).where(SubscriptionPlan.slug == slug))
     return res.scalars().first()
 
 
@@ -34,9 +32,7 @@ async def get_effective_plan_slug(
 ) -> str:
     if not user_id:
         return "free"
-    now = (
-        preview.now.astimezone(UTC) if preview and preview.now else datetime.now(tz=UTC)
-    )
+    now = preview.now.astimezone(UTC) if preview and preview.now else datetime.now(tz=UTC)
     res = await db.execute(
         select(UserSubscription, SubscriptionPlan)
         .join(SubscriptionPlan, UserSubscription.plan_id == SubscriptionPlan.id)

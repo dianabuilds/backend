@@ -23,9 +23,7 @@ class InAppNotificationPort(INotificationPort):
 
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
-        self._svc = NotifyService(
-            NotificationRepository(db), WebsocketPusher(ws_manager)
-        )
+        self._svc = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
 
     async def notify(
         self,

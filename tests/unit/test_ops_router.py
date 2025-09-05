@@ -56,9 +56,7 @@ def test_status_endpoint_cached():
         return JSONResponse({"ready": "ok"})
 
     async def fake_get(db, ws_id):  # pragma: no cover - helper
-        return SimpleNamespace(
-            id=ws_id, slug="demo", name="Demo", settings_json={"limits": {}}
-        )
+        return SimpleNamespace(id=ws_id, slug="demo", name="Demo", settings_json={"limits": {}})
 
     ops_module.readyz = fake_readyz
     ops_module.WorkspaceDAO.get = fake_get
@@ -84,9 +82,7 @@ def test_limits_endpoint_remaining_and_cached():
             id=ws_id,
             slug="demo",
             name="Demo",
-            settings_json={
-                "limits": {"ai_tokens": 100, "notif_per_day": 10, "compass_calls": 5}
-            },
+            settings_json={"limits": {"ai_tokens": 100, "notif_per_day": 10, "compass_calls": 5}},
         )
 
     ops_module.WorkspaceDAO.get = fake_get

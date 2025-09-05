@@ -19,18 +19,14 @@ class InMemoryLLMMetricsSink(ILLMMetricsSink):
         return (metric, labels.provider, labels.model, labels.stage or "unknown")
 
     def inc(self, metric: str, labels: LLMCallLabels, by: int = 1) -> None:
-        self.counters[self._k(metric, labels)] = (
-                self.counters.get(self._k(metric, labels), 0) + by
-        )
+        self.counters[self._k(metric, labels)] = self.counters.get(self._k(metric, labels), 0) + by
 
     def observe_latency(self, labels: LLMCallLabels, ms: float) -> None:
         key = (labels.provider, labels.model, labels.stage or "unknown")
         self.latency_sum[key] = self.latency_sum.get(key, 0.0) + float(ms)
         self.latency_count[key] = self.latency_count.get(key, 0) + 1
 
-    def observe_tokens(
-            self, labels: LLMCallLabels, prompt: int, completion: int
-    ) -> None:
+    def observe_tokens(self, labels: LLMCallLabels, prompt: int, completion: int) -> None:
         kpr = (labels.provider, labels.model, labels.stage or "unknown", "prompt")
         kco = (labels.provider, labels.model, labels.stage or "unknown", "completion")
         self.tokens_sum[kpr] = self.tokens_sum.get(kpr, 0) + int(prompt)

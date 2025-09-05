@@ -67,11 +67,7 @@ class TransitionQueryService:
             "page": {"limit": page.limit, "offset": page.offset} if page else None,
         }
         base_stmt = self.build_query(spec)
-        subq = (
-            base_stmt.with_only_columns(NodeTransition.created_at)
-            .order_by(None)
-            .subquery()
-        )
+        subq = base_stmt.with_only_columns(NodeTransition.created_at).order_by(None).subquery()
         res = await self.session.execute(select(func.max(subq.c.created_at)))
         max_created = res.scalar()
         payload = {
@@ -80,9 +76,7 @@ class TransitionQueryService:
         }
         etag = (
             'W/"'
-            + hashlib.sha256(
-                json.dumps(payload, sort_keys=True, default=str).encode()
-            ).hexdigest()
+            + hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
             + '"'
         )
         return etag

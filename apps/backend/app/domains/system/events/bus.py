@@ -71,9 +71,7 @@ class EventBus:
                 except Exception:
                     attempts += 1
                     if attempts >= 3:
-                        logger.exception(
-                            "event handler failed after %s attempts", attempts
-                        )
+                        logger.exception("event handler failed after %s attempts", attempts)
                         break
                     await asyncio.sleep(0)
                 finally:

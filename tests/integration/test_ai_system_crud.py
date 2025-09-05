@@ -34,9 +34,7 @@ async def ai_tables(db_session: AsyncSession) -> None:
 
 
 @pytest_asyncio.fixture()
-async def admin_headers(
-    db_session: AsyncSession, test_user, auth_headers
-) -> dict[str, str]:
+async def admin_headers(db_session: AsyncSession, test_user, auth_headers) -> dict[str, str]:
     await db_session.execute(
         text("UPDATE users SET role='admin' WHERE id=:id"), {"id": test_user.id}
     )
@@ -56,9 +54,7 @@ async def client_with_domains(client: AsyncClient) -> AsyncClient:
 async def test_providers_crud(
     client_with_domains: AsyncClient, admin_headers: dict[str, str], ai_tables: None
 ) -> None:
-    resp = await client_with_domains.get(
-        "/admin/ai/system/providers", headers=admin_headers
-    )
+    resp = await client_with_domains.get("/admin/ai/system/providers", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json() == []
 
@@ -74,9 +70,7 @@ async def test_providers_crud(
     assert resp.status_code == 200
     assert resp.json()["code"] == "openai"
 
-    resp = await client_with_domains.get(
-        "/admin/ai/system/providers", headers=admin_headers
-    )
+    resp = await client_with_domains.get("/admin/ai/system/providers", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json() == [
         {
@@ -99,9 +93,7 @@ async def test_providers_crud(
 async def test_models_crud(
     client_with_domains: AsyncClient, admin_headers: dict[str, str], ai_tables: None
 ) -> None:
-    resp = await client_with_domains.get(
-        "/admin/ai/system/models", headers=admin_headers
-    )
+    resp = await client_with_domains.get("/admin/ai/system/models", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json() == []
 
@@ -126,9 +118,7 @@ async def test_models_crud(
     assert resp.status_code == 200
     assert resp.json()["active"] is False
 
-    resp = await client_with_domains.get(
-        "/admin/ai/system/models", headers=admin_headers
-    )
+    resp = await client_with_domains.get("/admin/ai/system/models", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json() == [
         {
@@ -145,9 +135,7 @@ async def test_models_crud(
 async def test_prices_crud(
     client_with_domains: AsyncClient, admin_headers: dict[str, str], ai_tables: None
 ) -> None:
-    resp = await client_with_domains.get(
-        "/admin/ai/system/prices", headers=admin_headers
-    )
+    resp = await client_with_domains.get("/admin/ai/system/prices", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json() == []
 
@@ -171,9 +159,7 @@ async def test_prices_crud(
     assert resp.status_code == 200
     assert resp.json()["input_cost"] == 0.005
 
-    resp = await client_with_domains.get(
-        "/admin/ai/system/prices", headers=admin_headers
-    )
+    resp = await client_with_domains.get("/admin/ai/system/prices", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json() == [
         {
@@ -190,9 +176,7 @@ async def test_prices_crud(
 async def test_defaults_crud(
     client_with_domains: AsyncClient, admin_headers: dict[str, str], ai_tables: None
 ) -> None:
-    resp = await client_with_domains.get(
-        "/admin/ai/system/defaults", headers=admin_headers
-    )
+    resp = await client_with_domains.get("/admin/ai/system/defaults", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json() == {}
 
@@ -204,9 +188,7 @@ async def test_defaults_crud(
     default = resp.json()
     assert default["provider"] == "openai"
 
-    resp = await client_with_domains.get(
-        "/admin/ai/system/defaults", headers=admin_headers
-    )
+    resp = await client_with_domains.get("/admin/ai/system/defaults", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json() == default
 

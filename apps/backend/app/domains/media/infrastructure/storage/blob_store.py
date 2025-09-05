@@ -27,10 +27,7 @@ def put_text(prefix: str, data: str, *, filename_hint: str | None = None) -> str
     """
     safe_hint = ""
     if filename_hint:
-        safe_hint = (
-            "-"
-            + "".join(c for c in filename_hint if c.isalnum() or c in ("_", "-"))[:40]
-        )
+        safe_hint = "-" + "".join(c for c in filename_hint if c.isalnum() or c in ("_", "-"))[:40]
     key = f"{uuid.uuid4().hex}{safe_hint}.txt"
     path = _subdir(prefix) / key
     path.write_text(data, encoding="utf-8")

@@ -20,9 +20,7 @@ from app.providers.db.session import db_session, get_current_session
 class AuditLogHandler(logging.Handler):
     """Logging handler that persists admin actions to the database."""
 
-    def emit(
-        self, record: logging.LogRecord
-    ) -> None:  # pragma: no cover - side effects
+    def emit(self, record: logging.LogRecord) -> None:  # pragma: no cover - side effects
         try:
             if record.msg != "admin_action":
                 return

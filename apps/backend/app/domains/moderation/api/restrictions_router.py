@@ -58,21 +58,14 @@ async def create_restriction(
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
     assert_seniority_over(target_user, current_user)
-    if (
-        payload.type == "ban"
-        and payload.expires_at is None
-        and current_user.role != "admin"
-    ):
+    if payload.type == "ban" and payload.expires_at is None and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permanent ban requires admin")
     now = datetime.utcnow()
     res = await db.execute(
         select(UserRestriction).where(
             UserRestriction.user_id == payload.user_id,
             UserRestriction.type == payload.type,
-            (
-                (UserRestriction.expires_at.is_(None))
-                | (UserRestriction.expires_at > now)
-            ),
+            ((UserRestriction.expires_at.is_(None)) | (UserRestriction.expires_at > now)),
         )
     )
     if res.scalars().first():

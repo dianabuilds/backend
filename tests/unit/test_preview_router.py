@@ -59,18 +59,14 @@ class DummyRouter:
     def __init__(self) -> None:
         self.history: list[str] = []
 
-    async def route(
-        self, db, start, user, budget, preview: PreviewContext | None = None
-    ):
+    async def route(self, db, start, user, budget, preview: PreviewContext | None = None):
         rng = random.Random(preview.seed if preview else None)
         options = ["n1", "n2"]
         chosen = rng.choice(options)
         if not preview or preview.mode == "off":
             self.history.append(chosen)
         trace = [TransitionTrace(options, [], {}, chosen)]
-        return TransitionResult(
-            next=DummyNode(chosen), reason=None, trace=trace, metrics={}
-        )
+        return TransitionResult(next=DummyNode(chosen), reason=None, trace=trace, metrics={})
 
 
 class DummyNavigationService:
@@ -80,9 +76,7 @@ class DummyNavigationService:
         self._router = DummyRouter()
         DummyNavigationService.last_instance = self
 
-    async def build_route(
-        self, db, node, user, preview: PreviewContext | None = None, mode=None
-    ):
+    async def build_route(self, db, node, user, preview: PreviewContext | None = None, mode=None):
         budget = SimpleNamespace(
             max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
         )
@@ -102,9 +96,7 @@ def test_dry_run_seed_and_no_side_effects(monkeypatch):
             await conn.run_sync(NodeTag.__table__.create)
             await conn.run_sync(UserEventCounter.__table__.create)
             await conn.run_sync(UserAchievement.__table__.create)
-        async_session = sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with async_session() as session:
             user = User(id=uuid.uuid4())
@@ -116,9 +108,7 @@ def test_dry_run_seed_and_no_side_effects(monkeypatch):
                 content={},
                 author_id=user.id,
             )
-            counter = UserEventCounter(
-                workspace_id=ws.id, user_id=user.id, event="evt", count=0
-            )
+            counter = UserEventCounter(workspace_id=ws.id, user_id=user.id, event="evt", count=0)
             session.add_all([user, ws, node, counter])
             await session.commit()
 
@@ -194,9 +184,7 @@ def test_read_only_renders_route_without_transition(monkeypatch):
             await conn.run_sync(NodeTag.__table__.create)
             await conn.run_sync(UserEventCounter.__table__.create)
             await conn.run_sync(UserAchievement.__table__.create)
-        async_session = sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with async_session() as session:
             user = User(id=uuid.uuid4())
@@ -237,9 +225,7 @@ def test_preview_token_workspace_validation(monkeypatch):
             await conn.run_sync(Node.__table__.create)
             await conn.run_sync(Tag.__table__.create)
             await conn.run_sync(NodeTag.__table__.create)
-        async_session = sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with async_session() as session:
             user = User(id=uuid.uuid4())
@@ -255,9 +241,7 @@ def test_preview_token_workspace_validation(monkeypatch):
             await session.commit()
 
             payload = SimulateRequest(workspace_id=ws.id, start="start")
-            req = SimpleNamespace(
-                state=SimpleNamespace(preview_token={"workspace_id": str(ws.id)})
-            )
+            req = SimpleNamespace(state=SimpleNamespace(preview_token={"workspace_id": str(ws.id)}))
             res = await simulate_transitions(payload, session, req)
             assert res["next"] in {"n1", "n2"}
 
@@ -277,9 +261,7 @@ def test_returns_seed_for_replay(monkeypatch):
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        async_session = sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with async_session() as session:
             user = User(id=uuid.uuid4())

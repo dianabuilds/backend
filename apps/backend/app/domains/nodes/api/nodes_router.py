@@ -290,9 +290,7 @@ async def update_node_notification_settings(
     return NodeNotificationSettingsOut.model_validate(setting)
 
 
-@router.get(
-    "/{slug}/feedback", response_model=List[FeedbackOut], summary="List feedback"
-)
+@router.get("/{slug}/feedback", response_model=List[FeedbackOut], summary="List feedback")
 async def list_feedback(
     request: Request,
     slug: str,
@@ -346,9 +344,7 @@ async def create_feedback(
     )
 
 
-@router.delete(
-    "/{slug}/feedback/{feedback_id}", response_model=dict, summary="Delete feedback"
-)
+@router.delete("/{slug}/feedback/{feedback_id}", response_model=dict, summary="Delete feedback")
 async def delete_feedback(
     request: Request,
     slug: str,
@@ -366,6 +362,4 @@ async def delete_feedback(
 
     workspace_id = _ensure_workspace_id(request, workspace_id)
     service = FeedbackService(NodeRepository(db))
-    return await service.delete_feedback(
-        db, slug, feedback_id, current_user, workspace_id
-    )
+    return await service.delete_feedback(db, slug, feedback_id, current_user, workspace_id)

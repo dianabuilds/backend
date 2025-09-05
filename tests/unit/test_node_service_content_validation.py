@@ -57,20 +57,14 @@ async def test_update_accepts_content_field() -> None:
         import app.domains.nodes.application.node_service as ns
 
         class _DummyNavSvc:
-            async def invalidate_navigation_cache(
-                self, *args, **kwargs
-            ) -> None:  # noqa: ANN002
+            async def invalidate_navigation_cache(self, *args, **kwargs) -> None:  # noqa: ANN002
                 return None
 
         class _DummyNavCache:
-            async def invalidate_navigation_by_node(
-                self, *args, **kwargs
-            ) -> None:  # noqa: ANN002
+            async def invalidate_navigation_by_node(self, *args, **kwargs) -> None:  # noqa: ANN002
                 return None
 
-            async def invalidate_modes_by_node(
-                self, *args, **kwargs
-            ) -> None:  # noqa: ANN002
+            async def invalidate_modes_by_node(self, *args, **kwargs) -> None:  # noqa: ANN002
                 return None
 
             async def invalidate_compass_all(self) -> None:  # noqa: D401
@@ -140,20 +134,14 @@ async def test_update_rejects_legacy_fields(field: str, value: list[Any]) -> Non
         import app.domains.nodes.application.node_service as ns
 
         class _DummyNavSvc:
-            async def invalidate_navigation_cache(
-                self, *args, **kwargs
-            ) -> None:  # noqa: ANN002
+            async def invalidate_navigation_cache(self, *args, **kwargs) -> None:  # noqa: ANN002
                 return None
 
         class _DummyNavCache:
-            async def invalidate_navigation_by_node(
-                self, *args, **kwargs
-            ) -> None:  # noqa: ANN002
+            async def invalidate_navigation_by_node(self, *args, **kwargs) -> None:  # noqa: ANN002
                 return None
 
-            async def invalidate_modes_by_node(
-                self, *args, **kwargs
-            ) -> None:  # noqa: ANN002
+            async def invalidate_modes_by_node(self, *args, **kwargs) -> None:  # noqa: ANN002
                 return None
 
             async def invalidate_compass_all(self) -> None:  # noqa: D401

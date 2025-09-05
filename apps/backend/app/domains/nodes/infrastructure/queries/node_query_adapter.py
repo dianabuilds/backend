@@ -20,7 +20,5 @@ class NodeQueryAdapter(INodeQueryService):
     ) -> str:
         return await self._svc.compute_nodes_etag(spec, ctx, page)
 
-    async def list_nodes(
-        self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext
-    ):
+    async def list_nodes(self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext):
         return await self._svc.list_nodes(spec, page, ctx)

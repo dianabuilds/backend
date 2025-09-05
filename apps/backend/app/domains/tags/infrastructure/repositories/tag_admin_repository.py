@@ -20,15 +20,9 @@ class TagAdminRepository(ITagAdminRepository):
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def add_alias(
-        self, tag_id: UUID, alias_norm: str, type_: str = "synonym"
-    ) -> TagAlias:
+    async def add_alias(self, tag_id: UUID, alias_norm: str, type_: str = "synonym") -> TagAlias:
         exists = (
-            (
-                await self._db.execute(
-                    select(TagAlias).where(TagAlias.alias == alias_norm)
-                )
-            )
+            (await self._db.execute(select(TagAlias).where(TagAlias.alias == alias_norm)))
             .scalars()
             .first()
         )
@@ -46,9 +40,7 @@ class TagAdminRepository(ITagAdminRepository):
 
     async def list_aliases(self, tag_id: UUID) -> list[TagAlias]:
         res = await self._db.execute(
-            select(TagAlias)
-            .where(TagAlias.tag_id == tag_id)
-            .order_by(TagAlias.alias.asc())
+            select(TagAlias).where(TagAlias.tag_id == tag_id).order_by(TagAlias.alias.asc())
         )
         return list(res.scalars().all())
 

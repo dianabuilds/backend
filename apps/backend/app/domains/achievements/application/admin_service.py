@@ -50,15 +50,11 @@ class AchievementsAdminService:
             if code != item.code and await self._repo.exists_code(code, workspace_id):
                 raise ValueError("code_conflict")
             data["code"] = code
-        item = await self._repo.update_achievement_fields(
-            item, data, workspace_id, actor_id
-        )
+        item = await self._repo.update_achievement_fields(item, data, workspace_id, actor_id)
         await db.commit()
         return item
 
-    async def delete(
-        self, db: AsyncSession, workspace_id: UUID, achievement_id: UUID
-    ) -> bool:
+    async def delete(self, db: AsyncSession, workspace_id: UUID, achievement_id: UUID) -> bool:
         item = await self._repo.get_achievement(achievement_id, workspace_id)
         if not item:
             return False

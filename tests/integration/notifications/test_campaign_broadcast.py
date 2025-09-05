@@ -28,9 +28,7 @@ async def test_run_campaign(db_session: AsyncSession, test_user: TestUser) -> No
         await conn.run_sync(NotificationCampaign.__table__.create)
         await conn.run_sync(Notification.__table__.create)
 
-    user2 = TestUser(
-        email="u2@example.com", username="user2", password_hash="x", is_active=False
-    )
+    user2 = TestUser(email="u2@example.com", username="user2", password_hash="x", is_active=False)
     await create_user(user2, db_session)
 
     camp = NotificationCampaign(

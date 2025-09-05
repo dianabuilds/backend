@@ -62,9 +62,7 @@ async def test_overlay_applies_patch_with_single_query(db: AsyncSession) -> None
 
     queries: list[str] = []
 
-    def count_sql(
-        conn, cursor, statement, parameters, context, executemany
-    ):  # noqa: ANN001
+    def count_sql(conn, cursor, statement, parameters, context, executemany):  # noqa: ANN001
         if "node_patches" in statement.lower():
             queries.append(statement)
 

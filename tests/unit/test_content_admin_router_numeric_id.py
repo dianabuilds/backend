@@ -153,9 +153,7 @@ async def test_get_node_by_id(app_client):
 @pytest.mark.asyncio
 async def test_put_node_by_id_updates(app_client_with_session):
     client, ws_id, item_id, node_id, async_session = app_client_with_session
-    resp = await client.put(
-        f"/admin/workspaces/{ws_id}/nodes/{item_id}", json={"title": "N2"}
-    )
+    resp = await client.put(f"/admin/workspaces/{ws_id}/nodes/{item_id}", json={"title": "N2"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["id"] == node_id
@@ -219,7 +217,5 @@ async def test_get_node_auto_creates_item(app_client_node_only):
     resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
     assert resp.status_code == 200
     async with async_session() as session:
-        res = await session.execute(
-            sa.select(NodeItem).where(NodeItem.node_id == node_id)
-        )
+        res = await session.execute(sa.select(NodeItem).where(NodeItem.node_id == node_id))
         assert res.scalar_one() is not None

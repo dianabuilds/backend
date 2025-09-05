@@ -40,9 +40,7 @@ class NodeTransitionUpdate(BaseModel):
     to_slug: str | None = Field(default=None, example="end")
     label: str | None = Field(default=None, example="Go next")
     type: NodeTransitionType | None = None
-    condition: TransitionCondition | None = Field(
-        default=None, example={"premium_required": True}
-    )
+    condition: TransitionCondition | None = Field(default=None, example={"premium_required": True})
     weight: int | None = Field(default=None, ge=1, example=1)
 
 

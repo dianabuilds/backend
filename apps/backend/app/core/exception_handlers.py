@@ -73,9 +73,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     return response
 
 
-async def validation_exception_handler(
-    request: Request, exc: ValidationError
-) -> JSONResponse:
+async def validation_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
     body = _build_body(
         "VALIDATION_ERROR",
         "Validation error",

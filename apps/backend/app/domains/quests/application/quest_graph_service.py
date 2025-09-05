@@ -33,9 +33,7 @@ class QuestGraphService:
         nodes: Iterable[QuestGraphNode] = (
             (
                 await db.execute(
-                    select(QuestGraphNode).where(
-                        QuestGraphNode.version_id == version_id
-                    )
+                    select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
                 )
             )
             .scalars()
@@ -44,9 +42,7 @@ class QuestGraphService:
         edges: Iterable[QuestGraphEdge] = (
             (
                 await db.execute(
-                    select(QuestGraphEdge).where(
-                        QuestGraphEdge.version_id == version_id
-                    )
+                    select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
                 )
             )
             .scalars()
@@ -80,12 +76,8 @@ class QuestGraphService:
         transitions: list[QuestTransition],
     ) -> None:
         """Persist quest graph and regenerate navigation cache."""
-        await db.execute(
-            delete(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
-        )
-        await db.execute(
-            delete(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
-        )
+        await db.execute(delete(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id))
+        await db.execute(delete(QuestGraphNode).where(QuestGraphNode.version_id == version_id))
         await db.flush()
 
         for s in steps:
@@ -121,9 +113,7 @@ class QuestGraphService:
         except Exception:
             pass
 
-    async def generate_navigation_cache(
-        self, db: AsyncSession, version_id: UUID
-    ) -> None:
+    async def generate_navigation_cache(self, db: AsyncSession, version_id: UUID) -> None:
         """Generate navigation cache entries from stored graph."""
         _version, steps, transitions = await self.load_graph(db, version_id)
         await db.execute(delete(NavigationCache))

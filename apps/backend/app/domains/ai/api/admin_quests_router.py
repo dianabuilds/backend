@@ -73,9 +73,7 @@ async def generate_ai_quest(
     preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ) -> GenerationEnqueued:
     params = {
-        "world_template_id": (
-            str(body.world_template_id) if body.world_template_id else None
-        ),
+        "world_template_id": (str(body.world_template_id) if body.world_template_id else None),
         "structure": body.structure,
         "length": body.length,
         "tone": body.tone,
@@ -110,16 +108,12 @@ async def generate_ai_quest(
     return GenerationEnqueued(job_id=job.id)
 
 
-@router.get(
-    "/jobs", response_model=list[GenerationJobOut], summary="List AI generation jobs"
-)
+@router.get("/jobs", response_model=list[GenerationJobOut], summary="List AI generation jobs")
 async def list_jobs(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _: Annotated[Depends, Depends(admin_required)] = ...,
 ) -> list[GenerationJobOut]:
-    res = await db.execute(
-        select(GenerationJob).order_by(GenerationJob.created_at.desc())
-    )
+    res = await db.execute(select(GenerationJob).order_by(GenerationJob.created_at.desc()))
     rows = list(res.scalars().all())
     return [GenerationJobOut.model_validate(r) for r in rows]
 
@@ -282,9 +276,7 @@ async def create_world(
     return WorldTemplateOut.model_validate(w)
 
 
-@router.put(
-    "/worlds/{world_id}", response_model=WorldTemplateOut, summary="Update world"
-)
+@router.put("/worlds/{world_id}", response_model=WorldTemplateOut, summary="Update world")
 async def update_world(
     world_id: UUID,
     body: WorldTemplateIn,
@@ -330,9 +322,7 @@ async def list_characters(
     _: Annotated[Depends, Depends(admin_required)] = ...,
 ) -> list[CharacterOut]:
     res = await db.execute(
-        select(Character)
-        .where(Character.world_id == world_id)
-        .order_by(Character.name.asc())
+        select(Character).where(Character.world_id == world_id).order_by(Character.name.asc())
     )
     rows = list(res.scalars().all())
     return [CharacterOut.model_validate(r) for r in rows]

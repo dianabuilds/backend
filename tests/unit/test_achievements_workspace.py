@@ -40,9 +40,7 @@ def test_process_event_isolated_by_workspace() -> None:
             await conn.run_sync(UserAchievement.__table__.create)
             await conn.run_sync(Notification.__table__.create)
             await conn.run_sync(UserEventCounter.__table__.create)
-        async_session = sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with async_session() as session:
             user = User(id=uuid.uuid4())
@@ -113,9 +111,7 @@ def test_repository_isolated_by_workspace() -> None:
             Node.__table__.c.id.type = sa.Integer()
             await conn.run_sync(Node.__table__.create)
             await conn.run_sync(UserEventCounter.__table__.create)
-        async_session = sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with async_session() as session:
             user = User(id=uuid.uuid4())

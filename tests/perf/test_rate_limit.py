@@ -40,9 +40,7 @@ def test_rate_limit_middleware_concurrent_requests():
 
     async def _make_requests():
         transport = ASGITransport(app)
-        async with AsyncClient(
-            transport=transport, base_url="http://testserver"
-        ) as client:
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
             tasks = [client.get("/ping", headers=headers) for _ in range(10)]
             return await asyncio.gather(*tasks)
 

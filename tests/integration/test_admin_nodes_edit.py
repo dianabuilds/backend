@@ -169,9 +169,7 @@ async def test_workspace_node_load_and_edit(workspace_admin_client):
     assert resp.status_code == 200
     assert resp.json()["id"] == node_id
 
-    resp = await client.put(
-        f"/admin/workspaces/{ws_id}/nodes/{item_id}", json={"title": "Updated"}
-    )
+    resp = await client.put(f"/admin/workspaces/{ws_id}/nodes/{item_id}", json={"title": "Updated"})
     assert resp.status_code == 200
     assert resp.json()["title"] == "Updated"
 

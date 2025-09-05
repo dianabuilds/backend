@@ -28,7 +28,7 @@ async def _audit(
     """
     Внутренний хелпер: вызов доменного сервиса аудита с извлечением
      IP/User-Agent из request (если есть).
-     """
+    """
     ip = None
     ua = None
     try:
@@ -68,9 +68,7 @@ class TagAdminService:
         return TagAdminService.normalize_tag_name(alias).lower()
 
     # Queries
-    async def list_tags(
-        self, q: str | None, limit: int, offset: int
-    ) -> list[dict[str, Any]]:
+    async def list_tags(self, q: str | None, limit: int, offset: int) -> list[dict[str, Any]]:
         return await self._repo.list_with_counters(q, limit, offset)
 
     async def list_aliases(self, tag_id: UUID):
@@ -184,9 +182,7 @@ class TagAdminService:
             pass
         return tag
 
-    async def delete_tag(
-        self, db: AsyncSession, tag_id: UUID, actor_id: str | None, request=None
-    ):
+    async def delete_tag(self, db: AsyncSession, tag_id: UUID, actor_id: str | None, request=None):
         await self._repo.delete_tag(tag_id)
         try:
             await _audit(

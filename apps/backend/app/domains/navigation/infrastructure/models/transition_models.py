@@ -22,22 +22,16 @@ class NodeTransition(Base):
     __tablename__ = "node_transitions"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    from_node_id = Column(
-        BigInteger, ForeignKey("nodes.id"), nullable=False, index=True
-    )
+    from_node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False, index=True)
     to_node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False)
-    type = Column(
-        SAEnum(NodeTransitionType), nullable=False, default=NodeTransitionType.manual
-    )
+    type = Column(SAEnum(NodeTransitionType), nullable=False, default=NodeTransitionType.manual)
     condition = Column(MutableDict.as_mutable(JSONB), default=dict)
     weight = Column(Integer, default=1)
     label = Column(String, nullable=True)
     created_by = Column(UUID(), ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    from_node = relationship(
-        "Node", foreign_keys=[from_node_id], backref="outgoing_transitions"
-    )
+    from_node = relationship("Node", foreign_keys=[from_node_id], backref="outgoing_transitions")
     to_node = relationship("Node", foreign_keys=[to_node_id])
 
 

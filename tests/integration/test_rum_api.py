@@ -23,9 +23,7 @@ async def test_rum_events_filter_and_pagination() -> None:
     app.dependency_overrides[admin_required] = lambda: admin
 
     redis = fakeredis.aioredis.FakeRedis(decode_responses=True)
-    rum_metrics.rum_service = RumMetricsService(
-        RumRedisRepository(redis, key="test:rum")
-    )
+    rum_metrics.rum_service = RumMetricsService(RumRedisRepository(redis, key="test:rum"))
     app.include_router(rum_metrics.admin_router)
 
     events = [
@@ -39,9 +37,7 @@ async def test_rum_events_filter_and_pagination() -> None:
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get(
-            "/admin/telemetry/rum", params={"event": "login", "url": "a"}
-        )
+        resp = await client.get("/admin/telemetry/rum", params={"event": "login", "url": "a"})
         assert resp.status_code == 200
         data = resp.json()
         assert [e["ts"] for e in data] == [4, 1]

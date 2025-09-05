@@ -106,9 +106,7 @@ class CasesService:
             await notifier.case_created(case.id)
         return case.id
 
-    async def patch_case(
-        self, db: AsyncSession, case_id: UUID, patch: CasePatch
-    ) -> CaseOut | None:
+    async def patch_case(self, db: AsyncSession, case_id: UUID, patch: CasePatch) -> CaseOut | None:
         case = await db.get(ModerationCase, case_id)
         if not case:
             return None
@@ -158,9 +156,7 @@ class CasesService:
         remove = patch.remove or []
 
         if add:
-            res = await db.execute(
-                select(ModerationLabel).where(ModerationLabel.name.in_(add))
-            )
+            res = await db.execute(select(ModerationLabel).where(ModerationLabel.name.in_(add)))
             existing = {lbl.name: lbl for lbl in res.scalars()}
             for name in add:
                 label = existing.get(name)
@@ -262,9 +258,7 @@ class CasesService:
         await db.refresh(case, attribute_names=["labels"])
         return self._to_case_out(case)
 
-    async def get_case(
-        self, db: AsyncSession, case_id: UUID
-    ) -> CaseFullResponse | None:
+    async def get_case(self, db: AsyncSession, case_id: UUID) -> CaseFullResponse | None:
         stmt = (
             select(ModerationCase)
             .where(ModerationCase.id == case_id)
@@ -281,17 +275,11 @@ class CasesService:
             return None
         return CaseFullResponse(
             case=self._to_case_out(case),
-            notes=[
-                CaseNoteOut.model_validate(n, from_attributes=True) for n in case.notes
-            ],
+            notes=[CaseNoteOut.model_validate(n, from_attributes=True) for n in case.notes],
             attachments=[
-                CaseAttachmentOut.model_validate(a, from_attributes=True)
-                for a in case.attachments
+                CaseAttachmentOut.model_validate(a, from_attributes=True) for a in case.attachments
             ],
-            events=[
-                CaseEventOut.model_validate(e, from_attributes=True)
-                for e in case.events
-            ],
+            events=[CaseEventOut.model_validate(e, from_attributes=True) for e in case.events],
         )
 
     def _to_case_out(self, case: ModerationCase) -> CaseOut:

@@ -24,9 +24,7 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Run basic health and OpenAPI checks")
-    parser.add_argument(
-        "--base-url", default="http://localhost:8000", help="Backend base URL"
-    )
+    parser.add_argument("--base-url", default="http://localhost:8000", help="Backend base URL")
     args = parser.parse_args()
     code = asyncio.run(check(args.base_url))
     sys.exit(code)

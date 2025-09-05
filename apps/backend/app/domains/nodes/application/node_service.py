@@ -55,9 +55,7 @@ class NodeService:
         while True:
             text = slug_base if idx == 0 else f"{slug_base}-{idx}"
             candidate = hashlib.sha256(text.encode()).hexdigest()[:16]
-            res = await self._db.execute(
-                select(NodeItem).where(NodeItem.slug == candidate)
-            )
+            res = await self._db.execute(select(NodeItem).where(NodeItem.slug == candidate))
             existing_item = res.scalar_one_or_none()
             if existing_item and existing_item.id != skip_item_id:
                 idx += 1
@@ -128,11 +126,7 @@ class NodeService:
             if isinstance(t, str):
                 s = t.strip().lower()
             elif isinstance(t, dict):
-                s = (
-                    str(t.get("slug") or t.get("value") or t.get("id") or "")
-                    .strip()
-                    .lower()
-                )
+                s = str(t.get("slug") or t.get("value") or t.get("id") or "").strip().lower()
             else:
                 continue
             if s and s not in slugs:
@@ -185,9 +179,7 @@ class NodeService:
 
         set_committed_value(node, "tags", [])
         node.tags = tag_objs
-        await self._db.execute(
-            delete(ContentTag).where(ContentTag.content_id == item.id)
-        )
+        await self._db.execute(delete(ContentTag).where(ContentTag.content_id == item.id))
         for t in tag_objs:
             await NodeItemDAO.attach_tag(
                 self._db,
@@ -290,18 +282,12 @@ class NodeService:
             if candidate:
                 if HEX_RE.fullmatch(candidate):
                     res = await self._db.execute(
-                        select(NodeItem).where(
-                            NodeItem.slug == candidate, NodeItem.id != item.id
-                        )
+                        select(NodeItem).where(NodeItem.slug == candidate, NodeItem.id != item.id)
                     )
                     existing_item = res.scalar_one_or_none()
-                    res = await self._db.execute(
-                        select(Node).where(Node.slug == candidate)
-                    )
+                    res = await self._db.execute(select(Node).where(Node.slug == candidate))
                     existing_node = res.scalar_one_or_none()
-                    if existing_item or (
-                        existing_node and existing_node.id != item.node_id
-                    ):
+                    if existing_item or (existing_node and existing_node.id != item.node_id):
                         candidate = await self._unique_slug(
                             candidate,
                             skip_item_id=item.id,
@@ -479,9 +465,7 @@ class NodeService:
         node.status = Status.published
         # Проставляем флаги доступа и прочие поля
         node.premium_only = access == "premium_only"
-        node.visibility = (
-            Visibility.unlisted if access == "early_access" else Visibility.public
-        )
+        node.visibility = Visibility.unlisted if access == "early_access" else Visibility.public
         # очистим отложенную публикацию, если была
         try:
             meta = node._meta_dict()

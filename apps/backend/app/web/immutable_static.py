@@ -4,12 +4,7 @@ from fastapi.staticfiles import StaticFiles
 class ImmutableStaticFiles(StaticFiles):
     """StaticFiles that sets long-lived immutable cache headers."""
 
-    def __init__(
-        self,
-        *args,
-        cache_control: str = "public, max-age=31536000, immutable",
-        **kwargs
-    ):
+    def __init__(self, *args, cache_control: str = "public, max-age=31536000, immutable", **kwargs):
         self.cache_control = cache_control
         super().__init__(*args, **kwargs)
 

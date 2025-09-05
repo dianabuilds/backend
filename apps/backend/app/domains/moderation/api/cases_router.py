@@ -118,9 +118,7 @@ async def close_case(
     current: Annotated[Any, Depends(admin_required)],
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict[str, str]:
-    res = await cases_service.close_case(
-        db, case_id, payload, getattr(current, "id", None)
-    )
+    res = await cases_service.close_case(db, case_id, payload, getattr(current, "id", None))
     if not res:
         raise HTTPException(status_code=404, detail="Case not found")
     return {"status": "ok"}

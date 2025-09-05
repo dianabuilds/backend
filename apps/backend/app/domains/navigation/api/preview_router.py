@@ -56,16 +56,12 @@ router = APIRouter(
 @router.post("/link", dependencies=[Depends(require_admin_role)])
 async def create_preview_link(payload: PreviewLinkRequest) -> dict[str, str]:
     preview_session_id = uuid4().hex
-    token = create_preview_token(
-        preview_session_id, str(payload.workspace_id), ttl=payload.ttl
-    )
+    token = create_preview_token(preview_session_id, str(payload.workspace_id), ttl=payload.ttl)
     return {"url": f"/preview?token={token}"}
 
 
 @router.get("/link", dependencies=[Depends(require_admin_role)])
-async def create_preview_link_get(
-    workspace_id: UUID, ttl: int | None = None
-) -> dict[str, str]:
+async def create_preview_link_get(workspace_id: UUID, ttl: int | None = None) -> dict[str, str]:
     payload = PreviewLinkRequest(workspace_id=workspace_id, ttl=ttl)
     return await create_preview_link(payload)
 
@@ -110,15 +106,11 @@ async def simulate_transitions(
     if sources:
         counts = {s: sources.count(s) for s in set(sources)}
         total = sum(counts.values())
-        source_diversity = -sum(
-            (c / total) * math.log(c / total) for c in counts.values()
-        )
+        source_diversity = -sum((c / total) * math.log(c / total) for c in counts.values())
     if res.reason == NoRouteReason.NO_ROUTE:
         record_no_route(str(payload.workspace_id), preview=True)
     else:
-        record_route_length(
-            len(svc._router.history), str(payload.workspace_id), preview=True
-        )
+        record_route_length(len(svc._router.history), str(payload.workspace_id), preview=True)
     return {
         "next": res.next.slug if res.next else None,
         "reason": res.reason.value if res.reason else None,

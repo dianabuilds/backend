@@ -104,9 +104,7 @@ class NavigationService:
         preview: PreviewContext | None = None,
     ) -> list[dict[str, object]]:
         result = await db.execute(
-            select(NavigationCache.navigation).where(
-                NavigationCache.node_slug == node.slug
-            )
+            select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
         )
         data = result.scalar_one_or_none()
         if not data:
@@ -122,16 +120,12 @@ class NavigationService:
         preview: PreviewContext | None = None,
     ) -> dict[str, object]:
         result = await db.execute(
-            select(NavigationCache.navigation).where(
-                NavigationCache.node_slug == node.slug
-            )
+            select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
         )
         data = result.scalar_one_or_none()
         if data:
             transitions: list[dict[str, object]] = data.get("transitions", [])
-            data["transitions"] = await self._filter_transitions(
-                db, transitions, user, preview
-            )
+            data["transitions"] = await self._filter_transitions(db, transitions, user, preview)
             return data
         return {
             "mode": "auto",
@@ -142,7 +136,5 @@ class NavigationService:
         }
 
     async def invalidate_navigation_cache(self, db: AsyncSession, node: Node) -> None:
-        await db.execute(
-            delete(NavigationCache).where(NavigationCache.node_slug == node.slug)
-        )
+        await db.execute(delete(NavigationCache).where(NavigationCache.node_slug == node.slug))
         await db.flush()

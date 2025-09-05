@@ -25,9 +25,7 @@ class ITagRepository(Protocol):
         ...
 
     # Blacklist
-    async def blacklist_list(
-        self, q: str | None
-    ) -> list[TagBlacklist]:  # pragma: no cover
+    async def blacklist_list(self, q: str | None) -> list[TagBlacklist]:  # pragma: no cover
         ...
 
     async def blacklist_add(
@@ -46,9 +44,7 @@ class ITagRepository(Protocol):
         ...
 
     # Merge
-    async def merge_dry_run(
-        self, from_id: UUID, to_id: UUID
-    ) -> dict[str, Any]:  # pragma: no cover
+    async def merge_dry_run(self, from_id: UUID, to_id: UUID) -> dict[str, Any]:  # pragma: no cover
         ...
 
     async def merge_apply(

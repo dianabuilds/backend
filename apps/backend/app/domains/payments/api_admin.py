@@ -29,19 +29,13 @@ class RecentPayment(BaseModel):
     status: str
 
 
-@router.get(
-    "/recent", response_model=list[RecentPayment], summary="List recent payments"
-)
+@router.get("/recent", response_model=list[RecentPayment], summary="List recent payments")
 async def list_recent_payments(
     limit: int = 20,
     _=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> list[RecentPayment]:
-    stmt = (
-        select(PaymentTransaction)
-        .order_by(PaymentTransaction.created_at.desc())
-        .limit(limit)
-    )
+    stmt = select(PaymentTransaction).order_by(PaymentTransaction.created_at.desc()).limit(limit)
     res = await db.execute(stmt)
     txs = res.scalars().all()
     return [

@@ -12,9 +12,7 @@ class LocalStorageGateway:
     Saves files under uploads/ and returns public URL /static/uploads/<name>.
     """
 
-    def __init__(
-        self, base_dir: str = "uploads", public_prefix: str = "/static/uploads"
-    ) -> None:
+    def __init__(self, base_dir: str = "uploads", public_prefix: str = "/static/uploads") -> None:
         self.base_dir = Path(base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
         self.public_prefix = public_prefix

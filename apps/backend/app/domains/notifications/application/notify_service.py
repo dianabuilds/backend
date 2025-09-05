@@ -13,9 +13,7 @@ from app.schemas.notification import NotificationPlacement
 
 
 class NotifyService:
-    def __init__(
-        self, repo: INotificationRepository, pusher: INotificationPusher
-    ) -> None:
+    def __init__(self, repo: INotificationRepository, pusher: INotificationPusher) -> None:
         self._repo = repo
         self._pusher = pusher
 

@@ -45,9 +45,7 @@ async def get_generation_job_details(
                     "usage": row.usage,
                     "cost": row.cost,
                     "status": row.status,
-                    "created_at": (
-                        row.created_at.isoformat() if row.created_at else None
-                    ),
+                    "created_at": (row.created_at.isoformat() if row.created_at else None),
                 }
             )
     except Exception:
@@ -75,18 +73,12 @@ async def get_generation_job_details(
             "created_at": job.created_at.isoformat() if job.created_at else None,
             "started_at": job.started_at.isoformat() if job.started_at else None,
             "finished_at": job.finished_at.isoformat() if job.finished_at else None,
-            "created_by": (
-                str(job.created_by) if getattr(job, "created_by", None) else None
-            ),
+            "created_by": (str(job.created_by) if getattr(job, "created_by", None) else None),
             "provider": job.provider,
             "model": job.model,
             "params": job.params,
-            "result_quest_id": (
-                str(job.result_quest_id) if job.result_quest_id else None
-            ),
-            "result_version_id": (
-                str(job.result_version_id) if job.result_version_id else None
-            ),
+            "result_quest_id": (str(job.result_quest_id) if job.result_quest_id else None),
+            "result_version_id": (str(job.result_version_id) if job.result_version_id else None),
             "cost": float(job.cost) if job.cost is not None else None,
             "token_usage": job.token_usage,
             "reused": bool(job.reused),

@@ -117,9 +117,7 @@ class TagRepositoryAdapter(ITagRepository):
     # Aliases
     async def list_aliases(self, tag_id: UUID) -> list[TagAlias]:
         res = await self._db.execute(
-            select(TagAlias)
-            .where(TagAlias.tag_id == tag_id)
-            .order_by(TagAlias.alias.asc())
+            select(TagAlias).where(TagAlias.tag_id == tag_id).order_by(TagAlias.alias.asc())
         )
         return list(res.scalars().all())
 
@@ -230,9 +228,7 @@ class TagRepositoryAdapter(ITagRepository):
             return report
 
         # Удаляем потенциальные дубликаты NodeTag(to_id) для тех же node_id, что привязаны к from_id
-        subq = (
-            select(NodeTag.node_id).where(NodeTag.tag_id == from_id).scalar_subquery()
-        )
+        subq = select(NodeTag.node_id).where(NodeTag.tag_id == from_id).scalar_subquery()
         await self._db.execute(
             delete(NodeTag).where(NodeTag.tag_id == to_id, NodeTag.node_id.in_(subq))
         )

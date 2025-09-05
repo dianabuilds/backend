@@ -91,9 +91,7 @@ async def search(
     return list(res.scalars().all())
 
 
-async def get_for_view(
-    db: AsyncSession, *, slug: str, user: User, workspace_id: UUID
-) -> Quest:
+async def get_for_view(db: AsyncSession, *, slug: str, user: User, workspace_id: UUID) -> Quest:
     res = await db.execute(
         select(Quest).where(
             Quest.slug == slug,

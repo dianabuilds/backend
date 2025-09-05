@@ -16,9 +16,7 @@ class ITagAdminRepository(Protocol):
     async def list_aliases(self, tag_id: UUID) -> list[object]:  # pragma: no cover
         ...
 
-    async def dry_run_merge(
-        self, from_id: UUID, to_id: UUID
-    ) -> dict[str, Any]:  # pragma: no cover
+    async def dry_run_merge(self, from_id: UUID, to_id: UUID) -> dict[str, Any]:  # pragma: no cover
         ...
 
     async def apply_merge(

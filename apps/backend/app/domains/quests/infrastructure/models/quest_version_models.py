@@ -19,9 +19,7 @@ from app.providers.db.base import Base
 
 class QuestVersion(Base):
     __tablename__ = "quest_versions"
-    __table_args__ = (
-        UniqueConstraint("quest_id", "number", name="uq_quest_version_number"),
-    )
+    __table_args__ = (UniqueConstraint("quest_id", "number", name="uq_quest_version_number"),)
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("quests.id"), nullable=False, index=True)
@@ -34,12 +32,8 @@ class QuestVersion(Base):
     parent_version_id = Column(UUID(), nullable=True)
     meta = Column(JSONB, nullable=True)
 
-    nodes = relationship(
-        "QuestGraphNode", cascade="all, delete-orphan", back_populates="version"
-    )
-    edges = relationship(
-        "QuestGraphEdge", cascade="all, delete-orphan", back_populates="version"
-    )
+    nodes = relationship("QuestGraphNode", cascade="all, delete-orphan", back_populates="version")
+    edges = relationship("QuestGraphEdge", cascade="all, delete-orphan", back_populates="version")
 
 
 class QuestGraphNode(Base):

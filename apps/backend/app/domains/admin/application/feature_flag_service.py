@@ -99,11 +99,7 @@ async def get_effective_flags(
     db: AsyncSession, preview_header: str | None, user: User | None
 ) -> set[str]:
     base = await get_flags_map(db)
-    active = {
-        k
-        for k, (v, audience) in base.items()
-        if v and _audience_matches(audience, user)
-    }
+    active = {k for k, (v, audience) in base.items() if v and _audience_matches(audience, user)}
     preview = parse_preview_flags(preview_header)
     return active.union(preview)
 

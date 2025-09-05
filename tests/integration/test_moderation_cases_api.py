@@ -107,6 +107,7 @@ async def test_patch_labels_endpoint(app_and_session):
         assert resp.status_code == 200
         assert resp.json()["labels"] == ["bug"]
 
+
 @pytest.mark.asyncio
 async def test_close_case(app_and_session):
     app, session_factory = app_and_session
@@ -132,4 +133,3 @@ async def test_close_case(app_and_session):
         refreshed = await session.get(ModerationCase, case_id)
         assert refreshed.status == "resolved"
         assert refreshed.resolution == "resolved"
-

@@ -31,9 +31,7 @@ class NodeBase(BaseModel):
     allow_feedback: bool = Field(
         default=True,
         alias="allowFeedback",
-        validation_alias=AliasChoices(
-            "allow_feedback", "allow_comments", "allowFeedback"
-        ),
+        validation_alias=AliasChoices("allow_feedback", "allow_comments", "allowFeedback"),
     )
     is_recommendable: bool = Field(default=True, alias="isRecommendable")
 
@@ -73,9 +71,7 @@ class NodeUpdate(BaseModel):
     allow_feedback: bool | None = Field(
         default=None,
         alias="allowFeedback",
-        validation_alias=AliasChoices(
-            "allow_feedback", "allow_comments", "allowFeedback"
-        ),
+        validation_alias=AliasChoices("allow_feedback", "allow_comments", "allowFeedback"),
     )
     is_recommendable: bool | None = Field(default=None, alias="isRecommendable")
     premium_only: bool | None = Field(
@@ -103,9 +99,7 @@ class NodeUpdate(BaseModel):
         if isinstance(data, dict):
             for field, replacement in forbidden.items():
                 if field in data:
-                    raise ValueError(
-                        f"'{field}' field is deprecated; use '{replacement}'"
-                    )
+                    raise ValueError(f"'{field}' field is deprecated; use '{replacement}'")
         return data
 
 
@@ -121,9 +115,7 @@ class NodeOut(NodeBase):
     popularity_score: float = Field(alias="popularityScore")
     tags: list[str] = Field(default_factory=list)
 
-    model_config = ConfigDict(
-        from_attributes=True, alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
     @field_validator("tags", mode="before")
     @classmethod

@@ -13,12 +13,8 @@ from app.domains.ai.providers import AnthropicProvider, OpenAIProvider  # noqa: 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("provider_cls", [OpenAIProvider, AnthropicProvider])
-@pytest.mark.parametrize(
-    "status, code", [(405, "METHOD_NOT_ALLOWED"), (422, "VALIDATION_ERROR")]
-)
-async def test_client_errors_raise_domain_error(
-    provider_cls, status, code, monkeypatch
-):
+@pytest.mark.parametrize("status, code", [(405, "METHOD_NOT_ALLOWED"), (422, "VALIDATION_ERROR")])
+async def test_client_errors_raise_domain_error(provider_cls, status, code, monkeypatch):
     provider = provider_cls(api_key="k", base_url="http://test")
 
     calls = {"count": 0}

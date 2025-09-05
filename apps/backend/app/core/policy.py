@@ -15,9 +15,7 @@ class RuntimePolicy:
     def from_env(cls) -> RuntimePolicy:
         testing = os.environ.get("TESTING", "").lower() in {"true", "1", "t"}
         allow_write = not testing
-        rate_limit_mode = os.environ.get(
-            "RATE_LIMIT_MODE", "disabled" if testing else "enforce"
-        )
+        rate_limit_mode = os.environ.get("RATE_LIMIT_MODE", "disabled" if testing else "enforce")
         return cls(allow_write=allow_write, rate_limit_mode=rate_limit_mode)
 
 

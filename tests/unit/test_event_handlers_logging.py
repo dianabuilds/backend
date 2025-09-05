@@ -40,9 +40,7 @@ def _make_handlers() -> _Handlers:
 
 
 @pytest.mark.asyncio
-async def test_handle_node_created_logs(
-    monkeypatch, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_handle_node_created_logs(monkeypatch, caplog: pytest.LogCaptureFixture) -> None:
     h = _make_handlers()
     monkeypatch.setattr(navcache, "invalidate_compass_all", _failing)
     event = NodeCreated(node_id=1, slug="s", author_id=uuid.uuid4())
@@ -54,9 +52,7 @@ async def test_handle_node_created_logs(
 
 
 @pytest.mark.asyncio
-async def test_handle_node_updated_logs(
-    monkeypatch, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_handle_node_updated_logs(monkeypatch, caplog: pytest.LogCaptureFixture) -> None:
     h = _make_handlers()
     monkeypatch.setattr(navcache, "invalidate_navigation_by_node", _failing)
     monkeypatch.setattr(navcache, "invalidate_compass_all", _failing)
@@ -72,9 +68,7 @@ async def test_handle_node_updated_logs(
 
 
 @pytest.mark.asyncio
-async def test_handle_node_published_logs(
-    monkeypatch, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_handle_node_published_logs(monkeypatch, caplog: pytest.LogCaptureFixture) -> None:
     h = _make_handlers()
     h.index_content = _failing
     monkeypatch.setattr(navcache, "invalidate_navigation_by_node", _failing)

@@ -29,9 +29,7 @@ from app.providers.db.transition_query import (
 )
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(
-    prefix="/admin/transitions", tags=["admin"], responses=ADMIN_AUTH_RESPONSES
-)
+router = APIRouter(prefix="/admin/transitions", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
 admin_required = require_admin_role()
 navcache = NavigationCacheService(CoreCacheAdapter())
 
@@ -47,9 +45,7 @@ async def list_transitions_admin(
     current_user: Annotated[object, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    spec = TransitionFilterSpec(
-        from_slug=from_slug, to_slug=to_slug, type=type, author=author
-    )
+    spec = TransitionFilterSpec(from_slug=from_slug, to_slug=to_slug, type=type, author=author)
     ctx = QueryContext(user=current_user, is_admin=True)
     svc = TransitionQueryService(db)
     rows = await svc.list_transitions(
@@ -70,9 +66,7 @@ async def list_transitions_admin(
     ]
 
 
-@router.patch(
-    "/{transition_id}", response_model=AdminTransitionOut, summary="Update transition"
-)
+@router.patch("/{transition_id}", response_model=AdminTransitionOut, summary="Update transition")
 async def update_transition_admin(
     transition_id: UUID,
     payload: NodeTransitionUpdate,
@@ -159,8 +153,7 @@ async def disable_transitions_by_node(
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     stmt = select(NodeTransition).where(
-        (NodeTransition.from_node_id == node.id)
-        | (NodeTransition.to_node_id == node.id)
+        (NodeTransition.from_node_id == node.id) | (NodeTransition.to_node_id == node.id)
     )
     res = await db.execute(stmt)
     transitions = res.scalars().all()

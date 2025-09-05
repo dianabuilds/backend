@@ -65,9 +65,7 @@ async def list_versions(
 ):
     await _ensure_quest_access(db, quest_id, workspace_id, current_user)
     res = await db.execute(
-        select(QuestVersion)
-        .where(QuestVersion.quest_id == quest_id)
-        .order_by(QuestVersion.number)
+        select(QuestVersion).where(QuestVersion.quest_id == quest_id).order_by(QuestVersion.number)
     )
     versions = res.scalars().all()
     return [QuestVersionOut.model_validate(v, from_attributes=True) for v in versions]

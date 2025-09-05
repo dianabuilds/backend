@@ -13,9 +13,7 @@ def _load_settings_cls():
     app_module.core = core_module
     sys.modules.setdefault("app", app_module)
     sys.modules.setdefault("app.core", core_module)
-    spec = importlib.util.spec_from_file_location(
-        "app.core.settings", core_path / "settings.py"
-    )
+    spec = importlib.util.spec_from_file_location("app.core.settings", core_path / "settings.py")
     module = importlib.util.module_from_spec(spec)
     sys.modules["app.core.settings"] = module
     spec.loader.exec_module(module)

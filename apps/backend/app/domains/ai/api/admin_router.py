@@ -12,9 +12,7 @@ from app.domains.nodes.infrastructure.models.node import Node
 from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
-router = APIRouter(
-    prefix="/admin/ai", tags=["admin-ai"], responses=ADMIN_AUTH_RESPONSES
-)
+router = APIRouter(prefix="/admin/ai", tags=["admin-ai"], responses=ADMIN_AUTH_RESPONSES)
 admin_required = require_admin_role()
 
 

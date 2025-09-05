@@ -92,9 +92,9 @@ async def metrics_reliability(
         fallback_percent = ws_stats.get("fallback_used_percent", 0.0)
     else:
         if stats:
-            no_route_percent = sum(
-                s.get("no_route_percent", 0.0) for s in stats.values()
-            ) / len(stats)
+            no_route_percent = sum(s.get("no_route_percent", 0.0) for s in stats.values()) / len(
+                stats
+            )
             fallback_percent = sum(
                 s.get("fallback_used_percent", 0.0) for s in stats.values()
             ) / len(stats)

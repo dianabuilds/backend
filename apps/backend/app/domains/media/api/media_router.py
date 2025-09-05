@@ -52,6 +52,4 @@ async def upload_media_admin(
     storage: Annotated[IStorageGateway, Depends(get_storage)] = ...,  # noqa: B008
     _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
-    return await upload_media(
-        file=file, user=user, storage=storage, _workspace=_workspace
-    )
+    return await upload_media(file=file, user=user, storage=storage, _workspace=_workspace)

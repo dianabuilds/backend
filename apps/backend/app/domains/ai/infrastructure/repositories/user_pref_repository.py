@@ -13,9 +13,7 @@ class UserAIPrefRepository:
         self._db = db
 
     async def get(self, user_id: UUID) -> UserAIPref | None:
-        res = await self._db.execute(
-            select(UserAIPref).where(UserAIPref.user_id == user_id)
-        )
+        res = await self._db.execute(select(UserAIPref).where(UserAIPref.user_id == user_id))
         return res.scalars().first()
 
     async def set(self, user_id: UUID, model: str) -> UserAIPref:

@@ -11,18 +11,14 @@ from .models import ContentTag, Tag
 
 class TagDAO:
     @staticmethod
-    async def create(
-        db: AsyncSession, *, slug: str, name: str, workspace_id: UUID
-    ) -> Tag:
+    async def create(db: AsyncSession, *, slug: str, name: str, workspace_id: UUID) -> Tag:
         tag = Tag(slug=slug, name=name, workspace_id=workspace_id)
         db.add(tag)
         await db.flush()
         return tag
 
     @staticmethod
-    async def get_by_slug(
-        db: AsyncSession, *, slug: str, workspace_id: UUID
-    ) -> Tag | None:
+    async def get_by_slug(db: AsyncSession, *, slug: str, workspace_id: UUID) -> Tag | None:
         stmt = select(Tag).where(Tag.slug == slug, Tag.workspace_id == workspace_id)
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
@@ -66,9 +62,7 @@ class ContentTagDAO:
     async def attach(
         db: AsyncSession, *, content_id: UUID, tag_id: UUID, workspace_id: UUID
     ) -> ContentTag:
-        item = ContentTag(
-            content_id=content_id, tag_id=tag_id, workspace_id=workspace_id
-        )
+        item = ContentTag(content_id=content_id, tag_id=tag_id, workspace_id=workspace_id)
         db.add(item)
         await db.flush()
         return item

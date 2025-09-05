@@ -17,9 +17,7 @@ class AISystemModel(Base):
     name = Column(String, nullable=True)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -40,9 +38,7 @@ class AIModelPrice(Base):
     output_cost = Column(Float, nullable=True)
     currency = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -61,9 +57,7 @@ class AIDefaultModel(Base):
     provider = Column(String, nullable=True)
     model = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def as_dict(self) -> dict[str, Any]:
         return {

@@ -27,12 +27,7 @@ async def compass_endpoint(
     preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ):
     node = await db.get(Node, node_id)
-    if (
-        not node
-        or not node.is_visible
-        or not node.is_public
-        or not node.is_recommendable
-    ):
+    if not node or not node.is_visible or not node.is_public or not node.is_recommendable:
         raise HTTPException(status_code=404, detail="Node not found")
 
     user = None

@@ -64,9 +64,7 @@ class WorkspaceProvider(TransitionProvider):
 def make_router():
     start = DummyNode("start")
     manual_provider = StaticProvider({"start": [DummyNode("manual1")]})
-    random_provider = RandomListProvider(
-        {"manual1": [DummyNode("r1"), DummyNode("r2")]}
-    )
+    random_provider = RandomListProvider({"manual1": [DummyNode("r1"), DummyNode("r2")]})
     policies = [
         ManualPolicy(manual_provider),
         RandomPolicy(random_provider),
@@ -86,9 +84,7 @@ async def _build_route(router, start, steps, seed=None, mode=None):
     current = start
     preview = PreviewContext(seed=seed) if seed is not None else PreviewContext()
     for _ in range(steps):
-        result = await router.route(
-            None, current, None, budget, mode=mode, preview=preview
-        )
+        result = await router.route(None, current, None, budget, mode=mode, preview=preview)
         if result.next is None:
             break
         current = result.next
@@ -156,9 +152,7 @@ def test_no_route_on_empty_graph():
     budget = SimpleNamespace(
         max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
     )
-    result = asyncio.run(
-        router.route(None, start, None, budget, preview=PreviewContext())
-    )
+    result = asyncio.run(router.route(None, start, None, budget, preview=PreviewContext()))
     assert result.next is None
     assert result.reason == NoRouteReason.NO_ROUTE
 
@@ -179,9 +173,7 @@ def test_policy_priority():
     start = DummyNode("start")
     provider1 = StaticProvider({"start": [DummyNode("p1")]})
     provider2 = StaticProvider({"start": [DummyNode("p2")]})
-    router = TransitionRouter(
-        [ManualPolicy(provider1), ManualPolicy(provider2)], not_repeat_last=0
-    )
+    router = TransitionRouter([ManualPolicy(provider1), ManualPolicy(provider2)], not_repeat_last=0)
     route = asyncio.run(_build_route(router, start, 1))
     assert [n.slug for n in route] == ["start", "p1"]
 
@@ -216,9 +208,7 @@ def test_fallback_chain_sequence():
         max_filters=1000,
         fallback_chain=["manual", "conditional", "compass"],
     )
-    result = asyncio.run(
-        router.route(None, start, None, budget, preview=PreviewContext())
-    )
+    result = asyncio.run(router.route(None, start, None, budget, preview=PreviewContext()))
     assert result.next and result.next.slug == "c1"
     assert result.metrics.get("fallback_used")
 
@@ -267,9 +257,7 @@ def test_no_repeat_window_property(window):
 def test_diversity_weight_monotonic(decay1, decay2):
     if decay1 > decay2:
         decay1, decay2 = decay2, decay1
-    provider = StaticProvider(
-        {"a": [DummyNode("a", tags=["t"]), DummyNode("a", tags=["t"])]}
-    )
+    provider = StaticProvider({"a": [DummyNode("a", tags=["t"]), DummyNode("a", tags=["t"])]})
     start = DummyNode("a", tags=["t"])
     router1 = TransitionRouter(
         [ManualPolicy(provider)],

@@ -19,9 +19,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         headers.setdefault("X-Content-Type-Options", "nosniff")
         headers.setdefault("X-Frame-Options", "DENY")
         headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-        headers.setdefault(
-            "Permissions-Policy", "geolocation=(), microphone=(), camera=()"
-        )
+        headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
         headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
         headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
         headers.setdefault("X-Permitted-Cross-Domain-Policies", "none")

@@ -27,9 +27,7 @@ class CompassService:
         preview: PreviewContext | None = None,
     ) -> list[Node]:
         result = await db.execute(
-            select(NavigationCache.compass).where(
-                NavigationCache.node_slug == node.slug
-            )
+            select(NavigationCache.compass).where(NavigationCache.node_slug == node.slug)
         )
         slugs = result.scalar_one_or_none() or []
         nodes: list[Node] = []

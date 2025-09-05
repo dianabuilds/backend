@@ -74,9 +74,7 @@ async def post_alias(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> AliasOut:
     svc = TagAdminService(TagRepositoryAdapter(db))
-    item = await svc.add_alias(
-        db, tag_id, alias, str(getattr(current, "id", "")), request
-    )
+    item = await svc.add_alias(db, tag_id, alias, str(getattr(current, "id", "")), request)
     return AliasOut.model_validate(item)
 
 
