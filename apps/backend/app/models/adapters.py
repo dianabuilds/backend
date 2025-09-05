@@ -2,6 +2,8 @@
 Адаптеры типов данных SQLAlchemy для совместимости между PostgreSQL и SQLite.
 """
 
+from __future__ import annotations
+
 import uuid
 
 import sqlalchemy.types as types
@@ -121,14 +123,14 @@ class ARRAY(TypeDecorator):
         is_numeric = False
         try:
             is_numeric = issubclass(
-                self.item_type, (types.Integer, types.Float, types.Numeric)
+                self.item_type, types.Integer | types.Float | types.Numeric
             )
         except Exception:
             is_numeric = False
 
         if dialect.name == "postgresql" and policy.allow_write:
             # В PostgreSQL драйвер обычно возвращает уже Python-список
-            if isinstance(value, (list, tuple)):
+            if isinstance(value, list | tuple):
                 if is_numeric:
                     try:
                         return [float(x) for x in value]
@@ -140,7 +142,7 @@ class ARRAY(TypeDecorator):
             if isinstance(value, str):
                 try:
                     arr = json.loads(value)
-                    if isinstance(arr, (list, tuple)):
+                    if isinstance(arr, list | tuple):
                         if is_numeric:
                             try:
                                 return [float(x) for x in arr]
@@ -155,7 +157,7 @@ class ARRAY(TypeDecorator):
         # В SQLite/тестах читаем JSON-текст
         try:
             arr = json.loads(value)
-            if isinstance(arr, (list, tuple)):
+            if isinstance(arr, list | tuple):
                 if is_numeric:
                     try:
                         return [float(x) for x in arr]
@@ -245,7 +247,7 @@ class VECTOR(TypeDecorator):
 
         if dialect.name == "postgresql" and policy.allow_write:
             # Драйвер может вернуть list/tuple (или np.ndarray, обработан выше)
-            if isinstance(value, (list, tuple)):
+            if isinstance(value, list | tuple):
                 try:
                     return [float(x) for x in value]
                 except Exception:
@@ -253,7 +255,7 @@ class VECTOR(TypeDecorator):
             if isinstance(value, str):
                 try:
                     arr = json.loads(value)
-                    if isinstance(arr, (list, tuple)):
+                    if isinstance(arr, list | tuple):
                         try:
                             return [float(x) for x in arr]
                         except Exception:
@@ -267,7 +269,7 @@ class VECTOR(TypeDecorator):
         if isinstance(value, str):
             try:
                 arr = json.loads(value)
-                if isinstance(arr, (list, tuple)):
+                if isinstance(arr, list | tuple):
                     try:
                         return [float(x) for x in arr]
                     except Exception:
@@ -277,7 +279,7 @@ class VECTOR(TypeDecorator):
                 return value
 
         # На всякий случай — если пришёл уже список/кортеж
-        if isinstance(value, (list, tuple)):
+        if isinstance(value, list | tuple):
             return list(value)
 
         return value
