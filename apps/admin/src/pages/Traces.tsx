@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { api } from "../api/client";
 import PeriodStepSelector from "../components/PeriodStepSelector";
@@ -87,6 +87,10 @@ export default function Traces() {
     }),
     [from, to, userId, source, channel, type, dateFrom, dateTo],
   );
+
+  useEffect(() => {
+    setPage(1);
+  }, [from, to, userId, source, channel, type, dateFrom, dateTo]);
 
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
