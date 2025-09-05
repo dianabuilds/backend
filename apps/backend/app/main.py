@@ -3,11 +3,14 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import fastapi
 import punq
+import sqlalchemy
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse
+from packaging import version
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.env_loader import load_dotenv
@@ -67,6 +70,15 @@ _rng_seed = init_rng(settings.rng_seed_strategy)
 logger = logging.getLogger(__name__)
 logger.info("RNG seed initialised to %s", _rng_seed)
 
+# Log framework versions and enforce minimum requirements
+logger.info("Using FastAPI %s, SQLAlchemy %s", fastapi.__version__, sqlalchemy.__version__)
+fastapi_version = version.parse(fastapi.__version__)
+sqlalchemy_version = version.parse(sqlalchemy.__version__)
+if fastapi_version < version.parse("0.116"):
+    raise RuntimeError("FastAPI >= 0.116 required")
+if sqlalchemy_version.major != 2:
+    raise RuntimeError("SQLAlchemy 2.x required")
+
 container = punq.Container()
 register_providers(container, settings)
 
@@ -122,7 +134,12 @@ app.add_middleware(CSRFMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 # Усиление Set-Cookie флагов
 app.add_middleware(CookiesSecurityMiddleware)
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.security.allowed_hosts or ["*"])
+
+_allowed_hosts = settings.security.allowed_hosts
+if not _allowed_hosts and settings.env_mode is EnvMode.production:
+    _allowed_hosts = ["localhost"]
+if _allowed_hosts:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
 app.add_middleware(RealIPMiddleware)
 register_exception_handlers(app)
 
