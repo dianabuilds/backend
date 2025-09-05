@@ -59,3 +59,39 @@ groups:
           summary: High average request latency
           description: >-
             Average request latency over the last 5 minutes exceeds 1s.
+
+      - alert: NoRouteAboveOnePercent
+        expr: |
+          avg_over_time(transition_no_route_percent[10m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: No-route transitions exceed 1% over 10m
+          description: >-
+            transition_no_route_percent averaged over the last 10 minutes is greater than 1%.
+
+      - alert: NodesNext5xxError
+        expr: |
+          increase(http_requests_total{status=~"5..",path=~"/nodes/.*/next"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: 5xx errors on /nodes/:slug/next
+          description: >-
+            Requests to /nodes/:slug/next are returning 5xx errors.
+
+      - alert: NodesNextHighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_ms_bucket{path=~"/nodes/.*/next"}[5m])) by (le)
+          ) > 200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High p95 latency on /nodes/:slug/next
+          description: >-
+            95th percentile latency for /nodes/:slug/next exceeds 200 ms.
