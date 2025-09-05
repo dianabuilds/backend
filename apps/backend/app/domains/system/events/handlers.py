@@ -8,8 +8,25 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.navigation.application.cache_singleton import navcache
+from app.domains.notifications.application.notify_service import NotifyService
+from app.domains.notifications.infrastructure.repositories import (
+    notification_repository as notif_repo,
+)
+from app.domains.notifications.infrastructure.transports.websocket import (
+    WebsocketPusher,
+)
+from app.domains.notifications.infrastructure.transports.websocket import (
+    manager as ws_manager,
+)
+from app.schemas.notification import NotificationType
 
-from .models import NodeCreated, NodePublished, NodeUpdated
+from .models import (
+    AchievementUnlocked,
+    NodeCreated,
+    NodePublished,
+    NodeUpdated,
+    PurchaseCompleted,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +93,40 @@ class _Handlers:
             logger.exception(
                 "navcache.invalidate_post_publish_failed", extra={"event": event}
             )
+
+    async def handle_achievement_unlocked(self, event: AchievementUnlocked) -> None:
+        try:
+            async with self.db_session() as session:
+                svc = NotifyService(
+                    notif_repo.NotificationRepository(session),
+                    WebsocketPusher(ws_manager),
+                )
+                await svc.create_notification(
+                    workspace_id=event.workspace_id,
+                    user_id=event.user_id,
+                    title=event.title,
+                    message=event.message,
+                    type=NotificationType.achievement,
+                )
+        except Exception:
+            logger.exception("achievement_notify_failed", extra={"event": event})
+
+    async def handle_purchase_completed(self, event: PurchaseCompleted) -> None:
+        try:
+            async with self.db_session() as session:
+                svc = NotifyService(
+                    notif_repo.NotificationRepository(session),
+                    WebsocketPusher(ws_manager),
+                )
+                await svc.create_notification(
+                    workspace_id=event.workspace_id,
+                    user_id=event.user_id,
+                    title=event.title,
+                    message=event.message,
+                    type=NotificationType.purchase,
+                )
+        except Exception:
+            logger.exception("purchase_notify_failed", extra={"event": event})
 
 
 handlers = _Handlers()

@@ -11,6 +11,8 @@ class NotificationType(str, Enum):
     quest = "quest"
     system = "system"
     moderation = "moderation"
+    achievement = "achievement"
+    purchase = "purchase"
 
 
 class NotificationOut(BaseModel):

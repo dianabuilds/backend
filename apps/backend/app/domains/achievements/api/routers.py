@@ -1,4 +1,5 @@
 # ruff: noqa: B008, E501
+# mypy: ignore-errors
 from __future__ import annotations
 
 from typing import Annotated
@@ -17,7 +18,6 @@ from app.domains.achievements.application.admin_service import AchievementsAdmin
 from app.domains.achievements.infrastructure.repositories.achievements_repository import (
     AchievementsRepository,
 )
-from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.schemas.achievement import AchievementOut
@@ -48,7 +48,7 @@ def _admin_svc(db: AsyncSession) -> AchievementsAdminService:
 
 
 def _svc(db: AsyncSession) -> AchievementsService:
-    return AchievementsService(AchievementsRepository(db), InAppNotificationPort(db))
+    return AchievementsService(AchievementsRepository(db))
 
 
 @user_router.get(

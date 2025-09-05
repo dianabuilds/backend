@@ -15,12 +15,6 @@ from app.domains.achievements.infrastructure.models.achievement_models import (
     Achievement,
     UserAchievement,
 )
-from app.domains.notifications.application.ports.notifications import (
-    INotificationPort,
-)
-from app.domains.notifications.infrastructure.models.notification_models import (
-    Notification,
-)
 from app.domains.system.events import AchievementUnlocked, get_event_bus
 from app.models.event_counter import UserEventCounter
 
@@ -28,11 +22,8 @@ from app.models.event_counter import UserEventCounter
 class AchievementsService:
     """Domain service for managing achievements."""
 
-    def __init__(
-        self, repo: IAchievementsRepository, notifier: INotificationPort
-    ) -> None:
+    def __init__(self, repo: IAchievementsRepository) -> None:
         self._repo = repo
-        self._notifier = notifier
 
     async def list(
         self, workspace_id: UUID, user_id: UUID
@@ -53,12 +44,14 @@ class AchievementsService:
         if not ach:
             return False
         await self._repo.add_user_achievement(user_id, achievement_id, workspace_id)
-        await self._notifier.notify(
-            "achievement",
-            user_id,
-            workspace_id=workspace_id,
-            title="Achievement unlocked",
-            message=ach.title,
+        await get_event_bus().publish(
+            AchievementUnlocked(
+                achievement_id=achievement_id,
+                user_id=user_id,
+                workspace_id=workspace_id,
+                title=ach.title,
+                message=ach.title,
+            )
         )
         await db.commit()
         return True
@@ -94,7 +87,6 @@ class AchievementsService:
         payload = payload or {}
 
         dry_run = preview and preview.mode == "dry_run"
-        shadow = preview and preview.mode == "shadow"
 
         counter = await db.get(
             UserEventCounter,
@@ -161,16 +153,10 @@ class AchievementsService:
                     achievement_id=ach.id,
                     user_id=user_id,
                     workspace_id=workspace_id,
+                    title=ach.title or ach.code,
+                    message=ach.title or ach.code,
                 )
             )
-            note = Notification(
-                user_id=user_id,
-                workspace_id=workspace_id,
-                title=ach.title or ach.code,
-                message=ach.title or ach.code,
-                is_preview=bool(shadow),
-            )
-            db.add(note)
             unlocked.append(ach)
 
         if not dry_run:
