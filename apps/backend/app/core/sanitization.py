@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 # Пытаемся использовать bleach, если установлен
 try:
@@ -40,7 +42,7 @@ DEFAULT_TAGS = [
     "td",
 ]
 
-DEFAULT_ATTRS = {
+DEFAULT_ATTRS: Mapping[str, Iterable[str]] = {
     "*": ["class", "id", "title", "aria-label"],
     "a": ["href", "name", "target", "rel"],
     "img": ["src", "alt", "title", "width", "height"],
@@ -52,7 +54,7 @@ DEFAULT_PROTOCOLS = ["http", "https", "mailto", "tel", "data"]
 def sanitize_html(
     html: str,
     tags: Iterable[str] = DEFAULT_TAGS,
-    attrs: dict[str, Iterable[str]] = DEFAULT_ATTRS,
+    attrs: Mapping[str, Iterable[str]] | None = None,
     protocols: Iterable[str] = DEFAULT_PROTOCOLS,
 ) -> str:
     """
@@ -61,6 +63,9 @@ def sanitize_html(
     """
     if not html:
         return html
+
+    if attrs is None:
+        attrs = DEFAULT_ATTRS
 
     if bleach:
         # Убираем потенциально опасные атрибуты/схемы
@@ -86,7 +91,5 @@ def sanitize_html(
     # Удаляем on* обработчики
     cleaned = re.sub(r"(?i)\son\w+\s*=\s*(['\"]).*?\1", "", cleaned)
     # Запрещаем javascript: и data: в href/src
-    cleaned = re.sub(
-        r'(?i)\s(href|src)\s*=\s*([\'"])\s*(javascript:|data:)(.*?)\2', r"", cleaned
-    )
+    cleaned = re.sub(r'(?i)\s(href|src)\s*=\s*([\'"])\s*(javascript:|data:)(.*?)\2', r"", cleaned)
     return cleaned

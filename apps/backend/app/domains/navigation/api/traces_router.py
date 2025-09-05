@@ -25,9 +25,9 @@ router = APIRouter(prefix="/traces", tags=["traces"])
 @router.post("", response_model=NodeTraceOut, summary="Create trace")
 async def create_trace(
     payload: NodeTraceCreate,
-    current_user: Annotated[User, Depends(get_current_user)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _workspace: Annotated[object, Depends(require_workspace)],
 ):
     node = await db.get(Node, payload.node_id)
     if not node:
@@ -48,27 +48,23 @@ async def create_trace(
 
 @router.get("", response_model=list[NodeTraceOut], summary="List traces")
 async def list_traces(
-    node_id: Annotated[UUID, Query(...)] = ...,
+    node_id: Annotated[UUID, Query(...)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    workspace_dep: Annotated[object, Depends(optional_workspace)],
     visible_to: Annotated[str, Query(pattern="^(all|me)$")] = "all",
-    current_user: Annotated[User, Depends(get_current_user)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
 ):
     stmt = select(NodeTrace).where(NodeTrace.node_id == node_id)
     if visible_to == "me":
         stmt = stmt.where(
             or_(
-                NodeTrace.visibility.in_(
-                    [NodeTraceVisibility.public, NodeTraceVisibility.system]
-                ),
+                NodeTrace.visibility.in_([NodeTraceVisibility.public, NodeTraceVisibility.system]),
                 NodeTrace.user_id == current_user.id,
             )
         )
     else:
         stmt = stmt.where(
-            NodeTrace.visibility.in_(
-                [NodeTraceVisibility.public, NodeTraceVisibility.system]
-            )
+            NodeTrace.visibility.in_([NodeTraceVisibility.public, NodeTraceVisibility.system])
         )
     result = await db.execute(stmt.order_by(NodeTrace.created_at.desc()))
     return result.scalars().all()

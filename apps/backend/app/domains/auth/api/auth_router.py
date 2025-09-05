@@ -64,9 +64,7 @@ else:  # No URL provided or explicit fakeredis://
     _redis = fakeredis.FakeRedis(decode_responses=True)
 
 _nonce_store = NonceStore(_redis, settings.auth.nonce_ttl)
-_verification_store = VerificationTokenStore(
-    _redis, settings.auth.verification_token_ttl
-)
+_verification_store = VerificationTokenStore(_redis, settings.auth.verification_token_ttl)
 _svc = AuthService(_tokens, _verification_store, _nonce_store)
 
 # Reusable dependency for refresh token body parsing
@@ -94,9 +92,7 @@ async def _login_rate_limit(request: Request, response: Response):
             "required": True,
             "content": {
                 "application/json": {"schema": LoginSchema.model_json_schema()},
-                "application/x-www-form-urlencoded": {
-                    "schema": LoginSchema.model_json_schema()
-                },
+                "application/x-www-form-urlencoded": {"schema": LoginSchema.model_json_schema()},
             },
         }
     },
@@ -154,9 +150,7 @@ router.add_api_route(
             "required": True,
             "content": {
                 "application/json": {"schema": LoginSchema.model_json_schema()},
-                "application/x-www-form-urlencoded": {
-                    "schema": LoginSchema.model_json_schema()
-                },
+                "application/x-www-form-urlencoded": {"schema": LoginSchema.model_json_schema()},
             },
         }
     },
@@ -214,7 +208,7 @@ async def signup(
 @router.get("/verify", dependencies=[Depends(_rate.dependency("verify"))])
 async def verify_email(
     db: Annotated[AsyncSession, Depends(get_db)],
-    token: Annotated[str, Query(...)] = ...,
+    token: Annotated[str, Query(...)],
 ) -> dict[str, Any]:
     if not token:
         raise http_error(400, "Token required")
@@ -226,18 +220,14 @@ class ChangePasswordIn(BaseModel):
     new_password: str
 
 
-@router.post(
-    "/change-password", dependencies=[Depends(_rate.dependency("change_password"))]
-)
+@router.post("/change-password", dependencies=[Depends(_rate.dependency("change_password"))])
 async def change_password(
     payload: ChangePasswordIn,
     db: Annotated[AsyncSession, Depends(get_db)],
     authorization: Annotated[str, _auth_header] = "",
 ) -> dict[str, Any]:
     token = authorization.replace("Bearer ", "")
-    return await _svc.change_password(
-        db, token, payload.old_password, payload.new_password
-    )
+    return await _svc.change_password(db, token, payload.old_password, payload.new_password)
 
 
 @router.post("/logout")
@@ -247,7 +237,7 @@ async def logout() -> dict[str, Any]:
 
 @router.get("/evm/nonce", dependencies=[Depends(_rate.dependency("evm_nonce"))])
 async def evm_nonce(
-    user_id: Annotated[str, Query(..., description="User ID")] = ...,
+    user_id: Annotated[str, Query(..., description="User ID")],
 ) -> dict[str, Any]:
     return await _svc.evm_nonce(user_id)
 
