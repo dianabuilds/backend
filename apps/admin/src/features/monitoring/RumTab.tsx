@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { LineChart, StackedBars } from '../../components/Charts';
 import JsonCard from '../../components/JsonCard';
@@ -31,7 +31,9 @@ export default function RumTab() {
   const [eventFilter, setEventFilter] = useState('');
   const [urlFilter, setUrlFilter] = useState('');
   const [page, setPage] = useState(0);
+  const [timeFilter, setTimeFilter] = useState<number | null>(null);
   const pageSize = 50;
+  const eventsRef = useRef<HTMLDivElement>(null);
 
   const windowSize = useMemo(() => {
     const rangeSec = range === '1h' ? 3600 : 86_400;
@@ -69,6 +71,16 @@ export default function RumTab() {
     staleTime: 2000,
   });
   const counts = summary?.counts || {};
+
+  const filteredEvents = useMemo(() => {
+    if (!events) return [] as RumEvent[];
+    if (!timeFilter) return events;
+    return events.filter((ev) => {
+      if (!ev.ts) return false;
+      const bucket = Math.floor(ev.ts / (step * 1000)) * step * 1000;
+      return bucket === timeFilter;
+    });
+  }, [events, timeFilter, step]);
 
   const buckets = useMemo(() => {
     const res = new Map<number, { count: number; loginDur: number; loginCount: number }>();
@@ -121,6 +133,14 @@ export default function RumTab() {
     ]);
   };
 
+  const handleSelect = (ts: number) => {
+    setTimeFilter(ts);
+    setPage(0);
+    requestAnimationFrame(() => {
+      eventsRef.current?.scrollIntoView({ behavior: 'smooth' });
+    });
+  };
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -163,128 +183,135 @@ export default function RumTab() {
       <p className="text-sm text-gray-600 dark:text-gray-400">
         Real user monitoring events. Use range and step to adjust aggregation.
       </p>
+      <section id="summary">
+        {sFetching && <div className="text-xs text-gray-500 mt-1">Загрузка…</div>}
+        {sError && (
+          <div className="mt-1 text-xs text-red-600">
+            Ошибка: {sError instanceof Error ? sError.message : String(sError)}
+          </div>
+        )}
+        {summary && (
+          <SummaryCard
+            title="Сводка"
+            items={[
+              {
+                label: 'Окно',
+                value: summary.window,
+              },
+              {
+                label: 'Login avg',
+                value: `${summary.login_attempt_avg_ms ?? '-'} ms`,
+                highlight: (summary.login_attempt_avg_ms ?? 0) > 1000,
+              },
+              {
+                label: 'TTFB avg',
+                value: `${summary.navigation_avg.ttfb_ms ?? '-'} ms`,
+                highlight: (summary.navigation_avg.ttfb_ms ?? 0) > 1000,
+              },
+              {
+                label: 'DCL avg',
+                value: `${summary.navigation_avg.dom_content_loaded_ms ?? '-'} ms`,
+                highlight: (summary.navigation_avg.dom_content_loaded_ms ?? 0) > 1000,
+              },
+              {
+                label: 'Load avg',
+                value: `${summary.navigation_avg.load_event_ms ?? '-'} ms`,
+                highlight: (summary.navigation_avg.load_event_ms ?? 0) > 1000,
+              },
+              ...Object.entries(counts).map(([k, v]) => ({
+                label: k,
+                value: v,
+                highlight: k.includes('error') && v > 0,
+              })),
+            ]}
+          />
+        )}
+      </section>
 
-      <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Events</h2>
-        </div>
+      <section id="charts" className="space-y-2">
+        <h2 className="text-lg font-semibold">Графики</h2>
         <div className="flex items-end gap-4">
-          <StackedBars series={barSeries} highlight={barHighlight} />
+          <StackedBars
+            series={barSeries}
+            highlight={barHighlight}
+            onSelect={handleSelect}
+          />
           <div>
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Login avg (ms)</div>
-            <LineChart points={linePoints} highlight={lineHighlight} />
+            <LineChart
+              points={linePoints}
+              highlight={lineHighlight}
+              onSelect={handleSelect}
+            />
           </div>
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          {sFetching && <div className="text-xs text-gray-500 mt-1">Загрузка…</div>}
-          {sError && (
-            <div className="mt-1 text-xs text-red-600">
-              Ошибка: {sError instanceof Error ? sError.message : String(sError)}
-            </div>
-          )}
-          {summary && (
-            <SummaryCard
-              title="Сводка"
-              items={[
-                {
-                  label: 'Окно',
-                  value: summary.window,
-                },
-                {
-                  label: 'Login avg',
-                  value: `${summary.login_attempt_avg_ms ?? '-'} ms`,
-                  highlight: (summary.login_attempt_avg_ms ?? 0) > 1000,
-                },
-                {
-                  label: 'TTFB avg',
-                  value: `${summary.navigation_avg.ttfb_ms ?? '-'} ms`,
-                  highlight: (summary.navigation_avg.ttfb_ms ?? 0) > 1000,
-                },
-                {
-                  label: 'DCL avg',
-                  value: `${summary.navigation_avg.dom_content_loaded_ms ?? '-'} ms`,
-                  highlight: (summary.navigation_avg.dom_content_loaded_ms ?? 0) > 1000,
-                },
-                {
-                  label: 'Load avg',
-                  value: `${summary.navigation_avg.load_event_ms ?? '-'} ms`,
-                  highlight: (summary.navigation_avg.load_event_ms ?? 0) > 1000,
-                },
-                ...Object.entries(counts).map(([k, v]) => ({
-                  label: k,
-                  value: v,
-                  highlight: k.includes('error') && v > 0,
-                })),
-              ]}
-            />
-          )}
-        </div>
-
-        <div className="md:col-span-2 rounded border p-3 bg-white shadow-sm dark:bg-gray-900">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500 dark:text-gray-400">Лента событий</div>
-            {eFetching || sFetching ? (
-              <div className="text-xs text-gray-500">Обновление…</div>
-            ) : null}
-          </div>
-          {eError ? (
-            <div className="mt-1 text-xs text-red-600">
-              Ошибка: {eError instanceof Error ? eError.message : String(eError)}
-            </div>
+      <section
+        id="events"
+        ref={eventsRef}
+        className="rounded border p-3 bg-white shadow-sm dark:bg-gray-900"
+      >
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-500 dark:text-gray-400">Лента событий</div>
+          {eFetching || sFetching ? (
+            <div className="text-xs text-gray-500">Обновление…</div>
           ) : null}
-          <div className="mt-2 overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-500">
-                  <th className="px-2 py-1">Time</th>
-                  <th className="px-2 py-1">Event</th>
-                  <th className="px-2 py-1">URL</th>
-                  <th className="px-2 py-1">Payload</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(events || []).map((ev, idx) => (
-                  <tr key={idx} className="border-t">
-                    <td className="px-2 py-1">
-                      {ev.ts ? new Date(ev.ts).toLocaleTimeString() : '-'}
-                    </td>
-                    <td className="px-2 py-1">{ev.event}</td>
-                    <td className="px-2 py-1">{ev.url || '-'}</td>
-                    <td className="px-2 py-1">
-                      <JsonCard data={ev.data ?? {}} />
-                    </td>
-                  </tr>
-                ))}
-                {(events || []).length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-2 py-3 text-sm text-gray-500">
-                      Пока нет событий
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-2 flex justify-end gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="text-sm px-2 py-1 border rounded disabled:opacity-50"
-            >
-              Prev
-            </button>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              className="text-sm px-2 py-1 border rounded"
-            >
-              Next
-            </button>
-          </div>
         </div>
-      </div>
+        {eError ? (
+          <div className="mt-1 text-xs text-red-600">
+            Ошибка: {eError instanceof Error ? eError.message : String(eError)}
+          </div>
+        ) : null}
+        <div className="mt-2 overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="text-left text-gray-500">
+                <th className="px-2 py-1">Time</th>
+                <th className="px-2 py-1">Event</th>
+                <th className="px-2 py-1">URL</th>
+                <th className="px-2 py-1">Payload</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEvents.map((ev, idx) => (
+                <tr key={idx} className="border-t">
+                  <td className="px-2 py-1">
+                    {ev.ts ? new Date(ev.ts).toLocaleTimeString() : '-'}
+                  </td>
+                  <td className="px-2 py-1">{ev.event}</td>
+                  <td className="px-2 py-1">{ev.url || '-'}</td>
+                  <td className="px-2 py-1">
+                    <JsonCard data={ev.data ?? {}} />
+                  </td>
+                </tr>
+              ))}
+              {filteredEvents.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-2 py-3 text-sm text-gray-500">
+                    Пока нет событий
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-2 flex justify-end gap-2">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="text-sm px-2 py-1 border rounded disabled:opacity-50"
+          >
+            Prev
+          </button>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            className="text-sm px-2 py-1 border rounded"
+          >
+            Next
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

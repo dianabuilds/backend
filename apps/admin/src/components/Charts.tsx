@@ -7,10 +7,12 @@ export function StackedBars({
   series,
   height = 80,
   highlight = [],
+  onSelect,
 }: {
   series: ChartSeries[];
   height?: number;
   highlight?: boolean[];
+  onSelect?: (ts: number) => void;
 }) {
   const buckets =
     series[0]?.points.map((p, i) => {
@@ -31,7 +33,9 @@ export function StackedBars({
         return (
           <div
             key={b.ts}
-            className={`w-[6px] flex flex-col justify-end ${
+            data-testid={`bar-${i}`}
+            onClick={() => onSelect?.(b.ts)}
+            className={`w-[6px] flex flex-col justify-end cursor-pointer ${
               isHighlight ? "outline outline-1 outline-red-500" : ""
             }`}
           >
@@ -49,10 +53,12 @@ export function LineChart({
   points,
   height = 80,
   highlight = [],
+  onSelect,
 }: {
   points: ChartPoint[];
   height?: number;
   highlight?: boolean[];
+  onSelect?: (ts: number) => void;
 }) {
   const max = Math.max(1, ...points.map((p) => p.value));
   const path = useMemo(() => {
@@ -70,10 +76,21 @@ export function LineChart({
     <svg width={width} height={height}>
       <path d={path} fill="none" stroke="#3b82f6" strokeWidth="2" />
       {points.map((p, i) => {
-        if (!highlight[i]) return null;
         const x = i * 8 + 4;
         const y = height - Math.round((p.value / max) * height);
-        return <circle key={i} cx={x} cy={y} r={3} fill="#ef4444" />;
+        return (
+          <g
+            key={i}
+            data-testid={`point-${i}`}
+            onClick={() => onSelect?.(p.ts)}
+            className="cursor-pointer"
+          >
+            <circle cx={x} cy={y} r={3} fill="transparent" />
+            {highlight[i] ? (
+              <circle cx={x} cy={y} r={3} fill="#ef4444" />
+            ) : null}
+          </g>
+        );
       })}
     </svg>
   );
