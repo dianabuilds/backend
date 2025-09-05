@@ -33,6 +33,17 @@ jobs:
         working-directory: apps/admin
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
+      - name: Audit Node dependencies
+        working-directory: apps/admin
+        run: npm audit --json > npm-audit.json || true
+      - name: Upload npm audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: apps/admin/npm-audit.json
+      - name: Fail on critical Node vulnerabilities
+        working-directory: apps/admin
+        run: node ../../scripts/check_npm_audit.mjs npm-audit.json
       - name: Generate OpenAPI types
         working-directory: apps/admin
         run: |
