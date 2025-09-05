@@ -169,7 +169,6 @@ BASE_MENU: list[dict] = [
                 "icon": "shield",
                 "order": 5,
                 "roles": ["admin", "moderator"],
-                "featureFlag": "moderation.enabled",
             },
         ],
     },
