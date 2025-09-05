@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
@@ -27,6 +27,7 @@ from app.schemas.workspaces import (
     WorkspaceMemberIn,
     WorkspaceOut,
     WorkspaceRole,
+    WorkspaceSettings,
     WorkspaceUpdate,
     WorkspaceWithRoleOut,
 )
@@ -140,6 +141,18 @@ class WorkspaceService:
         await db.commit()
         await db.refresh(workspace)
         return workspace
+
+    @staticmethod
+    async def list_for_user(
+        db: AsyncSession, user: User
+    ) -> list[tuple[Workspace, WorkspaceRole]]:
+        stmt = (
+            select(Workspace, WorkspaceMember.role)
+            .join(WorkspaceMember)
+            .where(WorkspaceMember.user_id == user.id)
+        )
+        result = await db.execute(stmt)
+        return [(ws, role) for ws, role in result.all()]
 
     @staticmethod
     async def get_for_user(

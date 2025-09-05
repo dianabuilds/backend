@@ -184,11 +184,7 @@ async def get_ai_presets(
     _: Annotated[WorkspaceMember | None, Depends(require_ws_editor)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict[str, Any]:
-    workspace = await WorkspaceDAO.get(db, workspace_id)
-    if not workspace:
-        raise HTTPException(status_code=404, detail="Workspace not found")
-    settings = WorkspaceSettings.model_validate(workspace.settings_json)
-    return settings.ai_presets
+    return await WorkspaceService.get_ai_presets(db, workspace_id)
 
 
 @router.put(
