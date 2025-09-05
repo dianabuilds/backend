@@ -146,6 +146,7 @@ async def read_node(
     request: Request,
     slug: str,
     workspace_id: UUID | None = None,
+    feature_flags: Annotated[str | None, Header(alias="X-Feature-Flags")] = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
@@ -178,9 +179,7 @@ async def read_node(
     )
     item = res.scalar_one_or_none()
     if item and item.type == "quest":
-        flags = await get_effective_flags(
-            db, request.headers.get("X-Preview-Flags"), current_user
-        )
+        flags = await get_effective_flags(db, feature_flags, current_user)
         if FeatureFlagKey.QUESTS_NODES_REDIRECT.value in flags:
             return RedirectResponse(
                 url=f"/quests/{node.id}/versions/current?workspace_id={workspace_id}",

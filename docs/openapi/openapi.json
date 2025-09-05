@@ -11904,6 +11904,22 @@
             }
           },
           {
+            "name": "X-Feature-Flags",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Feature-Flags"
+            }
+          },
+          {
             "name": "X-Workspace-Id",
             "in": "header",
             "required": false,

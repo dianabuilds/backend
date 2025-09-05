@@ -30,7 +30,7 @@ security_stub.auth_user = lambda: None
 sys.modules["app.security"] = security_stub
 
 from app.core import policy as core_policy  # noqa: E402
-from app.core.feature_flags import FeatureFlagKey, invalidate_cache  # noqa: E402
+from app.core.feature_flags import FeatureFlagKey  # noqa: E402
 
 core_policy.policy.allow_write = False
 import app.domains.navigation.application.traces_service as traces_service  # noqa: E402
@@ -118,15 +118,15 @@ async def test_nodes_redirect_flag(app_and_session):
             created_by_user_id=user.id,
         )
         session.add(item)
-        session.add(
-            FeatureFlag(key=FeatureFlagKey.QUESTS_NODES_REDIRECT.value, value=True)
-        )
         await session.commit()
-        invalidate_cache()
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.get(f"/nodes/{slug}", params={"workspace_id": str(ws.id)})
+        resp = await ac.get(
+            f"/nodes/{slug}",
+            params={"workspace_id": str(ws.id)},
+            headers={"X-Feature-Flags": FeatureFlagKey.QUESTS_NODES_REDIRECT.value},
+        )
     assert resp.status_code == 307
     assert (
         resp.headers["location"]
