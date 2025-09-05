@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import Depends, Header, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,9 +12,9 @@ from app.providers.db.session import get_db
 from app.security import auth_user
 
 
-def get_workspace_id(request: Request, header_wid: UUID | str | None = None) -> UUID | None:
+def get_workspace_id(request: Request, header_wid: int | str | None = None) -> int | None:
     """Extract workspace identifier from path params, headers or query params."""
-    if not isinstance(header_wid, str | UUID | type(None)):
+    if not isinstance(header_wid, str | int | type(None)):
         header_wid = None
     wid = (
         request.path_params.get("workspace_id")
@@ -26,18 +25,18 @@ def get_workspace_id(request: Request, header_wid: UUID | str | None = None) -> 
     if not wid:
         return None
     try:
-        return UUID(str(wid))
+        return int(str(wid))
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=400, detail="Invalid workspace id") from exc
 
 
-async def resolve_workspace(workspace_id: UUID, user: User, db: AsyncSession) -> Workspace:
+async def resolve_workspace(account_id: int, user: User, db: AsyncSession) -> Workspace:
     """Load workspace and ensure the user is a member or admin."""
-    workspace = await WorkspaceDAO.get(db, workspace_id)
+    workspace = await WorkspaceDAO.get(db, account_id)
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     if user.role != "admin":
-        member = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user.id)
+        member = await WorkspaceMemberDAO.get(db, account_id=account_id, user_id=user.id)
         if not member:
             raise HTTPException(status_code=403, detail="Forbidden")
     return workspace
@@ -45,34 +44,30 @@ async def resolve_workspace(workspace_id: UUID, user: User, db: AsyncSession) ->
 
 async def require_workspace(
     request: Request,
-    workspace_header: Annotated[
-        UUID | None, Header(alias="X-Workspace-Id", deprecated=True)
-    ] = None,
+    workspace_header: Annotated[int | None, Header(alias="X-Workspace-Id", deprecated=True)] = None,
     user: Annotated[User, Depends(auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Workspace:
-    workspace_id = get_workspace_id(request, workspace_header)
-    if workspace_id is None:
+    account_id = get_workspace_id(request, workspace_header)
+    if account_id is None:
         raise HTTPException(status_code=400, detail="workspace_id required")
-    workspace = await resolve_workspace(workspace_id, user, db)
-    request.state.workspace_id = str(workspace_id)
+    workspace = await resolve_workspace(account_id, user, db)
+    request.state.workspace_id = str(account_id)
     request.state.workspace = workspace
     return workspace
 
 
 async def optional_workspace(
     request: Request,
-    workspace_header: Annotated[
-        UUID | None, Header(alias="X-Workspace-Id", deprecated=True)
-    ] = None,
+    workspace_header: Annotated[int | None, Header(alias="X-Workspace-Id", deprecated=True)] = None,
     user: Annotated[User, Depends(auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Workspace | None:
-    workspace_id = get_workspace_id(request, workspace_header)
-    if workspace_id is None:
+    account_id = get_workspace_id(request, workspace_header)
+    if account_id is None:
         return None
-    workspace = await resolve_workspace(workspace_id, user, db)
-    request.state.workspace_id = str(workspace_id)
+    workspace = await resolve_workspace(account_id, user, db)
+    request.state.workspace_id = str(account_id)
     request.state.workspace = workspace
     return workspace
 

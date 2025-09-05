@@ -2,17 +2,25 @@ import asyncio
 import importlib
 import os
 import sys
+import types
 from datetime import UTC, datetime
 from types import SimpleNamespace
-from uuid import uuid4
 
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer
 from fastapi.testclient import TestClient
 
 os.environ.setdefault("TESTING", "True")
 os.environ["BUILD_VERSION"] = "123"
 
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
+
+# Minimal security stub
+security_stub = types.ModuleType("app.security")
+security_stub.ADMIN_AUTH_RESPONSES = {}
+security_stub.require_admin_role = lambda *a, **k: (lambda: None)
+security_stub.bearer_scheme = HTTPBearer(auto_error=False)
+sys.modules["app.security"] = security_stub
 
 from apps.backend.app.api import ops as ops_module  # noqa: E402
 from fastapi import FastAPI  # noqa: E402
@@ -48,7 +56,7 @@ def clear_ops_cache():
 
 def test_status_endpoint_cached():
     clear_ops_cache()
-    workspace_id = uuid4()
+    workspace_id = 1
     calls = {"n": 0}
 
     async def fake_readyz(db):  # pragma: no cover - helper
@@ -75,7 +83,7 @@ def test_status_endpoint_cached():
 
 def test_limits_endpoint_remaining_and_cached():
     clear_ops_cache()
-    workspace_id = uuid4()
+    workspace_id = 2
 
     async def fake_get(db, ws_id):  # pragma: no cover - helper
         return SimpleNamespace(

@@ -65,7 +65,7 @@ async def set_default_workspace(
             raise HTTPException(status_code=404, detail="Workspace not found")
         if current_user.role != "admin":
             member = await WorkspaceMemberDAO.get(
-                db, workspace_id=workspace_id, user_id=current_user.id
+                db, account_id=workspace_id, user_id=current_user.id
             )
             if not member:
                 raise HTTPException(status_code=403, detail="Forbidden")

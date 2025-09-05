@@ -4,6 +4,7 @@ import types
 import uuid
 
 import pytest
+from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -17,7 +18,10 @@ security_stub.ADMIN_AUTH_RESPONSES = {}
 security_stub.auth_user = lambda: None
 security_stub.require_ws_editor = lambda *a, **k: None
 security_stub.require_ws_owner = lambda *a, **k: None
-sys.modules.setdefault("app.security", security_stub)
+security_stub.bearer_scheme = HTTPBearer(auto_error=False)
+app_module = importlib.import_module("apps.backend.app")
+sys.modules.setdefault("app", app_module)
+sys.modules["app.security"] = security_stub
 
 from fastapi import HTTPException  # noqa: E402
 
@@ -43,7 +47,7 @@ async def test_put_ai_presets_invalid() -> None:
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
-        ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=uuid.uuid4())
+        ws = Workspace(id=1, name="W", slug="w", owner_user_id=uuid.uuid4())
         session.add(ws)
         await session.commit()
 
@@ -69,7 +73,7 @@ async def test_generation_uses_workspace_presets(monkeypatch) -> None:
             "forbidden": ["foo"],
         }
         ws = Workspace(
-            id=uuid.uuid4(),
+            id=1,
             name="W",
             slug="w",
             owner_user_id=uuid.uuid4(),

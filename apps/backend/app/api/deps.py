@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi import Depends, HTTPException, Path, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -219,7 +219,7 @@ admin_required = require_role("admin")
 
 
 async def current_workspace(
-    workspace_id: UUID,
+    account_id: Annotated[int, Path(alias="workspace_id")],
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -227,5 +227,5 @@ async def current_workspace(
 
     Raises 404 if workspace is not found or the user lacks access.
     """
-    workspace_id_var.set(str(workspace_id))
-    return await WorkspaceService.get_for_user(db, workspace_id, user)
+    workspace_id_var.set(str(account_id))
+    return await WorkspaceService.get_for_user(db, account_id, user)
