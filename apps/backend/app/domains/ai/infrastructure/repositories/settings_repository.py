@@ -27,7 +27,7 @@ class AISettingsRepository(IAISettingsRepository):
                 id=SINGLETON_ID,
                 provider=defaults.get("provider"),
                 base_url=defaults.get("base_url"),
-                default_model=defaults.get("model"),
+                model=defaults.get("model"),
                 model_map=defaults.get("model_map"),
                 cb=defaults.get("cb"),
                 has_api_key=bool(defaults.get("has_api_key", False)),

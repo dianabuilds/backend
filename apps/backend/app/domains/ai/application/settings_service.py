@@ -88,7 +88,7 @@ class SettingsService:
 
         row.provider = provider
         row.base_url = base_url
-        row.default_model = model
+        row.model = model
 
         if model_map is not None:
             row.model_map = model_map if isinstance(model_map, dict) else None
@@ -124,7 +124,8 @@ class SettingsService:
     def choose_stage_model(settings: dict[str, Any], stage: str) -> dict[str, Any]:
         """
         Возвращает конфиг модели для заданной стадии:
-        1) Если в model_map есть ключ stage — берём его (provider/base_url/model/параметры).
+        1) Если в model_map есть ключ stage — берём его
+           (provider/base_url/model/параметры).
         2) Иначе используем дефолты provider/base_url/model.
         """
         model_map = settings.get("model_map") or {}
