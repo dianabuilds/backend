@@ -6,6 +6,7 @@ import asyncio
 import importlib
 import os
 import sys
+import types
 from collections.abc import AsyncGenerator
 
 import pytest
@@ -66,6 +67,8 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
         # Очищаем данные после теста
         try:
+            await session.execute(text("DELETE FROM account_members"))
+            await session.execute(text("DELETE FROM accounts"))
             await session.execute(text("DELETE FROM users"))
             await session.commit()
         except Exception as err:
@@ -76,6 +79,54 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Создает тестовый клиент."""
+    # Stub absent workspace service to satisfy imports in app.api.deps
+    # Stub workspace modules absent in minimal config
+    service_module = types.ModuleType("app.domains.workspaces.application.service")
+    service_module.WorkspaceService = type("WorkspaceService", (), {})
+    service_module.require_ws_editor = lambda *args, **kwargs: None
+    service_module.require_ws_guest = lambda *args, **kwargs: None
+    service_module.require_ws_owner = lambda *args, **kwargs: None
+    service_module.require_ws_viewer = lambda *args, **kwargs: None
+
+    application_pkg = types.ModuleType("app.domains.workspaces.application")
+    application_pkg.service = service_module
+
+    dao_module = types.ModuleType("app.domains.workspaces.infrastructure.dao")
+    dao_module.WorkspaceDAO = type("WorkspaceDAO", (), {})
+    infrastructure_pkg = types.ModuleType("app.domains.workspaces.infrastructure")
+    infrastructure_pkg.dao = dao_module
+
+    limits_module = types.ModuleType("app.domains.workspaces.limits")
+
+    def _workspace_limit(*args, **kwargs):
+        def decorator(func):
+            return func
+
+        return decorator
+
+    limits_module.workspace_limit = _workspace_limit
+
+    workspaces_pkg = types.ModuleType("app.domains.workspaces")
+    workspaces_pkg.application = application_pkg
+    workspaces_pkg.infrastructure = infrastructure_pkg
+    workspaces_pkg.limits = limits_module
+
+    sys.modules.update(
+        {
+            "app.domains.workspaces": workspaces_pkg,
+            "app.domains.workspaces.application": application_pkg,
+            "app.domains.workspaces.application.service": service_module,
+            "app.domains.workspaces.infrastructure": infrastructure_pkg,
+            "app.domains.workspaces.infrastructure.dao": dao_module,
+            "app.domains.workspaces.limits": limits_module,
+        }
+    )
+
+    # Stub ops router to avoid workspace dependencies
+    from fastapi import APIRouter
+
+    sys.modules.setdefault("app.api.ops", types.SimpleNamespace(router=APIRouter()))
+
     from apps.backend.app.main import app
 
     from app.providers.db.session import get_db

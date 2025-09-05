@@ -97,6 +97,30 @@ CREATE TABLE IF NOT EXISTS workspace_members (
 )
 """
 
+CREATE_ACCOUNTS_TABLE = """
+CREATE TABLE IF NOT EXISTS accounts (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    owner_user_id TEXT NOT NULL,
+    settings_json TEXT DEFAULT '{}',
+    kind TEXT NOT NULL DEFAULT 'team',
+    is_system INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+"""
+
+CREATE_ACCOUNT_MEMBERS_TABLE = """
+CREATE TABLE IF NOT EXISTS account_members (
+    account_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    permissions_json TEXT DEFAULT '{}',
+    PRIMARY KEY (account_id, user_id)
+)
+"""
+
 CREATE_AI_USAGE_TABLE = """
 CREATE TABLE IF NOT EXISTS ai_usage (
     id TEXT PRIMARY KEY,
@@ -142,6 +166,8 @@ def setup_test_db():
     cursor.execute(CREATE_USER_RESTRICTIONS_TABLE)
     cursor.execute(CREATE_WORKSPACES_TABLE)
     cursor.execute(CREATE_WORKSPACE_MEMBERS_TABLE)
+    cursor.execute(CREATE_ACCOUNTS_TABLE)
+    cursor.execute(CREATE_ACCOUNT_MEMBERS_TABLE)
     cursor.execute(CREATE_AI_USAGE_TABLE)
     cursor.execute(CREATE_BACKGROUND_JOB_HISTORY_TABLE)
 
