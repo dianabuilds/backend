@@ -31,14 +31,19 @@ export default function RumTab() {
   const [eventFilter, setEventFilter] = useState('');
   const [urlFilter, setUrlFilter] = useState('');
 
+  const windowSize = useMemo(() => {
+    const rangeSec = range === '1h' ? 3600 : 86_400;
+    return rangeSec / step;
+  }, [range, step]);
+
   const {
     data: summary,
     isFetching: sFetching,
     error: sError,
   } = useQuery({
-    queryKey: ['telemetry', 'summary'],
+    queryKey: ['telemetry', 'summary', range, step],
     queryFn: async () =>
-      (await AdminTelemetryService.rumSummaryAdminTelemetryRumSummaryGet()) as RumSummary,
+      (await AdminTelemetryService.rumSummaryAdminTelemetryRumSummaryGet({ window: windowSize })) as RumSummary,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
     staleTime: 2000,
@@ -115,7 +120,7 @@ export default function RumTab() {
 
   const reload = async () => {
     await Promise.all([
-      qc.invalidateQueries({ queryKey: ['telemetry', 'summary'] }),
+      qc.invalidateQueries({ queryKey: ['telemetry', 'summary', range, step] }),
       qc.invalidateQueries({ queryKey: ['telemetry', 'events', range, step] }),
     ]);
   };
