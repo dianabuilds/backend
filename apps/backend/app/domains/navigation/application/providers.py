@@ -125,9 +125,9 @@ class RandomProvider(TransitionProvider):
         workspace_id: UUID,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
-        from app.core.pagination import scope_by_workspace
         from app.domains.navigation.application.access_policy import has_access_async
         from app.domains.nodes.infrastructure.models.node import Node
+        from app.providers.db.pagination import scope_by_workspace
 
         query = select(Node).where(
             Node.is_visible,

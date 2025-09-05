@@ -10,7 +10,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from jsonschema import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.pagination import parse_page_query
 from app.domains.ai.infrastructure.repositories.usage_repository import (
     AIUsageRepository,
 )
@@ -29,6 +28,7 @@ from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.application.service import WorkspaceService
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
 from app.domains.workspaces.infrastructure.models import WorkspaceMember
+from app.providers.db.pagination import parse_page_query
 from app.providers.db.session import get_db
 from app.schemas.notification import NotificationType
 from app.schemas.notification_rules import NotificationRules

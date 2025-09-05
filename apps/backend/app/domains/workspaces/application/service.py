@@ -9,7 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
-from app.core.pagination import (
+from app.domains.users.infrastructure.models.user import User
+from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO
+from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
+from app.providers.db.pagination import (
     PageQuery,
     apply_pagination,
     apply_sorting,
@@ -17,9 +20,6 @@ from app.core.pagination import (
     decode_cursor,
     fetch_page,
 )
-from app.domains.users.infrastructure.models.user import User
-from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO
-from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 from app.providers.db.session import get_db
 from app.schemas.workspaces import (
     WorkspaceCursorPage,
