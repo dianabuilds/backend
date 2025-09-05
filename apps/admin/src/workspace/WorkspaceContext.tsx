@@ -73,12 +73,12 @@ export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
         // ignore
       }
       try {
-        const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
-          "/workspaces",
+        const res = await api.get<Workspace[] | { accounts: Workspace[] }>(
+          "/accounts",
         );
         const payload = Array.isArray(res.data)
           ? res.data
-          : res.data?.workspaces || [];
+          : res.data?.accounts || [];
         const globalWs = payload.find(
           (ws) => ws.type === "global" || ws.slug === "global",
         );

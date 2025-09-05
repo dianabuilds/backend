@@ -43,10 +43,22 @@ from app.schemas.accounts import (
     AccountOut,
     AccountSettings,
     AccountUpdate,
+    AccountWithRoleOut,
 )
 from app.schemas.notification import NotificationType
 from app.schemas.notification_rules import NotificationRules
 from app.security import ADMIN_AUTH_RESPONSES, auth_user
+
+user_router = APIRouter(prefix="/accounts", tags=["accounts"])
+
+
+@user_router.get("/", response_model=list[AccountWithRoleOut], summary="List user accounts")
+async def list_user_accounts(
+    user: Annotated[User, Depends(auth_user)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+) -> list[AccountWithRoleOut]:
+    return await AccountService.list_for_user(db, user)
+
 
 router = APIRouter(
     prefix="/admin/accounts",
