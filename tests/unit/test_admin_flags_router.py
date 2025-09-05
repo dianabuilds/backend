@@ -10,6 +10,8 @@ from starlette.requests import Request
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
+domains_module = importlib.import_module("apps.backend.app.domains")
+sys.modules.setdefault("app.domains", domains_module)
 from app.domains.admin.api.flags_router import update_flag  # noqa: E402
 from app.schemas.flags import FeatureFlagUpdateIn  # noqa: E402
 

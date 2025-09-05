@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.feature_flags import get_effective_flags
+from app.domains.admin.application.feature_flag_service import get_effective_flags
 from app.domains.admin.application.menu_service import (
     count_items,
     get_cached_menu,

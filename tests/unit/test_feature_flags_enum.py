@@ -12,8 +12,10 @@ from sqlalchemy.orm import sessionmaker
 # Ensure "app" package resolves correctly
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
+domains_module = importlib.import_module("apps.backend.app.domains")
+sys.modules.setdefault("app.domains", domains_module)
 
-from app.core.feature_flags import (  # noqa: E402
+from app.domains.admin.application.feature_flag_service import (  # noqa: E402
     FeatureFlagKey,
     ensure_known_flags,
     get_effective_flags,

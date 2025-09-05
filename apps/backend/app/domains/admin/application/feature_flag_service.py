@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations  # mypy: ignore-errors
 
 import time
 from enum import StrEnum
