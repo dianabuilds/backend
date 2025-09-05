@@ -24,6 +24,9 @@ ignore = ["D"]
 [tool.mypy]
 python_version = "3.11"
 explicit_package_bases = true
+mypy_path = "."
+ignore_missing_imports = false
+disable_error_code = ["import-untyped"]
 
 # ВАЖНО: укажи, ЧТО проверять, вместо "packages = …"
 files = [
@@ -32,3 +35,7 @@ files = [
 
 # Отрежем мусор и виртуальные окружения
 exclude = "(^|/)(build|dist|.venv|venv|.mypy_cache|.pytest_cache)/"
+
+[[tool.mypy.overrides]]
+module = ["yaml", "requests"]
+ignore_missing_imports = true

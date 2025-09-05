@@ -21,9 +21,7 @@ class EventMetrics:
             ev_map = self._counters.setdefault(event, {})
             ev_map[ws] = ev_map.get(ws, 0) + 1
 
-    def record_handler(
-        self, event: str, handler: str, success: bool, duration_ms: float
-    ) -> None:
+    def record_handler(self, event: str, handler: str, success: bool, duration_ms: float) -> None:
         status = "success" if success else "failure"
         with self._lock:
             hmap = self._handler_counts.setdefault(event, {}).setdefault(handler, {})
@@ -56,9 +54,7 @@ class EventMetrics:
         with self._lock:
             for ev, ws_map in self._counters.items():
                 for ws, cnt in ws_map.items():
-                    lines.append(
-                        f'app_events_total{{event="{ev}",workspace="{ws}"}} {cnt}'
-                    )
+                    lines.append(f'app_events_total{{event="{ev}",workspace="{ws}"}} {cnt}')
             lines.append("# HELP app_event_handler_calls_total Event handler calls")
             lines.append("# TYPE app_event_handler_calls_total counter")
             for ev, hmap in self._handler_counts.items():
@@ -71,12 +67,11 @@ class EventMetrics:
                         )
                         lines.append(call_line)
             lines.append(
-                "# HELP app_event_handler_duration_ms "
-                "Event handler duration in milliseconds"
+                "# HELP app_event_handler_duration_ms " "Event handler duration in milliseconds"
             )
             lines.append("# TYPE app_event_handler_duration_ms summary")
-            for ev, hmap in self._handler_time_sum.items():
-                for handler, total in hmap.items():
+            for ev, tmap in self._handler_time_sum.items():
+                for handler, total in tmap.items():
                     count = self._handler_time_count.get(ev, {}).get(handler, 0)
                     sum_line = (
                         "app_event_handler_duration_ms_sum"

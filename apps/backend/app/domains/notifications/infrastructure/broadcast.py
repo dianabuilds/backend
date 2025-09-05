@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any
+from typing import Any, TypeAlias
 from uuid import UUID
 
 from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.domains.notifications.infrastructure.models.campaign_models import (
     CampaignStatus,
@@ -23,12 +24,14 @@ from app.domains.users.infrastructure.models.user import User
 from app.providers.db.session import db_session
 from app.schemas.notification import NotificationOut, NotificationType
 
+BroadcastCondition: TypeAlias = ColumnElement[bool]
+
 # Регистр запущенных задач (в памяти)
 _tasks: dict[UUID, asyncio.Task] = {}
 
 
 def _build_user_filter(filters: dict[str, Any]):
-    conds = []
+    conds: list[BroadcastCondition] = []
     if not filters:
         return conds
     if role := filters.get("role"):
@@ -69,9 +72,7 @@ async def _send_ws(user_id: UUID, notif: Notification):
 
 async def run_campaign(campaign_id: UUID, chunk_size: int = 1000):
     async with db_session() as session:
-        camp: NotificationCampaign | None = await session.get(
-            NotificationCampaign, campaign_id
-        )
+        camp: NotificationCampaign | None = await session.get(NotificationCampaign, campaign_id)
         if not camp or camp.status in (CampaignStatus.canceled, CampaignStatus.done):
             return
         camp.status = CampaignStatus.running
