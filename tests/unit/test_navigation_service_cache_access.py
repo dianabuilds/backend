@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 import sys
 import uuid
@@ -11,13 +13,13 @@ from sqlalchemy.orm import sessionmaker
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.domains.navigation.application.navigation_service import (
+from app.domains.navigation.application.navigation_service import (  # noqa: E402
     NavigationService,
-)  # noqa: E402
+)
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
-from app.domains.quests.infrastructure.models.navigation_cache_models import (
+from app.domains.quests.infrastructure.models.navigation_cache_models import (  # noqa: E402
     NavigationCache,
-)  # noqa: E402
+)
 from app.domains.tags.infrastructure.models.tag_models import NodeTag  # noqa: E402
 from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
@@ -103,9 +105,7 @@ async def test_navigation_service_filters_cached_transitions():
                 },
             ],
         }
-        session.add(
-            NavigationCache(node_slug="start", navigation=nav, compass=[], echo=[])
-        )
+        session.add(NavigationCache(node_slug="start", navigation=nav, compass=[], echo=[]))
         await session.commit()
 
         user = SimpleNamespace(is_premium=False, premium_until=None)

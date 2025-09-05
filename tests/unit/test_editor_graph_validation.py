@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import importlib
 import sys
 
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from apps.backend.app.domains.quests.application.editor_service import EditorService
-from apps.backend.app.domains.quests.schemas.graph import QuestStep, QuestTransition
+from apps.backend.app.domains.quests.application.editor_service import EditorService  # noqa: E402
+from apps.backend.app.domains.quests.schemas.graph import QuestStep, QuestTransition  # noqa: E402
 
 
 def step(key: str, type_: str = "normal") -> QuestStep:
