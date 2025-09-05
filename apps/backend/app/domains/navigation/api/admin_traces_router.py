@@ -7,6 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy import literal, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
@@ -50,21 +51,86 @@ async def list_traces(
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    node_alias = aliased(Node)
+    from_node = aliased(Node)
+    to_node = aliased(Node)
 
-    stmt = select(NodeTrace, node_alias.slug).join(
-        node_alias, NodeTrace.node_id == node_alias.id
-    )
+    has_to = has_type = has_source = has_channel = False
+    has_latency = has_request = False
+    present: set[str] = set()
+    try:
+        res = await db.execute(
+            text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_schema = current_schema() AND table_name = :t "
+                "AND column_name IN ('to_node_id','type','source','channel','latency_ms','request_id')"
+            ),
+            {"t": NodeTrace.__tablename__},
+        )
+        present = set(res.scalars().all())
+    except Exception:
+        try:
+            res = await db.execute(
+                text(f"PRAGMA table_info({NodeTrace.__tablename__})")
+            )
+            present = {row[1] for row in res.all()}
+        except Exception:
+            present = set()
+
+    has_to = "to_node_id" in present
+    has_type = "type" in present and hasattr(NodeTrace, "type")
+    has_source = "source" in present and hasattr(NodeTrace, "source")
+    has_channel = "channel" in present and hasattr(NodeTrace, "channel")
+    has_latency = "latency_ms" in present and hasattr(NodeTrace, "latency_ms")
+    has_request = "request_id" in present and hasattr(NodeTrace, "request_id")
+
+    cols = [
+        NodeTrace.id.label("id"),
+        (NodeTrace.user_id if hasattr(NodeTrace, "user_id") else literal(None)).label(
+            "user_id"
+        ),
+        (
+            NodeTrace.created_at if hasattr(NodeTrace, "created_at") else literal(None)
+        ).label("created_at"),
+        from_node.slug.label("from_slug"),
+        (to_node.slug if has_to else literal(None)).label("to_slug"),
+        (NodeTrace.type if has_type else literal(None)).label("type"),
+        (NodeTrace.source if has_source else literal(None)).label("source"),
+        (NodeTrace.channel if has_channel else literal(None)).label("channel"),
+        (NodeTrace.latency_ms if has_latency else literal(None)).label("latency_ms"),
+        (NodeTrace.request_id if has_request else literal(None)).label("request_id"),
+    ]
+
+    stmt = select(*cols).join(from_node, NodeTrace.node_id == from_node.id)
+    if has_to:
+        stmt = stmt.outerjoin(to_node, text("node_traces.to_node_id") == to_node.id)
 
     if from_slug:
-        stmt = stmt.where(node_alias.slug == from_slug)
+        stmt = stmt.where(from_node.slug == from_slug)
+    if to_slug:
+        if not has_to:
+            raise HTTPException(
+                status_code=400, detail="Filtering by to_slug is not supported"
+            )
+        stmt = stmt.where(to_node.slug == to_slug)
     if user_id and hasattr(NodeTrace, "user_id"):
         stmt = stmt.where(NodeTrace.user_id == user_id)
-    if type and hasattr(NodeTrace, "type"):
+    if type:
+        if not has_type:
+            raise HTTPException(
+                status_code=400, detail="Filtering by type is not supported"
+            )
         stmt = stmt.where(NodeTrace.type == type)
-    if source and hasattr(NodeTrace, "source"):
+    if source:
+        if not has_source:
+            raise HTTPException(
+                status_code=400, detail="Filtering by source is not supported"
+            )
         stmt = stmt.where(NodeTrace.source == source)
-    if channel and hasattr(NodeTrace, "channel"):
+    if channel:
+        if not has_channel:
+            raise HTTPException(
+                status_code=400, detail="Filtering by channel is not supported"
+            )
         stmt = stmt.where(NodeTrace.channel == channel)
     if date_from and hasattr(NodeTrace, "created_at"):
         stmt = stmt.where(NodeTrace.created_at >= date_from)
@@ -76,27 +142,30 @@ async def list_traces(
     offset = (page - 1) * page_size
     stmt = stmt.offset(offset).limit(page_size)
 
-    result = await db.execute(stmt)
-    rows = result.all()
+    try:
+        result = await db.execute(stmt)
+        rows = result.all()
+    except Exception as err:
+        logger.exception("Failed to fetch traces: %s", err)
+        raise HTTPException(status_code=500, detail="Failed to fetch traces")
 
     data = []
-    for t, fs in rows:
-        item = {
-            "id": t.id,
-            "from_slug": fs,
-            "to_slug": None,
-        }
-        for field in (
-            "user_id",
-            "source",
-            "channel",
-            "created_at",
-            "type",
-            "latency_ms",
-            "request_id",
-        ):
-            item[field] = getattr(t, field, None)
-        data.append(item)
+    for r in rows:
+        m = r._mapping
+        data.append(
+            {
+                "id": m["id"],
+                "from_slug": m["from_slug"],
+                "to_slug": m.get("to_slug"),
+                "user_id": m.get("user_id"),
+                "source": m.get("source"),
+                "channel": m.get("channel"),
+                "created_at": m.get("created_at"),
+                "type": m.get("type"),
+                "latency_ms": m.get("latency_ms"),
+                "request_id": m.get("request_id"),
+            }
+        )
 
     return data
 
