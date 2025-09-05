@@ -46,6 +46,8 @@ async def list_notifications(
     )
     if filters.workspace_id:
         stmt = scope_by_workspace(stmt, filters.workspace_id)
+    if filters.placement:
+        stmt = stmt.where(Notification.placement == filters.placement)
     result = await db.execute(stmt)
     return result.scalars().all()
 

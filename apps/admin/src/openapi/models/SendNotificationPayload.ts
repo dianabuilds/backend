@@ -8,5 +8,6 @@ export type SendNotificationPayload = {
     title: string;
     message: string;
     type?: NotificationType;
+    placement?: string;
 };
 

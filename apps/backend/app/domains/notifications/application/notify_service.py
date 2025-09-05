@@ -9,6 +9,7 @@ from app.domains.notifications.application.ports.notification_repo import (
 )
 from app.domains.notifications.application.ports.pusher import INotificationPusher
 from app.domains.workspaces.limits import workspace_limit
+from app.schemas.notification import NotificationPlacement
 
 
 class NotifyService:
@@ -27,6 +28,7 @@ class NotifyService:
         title: str,
         message: str,
         type: Any,
+        placement: Any = NotificationPlacement.inbox,
         preview: PreviewContext | None = None,
     ) -> dict[str, Any]:
         is_shadow = bool(preview and preview.mode == "shadow")
@@ -36,6 +38,7 @@ class NotifyService:
             title=title,
             message=message,
             type=type,
+            placement=placement,
             is_preview=is_shadow,
         )
         if not is_shadow:

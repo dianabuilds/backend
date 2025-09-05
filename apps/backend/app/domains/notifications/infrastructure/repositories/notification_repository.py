@@ -26,6 +26,7 @@ class NotificationRepository(INotificationRepository):
         title: str,
         message: str,
         type: Any,
+        placement: Any,
         is_preview: bool = False,
     ) -> dict[str, Any]:
         notif = Notification(
@@ -34,6 +35,7 @@ class NotificationRepository(INotificationRepository):
             title=title,
             message=message,
             type=type,
+            placement=placement,
             is_preview=is_preview,
         )
         self._db.add(notif)
