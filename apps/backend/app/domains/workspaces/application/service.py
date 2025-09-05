@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
@@ -17,6 +17,7 @@ from app.schemas.workspaces import (
     WorkspaceIn,
     WorkspaceMemberIn,
     WorkspaceRole,
+    WorkspaceSettings,
     WorkspaceUpdate,
 )
 from app.security import auth_user
@@ -129,6 +130,18 @@ class WorkspaceService:
         await db.commit()
         await db.refresh(workspace)
         return workspace
+
+    @staticmethod
+    async def list_for_user(
+        db: AsyncSession, user: User
+    ) -> list[tuple[Workspace, WorkspaceRole]]:
+        stmt = (
+            select(Workspace, WorkspaceMember.role)
+            .join(WorkspaceMember)
+            .where(WorkspaceMember.user_id == user.id)
+        )
+        result = await db.execute(stmt)
+        return [(ws, role) for ws, role in result.all()]
 
     @staticmethod
     async def get_for_user(
@@ -244,3 +257,11 @@ class WorkspaceService:
             select(WorkspaceMember).where(WorkspaceMember.workspace_id == workspace_id)
         )
         return res.scalars().all()
+
+    @staticmethod
+    async def get_ai_presets(db: AsyncSession, workspace_id: UUID) -> dict[str, Any]:
+        workspace = await WorkspaceDAO.get(db, workspace_id)
+        if not workspace:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        settings = WorkspaceSettings.model_validate(workspace.settings_json)
+        return settings.ai_presets
