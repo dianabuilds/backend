@@ -1,7 +1,6 @@
-# ruff: noqa: B008
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +24,8 @@ from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role({"admin"})  # в MVP только admin применяет
 
+AdminRequired = Annotated[Any, Depends(admin_required)]
+
 router = APIRouter(
     prefix="/admin/search",
     tags=["admin"],
@@ -32,12 +33,10 @@ router = APIRouter(
 )
 
 
-@router.get(
-    "/relevance", response_model=RelevanceGetOut, summary="Get active relevance config"
-)
+@router.get("/relevance", response_model=RelevanceGetOut, summary="Get active relevance config")
 async def get_relevance(
-    _: Annotated[Depends, Depends(admin_required)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    _: AdminRequired,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> RelevanceGetOut:
     svc = ConfigService(SearchConfigRepository(db))
     return await svc.get_active_relevance()
@@ -47,14 +46,12 @@ async def get_relevance(
 async def put_relevance(
     body: RelevancePutIn,
     request: Request,
-    current=Depends(admin_required),
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: AdminRequired,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = ConfigService(SearchConfigRepository(db))
     if body.dryRun:
-        res: RelevanceDryRunOut = await svc.dry_run_relevance(
-            body.payload, body.sample or []
-        )
+        res: RelevanceDryRunOut = await svc.dry_run_relevance(body.payload, body.sample or [])
         return res
     applied: RelevanceApplyOut = await svc.apply_relevance(
         body.payload, str(getattr(current, "id", ""))
@@ -81,14 +78,12 @@ async def put_relevance(
 async def post_rollback(
     toVersion: int,
     request: Request,
-    current=Depends(admin_required),
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+    current: AdminRequired,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> RelevanceApplyOut:
     svc = ConfigService(SearchConfigRepository(db))
     try:
-        applied = await svc.rollback_relevance(
-            int(toVersion), str(getattr(current, "id", ""))
-        )
+        applied = await svc.rollback_relevance(int(toVersion), str(getattr(current, "id", "")))
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Version not found") from err
     await audit_log(
@@ -102,11 +97,9 @@ async def post_rollback(
     return applied
 
 
-@router.get(
-    "/overview", response_model=SearchOverviewOut, summary="Search overview KPIs"
-)
+@router.get("/overview", response_model=SearchOverviewOut, summary="Search overview KPIs")
 async def get_overview(
-    _: Annotated[Depends, Depends(admin_required)] = ...,
+    _: AdminRequired,
 ) -> SearchOverviewOut:
     # MVP stub with zeros/empty values
     return SearchOverviewOut(
@@ -118,6 +111,6 @@ async def get_overview(
 
 @router.get("/top", response_model=list[SearchTopQuery], summary="Top search queries")
 async def get_top(
-    _: Annotated[Depends, Depends(admin_required)] = ...,
+    _: AdminRequired,
 ) -> list[SearchTopQuery]:
     return [SearchTopQuery(**item) for item in search_stats.top()]
