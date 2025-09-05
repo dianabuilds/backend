@@ -27,7 +27,7 @@ async def get_global_node_by_id(
 ) -> NodeOut:
     result = await db.execute(
         select(Node)
-        .where(Node.id == node_id, Node.workspace_id.is_(None))
+        .where(Node.id == node_id, Node.account_id.is_(None))
         .options(selectinload(Node.tags))
     )
     node = result.scalar_one_or_none()

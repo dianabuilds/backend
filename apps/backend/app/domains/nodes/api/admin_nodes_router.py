@@ -211,7 +211,7 @@ async def bulk_node_operation(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     result = await db.execute(
-        select(Node).where(Node.id.in_(payload.ids), Node.workspace_id == workspace_id)
+        select(Node).where(Node.id.in_(payload.ids), Node.account_id == workspace_id)
     )
     nodes = result.scalars().all()
     invalidate_slugs: list[str] = []
@@ -254,7 +254,7 @@ async def bulk_patch_nodes(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     result = await db.execute(
-        select(Node).where(Node.id.in_(payload.ids), Node.workspace_id == workspace_id)
+        select(Node).where(Node.id.in_(payload.ids), Node.account_id == workspace_id)
     )
     nodes = result.scalars().all()
     updated_ids: list[int] = []
@@ -281,15 +281,15 @@ async def bulk_patch_nodes(
             node.premium_only = changes.premium_only
         if changes.is_recommendable is not None:
             node.is_recommendable = changes.is_recommendable
-        if changes.workspace_id is not None:
-            node.workspace_id = changes.workspace_id
+        if changes.account_id is not None:
+            node.account_id = changes.account_id
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = current_user.id
         updated_ids.append(node.id)
         if (
             (changes.is_visible is not None and changes.is_visible != was_visible)
             or (changes.is_public is not None and changes.is_public != was_public)
-            or changes.workspace_id is not None
+            or changes.account_id is not None
         ):
             invalidate_slugs.append(node.slug)
             try:

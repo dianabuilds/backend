@@ -4,7 +4,6 @@ import random
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -30,7 +29,7 @@ class TransitionProvider(ABC):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        workspace_id: UUID,
+        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         """Return candidate nodes for transition."""
@@ -51,11 +50,11 @@ class ManualTransitionsProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        workspace_id: UUID,
+        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         transitions = await self._service.get_transitions(
-            db, node, user, workspace_id, preview=preview
+            db, node, user, account_id, preview=preview
         )
         return [t.to_node for t in transitions]
 
@@ -76,11 +75,11 @@ class CompassProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        workspace_id: UUID,
+        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         nodes = await self._service.get_compass_nodes(db, node, user, self._limit, preview=preview)
-        return [n for n in nodes if n.workspace_id == workspace_id]
+        return [n for n in nodes if n.account_id == account_id]
 
 
 class EchoProvider(TransitionProvider):
@@ -97,13 +96,13 @@ class EchoProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        workspace_id: UUID,
+        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         nodes = await self._service.get_echo_transitions(
             db, node, self._limit, user=user, preview=preview
         )
-        return [n for n in nodes if n.workspace_id == workspace_id]
+        return [n for n in nodes if n.account_id == account_id]
 
 
 class RandomProvider(TransitionProvider):
@@ -120,21 +119,21 @@ class RandomProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        workspace_id: UUID,
+        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
+        from app.domains.accounts.application.service import scope_by_account
         from app.domains.navigation.application.access_policy import has_access_async
         from app.domains.nodes.infrastructure.models.node import Node
-        from app.providers.db.pagination import scope_by_workspace
 
         query = select(Node).where(
             Node.is_visible,
             Node.is_public,
             Node.is_recommendable,
             Node.id != node.id,
-            Node.workspace_id == workspace_id,
+            Node.account_id == account_id,
         )
-        query = scope_by_workspace(query, workspace_id)
+        query = scope_by_account(query, account_id)
         result = await db.execute(query)
         nodes: list[Node] = result.scalars().all()
         nodes = [n for n in nodes if await has_access_async(n, user, preview)]
