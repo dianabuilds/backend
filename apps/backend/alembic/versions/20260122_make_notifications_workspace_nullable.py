@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = "20260122_make_notifications_workspace_nullable"
-down_revision = "20260121_add_feature_flag_audience"
+down_revision = "20260122_remove_moderation_flag"
 branch_labels = None
 depends_on = None
 
