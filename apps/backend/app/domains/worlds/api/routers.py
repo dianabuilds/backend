@@ -4,8 +4,11 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domains.accounts.application.shared_objects_service import has_access
+from app.domains.ai.infrastructure.models.world_models import WorldTemplate
 from app.domains.users.infrastructure.models.user import User
 from app.domains.worlds.application.worlds_service import WorldsService
 from app.domains.worlds.infrastructure.repositories.worlds_repository import (
@@ -57,9 +60,23 @@ async def update_world(
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
+    res = await db.execute(select(WorldTemplate).where(WorldTemplate.id == world_id))
+    world = res.scalars().first()
+    if not world:
+        raise HTTPException(status_code=404, detail="World not found")
+    if world.workspace_id != workspace_id:
+        allowed = await has_access(
+            db,
+            object_type="world",
+            object_id=world_id,
+            account_id=workspace_id,
+            permission="edit",
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="No access")
     out = await _svc(db).update_world(
         db,
-        workspace_id,
+        world.workspace_id,
         world_id,
         payload.model_dump(exclude_none=True),
         current_user.id,
@@ -76,7 +93,21 @@ async def delete_world(
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    ok = await _svc(db).delete_world(db, workspace_id, world_id)
+    res = await db.execute(select(WorldTemplate).where(WorldTemplate.id == world_id))
+    world = res.scalars().first()
+    if not world:
+        raise HTTPException(status_code=404, detail="World not found")
+    if world.workspace_id != workspace_id:
+        allowed = await has_access(
+            db,
+            object_type="world",
+            object_id=world_id,
+            account_id=workspace_id,
+            permission="edit",
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="No access")
+    ok = await _svc(db).delete_world(db, world.workspace_id, world_id)
     if not ok:
         raise HTTPException(status_code=404, detail="World not found")
     return {"status": "ok"}

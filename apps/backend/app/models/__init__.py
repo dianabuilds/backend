@@ -16,5 +16,6 @@ from . import ops_incident as _ops_incident  # noqa: F401
 from . import outbox as _outbox  # noqa: F401
 from . import quests as _quests  # noqa: F401
 from . import search_config as _search_config  # noqa: F401
+from . import shared_objects as _shared_objects  # noqa: F401
 
 __all__ = ["Base"]
