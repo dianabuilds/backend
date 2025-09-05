@@ -30,17 +30,15 @@ def _harden_set_cookie_line(line: str, is_https: bool) -> str:
     if "httponly" not in lower:
         parts.append("HttpOnly")
     # Secure
-    if "secure" not in lower and (settings.is_production or is_https):
+    # Не добавляем флаг Secure, если запрос идёт по HTTP. Иначе браузер
+    # отбрасывает cookie, что ломает авторизацию в dev-сценариях без HTTPS.
+    if "secure" not in lower and is_https:
         parts.append("Secure")
     # SameSite
     if "samesite=" not in lower:
         parts.append(f"SameSite={default_samesite}")
     # Path
-    if (
-        " path=" not in lower
-        and not lower.strip().endswith("; path=/")
-        and "path=/" not in lower
-    ):
+    if " path=" not in lower and not lower.strip().endswith("; path=/") and "path=/" not in lower:
         parts.append("Path=/")
     return "; ".join(parts)
 
