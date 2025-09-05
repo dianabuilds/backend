@@ -36,6 +36,11 @@
 4. **<SELF-REVIEW>**: чек-лист, результаты линтеров/тайпов, покрытие, бенчмарки, лицензии, SBOM.
 5. **PR**: шаблон заполнен полностью, прикреплены артефакты.
 
+Чек-лист артефактов:
+- [ ] coverage delta
+- [ ] perf
+- [ ] SBOM
+
 ## 4. Слои и границы
 
 * Слои бэка: `api` → `service` → `domain` → `repo` (SQLAlchemy) → `infra`.
@@ -133,13 +138,14 @@ WAIVER?: правило, причина, срок, владелец
 
 ## 16. Исключения (`WAIVER`)
 
+Формат блока:
+
 ```
 <WAIVER>
-rule: performance.api.p95
-reason: временный регресс
-expires: 2025-10-15
-owner: @team/backend
-mitigation: новый индекс
+rule: <правило>
+reason: <почему требуется исключение>
+expires: <YYYY-MM-DD>
+owner: <ответственный>
 </WAIVER>
 ```
 
