@@ -152,9 +152,7 @@ class Settings(ProjectSettings):
     # CORS settings
     cors_allow_credentials: bool = Field(
         default=True,
-        validation_alias=AliasChoices(
-            "APP_CORS_ALLOW_CREDENTIALS", "CORS_ALLOW_CREDENTIALS"
-        ),
+        validation_alias=AliasChoices("APP_CORS_ALLOW_CREDENTIALS", "CORS_ALLOW_CREDENTIALS"),
     )
     cors_allow_origins: list[str] = Field(
         default_factory=list,
@@ -293,12 +291,19 @@ class Settings(ProjectSettings):
     def database_url(self) -> str:
         """Return the database connection URL without modifying the name.
 
+        An explicit ``DATABASE_URL`` environment variable (or ``DATABASE__URL``)
+        takes precedence to simplify test configuration where a SQLite DSN is
+        preferred over the default Postgres settings.
+
         Previously the environment suffix (e.g. ``_development``) was
         automatically appended to the database name. This caused connection
         attempts to non‑existent databases like ``defaultdb_development`` when
         the actual database was simply ``defaultdb``. Now we rely on the name
         provided in the settings as-is so the correct database is used.
         """
+        override = os.getenv("DATABASE_URL") or os.getenv("DATABASE__URL")
+        if override:
+            return override
         return self.database.url
 
     @property
@@ -365,9 +370,7 @@ def validate_settings(settings: Settings) -> None:
             missing.append("PAYMENT__JWT_SECRET")
         if settings.payment.jwt_secret == settings.jwt.secret:
             missing.append("PAYMENT__JWT_SECRET distinct from JWT__SECRET")
-    if settings.payment.webhook_secret and _is_placeholder(
-        settings.payment.webhook_secret
-    ):
+    if settings.payment.webhook_secret and _is_placeholder(settings.payment.webhook_secret):
         missing.append("PAYMENT__WEBHOOK_SECRET")
 
     if settings.async_enabled and _is_placeholder(settings.queue_broker_url):
