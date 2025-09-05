@@ -16,3 +16,5 @@ export async function updateFlag(
   );
   return res.data!;
 }
+
+export type { FeatureFlagOut as FeatureFlag } from "../openapi";
