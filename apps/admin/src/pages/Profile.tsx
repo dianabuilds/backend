@@ -1,21 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { api } from "../api/client";
 import type { Workspace } from "../api/types";
 import { useToast } from "../components/ToastProvider";
-import { safeLocalStorage } from "../utils/safeStorage";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 import PageLayout from "./_shared/PageLayout";
 
 export default function Profile() {
   const { addToast } = useToast();
   const { setWorkspace } = useWorkspace();
-  const [defaultWs, setDefaultWs] = useState<string>(() =>
-    safeLocalStorage.getItem("defaultWorkspaceId") || "",
-  );
+  const [defaultWs, setDefaultWs] = useState<string>("");
 
-  const { data } = useQuery({
+  const { data: workspaces } = useQuery({
     queryKey: ["workspaces"],
     queryFn: async () => {
       const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
@@ -27,9 +24,22 @@ export default function Profile() {
     },
   });
 
-  const save = () => {
-    safeLocalStorage.setItem("defaultWorkspaceId", defaultWs);
-    setWorkspace(data?.find((ws) => ws.id === defaultWs));
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: async () => (
+      await api.get<{ default_workspace_id: string | null }>("/users/me")
+    ).data,
+  });
+
+  useEffect(() => {
+    if (me) setDefaultWs(me.default_workspace_id ?? "");
+  }, [me]);
+
+  const save = async () => {
+    await api.patch("/users/me/default-workspace", {
+      default_workspace_id: defaultWs || null,
+    });
+    setWorkspace(workspaces?.find((ws) => ws.id === defaultWs));
     addToast({ title: "Default workspace saved", variant: "success" });
   };
 
@@ -46,7 +56,7 @@ export default function Profile() {
           className="px-2 py-1 border rounded text-sm"
         >
           <option value="">None</option>
-          {data?.map((ws) => (
+          {workspaces?.map((ws) => (
             <option key={ws.id} value={ws.id}>
               {ws.name}
             </option>

@@ -37,8 +37,7 @@ export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
       const params = new URLSearchParams(window.location.search);
       const fromUrl = params.get("workspace_id") || "";
       const stored = safeLocalStorage.getItem("workspaceId") || "";
-      const fallback = safeLocalStorage.getItem("defaultWorkspaceId") || "";
-      return fromUrl || stored || fallback;
+      return fromUrl || stored;
     } catch {
       return "";
     }
@@ -60,6 +59,20 @@ export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
     if (workspaceId) return;
     (async () => {
       try {
+        const me = await api.get<{ default_workspace_id: string | null }>(
+          "/users/me",
+        );
+        const defId = me.data?.default_workspace_id;
+        if (defId) {
+          setWorkspaceIdState(defId);
+          persistWorkspaceId(defId);
+          updateUrl(defId);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+      try {
         const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
           "/admin/workspaces",
         );
@@ -70,14 +83,15 @@ export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
           (ws) => ws.type === "global" || ws.slug === "global",
         );
         if (globalWs) {
-          setWorkspace(globalWs);
-          safeLocalStorage.setItem("defaultWorkspaceId", globalWs.id);
+          setWorkspaceIdState(globalWs.id);
+          persistWorkspaceId(globalWs.id);
+          updateUrl(globalWs.id);
         }
       } catch {
         // ignore
       }
     })();
-  }, [workspaceId, setWorkspace]);
+  }, [workspaceId]);
 
   return (
     <WorkspaceContext.Provider value={{ workspaceId, setWorkspace }}>
