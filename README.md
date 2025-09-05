@@ -11,7 +11,7 @@
 ## Быстрый старт
 1. Установить зависимости:
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements.txt -c constraints/py311-max.txt
    ```
 2. Создать файл `.env` на основе `.env.example` и заполнить переменные окружения.
    Примеры конфигураций для разных сред и правила cookies описаны в `docs/environment.md`.
@@ -112,7 +112,7 @@ CI повторно запускает те же проверки, поэтом�
 CI запускает проверки уязвимостей через `pip-audit` для Python и `npm audit` для Node. Локально запустить их можно так:
 
 ```bash
-pip install pip-audit && pip-audit -r requirements.txt
+pip install pip-audit && pip-audit -r requirements.txt -c constraints/py311-max.txt
 cd apps/admin && npm audit
 ```
 
