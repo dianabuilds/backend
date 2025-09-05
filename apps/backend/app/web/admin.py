@@ -1,4 +1,15 @@
+from __future__ import annotations
+
 from typing import Annotated
+
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.providers.db.session import get_db
+from app.security import authenticate_admin  # или реальный помощник
+
+router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.post("/login")
@@ -17,10 +28,11 @@ async def login_action(
         username = form.get("username")
         password = form.get("password")
 
-    tokens = await _authenticate(db, username, password)
+    tokens = await authenticate_admin(db, username, password)
 
     # Ставим HttpOnly cookie с access и refresh токенами
-    # SameSite=Lax подходит для same-site (localhost:5173 -> localhost:8000 считается same-site)
+    # SameSite=Lax подходит для same-site
+    # (localhost:5173 -> localhost:8000 считается same-site)
     response = RedirectResponse(url="/admin", status_code=303)
     response.set_cookie(
         "access_token", tokens.access_token, httponly=True, samesite="lax", path="/"
