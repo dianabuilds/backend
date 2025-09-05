@@ -48,7 +48,7 @@ async def _auth_user(
 
 
 async def require_account_editor(
-    account_id: UUID,
+    account_id: int,
     user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> AccountMember | None:
@@ -60,7 +60,7 @@ async def require_account_editor(
 
 
 async def require_account_owner(
-    account_id: UUID,
+    account_id: int,
     user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> AccountMember | None:
@@ -72,7 +72,7 @@ async def require_account_owner(
 
 
 async def require_account_viewer(
-    account_id: UUID,
+    account_id: int,
     user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> AccountMember | None:
@@ -87,7 +87,7 @@ async def require_account_viewer(
 
 
 async def require_account_guest(
-    account_id: UUID,
+    account_id: int,
     user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> AccountMember | None:
@@ -98,7 +98,7 @@ async def require_account_guest(
     return m
 
 
-def scope_by_account(query: Select, account_id: UUID) -> Select:
+def scope_by_account(query: Select, account_id: int) -> Select:
     """Filter a SQLAlchemy query by account identifier if possible."""
     entity = query.column_descriptions[0]["entity"]
     if hasattr(entity, "account_id"):
@@ -106,12 +106,14 @@ def scope_by_account(query: Select, account_id: UUID) -> Select:
     return query
 
 
-SLUG_RE = re.compile(r"^[a-z0-9-]+$")
+SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 
 
 def _slugify(text: str) -> str:
-    slug = re.sub(r"[^a-z0-9-]+", "-", text.lower())
-    return re.sub(r"-+", "-", slug).strip("-")
+    slug = re.sub(r"[^a-z0-9_-]+", "-", text.lower())
+    slug = re.sub(r"-+", "-", slug)
+    slug = re.sub(r"_+", "_", slug)
+    return slug.strip("-_")
 
 
 class AccountService:
@@ -153,7 +155,7 @@ class AccountService:
         return [(ws, role) for ws, role in result.all()]
 
     @staticmethod
-    async def get_for_user(db: AsyncSession, account_id: UUID, user: User) -> Account:
+    async def get_for_user(db: AsyncSession, account_id: int, user: User) -> Account:
         account = await AccountDAO.get(db, account_id)
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
@@ -164,7 +166,7 @@ class AccountService:
         return account
 
     @staticmethod
-    async def update(db: AsyncSession, account_id: UUID, data: AccountUpdate) -> Account:
+    async def update(db: AsyncSession, account_id: int, data: AccountUpdate) -> Account:
         account = await AccountDAO.get(db, account_id)
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
@@ -199,7 +201,7 @@ class AccountService:
         return account
 
     @staticmethod
-    async def delete(db: AsyncSession, account_id: UUID) -> None:
+    async def delete(db: AsyncSession, account_id: int) -> None:
         account = await AccountDAO.get(db, account_id)
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
@@ -207,9 +209,7 @@ class AccountService:
         await db.commit()
 
     @staticmethod
-    async def add_member(
-        db: AsyncSession, account_id: UUID, data: AccountMemberIn
-    ) -> AccountMember:
+    async def add_member(db: AsyncSession, account_id: int, data: AccountMemberIn) -> AccountMember:
         existing = await AccountMemberDAO.get(db, account_id=account_id, user_id=data.user_id)
         if existing:
             raise HTTPException(status_code=400, detail="Member already exists")
@@ -225,7 +225,7 @@ class AccountService:
 
     @staticmethod
     async def update_member(
-        db: AsyncSession, account_id: UUID, user_id: UUID, role: AccountRole
+        db: AsyncSession, account_id: int, user_id: UUID, role: AccountRole
     ) -> AccountMember:
         member = await AccountMemberDAO.update_role(
             db, account_id=account_id, user_id=user_id, role=role
@@ -237,7 +237,7 @@ class AccountService:
         return member
 
     @staticmethod
-    async def remove_member(db: AsyncSession, account_id: UUID, user_id: UUID) -> None:
+    async def remove_member(db: AsyncSession, account_id: int, user_id: UUID) -> None:
         member = await AccountMemberDAO.get(db, account_id=account_id, user_id=user_id)
         if not member:
             raise HTTPException(status_code=404, detail="Member not found")
@@ -245,7 +245,7 @@ class AccountService:
         await db.commit()
 
     @staticmethod
-    async def list_members(db: AsyncSession, account_id: UUID) -> list[AccountMember]:
+    async def list_members(db: AsyncSession, account_id: int) -> list[AccountMember]:
         res = await db.execute(select(AccountMember).where(AccountMember.account_id == account_id))
         return res.scalars().all()
 
@@ -270,7 +270,7 @@ class AccountService:
         next_cursor = (
             build_cursor_for_last_item(items[-1], pq.sort, pq.order) if has_next and items else None
         )
-        roles: dict[UUID, AccountRole] = {}
+        roles: dict[int, AccountRole] = {}
         if items:
             res = await db.execute(
                 select(AccountMember.account_id, AccountMember.role).where(
