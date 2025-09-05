@@ -5,30 +5,30 @@ import logging
 from sqlalchemy import select
 
 from app.core.config import settings
+from app.domains.accounts.infrastructure.models import Account, AccountMember
 from app.domains.users.infrastructure.models.user import User
-from app.domains.workspaces.infrastructure.models import Workspace, WorkspaceMember
 from app.providers.db.session import db_session
-from app.schemas.workspaces import WorkspaceRole, WorkspaceType
+from app.schemas.accounts import AccountKind, AccountRole
 
 logger = logging.getLogger(__name__)
 
 
-async def ensure_global_workspace() -> None:
-    """Ensure a single global system workspace exists.
+async def ensure_global_account() -> None:
+    """Ensure a single global system account exists.
 
-    The workspace is created with type ``global`` and marked as system. All users
+    The account is created with kind ``team`` and marked as system. All users
     whose role is in ``settings.security.admin_roles`` are granted access.
     """
 
     async with db_session() as session:
         result = await session.execute(
-            select(Workspace).where(
-                Workspace.type == WorkspaceType.global_,
-                Workspace.is_system.is_(True),
+            select(Account).where(
+                Account.kind == AccountKind.team,
+                Account.is_system.is_(True),
             )
         )
-        workspace = result.scalars().first()
-        if workspace:
+        account = result.scalars().first()
+        if account:
             return
 
         owner_res = await session.execute(
@@ -39,18 +39,18 @@ async def ensure_global_workspace() -> None:
         )
         owner = owner_res.scalars().first()
         if not owner:
-            logger.warning("Cannot create global workspace: no admin user found")
+            logger.warning("Cannot create global account: no admin user found")
             return
 
-        workspace = Workspace(
+        account = Account(
             name="Global",
             slug="global",
             owner_user_id=owner.id,
-            type=WorkspaceType.global_,
+            kind=AccountKind.team,
             is_system=True,
             settings_json={},
         )
-        session.add(workspace)
+        session.add(account)
         await session.flush()
 
         trusted_res = await session.execute(
@@ -58,12 +58,12 @@ async def ensure_global_workspace() -> None:
         )
         for user in trusted_res.scalars().all():
             session.add(
-                WorkspaceMember(
-                    workspace_id=workspace.id,
+                AccountMember(
+                    account_id=account.id,
                     user_id=user.id,
-                    role=WorkspaceRole.owner,
+                    role=AccountRole.owner,
                 )
             )
 
         await session.commit()
-        logger.info("Created global workspace %s", workspace.id)
+        logger.info("Created global account %s", account.id)
