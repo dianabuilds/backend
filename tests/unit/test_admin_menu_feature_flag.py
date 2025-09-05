@@ -16,13 +16,13 @@ sys.modules.setdefault("app", app_module)
 domains_module = importlib.import_module("apps.backend.app.domains")
 sys.modules.setdefault("app.domains", domains_module)
 
-from app.core.feature_flags import (  # noqa: E402
+from app.domains.admin.api.routers import get_admin_menu  # noqa: E402
+from app.domains.admin.application.feature_flag_service import (  # noqa: E402
     FeatureFlagKey,
     ensure_known_flags,
     invalidate_cache,
     set_flag,
 )
-from app.domains.admin.api.routers import get_admin_menu  # noqa: E402
 from app.domains.admin.application.menu_service import (  # noqa: E402
     invalidate_menu_cache,
 )

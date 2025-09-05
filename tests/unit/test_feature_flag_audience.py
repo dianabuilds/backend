@@ -11,7 +11,9 @@ sys.modules.setdefault("app", app_module)
 domains_module = importlib.import_module("apps.backend.app.domains")
 sys.modules.setdefault("app.domains", domains_module)
 
-from app.core.feature_flags import get_effective_flags  # noqa: E402
+from app.domains.admin.application.feature_flag_service import (  # noqa: E402
+    get_effective_flags,
+)
 from app.domains.admin.infrastructure.models.feature_flag import (  # noqa: E402
     FeatureFlag,
 )
