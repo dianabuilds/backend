@@ -105,7 +105,7 @@ async def verify_payment(
     gateways = await load_active_gateways(db)
     if not gateways:
         ok = await payment_service.verify(token, amount)
-        return ok, "legacy"
+        return ok, None
 
     order: list[PaymentGateway] = gateways[:]
     if preferred_slug:
