@@ -6,7 +6,6 @@ import json
 from sqlalchemy import and_, asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.cache import cache as shared_cache
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
     PageRequest,
@@ -14,6 +13,7 @@ from app.domains.nodes.application.query_models import (
 )
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
+from app.providers.cache import cache as shared_cache
 from app.schemas.nodes_common import Status
 
 

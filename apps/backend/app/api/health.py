@@ -13,11 +13,11 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.cache import cache as shared_cache
 from app.core.config import settings
-from app.core.redis_utils import create_async_redis
 from app.domains.ai.application.embedding_service import get_embedding
+from app.providers.cache import cache as shared_cache
 from app.providers.db.session import get_db
+from app.providers.redis_utils import create_async_redis
 
 try:
     import redis.asyncio as redis  # type: ignore

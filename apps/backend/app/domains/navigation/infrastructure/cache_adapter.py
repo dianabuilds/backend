@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.core.cache import cache as core_cache
 from app.domains.navigation.application.ports.cache_port import IKeyValueCache
+from app.providers.cache import cache as core_cache
 
 
 class CoreCacheAdapter(IKeyValueCache):

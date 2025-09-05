@@ -9,9 +9,9 @@ from fastapi import HTTPException
 os.environ.setdefault("TESTING", "True")
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-from app.core.cache import cache as shared_cache  # noqa: E402
 from app.core.preview import PreviewContext  # noqa: E402
 from app.domains.quota.application.quota_service import QuotaService  # noqa: E402
+from app.providers.cache import cache as shared_cache  # noqa: E402
 
 
 async def _clear():
