@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import importlib
 import sys
 import types
 import uuid
+from dataclasses import dataclass
 
 import pytest
 from fastapi import HTTPException
@@ -20,8 +23,6 @@ security_stub.require_ws_editor = lambda *a, **k: None
 security_stub.require_ws_owner = lambda *a, **k: None
 security_stub.require_ws_viewer = lambda *a, **k: None
 sys.modules.setdefault("app.security", security_stub)
-
-from dataclasses import dataclass
 
 from app.domains.workspaces.application.service import WorkspaceService  # noqa: E402
 from app.domains.workspaces.infrastructure.models import (  # noqa: E402

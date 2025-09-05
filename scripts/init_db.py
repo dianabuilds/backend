@@ -3,6 +3,9 @@
 Скрипт для инициализации базы данных.
 Создает начальную миграцию и применяет её.
 """
+
+from __future__ import annotations
+
 import os
 import subprocess
 import sys
@@ -16,7 +19,7 @@ sys.path.insert(0, str(project_root))
 ALEMBIC_CONFIG = project_root / "alembic.ini"
 
 # Импортируем настройки приложения
-from apps.backend.app.core.config import settings
+from apps.backend.app.core.config import settings  # noqa: E402
 
 
 def run_command(command: list[str], error_message: str) -> bool:
