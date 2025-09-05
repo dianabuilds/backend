@@ -22,4 +22,7 @@ ignore = ["D"]
 "apps/backend/alembic/versions/*.py" = ["ALL"]
 
 [tool.mypy]
+python_version = "3.11"
 explicit_package_bases = true
+packages = ["apps.backend.app"]
+exclude = "(^|/)(build|dist|.venv|venv)/"
