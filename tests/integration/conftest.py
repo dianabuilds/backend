@@ -79,14 +79,51 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Создает тестовый клиент."""
-    # Stub absent workspace service to satisfy imports in app.api.deps
-    # Stub workspace modules absent in minimal config
+    # Stub workspace service for minimal config
     service_module = types.ModuleType("app.domains.workspaces.application.service")
-    service_module.WorkspaceService = type("WorkspaceService", (), {})
+
+    class _WS:
+        @staticmethod
+        async def create(db, *, data, owner):  # noqa: ANN001
+            import uuid
+            from types import SimpleNamespace
+
+            from sqlalchemy import text
+
+            ws_id = str(uuid.uuid4())
+            await db.execute(
+                text(
+                    "INSERT INTO workspaces (id, name, slug, owner_user_id, type, "
+                    "is_system, settings_json) "
+                    "VALUES (:id, :name, :slug, :owner_id, :type, 0, '{}')"
+                ),
+                {
+                    "id": ws_id,
+                    "name": data.name,
+                    "slug": data.slug,
+                    "owner_id": str(owner.id),
+                    "type": getattr(data.kind, "value", data.kind),
+                },
+            )
+            await db.execute(
+                text(
+                    "INSERT INTO workspace_members (workspace_id, user_id, role) "
+                    "VALUES (:ws_id, :user_id, 'owner')"
+                ),
+                {
+                    "ws_id": ws_id,
+                    "user_id": str(owner.id),
+                },
+            )
+            await db.commit()
+            return SimpleNamespace(id=ws_id, slug=data.slug)
+
+    service_module.WorkspaceService = _WS
     service_module.require_ws_editor = lambda *args, **kwargs: None
     service_module.require_ws_guest = lambda *args, **kwargs: None
     service_module.require_ws_owner = lambda *args, **kwargs: None
     service_module.require_ws_viewer = lambda *args, **kwargs: None
+    service_module.bearer_scheme = None
 
     application_pkg = types.ModuleType("app.domains.workspaces.application")
     application_pkg.service = service_module

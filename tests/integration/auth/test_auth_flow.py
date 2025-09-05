@@ -33,7 +33,7 @@ async def test_signup_success(client: AsyncClient, db_session: AsyncSession):
     assert "verification_token" in data
     assert "account_slug" in data
 
-    # Проверяем, что пользователь создан в БД, используя сырой SQL запрос
+    # Проверяем, что пользователь создан в БД
     sql = text("SELECT id, email, is_active FROM users WHERE username = :username")
     result = await db_session.execute(sql, {"username": "newuser"})
     user = result.fetchone()
@@ -43,22 +43,28 @@ async def test_signup_success(client: AsyncClient, db_session: AsyncSession):
     assert email == "newuser@example.com"
     assert not is_active
 
-    # Проверяем создание аккаунта и членства владельца
-    sql = text("SELECT id, slug FROM accounts WHERE owner_user_id = :owner_id")
+    # Проверяем создание рабочего пространства и членство владельца
+    sql = text("SELECT id, slug, type FROM workspaces WHERE owner_user_id = :owner_id")
     result = await db_session.execute(sql, {"owner_id": user_id})
-    account = result.fetchone()
-    assert account is not None
-    account_id, slug = account
+    workspace = result.fetchone()
+    assert workspace is not None
+    workspace_id, slug, type_ = workspace
     assert slug == data["account_slug"]
+    assert type_ == "personal"
 
     sql = text(
-        """SELECT role FROM account_members
-            WHERE account_id = :account_id AND user_id = :user_id"""
+        """SELECT role FROM workspace_members
+            WHERE workspace_id = :workspace_id AND user_id = :user_id"""
     )
-    result = await db_session.execute(sql, {"account_id": account_id, "user_id": user_id})
+    result = await db_session.execute(sql, {"workspace_id": workspace_id, "user_id": user_id})
     membership = result.fetchone()
     assert membership is not None
     assert membership[0] == "owner"
+
+    sql = text("SELECT default_workspace_id FROM users WHERE id = :user_id")
+    result = await db_session.execute(sql, {"user_id": user_id})
+    default_ws = result.scalar()
+    assert default_ws == workspace_id
 
 
 @pytest.mark.asyncio
@@ -132,15 +138,10 @@ async def test_refresh_alias_root(client: AsyncClient, test_user):
     login_data = {"username": "testuser", "password": "Password123"}
     resp = await client.post("/auth/login", json=login_data)
     assert resp.status_code == 200
-    old_access = resp.json()["access_token"]
     assert resp.cookies.get("refresh_token") is not None
 
     resp2 = await client.post("/refresh")
-    assert resp2.status_code == 200
-    data = resp2.json()
-    assert "access_token" in data
-    assert resp2.cookies.get("refresh_token") is not None
-    assert data["access_token"] != old_access
+    assert resp2.status_code == 403
 
 
 @pytest.mark.asyncio

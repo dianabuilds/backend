@@ -7,9 +7,10 @@ from fastapi import Depends, HTTPException, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domains.accounts.application.service import AccountService
 from app.domains.users.infrastructure.models.user import User
 from app.providers.db.session import get_db
-from app.schemas.workspaces import WorkspaceRole, WorkspaceSettings
+from app.schemas.workspaces import WorkspaceIn, WorkspaceRole, WorkspaceSettings
 
 from ..infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO
 from ..infrastructure.models import Workspace, WorkspaceMember
@@ -77,6 +78,14 @@ async def require_ws_guest(
 
 
 class WorkspaceService:
+    @staticmethod
+    async def create(db: AsyncSession, *, data: WorkspaceIn, owner: User) -> Workspace:
+        account = await AccountService.create(db, data=data, owner=owner)
+        ws = await WorkspaceDAO.get(db, account.id)
+        if not ws:
+            raise HTTPException(status_code=500, detail="Workspace not created")
+        return ws
+
     @staticmethod
     async def get_for_user(db: AsyncSession, workspace_id: UUID, user: User) -> Workspace:
         ws = await WorkspaceDAO.get(db, workspace_id)
