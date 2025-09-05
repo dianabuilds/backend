@@ -17,7 +17,7 @@ router = APIRouter(
     responses=ADMIN_AUTH_RESPONSES,
 )
 
-AdminRequired = Annotated[None, Depends(require_admin_role())]
+AdminRequired = Annotated[None, Depends(require_admin_role)]
 
 
 @router.get("/defaults")

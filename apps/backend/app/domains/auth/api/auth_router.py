@@ -35,6 +35,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 _tokens = CoreTokenAdapter()
 _rate = CoreRateLimiter()
+signup_rate = _rate.dependency("signup")
 _mailer = LegacyMailAdapter()
 
 # Redis backend for nonces and verification tokens. In development and tests
@@ -203,7 +204,7 @@ async def refresh(
     return result
 
 
-@router.post("/signup", dependencies=[Depends(_rate.dependency("signup"))])
+@router.post("/signup", dependencies=[Depends(signup_rate)])
 async def signup(
     payload: SignupSchema, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> dict[str, Any]:

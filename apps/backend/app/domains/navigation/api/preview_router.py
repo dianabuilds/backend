@@ -53,7 +53,7 @@ router = APIRouter(
 )
 
 
-@router.post("/link", dependencies=[Depends(require_admin_role())])
+@router.post("/link", dependencies=[Depends(require_admin_role)])
 async def create_preview_link(payload: PreviewLinkRequest) -> dict[str, str]:
     preview_session_id = uuid4().hex
     token = create_preview_token(
@@ -62,7 +62,7 @@ async def create_preview_link(payload: PreviewLinkRequest) -> dict[str, str]:
     return {"url": f"/preview?token={token}"}
 
 
-@router.get("/link", dependencies=[Depends(require_admin_role())])
+@router.get("/link", dependencies=[Depends(require_admin_role)])
 async def create_preview_link_get(
     workspace_id: UUID, ttl: int | None = None
 ) -> dict[str, str]:
@@ -73,7 +73,7 @@ async def create_preview_link_get(
 @router.post(
     "/transitions/simulate",
     summary="Simulate transitions with preview",
-    dependencies=[Depends(require_admin_or_preview_token())],
+    dependencies=[Depends(require_admin_or_preview_token)],
 )
 async def simulate_transitions(
     payload: SimulateRequest,

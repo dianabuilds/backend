@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
 
@@ -13,7 +13,9 @@ router = APIRouter(
 
 
 @router.get("/stats")
-async def get_ai_worker_stats(_=Depends(require_admin_role())) -> dict[str, Any]:
+async def get_ai_worker_stats(
+    _: Annotated[None, Depends(require_admin_role)],
+) -> dict[str, Any]:
     """
     Сводка по задачам/стадиям генерации: счётчики, среднее время, стоимость, токены.
     """
