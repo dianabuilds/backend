@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # ruff: noqa: E402
 from app.core.env_loader import load_dotenv
 
@@ -16,7 +18,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.policy import policy
@@ -58,6 +59,7 @@ from app.domains.registry import register_domain_routers
 from app.domains.system.bootstrap import ensure_default_admin, ensure_global_workspace
 from app.domains.system.events import register_handlers
 from app.providers import register_providers
+from app.web.immutable_static import ImmutableStaticFiles
 
 settings: Settings = get_settings()
 
@@ -155,11 +157,9 @@ DIST_DIR = Path(__file__).resolve().parent.parent.parent / "admin" / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
 if policy.allow_write and DIST_ASSETS_DIR.exists():
     # serve built frontend assets (js, css, etc.) with correct MIME types
-    from app.web.immutable_static import ImmutableStaticFiles as _ImmutableStaticFiles
-
     app.mount(
         "/admin/assets",
-        _ImmutableStaticFiles(directory=DIST_ASSETS_DIR),
+        ImmutableStaticFiles(directory=DIST_ASSETS_DIR),
         name="admin-assets",
     )
 
@@ -167,8 +167,8 @@ if policy.allow_write and DIST_ASSETS_DIR.exists():
 UPLOADS_DIR = Path("uploads")
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Static file app for uploads
-uploads_static = StaticFiles(directory=UPLOADS_DIR)
+# Static file app for uploads with long-lived caching
+uploads_static = ImmutableStaticFiles(directory=UPLOADS_DIR)
 # Wrap with CORS middleware because mounted apps bypass the main app middlewares
 _uploads_cors = {
     **settings.effective_origins(),
