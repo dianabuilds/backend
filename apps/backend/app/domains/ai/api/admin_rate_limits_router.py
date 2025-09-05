@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -9,9 +9,11 @@ from app.domains.ai.rate_limit import get_limits_snapshot, set_limits_from_dict
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 
+AdminRequired = Annotated[None, Depends(admin_required)]
+
 
 @router.get("/rate_limits")
-async def get_rate_limits(_=Depends(admin_required)) -> dict[str, Any]:
+async def get_rate_limits(_: AdminRequired) -> dict[str, Any]:
     """
     Текущие рантайм-лимиты RPM по провайдерам и моделям (оверрайды).
     """
@@ -19,9 +21,7 @@ async def get_rate_limits(_=Depends(admin_required)) -> dict[str, Any]:
 
 
 @router.post("/rate_limits")
-async def set_rate_limits(
-    payload: dict[str, Any], _=Depends(admin_required)
-) -> dict[str, Any]:
+async def set_rate_limits(payload: dict[str, Any], _: AdminRequired) -> dict[str, Any]:
     """
     Установить рантайм-лимиты RPM.
     Формат:
