@@ -26,7 +26,7 @@ from app.domains.nodes.application.query_models import (
     PageRequest,
     QueryContext,
 )
-from app.domains.nodes.infrastructure.queries.node_query_adapter import NodeQueryAdapter
+from app.domains.nodes.application.node_query_service import NodeQueryService
 from app.domains.nodes.infrastructure.repositories.node_repository import (
     NodeRepositoryAdapter as NodeRepository,
 )
@@ -100,7 +100,7 @@ async def list_nodes(
     workspace_id = _ensure_workspace_id(request, workspace_id)
     spec = NodeFilterSpec(workspace_id=workspace_id, sort=sort)
     ctx = QueryContext(user=current_user, is_admin=False)
-    service = NodeQueryAdapter(db)
+    service = NodeQueryService(db)
     page = PageRequest()
     etag = await service.compute_nodes_etag(spec, ctx, page)
     if if_none_match and if_none_match == etag:
