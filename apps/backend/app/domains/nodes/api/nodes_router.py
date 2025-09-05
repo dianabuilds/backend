@@ -178,7 +178,9 @@ async def read_node(
     )
     item = res.scalar_one_or_none()
     if item and item.type == "quest":
-        flags = await get_effective_flags(db, request.headers.get("X-Preview-Flags"))
+        flags = await get_effective_flags(
+            db, request.headers.get("X-Preview-Flags"), current_user
+        )
         if FeatureFlagKey.QUESTS_NODES_REDIRECT.value in flags:
             return RedirectResponse(
                 url=f"/quests/{node.id}/versions/current?workspace_id={workspace_id}",
