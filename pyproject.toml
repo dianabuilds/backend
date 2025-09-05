@@ -20,3 +20,6 @@ ignore = ["D"]
 
 [tool.ruff.lint.per-file-ignores]
 "apps/backend/alembic/versions/*.py" = ["ALL"]
+
+[tool.mypy]
+explicit_package_bases = true
