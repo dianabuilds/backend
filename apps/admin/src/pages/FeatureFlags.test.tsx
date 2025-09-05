@@ -29,8 +29,22 @@ describe("FeatureFlagsPage", () => {
 
   it("filters flags by key", async () => {
     vi.mocked(listFlags).mockResolvedValue([
-      { key: "a", value: false, description: "A", updated_at: null, updated_by: null },
-      { key: "b", value: false, description: "B", updated_at: null, updated_by: null },
+      {
+        key: "a",
+        value: false,
+        description: "A",
+        audience: "all",
+        updated_at: null,
+        updated_by: null,
+      },
+      {
+        key: "b",
+        value: false,
+        description: "B",
+        audience: "all",
+        updated_at: null,
+        updated_by: null,
+      },
     ]);
     renderPage();
     await waitFor(() => screen.getByText("a"));
@@ -43,12 +57,20 @@ describe("FeatureFlagsPage", () => {
 
   it("allows editing flag in modal", async () => {
     vi.mocked(listFlags).mockResolvedValue([
-      { key: "test", value: false, description: "", updated_at: null, updated_by: null },
+      {
+        key: "test",
+        value: false,
+        description: "",
+        audience: "all",
+        updated_at: null,
+        updated_by: null,
+      },
     ]);
     const updateSpy = vi.mocked(updateFlag).mockResolvedValue({
       key: "test",
       value: true,
       description: "new",
+      audience: "beta",
       updated_at: "2024-01-01T00:00:00Z",
       updated_by: "me",
     });
@@ -59,18 +81,29 @@ describe("FeatureFlagsPage", () => {
       target: { value: "new" },
     });
     fireEvent.click(screen.getByLabelText(/enabled/i));
+    fireEvent.change(screen.getByLabelText(/audience/i), {
+      target: { value: "beta" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
     await waitFor(() =>
       expect(updateSpy).toHaveBeenCalledWith("test", {
         description: "new",
         value: true,
+        audience: "beta",
       }),
     );
   });
 
   it("renders referrals program flag", async () => {
     vi.mocked(listFlags).mockResolvedValue([
-      { key: "referrals.program", value: false, description: "", updated_at: null, updated_by: null },
+      {
+        key: "referrals.program",
+        value: false,
+        description: "",
+        audience: "all",
+        updated_at: null,
+        updated_by: null,
+      },
     ]);
     renderPage();
     await waitFor(() => screen.getByText("referrals.program"));
