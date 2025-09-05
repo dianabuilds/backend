@@ -209,6 +209,7 @@ __marimo__/
 
 # Node / frontend
 node_modules/
+apps/admin/node_modules/
 admin-frontend/dist/
 admin-frontend/.vite/
 
