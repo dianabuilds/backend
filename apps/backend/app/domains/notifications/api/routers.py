@@ -24,7 +24,7 @@ from app.domains.notifications.infrastructure.transports.websocket import (
     manager as ws_manager,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.domains.workspaces.application.service import scope_by_workspace
+from app.providers.db.pagination import scope_by_workspace
 from app.providers.db.session import get_db
 from app.schemas.notification import NotificationFilter, NotificationOut
 
