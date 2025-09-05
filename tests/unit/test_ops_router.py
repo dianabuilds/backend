@@ -30,6 +30,7 @@ from app.providers.cache import cache as shared_cache  # noqa: E402
 
 app = FastAPI()
 app.include_router(ops_module.router)
+app.include_router(ops_module.audit_router)
 
 
 async def _admin_dep():
@@ -141,3 +142,27 @@ def test_alert_resolve_endpoint(monkeypatch):
     resp = client.post("/admin/ops/alerts/1/resolve")
     assert resp.status_code == 200
     assert resp.json()["status"] == "resolved"
+
+
+def test_overview_endpoint():
+    resp = client.get("/admin/ops/overview")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "uptime" in data
+
+
+def test_jobs_and_retry_endpoints():
+    resp = client.get("/admin/ops/jobs")
+    assert resp.status_code == 200
+    assert resp.json() == {"jobs": []}
+
+    resp_retry = client.post("/admin/ops/jobs/abc/retry")
+    assert resp_retry.status_code == 200
+    assert resp_retry.json()["job_id"] == "abc"
+
+
+def test_audit_endpoint():
+    resp = client.get("/admin/audit?actor=a&action=b")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["filters"] == {"actor": "a", "action": "b"}
