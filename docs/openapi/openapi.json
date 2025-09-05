@@ -8278,28 +8278,32 @@
         ]
       }
     },
-    "/admin/notifications/broadcast": {
-      "post": {
+    "/admin/notifications/campaigns": {
+      "get": {
         "tags": [
           "admin"
         ],
-        "summary": "Create broadcast campaign (or dry-run)",
-        "operationId": "create_broadcast_admin_notifications_broadcast_post",
+        "summary": "List campaigns",
+        "operationId": "list_campaigns_admin_notifications_campaigns_get",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BroadcastCreate"
-              }
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -8370,318 +8374,27 @@
           }
         }
       },
-      "get": {
-        "tags": [
-          "admin"
-        ],
-        "summary": "List broadcast campaigns",
-        "operationId": "list_broadcasts_admin_notifications_broadcast_get",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 200,
-              "minimum": 1,
-              "default": 50,
-              "title": "Limit"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "nodes": {
-              "application/json": {
-                "examples": {
-                  "missing": {
-                    "summary": "Missing token",
-                    "value": {
-                      "error": {
-                        "code": "AUTH_REQUIRED",
-                        "message": "Authorization required"
-                      }
-                    }
-                  },
-                  "invalid": {
-                    "summary": "Invalid token",
-                    "value": {
-                      "error": {
-                        "code": "INVALID_TOKEN",
-                        "message": "Invalid authentication token"
-                      }
-                    }
-                  },
-                  "expired": {
-                    "summary": "Expired token",
-                    "value": {
-                      "error": {
-                        "code": "TOKEN_EXPIRED",
-                        "message": "Token has expired"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "nodes": {
-              "application/json": {
-                "example": {
-                  "error": {
-                    "code": "FORBIDDEN",
-                    "message": "Forbidden"
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/notifications/broadcast/{campaign_id}": {
-      "get": {
-        "tags": [
-          "admin"
-        ],
-        "summary": "Get campaign",
-        "operationId": "get_broadcast_admin_notifications_broadcast__campaign_id__get",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "campaign_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Campaign Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "nodes": {
-              "application/json": {
-                "examples": {
-                  "missing": {
-                    "summary": "Missing token",
-                    "value": {
-                      "error": {
-                        "code": "AUTH_REQUIRED",
-                        "message": "Authorization required"
-                      }
-                    }
-                  },
-                  "invalid": {
-                    "summary": "Invalid token",
-                    "value": {
-                      "error": {
-                        "code": "INVALID_TOKEN",
-                        "message": "Invalid authentication token"
-                      }
-                    }
-                  },
-                  "expired": {
-                    "summary": "Expired token",
-                    "value": {
-                      "error": {
-                        "code": "TOKEN_EXPIRED",
-                        "message": "Token has expired"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "nodes": {
-              "application/json": {
-                "example": {
-                  "error": {
-                    "code": "FORBIDDEN",
-                    "message": "Forbidden"
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/notifications/broadcast/{campaign_id}/cancel": {
       "post": {
         "tags": [
           "admin"
         ],
-        "summary": "Cancel campaign",
-        "operationId": "cancel_broadcast_admin_notifications_broadcast__campaign_id__cancel_post",
+        "summary": "Create campaign",
+        "operationId": "create_campaign_admin_notifications_campaigns_post",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "parameters": [
-          {
-            "name": "campaign_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Campaign Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "nodes": {
-              "application/json": {
-                "examples": {
-                  "missing": {
-                    "summary": "Missing token",
-                    "value": {
-                      "error": {
-                        "code": "AUTH_REQUIRED",
-                        "message": "Authorization required"
-                      }
-                    }
-                  },
-                  "invalid": {
-                    "summary": "Invalid token",
-                    "value": {
-                      "error": {
-                        "code": "INVALID_TOKEN",
-                        "message": "Invalid authentication token"
-                      }
-                    }
-                  },
-                  "expired": {
-                    "summary": "Expired token",
-                    "value": {
-                      "error": {
-                        "code": "TOKEN_EXPIRED",
-                        "message": "Token has expired"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "nodes": {
-              "application/json": {
-                "example": {
-                  "error": {
-                    "code": "FORBIDDEN",
-                    "message": "Forbidden"
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignCreate"
               }
             }
           }
-        }
-      }
-    },
-    "/admin/notifications/campaigns": {
-      "get": {
-        "tags": [
-          "admin"
-        ],
-        "summary": "List campaigns",
-        "operationId": "list_campaigns_admin_notifications_campaigns_get",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 200,
-              "minimum": 1,
-              "default": 50,
-              "title": "Limit"
-            }
-          }
-        ],
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -8949,15 +8662,13 @@
             }
           }
         }
-      }
-    },
-    "/admin/notifications/campaigns/{campaign_id}/send": {
-      "post": {
+      },
+      "delete": {
         "tags": [
           "admin"
         ],
-        "summary": "Dispatch campaign",
-        "operationId": "send_campaign_admin_notifications_campaigns__campaign_id__send_post",
+        "summary": "Delete campaign",
+        "operationId": "delete_campaign_admin_notifications_campaigns__campaign_id__delete",
         "security": [
           {
             "bearerAuth": []
@@ -27097,6 +26808,289 @@
           }
         }
       }
+    },
+    "/admin/notifications/campaigns/estimate": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Estimate campaign recipients",
+        "operationId": "estimate_campaign_admin_notifications_campaigns_estimate_post",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignFilters"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/notifications/campaigns/{campaign_id}/cancel": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Cancel campaign",
+        "operationId": "cancel_campaign_admin_notifications_campaigns__campaign_id__cancel_post",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/notifications/campaigns/{campaign_id}/start": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Start campaign",
+        "operationId": "start_campaign_admin_notifications_campaigns__campaign_id__start_post",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "nodes": {
+              "application/json": {
+                "examples": {
+                  "missing": {
+                    "summary": "Missing token",
+                    "value": {
+                      "error": {
+                        "code": "AUTH_REQUIRED",
+                        "message": "Authorization required"
+                      }
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid token",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid authentication token"
+                      }
+                    }
+                  },
+                  "expired": {
+                    "summary": "Expired token",
+                    "value": {
+                      "error": {
+                        "code": "TOKEN_EXPIRED",
+                        "message": "Token has expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "nodes": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -28216,107 +28210,6 @@
         },
         "type": "object",
         "title": "Body_upload_media_workspaces__workspace_id__media_post"
-      },
-      "BroadcastCreate": {
-        "properties": {
-          "title": {
-            "type": "string",
-            "title": "Title"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Type",
-            "default": "system"
-          },
-          "filters": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/BroadcastFilters"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "dry_run": {
-            "type": "boolean",
-            "title": "Dry Run",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "title",
-          "message"
-        ],
-        "title": "BroadcastCreate"
-      },
-      "BroadcastFilters": {
-        "properties": {
-          "role": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Role"
-          },
-          "is_active": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Is Active"
-          },
-          "is_premium": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Is Premium"
-          },
-          "created_from": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created From"
-          },
-          "created_to": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created To"
-          }
-        },
-        "type": "object",
-        "title": "BroadcastFilters"
       },
       "BulkIds": {
         "properties": {
@@ -34383,6 +34276,102 @@
           "no_route_percent",
           "fallback_percent"
         ]
+      },
+      "CampaignFilters": {
+        "properties": {
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "is_premium": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Premium"
+          },
+          "created_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created From"
+          },
+          "created_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created To"
+          }
+        },
+        "type": "object",
+        "title": "CampaignFilters"
+      },
+      "CampaignCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "system"
+          },
+          "filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CampaignFilters"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "message"
+        ],
+        "title": "CampaignCreate"
       }
     },
     "securitySchemes": {

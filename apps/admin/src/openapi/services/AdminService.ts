@@ -19,8 +19,9 @@ import type { app__domains__quests__schemas__graph__QuestGraphOut } from '../mod
 import type { AuditLogOut } from '../models/AuditLogOut';
 import type { BackgroundJobHistoryOut } from '../models/BackgroundJobHistoryOut';
 import type { Body_embedding_test_admin_embedding_test_post } from '../models/Body_embedding_test_admin_embedding_test_post';
-import type { BroadcastCreate } from '../models/BroadcastCreate';
 import type { BulkIds } from '../models/BulkIds';
+import type { CampaignCreate } from '../models/CampaignCreate';
+import type { CampaignFilters } from '../models/CampaignFilters';
 import type { CampaignUpdate } from '../models/CampaignUpdate';
 import type { CaseClose } from '../models/CaseClose';
 import type { CaseCreate } from '../models/CaseCreate';
@@ -1213,17 +1214,17 @@ export class AdminService {
         });
     }
     /**
-     * Create broadcast campaign (or dry-run)
+     * Estimate campaign recipients
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static createBroadcastAdminNotificationsBroadcastPost(
-        requestBody: BroadcastCreate,
+    public static estimateCampaignAdminNotificationsCampaignsEstimatePost(
+        requestBody: CampaignFilters,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/notifications/broadcast',
+            url: '/admin/notifications/campaigns/estimate',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -1234,64 +1235,19 @@ export class AdminService {
         });
     }
     /**
-     * List broadcast campaigns
-     * @param limit
+     * Create campaign
+     * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static listBroadcastsAdminNotificationsBroadcastGet(
-        limit: number = 50,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/admin/notifications/broadcast',
-            query: {
-                'limit': limit,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get campaign
-     * @param campaignId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static getBroadcastAdminNotificationsBroadcastCampaignIdGet(
-        campaignId: string,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/admin/notifications/broadcast/{campaign_id}',
-            path: {
-                'campaign_id': campaignId,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Cancel campaign
-     * @param campaignId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static cancelBroadcastAdminNotificationsBroadcastCampaignIdCancelPost(
-        campaignId: string,
+    public static createCampaignAdminNotificationsCampaignsPost(
+        requestBody: CampaignCreate,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/notifications/broadcast/{campaign_id}/cancel',
-            path: {
-                'campaign_id': campaignId,
-            },
+            url: '/admin/notifications/campaigns',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
@@ -1370,17 +1326,63 @@ export class AdminService {
         });
     }
     /**
-     * Dispatch campaign
+     * Start campaign
      * @param campaignId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static sendCampaignAdminNotificationsCampaignsCampaignIdSendPost(
+    public static startCampaignAdminNotificationsCampaignsCampaignIdStartPost(
         campaignId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/notifications/campaigns/{campaign_id}/send',
+            url: '/admin/notifications/campaigns/{campaign_id}/start',
+            path: {
+                'campaign_id': campaignId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Cancel campaign
+     * @param campaignId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static cancelCampaignAdminNotificationsCampaignsCampaignIdCancelPost(
+        campaignId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/notifications/campaigns/{campaign_id}/cancel',
+            path: {
+                'campaign_id': campaignId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Delete campaign
+     * @param campaignId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deleteCampaignAdminNotificationsCampaignsCampaignIdDelete(
+        campaignId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/admin/notifications/campaigns/{campaign_id}',
             path: {
                 'campaign_id': campaignId,
             },

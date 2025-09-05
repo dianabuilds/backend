@@ -34,9 +34,9 @@ export type { Body_upload_media_asset_admin_media_post } from './models/Body_upl
 export type { Body_upload_media_asset_workspaces__workspace_id__admin_media_post } from './models/Body_upload_media_asset_workspaces__workspace_id__admin_media_post';
 export type { Body_upload_media_media_post } from './models/Body_upload_media_media_post';
 export type { Body_upload_media_workspaces__workspace_id__media_post } from './models/Body_upload_media_workspaces__workspace_id__media_post';
-export type { BroadcastCreate } from './models/BroadcastCreate';
-export type { BroadcastFilters } from './models/BroadcastFilters';
 export type { BulkIds } from './models/BulkIds';
+export type { CampaignCreate } from './models/CampaignCreate';
+export type { CampaignFilters } from './models/CampaignFilters';
 export type { CampaignUpdate } from './models/CampaignUpdate';
 export type { CaseAttachmentCreate } from './models/CaseAttachmentCreate';
 export type { CaseAttachmentOut } from './models/CaseAttachmentOut';
