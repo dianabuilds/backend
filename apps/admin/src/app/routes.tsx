@@ -54,7 +54,6 @@ const ValidationReport = lazy(() => import("../pages/ValidationReport"));
 const Authentication = lazy(() => import("../pages/Authentication"));
 const PaymentsGateways = lazy(() => import("../pages/PaymentsGateways"));
 const Integrations = lazy(() => import("../pages/Integrations"));
-const Metrics = lazy(() => import("../pages/Metrics"));
 const FeatureFlagsPage = lazy(() => import("../pages/FeatureFlags"));
 const CacheTools = lazy(() => import("../pages/CacheTools"));
 const RateLimitTools = lazy(() => import("../pages/RateLimitTools"));
@@ -140,7 +139,6 @@ const protectedChildren: RouteObject[] = [
   { path: "settings/authentication", element: <Authentication /> },
   { path: "settings/payments", element: <PaymentsGateways /> },
   { path: "settings/integrations", element: <Integrations /> },
-  { path: "settings/metrics", element: <Metrics /> },
   { path: "settings/feature-flags", element: <FeatureFlagsPage /> },
   { path: "tools/cache", element: <CacheTools /> },
   { path: "tools/rate-limit", element: <RateLimitTools /> },
