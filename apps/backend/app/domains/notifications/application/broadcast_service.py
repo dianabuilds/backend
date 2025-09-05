@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 from datetime import datetime
 from typing import Any
@@ -47,26 +46,73 @@ async def estimate_recipients(db: AsyncSession, filters: dict[str, Any]) -> int:
     return len(list(res.scalars().all()))
 
 
-def start_campaign_async(campaign_id: UUID) -> None:
-    """
-    Лёгкий асинхронный запуск кампании. В реальной системе должен вызывать воркер.
-    Здесь — безопасный no-op с логированием, чтобы не блокировать API.
-    """
+async def run_campaign(db: AsyncSession, campaign_id: UUID) -> None:
+    camp = await db.get(NotificationCampaign, campaign_id)
+    if not camp or camp.status in (CampaignStatus.canceled, CampaignStatus.done):
+        return
 
-    async def _runner(cid: UUID) -> None:
-        try:
-            logger.info("notification_broadcast_start cid=%s", cid)
-            # Без отдельного sessionmaker не меняем статус — оставляем очередь для внешнего воркера
-            await asyncio.sleep(0)  # уступаем цикл
-        except Exception as e:
-            logger.warning("notification_broadcast_runner error cid=%s: %s", cid, e)
+    camp.status = CampaignStatus.running  # type: ignore[assignment]
+    camp.started_at = datetime.utcnow()
+    await db.commit()
+
+    filters = camp.filters or {}
+    q = select(User.id)
+    q = _apply_user_filters(q, filters)
+    res = await db.execute(q)
+    user_ids = list(res.scalars().all())
+    camp.total = len(user_ids)
+    await db.commit()
+
+    sent = 0
+    failed = 0
+
+    from app.domains.notifications.infrastructure.models.notification_models import (
+        Notification,
+    )
+    from app.domains.notifications.infrastructure.transports.websocket import (
+        manager as ws_manager,
+    )
+    from app.schemas.notification import NotificationOut, NotificationType
 
     try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(_runner(campaign_id))
-    except RuntimeError:
-        # Нет активного цикла (например, при синхронном вызове) — запускаем fire-and-forget
-        asyncio.run(_runner(campaign_id))
+        for uid in user_ids:
+            try:
+                notif = Notification(
+                    user_id=uid,
+                    title=camp.title,
+                    message=camp.message,
+                    type=NotificationType(camp.type),
+                )
+                db.add(notif)
+                await db.commit()
+                sent += 1
+                try:
+                    data = NotificationOut.model_validate(notif).model_dump()
+                    await ws_manager.send_notification(uid, data)
+                except Exception:
+                    pass
+            except Exception:
+                await db.rollback()
+                failed += 1
+        camp.status = CampaignStatus.done  # type: ignore[assignment]
+    except Exception:
+        camp.status = CampaignStatus.failed  # type: ignore[assignment]
+    finally:
+        camp.sent = sent
+        camp.failed = failed
+        camp.finished_at = datetime.utcnow()
+        await db.commit()
+
+
+def start_campaign_async(campaign_id: UUID) -> None:
+    try:
+        from workers.notifications import enqueue_campaign
+
+        enqueue_campaign(campaign_id)
+    except Exception as e:  # pragma: no cover - только логирование
+        logger.warning(
+            "notification_broadcast_enqueue_failed cid=%s err=%s", campaign_id, e
+        )
 
 
 async def cancel_campaign(db: AsyncSession, campaign_id: UUID) -> bool:
