@@ -16,7 +16,7 @@ export default function Profile() {
     queryKey: ["workspaces"],
     queryFn: async () => {
       const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
-        "/admin/workspaces",
+        "/workspaces",
       );
       const payload = res.data;
       if (Array.isArray(payload)) return payload;

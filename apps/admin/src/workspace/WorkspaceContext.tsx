@@ -74,7 +74,7 @@ export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
       }
       try {
         const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
-          "/admin/workspaces",
+          "/workspaces",
         );
         const payload = Array.isArray(res.data)
           ? res.data

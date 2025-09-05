@@ -24,15 +24,17 @@ describe("Profile", () => {
   it("loads and saves default workspace via API", async () => {
     const workspaces = [{ id: "w1", name: "One" }];
     vi.mocked(api.get).mockImplementation(async (url: string) => {
-      if (url === "/admin/workspaces") {
-        return { data: workspaces } as any;
+      if (url === "/workspaces") {
+        return { data: workspaces } as unknown as { data: typeof workspaces };
       }
       if (url === "/users/me") {
-        return { data: { default_workspace_id: "w1" } } as any;
+        return {
+          data: { default_workspace_id: "w1" },
+        } as unknown as { data: { default_workspace_id: string } };
       }
       throw new Error("unknown url");
     });
-    vi.mocked(api.patch).mockResolvedValue({} as any);
+    vi.mocked(api.patch).mockResolvedValue({} as unknown);
 
     const qc = new QueryClient();
     render(
