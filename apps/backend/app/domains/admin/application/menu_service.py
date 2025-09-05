@@ -77,6 +77,7 @@ BASE_MENU: list[dict] = [
                 "path": "/ai/quests",
                 "icon": "ai",
                 "order": 5,
+                "featureFlag": "ai.quest_wizard",
             },
             {
                 "id": "achievements",
