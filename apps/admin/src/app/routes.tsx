@@ -106,6 +106,7 @@ const protectedChildren: RouteObject[] = [
   },
   { path: "navigation", element: <Navigation /> },
   { path: "navigation/problems", element: <NavigationProblems /> },
+  { path: "echo", element: <Echo /> },
   { path: "traces", element: <Traces /> },
   { path: "notifications", element: <Notifications /> },
   { path: "notifications/campaigns/:id", element: <NotificationCampaignEditor /> },
@@ -154,10 +155,7 @@ const protectedChildren: RouteObject[] = [
 ];
 
 if (ADMIN_DEV_TOOLS) {
-  protectedChildren.push(
-    { path: "preview", element: <Simulation /> },
-    { path: "echo", element: <Echo /> },
-  );
+  protectedChildren.push({ path: "preview", element: <Simulation /> });
 }
 
 const routes: RouteObject[] = [
