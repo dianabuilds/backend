@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import admin_required
-from app.core.db.session import get_db
 from app.domains.quests.infrastructure.models.quest_version_models import QuestVersion
 from app.domains.quests.validation import validate_version_graph
+from app.providers.db.session import get_db
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 

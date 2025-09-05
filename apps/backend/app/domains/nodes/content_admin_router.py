@@ -12,7 +12,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.db.session import get_db
 from app.domains.nodes.application.editorjs_renderer import (
     collect_unknown_blocks,
     render_html,
@@ -23,6 +22,7 @@ from app.domains.nodes.models import NodeItem
 from app.domains.nodes.schemas.node import AdminNodeList, AdminNodeOut
 from app.domains.nodes.service import publish_content
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
 
 logger = logging.getLogger(__name__)

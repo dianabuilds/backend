@@ -7,7 +7,6 @@ from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.core.feature_flags import get_effective_flags
 from app.domains.admin.application.menu_service import (
     count_items,
@@ -15,6 +14,7 @@ from app.domains.admin.application.menu_service import (
     invalidate_menu_cache,
 )
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 logger = logging.getLogger(__name__)

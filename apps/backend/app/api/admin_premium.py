@@ -6,11 +6,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.premium.application.subscription_plan_service import (
     SubscriptionPlanService,
 )
 from app.domains.premium.infrastructure.models.premium_models import SubscriptionPlan
+from app.providers.db.session import get_db
 from app.schemas.premium import SubscriptionPlanIn, SubscriptionPlanOut
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 

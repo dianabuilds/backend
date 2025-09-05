@@ -11,13 +11,13 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.db.session import get_db
 from app.domains.navigation.api import preview_router as preview_module
 from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.users.infrastructure.models.user import User
-from app.domains.workspaces.infrastructure.models import Workspace
 from app.domains.tags.infrastructure.models.tag_models import NodeTag
 from app.domains.tags.models import Tag
+from app.domains.users.infrastructure.models.user import User
+from app.domains.workspaces.infrastructure.models import Workspace
+from app.providers.db.session import get_db
 
 
 @pytest_asyncio.fixture()

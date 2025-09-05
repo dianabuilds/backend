@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.api import deps as api_deps
-from app.core.db.session import get_db
 from app.core.workspace_context import require_workspace
 from app.domains.nodes.api.nodes_router import router as nodes_router
 from app.domains.nodes.infrastructure.models.node import Node
@@ -17,6 +16,7 @@ from app.domains.quests.infrastructure.models.navigation_cache_models import (
     NavigationCache,
 )
 from app.domains.workspaces.infrastructure.models import Workspace
+from app.providers.db.session import get_db
 from app.security import require_ws_viewer
 
 

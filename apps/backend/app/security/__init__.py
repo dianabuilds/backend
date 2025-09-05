@@ -11,11 +11,11 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.db.session import get_db
 from app.domains.moderation.infrastructure.models.moderation_models import (
     UserRestriction,
 )
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 
 from .exceptions import (
     AuthRequiredError,

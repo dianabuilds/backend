@@ -19,8 +19,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.mutable import MutableList
 
-from app.core.db.base import Base
 from app.models.adapters import ARRAY, UUID  # типы-адаптеры остаются в core
+from app.providers.db.base import Base
 
 
 class EventQuestRewardType(str, Enum):

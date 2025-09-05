@@ -19,7 +19,6 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.db.session import get_db
 from app.core.log_events import cache_invalidate
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
@@ -47,6 +46,7 @@ from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem, NodePublishJob
 from app.domains.nodes.schemas.node import NodeBulkOperation, NodeBulkPatch, NodeOut
 from app.domains.workspaces.infrastructure.models import Workspace
+from app.providers.db.session import get_db
 from app.schemas.nodes_common import Status
 from app.schemas.workspaces import WorkspaceType
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role

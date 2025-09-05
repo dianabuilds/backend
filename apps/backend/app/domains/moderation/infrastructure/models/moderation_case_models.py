@@ -6,8 +6,8 @@ from uuid import uuid4
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 
-from app.core.db.base import Base
 from app.models.adapters import JSONB, UUID  # используем core-адаптеры типов
+from app.providers.db.base import Base
 
 
 class ModerationCase(Base):
@@ -125,6 +125,7 @@ class CaseEvent(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     kind = Column(
         String, nullable=False
-    )  # assign | change_priority | add_label | remove_label | add_note | add_attachment | status_change | decision_* | escalate_overdue | reopen
+    )  # assign | change_priority | add_label | remove_label | add_note |
+    # add_attachment | status_change | decision_* | escalate_overdue | reopen
     payload = Column(JSONB, nullable=True)
     case = relationship("ModerationCase", back_populates="events")

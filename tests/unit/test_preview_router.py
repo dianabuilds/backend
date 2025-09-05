@@ -30,7 +30,6 @@ from apps.backend.app.domains.navigation.application.router import (  # noqa: E4
     TransitionTrace,
 )
 
-from app.core.db.base import Base  # noqa: E402
 from app.core.preview import PreviewContext  # noqa: E402
 from app.domains.achievements.infrastructure.models.achievement_models import (  # noqa: E402
     UserAchievement,
@@ -46,6 +45,7 @@ from app.domains.tags.models import Tag  # noqa: E402
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 from app.models.event_counter import UserEventCounter  # noqa: E402
+from app.providers.db.base import Base  # noqa: E402
 
 
 @dataclass

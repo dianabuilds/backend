@@ -7,9 +7,9 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.db.session import get_db
 from app.core.rate_limit import _parse_rule, recent_429  # type: ignore
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role()
@@ -67,7 +67,7 @@ async def update_rule(
         raise HTTPException(
             status_code=400,
             detail="Invalid rule format, expected like '5/min', '10/sec', '3/hour'",
-        )
+        ) from None
     setattr(settings.rate_limit, attr, payload.rule)
     return {
         "ok": True,

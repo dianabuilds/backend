@@ -5,8 +5,8 @@ from uuid import uuid4
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, UniqueConstraint
 
-from app.core.db.adapters import JSONB, UUID
-from app.core.db.base import Base
+from app.providers.db.adapters import JSONB, UUID
+from app.providers.db.base import Base
 
 
 class PaymentGatewayConfig(Base):

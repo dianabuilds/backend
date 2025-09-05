@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from alembic import command
 from alembic.config import Config
 from app.core.config import settings
-from app.core.db.base import Base
+from app.providers.db.base import Base
 
 logger = logging.getLogger(__name__)
 

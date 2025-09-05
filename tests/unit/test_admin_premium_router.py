@@ -14,7 +14,6 @@ sys.modules.setdefault("app", app_module)
 
 from app.api.admin_premium import admin_required, get_plan_service  # noqa: E402
 from app.api.admin_premium import router as admin_premium_router  # noqa: E402
-from app.core.db.session import get_db  # noqa: E402
 from app.domains.premium.application.subscription_plan_service import (  # noqa: E402
     SubscriptionPlanService,
 )
@@ -23,6 +22,7 @@ from app.domains.premium.infrastructure.models.premium_models import (  # noqa: 
     UserSubscription,
 )
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
+from app.providers.db.session import get_db  # noqa: E402
 
 
 @pytest_asyncio.fixture()

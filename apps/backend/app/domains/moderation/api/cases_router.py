@@ -6,9 +6,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.moderation.application import CasesService
 from app.providers.case_notifier import ICaseNotifier
+from app.providers.db.session import get_db
 from app.schemas.moderation_cases import (
     CaseClose,
     CaseCreate,

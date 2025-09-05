@@ -11,8 +11,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.navigation.api import admin_traces_router
+from app.providers.db.session import get_db
 
 
 @pytest_asyncio.fixture

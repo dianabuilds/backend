@@ -13,10 +13,10 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 
 from app.core.audit_log import log_admin_action
-from app.core.db.session import get_db
 from app.domains.navigation.infrastructure.models.transition_models import NodeTrace
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,8 @@ async def list_traces(
             text(
                 "SELECT column_name FROM information_schema.columns "
                 "WHERE table_schema = current_schema() AND table_name = :t "
-                "AND column_name IN ('to_node_id','type','source','channel','latency_ms','request_id')"
+                "AND column_name IN "
+                "('to_node_id','type','source','channel','latency_ms','request_id')"
             ),
             {"t": NodeTrace.__tablename__},
         )
@@ -147,7 +148,7 @@ async def list_traces(
         rows = result.all()
     except Exception as err:
         logger.exception("Failed to fetch traces: %s", err)
-        raise HTTPException(status_code=500, detail="Failed to fetch traces")
+        raise HTTPException(status_code=500, detail="Failed to fetch traces") from None
 
     data = []
     for r in rows:

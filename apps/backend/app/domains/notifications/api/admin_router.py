@@ -5,10 +5,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.notifications.application.notify_service import NotifyService
-from app.domains.notifications.infrastructure.repositories.notification_repository import (
-    NotificationRepository,
+from app.domains.notifications.infrastructure.repositories import (
+    notification_repository as notification_repo,
 )
 from app.domains.notifications.infrastructure.transports.websocket import (
     WebsocketPusher,
@@ -17,6 +16,7 @@ from app.domains.notifications.infrastructure.transports.websocket import (
     manager as ws_manager,
 )
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.schemas.notification import NotificationCreate
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -39,7 +39,10 @@ async def send_notification(
     user = await db.get(User, payload.user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    svc = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
+    svc = NotifyService(
+        notification_repo.NotificationRepository(db),
+        WebsocketPusher(ws_manager),
+    )
     notif = await svc.create_notification(
         workspace_id=payload.workspace_id,
         user_id=payload.user_id,

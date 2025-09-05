@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
-from app.core.db.session import get_db
 from app.domains.users.application.user_profile_service import UserProfileService
 from app.domains.users.infrastructure.models.user import User
 from app.domains.users.infrastructure.repositories.user_repository import UserRepository
+from app.providers.db.session import get_db
 from app.schemas.user import UserOut, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])

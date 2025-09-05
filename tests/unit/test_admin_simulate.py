@@ -10,7 +10,6 @@ sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 
-from app.core.db.base import Base  # noqa: E402
 from app.domains.navigation.api.admin_transitions_simulate import (  # noqa: E402
     SimulateRequest,
     simulate_transitions,
@@ -18,6 +17,7 @@ from app.domains.navigation.api.admin_transitions_simulate import (  # noqa: E40
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.providers.db.base import Base  # noqa: E402
 
 
 def test_simulate_endpoint_returns_trace():

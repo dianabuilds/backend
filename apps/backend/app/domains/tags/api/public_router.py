@@ -8,9 +8,9 @@ from sqlalchemy import desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.db.session import get_db
 from app.domains.tags.dao import TagDAO
 from app.domains.tags.models import ContentTag, Tag
+from app.providers.db.session import get_db
 from app.schemas.tag import TagCreate, TagOut, TagUpdate
 from app.security import require_ws_editor, require_ws_guest
 

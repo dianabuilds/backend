@@ -23,8 +23,8 @@ from app.api.admin.quests.steps import (  # noqa: E402
 from app.api.admin.quests.steps import (  # noqa: E402
     router as steps_router,
 )
-from app.core.db.adapters import UUID as UUIDType  # noqa: E402
-from app.core.db.session import get_db  # noqa: E402
+from app.providers.db.adapters import UUID as UUIDType  # noqa: E402
+from app.providers.db.session import get_db  # noqa: E402
 
 # Minimal Base and Quest model to satisfy foreign key constraints
 Base = declarative_base()

@@ -8,11 +8,11 @@ from sqlalchemy.orm import sessionmaker
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.core.db.base import Base  # noqa: E402
 from app.domains.media.dao import MediaAssetDAO  # noqa: E402
 from app.domains.media.models import MediaAsset  # noqa: E402
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.providers.db.base import Base  # noqa: E402
 
 
 def test_media_asset_list_scoped_by_workspace() -> None:

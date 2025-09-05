@@ -12,7 +12,7 @@ from app.api.deps import (
     get_current_user,
     require_premium,
 )
-from app.core.db.session import get_db
+from app.providers.db.session import get_db
 from app.core.log_events import cache_invalidate
 from app.core.workspace_context import optional_workspace, require_workspace
 from app.domains.navigation.application.navigation_cache_service import (

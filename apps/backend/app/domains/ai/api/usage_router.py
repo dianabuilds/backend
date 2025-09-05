@@ -8,11 +8,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.ai.infrastructure.repositories.usage_repository import (
     AIUsageRepository,
 )
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
+from app.providers.db.session import get_db
 from app.schemas.workspaces import WorkspaceSettings
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 

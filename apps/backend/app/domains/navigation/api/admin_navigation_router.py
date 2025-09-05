@@ -7,7 +7,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.db.session import get_db
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
@@ -19,6 +18,7 @@ from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.navigation.schemas.problems import NavigationNodeProblem
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.schemas.navigation_admin import (
     NavigationCacheInvalidateRequest,
     NavigationCacheSetRequest,

@@ -6,8 +6,8 @@ from uuid import uuid4
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import relationship
 
-from app.core.db.adapters import UUID
-from app.core.db.base import Base
+from app.providers.db.adapters import UUID
+from app.providers.db.base import Base
 
 
 class EchoTrace(Base):

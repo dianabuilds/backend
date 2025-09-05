@@ -7,11 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import admin_required
-from app.core.db.session import get_db
 from app.domains.ai.infrastructure.models.generation_models import (
     GenerationJob,
     GenerationJobLog,
 )
+from app.providers.db.session import get_db
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 

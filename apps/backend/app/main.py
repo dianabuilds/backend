@@ -40,12 +40,6 @@ from app.core.body_limit import BodySizeLimitMiddleware
 from app.core.config import Settings, get_settings
 from app.core.cookies_security_middleware import CookiesSecurityMiddleware
 from app.core.csrf import CSRFMiddleware
-from app.core.db.session import (
-    check_database_connection,
-    close_db_connection,
-    get_engine,
-    init_db,
-)
 from app.core.exception_handlers import register_exception_handlers
 from app.core.logging_middleware import RequestLoggingMiddleware
 from app.core.metrics_middleware import MetricsMiddleware
@@ -59,6 +53,12 @@ from app.domains.registry import register_domain_routers
 from app.domains.system.bootstrap import ensure_default_admin, ensure_global_workspace
 from app.domains.system.events import register_handlers
 from app.providers import register_providers
+from app.providers.db.session import (
+    check_database_connection,
+    close_db_connection,
+    get_engine,
+    init_db,
+)
 from app.web.immutable_static import ImmutableStaticFiles
 
 settings: Settings = get_settings()

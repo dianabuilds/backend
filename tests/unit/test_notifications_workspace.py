@@ -8,13 +8,13 @@ from sqlalchemy.orm import sessionmaker
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.core.db.base import Base  # noqa: E402
 from app.domains.notifications.api.routers import list_notifications  # noqa: E402
 from app.domains.notifications.infrastructure.models.notification_models import (  # noqa: E402, E501
     Notification,  # noqa: E402
 )
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.providers.db.base import Base  # noqa: E402
 from app.schemas.notification import NotificationFilter  # noqa: E402
 
 

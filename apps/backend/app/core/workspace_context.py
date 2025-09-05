@@ -6,10 +6,10 @@ from uuid import UUID
 from fastapi import Depends, Header, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO
 from app.domains.workspaces.infrastructure.models import Workspace
+from app.providers.db.session import get_db
 from app.security import auth_user
 
 

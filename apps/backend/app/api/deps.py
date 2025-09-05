@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import load_only
 
-from app.core.db.session import get_db
 from app.core.log_filters import user_id_var, workspace_id_var
 from app.core.preview import PreviewContext, get_preview_context
 from app.core.security import verify_access_token
@@ -19,6 +18,7 @@ from app.domains.moderation.infrastructure.models.moderation_models import (
 )
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.application.service import WorkspaceService
+from app.providers.db.session import get_db
 from app.security import bearer_scheme
 
 

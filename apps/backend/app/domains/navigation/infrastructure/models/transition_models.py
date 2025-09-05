@@ -9,8 +9,8 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import relationship
 
-from app.core.db.adapters import ARRAY, JSONB, UUID
-from app.core.db.base import Base
+from app.providers.db.adapters import ARRAY, JSONB, UUID
+from app.providers.db.base import Base
 
 
 class NodeTransitionType(str, Enum):

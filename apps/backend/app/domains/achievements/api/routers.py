@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import current_workspace, get_current_user
-from app.core.db.session import get_db
 from app.domains.achievements.application.achievements_service import (
     AchievementsService,
 )
@@ -20,6 +19,7 @@ from app.domains.achievements.infrastructure.repositories.achievements_repositor
 )
 from app.domains.users.infrastructure.models.user import User
 from app.domains.workspaces.infrastructure.models import Workspace
+from app.providers.db.session import get_db
 from app.schemas.achievement import AchievementOut
 from app.schemas.achievement_admin import (
     AchievementAdminOut,

@@ -9,7 +9,6 @@ from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.db.session import db_session
 from app.domains.notifications.infrastructure.models.campaign_models import (
     CampaignStatus,
     NotificationCampaign,
@@ -17,12 +16,12 @@ from app.domains.notifications.infrastructure.models.campaign_models import (
 from app.domains.notifications.infrastructure.models.notification_models import (
     Notification,
 )
-from app.schemas.notification import NotificationType
 from app.domains.notifications.infrastructure.transports.websocket import (
     manager as ws_manager,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.schemas.notification import NotificationOut
+from app.providers.db.session import db_session
+from app.schemas.notification import NotificationOut, NotificationType
 
 # Регистр запущенных задач (в памяти)
 _tasks: dict[UUID, asyncio.Task] = {}

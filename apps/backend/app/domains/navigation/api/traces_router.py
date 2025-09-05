@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import get_current_user
-from app.core.db.session import get_db
 from app.core.workspace_context import optional_workspace, require_workspace
 from app.domains.navigation.infrastructure.models.transition_models import (
     NodeTrace,
@@ -18,6 +17,7 @@ from app.domains.navigation.infrastructure.models.transition_models import (
 from app.domains.navigation.schemas.traces import NodeTraceCreate, NodeTraceOut
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 
 router = APIRouter(prefix="/traces", tags=["traces"])
 

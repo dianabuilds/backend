@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import assert_owner_or_role
-from app.core.db.session import get_db
 from app.domains.ai.application.embedding_service import update_node_embedding
 from app.domains.nodes.infrastructure.models.node import Node
+from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -21,7 +21,7 @@ admin_required = require_admin_role()
 @router.post("/nodes/{node_id}/embedding/recompute", summary="Recompute node embedding")
 async def recompute_node_embedding(
     node_id: UUID,
-    current_user=Depends(admin_required),
+    current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     node = await db.get(Node, node_id)

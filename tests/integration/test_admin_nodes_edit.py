@@ -10,7 +10,6 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.db.session import get_db
 from app.domains.nodes.api import admin_nodes_global_router
 from app.domains.nodes.content_admin_router import (
     auth_user,
@@ -24,6 +23,7 @@ from app.domains.nodes.models import NodeItem, NodePatch
 from app.domains.tags.infrastructure.models.tag_models import NodeTag
 from app.domains.tags.models import Tag
 from app.domains.workspaces.infrastructure.models import Workspace
+from app.providers.db.session import get_db
 
 
 @pytest_asyncio.fixture()
