@@ -21,21 +21,17 @@
    ```
 4. Запустить сервер разработки:
    ```bash
-   ./scripts/run.sh --dev
+   python scripts/run.py
    ```
-5. Для запуска в продакшене используйте:
-   ```bash
-   ./scripts/run.sh --prod --workers 4
-   ```
-6. Фоновый AI‑воркер:
+5. Фоновый AI‑воркер:
    ```bash
    python scripts/run_ai_worker.py
    ```
-7. Заполнить базу тестовыми данными:
+6. Заполнить базу тестовыми данными:
    ```bash
    python scripts/seed_db.py --users 5 --nodes 30
    ```
-8. Проверить запуск сервисов:
+7. Проверить запуск сервисов:
    ```bash
    python scripts/smoke_check.py
    ```
@@ -57,17 +53,14 @@
 Команды запуска:
 
 ```bash
-./scripts/run.sh --dev                 # development mode
-./scripts/run.sh --prod --workers 4    # production mode
-# детерминированный запуск
-./scripts/run.sh --prod --seed 42
+python scripts/run.py                 # development mode
 ```
 
 ## Checklists
 
 ### Переключение режимов
 - [ ] Установить `ENVIRONMENT=development|staging|production`.
-- [ ] Запустить сервер соответствующей командой (`--dev` или `--prod`).
+- [ ] Запустить сервер (`python scripts/run.py` в разработке).
 - [ ] Убедиться по логам, что выбран нужный режим.
 
 ### Сидирование данных
