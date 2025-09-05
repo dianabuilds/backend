@@ -8,15 +8,15 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.schemas.workspaces import WorkspaceRole, WorkspaceSettings
+from app.schemas.accounts import AccountRole, AccountSettings
 
-from .models import Workspace, WorkspaceMember
+from .models import Account, AccountMember
 
 logger = logging.getLogger("app.audit.workspace_member")
 
 
-class WorkspaceDAO:
-    """Data access helpers for :class:`Workspace` objects."""
+class AccountDAO:
+    """Data access helpers for :class:`Account` objects."""
 
     @staticmethod
     async def create(
@@ -25,29 +25,29 @@ class WorkspaceDAO:
         name: str,
         slug: str,
         owner_user_id: UUID,
-        settings: WorkspaceSettings | None = None,
-    ) -> Workspace:
-        workspace = Workspace(
+        settings: AccountSettings | None = None,
+    ) -> Account:
+        account = Account(
             name=name,
             slug=slug,
             owner_user_id=owner_user_id,
             settings_json=settings.model_dump() if settings else {},
         )
-        db.add(workspace)
+        db.add(account)
         await db.flush()
-        return workspace
+        return account
 
     @staticmethod
-    async def get(db: AsyncSession, workspace_id: UUID) -> Workspace | None:
-        return await db.get(Workspace, workspace_id)
+    async def get(db: AsyncSession, account_id: UUID) -> Account | None:
+        return await db.get(Account, account_id)
 
     @staticmethod
-    async def list_for_user(db: AsyncSession, user_id: UUID) -> list[Workspace]:
+    async def list_for_user(db: AsyncSession, user_id: UUID) -> list[Account]:
         stmt = (
-            select(Workspace)
-            .join(WorkspaceMember)
-            .where(WorkspaceMember.user_id == user_id)
-            .order_by(Workspace.name)
+            select(Account)
+            .join(AccountMember)
+            .where(AccountMember.user_id == user_id)
+            .order_by(Account.name)
         )
         result = await db.execute(stmt)
         return list(result.scalars().all())
@@ -55,48 +55,48 @@ class WorkspaceDAO:
     @staticmethod
     async def update(
         db: AsyncSession,
-        workspace: Workspace,
+        account: Account,
         *,
         name: str | None = None,
         slug: str | None = None,
-        settings: WorkspaceSettings | None = None,
-    ) -> Workspace:
+        settings: AccountSettings | None = None,
+    ) -> Account:
         if name is not None:
-            workspace.name = name
+            account.name = name
         if slug is not None:
-            workspace.slug = slug
+            account.slug = slug
         if settings is not None:
-            workspace.settings_json = settings.model_dump()
+            account.settings_json = settings.model_dump()
         await db.flush()
-        return workspace
+        return account
 
     @staticmethod
-    async def delete(db: AsyncSession, workspace: Workspace) -> None:
-        await db.delete(workspace)
+    async def delete(db: AsyncSession, account: Account) -> None:
+        await db.delete(account)
         await db.flush()
 
 
-class WorkspaceMemberDAO:
+class AccountMemberDAO:
     @staticmethod
-    async def get(db: AsyncSession, *, workspace_id: UUID, user_id: UUID) -> WorkspaceMember | None:
-        stmt = select(WorkspaceMember).where(
-            WorkspaceMember.workspace_id == workspace_id,
-            WorkspaceMember.user_id == user_id,
+    async def get(db: AsyncSession, *, account_id: UUID, user_id: UUID) -> AccountMember | None:
+        stmt = select(AccountMember).where(
+            AccountMember.account_id == account_id,
+            AccountMember.user_id == user_id,
         )
         result = await db.execute(stmt)
         return result.scalars().first()
 
     @staticmethod
     async def add(
-        db: AsyncSession, *, workspace_id: UUID, user_id: UUID, role: WorkspaceRole
-    ) -> WorkspaceMember:
-        member = WorkspaceMember(workspace_id=workspace_id, user_id=user_id, role=role)
+        db: AsyncSession, *, account_id: UUID, user_id: UUID, role: AccountRole
+    ) -> AccountMember:
+        member = AccountMember(account_id=account_id, user_id=user_id, role=role)
         db.add(member)
         await db.flush()
         logger.info(
-            "workspace_member.add",
+            "account_member.add",
             extra={
-                "workspace_id": str(workspace_id),
+                "account_id": str(account_id),
                 "user_id": str(user_id),
                 "role": role.value if hasattr(role, "value") else str(role),
                 "timestamp": datetime.now(UTC).isoformat(),
@@ -108,19 +108,19 @@ class WorkspaceMemberDAO:
     async def update_role(
         db: AsyncSession,
         *,
-        workspace_id: UUID,
+        account_id: UUID,
         user_id: UUID,
-        role: WorkspaceRole,
-    ) -> WorkspaceMember | None:
-        member = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user_id)
+        role: AccountRole,
+    ) -> AccountMember | None:
+        member = await AccountMemberDAO.get(db, account_id=account_id, user_id=user_id)
         if member:
             old_role = member.role
             member.role = role
             await db.flush()
             logger.info(
-                "workspace_member.update_role",
+                "account_member.update_role",
                 extra={
-                    "workspace_id": str(workspace_id),
+                    "account_id": str(account_id),
                     "user_id": str(user_id),
                     "old_role": (old_role.value if hasattr(old_role, "value") else str(old_role)),
                     "new_role": role.value if hasattr(role, "value") else str(role),
@@ -130,16 +130,16 @@ class WorkspaceMemberDAO:
         return member
 
     @staticmethod
-    async def remove(db: AsyncSession, *, workspace_id: UUID, user_id: UUID) -> None:
-        member = await WorkspaceMemberDAO.get(db, workspace_id=workspace_id, user_id=user_id)
+    async def remove(db: AsyncSession, *, account_id: UUID, user_id: UUID) -> None:
+        member = await AccountMemberDAO.get(db, account_id=account_id, user_id=user_id)
         if member:
             role = member.role
             await db.delete(member)
             await db.flush()
             logger.info(
-                "workspace_member.remove",
+                "account_member.remove",
                 extra={
-                    "workspace_id": str(workspace_id),
+                    "account_id": str(account_id),
                     "user_id": str(user_id),
                     "role": role.value if hasattr(role, "value") else str(role),
                     "timestamp": datetime.now(UTC).isoformat(),
@@ -147,7 +147,7 @@ class WorkspaceMemberDAO:
             )
 
     @staticmethod
-    async def list(db: AsyncSession, *, workspace_id: UUID) -> builtins.list[WorkspaceMember]:
-        stmt = select(WorkspaceMember).where(WorkspaceMember.workspace_id == workspace_id)
+    async def list(db: AsyncSession, *, account_id: UUID) -> builtins.list[AccountMember]:
+        stmt = select(AccountMember).where(AccountMember.account_id == account_id)
         result = await db.execute(stmt)
         return list(result.scalars().all())

@@ -269,14 +269,14 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load admin users router. Startup aborted")
         raise RuntimeError("Failed to load admin users router") from exc
-    # Admin workspaces
+    # Admin accounts
     try:
-        from app.domains.workspaces.api import router as admin_workspaces_router
+        from app.domains.accounts.api import router as admin_accounts_router
 
-        app.include_router(admin_workspaces_router)
+        app.include_router(admin_accounts_router)
     except Exception as exc:
-        logger.exception("Failed to load admin workspaces router. Startup aborted")
-        raise RuntimeError("Failed to load admin workspaces router") from exc
+        logger.exception("Failed to load admin accounts router. Startup aborted")
+        raise RuntimeError("Failed to load admin accounts router") from exc
     # Admin nodes content
     try:
         from app.domains.nodes.content_admin_router import (

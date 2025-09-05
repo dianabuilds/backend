@@ -8,9 +8,9 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.preview import PreviewContext
+from app.domains.accounts.infrastructure.dao import AccountDAO
 from app.domains.quota.application.quota_service import QuotaService
-from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
-from app.schemas.workspaces import WorkspaceSettings
+from app.schemas.accounts import AccountSettings
 
 _ws_quota_service: QuotaService | None = None
 
@@ -22,10 +22,10 @@ def _get_qs() -> QuotaService:
     return _ws_quota_service
 
 
-async def consume_workspace_limit(
+async def consume_account_limit(
     db: AsyncSession,
     user_id: Any,
-    workspace_id: Any,
+    account_id: Any,
     key: str,
     *,
     amount: int = 1,
@@ -34,14 +34,14 @@ async def consume_workspace_limit(
     preview: PreviewContext | None = None,
     log: dict[str, Any] | None = None,
 ) -> bool:
-    ws = await WorkspaceDAO.get(db, workspace_id)
+    ws = await AccountDAO.get(db, account_id)
     if ws is None:
         if log is not None:
             log[key] = {"value": 0, "source": "global"}
         return True
-    settings = WorkspaceSettings.model_validate(ws.settings_json)
+    settings = AccountSettings.model_validate(ws.settings_json)
     limit = settings.limits.get(key)
-    source = "workspace"
+    source = "account"
     if not limit or int(limit) <= 0:
         try:
             from app.domains.premium.quotas import get_quota_status
@@ -65,7 +65,7 @@ async def consume_workspace_limit(
     try:
         await qs.consume(
             user_id=str(user_id),
-            workspace_id=str(workspace_id),
+            account_id=str(account_id),
             key=key,
             limit=int(limit),
             amount=amount,
@@ -79,14 +79,14 @@ async def consume_workspace_limit(
         raise
 
 
-def workspace_limit(
+def account_limit(
     key: str,
     *,
     scope: str = "day",
     amount: int = 1,
     degrade: bool = False,
 ) -> Callable[[Callable[..., Awaitable[Any]]], Callable[..., Awaitable[Any]]]:
-    """Decorator enforcing workspace limits."""
+    """Decorator enforcing account limits."""
 
     def decorator(func: Callable[..., Awaitable[Any]]):
         @wraps(func)
@@ -97,20 +97,20 @@ def workspace_limit(
                 self_obj = args[0]
                 repo = getattr(self_obj, "_repo", None)
                 db = getattr(repo, "_db", None)
-            workspace_id = kwargs.get("workspace_id")
+            account_id = kwargs.get("account_id")
             user_id = kwargs.get("user_id") or kwargs.get("created_by") or kwargs.get("user")
             node = kwargs.get("node")
-            if workspace_id is None and node is not None:
-                workspace_id = getattr(node, "workspace_id", None)
+            if account_id is None and node is not None:
+                account_id = getattr(node, "account_id", None)
             uid = getattr(user_id, "id", None)
             if uid is not None:
                 user_id = uid
             preview = kwargs.get("preview")
-            if db and user_id and workspace_id:
-                allowed = await consume_workspace_limit(
+            if db and user_id and account_id:
+                allowed = await consume_account_limit(
                     db,
                     user_id,
-                    workspace_id,
+                    account_id,
                     key,
                     amount=amount,
                     scope=scope,
