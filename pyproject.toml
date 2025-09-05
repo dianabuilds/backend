@@ -24,5 +24,12 @@ ignore = ["D"]
 [tool.mypy]
 python_version = "3.11"
 explicit_package_bases = true
-packages = ["apps.backend.app"]
-exclude = "(^|/)(build|dist|.venv|venv)/"
+
+# ВАЖНО: укажи, ЧТО проверять, вместо "packages = …"
+files = [
+  "apps/backend/app",
+  "apps/backend/tests",  # если хочешь типизировать тесты; иначе строку убери
+]
+
+# Отрежем мусор и виртуальные окружения
+exclude = "(^|/)(build|dist|.venv|venv|.mypy_cache|.pytest_cache)/"
