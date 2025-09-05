@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID as _UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,10 +35,10 @@ def _normalize_graph(graph: Any) -> tuple[list[dict], list[dict]]:
         graph = json.loads(graph)
     if not isinstance(graph, dict):
         raise ValueError("graph_json_invalid")
-    payload = (
-        graph.get("graph")
-        if "graph" in graph and isinstance(graph["graph"], dict)
-        else graph
+    graph_dict = cast(dict[str, Any], graph)
+    payload = cast(
+        dict[str, Any],
+        graph_dict.get("graph") if isinstance(graph_dict.get("graph"), dict) else graph_dict,
     )
     nodes = payload.get("nodes") or []
     edges = payload.get("edges") or []
@@ -54,11 +54,12 @@ async def persist_generated_quest(
     Возвращает (quest_id, version_id).
     """
     nodes, edges = _normalize_graph(graph_json)
-    params = job.params or {}
+    params = cast(dict[str, Any], job.params or {})
     author_id = _pick_author_id(job)
 
     # Название квеста
     extras = params.get("extras") if isinstance(params.get("extras"), dict) else {}
+    extras = cast(dict[str, Any], extras)
     title = (
         extras.get("title")
         or params.get("title")
