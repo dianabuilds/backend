@@ -35,7 +35,7 @@ async def consume_workspace_limit(
     log: dict[str, Any] | None = None,
 ) -> bool:
     ws = await WorkspaceDAO.get(db, workspace_id)
-    if not ws:
+    if ws is None:
         if log is not None:
             log[key] = {"value": 0, "source": "global"}
         return True
@@ -98,14 +98,13 @@ def workspace_limit(
                 repo = getattr(self_obj, "_repo", None)
                 db = getattr(repo, "_db", None)
             workspace_id = kwargs.get("workspace_id")
-            user_id = (
-                kwargs.get("user_id") or kwargs.get("created_by") or kwargs.get("user")
-            )
+            user_id = kwargs.get("user_id") or kwargs.get("created_by") or kwargs.get("user")
             node = kwargs.get("node")
             if workspace_id is None and node is not None:
                 workspace_id = getattr(node, "workspace_id", None)
-            if hasattr(user_id, "id"):
-                user_id = user_id.id
+            uid = getattr(user_id, "id", None)
+            if uid is not None:
+                user_id = uid
             preview = kwargs.get("preview")
             if db and user_id and workspace_id:
                 allowed = await consume_workspace_limit(

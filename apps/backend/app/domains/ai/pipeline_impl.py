@@ -57,11 +57,15 @@ def _build_fallback_chain(preferred: str | None = None, ai: AISettings | None = 
                 base_url=(ai.base_url if ai and (ai.provider or "").lower() == "openai" else None),
             )
         if name == "openai_compatible":
-            prov_name = (ai.provider or "").lower().replace("-", "_") if ai else ""
-            return OpenAICompatibleProvider(
-                api_key=(ai.api_key if prov_name == "openai_compatible" else None),
-                base_url=(ai.base_url if prov_name == "openai_compatible" else None),
-            )
+            api_key = None
+            base_url = None
+            if (
+                ai is not None
+                and (ai.provider or "").lower().replace("-", "_") == "openai_compatible"
+            ):
+                api_key = ai.api_key
+                base_url = ai.base_url
+            return OpenAICompatibleProvider(api_key=api_key, base_url=base_url)
         if name == "anthropic":
             return AnthropicProvider(
                 api_key=(ai.api_key if ai and (ai.provider or "").lower() == "anthropic" else None),
