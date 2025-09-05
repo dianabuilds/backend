@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, Text
 
 from app.core.db.base import Base
 
@@ -15,6 +15,9 @@ class AISettings(Base):
     provider = Column(String, nullable=True)
     base_url = Column(String, nullable=True)
     model = Column(String, nullable=True)
+    model_map = Column(JSON, nullable=True)
+    cb = Column(JSON, nullable=True)
+    has_api_key = Column(Boolean, default=False)
     api_key = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(
@@ -27,5 +30,7 @@ class AISettings(Base):
             "provider": self.provider,
             "base_url": self.base_url,
             "model": self.model,
-            "has_api_key": bool(self.api_key),
+            "model_map": self.model_map,
+            "cb": self.cb,
+            "has_api_key": bool(self.has_api_key),
         }
