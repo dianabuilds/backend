@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import * as Tabs from "@radix-ui/react-tabs";
 
 import { api, ApiError } from "../api/client";
-import { createTransition, updateTransition } from "../api/transitions";
+import {
+  bulkUpdate,
+  createTransition,
+  listTransitions,
+  updateTransition,
+  type Transition,
+} from "../api/transitions";
 import LimitBadge, { handleLimit429, refreshLimits } from "../components/LimitBadge";
 import Tooltip from "../components/Tooltip";
 import Simulation from "./Simulation";
@@ -25,6 +31,40 @@ export default function NavigationManager() {
   const [disableId, setDisableId] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Transitions list state
+  const [transitions, setTransitions] = useState<Transition[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterTo, setFilterTo] = useState("");
+  const [filterStatus, setFilterStatus] = useState<
+    "any" | "enabled" | "disabled"
+  >("any");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkLabel, setBulkLabel] = useState("");
+  const [bulkWeight, setBulkWeight] = useState("");
+
+  const loadTransitions = async () => {
+    setLoadingList(true);
+    setListError(null);
+    try {
+      const rows = await listTransitions({
+        from_slug: filterFrom || undefined,
+        to_slug: filterTo || undefined,
+        status: filterStatus,
+      });
+      setTransitions(rows);
+    } catch (e: any) {
+      setListError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadTransitions();
+  }, []);
 
   // Autogeneration state
   const [nodeSlug, setNodeSlug] = useState("");
@@ -48,6 +88,7 @@ export default function NavigationManager() {
       setTo("");
       setLabel("");
       setWeight("");
+      await loadTransitions();
     } catch (e: any) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -59,6 +100,7 @@ export default function NavigationManager() {
       await updateTransition(enableId.trim(), { disabled: false });
       setMessage("Transition enabled");
       setEnableId("");
+      await loadTransitions();
     } catch (e: any) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -70,6 +112,7 @@ export default function NavigationManager() {
       await updateTransition(disableId.trim(), { disabled: true });
       setMessage("Transition disabled");
       setDisableId("");
+      await loadTransitions();
     } catch (e: any) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -97,6 +140,56 @@ export default function NavigationManager() {
       }
     } finally {
       setRunning(false);
+    }
+  };
+
+  const handleLabelChange = (id: string, value: string) => {
+    setTransitions((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, label: value } : t)),
+    );
+  };
+
+  const handleWeightChange = (id: string, value: string) => {
+    const num = Number(value);
+    setTransitions((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, weight: num } : t)),
+    );
+  };
+
+  const commitUpdate = async (
+    id: string,
+    patch: { label?: string | null; weight?: number },
+  ) => {
+    try {
+      await updateTransition(id, patch);
+    } catch (e: any) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const toggleSelect = (id: string, checked: boolean) => {
+    setSelectedIds((prev) =>
+      checked ? [...prev, id] : prev.filter((x) => x !== id),
+    );
+  };
+
+  const applyBulk = async () => {
+    const patch: { label?: string; weight?: number } = {};
+    if (bulkLabel.trim()) patch.label = bulkLabel.trim();
+    if (bulkWeight.trim()) patch.weight = Number(bulkWeight.trim());
+    if (selectedIds.length === 0 || Object.keys(patch).length === 0) return;
+    try {
+      await bulkUpdate(selectedIds, patch);
+      setTransitions((prev) =>
+        prev.map((t) =>
+          selectedIds.includes(t.id) ? { ...t, ...patch } : t,
+        ),
+      );
+      setSelectedIds([]);
+      setBulkLabel("");
+      setBulkWeight("");
+    } catch (e: any) {
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -137,6 +230,149 @@ export default function NavigationManager() {
         <Tabs.Content value="manual" className="space-y-6">
           {error && <div className="text-red-600">{error}</div>}
           {message && <div className="text-green-600">{message}</div>}
+
+          <section className="space-y-2">
+            <h2 className="font-semibold">Transitions</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={filterFrom}
+                onChange={(e) => setFilterFrom(e.target.value)}
+                placeholder="from slug filter"
+                className="border rounded px-2 py-1"
+              />
+              <input
+                value={filterTo}
+                onChange={(e) => setFilterTo(e.target.value)}
+                placeholder="to slug filter"
+                className="border rounded px-2 py-1"
+              />
+              <select
+                value={filterStatus}
+                onChange={(e) =>
+                  setFilterStatus(e.target.value as "any" | "enabled" | "disabled")
+                }
+                className="border rounded px-2 py-1"
+              >
+                <option value="any">any</option>
+                <option value="enabled">enabled</option>
+                <option value="disabled">disabled</option>
+              </select>
+              <button
+                onClick={loadTransitions}
+                className="px-3 py-1 rounded border"
+              >
+                Filter
+              </button>
+            </div>
+            {listError && <div className="text-red-600">{listError}</div>}
+            {loadingList ? (
+              <div>Loading...</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="text-left text-gray-500">
+                    <tr>
+                      <th className="w-4"></th>
+                      <th>ID</th>
+                      <th>From</th>
+                      <th>To</th>
+                      <th>Label</th>
+                      <th>Weight</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transitions.map((t) => (
+                      <tr
+                        key={t.id}
+                        className="border-t border-gray-200"
+                      >
+                        <td>
+                          <input
+                            type="checkbox"
+                            aria-label={`select ${t.id}`}
+                            checked={selectedIds.includes(t.id)}
+                            onChange={(e) =>
+                              toggleSelect(t.id, e.target.checked)
+                            }
+                          />
+                        </td>
+                        <td className="font-mono">{t.id}</td>
+                        <td>{t.from_slug}</td>
+                        <td>{t.to_slug}</td>
+                        <td>
+                          <input
+                            value={t.label || ""}
+                            onChange={(e) =>
+                              handleLabelChange(t.id, e.target.value)
+                            }
+                            onBlur={(e) =>
+                              commitUpdate(t.id, {
+                                label: e.target.value || null,
+                              })
+                            }
+                            className="border rounded px-1 py-0.5"
+                            placeholder="label"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            value={t.weight ?? 0}
+                            onChange={(e) =>
+                              handleWeightChange(t.id, e.target.value)
+                            }
+                            onBlur={(e) =>
+                              commitUpdate(t.id, {
+                                weight: Number(e.target.value),
+                              })
+                            }
+                            className="w-20 border rounded px-1 py-0.5"
+                            placeholder="weight"
+                          />
+                        </td>
+                        <td>{t.disabled ? "disabled" : "enabled"}</td>
+                      </tr>
+                    ))}
+                    {transitions.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="p-2 text-center text-gray-500"
+                        >
+                          No transitions
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {selectedIds.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <input
+                  value={bulkLabel}
+                  onChange={(e) => setBulkLabel(e.target.value)}
+                  placeholder="bulk label"
+                  className="border rounded px-2 py-1"
+                />
+                <input
+                  type="number"
+                  value={bulkWeight}
+                  onChange={(e) => setBulkWeight(e.target.value)}
+                  placeholder="bulk weight"
+                  className="border rounded px-2 py-1 w-24"
+                />
+                <button
+                  onClick={applyBulk}
+                  className="px-3 py-1 rounded border"
+                  disabled={!bulkLabel.trim() && !bulkWeight.trim()}
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+          </section>
 
           <section className="space-y-2">
             <h2 className="font-semibold">Add transition</h2>
