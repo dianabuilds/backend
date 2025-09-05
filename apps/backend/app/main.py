@@ -200,11 +200,17 @@ if not policy.allow_write:
 
     app.include_router(auth_router)
 else:
-    # Legacy routers: import inside try to avoid startup failures
+    # Telemetry routers: import inside try to avoid startup failures
     try:
-        from app.api.metrics_exporter import router as metrics_router
-        from app.api.rum_metrics import admin_router as rum_admin_router
-        from app.api.rum_metrics import router as rum_metrics_router
+        from app.domains.telemetry.api.metrics_router import (
+            router as metrics_router,
+        )
+        from app.domains.telemetry.api.rum_metrics_router import (
+            admin_router as rum_admin_router,
+        )
+        from app.domains.telemetry.api.rum_metrics_router import (
+            router as rum_metrics_router,
+        )
 
         # app.include_router(tags_router)  # removed: served by domain router
         # app.include_router(quests_router)  # removed: served by domain router
@@ -213,7 +219,7 @@ else:
         app.include_router(rum_admin_router)
     except Exception as e:
         logging.getLogger(__name__).warning(
-            f"Legacy routers failed to load completely: {e}"
+            f"Telemetry routers failed to load completely: {e}"
         )
 
     # Domain routers (auth, etc.)
