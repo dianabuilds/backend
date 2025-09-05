@@ -145,14 +145,23 @@ class AccountService:
         return account
 
     @staticmethod
-    async def list_for_user(db: AsyncSession, user: User) -> list[tuple[Account, AccountRole]]:
+    async def list_for_user(db: AsyncSession, user: User) -> list[AccountWithRoleOut]:
         stmt = (
             select(Account, AccountMember.role)
             .join(AccountMember)
             .where(AccountMember.user_id == user.id)
         )
         result = await db.execute(stmt)
-        return [(ws, role) for ws, role in result.all()]
+        accounts: list[AccountWithRoleOut] = []
+        for account, role in result.all():
+            data = AccountOut.model_validate(account, from_attributes=True)
+            accounts.append(
+                AccountWithRoleOut(
+                    **data.model_dump(exclude={"role"}),
+                    role=role,
+                )
+            )
+        return accounts
 
     @staticmethod
     async def get_for_user(db: AsyncSession, account_id: int, user: User) -> Account:
