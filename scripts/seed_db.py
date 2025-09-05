@@ -13,36 +13,28 @@ import asyncio
 import logging
 import random
 import string
-import sys
 from datetime import datetime, timedelta
-from pathlib import Path
 
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
-
-# Добавляем корневую директорию проекта в PYTHONPATH
-current_file = Path(__file__).resolve()
-project_root = current_file.parent.parent
-sys.path.insert(0, str(project_root))
-
-from apps.backend.app.core.config import settings  # noqa: E402
-from apps.backend.app.core.security import get_password_hash  # noqa: E402
-from apps.backend.app.domains.ai.application.embedding_service import (  # noqa: E402
+from apps.backend.app.core.config import settings
+from apps.backend.app.core.security import get_password_hash
+from apps.backend.app.domains.ai.application.embedding_service import (
     update_node_embedding,
 )
-from apps.backend.app.domains.navigation.infrastructure.models import (  # noqa: E402
+from apps.backend.app.domains.navigation.infrastructure.models import (
     transition_models as tm,
 )
-from apps.backend.app.domains.navigation.infrastructure.models.echo_models import (  # noqa: E402
+from apps.backend.app.domains.navigation.infrastructure.models.echo_models import (
     EchoTrace,
 )
-from apps.backend.app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
-from apps.backend.app.domains.users.infrastructure.models.user import User  # noqa: E402
-from apps.backend.app.providers.db.session import (  # noqa: E402
+from apps.backend.app.domains.nodes.infrastructure.models.node import Node
+from apps.backend.app.domains.users.infrastructure.models.user import User
+from apps.backend.app.providers.db.session import (
     create_tables,
     db_session,
     init_db,
 )
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

@@ -14,6 +14,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from tests.integration.db_utils import TestUser, get_db_url, setup_test_db
 
 # Устанавливаем переменные окружения для тестов
 os.environ["TESTING"] = "True"
@@ -33,15 +34,7 @@ os.environ["CORS_ALLOW_HEADERS"] = (
     '"X-Feature-Flags", "X-Preview-Token", "X-BlockSketch-Workspace-Id"]'
 )
 
-
-# Импортируем только то, что нам нужно
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
-
-from tests.integration.db_utils import TestUser, get_db_url, setup_test_db  # noqa: E402
-
-from app.core.security import create_access_token, get_password_hash  # noqa: E402
-from app.main import app  # noqa: E402
-from app.providers.db.session import get_db  # noqa: E402
 
 # Инициализируем тестовую базу данных
 setup_test_db()
@@ -82,6 +75,8 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Создает тестовый клиент."""
+    from apps.backend.app.main import app
+    from apps.backend.app.providers.db.session import get_db
 
     async def override_get_db():
         try:
@@ -101,6 +96,8 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 @pytest_asyncio.fixture(scope="function")
 async def test_user(db_session: AsyncSession) -> TestUser:
     """Создает тестового пользователя."""
+    from apps.backend.app.core.security import get_password_hash
+
     # Создаем тестового пользователя напрямую через SQL
     user = TestUser(
         email="test@example.com",
@@ -125,5 +122,7 @@ async def test_user(db_session: AsyncSession) -> TestUser:
 @pytest_asyncio.fixture(scope="function")
 async def auth_headers(test_user: TestUser) -> dict[str, str]:
     """Получает заголовки авторизации для тестового пользователя."""
+    from apps.backend.app.core.security import create_access_token
+
     token = create_access_token(test_user.id)
     return {"Authorization": f"Bearer {token}"}

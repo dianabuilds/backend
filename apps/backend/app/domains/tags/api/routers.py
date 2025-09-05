@@ -2,12 +2,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/tags", tags=["tags"])
+from app.domains.tags.api.public_router import router as public_tags_router
 
-# Include public endpoints for tags
-from app.domains.tags.api.public_router import (
-    router as public_tags_router,  # noqa: E402
-)
+router = APIRouter(prefix="/tags", tags=["tags"])
 
 router.include_router(public_tags_router)
 

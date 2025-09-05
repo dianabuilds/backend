@@ -5,6 +5,8 @@ from typing import Any
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import DeclarativeBase
 
+from app.core.policy import policy
+
 
 class Base(DeclarativeBase):
     """
@@ -20,8 +22,6 @@ class Base(DeclarativeBase):
     def __tablename__(cls) -> str:
         return cls.__name__.lower()
 
-
-from app.core.policy import policy  # noqa: E402
 
 # Import all models here so Base has them registered
 if not policy.allow_write:
