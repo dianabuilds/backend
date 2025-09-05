@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domains.ai.application.ports.settings_repo import IAISettingsRepository
 from app.domains.ai.infrastructure.models.ai_settings import AISettings
 
+SINGLETON_ID = 1
+
 
 class AISettingsRepository(IAISettingsRepository):
     def __init__(self, db: AsyncSession) -> None:
@@ -16,11 +18,13 @@ class AISettingsRepository(IAISettingsRepository):
     async def get_singleton(
         self, *, create_if_missing: bool, defaults: dict[str, Any]
     ) -> AISettings:
-        result = await self._db.execute(select(AISettings).where(AISettings.id == 1))
+        result = await self._db.execute(
+            select(AISettings).where(AISettings.id == SINGLETON_ID)
+        )
         row = result.scalar_one_or_none()
         if row is None and create_if_missing:
             row = AISettings(
-                id=1,
+                id=SINGLETON_ID,
                 provider=defaults.get("provider"),
                 base_url=defaults.get("base_url"),
                 default_model=defaults.get("model"),
