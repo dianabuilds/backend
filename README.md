@@ -9,8 +9,10 @@
 - Модерация, уведомления и платёжный модуль
 
 ## Быстрый старт
-1. Установить зависимости:
+1. Создать виртуальное окружение и установить зависимости:
    ```bash
+   python -m venv .venv
+   source .venv/bin/activate
    pip install -r requirements.txt -c constraints/py311-max.txt
    ```
 2. Создать файл `.env` на основе `.env.example` и заполнить переменные окружения.
@@ -34,6 +36,27 @@
 7. Проверить запуск сервисов:
    ```bash
    python scripts/smoke_check.py
+   ```
+
+## Windows Quickstart
+
+1. Создать виртуальное окружение и установить зависимости:
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\activate
+   pip install -r requirements.txt -c constraints\py311-max.txt
+   ```
+2. Создать `.env` на основе `.env.example` и инициализировать базу данных:
+   ```powershell
+   python scripts\init_db.py
+   ```
+3. Запустить сервер разработки:
+   ```powershell
+   python scripts\run.py
+   ```
+4. (Опционально) запустить AI‑воркер:
+   ```powershell
+   python scripts\run_ai_worker.py
    ```
 
 ## Environment modes
@@ -110,6 +133,12 @@ cd apps/admin && npm audit
 ```
 
 Пайплайн падает при критических уязвимостях, а отчёты сохраняются как артефакты CI для отслеживания ремедиации.
+
+## Troubleshooting
+
+- `ModuleNotFoundError`: убедитесь, что виртуальное окружение активировано и зависимости установлены.
+- Ошибки при сборке `psycopg`: установите инструменты компиляции или используйте `pip install psycopg[binary]`.
+- Нет подключения к базе: проверьте, что PostgreSQL запущен и переменные в `.env` корректны.
 
 ## Миграции
 
