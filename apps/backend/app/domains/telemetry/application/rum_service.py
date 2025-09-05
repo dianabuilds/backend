@@ -40,13 +40,39 @@ class RumMetricsService:
         except Exception:  # pragma: no cover - safety
             log.exception("failed to store RUM event")
 
-    async def list_events(self, limit: int) -> list[dict[str, Any]]:
+    async def list_events(
+        self,
+        *,
+        event: str | None = None,
+        url: str | None = None,
+        offset: int = 0,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
         if self._repo is None:
             return []
-        return await self._repo.list(limit)
+
+        fetch_limit = 1000 if (event or url) else offset + limit
+        items = await self._repo.list(fetch_limit)
+
+        if event:
+            ev_lower = event.lower()
+        if url:
+            url_lower = url.lower()
+
+        filtered: list[dict[str, Any]] = []
+        for it in items:
+            ev = str(it.get("event", "") or "").lower()
+            if event and ev_lower not in ev:
+                continue
+            page_url = str(it.get("url", "") or "").lower()
+            if url and url_lower not in page_url:
+                continue
+            filtered.append(it)
+
+        return filtered[offset : offset + limit]
 
     async def summary(self, window: int) -> dict[str, Any]:
-        items = await self.list_events(window)
+        items = await self.list_events(limit=window)
         counts: dict[str, int] = {}
         login_durations: list[float] = []
         nav_ttfb: list[float] = []

@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
 import { AdminTelemetryService } from '../../openapi';
@@ -66,5 +66,42 @@ describe('RumTab', () => {
     await waitFor(() => {
       expect(AdminTelemetryService.rumSummaryAdminTelemetryRumSummaryGet).toHaveBeenCalledWith({ window: 60 });
     });
+  });
+
+  it('passes filters and pagination to API', async () => {
+    vi.spyOn(
+      AdminTelemetryService,
+      'rumSummaryAdminTelemetryRumSummaryGet',
+    ).mockResolvedValue({
+      window: 60,
+      counts: {},
+      login_attempt_avg_ms: null,
+      navigation_avg: { ttfb_ms: null, dom_content_loaded_ms: null, load_event_ms: null },
+    } as unknown);
+
+    const spy = vi
+      .spyOn(AdminTelemetryService, 'listRumEventsAdminTelemetryRumGet')
+      .mockResolvedValue([] as unknown as RumEvent[]);
+
+    const qc = new QueryClient();
+    render(
+      <QueryClientProvider client={qc}>
+        <RumTab />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(spy).toHaveBeenCalledWith(undefined, undefined, 0, 50));
+
+    fireEvent.change(screen.getByPlaceholderText('event'), {
+      target: { value: 'login' },
+    });
+    await waitFor(() =>
+      expect(spy).toHaveBeenLastCalledWith('login', undefined, 0, 50),
+    );
+
+    fireEvent.click(screen.getByText('Next'));
+    await waitFor(() =>
+      expect(spy).toHaveBeenLastCalledWith('login', undefined, 50, 50),
+    );
   });
 });

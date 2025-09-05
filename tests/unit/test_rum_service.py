@@ -32,7 +32,7 @@ async def test_rum_service_summary() -> None:
         }
     )
 
-    events = await service.list_events(10)
+    events = await service.list_events(limit=10)
     assert events[0]["event"] == "navigation"
     assert events[1]["event"] == "login_attempt"
 
@@ -50,6 +50,29 @@ async def test_rum_service_invalid_payload(caplog: pytest.LogCaptureFixture) -> 
     with caplog.at_level(logging.WARNING):
         await service.record({"event": 123, "url": "https://example.com"})
 
-    events = await service.list_events(10)
+    events = await service.list_events(limit=10)
     assert events == []
     assert "invalid RUM event payload" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_list_events_filters_and_pagination() -> None:
+    redis = fakeredis.aioredis.FakeRedis(decode_responses=True)
+    repo = RumRedisRepository(redis, key="test:rum")
+    service = RumMetricsService(repo)
+
+    for i in range(5):
+        await service.record(
+            {
+                "event": "login_attempt" if i % 2 == 0 else "navigation",
+                "ts": i,
+                "url": f"https://example.com/{i%2}",
+            }
+        )
+
+    res = await service.list_events(event="login", limit=10)
+    assert all("login" in e["event"] for e in res)
+
+    res = await service.list_events(event="login", offset=1, limit=1)
+    assert len(res) == 1
+    assert res[0]["ts"] == 2

@@ -34,12 +34,17 @@ async def rum_metrics(request: Request) -> dict[str, Any]:
 @admin_router.get("/rum")
 async def list_rum_events(
     _admin: Annotated[User, Depends(admin_required)],
+    event: Annotated[str | None, Query(max_length=100)] = None,
+    url: Annotated[str | None, Query(max_length=500)] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
 ) -> list[dict[str, Any]]:
     """
     Админ: последние RUM-события (по убыванию времени).
     """
-    return await rum_service.list_events(limit)
+    return await rum_service.list_events(
+        event=event, url=url, offset=offset, limit=limit
+    )
 
 
 @admin_router.get("/rum/summary")

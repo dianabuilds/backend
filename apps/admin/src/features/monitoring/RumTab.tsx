@@ -30,6 +30,8 @@ export default function RumTab() {
   const [step, setStep] = useState<60 | 300>(60);
   const [eventFilter, setEventFilter] = useState('');
   const [urlFilter, setUrlFilter] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
 
   const windowSize = useMemo(() => {
     const rangeSec = range === '1h' ? 3600 : 86_400;
@@ -54,24 +56,18 @@ export default function RumTab() {
     isFetching: eFetching,
     error: eError,
   } = useQuery({
-    queryKey: ['telemetry', 'events', range, step],
+    queryKey: ['telemetry', 'events', range, step, eventFilter, urlFilter, page],
     queryFn: async () =>
-      ((await AdminTelemetryService.listRumEventsAdminTelemetryRumGet()) as RumEvent[]) || [],
+      ((await AdminTelemetryService.listRumEventsAdminTelemetryRumGet(
+        eventFilter || undefined,
+        urlFilter || undefined,
+        page * pageSize,
+        pageSize,
+      )) as RumEvent[]) || [],
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
     staleTime: 2000,
   });
-
-  const filteredEvents = useMemo(() => {
-    return (events || []).filter((ev) => {
-      const matchEvent = eventFilter
-        ? ev.event.toLowerCase().includes(eventFilter.toLowerCase())
-        : true;
-      const matchUrl = urlFilter ? ev.url?.toLowerCase().includes(urlFilter.toLowerCase()) : true;
-      return matchEvent && matchUrl;
-    });
-  }, [events, eventFilter, urlFilter]);
-
   const counts = summary?.counts || {};
 
   const buckets = useMemo(() => {
@@ -79,7 +75,7 @@ export default function RumTab() {
     const now = Date.now();
     const rangeMs = range === '1h' ? 3600_000 : 86_400_000;
     const from = now - rangeMs;
-    filteredEvents.forEach((ev) => {
+    (events || []).forEach((ev) => {
       if (!ev.ts || ev.ts < from) return;
       const bucket = Math.floor(ev.ts / (step * 1000)) * step * 1000;
       const entry = res.get(bucket) || { count: 0, loginDur: 0, loginCount: 0 };
@@ -91,7 +87,7 @@ export default function RumTab() {
       res.set(bucket, entry);
     });
     return res;
-  }, [filteredEvents, range, step]);
+  }, [events, range, step]);
 
   const barSeries = useMemo(() => {
     const points = Array.from(buckets.entries())
@@ -147,13 +143,19 @@ export default function RumTab() {
       <div className="flex flex-wrap gap-2">
         <input
           value={eventFilter}
-          onChange={(e) => setEventFilter(e.target.value)}
+          onChange={(e) => {
+            setEventFilter(e.target.value);
+            setPage(0);
+          }}
           placeholder="event"
           className="w-40 text-sm px-2 py-1 border rounded"
         />
         <input
           value={urlFilter}
-          onChange={(e) => setUrlFilter(e.target.value)}
+          onChange={(e) => {
+            setUrlFilter(e.target.value);
+            setPage(0);
+          }}
           placeholder="url"
           className="w-40 text-sm px-2 py-1 border rounded"
         />
@@ -244,7 +246,7 @@ export default function RumTab() {
                 </tr>
               </thead>
               <tbody>
-                {filteredEvents.map((ev, idx) => (
+                {(events || []).map((ev, idx) => (
                   <tr key={idx} className="border-t">
                     <td className="px-2 py-1">
                       {ev.ts ? new Date(ev.ts).toLocaleTimeString() : '-'}
@@ -256,7 +258,7 @@ export default function RumTab() {
                     </td>
                   </tr>
                 ))}
-                {filteredEvents.length === 0 ? (
+                {(events || []).length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-2 py-3 text-sm text-gray-500">
                       Пока нет событий
@@ -265,6 +267,21 @@ export default function RumTab() {
                 ) : null}
               </tbody>
             </table>
+          </div>
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="text-sm px-2 py-1 border rounded disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              className="text-sm px-2 py-1 border rounded"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
