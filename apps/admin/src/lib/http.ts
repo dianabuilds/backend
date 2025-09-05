@@ -1,5 +1,7 @@
 import { OpenAPI } from "../openapi";
 
+export { apiFetch } from "../api/client";
+
 const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {};
 
 export const API_BASE_URL: string = env.API_BASE_URL ?? "";
