@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import importlib
 import sys
@@ -27,7 +29,14 @@ class DictProvider(TransitionProvider):
     def __init__(self, mapping):
         self.mapping = mapping
 
-    async def get_transitions(self, db, node, user, workspace_id, preview=None):
+    async def get_transitions(
+        self,
+        db,
+        node,
+        user,
+        workspace_id,
+        preview: PreviewContext | None = None,
+    ):
         return [DummyNode(s) for s in self.mapping.get(node.slug, [])]
 
 

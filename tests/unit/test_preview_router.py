@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import importlib
 import random
@@ -5,7 +7,6 @@ import sys
 import uuid
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Optional
 
 import pytest
 from fastapi import FastAPI, HTTPException
@@ -73,13 +74,15 @@ class DummyRouter:
 
 
 class DummyNavigationService:
-    last_instance: Optional["DummyNavigationService"] = None
+    last_instance: DummyNavigationService | None = None
 
     def __init__(self) -> None:
         self._router = DummyRouter()
         DummyNavigationService.last_instance = self
 
-    async def build_route(self, db, node, user, preview=None, mode=None):
+    async def build_route(
+        self, db, node, user, preview: PreviewContext | None = None, mode=None
+    ):
         budget = SimpleNamespace(
             max_time_ms=1000, max_queries=1000, max_filters=1000, fallback_chain=[]
         )
