@@ -14,7 +14,7 @@ from app.api.deps import (
 )
 from app.providers.db.session import get_db
 from app.core.log_events import cache_invalidate
-from app.core.workspace_context import optional_workspace, require_workspace
+from app.api.workspace_context import optional_workspace, require_workspace
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )

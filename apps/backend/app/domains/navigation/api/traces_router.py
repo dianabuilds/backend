@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import get_current_user
-from app.core.workspace_context import optional_workspace, require_workspace
+from app.api.workspace_context import optional_workspace, require_workspace
 from app.domains.navigation.infrastructure.models.transition_models import (
     NodeTrace,
     NodeTraceVisibility,
