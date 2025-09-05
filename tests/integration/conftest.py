@@ -27,6 +27,7 @@ os.environ["DATABASE__NAME"] = "project_test"
 os.environ["JWT__SECRET"] = "test-secret-key"
 os.environ["PAYMENT__JWT_SECRET"] = "test-payment-secret"
 os.environ["REDIS_URL"] = "fakeredis://"
+os.environ["CACHE__REDIS_URL"] = "fakeredis://"
 os.environ["CORS_ALLOW_ORIGINS"] = '["https://example.com", "http://client.example"]'
 os.environ["CORS_ALLOW_HEADERS"] = (
     '["X-Custom-Header", "Authorization", "Content-Type", "X-CSRF-Token", '
@@ -34,19 +35,19 @@ os.environ["CORS_ALLOW_HEADERS"] = (
     '"X-Feature-Flags", "X-Preview-Token", "X-BlockSketch-Workspace-Id"]'
 )
 
+# Инициализируем тестовую базу данных и формируем URL
+setup_test_db()
+os.environ["DATABASE_URL"] = get_db_url()
+
+# Импортируем приложение после подготовки окружения
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
-# Инициализируем тестовую базу данных
-setup_test_db()
-
 # Создаем тестовый движок и сессию
-TEST_DB_URL = get_db_url()
+TEST_DB_URL = os.environ["DATABASE_URL"]
 test_engine = create_async_engine(
     TEST_DB_URL, echo=False, connect_args={"check_same_thread": False}
 )
-TestingSessionLocal = sessionmaker(
-    bind=test_engine, class_=AsyncSession, expire_on_commit=False
-)
+TestingSessionLocal = sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 @pytest.fixture(scope="session")
@@ -76,7 +77,8 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Создает тестовый клиент."""
     from apps.backend.app.main import app
-    from apps.backend.app.providers.db.session import get_db
+
+    from app.providers.db.session import get_db
 
     async def override_get_db():
         try:
