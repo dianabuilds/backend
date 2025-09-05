@@ -6,7 +6,6 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.events.models import UserEventCounter
 from app.domains.achievements.application.ports.repository import (
     IAchievementsRepository,
 )
@@ -16,6 +15,7 @@ from app.domains.achievements.infrastructure.models.achievement_models import (
 )
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
+from app.models.event_counter import UserEventCounter
 
 
 class AchievementsRepository(IAchievementsRepository):
