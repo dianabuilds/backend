@@ -19,17 +19,20 @@ function ShowWorkspace() {
 describe("WorkspaceBranchProvider", () => {
   beforeEach(() => {
     safeLocalStorage.clear();
+    (api.get as Mock).mockReset();
   });
 
-  it("defaults to global workspace when none selected", async () => {
-    (api.get as Mock).mockResolvedValueOnce({
-      data: [{ id: "gid", name: "Global", slug: "global", type: "global" }],
+  it("uses server default workspace", async () => {
+    (api.get as Mock).mockImplementation(async (url: string) => {
+      if (url === "/users/me") return { data: { default_workspace_id: "did" } } as any;
+      throw new Error("unknown url");
     });
     render(
       <WorkspaceBranchProvider>
         <ShowWorkspace />
       </WorkspaceBranchProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId("ws").textContent).toBe("gid"));
+    await waitFor(() => expect(screen.getByTestId("ws").textContent).toBe("did"));
+    expect(api.get).toHaveBeenCalledWith("/users/me");
   });
 });

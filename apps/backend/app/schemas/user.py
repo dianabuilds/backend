@@ -16,6 +16,7 @@ class UserBase(BaseModel):
     username: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
+    default_workspace_id: UUID | None = None
     role: str
 
     model_config = {"from_attributes": True}
@@ -29,6 +30,10 @@ class UserUpdate(BaseModel):
     username: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
+
+
+class UserDefaultWorkspaceUpdate(BaseModel):
+    default_workspace_id: UUID | None = None
 
 
 class UserPremiumUpdate(BaseModel):
