@@ -43,7 +43,7 @@ from app.domains.notifications.infrastructure.repositories.settings_repository i
 from app.domains.system.events import NodeCreated, NodeUpdated, get_event_bus
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.domains.users.infrastructure.models.user import User
-from app.domains.users.nft import user_has_nft
+from app.domains.users.application.nft_service import user_has_nft
 from app.schemas.notification_settings import (
     NodeNotificationSettingsOut,
     NodeNotificationSettingsUpdate,
