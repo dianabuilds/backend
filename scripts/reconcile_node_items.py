@@ -1,7 +1,3 @@
-# mypy: ignore-errors
-# ruff: noqa: E402
-from __future__ import annotations
-
 """Reconcile node and content item records.
 
 This script scans for ``Node`` records missing a related ``NodeItem``
@@ -9,25 +5,18 @@ and backfills them using :class:`NodeService`. Workspace mismatches
 are logged as anomalies and trigger a non-zero exit code.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
-import sys
-from pathlib import Path
 
+from apps.backend.app.core.config import settings
+from apps.backend.app.core.logging_configuration import configure_logging
+from apps.backend.app.domains.nodes.application.node_service import NodeService
+from apps.backend.app.domains.nodes.infrastructure.models.node import Node
+from apps.backend.app.domains.nodes.models import NodeItem
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-
-current_file = Path(__file__).resolve()
-project_root = current_file.parent.parent
-sys.path.insert(0, str(project_root))
-
-from apps.backend.app.core.config import settings  # noqa: E402
-from apps.backend.app.core.logging_configuration import configure_logging  # noqa: E402
-from apps.backend.app.domains.nodes.application.node_service import (
-    NodeService,  # noqa: E402
-)
-from apps.backend.app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
-from apps.backend.app.domains.nodes.models import NodeItem  # noqa: E402
 
 logger = logging.getLogger("scripts.reconcile_node_items")
 

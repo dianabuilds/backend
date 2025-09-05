@@ -4,14 +4,14 @@ from fastapi import APIRouter
 
 # Use domain-native routers instead of legacy app.api proxies
 from app.domains.quests.api.admin_validation_router import (
-    router as admin_validation_router,  # noqa: E402
+    router as admin_validation_router,
 )
 from app.domains.quests.api.admin_versions_router import (
-    router as admin_versions_router,  # noqa: E402
+    router as admin_versions_router,
 )
-from app.domains.quests.api.quests_router import router as quests_router  # noqa: E402
+from app.domains.quests.api.quests_router import router as quests_router
 from app.domains.quests.api.versions_router import (
-    router as versions_router,  # noqa: E402
+    router as versions_router,
 )
 
 router = APIRouter()

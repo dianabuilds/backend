@@ -1,25 +1,17 @@
 from __future__ import annotations
 
-# ruff: noqa: E402
-from app.core.env_loader import load_dotenv
-
-# Ensure environment variables from .env are loaded before importing modules
-# that access them (e.g. logging configuration or settings).
-load_dotenv()
-
-from app.core.logging_configuration import configure_logging
-
-configure_logging()
-
 import logging
 from pathlib import Path
 
+import punq
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse
 from starlette.middleware.gzip import GZipMiddleware
 
+from app.core.env_loader import load_dotenv
+from app.core.logging_configuration import configure_logging
 from app.core.policy import policy
 from app.core.rng import init_rng
 
@@ -34,8 +26,9 @@ if policy.allow_write:
         setup_otel = None  # type: ignore[assignment]
         FastAPIInstrumentor = HTTPXClientInstrumentor = None  # type: ignore[assignment]
         RequestsInstrumentor = SQLAlchemyInstrumentor = None  # type: ignore[assignment]
-import punq
 
+from app.api.health import router as health_router
+from app.api.ops import router as ops_router
 from app.core.body_limit import BodySizeLimitMiddleware
 from app.core.config import Settings, get_settings
 from app.core.cookies_security_middleware import CookiesSecurityMiddleware
@@ -59,7 +52,11 @@ from app.providers.db.session import (
     get_engine,
     init_db,
 )
+from app.web.header_injector import HeaderInjector
 from app.web.immutable_static import ImmutableStaticFiles
+
+load_dotenv()
+configure_logging()
 
 settings: Settings = get_settings()
 
@@ -180,15 +177,10 @@ _uploads_cors = {
 }
 uploads_static = CORSMiddleware(uploads_static, **_uploads_cors)
 # Inject CORP so admin can load images cross-origin
-from app.web.header_injector import HeaderInjector
-
 uploads_static = HeaderInjector(
     uploads_static, {"Cross-Origin-Resource-Policy": "cross-origin"}
 )
 app.mount("/static/uploads", uploads_static, name="uploads")
-
-from app.api.health import router as health_router  # noqa: E402
-from app.api.ops import router as ops_router  # noqa: E402
 
 if settings.observability.health_enabled:
     app.include_router(health_router)

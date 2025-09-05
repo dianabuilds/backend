@@ -172,13 +172,24 @@ async def auth_user(
     return user
 
 
-# Late import to avoid circular dependency with workspace service
-from app.domains.workspaces.application.service import (  # noqa: E402
-    require_ws_editor,
-    require_ws_guest,
-    require_ws_owner,
-    require_ws_viewer,
-)
+def _load_workspace_security() -> None:
+    """Load workspace-related security helpers lazily to avoid circular imports."""
+    from app.domains.workspaces.application.service import (
+        require_ws_editor,
+        require_ws_guest,
+        require_ws_owner,
+        require_ws_viewer,
+    )
+
+    globals().update(
+        require_ws_editor=require_ws_editor,
+        require_ws_guest=require_ws_guest,
+        require_ws_owner=require_ws_owner,
+        require_ws_viewer=require_ws_viewer,
+    )
+
+
+_load_workspace_security()
 
 ADMIN_AUTH_RESPONSES = {
     401: {

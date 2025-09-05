@@ -12,9 +12,14 @@ from typing import Any
 
 from sqlalchemy import text
 
-# Путь к тестовой базе данных
-TEST_DB_NAME = os.getenv("DATABASE__NAME", "project_test")
-TEST_DB_PATH = f"../{TEST_DB_NAME}.db"
+
+def get_db_name() -> str:
+    return os.getenv("DATABASE__NAME", "project_test")
+
+
+def get_db_path() -> Path:
+    return Path(f"../{get_db_name()}.db")
+
 
 # SQL для создания таблицы users
 CREATE_USERS_TABLE = """
@@ -120,10 +125,8 @@ CREATE TABLE IF NOT EXISTS background_job_history (
 
 
 def setup_test_db():
-    """
-    Создает тестовую базу данных SQLite и необходимые таблицы.
-    """
-    db_path = Path(TEST_DB_PATH)
+    """Создает тестовую базу данных SQLite и необходимые таблицы."""
+    db_path = get_db_path()
 
     # Удаляем старую БД, если она существует
     if db_path.exists():
@@ -154,12 +157,9 @@ def setup_test_db():
     return True
 
 
-def get_db_url():
-    """
-    Возвращает URL для подключения к тестовой базе данных.
-    """
-    db_path = Path(TEST_DB_PATH).absolute()
-    return f"sqlite+aiosqlite:///{db_path}"
+def get_db_url() -> str:
+    """Возвращает URL для подключения к тестовой базе данных."""
+    return f"sqlite+aiosqlite:///{get_db_path().absolute()}"
 
 
 class TestUser:

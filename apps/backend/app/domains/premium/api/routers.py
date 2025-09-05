@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-router = APIRouter()
+from app.domains.premium.api.public_router import router as premium_limits_router
 
-from app.domains.premium.api.public_router import (  # noqa: E402
-    router as premium_limits_router,
-)
+router = APIRouter()
 
 router.include_router(premium_limits_router)
 
