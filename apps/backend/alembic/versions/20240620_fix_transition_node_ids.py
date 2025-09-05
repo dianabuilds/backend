@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = "20240620_fix_transition_node_ids"
-down_revision = "20260126_add_ai_settings_columns"
+down_revision = "0001_base"
 branch_labels = None
 depends_on = None
 
