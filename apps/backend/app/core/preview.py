@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from typing import Literal, cast
 
 from fastapi import Request
 
@@ -24,7 +24,8 @@ class PreviewContext:
 async def get_preview_context(request: Request) -> PreviewContext:
     q = request.query_params
     h = request.headers
-    mode = q.get("preview_mode") or h.get("X-Preview-Mode") or "off"
+    raw_mode = q.get("preview_mode") or h.get("X-Preview-Mode") or "off"
+    mode_val = raw_mode if raw_mode in {"off", "read_only", "dry_run", "shadow"} else "off"
     preview_user = q.get("preview_user") or h.get("X-Preview-User")
     seed = q.get("preview_seed") or h.get("X-Preview-Seed")
     seed_val = int(seed) if seed is not None else None
@@ -40,7 +41,7 @@ async def get_preview_context(request: Request) -> PreviewContext:
     plan = q.get("preview_plan") or h.get("X-Preview-Plan")
     device = q.get("preview_device") or h.get("X-Preview-Device")
     return PreviewContext(
-        mode=mode,
+        mode=cast(PreviewMode, mode_val),
         preview_user=preview_user,
         seed=seed_val,
         now=time_val,

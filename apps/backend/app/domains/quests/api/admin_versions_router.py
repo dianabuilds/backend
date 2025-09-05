@@ -138,9 +138,7 @@ async def create_draft(
     return {"versionId": str(v.id)}
 
 
-@router.get(
-    "/versions/{version_id}", response_model=QuestGraphOut, summary="Get version graph"
-)
+@router.get("/versions/{version_id}", response_model=QuestGraphOut, summary="Get version graph")
 async def get_version(
     version_id: UUID,
     _: Annotated[User, Depends(admin_required)] = ...,
@@ -227,21 +225,13 @@ async def autofix_version(
         raise HTTPException(status_code=404, detail="Version not found")
 
     nodes = list(
-        (
-            await db.execute(
-                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
-            )
-        )
+        (await db.execute(select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)))
         .scalars()
         .all()
     )
     node_keys = {n.key for n in nodes}
     edges = list(
-        (
-            await db.execute(
-                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
-            )
-        )
+        (await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)))
         .scalars()
         .all()
     )
@@ -251,22 +241,14 @@ async def autofix_version(
     from sqlalchemy import delete
 
     invalid_edges = [
-        e.id
-        for e in edges
-        if (e.from_node_key not in node_keys or e.to_node_key not in node_keys)
+        e.id for e in edges if (e.from_node_key not in node_keys or e.to_node_key not in node_keys)
     ]
     if invalid_edges:
-        await db.execute(
-            delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(invalid_edges))
-        )
+        await db.execute(delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(invalid_edges)))
         applied.append({"type": "remove_broken_edges", "affected": len(invalid_edges)})
 
     edges = list(
-        (
-            await db.execute(
-                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
-            )
-        )
+        (await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)))
         .scalars()
         .all()
     )
@@ -287,9 +269,7 @@ async def autofix_version(
         edges = list(
             (
                 await db.execute(
-                    select(QuestGraphEdge).where(
-                        QuestGraphEdge.version_id == version_id
-                    )
+                    select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
                 )
             )
             .scalars()
@@ -297,23 +277,15 @@ async def autofix_version(
         )
         incoming_to_start = [e.id for e in edges if e.to_node_key == start_key]
         if incoming_to_start:
-            await db.execute(
-                delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(incoming_to_start))
-            )
-            applied.append(
-                {"type": "remove_incoming_to_start", "affected": len(incoming_to_start)}
-            )
+            await db.execute(delete(QuestGraphEdge).where(QuestGraphEdge.id.in_(incoming_to_start)))
+            applied.append({"type": "remove_incoming_to_start", "affected": len(incoming_to_start)})
 
     edges = list(
-        (
-            await db.execute(
-                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
-            )
-        )
+        (await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)))
         .scalars()
         .all()
     )
-    outgoing = {}
+    outgoing: dict[str, int] = {}
     for e in edges:
         outgoing.setdefault(e.from_node_key, 0)
         outgoing[e.from_node_key] += 1
@@ -358,20 +330,12 @@ async def publish_version(
         raise HTTPException(status_code=400, detail="Only draft can be published")
 
     nodes = list(
-        (
-            await db.execute(
-                select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)
-            )
-        )
+        (await db.execute(select(QuestGraphNode).where(QuestGraphNode.version_id == version_id)))
         .scalars()
         .all()
     )
     edges = list(
-        (
-            await db.execute(
-                select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)
-            )
-        )
+        (await db.execute(select(QuestGraphEdge).where(QuestGraphEdge.version_id == version_id)))
         .scalars()
         .all()
     )

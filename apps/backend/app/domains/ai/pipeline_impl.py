@@ -599,19 +599,18 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
     except Exception:
         pass
 
+    stages: list[dict[str, Any]] = [
+        {
+            "stage": s.stage,
+            "usage": s.usage,
+            "cost": s.cost,
+            "provider": s.provider,
+            "model": s.model,
+        }
+        for s in stage_logs
+    ]
     token_usage = {
-        "stages": stage_logs
-        and [
-            {
-                "stage": s.stage,
-                "usage": s.usage,
-                "cost": s.cost,
-                "provider": s.provider,
-                "model": s.model,
-            }
-            for s in stage_logs
-        ]
-        or [],
+        "stages": stages,
         "total": {
             "prompt": total_prompt,
             "completion": total_completion,

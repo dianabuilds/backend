@@ -23,9 +23,9 @@ if policy.allow_write:
         from opentelemetry.instrumentation.requests import RequestsInstrumentor
         from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
     except ModuleNotFoundError:  # pragma: no cover
-        setup_otel = None  # type: ignore[assignment]
-        FastAPIInstrumentor = HTTPXClientInstrumentor = None  # type: ignore[assignment]
-        RequestsInstrumentor = SQLAlchemyInstrumentor = None  # type: ignore[assignment]
+        setup_otel = None  # type: ignore[assignment, misc]
+        FastAPIInstrumentor = HTTPXClientInstrumentor = None  # type: ignore[assignment, misc]
+        RequestsInstrumentor = SQLAlchemyInstrumentor = None  # type: ignore[assignment, misc]
 
 from app.api.health import router as health_router
 from app.api.ops import router as ops_router
@@ -77,15 +77,15 @@ enable_tracing = settings.env_mode in {
     EnvMode.production,
 }
 enable_metrics = enable_tracing and settings.observability.metrics_enabled
-if policy.allow_write and setup_otel and enable_tracing:
+if policy.allow_write and enable_tracing:
     setup_otel()
-    if FastAPIInstrumentor:
+    if FastAPIInstrumentor is not None:
         FastAPIInstrumentor.instrument_app(app)
-    if SQLAlchemyInstrumentor:
+    if SQLAlchemyInstrumentor is not None:
         SQLAlchemyInstrumentor().instrument(engine=get_engine().sync_engine)
-    if RequestsInstrumentor:
+    if RequestsInstrumentor is not None:
         RequestsInstrumentor().instrument()
-    if HTTPXClientInstrumentor:
+    if HTTPXClientInstrumentor is not None:
         HTTPXClientInstrumentor().instrument()
 # Сжатие ответов
 app.add_middleware(GZipMiddleware, minimum_size=1024)
@@ -122,9 +122,7 @@ app.add_middleware(CSRFMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 # Усиление Set-Cookie флагов
 app.add_middleware(CookiesSecurityMiddleware)
-app.add_middleware(
-    TrustedHostMiddleware, allowed_hosts=settings.security.allowed_hosts or ["*"]
-)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.security.allowed_hosts or ["*"])
 app.add_middleware(RealIPMiddleware)
 register_exception_handlers(app)
 
@@ -177,9 +175,7 @@ _uploads_cors = {
 }
 uploads_static = CORSMiddleware(uploads_static, **_uploads_cors)
 # Inject CORP so admin can load images cross-origin
-uploads_static = HeaderInjector(
-    uploads_static, {"Cross-Origin-Resource-Policy": "cross-origin"}
-)
+uploads_static = HeaderInjector(uploads_static, {"Cross-Origin-Resource-Policy": "cross-origin"})
 app.mount("/static/uploads", uploads_static, name="uploads")
 
 if settings.observability.health_enabled:
@@ -210,9 +206,7 @@ else:
         app.include_router(rum_metrics_router)
         app.include_router(rum_admin_router)
     except Exception as e:
-        logging.getLogger(__name__).warning(
-            f"Telemetry routers failed to load completely: {e}"
-        )
+        logging.getLogger(__name__).warning(f"Telemetry routers failed to load completely: {e}")
 
     # Domain routers (auth, etc.)
     register_domain_routers(app)
