@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 import sys
 import uuid
@@ -14,7 +16,7 @@ from starlette.requests import Request
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-from app.core.workspace_context import (  # noqa: E402
+from app.api.workspace_context import (  # noqa: E402
     get_workspace_id,
     optional_workspace,
     require_workspace,

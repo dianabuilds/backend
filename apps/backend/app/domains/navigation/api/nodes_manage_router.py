@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
+from app.api.workspace_context import require_workspace
 from app.core.log_events import cache_invalidate
-from app.core.workspace_context import require_workspace
 from app.domains.navigation.application.echo_service import EchoService
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
