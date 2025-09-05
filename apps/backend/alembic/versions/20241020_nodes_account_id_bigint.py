@@ -21,7 +21,7 @@ def upgrade() -> None:
             """
         )
     )
-    op.drop_constraint("nodes_account_id_fkey", "nodes", type_="foreignkey")
+    op.execute("ALTER TABLE nodes DROP CONSTRAINT IF EXISTS nodes_account_id_fkey")
     op.drop_column("nodes", "account_id")
     op.alter_column("nodes", "account_id_int", new_column_name="account_id", nullable=False)
     op.create_foreign_key(None, "nodes", "accounts", ["account_id"], ["id"])
