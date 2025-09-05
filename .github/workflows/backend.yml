@@ -66,10 +66,15 @@ jobs:
           path: pip-audit.json
       - name: Fail on critical Python vulnerabilities
         run: python scripts/check_pip_audit.py pip-audit.json
-      - name: Run Ruff (check only)
-        run: pre-commit run ruff --all-files --hook-stage manual
-      - name: Run Black (check only)
-        run: pre-commit run black --all-files --hook-stage manual
+      - name: Cache pre-commit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: ${{ runner.os }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pre-commit-
+      - name: Run pre-commit
+        run: pre-commit run --all-files --hook-stage manual --show-diff-on-failure
       - name: Verify router map
         run: python scripts/check_router_map.py
       - name: Run tests
