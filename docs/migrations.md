@@ -60,3 +60,12 @@ Apply with:
 ```bash
 alembic upgrade head
 ```
+
+## Remove Obsolete Moderation Flag
+
+Migration `20260122_remove_moderation_flag` removes the deprecated
+`moderation.enabled` feature flag record from the database:
+
+```bash
+alembic upgrade head
+```

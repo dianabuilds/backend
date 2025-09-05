@@ -15,14 +15,12 @@ _cache: tuple[float, dict[str, tuple[bool, str]]] | None = None
 
 # Predefined feature flags available in the system with optional descriptions.
 class FeatureFlagKey(StrEnum):
-    MODERATION_ENABLED = "moderation.enabled"
     PAYMENTS = "payments"
     AI_VALIDATION = "ai.validation"
 
 
 # Predefined feature flags available in the system with optional descriptions.
 KNOWN_FLAGS: dict[FeatureFlagKey, str] = {
-    FeatureFlagKey.MODERATION_ENABLED: "Enable moderation section in admin UI",
     FeatureFlagKey.PAYMENTS: "Enable payments module",
     FeatureFlagKey.AI_VALIDATION: "Enable AI-based validation for nodes",
 }

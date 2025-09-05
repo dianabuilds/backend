@@ -50,9 +50,9 @@ def test_menu_order_top_sections():
     assert top_ids == ["dashboard", "monitoring", "notifications"]
 
 
-def test_moderator_moderation_flag():
+def test_moderator_sees_moderation():
     user = SimpleNamespace(role="moderator")
-    menu = build_menu(user, ["moderation.enabled"])
+    menu = build_menu(user, [])
     ids = collect_ids(menu.items)
     assert "moderation" in ids
     assert "premium-plans" not in ids
