@@ -4,7 +4,8 @@ import re
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
@@ -30,12 +31,25 @@ from app.schemas.workspaces import (
     WorkspaceUpdate,
     WorkspaceWithRoleOut,
 )
-from app.security import auth_user
+
+bearer_scheme = HTTPBearer(auto_error=False, scheme_name="bearerAuth")
+
+
+async def _auth_user(
+    request: Request,
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Security(bearer_scheme)  # noqa: B008
+    ] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+) -> User:
+    from app.security import auth_user
+
+    return await auth_user(request, credentials, db)
 
 
 async def require_ws_editor(
     workspace_id: UUID,
-    user: Annotated[User, Depends(auth_user)] = ...,
+    user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
     """Ensure the current user has editor or owner rights in the workspace."""
@@ -50,7 +64,7 @@ async def require_ws_editor(
 
 async def require_ws_owner(
     workspace_id: UUID,
-    user: Annotated[User, Depends(auth_user)] = ...,
+    user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
     """Ensure the current user is an owner of the workspace."""
@@ -62,7 +76,7 @@ async def require_ws_owner(
 
 async def require_ws_viewer(
     workspace_id: UUID,
-    user: Annotated[User, Depends(auth_user)] = ...,
+    user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
     """Ensure the current user has at least viewer rights in the workspace."""
@@ -81,7 +95,7 @@ async def require_ws_viewer(
 
 async def require_ws_guest(
     workspace_id: UUID,
-    user: Annotated[User, Depends(auth_user)] = ...,
+    user: Annotated[User, Depends(_auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> WorkspaceMember | None:
     """Ensure the current user is a member of the workspace."""
