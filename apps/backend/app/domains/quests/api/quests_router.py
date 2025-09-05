@@ -358,4 +358,14 @@ async def buy_quest(
     )
     db.add(purchase)
     await db.commit()
+    from app.domains.system.events import PurchaseCompleted, get_event_bus
+
+    await get_event_bus().publish(
+        PurchaseCompleted(
+            user_id=current_user.id,
+            workspace_id=quest.workspace_id,
+            title="Quest purchased",
+            message=quest.title,
+        )
+    )
     return {"status": "ok", **breakdown}

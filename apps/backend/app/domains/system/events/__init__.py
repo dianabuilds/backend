@@ -10,6 +10,7 @@ from .models import (
     NodeEventBase,
     NodePublished,
     NodeUpdated,
+    PurchaseCompleted,
 )
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "NodePublished",
     "NodeArchived",
     "AchievementUnlocked",
+    "PurchaseCompleted",
     "EventBus",
     "get_event_bus",
     "register_handlers",

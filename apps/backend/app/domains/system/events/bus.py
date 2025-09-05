@@ -11,7 +11,14 @@ from uuid import uuid4
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 
 from .handlers import handlers
-from .models import EVENT_METRIC_NAMES, NodeCreated, NodePublished, NodeUpdated
+from .models import (
+    EVENT_METRIC_NAMES,
+    AchievementUnlocked,
+    NodeCreated,
+    NodePublished,
+    NodeUpdated,
+    PurchaseCompleted,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +101,8 @@ def register_handlers() -> None:
     _bus.subscribe(NodeCreated, handlers.handle_node_created)
     _bus.subscribe(NodeUpdated, handlers.handle_node_updated)
     _bus.subscribe(NodePublished, handlers.handle_node_published)
+    _bus.subscribe(AchievementUnlocked, handlers.handle_achievement_unlocked)
+    _bus.subscribe(PurchaseCompleted, handlers.handle_purchase_completed)
     _registered = True
 
 

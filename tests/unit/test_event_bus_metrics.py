@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import importlib
+import sys
 import uuid
 
 import pytest
+
+app_module = importlib.import_module("apps.backend.app")
+sys.modules.setdefault("app", app_module)
 
 from app.domains.system.events import (  # noqa: E402
     AchievementUnlocked,
@@ -10,8 +15,8 @@ from app.domains.system.events import (  # noqa: E402
     NodePublished,
     get_event_bus,
 )
-from app.domains.telemetry.application.event_metrics_facade import (
-    event_metrics,  # noqa: E402
+from app.domains.telemetry.application.event_metrics_facade import (  # noqa: E402
+    event_metrics,
 )
 
 
@@ -33,6 +38,8 @@ async def test_event_bus_counts_events() -> None:
             achievement_id=uuid.uuid4(),
             user_id=uuid.uuid4(),
             workspace_id=ws_id,
+            title="t",
+            message="m",
         )
     )
     snapshot = event_metrics.snapshot()

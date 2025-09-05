@@ -38,6 +38,17 @@ class AchievementUnlocked:
     achievement_id: UUID
     user_id: UUID
     workspace_id: UUID
+    title: str
+    message: str
+    id: str = field(default_factory=lambda: uuid4().hex)
+
+
+@dataclass(frozen=True)
+class PurchaseCompleted:
+    user_id: UUID
+    workspace_id: UUID | None
+    title: str
+    message: str
     id: str = field(default_factory=lambda: uuid4().hex)
 
 
@@ -47,6 +58,7 @@ EVENT_METRIC_NAMES: dict[type, str] = {
     NodePublished: "node.publish",
     NodeArchived: "node.archived",
     AchievementUnlocked: "achievement",
+    PurchaseCompleted: "purchase.completed",
 }
 
 
@@ -57,5 +69,6 @@ __all__ = [
     "NodePublished",
     "NodeArchived",
     "AchievementUnlocked",
+    "PurchaseCompleted",
     "EVENT_METRIC_NAMES",
 ]

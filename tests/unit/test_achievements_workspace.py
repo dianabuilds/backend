@@ -65,6 +65,16 @@ def test_process_event_isolated_by_workspace() -> None:
             session.add_all([user, w1, w2, ach1, ach2])
             await session.commit()
 
+            from contextlib import asynccontextmanager
+
+            from app.domains.system.events.handlers import handlers as event_handlers
+
+            @asynccontextmanager
+            async def _db_session() -> AsyncSession:
+                yield session
+
+            event_handlers.db_session = _db_session
+
             unlocked1 = await AchievementsService.process_event(
                 session, w1.id, user.id, "foo", preview=PreviewContext()
             )
