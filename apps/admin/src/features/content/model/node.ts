@@ -7,5 +7,9 @@ export interface NodeEditorData {
   tags?: string[];
   // additional fields used by the redesigned editor
   isPublic?: boolean;
-  content?: any;
+  content?: unknown;
+  context?: string;
+  space?: string;
+  roles?: string[];
+  override?: boolean;
 }

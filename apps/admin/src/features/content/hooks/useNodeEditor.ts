@@ -46,6 +46,10 @@ export function useNodeEditor(
     tags: [],
     isPublic: false,
     content: { time: Date.now(), blocks: [], version: "2.30.7" },
+    context: "default",
+    space: "",
+    roles: [],
+    override: false,
   });
 
   useEffect(() => {
@@ -70,6 +74,10 @@ export function useNodeEditor(
         tags: normalizeTags(data),
         isPublic: (data as any).isPublic ?? (data as any).is_public ?? false,
         content,
+        context: (data as any).context ?? "default",
+        space: (data as any).space ?? "",
+        roles: ((data as any).roles as string[] | undefined) ?? [],
+        override: (data as any).override ?? false,
       });
     }
   }, [data]);
@@ -82,6 +90,10 @@ export function useNodeEditor(
         coverUrl: payload.coverUrl,
         media: payload.media,
         content: payload.content, // EditorJS document
+        context: payload.context,
+        space: payload.space,
+        roles: payload.roles,
+        override: payload.override,
       };
       // ВАЖНО: отправляем tags всегда, если свойство определено, даже если [] — это позволяет очищать теги
       if (payload.tags !== undefined) body.tags = payload.tags;

@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
-import { render, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
+
+import { render, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { describe, expect, it, vi } from 'vitest';
 
 import NodeEditorPage from './NodeEditor';
 
@@ -45,5 +46,19 @@ describe('NodeEditorPage', () => {
     );
     const sidebar = getByTestId('sidebar');
     expect(within(sidebar).getByTestId('publish-controls')).toBeInTheDocument();
+  });
+  it('renders access controls and context switcher', () => {
+    const { getByTestId } = render(
+      <MemoryRouter initialEntries={['/nodes/article/1']}>
+        <Routes>
+          <Route path="/nodes/:type/:id" element={<NodeEditorPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    const sidebar = getByTestId('sidebar');
+    expect(within(sidebar).getByTestId('space-selector')).toBeInTheDocument();
+    expect(within(sidebar).getByTestId('role-reader')).toBeInTheDocument();
+    expect(within(sidebar).getByTestId('override-toggle')).toBeInTheDocument();
+    expect(getByTestId('context-switcher')).toBeInTheDocument();
   });
 });

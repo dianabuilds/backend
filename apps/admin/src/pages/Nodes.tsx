@@ -9,37 +9,38 @@ import { wsApi } from '../api/wsApi';
 import FlagsCell from '../components/FlagsCell';
 import StatusCell from '../components/StatusCell';
 import { useToast } from '../components/ToastProvider';
-import WorkspaceControlPanel from '../components/WorkspaceControlPanel';
-import WorkspaceSelector from '../components/WorkspaceSelector';
 import { Card, CardContent } from '../components/ui/card';
 import {
   Table,
-  TableHeader,
   TableBody,
-  TableRow,
-  TableHead,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '../components/ui/table';
-import { Button } from '../shared/ui';
+import WorkspaceControlPanel from '../components/WorkspaceControlPanel';
+import WorkspaceSelector from '../components/WorkspaceSelector';
 import type { Status as NodeStatus } from '../openapi';
+import { Button } from '../shared/ui';
 import { ensureArray } from '../shared/utils';
 import { notify } from '../utils/notify';
 import { useWorkspace } from '../workspace/WorkspaceContext';
 
-type NodeItem = {
-  id: number;
-  title?: string;
-  slug?: string;
-  status?: NodeStatus;
-  is_visible: boolean;
-  is_public: boolean;
-  premium_only: boolean;
-  is_recommendable: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  type?: string;
-  [k: string]: any;
-};
+  type NodeItem = {
+    id: number;
+    title?: string;
+    slug?: string;
+    status?: NodeStatus;
+    is_visible: boolean;
+    is_public: boolean;
+    premium_only: boolean;
+    is_recommendable: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+    type?: string;
+    space?: string;
+    [k: string]: any;
+  };
 
 const EMPTY_NODES: NodeItem[] = [];
 
@@ -808,6 +809,14 @@ export default function Nodes() {
                           <div className="relative group pr-16">
                             <div className="font-bold">{n.title?.trim() || 'Без названия'}</div>
                             <div className="text-gray-500 text-xs font-mono">{n.slug ?? '-'}</div>
+                            {n.space && (
+                              <span
+                                className="ml-2 text-xs rounded bg-blue-100 text-blue-800 px-1"
+                                data-testid="space-badge"
+                              >
+                                space: {n.space}
+                              </span>
+                            )}
                             {n.slug && (
                               <Button
                                 type="button"
