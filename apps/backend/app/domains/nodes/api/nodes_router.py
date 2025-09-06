@@ -210,8 +210,8 @@ async def update_node(
         )
     if was_visible != node.is_visible:
         await navsvc.invalidate_navigation_cache(db, node)
-        await navcache.invalidate_navigation_by_node(slug)
-        await navcache.invalidate_modes_by_node(slug)
+        await navcache.invalidate_navigation_by_node(space_id, slug)
+        await navcache.invalidate_modes_by_node(space_id, slug)
         await navcache.invalidate_compass_all()
         cache_invalidate("nav", reason="node_update", key=slug)
         cache_invalidate("navm", reason="node_update", key=slug)
@@ -261,8 +261,8 @@ async def delete_node(
             workspace_id=str(space_id),
         )
     await navsvc.invalidate_navigation_cache(db, node)
-    await navcache.invalidate_navigation_by_node(slug)
-    await navcache.invalidate_modes_by_node(slug)
+    await navcache.invalidate_navigation_by_node(space_id, slug)
+    await navcache.invalidate_modes_by_node(space_id, slug)
     await navcache.invalidate_compass_all()
     cache_invalidate("nav", reason="node_delete", key=slug)
     cache_invalidate("navm", reason="node_delete", key=slug)

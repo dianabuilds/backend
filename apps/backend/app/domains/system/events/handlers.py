@@ -61,9 +61,9 @@ class _Handlers:
     async def handle_node_updated(self, event: NodeUpdated) -> None:
         async with self.db_session() as session:
             await self.update_node_embedding(session, event.node_id)
-        if event.tags_changed:
+        if event.tags_changed and event.workspace_id is not None:
             try:
-                await navcache.invalidate_navigation_by_node(event.slug)
+                await navcache.invalidate_navigation_by_node(event.workspace_id, event.slug)
             except Exception:
                 logger.exception(
                     "navcache.invalidate_navigation_by_node_failed",
@@ -80,8 +80,9 @@ class _Handlers:
         except Exception:
             logger.exception("index_content_failed", extra={"event": event})
         try:
-            await navcache.invalidate_navigation_by_node(event.slug)
-            await navcache.invalidate_modes_by_node(event.slug)
+            if event.workspace_id is not None:
+                await navcache.invalidate_navigation_by_node(event.workspace_id, event.slug)
+                await navcache.invalidate_modes_by_node(event.workspace_id, event.slug)
             await navcache.invalidate_compass_all()
         except Exception:
             logger.exception("navcache.invalidate_post_publish_failed", extra={"event": event})

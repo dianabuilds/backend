@@ -48,3 +48,22 @@ async def test_cache_hit_miss_with_space_id() -> None:
         assert await svc.get_navigation(user, slug, "auto", space_id=space_a) == payload
 
     assert await svc.get_navigation(user, slug, "auto", space_id=space_b) is None
+
+
+@pytest.mark.asyncio
+async def test_invalidate_by_space() -> None:
+    cache = DummyCache()
+    svc = NavigationCacheService(cache)
+    user = uuid.uuid4()
+    slug = "node"
+    space_a = uuid.uuid4()
+    space_b = uuid.uuid4()
+    payload = {"t": []}
+
+    await svc.set_navigation(user, slug, "auto", payload, space_id=space_a)
+    await svc.set_navigation(user, slug, "auto", payload, space_id=space_b)
+
+    await svc.invalidate_navigation_by_node(space_a, slug)
+
+    assert await svc.get_navigation(user, slug, "auto", space_id=space_a) is None
+    assert await svc.get_navigation(user, slug, "auto", space_id=space_b) == payload

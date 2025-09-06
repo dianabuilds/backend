@@ -43,5 +43,5 @@ async def delete_transition(
     from_node = await node_repo.get_by_id(transition.from_node_id, workspace_id)
     await repo.delete(transition)
     if from_node:
-        await navcache.invalidate_navigation_by_node(from_node.slug)
+        await navcache.invalidate_navigation_by_node(workspace_id, from_node.slug)
     return {"message": "Transition deleted"}
