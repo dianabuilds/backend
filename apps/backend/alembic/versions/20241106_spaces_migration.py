@@ -104,7 +104,7 @@ def upgrade() -> None:
         sa.text(
             """
             INSERT INTO spaces (id, type, owner_id, title, settings)
-            SELECT id, kind::text, owner_user_id, name, settings_json FROM accounts
+            SELECT id, type::text, owner_user_id, name, settings_json FROM accounts
             """
         )
     )
