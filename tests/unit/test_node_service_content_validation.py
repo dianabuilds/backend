@@ -32,7 +32,7 @@ async def test_update_accepts_content_field() -> None:
         actor_id = uuid.uuid4()
         node = Node(
             id=1,
-            workspace_id=workspace_id,
+            account_id=workspace_id,
             slug="n1",
             title="N1",
             author_id=actor_id,
@@ -109,7 +109,7 @@ async def test_update_rejects_legacy_fields(field: str, value: list[Any]) -> Non
         actor_id = uuid.uuid4()
         node = Node(
             id=1,
-            workspace_id=workspace_id,
+            account_id=workspace_id,
             slug="n1",
             title="N1",
             author_id=actor_id,

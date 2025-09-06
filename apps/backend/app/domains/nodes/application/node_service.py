@@ -210,7 +210,7 @@ class NodeService:
         item = await NodeItemDAO.create(
             self._db,
             node_id=node.id,
-            workspace_id=node.workspace_id,
+            workspace_id=node.account_id,
             type="quest",
             status=node.status,
             visibility=node.visibility,
@@ -233,7 +233,7 @@ class NodeService:
         title = "New quest"
         slug = await self._unique_slug(title, workspace_id)
         node = Node(
-            workspace_id=workspace_id,
+            account_id=workspace_id,
             slug=slug,
             title=title,
             author_id=actor_id,
@@ -340,7 +340,7 @@ class NodeService:
         if node is None:
             # На случай старых записей, созданных до появления связанного Node
             node = Node(
-                workspace_id=item.workspace_id,
+                account_id=item.workspace_id,
                 slug=item.slug,
                 title=item.title,
                 author_id=item.created_by_user_id or actor_id,
@@ -412,7 +412,7 @@ class NodeService:
         await self._db.commit()
         if changed:
             await navsvc.invalidate_navigation_cache(self._db, node)
-            space_id = getattr(node, "workspace_id", None) or getattr(node, "account_id", None)
+            space_id = getattr(node, "account_id", None)
             if space_id is not None:
                 await navcache.invalidate_navigation_by_node(space_id, node.slug)
                 await navcache.invalidate_modes_by_node(space_id, node.slug)
@@ -440,7 +440,7 @@ class NodeService:
             node = await self._db.get(Node, item.node_id) if item.node_id else None
             if node is None:
                 node = Node(
-                    workspace_id=item.workspace_id,
+                    account_id=item.workspace_id,
                     slug=item.slug,
                     title=item.title,
                     author_id=item.created_by_user_id or actor_id,
@@ -475,7 +475,7 @@ class NodeService:
         node = await self._db.get(Node, item.node_id) if item.node_id else None
         if node is None:
             node = Node(
-                workspace_id=item.workspace_id,
+                account_id=item.workspace_id,
                 slug=item.slug,
                 title=item.title,
                 author_id=item.created_by_user_id or actor_id,

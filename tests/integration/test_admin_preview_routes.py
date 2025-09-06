@@ -79,7 +79,7 @@ async def preview_setup(monkeypatch):
     async with async_session() as session:
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=uuid.uuid4())
         user = User(id=uuid.uuid4())
-        node = Node(id=1, workspace_id=ws.id, slug="start", author_id=user.id)
+        node = Node(id=1, account_id=ws.id, slug="start", author_id=user.id)
         session.add_all([ws, user, node])
         await session.commit()
         ws_id = ws.id

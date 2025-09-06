@@ -43,7 +43,7 @@ async def client_with_node():
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
         node = Node(
             id=1,
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="n1",
             title="N1",
             author_id=user.id,

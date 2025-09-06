@@ -52,7 +52,7 @@ async def admin_client():
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
         node = Node(
             id=1,
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="n1",
             title="N1",
             content={},
@@ -103,7 +103,7 @@ async def forbidden_client():
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=uuid.uuid4())
         node = Node(
             id=1,
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="n1",
             title="N1",
             content={},

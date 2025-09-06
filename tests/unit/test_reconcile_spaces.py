@@ -22,7 +22,7 @@ class Node(Base):
     __tablename__ = "nodes"
     id = sa.Column(sa.Integer, primary_key=True)
     slug = sa.Column(sa.String, nullable=False)
-    workspace_id = sa.Column(sa.String, nullable=False)
+    account_id = sa.Column(sa.String, nullable=False)
 
 
 class NavigationCache(Base):
@@ -68,7 +68,7 @@ async def test_reconcile_spaces_backfills_space_id(monkeypatch, caplog) -> None:
         async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
         async with async_session() as session:
             ws_id = str(uuid.uuid4())
-            node = Node(id=1, workspace_id=ws_id, slug="n")
+            node = Node(id=1, account_id=ws_id, slug="n")
             cache = NavigationCache(node_slug="n")
             session.add_all([node, cache])
             await session.commit()
@@ -97,7 +97,7 @@ async def test_reconcile_spaces_logs_mismatch(monkeypatch, caplog) -> None:
         ws_id = str(uuid.uuid4())
         other_ws = str(uuid.uuid4())
         async with async_session() as session:
-            node = Node(id=1, workspace_id=ws_id, slug="n")
+            node = Node(id=1, account_id=ws_id, slug="n")
             cache = NavigationCache(node_slug="n", space_id=other_ws)
             session.add_all([node, cache])
             await session.commit()

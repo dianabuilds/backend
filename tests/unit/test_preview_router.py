@@ -106,7 +106,7 @@ def test_dry_run_seed_and_no_side_effects(monkeypatch):
             ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
             node = Node(
                 id=1,
-                workspace_id=ws.id,
+                account_id=ws.id,
                 slug="start",
                 content={},
                 author_id=user.id,
@@ -194,7 +194,7 @@ def test_read_only_renders_route_without_transition(monkeypatch):
             ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
             node = Node(
                 id=1,
-                workspace_id=ws.id,
+                account_id=ws.id,
                 slug="start",
                 content={},
                 author_id=user.id,
@@ -235,7 +235,7 @@ def test_preview_token_workspace_validation(monkeypatch):
             ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
             node = Node(
                 id=1,
-                workspace_id=ws.id,
+                account_id=ws.id,
                 slug="start",
                 content={},
                 author_id=user.id,
@@ -271,7 +271,7 @@ def test_returns_seed_for_replay(monkeypatch):
             ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
             node = Node(
                 id=uuid.uuid4(),
-                workspace_id=ws.id,
+                account_id=ws.id,
                 slug="start",
                 content={},
                 author_id=user.id,

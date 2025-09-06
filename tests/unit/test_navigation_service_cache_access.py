@@ -42,7 +42,7 @@ async def test_navigation_service_filters_cached_transitions():
         session.add(ws)
         start = Node(
             id=1,
-            workspace_id=ws_id,
+            account_id=ws_id,
             slug="start",
             title="Start",
             content={},
@@ -55,7 +55,7 @@ async def test_navigation_service_filters_cached_transitions():
         )
         open_node = Node(
             id=2,
-            workspace_id=ws_id,
+            account_id=ws_id,
             slug="open",
             title="Open",
             content={},
@@ -68,7 +68,7 @@ async def test_navigation_service_filters_cached_transitions():
         )
         private_node = Node(
             id=3,
-            workspace_id=ws_id,
+            account_id=ws_id,
             slug="priv",
             title="Priv",
             content={},
@@ -81,7 +81,7 @@ async def test_navigation_service_filters_cached_transitions():
         )
         premium_node = Node(
             id=4,
-            workspace_id=ws_id,
+            account_id=ws_id,
             slug="prem",
             title="Prem",
             content={},

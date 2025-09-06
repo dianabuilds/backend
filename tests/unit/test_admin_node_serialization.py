@@ -34,7 +34,7 @@ def test_serialize_normalizes_content_and_meta() -> None:
     )
     node = Node(
         id=1,
-        workspace_id=item.workspace_id,
+        account_id=item.workspace_id,
         slug="n",
         title="N",
         author_id=uuid4(),

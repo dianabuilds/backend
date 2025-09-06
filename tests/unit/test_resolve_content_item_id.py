@@ -27,7 +27,7 @@ async def db() -> AsyncSession:
         await conn.run_sync(User.__table__.create)
         await conn.run_sync(Workspace.__table__.create)
         Node.__table__.c.id.type = sa.Integer()
-        Node.__table__.c.workspace_id.nullable = True
+        Node.__table__.c.account_id.nullable = True
         await conn.run_sync(Node.__table__.create)
         NodeItem.__table__.c.id_bigint.type = sa.Integer()
         NodeItem.__table__.c.workspace_id.nullable = True
@@ -43,7 +43,7 @@ async def test_node_only_creates_item(db: AsyncSession) -> None:
     ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user_id)
     node = Node(
         id=1,
-        workspace_id=ws.id,
+        account_id=ws.id,
         slug="n1",
         title="N1",
         author_id=user_id,
@@ -68,7 +68,7 @@ async def test_existing_item_by_id(db: AsyncSession) -> None:
     ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user_id)
     node = Node(
         id=1,
-        workspace_id=ws.id,
+        account_id=ws.id,
         slug="n1",
         title="N1",
         author_id=user_id,
@@ -100,7 +100,7 @@ async def test_wrong_workspace_raises(db: AsyncSession) -> None:
     ws2 = Workspace(id=uuid.uuid4(), name="W2", slug="w2", owner_user_id=user_id)
     node = Node(
         id=1,
-        workspace_id=ws1.id,
+        account_id=ws1.id,
         slug="n1",
         title="N1",
         author_id=user_id,
@@ -131,7 +131,7 @@ async def test_global_node_resolves(db: AsyncSession) -> None:
     ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user_id)
     node = Node(
         id=1,
-        workspace_id=None,
+        account_id=None,
         slug="g",
         title="G",
         author_id=user_id,

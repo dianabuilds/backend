@@ -66,7 +66,7 @@ async def test_cover_saved_when_using_cover_key(app_client):
     async with async_session() as session:
         node = Node(
             id=1,
-            workspace_id=ws_id,
+            account_id=ws_id,
             slug="article-1",
             title="New article",
             content={},
