@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 from abc import ABC, abstractmethod
 from collections import deque
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -167,3 +168,50 @@ class RandomPolicy(Policy):
             return None, TransitionTrace(candidate_slugs, filtered, None)
         chosen = self._rnd.choice(candidates)
         return chosen, TransitionTrace(candidate_slugs, filtered, chosen.slug)
+
+
+class _NoOpProvider(TransitionProvider):
+    async def get_transitions(
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: User | None,
+        account_id: int,
+        preview: PreviewContext | None = None,
+    ) -> Sequence[Node]:
+        return []
+
+
+class FallbackPolicy(Policy):
+    name = "fallback"
+
+    def __init__(self) -> None:
+        super().__init__(_NoOpProvider())
+
+    async def choose(
+        self,
+        db: AsyncSession,
+        node: Node,
+        user: User | None,
+        history: deque[str],
+        repeat_filter: RepeatFilter,
+        preview: PreviewContext | None = None,
+    ) -> tuple[Node | None, TransitionTrace]:
+        from app.domains.admin.application.feature_flag_service import (
+            FeatureFlagKey,
+            get_effective_flags,
+        )
+
+        from .router import TransitionTrace
+
+        flags = await get_effective_flags(db, None, user)
+        if FeatureFlagKey.FALLBACK_POLICY.value not in flags:
+            return None, TransitionTrace([], [], None, reason="disabled")
+        from types import SimpleNamespace
+
+        fallback_node = SimpleNamespace(
+            slug="fallback",
+            workspace_id=getattr(node, "workspace_id", None),
+            tags=[],
+        )
+        return fallback_node, TransitionTrace([node.slug], [], "fallback", reason="fallback")

@@ -25,6 +25,7 @@ class FeatureFlagKey(StrEnum):
     PREMIUM_GIFTING = "premium.gifting"
     NODE_NAVIGATION_V2 = "nodes.navigation_v2"
     WEIGHTED_MANUAL_TRANSITIONS = "navigation.weighted_manual_transitions"
+    FALLBACK_POLICY = "navigation.fallback_policy"
 
 
 # Predefined feature flags available in the system with optional descriptions
@@ -41,6 +42,10 @@ KNOWN_FLAGS: dict[FeatureFlagKey, tuple[str, str]] = {
     FeatureFlagKey.NODE_NAVIGATION_V2: ("Enable experimental node navigation v2", "all"),
     FeatureFlagKey.WEIGHTED_MANUAL_TRANSITIONS: (
         "Enable weighted sorting for manual transitions",
+        "all",
+    ),
+    FeatureFlagKey.FALLBACK_POLICY: (
+        "Enable fallback navigation policy",
         "all",
     ),
 }
