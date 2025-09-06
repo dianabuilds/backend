@@ -6,6 +6,7 @@ import json
 from sqlalchemy import and_, asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.scoping import apply_scope
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
     PageRequest,
@@ -22,13 +23,21 @@ class NodeQueryService:
         self._db = db
 
     async def compute_nodes_etag(
-        self, spec: NodeFilterSpec, ctx: QueryContext, page: PageRequest
+        self,
+        spec: NodeFilterSpec,
+        ctx: QueryContext,
+        page: PageRequest,
+        *,
+        scope_mode: str | None = None,
+        space_id: int | None = None,
     ) -> str:
         base = select(func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at)).join(
             NodeItem,
             and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
             isouter=True,
         )
+        if scope_mode is not None or space_id is not None:
+            base, _ = apply_scope(base, getattr(ctx, "user", None), scope_mode, space_id)
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
@@ -75,13 +84,21 @@ class NodeQueryService:
         return hashlib.sha256(payload.encode()).hexdigest()
 
     async def list_nodes(
-        self, spec: NodeFilterSpec, page: PageRequest, ctx: QueryContext
+        self,
+        spec: NodeFilterSpec,
+        page: PageRequest,
+        ctx: QueryContext,
+        *,
+        scope_mode: str | None = None,
+        space_id: int | None = None,
     ) -> list[Node]:
         stmt = select(Node).join(
             NodeItem,
             and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
             isouter=True,
         )
+        if scope_mode is not None or space_id is not None:
+            stmt, _ = apply_scope(stmt, getattr(ctx, "user", None), scope_mode, space_id)
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
