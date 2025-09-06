@@ -18,6 +18,7 @@ from sqlalchemy.orm import selectinload
 
 from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.nodes.infrastructure.models.node_version import NodeVersion
 from app.schemas.node import NodeCreate, NodeUpdate
 
 
@@ -112,6 +113,16 @@ class NodeRepository(INodeRepository):
             node.slug = candidate
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = actor_id
+        node.version = int(node.version or 1) + 1
+        snapshot = NodeVersion(
+            node_id=node.id,
+            version=node.version,
+            title=node.title,
+            meta=node.meta or {},
+            created_at=node.updated_at,
+            created_by_user_id=str(actor_id),
+        )
+        self._db.add(snapshot)
         await self._db.commit()
         loaded = await self.get_by_id(node.id, node.account_id)
         return loaded  # type: ignore[return-value]
