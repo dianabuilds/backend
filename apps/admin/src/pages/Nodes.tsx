@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAccount } from '../account/AccountContext';
+import { accountApi } from '../api/accountApi';
 import { listNodes, type NodeListParams } from '../api/nodes';
 import { createPreviewLink } from '../api/preview';
-import { wsApi } from '../api/wsApi';
 import FlagsCell from '../components/FlagsCell';
 import ScopeControls from '../components/ScopeControls';
 import StatusCell from '../components/StatusCell';
@@ -164,7 +164,7 @@ export default function Nodes() {
       (async () => {
         try {
           setModBusy(true);
-          await wsApi.post(
+          await accountApi.post(
             `/admin/moderation/nodes/${encodeURIComponent(String(node.slug))}/restore`,
             undefined,
             { accountId },
@@ -204,7 +204,7 @@ export default function Nodes() {
     }
     try {
       setModBusy(true);
-      await wsApi.post(
+      await accountApi.post(
         `/admin/moderation/nodes/${encodeURIComponent(String(modTarget.slug))}/hide`,
         { reason: modReason || '' },
         { accountId },
@@ -360,7 +360,7 @@ export default function Nodes() {
     const results: string[] = [];
     try {
       for (const { ids, changes } of groups.values()) {
-        await wsApi.patch(
+        await accountApi.patch(
           `/admin/accounts/${encodeURIComponent(accountId)}/nodes/bulk`,
           {
             ids,
@@ -435,7 +435,7 @@ export default function Nodes() {
     if (!(await confirmWithEnv(`Удалить ${ids.length} нод${ids.length === 1 ? 'у' : 'ы'}?`))) return;
     try {
       for (const id of ids) {
-        await wsApi.delete(
+        await accountApi.delete(
           `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(id)}`,
           { accountId, account: false },
         );

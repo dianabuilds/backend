@@ -62,7 +62,7 @@ export default defineConfig(({ mode, command }) => {
     "achievements",
     "moderation",
     "ops",
-    "workspaces",
+    "accounts",
   ];
 
   const htmlBypass = (req: { headers: Record<string, string | undefined> }) => {

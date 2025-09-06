@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { wsApi } from "../api/wsApi";
+import { useAccount } from "../account/AccountContext";
+import { accountApi } from "../api/accountApi";
 import { extractUrlFromUploadResponse, resolveBackendUrl } from "../utils/url";
-import { useAccount } from "../workspace/WorkspaceContext";
 
 interface ImageDropzoneProps {
   value?: string | null;
@@ -43,7 +43,7 @@ export default function ImageDropzone({
       form.append("file", file);
       setError(null);
       try {
-        const res = await wsApi.request("/admin/media", {
+        const res = await accountApi.request("/admin/media", {
           method: "POST",
           body: form,
           raw: true,
