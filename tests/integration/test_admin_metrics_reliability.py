@@ -41,15 +41,15 @@ async def test_metrics_reliability(monkeypatch):
     called = {"flag": False}
     real = metrics_storage.reliability
 
-    def spy(range_seconds: int, workspace_id: str | None = None) -> dict:
+    def spy(range_seconds: int, account_id: str | None = None) -> dict:
         called["flag"] = True
-        return real(range_seconds, workspace_id)
+        return real(range_seconds, account_id)
 
     monkeypatch.setattr(metrics_storage, "reliability", spy)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/admin/metrics/reliability", params={"workspace": "ws1"})
+        resp = await client.get("/admin/metrics/reliability", params={"account_id": "ws1"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["count_4xx"] == 1
