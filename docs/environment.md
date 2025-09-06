@@ -10,7 +10,7 @@
   По умолчанию разрешены методы `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`, `PATCH`
   и заголовки `Authorization`, `Content-Type`, `X-CSRF-Token`, `X-CSRFToken`,
   `X-Requested-With`, `X-Feature-Flags`,
-  `X-Preview-Token`, `X-Request-ID`, `X-BlockSketch-Workspace-Id`,
+  `X-Preview-Token`, `X-Request-ID`, `X-BlockSketch-Account-Id`,
   `X-Client-Platform`, `X-XSRF-Token`, `X-Client-Language`, `X-Client-Version`,
   `X-User-Timezone`.
 
