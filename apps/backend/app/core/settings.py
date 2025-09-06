@@ -148,6 +148,10 @@ class Settings(ProjectSettings):
     payment_provider: str | None = None
     email_provider: str | None = None
     rng_seed_strategy: str | None = None
+    spaces_enforced: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("APP_SPACES_ENFORCED", "SPACES_ENFORCED"),
+    )
 
     # CORS settings
     cors_allow_credentials: bool = Field(
