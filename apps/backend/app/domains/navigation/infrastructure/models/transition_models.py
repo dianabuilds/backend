@@ -7,7 +7,7 @@ from uuid import uuid4
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.ext.mutable import MutableDict, MutableList
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 
 from app.providers.db.adapters import ARRAY, JSONB, UUID
 from app.providers.db.base import Base
@@ -22,8 +22,17 @@ class NodeTransition(Base):
     __tablename__ = "node_transitions"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    from_node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False, index=True)
-    to_node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False)
+    from_node_id = Column(
+        BigInteger,
+        ForeignKey("nodes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    to_node_id = Column(
+        BigInteger,
+        ForeignKey("nodes.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
     type = Column(SAEnum(NodeTransitionType), nullable=False, default=NodeTransitionType.manual)
     condition = Column(MutableDict.as_mutable(JSONB), default=dict)
     weight = Column(Integer, default=1)
@@ -31,7 +40,11 @@ class NodeTransition(Base):
     created_by = Column(UUID(), ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    from_node = relationship("Node", foreign_keys=[from_node_id], backref="outgoing_transitions")
+    from_node = relationship(
+        "Node",
+        foreign_keys=[from_node_id],
+        backref=backref("outgoing_transitions", passive_deletes=True),
+    )
     to_node = relationship("Node", foreign_keys=[to_node_id])
 
 
