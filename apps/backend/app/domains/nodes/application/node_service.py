@@ -388,8 +388,10 @@ class NodeService:
         await self._db.commit()
         if changed:
             await navsvc.invalidate_navigation_cache(self._db, node)
-            await navcache.invalidate_navigation_by_node(node.slug)
-            await navcache.invalidate_modes_by_node(node.slug)
+            space_id = getattr(node, "workspace_id", None) or getattr(node, "account_id", None)
+            if space_id is not None:
+                await navcache.invalidate_navigation_by_node(space_id, node.slug)
+                await navcache.invalidate_modes_by_node(space_id, node.slug)
             await navcache.invalidate_compass_all()
             cache_invalidate("nav", reason="node_update", key=node.slug)
             cache_invalidate("navm", reason="node_update", key=node.slug)

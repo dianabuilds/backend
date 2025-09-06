@@ -120,9 +120,9 @@ class NavigationCacheService:
         await self._add_to_set(_idx_node_nav(node_slug, sid), key)
 
     async def invalidate_navigation_by_node(
-        self, node_slug: str, space_id: UUID | str | None = None
+        self, space_id: UUID | str | int, node_slug: str
     ) -> None:
-        sid = str(space_id) if space_id is not None else None
+        sid = str(space_id)
         keys = await self._get_set(_idx_node_nav(node_slug, sid))
         count = len(keys)
         if keys:
@@ -134,7 +134,7 @@ class NavigationCacheService:
             await self._cache.delete(*list(keys_modes))
         await self._del_set_key(_idx_node_navm(node_slug, sid))
         if count:
-            cache_invalidate("nav", reason="by_node", key=node_slug)
+            cache_invalidate("nav", reason="by_node", key=f"{sid}:{node_slug}")
 
     async def invalidate_navigation_by_user(self, user_id: UUID | str) -> None:
         uid = str(user_id)
@@ -192,16 +192,14 @@ class NavigationCacheService:
         await self._add_to_set(_idx_user_nav(uid), key)
         await self._add_to_set(_idx_node_navm(node_slug, sid), key)
 
-    async def invalidate_modes_by_node(
-        self, node_slug: str, space_id: UUID | str | None = None
-    ) -> None:
-        sid = str(space_id) if space_id is not None else None
+    async def invalidate_modes_by_node(self, space_id: UUID | str | int, node_slug: str) -> None:
+        sid = str(space_id)
         keys = await self._get_set(_idx_node_navm(node_slug, sid))
         if keys:
             await self._cache.delete(*list(keys))
         await self._del_set_key(_idx_node_navm(node_slug, sid))
         if keys:
-            cache_invalidate("navm", reason="by_node", key=node_slug)
+            cache_invalidate("navm", reason="by_node", key=f"{sid}:{node_slug}")
 
     # Compass -----------------------------------------------------------
     async def get_compass(
@@ -245,17 +243,15 @@ class NavigationCacheService:
         if keys:
             cache_invalidate("comp", reason="by_user", key=uid)
 
-    async def invalidate_compass_by_node(
-        self, node_slug: str, space_id: UUID | str | None = None
-    ) -> None:
-        sid = str(space_id) if space_id is not None else None
+    async def invalidate_compass_by_node(self, space_id: UUID | str | int, node_slug: str) -> None:
+        sid = str(space_id)
         idx = _idx_node_comp(node_slug, sid)
         keys = await self._get_set(idx)
         if keys:
             await self._cache.delete(*list(keys))
         await self._del_set_key(idx)
         if keys:
-            cache_invalidate("comp", reason="by_node", key=node_slug)
+            cache_invalidate("comp", reason="by_node", key=f"{sid}:{node_slug}")
 
     async def invalidate_compass_all(self) -> None:
         pattern = f"{settings.cache.key_version}:compass*"

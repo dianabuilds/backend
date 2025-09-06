@@ -56,7 +56,13 @@ async def test_handle_node_updated_logs(monkeypatch, caplog: pytest.LogCaptureFi
     h = _make_handlers()
     monkeypatch.setattr(navcache, "invalidate_navigation_by_node", _failing)
     monkeypatch.setattr(navcache, "invalidate_compass_all", _failing)
-    event = NodeUpdated(node_id=1, slug="s", author_id=uuid.uuid4(), tags_changed=True)
+    event = NodeUpdated(
+        node_id=1,
+        slug="s",
+        author_id=uuid.uuid4(),
+        workspace_id=uuid.uuid4(),
+        tags_changed=True,
+    )
     with caplog.at_level(logging.ERROR):
         await h.handle_node_updated(event)
     records = [r for r in caplog.records if getattr(r, "event", None) == event]
@@ -74,7 +80,12 @@ async def test_handle_node_published_logs(monkeypatch, caplog: pytest.LogCapture
     monkeypatch.setattr(navcache, "invalidate_navigation_by_node", _failing)
     monkeypatch.setattr(navcache, "invalidate_modes_by_node", _noop)
     monkeypatch.setattr(navcache, "invalidate_compass_all", _noop)
-    event = NodePublished(node_id=1, slug="s", author_id=uuid.uuid4())
+    event = NodePublished(
+        node_id=1,
+        slug="s",
+        author_id=uuid.uuid4(),
+        workspace_id=uuid.uuid4(),
+    )
     with caplog.at_level(logging.ERROR):
         await h.handle_node_published(event)
     records = [r for r in caplog.records if getattr(r, "event", None) == event]

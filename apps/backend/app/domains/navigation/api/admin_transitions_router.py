@@ -107,8 +107,9 @@ async def update_transition_admin(
     from_node = await db.get(Node, transition.from_node_id)
     from_slug = from_node.slug if from_node else old_from_slug
 
-    await navcache.invalidate_navigation_by_node(from_slug)
-    await navcache.invalidate_compass_by_node(from_slug)
+    if from_node:
+        await navcache.invalidate_navigation_by_node(from_node.account_id, from_slug)
+        await navcache.invalidate_compass_by_node(from_node.account_id, from_slug)
 
     to_node = await db.get(Node, transition.to_node_id)
     return AdminTransitionOut(
@@ -133,12 +134,11 @@ async def delete_transition_admin(
     if not transition:
         raise HTTPException(status_code=404, detail="Transition not found")
     from_node = await db.get(Node, transition.from_node_id)
-    from_slug = from_node.slug if from_node else None
     await db.delete(transition)
     await db.commit()
-    if from_slug:
-        await navcache.invalidate_navigation_by_node(from_slug)
-        await navcache.invalidate_compass_by_node(from_slug)
+    if from_node:
+        await navcache.invalidate_navigation_by_node(from_node.account_id, from_node.slug)
+        await navcache.invalidate_compass_by_node(from_node.account_id, from_node.slug)
     return {"message": "Transition deleted"}
 
 
@@ -160,6 +160,6 @@ async def disable_transitions_by_node(
     for t in transitions:
         t.type = NodeTransitionType.locked
     await db.commit()
-    await navcache.invalidate_navigation_by_node(node.slug)
-    await navcache.invalidate_compass_by_node(node.slug)
+    await navcache.invalidate_navigation_by_node(node.account_id, node.slug)
+    await navcache.invalidate_compass_by_node(node.account_id, node.slug)
     return {"disabled": len(transitions)}

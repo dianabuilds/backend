@@ -246,8 +246,8 @@ async def recompute_popularity(
     counts = {nid: cnt for nid, cnt in (await db.execute(count_stmt)).all()}
     for n in nodes:
         n.popularity_score = float(counts.get(n.id, 0))
-        await navcache.invalidate_navigation_by_node(n.slug)
-        await navcache.invalidate_compass_by_node(n.slug)
+        await navcache.invalidate_navigation_by_node(n.account_id, n.slug)
+        await navcache.invalidate_compass_by_node(n.account_id, n.slug)
         cache_invalidate("nav", reason="recompute_popularity", key=n.slug)
         cache_invalidate("comp", reason="recompute_popularity", key=n.slug)
     await db.commit()
