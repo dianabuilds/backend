@@ -1,24 +1,24 @@
-# Workspaces and Content
+# Accounts and Content
 
-This document describes how content is organized inside workspaces and how it
+This document describes how content is organized inside accounts and how it
 moves through its lifecycle.
 
 ## Roles
 
-Each workspace isolates data and permissions. A member has one of the following
+Each account isolates data and permissions. A member has one of the following
 roles:
 
-- **Owner** – full control over the workspace, including settings and member
+- **Owner** – full control over the account, including settings and member
   management.
 - **Editor** – can create, update and publish content.
 - **Viewer** – read‑only access. Viewers cannot modify content or tags.
 
-Global **admins** bypass workspace roles and can access any workspace.
+Global **admins** bypass account roles and can access any account.
 
-## Global workspace
+## Global account
 
-The backend creates a system workspace named **Global** on startup. This
-workspace hosts shared content and is identified by the slug `global`. Users
+The backend creates a system account named **Global** on startup. This
+account hosts shared content and is identified by the slug `global`. Users
 whose account role is listed in `settings.security.admin_roles` are
 automatically added to it with at least editor rights; the earliest admin user
 becomes the owner. This guarantees that moderators and other privileged roles
@@ -38,7 +38,7 @@ edit sets the status back to `draft` until it passes review.
 
 ## Tag taxonomy
 
-Tags classify content inside a workspace. Each tag has a stable `slug` and a
+Tags classify content inside an account. Each tag has a stable `slug` and a
 human‑readable `name`.
 
 - Use **kebab‑case** slugs (e.g. `world-building`).
@@ -51,7 +51,7 @@ human‑readable `name`.
 
 Before promoting a draft to `published`:
 
-- Title and slug are unique within the workspace.
+- Title and slug are unique within the account.
 - Required tags are assigned and follow the taxonomy rules.
 - Cover media and other mandatory fields are set.
 - Peer review is completed (`in_review`).
@@ -62,15 +62,15 @@ Before promoting a draft to `published`:
 
 Administrative endpoints exposed by the backend:
 
-### Workspaces
+### Accounts
 
-- `GET /admin/accounts` – list available workspaces. Supports cursor pagination
+- `GET /admin/accounts` – list available accounts. Supports cursor pagination
   via the `limit`, `cursor`, `sort` (default `created_at`) and `order` query
   parameters.
-- `POST /admin/accounts/{account_id}` – create a workspace with a fixed ID.
-- `GET /admin/accounts/{account_id}` – fetch workspace metadata.
-- `PATCH /admin/accounts/{account_id}` – update workspace fields.
-- `DELETE /admin/accounts/{account_id}` – remove a workspace.
+- `POST /admin/accounts/{account_id}` – create an account with a fixed ID.
+- `GET /admin/accounts/{account_id}` – fetch account metadata.
+- `PATCH /admin/accounts/{account_id}` – update account fields.
+- `DELETE /admin/accounts/{account_id}` – remove an account.
 
 Example:
 
@@ -86,7 +86,7 @@ GET /admin/accounts?limit=2
   "items": [
     {
       "id": "8b112b04-1769-44ef-abc6-3c7ce7c8de4e",
-      "name": "Main workspace",
+      "name": "Main account",
       "slug": "main",
       "owner_user_id": "720e76fa-1111-2222-3333-444455556666",
       "settings": {},
@@ -101,7 +101,7 @@ GET /admin/accounts?limit=2
 }
 ```
 
-Creating a workspace:
+Creating an account:
 
 ```bash
 POST /admin/accounts/123e4567-e89b-12d3-a456-426614174000
@@ -124,7 +124,7 @@ Content-Type: application/json
 
 ### Nodes
 
-Most node routes are namespaced by workspace and use the path prefix
+Most node routes are namespaced by account and use the path prefix
 `/admin/accounts/{account_id}`.
 
 Common endpoints:
