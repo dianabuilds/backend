@@ -4,10 +4,10 @@
 /* eslint-disable */
 import type { NotificationType } from './NotificationType';
 export type SendNotificationPayload = {
+    account_id: string;
     user_id: string;
     title: string;
     message: string;
     type?: NotificationType;
-    placement?: string;
 };
 

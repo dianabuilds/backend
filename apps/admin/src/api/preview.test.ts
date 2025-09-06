@@ -13,7 +13,7 @@ describe('simulatePreview', () => {
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
-    await preview.simulatePreview({ workspace_id: 'ws1', start: 'start-node' });
+    await preview.simulatePreview({ account_id: 'ws1', start: 'start-node' });
     expect(fetchSpy).toHaveBeenCalledWith(
       '/admin/preview/transitions/simulate',
       expect.objectContaining({
@@ -24,7 +24,7 @@ describe('simulatePreview', () => {
           'X-Preview-Token': 'pt',
         }),
         credentials: 'include',
-        body: JSON.stringify({ workspace_id: 'ws1', start: 'start-node' }),
+        body: JSON.stringify({ account_id: 'ws1', start: 'start-node' }),
       }),
     );
     const call = fetchSpy.mock.calls[0] as [RequestInfo, RequestInit];
@@ -33,7 +33,7 @@ describe('simulatePreview', () => {
 });
 
 describe('createPreviewLink', () => {
-  it('posts workspace id with tokens', async () => {
+  it('posts account id with tokens', async () => {
     setPreviewToken('pt');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
@@ -54,7 +54,7 @@ describe('createPreviewLink', () => {
           'X-Preview-Token': 'pt',
         }),
         credentials: 'include',
-        body: JSON.stringify({ workspace_id: 'ws1' }),
+        body: JSON.stringify({ account_id: 'ws1' }),
       }),
     );
     const call = fetchSpy.mock.calls[0] as [RequestInfo, RequestInit];

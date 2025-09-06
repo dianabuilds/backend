@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 
 import { setPreviewToken } from "../api/client";
 import { simulatePreview, createPreviewLink } from "../api/preview";
-import WorkspaceSelector from "../components/WorkspaceSelector";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import AccountSelector from "../components/AccountSelector";
+import { useAccount } from "../account/AccountContext";
 
 export default function Simulation() {
-  const { workspaceId, setWorkspace } = useWorkspace();
+  const { accountId, setAccount } = useAccount();
 
   const [start, setStart] = useState("");
   const [previewMode, setPreviewMode] = useState("off");
@@ -34,14 +34,14 @@ export default function Simulation() {
       setSharedMode(true);
       try {
         const payload = JSON.parse(atob(token.split(".")[1] || ""));
-        if (payload?.workspace_id) {
-          setWorkspace({ id: payload.workspace_id } as any);
+        if (payload?.account_id) {
+          setAccount({ id: payload.account_id } as any);
         }
       } catch {
         // ignore
       }
     }
-  }, [setWorkspace]);
+  }, [setAccount]);
 
   useEffect(() => {
     if (history.length === 0) setCurrent(start);
@@ -58,11 +58,11 @@ export default function Simulation() {
   };
 
   const call = async (slug: string) => {
-    if (!workspaceId || !slug) return null;
+    if (!accountId || !slug) return null;
     setError(null);
     try {
       const res = await simulatePreview({
-        workspace_id: workspaceId,
+        account_id: accountId,
         start: slug,
         history,
         preview_mode: previewMode,
@@ -109,9 +109,9 @@ export default function Simulation() {
   };
 
   const share = async () => {
-    if (!workspaceId) return;
+    if (!accountId) return;
     try {
-      const { url } = await createPreviewLink(workspaceId);
+      const { url } = await createPreviewLink(accountId);
       window.open(url, "_blank");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -127,8 +127,8 @@ export default function Simulation() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
         {!sharedMode && (
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-600">Workspace</span>
-            <WorkspaceSelector />
+            <span className="text-sm text-gray-600">Account</span>
+            <AccountSelector />
           </label>
         )}
         <label className="flex flex-col gap-1">
@@ -212,14 +212,14 @@ export default function Simulation() {
       <div className="flex gap-2">
         <button
           onClick={step}
-          disabled={!workspaceId || !current}
+          disabled={!accountId || !current}
           className="px-3 py-1 rounded border"
         >
           Step
         </button>
         <button
           onClick={autoRun}
-          disabled={!workspaceId || !current || autoRunning}
+          disabled={!accountId || !current || autoRunning}
           className="px-3 py-1 rounded border"
         >
           {autoRunning ? "Running..." : "Auto-run"}
@@ -228,7 +228,7 @@ export default function Simulation() {
           Reset
         </button>
         {!sharedMode && (
-          <button onClick={share} disabled={!workspaceId} className="px-3 py-1 rounded border">
+          <button onClick={share} disabled={!accountId} className="px-3 py-1 rounded border">
             Share link
           </button>
         )}

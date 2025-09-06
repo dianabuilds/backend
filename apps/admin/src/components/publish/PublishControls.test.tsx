@@ -30,7 +30,7 @@ vi.mock('../ToastProvider', () => ({ useToast: () => ({ addToast: vi.fn() }) }))
 describe('PublishControls', () => {
   it('renders status section', () => {
     mockUseMutation.mockReturnValue({ mutate: vi.fn(), isPending: false });
-    render(<PublishControls workspaceId="ws" nodeId={1} />);
+    render(<PublishControls accountId="ws" nodeId={1} />);
     expect(screen.getByText('Статус:')).toBeInTheDocument();
   });
 
@@ -39,7 +39,7 @@ describe('PublishControls', () => {
     mockUseMutation
       .mockReturnValueOnce({ mutate: vi.fn(), isPending: true })
       .mockReturnValue({ mutate: vi.fn(), isPending: false });
-    render(<PublishControls workspaceId="ws" nodeId={1} />);
+    render(<PublishControls accountId="ws" nodeId={1} />);
     expect(screen.getByTestId('publish-spinner')).toBeInTheDocument();
   });
 });

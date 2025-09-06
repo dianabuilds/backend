@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ChangeEvent } from "react";
 
-import { listWorkspaces, type Workspace } from "../api/workspaces";
+import { listAccounts, type Account } from "../api/accounts";
 import { setOverrideState,useOverrideStore } from "../shared/hooks";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import { useAccount } from "../account/AccountContext";
 
 interface ScopeControlsProps {
   scopeMode: string;
@@ -20,17 +20,17 @@ export default function ScopeControls({
   roles,
   onRolesChange,
 }: ScopeControlsProps) {
-  const { workspaceId, setWorkspace } = useWorkspace();
+  const { accountId, setAccount } = useAccount();
   const { data: spaces } = useQuery({
-    queryKey: ["workspaces", "all"],
-    queryFn: () => listWorkspaces(),
+    queryKey: ["accounts", "all"],
+    queryFn: () => listAccounts(),
   });
   const override = useOverrideStore();
 
   const onSpaceChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
     const ws = spaces?.find((w) => w.id === id);
-    setWorkspace(ws);
+    setAccount(ws);
   };
 
   const onRoleToggle = (r: string) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -48,13 +48,13 @@ export default function ScopeControls({
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="scope-controls">
       <select
-        value={workspaceId || ""}
+        value={accountId || ""}
         onChange={onSpaceChange}
         className="border rounded px-2 py-1 text-sm"
         data-testid="space-select"
       >
         <option value="">Select space</option>
-        {spaces?.map((ws: Workspace) => (
+        {spaces?.map((ws: Account) => (
           <option key={ws.id} value={ws.id}>
             {ws.name || ws.slug || ws.id}
           </option>

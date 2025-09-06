@@ -51,7 +51,7 @@ export default function MediaPicker({
       try {
         const data =
           (await wsApi.get<ApiMediaAsset[]>("/admin/media", {
-            workspace: "query",
+            account: "query",
           })) || [];
         const mapped = data.map((d) => ({
           id: d.id,

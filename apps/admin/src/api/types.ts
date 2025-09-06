@@ -8,7 +8,7 @@ export interface Page<T> extends ListResponse<T> {
   total: number;
 }
 
-export interface Workspace {
+export interface Account {
   id: string;
   name: string;
   slug: string;

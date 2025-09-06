@@ -9,3 +9,4 @@ export type CampaignCreate = {
     type?: string;
     filters?: (CampaignFilters | null);
 };
+

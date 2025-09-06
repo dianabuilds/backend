@@ -1,16 +1,16 @@
 import { api } from "./client";
-import { listWorkspaces } from "./workspaces";
+import { listAccounts } from "./accounts";
 
 vi.mock("./client", () => ({
   api: { get: vi.fn() },
 }));
 
-describe("listWorkspaces", () => {
+describe("listAccounts", () => {
   it("passes query params", async () => {
     vi.mocked(api.get).mockResolvedValue({ data: [] });
-    await listWorkspaces({ q: "test", type: "team", limit: 5, offset: 10 });
+    await listAccounts({ q: "test", type: "team", limit: 5, offset: 10 });
     expect(api.get).toHaveBeenCalledWith(
-      "/admin/workspaces?q=test&type=team&limit=5&offset=10",
+      "/admin/accounts?q=test&type=team&limit=5&offset=10",
     );
   });
 });

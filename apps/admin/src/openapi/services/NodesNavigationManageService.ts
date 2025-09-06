@@ -11,20 +11,20 @@ export class NodesNavigationManageService {
      * Record visit
      * @param slug
      * @param toSlug
-     * @param workspaceId
+     * @param accountId
      * @param source
      * @param channel
-     * @param xWorkspaceId
+     * @param xAccountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static recordVisitNodesSlugVisitToSlugPost(
         slug: string,
         toSlug: string,
-        workspaceId: string,
+        accountId: string,
         source?: (string | null),
         channel?: (string | null),
-        xWorkspaceId?: (string | null),
+        xAccountId?: (string | null),
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -34,10 +34,10 @@ export class NodesNavigationManageService {
                 'to_slug': toSlug,
             },
             headers: {
-                'X-Workspace-Id': xWorkspaceId,
+                'X-Account-Id': xAccountId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'source': source,
                 'channel': channel,
             },
@@ -49,17 +49,17 @@ export class NodesNavigationManageService {
     /**
      * Create transition
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
-     * @param xWorkspaceId
+     * @param xAccountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static createTransitionNodesSlugTransitionsPost(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: NodeTransitionCreate,
-        xWorkspaceId?: (string | null),
+        xAccountId?: (string | null),
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -68,10 +68,10 @@ export class NodesNavigationManageService {
                 'slug': slug,
             },
             headers: {
-                'X-Workspace-Id': xWorkspaceId,
+                'X-Account-Id': xAccountId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',

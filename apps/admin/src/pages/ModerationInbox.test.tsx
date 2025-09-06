@@ -11,8 +11,8 @@ vi.mock("../api/moderationCases", () => ({
   createCase: vi.fn(),
 }));
 
-vi.mock("../workspace/WorkspaceContext", () => ({
-  useWorkspace: () => ({ workspaceId: "" }),
+vi.mock("../account/AccountContext", () => ({
+  useAccount: () => ({ accountId: "" }),
 }));
 
 function renderPage() {

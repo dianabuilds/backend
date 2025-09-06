@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 
 import { getNode } from '../api/nodes';
 import type { OutputData } from '../types/editorjs';
-import { useWorkspace } from '../workspace/WorkspaceContext';
+import { useAccount } from '../account/AccountContext';
 
 function diffObjects(a: any, b: any, prefix = ''): string[] {
   let out: string[] = [];
@@ -24,16 +24,16 @@ function diffObjects(a: any, b: any, prefix = ''): string[] {
 
 export default function NodeDiff() {
   const { id } = useParams<{ id: string }>();
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
   const [remote, setRemote] = useState<any | null>(null);
   const [local, setLocal] = useState<any | null>(null);
 
   const nodeId = Number(id);
 
   useEffect(() => {
-    if (!Number.isInteger(nodeId) || !workspaceId) return;
+    if (!Number.isInteger(nodeId) || !accountId) return;
     (async () => {
-      const node = await getNode(workspaceId, nodeId);
+      const node = await getNode(accountId, nodeId);
       const localRaw = localStorage.getItem(`node-draft-${nodeId}`);
       const localData = localRaw ? JSON.parse(localRaw) : null;
       const remoteData = {
@@ -45,9 +45,9 @@ export default function NodeDiff() {
       setLocal(localData);
       setRemote(remoteData);
     })();
-  }, [nodeId, workspaceId]);
+  }, [nodeId, accountId]);
 
-  if (!Number.isInteger(nodeId) || !workspaceId) {
+  if (!Number.isInteger(nodeId) || !accountId) {
     return <div className="p-4">Invalid id</div>;
   }
 

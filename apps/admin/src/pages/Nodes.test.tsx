@@ -12,8 +12,8 @@ vi.mock("../api/nodes", () => ({
   listNodes: vi.fn(),
 }));
 
-vi.mock("../workspace/WorkspaceContext", () => ({
-  useWorkspace: () => ({ workspaceId: "ws1" }),
+vi.mock("../account/AccountContext", () => ({
+  useAccount: () => ({ accountId: "ws1" }),
 }));
 
 vi.mock("../components/ToastProvider", () => ({

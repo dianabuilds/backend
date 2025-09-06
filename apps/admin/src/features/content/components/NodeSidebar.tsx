@@ -4,14 +4,14 @@ import type { NodeEditorData } from "../model/node";
 
 interface NodeSidebarProps {
   node: NodeEditorData;
-  workspaceId: string;
+  accountId: string;
   onChange: (patch: Partial<NodeEditorData>) => void;
   onPublishChange?: () => void;
 }
 
 export default function NodeSidebar({
   node,
-  workspaceId,
+  accountId,
   onChange,
   onPublishChange,
 }: NodeSidebarProps) {
@@ -19,7 +19,7 @@ export default function NodeSidebar({
     <div className="space-y-6">
       {node.id ? (
         <PublishControls
-          workspaceId={workspaceId}
+          accountId={accountId}
           nodeId={node.id}
           onChanged={onPublishChange}
         />

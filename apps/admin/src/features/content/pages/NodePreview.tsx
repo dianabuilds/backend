@@ -3,22 +3,22 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { getNode } from '../../../api/nodes';
-import { useWorkspace } from '../../../workspace/WorkspaceContext';
+import { useAccount } from '../../../account/AccountContext';
 import type { Doc } from '../components/AdminNodePreview';
 import AdminNodePreview from '../components/AdminNodePreview';
 
 export default function NodePreview() {
   const { type = 'article', id = '' } = useParams<{ type?: string; id?: string }>();
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
   const [doc, setDoc] = useState<Doc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!workspaceId || !id) return;
+    if (!accountId || !id) return;
     (async () => {
       try {
-        const n = await getNode(workspaceId, id);
+        const n = await getNode(accountId, id);
         const blocks = Array.isArray((n.content as any)?.blocks) ? (n.content as any).blocks : [];
         setDoc({
           title: n.title || '',
@@ -33,9 +33,9 @@ export default function NodePreview() {
         setLoading(false);
       }
     })();
-  }, [workspaceId, type, id]);
+  }, [accountId, type, id]);
 
-  if (!workspaceId) return <div>Workspace not selected</div>;
+  if (!accountId) return <div>Account not selected</div>;
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
   if (!doc) return <div>No data</div>;

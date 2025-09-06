@@ -11,7 +11,7 @@ afterEach(() => {
 describe('patchNode', () => {
   it('sends payload without legacy aliases', async () => {
     const spy = vi
-      .spyOn(AdminService, 'updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch')
+      .spyOn(AdminService, 'updateNodeByIdAdminAccountsAccountIdNodesNodeIdPatch')
       .mockResolvedValue({} as never);
     await patchNode('ws1', 1, {
       coverUrl: 'x',
@@ -29,7 +29,7 @@ describe('patchNode', () => {
 });
 
 describe('listNodes', () => {
-  it('requests admin workspace route only', async () => {
+  it('requests admin account route only', async () => {
     const spy = vi.spyOn(wsApi, 'get').mockResolvedValue({
       status: 200,
       data: [
@@ -43,8 +43,8 @@ describe('listNodes', () => {
     const res = await listNodes('ws1');
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(
-      '/admin/workspaces/ws1/nodes',
-      expect.objectContaining({ workspace: false, raw: true, acceptNotModified: true }),
+      '/admin/accounts/ws1/nodes',
+      expect.objectContaining({ account: false, raw: true, acceptNotModified: true }),
     );
     expect(res).toEqual([
       {

@@ -2,20 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 
 import { api } from "../api/client";
-import type { Workspace } from "../api/types";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import type { Account } from "../api/types";
+import { useAccount } from "../account/AccountContext";
 
 export default function HotfixBanner() {
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
   const location = useLocation();
   const isEditor = location.pathname.includes("editor");
-  const { data } = useQuery<Workspace>({
-    queryKey: ["workspace-info", workspaceId],
+  const { data } = useQuery<Account>({
+    queryKey: ["account-info", accountId],
     queryFn: async () => {
-      const res = await api.get<Workspace>(`/admin/workspaces/${workspaceId}`);
+      const res = await api.get<Account>(`/admin/accounts/${accountId}`);
       return res.data;
     },
-    enabled: !!workspaceId && isEditor,
+    enabled: !!accountId && isEditor,
   });
 
   if (data?.type === "global" && isEditor) {

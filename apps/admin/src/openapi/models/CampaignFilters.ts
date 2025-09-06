@@ -9,3 +9,4 @@ export type CampaignFilters = {
     created_from?: (string | null);
     created_to?: (string | null);
 };
+

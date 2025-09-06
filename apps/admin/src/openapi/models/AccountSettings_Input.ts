@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { NotificationRules } from './NotificationRules';
-export type WorkspaceSettings_Output = {
+export type AccountSettings_Input = {
     ai_presets?: Record<string, any>;
     notifications?: NotificationRules;
     limits?: Record<string, number>;

@@ -5,15 +5,15 @@ import KpiCard from "../components/KpiCard";
 import GraphCanvas from "../components/GraphCanvas";
 import type { GraphEdge, GraphNode } from "../components/GraphCanvas.helpers";
 import { getReliabilityMetrics, type ReliabilityMetrics } from "../api/metrics";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import { useAccount } from "../account/AccountContext";
 
 export default function ReliabilityDashboard() {
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["reliability-metrics", workspaceId],
-    queryFn: () => getReliabilityMetrics(workspaceId),
-    enabled: !!workspaceId,
+    queryKey: ["reliability-metrics", accountId],
+    queryFn: () => getReliabilityMetrics(accountId),
+    enabled: !!accountId,
     refetchInterval: 15000,
   });
 
@@ -53,7 +53,7 @@ export default function ReliabilityDashboard() {
       <h1 className="text-2xl font-bold">Reliability</h1>
       <div className="flex flex-wrap items-end gap-2">
         <span className="text-sm text-gray-600">
-          Workspace: {workspaceId || "(none)"}
+          Account: {accountId || "(none)"}
         </span>
       </div>
       {isLoading && <div className="text-sm text-gray-500">Loading…</div>}

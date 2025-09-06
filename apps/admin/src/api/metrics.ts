@@ -74,7 +74,7 @@ export async function getTransitionStats(): Promise<TransitionStats> {
 }
 
 export interface EventCounters {
-  [workspace: string]: Record<string, number>;
+  [account: string]: Record<string, number>;
 }
 
 export async function getEventCounters(): Promise<EventCounters> {
@@ -94,10 +94,10 @@ export interface ReliabilityMetrics {
 }
 
 export async function getReliabilityMetrics(
-  workspace?: string,
+  account?: string,
 ): Promise<ReliabilityMetrics> {
   const params = new URLSearchParams();
-  if (workspace) params.append("workspace", workspace);
+  if (account) params.append("account", account);
   const qs = params.toString();
   const res = await api.get<ReliabilityMetrics>(
     `/admin/metrics/reliability${qs ? `?${qs}` : ""}`,

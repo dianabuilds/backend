@@ -12,18 +12,18 @@ import { request as __request } from '../core/request';
 export class AdminWorldsService {
     /**
      * List world templates
-     * @param workspaceId
+     * @param accountId
      * @returns WorldTemplateOut Successful Response
      * @throws ApiError
      */
     public static listWorldsAdminWorldsGet(
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<Array<WorldTemplateOut>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/worlds',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -34,20 +34,20 @@ export class AdminWorldsService {
     }
     /**
      * Create world template
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns WorldTemplateOut Successful Response
      * @throws ApiError
      */
     public static createWorldAdminWorldsPost(
-        workspaceId: string,
+        accountId: string,
         requestBody: WorldTemplateIn,
     ): CancelablePromise<WorldTemplateOut> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/worlds',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -61,14 +61,14 @@ export class AdminWorldsService {
     /**
      * Update world template
      * @param worldId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns WorldTemplateOut Successful Response
      * @throws ApiError
      */
     public static updateWorldAdminWorldsWorldIdPatch(
         worldId: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: WorldTemplateIn,
     ): CancelablePromise<WorldTemplateOut> {
         return __request(OpenAPI, {
@@ -78,7 +78,7 @@ export class AdminWorldsService {
                 'world_id': worldId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -92,13 +92,13 @@ export class AdminWorldsService {
     /**
      * Delete world template
      * @param worldId
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static deleteWorldAdminWorldsWorldIdDelete(
         worldId: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -107,7 +107,7 @@ export class AdminWorldsService {
                 'world_id': worldId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -119,13 +119,13 @@ export class AdminWorldsService {
     /**
      * List characters
      * @param worldId
-     * @param workspaceId
+     * @param accountId
      * @returns CharacterOut Successful Response
      * @throws ApiError
      */
     public static listCharactersAdminWorldsWorldIdCharactersGet(
         worldId: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<Array<CharacterOut>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -134,7 +134,7 @@ export class AdminWorldsService {
                 'world_id': worldId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -146,14 +146,14 @@ export class AdminWorldsService {
     /**
      * Create character
      * @param worldId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns CharacterOut Successful Response
      * @throws ApiError
      */
     public static createCharacterAdminWorldsWorldIdCharactersPost(
         worldId: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: CharacterIn,
     ): CancelablePromise<CharacterOut> {
         return __request(OpenAPI, {
@@ -163,7 +163,7 @@ export class AdminWorldsService {
                 'world_id': worldId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -177,14 +177,14 @@ export class AdminWorldsService {
     /**
      * Update character
      * @param charId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns CharacterOut Successful Response
      * @throws ApiError
      */
     public static updateCharacterAdminWorldsCharactersCharIdPatch(
         charId: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: CharacterIn,
     ): CancelablePromise<CharacterOut> {
         return __request(OpenAPI, {
@@ -194,7 +194,7 @@ export class AdminWorldsService {
                 'char_id': charId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -208,13 +208,13 @@ export class AdminWorldsService {
     /**
      * Delete character
      * @param charId
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static deleteCharacterAdminWorldsCharactersCharIdDelete(
         charId: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -223,7 +223,7 @@ export class AdminWorldsService {
                 'char_id': charId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,

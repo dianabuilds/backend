@@ -10,11 +10,11 @@ import PublishControls from '../components/publish/PublishControls';
 import ErrorBanner from '../components/ErrorBanner';
 import NodeSidebar from '../components/NodeSidebar';
 import StatusBadge from '../components/StatusBadge';
-import WorkspaceSelector from '../components/WorkspaceSelector';
+import AccountSelector from '../components/AccountSelector';
 import type { OutputData } from '../types/editorjs';
 import { usePatchQueue } from '../utils/usePatchQueue';
 import { useUnsavedChanges } from '../utils/useUnsavedChanges';
-import { useWorkspace } from '../workspace/WorkspaceContext';
+import { useAccount } from '../account/AccountContext';
 import { confirmDialog } from '../shared/ui';
 
 type NodeEditorData = {
@@ -141,18 +141,18 @@ function resolveAssetUrl(u?: string | null): string | null {
 export default function NodeEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
   const [node, setNode] = useState<NodeEditorData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!workspaceId) return;
+    if (!accountId) return;
     const load = async () => {
       if (!id || id === 'new') return;
 
       try {
-        const n = await getNode(workspaceId, id);
+        const n = await getNode(accountId, id);
 
         const normalizedCover = resolveAssetUrl(normalizeCoverUrl(n));
         const normalizedTags = normalizeTags((n as any).tags);
@@ -206,19 +206,19 @@ export default function NodeEditor() {
       }
     };
     void load();
-  }, [id, workspaceId]);
+  }, [id, accountId]);
 
-  if (!workspaceId) {
+  if (!accountId) {
     return (
       <div className="p-4">
         <p className="mb-4">Выберите воркспейс, чтобы создать контент</p>
-        <WorkspaceSelector />
+        <AccountSelector />
       </div>
     );
   }
 
   if (id === 'new') {
-    return <NodeCreate workspaceId={workspaceId} nodeType="article" />;
+    return <NodeCreate accountId={accountId} nodeType="article" />;
   }
 
   if (loading) {
@@ -237,10 +237,10 @@ export default function NodeEditor() {
   }
   if (!node) return null;
 
-  return <NodeEditorInner initialNode={node} workspaceId={workspaceId} />;
+  return <NodeEditorInner initialNode={node} accountId={accountId} />;
 }
 
-function NodeCreate({ workspaceId, nodeType }: { workspaceId: string; nodeType: string }) {
+function NodeCreate({ accountId, nodeType }: { accountId: string; nodeType: string }) {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [creating, setCreating] = useState(false);
@@ -255,9 +255,9 @@ function NodeCreate({ workspaceId, nodeType }: { workspaceId: string; nodeType: 
     setCreating(true);
     try {
       const t = nodeType === 'article' || nodeType === 'quest' ? nodeType : 'article';
-      const n = await createNode(workspaceId);
-      const path = workspaceId
-        ? `/nodes/${t}/${n.id}?workspace_id=${workspaceId}`
+      const n = await createNode(accountId);
+      const path = accountId
+        ? `/nodes/${t}/${n.id}?account_id=${accountId}`
         : `/nodes/${t}/${n.id}`;
       navigate(path, { replace: true });
     } catch (e) {
@@ -268,8 +268,8 @@ function NodeCreate({ workspaceId, nodeType }: { workspaceId: string; nodeType: 
 
   const handleClose = () => {
     navigate(
-      workspaceId
-        ? `/nodes?workspace_id=${workspaceId}&type=${nodeType}`
+      accountId
+        ? `/nodes?account_id=${accountId}&type=${nodeType}`
         : `/nodes?type=${nodeType}`,
     );
   };
@@ -284,13 +284,13 @@ function NodeCreate({ workspaceId, nodeType }: { workspaceId: string; nodeType: 
           <ol className="flex flex-wrap items-center gap-1">
             <li>
               <Link to="/" className="hover:underline">
-                Workspace
+                Account
               </Link>
             </li>
             <li className="flex items-center gap-1">
               <span>/</span>
               <Link
-                to={workspaceId ? `/nodes?workspace_id=${workspaceId}` : '/nodes'}
+                to={accountId ? `/nodes?account_id=${accountId}` : '/nodes'}
                 className="hover:underline"
               >
                 Nodes
@@ -328,10 +328,10 @@ function NodeCreate({ workspaceId, nodeType }: { workspaceId: string; nodeType: 
 
 function NodeEditorInner({
   initialNode,
-  workspaceId,
+  accountId,
 }: {
   initialNode: NodeEditorData;
-  workspaceId: string;
+  accountId: string;
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -356,7 +356,7 @@ function NodeEditorInner({
   const { enqueue, saving, pending } = usePatchQueue(async (patch, signal) => {
     try {
       const updated = await patchNode(
-        workspaceId,
+        accountId,
         nodeRef.current.id,
         { ...patch, updatedAt: nodeRef.current.updatedAt },
         { signal },
@@ -395,7 +395,7 @@ function NodeEditorInner({
 
   const refreshPublishInfo = async () => {
     try {
-      const updated = await getNode(workspaceId, Number(nodeRef.current.id));
+      const updated = await getNode(accountId, Number(nodeRef.current.id));
       setNode((prev) => ({
         ...prev,
         isPublic:
@@ -551,8 +551,8 @@ function NodeEditorInner({
   const handleCreate = () => {
     if (!canEdit) return;
     const t = node.nodeType || 'article';
-    const path = workspaceId
-      ? `/nodes/${t}/new?workspace_id=${workspaceId}`
+    const path = accountId
+      ? `/nodes/${t}/new?account_id=${accountId}`
       : `/nodes/${t}/new`;
     navigate(path);
   };
@@ -563,8 +563,8 @@ function NodeEditorInner({
     }
     const t = node.nodeType || 'article';
     navigate(
-      workspaceId
-        ? `/nodes?workspace_id=${workspaceId}&type=${t}`
+      accountId
+        ? `/nodes?account_id=${accountId}&type=${t}`
         : `/nodes?type=${t}`,
     );
   };
@@ -581,13 +581,13 @@ function NodeEditorInner({
           <ol className="flex flex-wrap items-center gap-1">
             <li>
               <Link to="/" className="hover:underline">
-                Workspace
+                Account
               </Link>
             </li>
             <li className="flex items-center gap-1">
               <span>/</span>
               <Link
-                to={workspaceId ? `/nodes?workspace_id=${workspaceId}` : '/nodes'}
+                to={accountId ? `/nodes?account_id=${accountId}` : '/nodes'}
                 className="hover:underline"
               >
                 Nodes
@@ -687,7 +687,7 @@ function NodeEditorInner({
             onChange={canEdit ? (d) => handleDraftChange({ content: d }) : undefined}
           />
           <PublishControls
-            workspaceId={workspaceId}
+            accountId={accountId}
             nodeId={Number(node.id)}
             onChanged={refreshPublishInfo}
           />
@@ -709,7 +709,7 @@ function NodeEditorInner({
             allowFeedback: node.allowFeedback,
             premiumOnly: node.premiumOnly,
           }}
-          workspaceId={workspaceId}
+          accountId={accountId}
           onSlugChange={(slug, updated) => {
             if (nodeRef.current.slug === slug) return;
             handleDraftChange({ slug });

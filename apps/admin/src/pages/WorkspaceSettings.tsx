@@ -15,12 +15,12 @@ import {
   validateLimits,
   type AIPresets,
   type NotificationRules,
-  type WorkspaceLimits,
+  type AccountLimits,
   type NotificationChannel,
-} from "../api/workspaceSettings";
+} from "../api/accountSettings";
 import { useToast } from "../components/ToastProvider";
 import Tooltip from "../components/Tooltip";
-import type { WorkspaceMemberOut, WorkspaceOut, WorkspaceRole } from "../openapi";
+import type { AccountMemberOut, AccountOut, AccountRole } from "../openapi";
 import PageLayout from "./_shared/PageLayout";
 
 const TABS = [
@@ -31,7 +31,7 @@ const TABS = [
   "Limits",
 ] as const;
 
-export default function WorkspaceSettings() {
+export default function AccountSettings() {
   const { id } = useParams<{ id: string }>();
   const [params] = useSearchParams();
   const initialTab = params.get("tab");
@@ -41,18 +41,18 @@ export default function WorkspaceSettings() {
   const { addToast } = useToast();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["workspace", id],
+    queryKey: ["account", id],
     enabled: !!id,
     queryFn: async () => {
-      const res = await api.get<WorkspaceOut>(`/admin/workspaces/${id}`);
-      return res.data as WorkspaceOut;
+      const res = await api.get<AccountOut>(`/admin/accounts/${id}`);
+      return res.data as AccountOut;
     },
   });
 
   useEffect(() => {
     if (error) {
       addToast({
-        title: "Failed to load workspace",
+        title: "Failed to load account",
         description: String(error),
         variant: "error",
       });
@@ -72,7 +72,7 @@ export default function WorkspaceSettings() {
   const { data: globalLimits } = useQuery({
     queryKey: ["global-premium-limits"],
     queryFn: async () => {
-      const res = await api.get<WorkspaceLimits>("/admin/premium/limits");
+      const res = await api.get<AccountLimits>("/admin/premium/limits");
       return (
         res.data ?? { ai_tokens: 0, notif_per_day: 0, compass_calls: 0 }
       );
@@ -87,7 +87,7 @@ export default function WorkspaceSettings() {
     achievement: [],
     publish: [],
   });
-  const [limits, setLimitsState] = useState<WorkspaceLimits>({
+  const [limits, setLimitsState] = useState<AccountLimits>({
     ai_tokens: 0,
     notif_per_day: 0,
     compass_calls: 0,
@@ -103,7 +103,7 @@ export default function WorkspaceSettings() {
     isLoading: aiPresetsLoading,
     refetch: refetchAIPresets,
   } = useQuery({
-    queryKey: ["workspace-ai-presets", id],
+    queryKey: ["account-ai-presets", id],
     enabled: tab === "AI-presets" && !!id,
     queryFn: async () => getAIPresets(id!),
   });
@@ -113,7 +113,7 @@ export default function WorkspaceSettings() {
     isLoading: notificationsLoading,
     refetch: refetchNotifications,
   } = useQuery({
-    queryKey: ["workspace-notifications", id],
+    queryKey: ["account-notifications", id],
     enabled: tab === "Notifications" && !!id,
     queryFn: async () => getNotificationRules(id!),
   });
@@ -123,7 +123,7 @@ export default function WorkspaceSettings() {
     isLoading: limitsLoading,
     refetch: refetchLimits,
   } = useQuery({
-    queryKey: ["workspace-limits", id],
+    queryKey: ["account-limits", id],
     enabled: tab === "Limits" && !!id,
     queryFn: async () => getLimits(id!),
   });
@@ -161,13 +161,13 @@ export default function WorkspaceSettings() {
 
   const effectiveProvider = aiPresets.provider || globalAi?.provider || "";
   const providerSource = aiPresets.provider
-    ? "workspace"
+    ? "account"
     : globalAi?.provider
     ? "global"
     : "";
   const effectiveModel = aiPresets.model || globalAi?.model || "";
   const modelSource = aiPresets.model
-    ? "workspace"
+    ? "account"
     : globalAi?.model
     ? "global"
     : "";
@@ -177,9 +177,9 @@ export default function WorkspaceSettings() {
     compass_calls: limits.compass_calls || globalLimits?.compass_calls || 0,
   };
   const limitSource = {
-    ai_tokens: limits.ai_tokens ? "workspace" : "global",
-    notif_per_day: limits.notif_per_day ? "workspace" : "global",
-    compass_calls: limits.compass_calls ? "workspace" : "global",
+    ai_tokens: limits.ai_tokens ? "account" : "global",
+    notif_per_day: limits.notif_per_day ? "account" : "global",
+    compass_calls: limits.compass_calls ? "account" : "global",
   };
 
   const savePresets = async (e: FormEvent) => {
@@ -232,24 +232,24 @@ export default function WorkspaceSettings() {
     isLoading: membersLoading,
     refetch: refetchMembers,
   } = useQuery({
-    queryKey: ["workspace-members", id],
+    queryKey: ["account-members", id],
     enabled: tab === "Members" && !!id,
     queryFn: async () => {
-      const res = await api.get<WorkspaceMemberOut[]>(
-        `/admin/workspaces/${id}/members`,
+      const res = await api.get<AccountMemberOut[]>(
+        `/admin/accounts/${id}/members`,
       );
-      return (res.data as WorkspaceMemberOut[]) || [];
+      return (res.data as AccountMemberOut[]) || [];
     },
   });
 
   // Invite member modal
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteUser, setInviteUser] = useState("");
-  const [inviteRole, setInviteRole] = useState<WorkspaceRole>("viewer");
+  const [inviteRole, setInviteRole] = useState<AccountRole>("viewer");
 
   const inviteMember = async () => {
     try {
-      await api.post(`/admin/workspaces/${id}/members`, {
+      await api.post(`/admin/accounts/${id}/members`, {
         user_id: inviteUser,
         role: inviteRole,
       });
@@ -268,16 +268,16 @@ export default function WorkspaceSettings() {
   };
 
   // Change role modal
-  const [editMember, setEditMember] = useState<WorkspaceMemberOut | null>(null);
-  const [editRole, setEditRole] = useState<WorkspaceRole>("viewer");
-  const openEdit = (m: WorkspaceMemberOut) => {
+  const [editMember, setEditMember] = useState<AccountMemberOut | null>(null);
+  const [editRole, setEditRole] = useState<AccountRole>("viewer");
+  const openEdit = (m: AccountMemberOut) => {
     setEditMember(m);
     setEditRole(m.role);
   };
   const applyEdit = async () => {
     if (!editMember) return;
     try {
-      await api.patch(`/admin/workspaces/${id}/members/${editMember.user_id}`, {
+      await api.patch(`/admin/accounts/${id}/members/${editMember.user_id}`, {
         user_id: editMember.user_id,
         role: editRole,
       });
@@ -294,13 +294,13 @@ export default function WorkspaceSettings() {
   };
 
   // Remove modal
-  const [removeMember, setRemoveMember] = useState<WorkspaceMemberOut | null>(
+  const [removeMember, setRemoveMember] = useState<AccountMemberOut | null>(
     null,
   );
   const confirmRemove = async () => {
     if (!removeMember) return;
     try {
-      await api.del(`/admin/workspaces/${id}/members/${removeMember.user_id}`);
+      await api.del(`/admin/accounts/${id}/members/${removeMember.user_id}`);
       addToast({ title: "Member removed", variant: "success" });
       setRemoveMember(null);
       refetchMembers();
@@ -369,7 +369,7 @@ export default function WorkspaceSettings() {
             <select
               className="border rounded px-2 py-1 w-full"
               value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value as WorkspaceRole)}
+              onChange={(e) => setInviteRole(e.target.value as AccountRole)}
             >
               <option value="owner">owner</option>
               <option value="editor">editor</option>
@@ -400,7 +400,7 @@ export default function WorkspaceSettings() {
             <select
               className="border rounded px-2 py-1 w-full"
               value={editRole}
-              onChange={(e) => setEditRole(e.target.value as WorkspaceRole)}
+              onChange={(e) => setEditRole(e.target.value as AccountRole)}
             >
               <option value="owner">owner</option>
               <option value="editor">editor</option>
@@ -726,7 +726,7 @@ export default function WorkspaceSettings() {
         return data ? (
           <div className="text-sm space-y-2">
             <p className="text-gray-500">
-              Basic information about the workspace.
+              Basic information about the account.
             </p>
             <div>
               <b>ID:</b> {data.id}
@@ -770,7 +770,7 @@ export default function WorkspaceSettings() {
         return (
           <div className="space-y-2">
             <p className="text-sm text-gray-500">
-              Set usage limits for this workspace.
+              Set usage limits for this account.
             </p>
             {renderLimits()}
           </div>
@@ -784,14 +784,14 @@ export default function WorkspaceSettings() {
 
   if (!id) {
     return (
-      <PageLayout title="Workspace settings">
-        <div>Select workspace</div>
+      <PageLayout title="Account settings">
+        <div>Select account</div>
       </PageLayout>
     );
   }
 
   return (
-    <PageLayout title="Workspace settings">
+    <PageLayout title="Account settings">
       <div className="border-b flex gap-4 mt-4">
         {TABS.map((t) => (
           <button

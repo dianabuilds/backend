@@ -14,7 +14,7 @@ afterEach(() => {
 
 describe('getPublishInfo', () => {
   it('requests publish info without auth header', async () => {
-    window.localStorage.setItem('workspaceId', 'ws1');
+    window.localStorage.setItem('accountId', 'ws1');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(
@@ -25,7 +25,7 @@ describe('getPublishInfo', () => {
       );
     await getPublishInfo('ws1', 42);
     expect(fetchSpy).toHaveBeenCalledWith(
-      '/admin/workspaces/ws1/nodes/42/publish_info',
+      '/admin/accounts/ws1/nodes/42/publish_info',
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({
@@ -41,13 +41,13 @@ describe('getPublishInfo', () => {
 
 describe('publishNow', () => {
   it('posts access without auth header', async () => {
-    window.localStorage.setItem('workspaceId', 'ws1');
+    window.localStorage.setItem('accountId', 'ws1');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
     await publishNow('ws1', 42, 'early_access');
     expect(fetchSpy).toHaveBeenCalledWith(
-      '/admin/workspaces/ws1/nodes/42/publish',
+      '/admin/accounts/ws1/nodes/42/publish',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
@@ -65,7 +65,7 @@ describe('publishNow', () => {
 
 describe('schedulePublish', () => {
   it('posts schedule without auth header', async () => {
-    window.localStorage.setItem('workspaceId', 'ws1');
+    window.localStorage.setItem('accountId', 'ws1');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(
@@ -76,7 +76,7 @@ describe('schedulePublish', () => {
       );
     await schedulePublish('ws1', 42, '2025-01-01T00:00:00Z', 'premium_only');
     expect(fetchSpy).toHaveBeenCalledWith(
-      '/admin/workspaces/ws1/nodes/42/schedule_publish',
+      '/admin/accounts/ws1/nodes/42/schedule_publish',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
@@ -94,7 +94,7 @@ describe('schedulePublish', () => {
 
 describe('cancelScheduledPublish', () => {
   it('sends delete without auth header', async () => {
-    window.localStorage.setItem('workspaceId', 'ws1');
+    window.localStorage.setItem('accountId', 'ws1');
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(
@@ -105,7 +105,7 @@ describe('cancelScheduledPublish', () => {
       );
     await cancelScheduledPublish('ws1', 42);
     expect(fetchSpy).toHaveBeenCalledWith(
-      '/admin/workspaces/ws1/nodes/42/schedule_publish',
+      '/admin/accounts/ws1/nodes/42/schedule_publish',
       expect.objectContaining({
         method: 'DELETE',
         headers: expect.objectContaining({

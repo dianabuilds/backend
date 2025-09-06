@@ -5,45 +5,45 @@ import type { Mock } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../api/client";
-import type { Workspace } from "../api/types";
+import type { Account } from "../api/types";
 import { safeLocalStorage } from "../utils/safeStorage";
-import { WorkspaceBranchProvider, useWorkspace } from "./WorkspaceContext";
+import { AccountBranchProvider, useAccount } from "./AccountContext";
 
 vi.mock("../api/client", () => ({
   api: { get: vi.fn() },
 }));
 
-function ShowWorkspace() {
-  const { workspaceId } = useWorkspace();
-  return <div data-testid="ws">{workspaceId}</div>;
+function ShowAccount() {
+  const { accountId } = useAccount();
+  return <div data-testid="ws">{accountId}</div>;
 }
 
-describe("WorkspaceBranchProvider", () => {
+describe("AccountBranchProvider", () => {
   beforeEach(() => {
     safeLocalStorage.clear();
     (api.get as Mock).mockReset();
     window.history.replaceState({}, "", "/");
   });
 
-  it("uses server default workspace", async () => {
+  it("uses server default account", async () => {
     (api.get as Mock).mockImplementation(async (url: string) => {
       if (url === "/users/me")
-        return { data: { default_workspace_id: "did" } };
+        return { data: { default_account_id: "did" } };
       throw new Error("unknown url");
     });
     render(
-      <WorkspaceBranchProvider>
-        <ShowWorkspace />
-      </WorkspaceBranchProvider>,
+      <AccountBranchProvider>
+        <ShowAccount />
+      </AccountBranchProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("ws").textContent).toBe("did"));
     expect(api.get).toHaveBeenCalledWith("/users/me");
   });
   it("falls back to global account", async () => {
     (api.get as Mock).mockImplementation(async (url: string) => {
-      if (url === "/users/me") return { data: { default_workspace_id: null } };
+      if (url === "/users/me") return { data: { default_account_id: null } };
       if (url === "/accounts") {
-        const accounts: Workspace[] = [
+        const accounts: Account[] = [
           { id: "gid", slug: "global", type: "global" },
         ];
         return { data: accounts };
@@ -51,9 +51,9 @@ describe("WorkspaceBranchProvider", () => {
       throw new Error("unknown url");
     });
     render(
-      <WorkspaceBranchProvider>
-        <ShowWorkspace />
-      </WorkspaceBranchProvider>,
+      <AccountBranchProvider>
+        <ShowAccount />
+      </AccountBranchProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("ws").textContent).toBe("gid"));
     expect(api.get).toHaveBeenCalledWith("/accounts");

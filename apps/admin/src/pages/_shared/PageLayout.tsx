@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { useWorkspace } from "../../workspace/WorkspaceContext";
+import { useAccount } from "../../account/AccountContext";
 
 export default function PageLayout({
   title,
@@ -13,7 +13,7 @@ export default function PageLayout({
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
   return (
     <div>
       <div className="flex items-start justify-between">
@@ -22,11 +22,11 @@ export default function PageLayout({
           {subtitle && (
             <div className="text-sm text-gray-500 mt-1">{subtitle}</div>
           )}
-          {workspaceId && (
+          {accountId && (
             <div className="text-xs text-gray-500 mt-1">
-              Workspace: {workspaceId} (
+              Account: {accountId} (
               <Link
-                to={`/tools/audit?resource=workspace:${workspaceId}`}
+                to={`/tools/audit?resource=account:${accountId}`}
                 className="underline"
               >
                 audit

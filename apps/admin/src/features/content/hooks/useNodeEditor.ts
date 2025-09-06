@@ -25,16 +25,16 @@ export function normalizeTags(src: unknown): string[] {
 }
 
 export function useNodeEditor(
-  workspaceId: string,
+  accountId: string,
   id: number | "new",
 ) {
   const queryClient = useQueryClient();
   const isNew = id === "new";
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["node", workspaceId || "global", id],
-    queryFn: () => nodesApi.get(workspaceId, id as number),
-    enabled: !!workspaceId && !isNew,
+    queryKey: ["node", accountId || "global", id],
+    queryFn: () => nodesApi.get(accountId, id as number),
+    enabled: !!accountId && !isNew,
   });
 
   const [node, setNode] = useState<NodeEditorData>({
@@ -98,13 +98,13 @@ export function useNodeEditor(
       // ВАЖНО: отправляем tags всегда, если свойство определено, даже если [] — это позволяет очищать теги
       if (payload.tags !== undefined) body.tags = payload.tags;
       if (isNew) {
-        return nodesApi.create(workspaceId, body as any);
+        return nodesApi.create(accountId, body as any);
       }
-      return nodesApi.update(workspaceId, payload.id as number, body as any);
+      return nodesApi.update(accountId, payload.id as number, body as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["node", workspaceId || "global", id],
+        queryKey: ["node", accountId || "global", id],
       });
     },
   });

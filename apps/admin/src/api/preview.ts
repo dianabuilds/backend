@@ -1,7 +1,7 @@
 import { wsApi } from "./wsApi";
 
 export interface SimulatePreviewRequest {
-  workspace_id: string;
+  account_id: string;
   start: string;
   history?: string[];
   preview_mode?: string;
@@ -33,7 +33,7 @@ export async function simulatePreview(
   const res = await wsApi.post<
     SimulatePreviewRequest,
     SimulatePreviewResponse
-  >(`/admin/preview/transitions/simulate`, body, { workspace: false });
+  >(`/admin/preview/transitions/simulate`, body, { account: false });
   return res ?? {};
 }
 
@@ -42,13 +42,13 @@ export interface PreviewLinkResponse {
 }
 
 export async function createPreviewLink(
-  workspace_id: string,
+  account_id: string,
 ): Promise<PreviewLinkResponse> {
-  // Корректный эндпоинт — без workspace в пути. workspace_id передаём в теле.
+  // Корректный эндпоинт — без account в пути. account_id передаём в теле.
   const res = await wsApi.post<
-    { workspace_id: string },
+    { account_id: string },
     PreviewLinkResponse
-  >(`/admin/preview/link`, { workspace_id }, { workspace: false });
+  >(`/admin/preview/link`, { account_id }, { account: false });
   return res;
 }
 
@@ -60,11 +60,11 @@ export async function createPreviewLink(
  * - slug строки (в этом случае используем токен‑превью со start=<slug>)
  *
  * Для id всегда формируем admin‑маршрут:
- *   /admin/nodes/{type}/{id}/preview?workspace_id=...
+ *   /admin/nodes/{type}/{id}/preview?account_id=...
  * Тип по умолчанию: "article".
  */
 export async function openNodePreview(
-  workspace_id: string,
+  account_id: string,
   ref?: string | number | null,
   nodeType: string = 'article',
 ): Promise<void> {
@@ -85,13 +85,13 @@ export async function openNodePreview(
   if (idStr) {
     const adminUrl = `/admin/nodes/${encodeURIComponent(nodeType)}/${encodeURIComponent(
       idStr,
-    )}/preview?workspace_id=${encodeURIComponent(workspace_id)}`;
+    )}/preview?account_id=${encodeURIComponent(account_id)}`;
     window.open(adminUrl, '_blank', 'noopener');
     return;
   }
 
   // 4) Иначе — считаем, что это slug: используем токен‑превью со start
-  const { url } = await createPreviewLink(workspace_id);
+  const { url } = await createPreviewLink(account_id);
   const withStart =
     raw
       ? `${url}${url.includes('?') ? '&' : '?'}start=${encodeURIComponent(raw)}`

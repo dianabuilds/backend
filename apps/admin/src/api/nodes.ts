@@ -66,7 +66,7 @@ export interface NodeSimulatePayload {
 }
 
 export async function listNodes(
-    workspaceId: string,
+    accountId: string,
     params: NodeListParams = {},
 ): Promise<AdminNodeItem[]> {
     // Собираем query для cacheKey (те же параметры уйдут в wsApi через opts.params)
@@ -78,14 +78,14 @@ export async function listNodes(
         }
     }
 
-    // Helper: запрос с ETag-кэшем по явному URL (без workspace-переписываний)
+    // Helper: запрос с ETag-кэшем по явному URL (без account-переписываний)
     const getWithCache = async (url: string) => {
         const cached = listCache.get(url);
         const res = (await wsApi.get(url, {
             etag: cached?.etag ?? undefined,
             acceptNotModified: true,
             raw: true,
-            workspace: false, // критично: ничего не переписываем автоматически
+            account: false, // критично: ничего не переписываем автоматически
         })) as ApiResponse<AdminNodeItem[]>;
         if (res.status === 304 && cached) return cached.data;
         if (res.status === 404) {
@@ -105,18 +105,18 @@ export async function listNodes(
         return data;
     };
 
-    // Единственный актуальный маршрут: /admin/workspaces/{ws}/nodes
-    const url = `/admin/workspaces/${encodeURIComponent(
-        workspaceId,
+    // Единственный актуальный маршрут: /admin/accounts/{ws}/nodes
+    const url = `/admin/accounts/${encodeURIComponent(
+        accountId,
     )}/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
     return await getWithCache(url);
 }
 
-export async function createNode(workspaceId: string): Promise<NodeOut> {
+export async function createNode(accountId: string): Promise<NodeOut> {
     const res = await wsApi.post<undefined, NodeOut>(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes`,
+        `/admin/accounts/${encodeURIComponent(accountId)}/nodes`,
         undefined,
-        { workspace: false },
+        { account: false },
     );
     return res;
 }
@@ -127,11 +127,11 @@ export interface NodeResponse extends NodeOut {
   contentId?: number;
 }
 
-export async function getNode(workspaceId: string, id: number): Promise<NodeResponse> {
+export async function getNode(accountId: string, id: number): Promise<NodeResponse> {
     try {
-        const res = await AdminService.getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
+        const res = await AdminService.getNodeByIdAdminAccountsAccountIdNodesNodeIdGet(
             id,
-            workspaceId,
+            accountId,
         );
         return res as NodeResponse;
     } catch (e: unknown) {
@@ -139,34 +139,34 @@ export async function getNode(workspaceId: string, id: number): Promise<NodeResp
             (e as { status?: number; response?: { status?: number } }).status ??
             (e as { response?: { status?: number } }).response?.status;
         if (status !== 404) throw e;
-        if (!workspaceId || workspaceId.toLowerCase() === 'global') {
+        if (!accountId || accountId.toLowerCase() === 'global') {
             const res = await AdminService.getGlobalNodeByIdAdminNodesNodeIdGet(id);
             return res as NodeResponse;
         }
-        await AdminService.replaceNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPut(
+        await AdminService.replaceNodeByIdAdminAccountsAccountIdNodesNodeIdPut(
             id,
-            workspaceId,
+            accountId,
             {},
         );
-        const res = await AdminService.getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
+        const res = await AdminService.getNodeByIdAdminAccountsAccountIdNodesNodeIdGet(
             id,
-            workspaceId,
+            accountId,
         );
         return res as NodeResponse;
     }
 }
 
 export async function patchNode(
-    workspaceId: string,
+    accountId: string,
     id: number,
     patch: NodePatchParams,
     opts: { signal?: AbortSignal; next?: boolean } = {},
 ): Promise<NodeResponse> {
     const body: Record<string, unknown> = { ...patch };
 
-    const res = await AdminService.updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch(
+    const res = await AdminService.updateNodeByIdAdminAccountsAccountIdNodesNodeIdPatch(
         id,
-        workspaceId,
+        accountId,
         body,
         opts.next === false ? undefined : 1,
     );
@@ -174,52 +174,52 @@ export async function patchNode(
 }
 
 export async function publishNode(
-    workspaceId: string,
+    accountId: string,
     id: number,
     body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
-    const res = await AdminService.publishNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPublishPost(
+    const res = await AdminService.publishNodeByIdAdminAccountsAccountIdNodesNodeIdPublishPost(
         id,
-        workspaceId,
+        accountId,
         body,
     );
     return res as NodeOut;
 }
 
-export async function archiveNode(workspaceId: string, id: number): Promise<void> {
+export async function archiveNode(accountId: string, id: number): Promise<void> {
     await wsApi.post(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/archive`,
+        `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/archive`,
         undefined,
-        { workspace: false },
+        { account: false },
     );
 }
 
-export async function duplicateNode(workspaceId: string, id: number): Promise<NodeOut> {
+export async function duplicateNode(accountId: string, id: number): Promise<NodeOut> {
     const res = await wsApi.post<undefined, NodeOut>(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/duplicate`,
+        `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/duplicate`,
         undefined,
-        { workspace: false },
+        { account: false },
     );
     return res;
 }
 
-export async function previewNode(workspaceId: string, id: number): Promise<void> {
+export async function previewNode(accountId: string, id: number): Promise<void> {
     await wsApi.post(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/preview`,
+        `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/preview`,
         undefined,
-        { workspace: false },
+        { account: false },
     );
 }
 
 export async function simulateNode(
-    workspaceId: string,
+    accountId: string,
     id: number,
     payload: NodeSimulatePayload,
 ): Promise<unknown> {
     const res = await wsApi.post<NodeSimulatePayload, unknown>(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/simulate`,
+        `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/simulate`,
         payload,
-        {workspace: false},
+        {account: false},
     );
     return res;
 }

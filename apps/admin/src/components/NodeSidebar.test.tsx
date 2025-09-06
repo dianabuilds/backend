@@ -48,7 +48,7 @@ describe("NodeSidebar", () => {
 
   it("renders actions menu and calls publish", async () => {
     const { publishNode } = await import("../api/nodes");
-    render(<NodeSidebar node={node} workspaceId="ws" />);
+    render(<NodeSidebar node={node} accountId="ws" />);
     await screen.findByText("Visibility");
     const btn = screen.getByRole("button", { name: /Publish/i });
     fireEvent.click(btn);

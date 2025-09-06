@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import { useAccount } from "../account/AccountContext";
 
 import { api } from "../api/client";
 import ErrorBanner from "../components/ErrorBanner";
@@ -16,8 +16,8 @@ interface BlockItem {
 }
 
 export default function Limits() {
-  const { workspaceId } = useWorkspace();
-  const [tab, setTab] = useState<"Workspace" | "User">("Workspace");
+  const { accountId } = useAccount();
+  const [tab, setTab] = useState<"Account" | "User">("Account");
   const [userId, setUserId] = useState("");
   const [limits, setLimits] = useState<LimitMap>({});
   const [blocks, setBlocks] = useState<BlockItem[]>([]);
@@ -50,11 +50,11 @@ export default function Limits() {
 
   useEffect(() => {
     loadLimits();
-  }, [tab, workspaceId]);
+  }, [tab, accountId]);
 
   useEffect(() => {
     loadBlocks();
-  }, [workspaceId]);
+  }, [accountId]);
 
   return (
     <div className="p-4 space-y-4">
@@ -72,10 +72,10 @@ export default function Limits() {
       <div>
         <div className="border-b flex gap-4">
           <button
-            className={`py-2 text-sm ${tab === "Workspace" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-600"}`}
-            onClick={() => setTab("Workspace")}
+            className={`py-2 text-sm ${tab === "Account" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-600"}`}
+            onClick={() => setTab("Account")}
           >
-            Workspace
+            Account
           </button>
           <button
             className={`py-2 text-sm ${tab === "User" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-600"}`}
