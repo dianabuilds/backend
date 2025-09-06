@@ -30,6 +30,7 @@ if policy.allow_write:
         FastAPIInstrumentor = HTTPXClientInstrumentor = None  # type: ignore[assignment, misc]
         RequestsInstrumentor = SQLAlchemyInstrumentor = None  # type: ignore[assignment, misc]
 
+from app.api.admin_override import register_admin_override
 from app.api.health import router as health_router
 from app.api.ops import audit_router
 from app.api.ops import router as ops_router
@@ -229,6 +230,7 @@ else:
 
     # Domain routers (auth, etc.)
     register_domain_routers(app)
+    register_admin_override(app)
 
     # SPA fallback should be last
     from app.web.admin_spa import router as admin_spa_router

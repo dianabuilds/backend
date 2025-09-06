@@ -12,8 +12,18 @@ from sqlalchemy.orm import sessionmaker
 # Ensure "app" package resolves correctly
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
+user_module = sys.modules.get("apps.backend.app.domains.users.infrastructure.models.user")
+if user_module is None:
+    user_module = importlib.import_module(
+        "apps.backend.app.domains.users.infrastructure.models.user"
+    )
+sys.modules.setdefault("app.domains.users.infrastructure.models.user", user_module)
 domains_module = importlib.import_module("apps.backend.app.domains")
 sys.modules.setdefault("app.domains", domains_module)
+
+from app.providers.db.base import Base  # noqa: E402
+
+Base.metadata.clear()
 
 from app.domains.admin.application.feature_flag_service import (  # noqa: E402
     FeatureFlagKey,
@@ -25,6 +35,7 @@ from app.domains.admin.application.feature_flag_service import (  # noqa: E402
 from app.domains.admin.infrastructure.models.feature_flag import (  # noqa: E402
     FeatureFlag,
 )
+from app.domains.users.infrastructure.models.user import User  # noqa: E402, F401
 
 
 @pytest_asyncio.fixture()
@@ -78,6 +89,7 @@ NEW_FLAGS = [
     FeatureFlagKey.NODE_NAVIGATION_V2,
     FeatureFlagKey.WEIGHTED_MANUAL_TRANSITIONS,
     FeatureFlagKey.FALLBACK_POLICY,
+    FeatureFlagKey.ADMIN_OVERRIDE,
 ]
 
 
