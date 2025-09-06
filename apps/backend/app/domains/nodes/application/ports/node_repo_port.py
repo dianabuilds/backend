@@ -8,18 +8,14 @@ from app.schemas.node import NodeCreate, NodeUpdate
 
 
 class INodeRepository(Protocol):
-    async def get_by_slug(
-        self, slug: str, account_id: int | None = None
-    ) -> Node | None:  # pragma: no cover
+    async def get_by_slug(self, slug: str, account_id: int) -> Node | None:  # pragma: no cover
         ...
 
-    async def get_by_id(
-        self, node_id: int, account_id: int | None
-    ) -> Node | None:  # pragma: no cover
+    async def get_by_id(self, node_id: int, account_id: int) -> Node | None:  # pragma: no cover
         ...
 
     async def create(
-        self, payload: NodeCreate, author_id: UUID, account_id: int | None
+        self, payload: NodeCreate, author_id: UUID, account_id: int
     ) -> Node:  # pragma: no cover
         ...
 
@@ -38,13 +34,13 @@ class INodeRepository(Protocol):
     async def list_by_author(
         self,
         author_id: UUID,
-        account_id: int | None,
+        account_id: int,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Node]:  # pragma: no cover
         ...
 
     async def bulk_set_visibility(
-        self, node_ids: list[int], is_visible: bool, account_id: int | None
+        self, node_ids: list[int], is_visible: bool, account_id: int
     ) -> int:  # pragma: no cover
         ...

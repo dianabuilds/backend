@@ -22,12 +22,13 @@ admin_required = require_admin_role()
 @router.get("/{node_id}", response_model=NodeOut, summary="Get global node by ID")
 async def get_global_node_by_id(
     node_id: Annotated[int, Path(...)],
+    account_id: int,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> NodeOut:
     result = await db.execute(
         select(Node)
-        .where(Node.id == node_id, Node.account_id.is_(None))
+        .where(Node.id == node_id, Node.account_id == account_id)
         .options(selectinload(Node.tags))
     )
     node = result.scalar_one_or_none()
@@ -39,12 +40,13 @@ async def get_global_node_by_id(
 @router.put("/{node_id}", response_model=NodeOut, summary="Update global node by ID")
 async def update_global_node_by_id(
     node_id: Annotated[int, Path(...)],
+    account_id: int,
     payload: NodeUpdate,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008,
 ) -> NodeOut:
     repo = NodeRepository(db)
-    node = await repo.get_by_id(node_id, None)
+    node = await repo.get_by_id(node_id, account_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     node = await repo.update(node, payload, current_user.id)
