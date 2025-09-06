@@ -3,19 +3,8 @@ from __future__ import annotations
 import asyncio
 import importlib
 import sys
-import types
 import uuid
 from dataclasses import dataclass
-
-fastapi_stub = types.ModuleType("fastapi")
-
-
-class _Req:  # noqa: D401 - minimal stub
-    """Stub FastAPI Request"""
-
-
-fastapi_stub.Request = _Req
-sys.modules.setdefault("fastapi", fastapi_stub)
 
 # Ensure apps package is importable
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
@@ -42,14 +31,14 @@ class DummyService:
         limit,
         preview: PreviewContext | None = None,
         *,
-        space_id=None,
+        account_id=None,
     ):
         other_ws = uuid.uuid4()
         candidates = [
             DummyNode("a", workspace_id=node.workspace_id),
             DummyNode("b", workspace_id=other_ws),
         ]
-        return [n for n in candidates if n.workspace_id == space_id]
+        return [n for n in candidates if n.workspace_id == account_id]
 
 
 def test_compass_provider_filters_workspace() -> None:
