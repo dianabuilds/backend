@@ -101,7 +101,7 @@ class _Handlers:
                     WebsocketPusher(ws_manager),
                 )
                 await svc.create_notification(
-                    workspace_id=event.workspace_id,
+                    account_id=event.workspace_id,
                     user_id=event.user_id,
                     title=event.title,
                     message=event.message,
@@ -118,7 +118,7 @@ class _Handlers:
                     WebsocketPusher(ws_manager),
                 )
                 await svc.create_notification(
-                    workspace_id=event.workspace_id,
+                    account_id=event.workspace_id,
                     user_id=event.user_id,
                     title=event.title,
                     message=event.message,

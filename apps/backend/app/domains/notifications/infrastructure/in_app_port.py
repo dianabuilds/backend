@@ -30,15 +30,15 @@ class InAppNotificationPort(INotificationPort):
         trigger: str,
         user_id: UUID,
         *,
-        workspace_id: UUID | None = None,
+        account_id: UUID | None = None,
         title: str,
         message: str,
         preview: PreviewContext | None = None,
     ) -> None:
-        if workspace_id is None:
+        if account_id is None:
             return
         await self._svc.create_notification(
-            workspace_id=workspace_id,
+            account_id=account_id,
             user_id=user_id,
             title=title,
             message=message,

@@ -18,7 +18,7 @@ class QuotaService:
         self,
         *,
         user_id: str,
-        workspace_id: str,
+        account_id: str,
         key: str,
         limit: int,
         amount: int = 1,
@@ -51,7 +51,7 @@ class QuotaService:
         if dry_run:
             current = await self.dao.get(
                 user_id=user_id,
-                workspace_id=workspace_id,
+                account_id=account_id,
                 key=key,
                 period=period,
             )
@@ -59,7 +59,7 @@ class QuotaService:
         else:
             new_value = await self.dao.incr(
                 user_id=user_id,
-                workspace_id=workspace_id,
+                account_id=account_id,
                 key=key,
                 period=period,
                 amount=amount,

@@ -21,7 +21,7 @@ class NotifyService:
     async def create_notification(
         self,
         *,
-        workspace_id: UUID | None = None,
+        account_id: UUID | None = None,
         user_id: UUID,
         title: str,
         message: str,
@@ -31,7 +31,7 @@ class NotifyService:
     ) -> dict[str, Any]:
         is_shadow = bool(preview and preview.mode == "shadow")
         dto = await self._repo.create_and_commit(
-            workspace_id=workspace_id,
+            account_id=account_id,
             user_id=user_id,
             title=title,
             message=message,
