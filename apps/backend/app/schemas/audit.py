@@ -15,6 +15,8 @@ class AuditLogOut(BaseModel):
     workspace_id: UUID | None = None
     before: dict[str, Any] | None = None
     after: dict[str, Any] | None = None
+    override: bool = False
+    reason: str | None = None
     ip: str | None = None
     user_agent: str | None = None
     created_at: datetime

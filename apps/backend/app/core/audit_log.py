@@ -32,6 +32,8 @@ class AuditLogHandler(logging.Handler):
                 "workspace_id": getattr(record, "workspace_id", None),
                 "before": getattr(record, "before", None),
                 "after": getattr(record, "after", None),
+                "override": getattr(record, "override", False),
+                "reason": getattr(record, "reason", None),
                 "ip": ip_var.get(),
                 "user_agent": ua_var.get(),
             }
@@ -64,6 +66,8 @@ class AuditLogHandler(logging.Handler):
                     "resource_id",
                     "before",
                     "after",
+                    "override",
+                    "reason",
                 }:
                     continue
                 extras[key] = value
@@ -92,6 +96,8 @@ async def log_admin_action(
     before=None,
     after=None,
     workspace_id=None,
+    override: bool = False,
+    reason: str | None = None,
     **extra,
 ) -> None:
     log = AuditLog(
@@ -102,6 +108,8 @@ async def log_admin_action(
         workspace_id=workspace_id,
         before=before,
         after=after,
+        override=override,
+        reason=reason,
         ip=ip_var.get(),
         user_agent=ua_var.get(),
         extra=extra or None,
