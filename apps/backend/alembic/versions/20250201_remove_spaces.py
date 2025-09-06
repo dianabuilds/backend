@@ -8,14 +8,13 @@ down_revision = "20241215_drop_workspace_constraints"
 branch_labels = None
 depends_on = None
 
+
 def upgrade() -> None:
-    # Drop space_id columns and recreate account_id indexes
+    # Drop legacy space-based indexes and column
     with op.batch_alter_table("nodes") as batch:
         batch.drop_index("ix_nodes_space_id_slug")
         batch.drop_index("ix_nodes_space_id_created_at")
         batch.drop_column("space_id")
-        batch.create_index("ix_nodes_account_id_slug", ["account_id", "slug"], unique=True)
-        batch.create_index("ix_nodes_account_id_created_at", ["account_id", "created_at"])
 
     op.add_column("node_transitions", sa.Column("account_id", sa.BigInteger(), nullable=True))
     op.execute(
@@ -76,12 +75,8 @@ def upgrade() -> None:
         "navigation_cache",
         ["account_id", "generated_at"],
     )
-    op.drop_index(
-        "ix_navigation_cache_space_id_generated_at", table_name="navigation_cache"
-    )
-    op.drop_constraint(
-        "uq_nav_cache_space_slug", "navigation_cache", type_="unique"
-    )
+    op.drop_index("ix_navigation_cache_space_id_generated_at", table_name="navigation_cache")
+    op.drop_constraint("uq_nav_cache_space_slug", "navigation_cache", type_="unique")
     op.drop_constraint(
         "fk_navigation_cache_space_id_spaces", "navigation_cache", type_="foreignkey"
     )
@@ -89,6 +84,7 @@ def upgrade() -> None:
 
     op.drop_table("space_members")
     op.drop_table("spaces")
+
 
 def downgrade() -> None:
     raise NotImplementedError("downgrade not supported")
