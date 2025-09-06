@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict, deque
 from dataclasses import asdict
 from datetime import datetime
 from types import SimpleNamespace
@@ -15,6 +16,8 @@ from app.domains.admin.application.feature_flag_service import (
     get_effective_flags,
 )
 from app.domains.navigation.application.access_policy import has_access_async
+from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.navigation.infrastructure.history_store import RedisHistoryStore
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.navigation_cache_models import (
     NavigationCache,
@@ -28,6 +31,7 @@ from .policies import (
     ManualPolicy,
     RandomPolicy,
 )
+from .ports.history_port import IUserHistoryStore
 from .providers import (
     CompassProvider,
     EchoProvider,
@@ -40,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 class NavigationService:
-    def __init__(self) -> None:
+    def __init__(self, history_store: IUserHistoryStore | None = None) -> None:
         policies = [
             ManualPolicy(ManualTransitionsProvider()),
             EchoPolicy(EchoProvider()),
@@ -56,6 +60,7 @@ class NavigationService:
             repeat_decay=0.8,
             max_visits=5,
         )
+        self._history_store = history_store or RedisHistoryStore(CoreCacheAdapter(), 50)
 
     async def build_route(
         self,
@@ -72,7 +77,18 @@ class NavigationService:
             max_filters=1000,
             fallback_chain=[],
         )
-        return await self._router.route(
+        if user and self._history_store:
+            tags, slugs = await self._history_store.load(user.id)
+            self._router.history = deque(slugs, maxlen=self._router.history.maxlen)
+            rf = self._router.repeat_filter
+            rf.tag_history = deque(tags, maxlen=rf.window)
+            rf.tag_counts = defaultdict(int)
+            for t in tags:
+                rf.tag_counts[t] += 1
+            rf.visit_counts = defaultdict(int)
+            for s in slugs:
+                rf.visit_counts[s] += 1
+        result = await self._router.route(
             db,
             node,
             user,
@@ -80,6 +96,13 @@ class NavigationService:
             mode=mode,
             preview=preview,
         )
+        if user and self._history_store:
+            await self._history_store.save(
+                user.id,
+                list(self._router.repeat_filter.tag_history),
+                list(self._router.history),
+            )
+        return result
 
     async def get_next(
         self,

@@ -15,6 +15,8 @@ class TransitionMetrics:
         self.entropy_count: dict[tuple[str, str], int] = defaultdict(int)
         self.repeat_sum: dict[tuple[str, str], float] = defaultdict(float)
         self.repeat_count: dict[tuple[str, str], int] = defaultdict(int)
+        self.novelty_sum: dict[tuple[str, str], float] = defaultdict(float)
+        self.novelty_count: dict[tuple[str, str], int] = defaultdict(int)
 
     def _key(self, ws: str | None, mode: str | None) -> tuple[str, str]:
         return (ws or "unknown", mode or "default")
@@ -30,6 +32,12 @@ class TransitionMetrics:
         with self._lock:
             self.repeat_sum[key] += float(rate)
             self.repeat_count[key] += 1
+
+    def observe_novelty_rate(self, workspace_id: str | None, mode: str | None, rate: float) -> None:
+        key = self._key(workspace_id, mode)
+        with self._lock:
+            self.novelty_sum[key] += float(rate)
+            self.novelty_count[key] += 1
 
     def observe_entropy(self, workspace_id: str | None, mode: str | None, entropy: float) -> None:
         key = self._key(workspace_id, mode)
@@ -72,6 +80,10 @@ class TransitionMetrics:
                 rep_cnt = self.repeat_count.get(key, 0)
                 rep_avg = rep_sum / rep_cnt if rep_cnt else 0.0
                 lines.append(f'repeat_rate{{workspace_id="{ws}",mode="{mode}"}} {rep_avg}')
+                nov_sum = self.novelty_sum.get(key, 0.0)
+                nov_cnt = self.novelty_count.get(key, 0)
+                nov_avg = nov_sum / nov_cnt if nov_cnt else 0.0
+                lines.append(f'novelty_rate{{workspace_id="{ws}",mode="{mode}"}} {nov_avg}')
         return "\n".join(lines) + "\n"
 
 
