@@ -4,9 +4,6 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "20241210_slug_scoped_by_workspace"
-# Ensure a linear migration chain; previously this revision incorrectly
-# referenced `20241201_user_profiles` as an additional ancestor which
-# caused Alembic to report overlapping revisions during upgrades.
 down_revision = "20241206_transition_fk_ondelete"
 branch_labels = None
 depends_on = None
