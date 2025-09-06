@@ -165,6 +165,7 @@ async def read_node(
     slug: str,
     response: Response,
     _feature_flags: Annotated[str | None, Header(alias="X-Feature-Flags")] = None,
+    preview_version: Annotated[int | None, Header(alias="X-Preview-Version")] = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
@@ -183,6 +184,13 @@ async def read_node(
         await require_premium(current_user)
     if node.nft_required and not await user_has_nft(current_user, node.nft_required):
         raise HTTPException(status_code=403, detail="NFT required")
+    if preview_version:
+        version = await repo.get_version(node.id, int(preview_version))
+        if version:
+            out = NodeOut.model_validate(node)
+            out.title = version.title
+            out.meta = version.meta or {}
+            return out
     node.views = int(node.views or 0) + 1
     await db.flush()
     event_metrics.inc("node_visit", str(space_id))
