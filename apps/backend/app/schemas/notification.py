@@ -34,7 +34,6 @@ class NotificationOut(BaseModel):
 
 
 class NotificationCreate(BaseModel):
-    workspace_id: UUID | None = None
     user_id: UUID
     title: str
     message: str
@@ -43,7 +42,6 @@ class NotificationCreate(BaseModel):
 
 
 class NotificationFilter(BaseModel):
-    workspace_id: UUID | None = None
     placement: NotificationPlacement | None = None
 
 
