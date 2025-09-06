@@ -24,6 +24,7 @@ class FeatureFlagKey(StrEnum):
     NOTIFICATIONS_DIGEST = "notifications.digest"
     PREMIUM_GIFTING = "premium.gifting"
     NODE_NAVIGATION_V2 = "nodes.navigation_v2"
+    WEIGHTED_MANUAL_TRANSITIONS = "navigation.weighted_manual_transitions"
 
 
 # Predefined feature flags available in the system with optional descriptions
@@ -38,6 +39,10 @@ KNOWN_FLAGS: dict[FeatureFlagKey, tuple[str, str]] = {
     FeatureFlagKey.NOTIFICATIONS_DIGEST: ("Enable daily notifications digest", "all"),
     FeatureFlagKey.PREMIUM_GIFTING: ("Allow gifting premium subscriptions", "all"),
     FeatureFlagKey.NODE_NAVIGATION_V2: ("Enable experimental node navigation v2", "all"),
+    FeatureFlagKey.WEIGHTED_MANUAL_TRANSITIONS: (
+        "Enable weighted sorting for manual transitions",
+        "all",
+    ),
 }
 
 

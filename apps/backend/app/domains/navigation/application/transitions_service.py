@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,12 +8,18 @@ from sqlalchemy.future import select
 
 from app.core.deps.guards import check_transition
 from app.core.preview import PreviewContext
+from app.domains.admin.application.feature_flag_service import (
+    FeatureFlagKey,
+    get_effective_flags,
+)
 from app.domains.navigation.infrastructure.models.transition_models import (
     NodeTransition,
     NodeTransitionType,
 )
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 class TransitionsService:
@@ -41,4 +48,27 @@ class TransitionsService:
         for t in transitions:
             if await check_transition(t, user, preview):
                 allowed.append(t)
+
+        flags = await get_effective_flags(db, None, user)
+        enabled = FeatureFlagKey.WEIGHTED_MANUAL_TRANSITIONS.value in flags
+        is_shadow = bool(preview and preview.mode == "shadow")
+
+        if enabled:
+            before_ids = [t.id for t in allowed]
+            allowed = sorted(allowed, key=lambda t: (-(t.weight or 0), t.created_at))
+            if is_shadow:
+                logger.info(
+                    "weighted_manual_transitions.sort",
+                    extra={"before": before_ids, "after": [t.id for t in allowed]},
+                )
+            return allowed
+
+        if is_shadow:
+            before_ids = [t.id for t in allowed]
+            shadow_sorted = sorted(allowed, key=lambda t: (-(t.weight or 0), t.created_at))
+            logger.info(
+                "weighted_manual_transitions.shadow",
+                extra={"before": before_ids, "after": [t.id for t in shadow_sorted]},
+            )
+
         return allowed

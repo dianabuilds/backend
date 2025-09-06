@@ -10,3 +10,4 @@ be toggled via the admin interface or API to gradually roll out features.
 | notifications.digest | Enable daily notifications digest |
 | premium.gifting | Allow gifting premium subscriptions |
 | nodes.navigation_v2 | Enable experimental node navigation v2 |
+| navigation.weighted_manual_transitions | Enable weighted sorting for manual transitions |
