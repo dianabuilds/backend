@@ -61,7 +61,7 @@ async def publish_content(
             await notifier.notify(
                 "publish",
                 author_id,
-                workspace_id=workspace_id,
+                account_id=workspace_id,
                 title="Content published",
                 message=slug,
                 preview=preview,

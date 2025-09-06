@@ -44,7 +44,7 @@ async def send_notification(
         WebsocketPusher(ws_manager),
     )
     notif = await svc.create_notification(
-        workspace_id=payload.workspace_id,
+        account_id=payload.workspace_id,
         user_id=payload.user_id,
         title=payload.title,
         message=payload.message,

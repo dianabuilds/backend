@@ -9,7 +9,7 @@ class INotificationPort(Protocol):
         self,
         user_id: UUID,
         *,
-        workspace_id: UUID | None = None,
+        account_id: UUID | None = None,
         title: str,
         message: str,
         type: Any,

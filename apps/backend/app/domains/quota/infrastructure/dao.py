@@ -12,20 +12,20 @@ class QuotaCounterDAO:
         self.cache = cache or shared_cache
 
     @staticmethod
-    def _key(key: str, period: str, user_id: str, workspace_id: str) -> str:
-        return f"q:{key}:{period}:{user_id}:{workspace_id}"
+    def _key(key: str, period: str, user_id: str, account_id: str) -> str:
+        return f"q:{key}:{period}:{user_id}:{account_id}"
 
     async def incr(
         self,
         *,
         user_id: str,
-        workspace_id: str,
+        account_id: str,
         key: str,
         period: str,
         amount: int,
         ttl: int,
     ) -> int:
-        redis_key = self._key(key, period, user_id, workspace_id)
+        redis_key = self._key(key, period, user_id, account_id)
         new_value = await self.cache.incr(redis_key, amount)
         if new_value == amount:
             await self.cache.expire(redis_key, ttl)
@@ -35,10 +35,10 @@ class QuotaCounterDAO:
         self,
         *,
         user_id: str,
-        workspace_id: str,
+        account_id: str,
         key: str,
         period: str,
     ) -> int:
-        redis_key = self._key(key, period, user_id, workspace_id)
+        redis_key = self._key(key, period, user_id, account_id)
         value = await self.cache.get(redis_key)
         return int(value or 0)

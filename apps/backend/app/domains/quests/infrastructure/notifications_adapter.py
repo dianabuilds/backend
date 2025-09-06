@@ -26,13 +26,13 @@ class NotificationsAdapter(INotificationPort):
         self,
         user_id: UUID,
         *,
-        workspace_id: UUID | None = None,
+        account_id: UUID | None = None,
         title: str,
         message: str,
         type: Any,
     ) -> None:
         await self._service.create_notification(
-            workspace_id=workspace_id,
+            account_id=account_id,
             user_id=user_id,
             title=title,
             message=message,

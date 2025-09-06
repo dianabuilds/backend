@@ -8,8 +8,7 @@ class INotificationRepository(Protocol):
     async def create_and_commit(
         self,
         *,
-        space_id: UUID | None = None,
-        workspace_id: UUID | None = None,
+        account_id: UUID | None = None,
         user_id: UUID,
         title: str,
         message: str,

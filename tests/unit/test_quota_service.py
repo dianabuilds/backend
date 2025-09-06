@@ -29,7 +29,7 @@ async def test_quota_service_updates_counters():
 
     res1 = await qs.consume(
         user_id="u1",
-        workspace_id="w1",
+        account_id="w1",
         key="ai_tokens",
         limit=5,
         preview=preview,
@@ -38,7 +38,7 @@ async def test_quota_service_updates_counters():
 
     res2 = await qs.consume(
         user_id="u1",
-        workspace_id="w1",
+        account_id="w1",
         key="ai_tokens",
         limit=5,
         amount=2,
@@ -53,7 +53,7 @@ async def test_quota_service_updates_counters():
     with pytest.raises(HTTPException):
         await qs.consume(
             user_id="u1",
-            workspace_id="w1",
+            account_id="w1",
             key="ai_tokens",
             limit=5,
             amount=3,
@@ -70,14 +70,14 @@ async def test_quota_service_resets_periods():
 
     await qs.consume(
         user_id="u1",
-        workspace_id="w1",
+        account_id="w1",
         key="notif_per_day",
         limit=5,
         preview=day1,
     )
     res_day2 = await qs.consume(
         user_id="u1",
-        workspace_id="w1",
+        account_id="w1",
         key="notif_per_day",
         limit=5,
         preview=day2,
@@ -90,7 +90,7 @@ async def test_quota_service_resets_periods():
 
     await qs.consume(
         user_id="u1",
-        workspace_id="w1",
+        account_id="w1",
         key="compass_calls",
         limit=3,
         scope="month",
@@ -98,7 +98,7 @@ async def test_quota_service_resets_periods():
     )
     res_month2 = await qs.consume(
         user_id="u1",
-        workspace_id="w1",
+        account_id="w1",
         key="compass_calls",
         limit=3,
         scope="month",

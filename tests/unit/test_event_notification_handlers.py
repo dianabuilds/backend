@@ -13,6 +13,9 @@ from sqlalchemy.orm import sessionmaker
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
+import sqlalchemy as sa  # noqa: E402
+
+from app.domains.accounts import limits as account_limits  # noqa: E402
 from app.domains.notifications.infrastructure.models.notification_models import (  # noqa: E402
     Notification,
 )
@@ -23,8 +26,17 @@ from app.domains.system.events import (  # noqa: E402
 )
 from app.domains.system.events.handlers import handlers  # noqa: E402
 from app.domains.users.infrastructure.models.user import User  # noqa: E402
-from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
+from app.providers.db.adapters import UUID  # noqa: E402
+from app.providers.db.base import Base  # noqa: E402
 from app.schemas.notification import NotificationType  # noqa: E402
+
+
+class Workspace(Base):  # pragma: no cover - test helper
+    __tablename__ = "workspaces"
+    id = sa.Column(UUID(), primary_key=True)
+    name = sa.Column(sa.String, nullable=False)
+    slug = sa.Column(sa.String, nullable=False)
+    owner_user_id = sa.Column(UUID(), nullable=False)
 
 
 @pytest.mark.asyncio
@@ -48,6 +60,11 @@ async def test_achievement_event_creates_notification(
             yield session
 
         monkeypatch.setattr(handlers, "db_session", _db_session)
+
+        async def _fake_limit(*args, **kwargs):  # pragma: no cover - test stub
+            return True
+
+        monkeypatch.setattr(account_limits, "consume_account_limit", _fake_limit)
         bus = EventBus()
         bus.subscribe(AchievementUnlocked, handlers.handle_achievement_unlocked)
         await bus.publish(
@@ -84,6 +101,11 @@ async def test_purchase_event_creates_notification(
             yield session
 
         monkeypatch.setattr(handlers, "db_session", _db_session)
+
+        async def _fake_limit(*args, **kwargs):  # pragma: no cover - test stub
+            return True
+
+        monkeypatch.setattr(account_limits, "consume_account_limit", _fake_limit)
         bus = EventBus()
         bus.subscribe(PurchaseCompleted, handlers.handle_purchase_completed)
         await bus.publish(
