@@ -146,13 +146,11 @@ async def read_node(
     workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
 ):
     sid = getattr(request.state, "space_id", None)
-    space_id = int(sid) if sid is not None else None
+    space_id = _ensure_space_id(request, int(sid) if sid is not None else None)
     repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, space_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    if space_id is None:
-        space_id = node.account_id
     request.state.space_id = space_id
     await require_ws_guest(account_id=space_id, user=current_user, db=db)
     NodePolicy.ensure_can_view(node, current_user)

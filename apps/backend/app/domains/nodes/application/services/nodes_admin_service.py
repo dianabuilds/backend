@@ -12,7 +12,7 @@ class NodesAdminService:
         self._repo = repo
 
     async def list_by_author(
-        self, author_id: UUID, workspace_id: UUID, limit: int = 50, offset: int = 0
+        self, author_id: UUID, workspace_id: int, limit: int = 50, offset: int = 0
     ) -> list:
         return await self._repo.list_by_author(author_id, workspace_id, limit, offset)
 
@@ -21,7 +21,7 @@ class NodesAdminService:
         db: AsyncSession,
         node_ids: list[int],
         is_visible: bool,
-        workspace_id: UUID,
+        workspace_id: int,
     ) -> int:
         count = await self._repo.bulk_set_visibility(node_ids, is_visible, workspace_id)
         await db.commit()

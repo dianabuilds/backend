@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,7 +35,7 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 async def record_visit(
     slug: str,
     to_slug: str,
-    workspace_id: UUID,
+    workspace_id: int,
     source: str | None = None,
     channel: str | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
@@ -64,7 +63,7 @@ async def record_visit(
 async def create_transition(
     slug: str,
     payload: NodeTransitionCreate,
-    workspace_id: UUID,
+    workspace_id: int,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _workspace: Annotated[object, Depends(require_workspace)] = ...,

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -30,7 +29,7 @@ class HidePayload(BaseModel):
 
 @router.post("/{slug}/hide")
 async def hide_node(
-    workspace_id: UUID,
+    workspace_id: int,
     slug: str,
     payload: HidePayload,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -48,7 +47,7 @@ async def hide_node(
 
 @router.post("/{slug}/restore")
 async def restore_node(
-    workspace_id: UUID,
+    workspace_id: int,
     slug: str,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict[str, str]:

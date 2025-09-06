@@ -18,7 +18,7 @@ class FeedbackService:
         self._notifier = notifier
 
     async def list_feedback(
-        self, db: AsyncSession, slug: str, current_user, workspace_id: UUID
+        self, db: AsyncSession, slug: str, current_user, workspace_id: int
     ) -> list[Feedback]:
         node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
@@ -37,7 +37,7 @@ class FeedbackService:
         content: dict,
         is_anonymous: bool,
         current_user,
-        workspace_id: UUID,
+        workspace_id: int,
     ) -> Feedback:
         if (
             not isinstance(content, dict)
@@ -96,7 +96,7 @@ class FeedbackService:
         slug: str,
         feedback_id: UUID,
         current_user,
-        workspace_id: UUID,
+        workspace_id: int,
     ) -> dict:
         node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:

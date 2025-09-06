@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,7 +28,7 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 @router.delete("/{transition_id}", summary="Delete transition")
 async def delete_transition(
     transition_id: str,
-    workspace_id: UUID,
+    workspace_id: int,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _workspace: Annotated[object, Depends(require_workspace)] = ...,

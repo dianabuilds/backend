@@ -42,28 +42,28 @@ class NodeRepository(INodeRepository):
 
     # ------------------------------------------------------------------
     # Basic getters
-    async def get_by_slug(self, slug: str, account_id: int | None = None) -> Node | None:
-        query = select(Node).options(selectinload(Node.tags)).where(Node.slug == slug)
-        if account_id is None:
-            query = query.where(Node.account_id.is_(None))
-        else:
-            query = query.where(Node.account_id == account_id)
+    async def get_by_slug(self, slug: str, account_id: int) -> Node | None:
+        query = (
+            select(Node)
+            .options(selectinload(Node.tags))
+            .where(Node.slug == slug, Node.account_id == account_id)
+        )
         res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
-    async def get_by_id(self, node_id: int, account_id: int | None) -> Node | None:
+    async def get_by_id(self, node_id: int, account_id: int) -> Node | None:
         """Fetch node by numeric primary key."""
-        query = select(Node).options(selectinload(Node.tags)).where(Node.id == node_id)
-        if account_id is None:
-            query = query.where(Node.account_id.is_(None))
-        else:
-            query = query.where(Node.account_id == account_id)
+        query = (
+            select(Node)
+            .options(selectinload(Node.tags))
+            .where(Node.id == node_id, Node.account_id == account_id)
+        )
         res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
     # ------------------------------------------------------------------
     # Mutating operations
-    async def create(self, payload: NodeCreate, author_id: UUID, account_id: int | None) -> Node:
+    async def create(self, payload: NodeCreate, author_id: UUID, account_id: int) -> Node:
         candidate = (payload.slug or "").strip().lower()
         if candidate and self._hex_re.fullmatch(candidate):
             res = await self._db.execute(select(Node).where(Node.slug == candidate))
@@ -131,21 +131,22 @@ class NodeRepository(INodeRepository):
     async def list_by_author(
         self,
         author_id: UUID,
-        account_id: int | None,
+        account_id: int,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Node]:
-        query = select(Node).where(Node.author_id == author_id)
-        if account_id is None:
-            query = query.where(Node.account_id.is_(None))
-        else:
-            query = query.where(Node.account_id == account_id)
-        query = query.order_by(Node.created_at.desc()).offset(offset).limit(limit)
+        query = (
+            select(Node)
+            .where(Node.author_id == author_id, Node.account_id == account_id)
+            .order_by(Node.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
         res = await self._db.execute(query)
         return list(res.scalars().all())
 
     async def bulk_set_visibility(
-        self, node_ids: list[int], is_visible: bool, account_id: int | None
+        self, node_ids: list[int], is_visible: bool, account_id: int
     ) -> int:
         if not node_ids:
             return 0
