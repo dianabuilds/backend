@@ -1,0 +1,67 @@
+import "@testing-library/jest-dom";
+
+import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { getOverrideState } from "../shared/hooks/useOverrideStore";
+import { WorkspaceBranchProvider } from "../workspace/WorkspaceContext";
+import ScopeControls from "./ScopeControls";
+
+const queryData = { data: [] as any[] };
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => queryData,
+}));
+
+describe("ScopeControls", () => {
+  beforeEach(() => {
+    queryData.data = [
+      { id: "ws1", name: "One" },
+      { id: "ws2", name: "Two" },
+    ];
+  });
+
+  it("changes scope mode and space", () => {
+    const handle = vi.fn();
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <WorkspaceBranchProvider>
+          <ScopeControls scopeMode="member" onScopeModeChange={handle} roles={[]} onRolesChange={() => {}} />
+        </WorkspaceBranchProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.change(screen.getByTestId("scope-mode-select"), { target: { value: "global" } });
+    expect(handle).toHaveBeenCalledWith("global");
+    fireEvent.change(screen.getByTestId("space-select"), { target: { value: "ws2" } });
+  });
+
+  it("toggles override store", () => {
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <WorkspaceBranchProvider>
+          <ScopeControls scopeMode="member" onScopeModeChange={() => {}} roles={[]} onRolesChange={() => {}} />
+        </WorkspaceBranchProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByTestId("override-toggle"));
+    expect(getOverrideState().enabled).toBe(true);
+    fireEvent.change(screen.getByTestId("override-reason"), { target: { value: "test" } });
+    expect(getOverrideState().reason).toBe("test");
+    fireEvent.click(screen.getByTestId("override-toggle"));
+    expect(getOverrideState().enabled).toBe(false);
+  });
+
+  it("toggles roles", () => {
+    const handle = vi.fn();
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <WorkspaceBranchProvider>
+          <ScopeControls scopeMode="member" onScopeModeChange={() => {}} roles={[]} onRolesChange={handle} />
+        </WorkspaceBranchProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByTestId("role-admin"));
+    expect(handle).toHaveBeenCalledWith(["admin"]);
+  });
+});
+

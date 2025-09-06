@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ADMIN_DEV_TOOLS } from "../utils/env";
+import { getOverrideState } from "../shared/hooks/useOverrideStore";
 import { setWarningBanner } from "../shared/hooks/useWarningBannerStore";
+import { ADMIN_DEV_TOOLS } from "../utils/env";
 import { safeLocalStorage, safeSessionStorage } from "../utils/safeStorage";
 
 let csrfTokenMem: string | null = safeSessionStorage.getItem("csrfToken");
@@ -97,6 +98,14 @@ export async function apiFetch(
 
   if (previewTokenMem) {
     headers["X-Preview-Token"] = previewTokenMem;
+  }
+
+  const override = getOverrideState();
+  if (override.enabled) {
+    headers["X-Admin-Override"] = "on";
+    if (override.reason) {
+      headers["X-Override-Reason"] = override.reason;
+    }
   }
 
   // Формируем конечный URL:
