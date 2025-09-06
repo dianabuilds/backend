@@ -28,7 +28,7 @@ class NodeItem(Base):
         server_default=Visibility.private.value,
     )
     version = sa.Column(sa.Integer, nullable=False, server_default="1")
-    slug = sa.Column(sa.String, unique=True, index=True, nullable=False)
+    slug = sa.Column(sa.String, index=True, nullable=False)
     title = sa.Column(sa.String, nullable=False)
     summary = sa.Column(sa.Text, nullable=True)
     cover_media_id = sa.Column(UUID(), nullable=True)
@@ -44,6 +44,20 @@ class NodeItem(Base):
         back_populates="content_items",
         overlaps="tag",
         lazy="selectin",
+    )
+
+    __table_args__ = (
+        sa.Index(
+            "ix_content_items_workspace_id_slug",
+            "workspace_id",
+            "slug",
+            unique=True,
+        ),
+        sa.Index(
+            "ix_content_items_workspace_id_created_at",
+            "workspace_id",
+            "created_at",
+        ),
     )
 
 

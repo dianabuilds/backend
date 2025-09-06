@@ -67,3 +67,16 @@ async def test_create_twice_same_title_generates_unique_slugs(db: AsyncSession) 
     assert first.slug != second.slug
     assert HEX_RE.fullmatch(first.slug)
     assert HEX_RE.fullmatch(second.slug)
+
+
+@pytest.mark.asyncio
+async def test_same_slug_allowed_across_workspaces(db: AsyncSession) -> None:
+    user_id = uuid.uuid4()
+    ws1 = Workspace(id=uuid.uuid4(), name="W1", slug="w1", owner_user_id=user_id)
+    ws2 = Workspace(id=uuid.uuid4(), name="W2", slug="w2", owner_user_id=user_id)
+    db.add_all([User(id=user_id), ws1, ws2])
+    await db.commit()
+    svc = NodeService(db)
+    first = await svc.create(ws1.id, actor_id=user_id)
+    second = await svc.create(ws2.id, actor_id=user_id)
+    assert first.slug == second.slug

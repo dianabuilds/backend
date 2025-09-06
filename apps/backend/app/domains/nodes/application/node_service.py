@@ -46,6 +46,7 @@ class NodeService:
     async def _unique_slug(
         self,
         base: str,
+        workspace_id: UUID | None,
         *,
         skip_item_id: int | None = None,
         skip_node_id: int | None = None,
@@ -55,14 +56,26 @@ class NodeService:
         while True:
             text = slug_base if idx == 0 else f"{slug_base}-{idx}"
             candidate = hashlib.sha256(text.encode()).hexdigest()[:16]
-            res = await self._db.execute(select(NodeItem).where(NodeItem.slug == candidate))
-            existing_item = res.scalar_one_or_none()
-            if existing_item and existing_item.id != skip_item_id:
+            stmt_item = select(NodeItem).where(NodeItem.slug == candidate)
+            if workspace_id is None:
+                stmt_item = stmt_item.where(NodeItem.workspace_id.is_(None))
+            else:
+                stmt_item = stmt_item.where(NodeItem.workspace_id == workspace_id)
+            if skip_item_id is not None:
+                stmt_item = stmt_item.where(NodeItem.id != skip_item_id)
+            res = await self._db.execute(stmt_item)
+            if res.scalar_one_or_none():
                 idx += 1
                 continue
-            res = await self._db.execute(select(Node).where(Node.slug == candidate))
-            existing_node = res.scalar_one_or_none()
-            if existing_node and existing_node.id != skip_node_id:
+            stmt_node = select(Node).where(Node.slug == candidate)
+            if workspace_id is None:
+                stmt_node = stmt_node.where(Node.account_id.is_(None))
+            else:
+                stmt_node = stmt_node.where(Node.account_id == workspace_id)
+            if skip_node_id is not None:
+                stmt_node = stmt_node.where(Node.id != skip_node_id)
+            res = await self._db.execute(stmt_node)
+            if res.scalar_one_or_none():
                 idx += 1
                 continue
             return candidate
@@ -218,7 +231,7 @@ class NodeService:
         # Поэтому сначала создаём инфраструктурный Node, затем вставляем NodeItem
         # со ссылкой на node_id в одном транзакционном потоке.
         title = "New quest"
-        slug = await self._unique_slug(title)
+        slug = await self._unique_slug(title, workspace_id)
         node = Node(
             workspace_id=workspace_id,
             slug=slug,
@@ -282,26 +295,37 @@ class NodeService:
             if candidate:
                 if HEX_RE.fullmatch(candidate):
                     res = await self._db.execute(
-                        select(NodeItem).where(NodeItem.slug == candidate, NodeItem.id != item.id)
+                        select(NodeItem).where(
+                            NodeItem.slug == candidate,
+                            NodeItem.workspace_id == item.workspace_id,
+                            NodeItem.id != item.id,
+                        )
                     )
                     existing_item = res.scalar_one_or_none()
-                    res = await self._db.execute(select(Node).where(Node.slug == candidate))
+                    res = await self._db.execute(
+                        select(Node).where(
+                            Node.slug == candidate,
+                            Node.account_id == item.workspace_id,
+                        )
+                    )
                     existing_node = res.scalar_one_or_none()
                     if existing_item or (existing_node and existing_node.id != item.node_id):
                         candidate = await self._unique_slug(
                             candidate,
+                            item.workspace_id,
                             skip_item_id=item.id,
                             skip_node_id=item.node_id,
                         )
                 else:
                     candidate = await self._unique_slug(
                         candidate,
+                        item.workspace_id,
                         skip_item_id=item.id,
                         skip_node_id=item.node_id,
                     )
             else:
                 base = data.get("title") or item.title
-                candidate = await self._unique_slug(base)
+                candidate = await self._unique_slug(base, item.workspace_id)
             if candidate != item.slug:
                 item.slug = candidate
                 changed = True

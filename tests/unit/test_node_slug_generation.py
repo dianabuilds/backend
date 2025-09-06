@@ -63,3 +63,17 @@ async def test_duplicate_titles_get_unique_slugs(db: AsyncSession) -> None:
     node2 = await repo.create(NodeCreate(title="Same"), user_id, ws.id)
     assert node1.slug != node2.slug
     assert re.fullmatch(r"[a-f0-9]{16}", node2.slug)
+
+
+@pytest.mark.asyncio
+async def test_same_slug_allowed_across_workspaces(db: AsyncSession) -> None:
+    user_id = uuid.uuid4()
+    ws1 = Workspace(id=uuid.uuid4(), name="W1", slug="w1", owner_user_id=user_id)
+    ws2 = Workspace(id=uuid.uuid4(), name="W2", slug="w2", owner_user_id=user_id)
+    db.add_all([User(id=user_id), ws1, ws2])
+    await db.commit()
+
+    repo = NodeRepository(db)
+    n1 = await repo.create(NodeCreate(title="Same"), user_id, ws1.id)
+    n2 = await repo.create(NodeCreate(title="Same"), user_id, ws2.id)
+    assert n1.slug == n2.slug

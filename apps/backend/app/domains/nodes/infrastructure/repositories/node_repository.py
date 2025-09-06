@@ -29,13 +29,21 @@ class NodeRepository(INodeRepository):
         self._db = db
         self._hex_re = re.compile(r"[a-f0-9]{16}")
 
-    async def _unique_slug(self, base: str, *, skip_id: int | None = None) -> str:
+    async def _unique_slug(
+        self,
+        base: str,
+        account_id: int,
+        *,
+        skip_id: int | None = None,
+    ) -> str:
         slug_base = slugify(base) or "node"
         idx = 0
         while True:
             text = slug_base if idx == 0 else f"{slug_base}-{idx}"
             candidate = hashlib.sha256(text.encode()).hexdigest()[:16]
-            res = await self._db.execute(select(Node).where(Node.slug == candidate))
+            res = await self._db.execute(
+                select(Node).where(Node.slug == candidate, Node.account_id == account_id)
+            )
             existing = res.scalar_one_or_none()
             if not existing or existing.id == skip_id:
                 return candidate
@@ -76,12 +84,14 @@ class NodeRepository(INodeRepository):
     async def create(self, payload: NodeCreate, author_id: UUID, account_id: int) -> Node:
         candidate = (payload.slug or "").strip().lower()
         if candidate and self._hex_re.fullmatch(candidate):
-            res = await self._db.execute(select(Node).where(Node.slug == candidate))
+            res = await self._db.execute(
+                select(Node).where(Node.slug == candidate, Node.account_id == account_id)
+            )
             if res.scalar_one_or_none():
-                candidate = await self._unique_slug(candidate)
+                candidate = await self._unique_slug(candidate, account_id)
         else:
             base = candidate or (payload.title or "node")
-            candidate = await self._unique_slug(base)
+            candidate = await self._unique_slug(base, account_id)
 
         node = Node(
             title=payload.title,
@@ -112,13 +122,25 @@ class NodeRepository(INodeRepository):
             candidate = (slug_candidate or "").strip().lower()
             if candidate and self._hex_re.fullmatch(candidate):
                 res = await self._db.execute(
-                    select(Node).where(Node.slug == candidate, Node.id != node.id)
+                    select(Node).where(
+                        Node.slug == candidate,
+                        Node.account_id == node.account_id,
+                        Node.id != node.id,
+                    )
                 )
                 if res.scalar_one_or_none():
-                    candidate = await self._unique_slug(candidate, skip_id=node.id)
+                    candidate = await self._unique_slug(
+                        candidate,
+                        node.account_id,
+                        skip_id=node.id,
+                    )
             else:
                 base = candidate or data.get("title") or node.title or "node"
-                candidate = await self._unique_slug(base, skip_id=node.id)
+                candidate = await self._unique_slug(
+                    base,
+                    node.account_id,
+                    skip_id=node.id,
+                )
             node.slug = candidate
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = actor_id

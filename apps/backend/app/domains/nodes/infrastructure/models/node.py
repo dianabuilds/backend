@@ -11,6 +11,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
 )
@@ -35,7 +36,7 @@ class Node(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     account_id = Column(BigInteger, ForeignKey("accounts.id"), nullable=False, index=True)
-    slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
+    slug = Column(String, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=True)
     embedding_vector = Column(MutableList.as_mutable(VECTOR(settings.embedding.dim)), nullable=True)
     author_id = Column(UUID(), ForeignKey("users.id"), nullable=False, index=True)
@@ -77,6 +78,24 @@ class Node(Base):
         back_populates="nodes",
         lazy="selectin",
     )
+
+    __table_args__ = (
+        Index("ix_nodes_account_id_slug", "account_id", "slug", unique=True),
+        Index("ix_nodes_account_id_created_at", "account_id", "created_at"),
+    )
+
+    @property
+    def workspace_id(self):
+        return self.account_id
+
+    @workspace_id.setter
+    def workspace_id(self, value):  # type: ignore[no-untyped-def]
+        self.account_id = value
+
+    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if "workspace_id" in kwargs and "account_id" not in kwargs:
+            kwargs["account_id"] = kwargs.pop("workspace_id")
+        super().__init__(*args, **kwargs)
 
     # ------------------------------------------------------------------
     # Compatibility properties for legacy fields removed from the schema.
