@@ -35,19 +35,7 @@ class InAppNotificationPort(INotificationPort):
         message: str,
         preview: PreviewContext | None = None,
     ) -> None:
-        from app.domains.workspaces.infrastructure.models import Workspace
-        from app.schemas.notification_rules import NotificationChannel
-        from app.schemas.workspaces import WorkspaceSettings
-
         if workspace_id is None:
-            return
-
-        ws = await self._db.get(Workspace, workspace_id)
-        if not ws:
-            return
-        settings = WorkspaceSettings.model_validate(ws.settings_json)
-        channels = getattr(settings.notifications, trigger, [])
-        if NotificationChannel.in_app.value not in channels:
             return
         await self._svc.create_notification(
             workspace_id=workspace_id,

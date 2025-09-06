@@ -20,11 +20,12 @@ from app.core.rng import init_rng
 
 if policy.allow_write:
     try:  # pragma: no cover - optional OTEL dependencies
-        from config.opentelemetry import setup_otel
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
         from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
         from opentelemetry.instrumentation.requests import RequestsInstrumentor
         from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+
+        from config.opentelemetry import setup_otel
     except ModuleNotFoundError:  # pragma: no cover
         setup_otel = None  # type: ignore[assignment, misc]
         FastAPIInstrumentor = HTTPXClientInstrumentor = None  # type: ignore[assignment, misc]
@@ -229,7 +230,10 @@ else:
         logging.getLogger(__name__).warning(f"Telemetry routers failed to load completely: {e}")
 
     # Domain routers (auth, etc.)
-    register_domain_routers(app)
+    try:
+        register_domain_routers(app)
+    except Exception as exc:  # pragma: no cover - optional domains
+        logging.getLogger(__name__).warning("Domain router registration failed: %s", exc)
     register_admin_override(app)
 
     # SPA fallback should be last

@@ -17,7 +17,6 @@ from app.domains.moderation.infrastructure.models.moderation_models import (
     UserRestriction,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.domains.workspaces.application.service import WorkspaceService
 from app.providers.db.session import get_db
 from app.security import bearer_scheme
 
@@ -231,4 +230,4 @@ async def current_workspace(
     """
     workspace_id_var.set(str(account_id))
     account_id_var.set(str(account_id))
-    return await WorkspaceService.get_for_user(db, account_id, user)
+    return None
