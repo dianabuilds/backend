@@ -8,7 +8,7 @@ test("scope controls switch modes and send override headers", async ({ page }) =
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ default_workspace_id: "ws1" }),
+      body: JSON.stringify({ default_account_id: "ws1" }),
     }),
   );
 
@@ -20,7 +20,7 @@ test("scope controls switch modes and send override headers", async ({ page }) =
     }),
   );
 
-  await page.route("**/admin/workspaces", (route) =>
+  await page.route("**/admin/accounts", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -28,7 +28,7 @@ test("scope controls switch modes and send override headers", async ({ page }) =
     }),
   );
 
-  await page.route("**/admin/workspaces/ws1/nodes**", (route) => {
+  await page.route("**/admin/accounts/ws1/nodes**", (route) => {
     lastHeaders = route.request().headers();
     lastUrl = route.request().url();
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" });

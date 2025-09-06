@@ -1,31 +1,31 @@
 import pytest
 from httpx import AsyncClient
 
+from app.domains.accounts.api import router as accounts_router
 from app.domains.nodes.content_admin_router import router as nodes_router
-from app.domains.workspaces.api import router as workspaces_router
 from app.main import app
 
-app.include_router(workspaces_router)
+app.include_router(accounts_router)
 app.include_router(nodes_router)
 
 pytestmark = pytest.mark.skip("requires full database schema")
 
 
 @pytest.mark.asyncio
-async def test_workspace_node_simulation_trace(client: AsyncClient, auth_headers: dict[str, str]):
-    # Create workspace
+async def test_account_node_simulation_trace(client: AsyncClient, auth_headers: dict[str, str]):
+    # Create account
     resp = await client.post(
-        "/admin/workspaces",
+        "/admin/accounts",
         json={"name": "Test WS", "slug": "test-ws"},
         headers=auth_headers,
     )
     assert resp.status_code == 201
-    ws = resp.json()
-    ws_id = ws["id"]
+    acc = resp.json()
+    account_id = acc["id"]
 
     # Create node
     resp = await client.post(
-        f"/admin/accounts/{ws_id}/nodes/types/quest",
+        f"/admin/accounts/{account_id}/nodes/types/quest",
         headers=auth_headers,
     )
     assert resp.status_code == 200
@@ -34,7 +34,7 @@ async def test_workspace_node_simulation_trace(client: AsyncClient, auth_headers
 
     # Simulate node
     resp = await client.post(
-        f"/admin/accounts/{ws_id}/nodes/types/quest/{node_id}/simulate",
+        f"/admin/accounts/{account_id}/nodes/types/quest/{node_id}/simulate",
         json={"inputs": {}},
         headers=auth_headers,
     )

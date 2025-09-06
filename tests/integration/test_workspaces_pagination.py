@@ -2,15 +2,15 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
 
-from app.domains.workspaces.api import router as workspaces_router
+from app.domains.accounts.api import router as accounts_router
 from app.main import app
 from app.security import auth_user
 
-app.include_router(workspaces_router)
+app.include_router(accounts_router)
 
 
 @pytest.mark.asyncio
-async def test_list_workspaces_pagination(
+async def test_list_accounts_pagination(
     client: AsyncClient,
     db_session,
     test_user,
@@ -22,13 +22,13 @@ async def test_list_workspaces_pagination(
     await db_session.commit()
     for i in range(3):
         resp = await client.post(
-            "/admin/workspaces",
+            "/admin/accounts",
             json={"name": f"WS{i}", "slug": f"ws-{i}"},
         )
         assert resp.status_code == 201
 
     resp = await client.get(
-        "/admin/workspaces?limit=2",
+        "/admin/accounts?limit=2",
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -38,7 +38,7 @@ async def test_list_workspaces_pagination(
 
     next_cursor = data["next_cursor"]
     resp = await client.get(
-        f"/admin/workspaces?cursor={next_cursor}&limit=2",
+        f"/admin/accounts?cursor={next_cursor}&limit=2",
     )
     assert resp.status_code == 200
     data2 = resp.json()
