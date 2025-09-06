@@ -39,7 +39,7 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
     node_data = node or Node(
         id=item.id,
-        workspace_id=item.workspace_id,
+        account_id=item.workspace_id,
         slug=item.slug,
         title=item.title,
         content={},

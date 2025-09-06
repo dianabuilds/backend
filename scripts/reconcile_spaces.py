@@ -26,7 +26,7 @@ async def _reconcile() -> int:
     engine = create_async_engine(settings.database_url)
     anomaly_count = 0
     async with AsyncSession(engine, expire_on_commit=False) as session:
-        stmt = select(NavigationCache, Node.workspace_id).join(
+        stmt = select(NavigationCache, Node.account_id).join(
             Node, Node.slug == NavigationCache.node_slug
         )
         result = await session.execute(stmt)

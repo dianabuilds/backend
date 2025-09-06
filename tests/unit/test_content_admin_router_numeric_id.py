@@ -62,7 +62,7 @@ async def app_client():
         session.add(ws)
         node = Node(
             id=1,
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="n1",
             title="N1",
             content={},
@@ -117,7 +117,7 @@ async def app_client_with_session():
         session.add(ws)
         node = Node(
             id=1,
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="n1",
             title="N1",
             content={},
@@ -197,7 +197,7 @@ async def app_client_node_only():
         session.add(ws)
         node = Node(
             id=1,
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="n2",
             title="N2",
             content={},

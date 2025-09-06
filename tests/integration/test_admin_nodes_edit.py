@@ -55,7 +55,7 @@ async def workspace_admin_client():
         ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user.id)
         node = Node(
             id=1,
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="n1",
             title="N1",
             content={},
@@ -82,7 +82,7 @@ async def workspace_admin_client():
 async def global_admin_client():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
-        Node.__table__.c.workspace_id.nullable = True
+        Node.__table__.c.account_id.nullable = True
         await conn.run_sync(Workspace.__table__.create)
         await conn.run_sync(Tag.__table__.create)
         await conn.run_sync(Node.__table__.create)
@@ -123,7 +123,7 @@ async def global_admin_client():
 async def forbidden_global_client():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
-        Node.__table__.c.workspace_id.nullable = True
+        Node.__table__.c.account_id.nullable = True
         await conn.run_sync(Workspace.__table__.create)
         await conn.run_sync(Tag.__table__.create)
         await conn.run_sync(Node.__table__.create)

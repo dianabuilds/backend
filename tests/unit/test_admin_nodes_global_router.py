@@ -44,8 +44,8 @@ from app.providers.db.session import get_db  # noqa: E402
 async def app_and_session():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
-        # Allow null workspace_id for tests
-        Node.__table__.c.workspace_id.nullable = True
+        # Allow null account_id for tests
+        Node.__table__.c.account_id.nullable = True
         await conn.run_sync(Workspace.__table__.create)
         await conn.run_sync(Tag.__table__.create)
         await conn.run_sync(Node.__table__.create)

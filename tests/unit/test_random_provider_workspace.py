@@ -38,7 +38,7 @@ def test_random_provider_scoped_by_workspace() -> None:
             w1 = Workspace(id=uuid.uuid4(), name="W1", slug="w1", owner_user_id=user.id)
             w2 = Workspace(id=uuid.uuid4(), name="W2", slug="w2", owner_user_id=user.id)
             start = Node(
-                workspace_id=w1.id,
+                account_id=w1.id,
                 content={},
                 author_id=user.id,
                 is_visible=True,
@@ -46,7 +46,7 @@ def test_random_provider_scoped_by_workspace() -> None:
                 is_recommendable=True,
             )
             n1 = Node(
-                workspace_id=w1.id,
+                account_id=w1.id,
                 content={},
                 author_id=user.id,
                 is_visible=True,
@@ -54,7 +54,7 @@ def test_random_provider_scoped_by_workspace() -> None:
                 is_recommendable=True,
             )
             n2 = Node(
-                workspace_id=w2.id,
+                account_id=w2.id,
                 content={},
                 author_id=user.id,
                 is_visible=True,
@@ -67,6 +67,6 @@ def test_random_provider_scoped_by_workspace() -> None:
             provider = RandomProvider()
             provider.set_seed(42)
             res = await provider.get_transitions(session, start, None, w1.id)
-            assert all(n.workspace_id == w1.id for n in res)
+            assert all(n.account_id == w1.id for n in res)
 
     asyncio.run(_run())

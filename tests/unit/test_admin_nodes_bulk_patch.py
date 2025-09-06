@@ -90,7 +90,7 @@ async def test_bulk_patch_updates_flags(app_and_session):
         session.add(ws)
         await session.commit()
         n1 = Node(
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="n1",
             title="N1",
             content={},
@@ -102,7 +102,7 @@ async def test_bulk_patch_updates_flags(app_and_session):
             is_recommendable=True,
         )
         n2 = Node(
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="n2",
             title="N2",
             content={},
@@ -154,7 +154,7 @@ async def test_bulk_patch_delete(app_and_session):
         session.add(ws)
         await session.commit()
         n1 = Node(
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="n1",
             title="N1",
             content={},

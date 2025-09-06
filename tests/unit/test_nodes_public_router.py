@@ -61,7 +61,7 @@ async def test_get_next_nodes_respects_access(app_and_session):
         session.add(ws)
         await session.commit()
         public = Node(
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="pub",
             title="Pub",
             content={},
@@ -73,7 +73,7 @@ async def test_get_next_nodes_respects_access(app_and_session):
             is_recommendable=True,
         )
         private = Node(
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="priv",
             title="Priv",
             content={},
@@ -85,7 +85,7 @@ async def test_get_next_nodes_respects_access(app_and_session):
             is_recommendable=True,
         )
         premium = Node(
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="prem",
             title="Prem",
             content={},
@@ -122,7 +122,7 @@ async def test_get_next_modes_checks_visibility(app_and_session):
         session.add(ws)
         await session.commit()
         public = Node(
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="pub",
             title="Pub",
             content={},
@@ -134,7 +134,7 @@ async def test_get_next_modes_checks_visibility(app_and_session):
             is_recommendable=True,
         )
         private = Node(
-            workspace_id=ws.id,
+            account_id=ws.id,
             slug="priv",
             title="Priv",
             content={},

@@ -84,18 +84,8 @@ class Node(Base):
         Index("ix_nodes_account_id_created_at", "account_id", "created_at"),
     )
 
-    @property
-    def workspace_id(self):
-        return self.account_id
-
-    @workspace_id.setter
-    def workspace_id(self, value):  # type: ignore[no-untyped-def]
-        self.account_id = value
-
-    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
-        if "workspace_id" in kwargs and "account_id" not in kwargs:
-            kwargs["account_id"] = kwargs.pop("workspace_id")
-        super().__init__(*args, **kwargs)
+    # ``workspace_id`` previously mirrored ``account_id`` for backwards
+    # compatibility.  Callers should now pass ``account_id`` directly.
 
     # ------------------------------------------------------------------
     # Compatibility properties for legacy fields removed from the schema.

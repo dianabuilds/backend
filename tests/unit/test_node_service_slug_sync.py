@@ -50,7 +50,7 @@ async def test_update_syncs_slug_between_item_and_node(db: AsyncSession) -> None
     user_id = uuid.uuid4()
     ws = Workspace(id=uuid.uuid4(), name="W", slug="w", owner_user_id=user_id)
     node = Node(
-        workspace_id=ws.id,
+        account_id=ws.id,
         slug="old",
         title="t",
         author_id=user_id,

@@ -32,7 +32,7 @@ async def _reconcile() -> int:
             .where(
                 or_(
                     NodeItem.node_id.is_(None),
-                    Node.workspace_id != NodeItem.workspace_id,
+                    Node.account_id != NodeItem.workspace_id,
                 )
             )
         )
@@ -42,7 +42,7 @@ async def _reconcile() -> int:
                 await service.create_item_for_node(node)
                 logger.info(
                     "backfilled_node_item",
-                    extra={"node_id": node.id, "workspace_id": str(node.workspace_id)},
+                    extra={"node_id": node.id, "workspace_id": str(node.account_id)},
                 )
             else:
                 anomaly_count += 1
@@ -50,7 +50,7 @@ async def _reconcile() -> int:
                     "workspace_mismatch",
                     extra={
                         "node_id": node.id,
-                        "node_workspace": str(node.workspace_id),
+                        "node_workspace": str(node.account_id),
                         "item_workspace": str(item.workspace_id),
                     },
                 )

@@ -67,7 +67,7 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
     node_data = node or Node(
         id=item.node_id or 0,
-        workspace_id=item.workspace_id,
+        account_id=item.workspace_id,
         slug=item.slug,
         title=item.title,
         content={},
@@ -212,12 +212,12 @@ async def _resolve_content_item_id(
         )
         raise HTTPException(status_code=404, detail="Node not found")
 
-    if node.workspace_id not in (workspace_id, None):
+    if node.account_id not in (workspace_id, None):
         logger.warning(
             "content_item.workspace_mismatch",
             extra={
                 "workspace_id": str(workspace_id),
-                "node_workspace_id": str(node.workspace_id),
+                "node_workspace_id": str(node.account_id),
                 "node_or_item_id": node_or_item_id,
             },
         )

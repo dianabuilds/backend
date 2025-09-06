@@ -30,7 +30,7 @@ async def test_update_resets_published_node():
         creator_id = uuid.uuid4()
         node = Node(
             id=1,
-            workspace_id=workspace_id,
+            account_id=workspace_id,
             slug="slug-1",
             title="Title",
             author_id=creator_id,
@@ -82,7 +82,7 @@ async def test_update_without_changes_keeps_status():
         creator_id = uuid.uuid4()
         node = Node(
             id=1,
-            workspace_id=workspace_id,
+            account_id=workspace_id,
             slug="slug-1",
             title="Title",
             author_id=creator_id,
