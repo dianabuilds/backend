@@ -8,7 +8,7 @@ export type AuditLogOut = {
     action: string;
     resource_type?: (string | null);
     resource_id?: (string | null);
-    workspace_id?: (string | null);
+    account_id?: (string | null);
     before?: (Record<string, any> | null);
     after?: (Record<string, any> | null);
     ip?: (string | null);

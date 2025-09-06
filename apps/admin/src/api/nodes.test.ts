@@ -11,7 +11,7 @@ afterEach(() => {
 describe('patchNode', () => {
   it('sends payload without legacy aliases', async () => {
     const spy = vi
-      .spyOn(AdminService, 'updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch')
+      .spyOn(AdminService, 'updateNodeByIdAdminWorkspacesAccountIdNodesNodeIdPatch')
       .mockResolvedValue({} as never);
     await patchNode('ws1', 1, {
       coverUrl: 'x',

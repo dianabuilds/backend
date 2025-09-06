@@ -45,20 +45,20 @@ export class AdminAiUsageService {
     }
     /**
      * Usage by user in workspace
-     * @param workspaceId
+     * @param accountId
      * @param format
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getUsageByUserAdminAiUsageWorkspacesWorkspaceIdUsersGet(
-        workspaceId: string,
+    public static getUsageByUserAdminAiUsageWorkspacesAccountIdUsersGet(
+        accountId: string,
         format?: (string | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/ai/usage/workspaces/{workspace_id}/users',
+            url: '/admin/ai/usage/workspaces/{account_id}/users',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             query: {
                 'format': format,
@@ -72,20 +72,20 @@ export class AdminAiUsageService {
     }
     /**
      * Usage by model in workspace
-     * @param workspaceId
+     * @param accountId
      * @param format
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getUsageByModelAdminAiUsageWorkspacesWorkspaceIdModelsGet(
-        workspaceId: string,
+    public static getUsageByModelAdminAiUsageWorkspacesAccountIdModelsGet(
+        accountId: string,
         format?: (string | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/ai/usage/workspaces/{workspace_id}/models',
+            url: '/admin/ai/usage/workspaces/{account_id}/models',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             query: {
                 'format': format,

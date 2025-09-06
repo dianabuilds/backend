@@ -11,7 +11,7 @@ export class NodesNavigationManageService {
      * Record visit
      * @param slug
      * @param toSlug
-     * @param workspaceId
+     * @param accountId
      * @param source
      * @param channel
      * @param xWorkspaceId
@@ -21,7 +21,7 @@ export class NodesNavigationManageService {
     public static recordVisitNodesSlugVisitToSlugPost(
         slug: string,
         toSlug: string,
-        workspaceId: string,
+        accountId: string,
         source?: (string | null),
         channel?: (string | null),
         xWorkspaceId?: (string | null),
@@ -37,7 +37,7 @@ export class NodesNavigationManageService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'source': source,
                 'channel': channel,
             },
@@ -49,7 +49,7 @@ export class NodesNavigationManageService {
     /**
      * Create transition
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param xWorkspaceId
      * @returns any Successful Response
@@ -57,7 +57,7 @@ export class NodesNavigationManageService {
      */
     public static createTransitionNodesSlugTransitionsPost(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: NodeTransitionCreate,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Record<string, any>> {
@@ -71,7 +71,7 @@ export class NodesNavigationManageService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',

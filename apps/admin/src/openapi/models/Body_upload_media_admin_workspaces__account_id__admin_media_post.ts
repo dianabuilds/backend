@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type Body_upload_media_workspaces__workspace_id__media_post = {
+export type Body_upload_media_admin_workspaces__account_id__admin_media_post = {
     file?: Blob;
 };
 

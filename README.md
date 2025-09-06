@@ -101,15 +101,15 @@ python scripts/run.py                 # development mode
 - [ ] Использовать стратегию `RNG_SEED_STRATEGY=fixed` при тестировании.
 - [ ] Избегать сторонних сервисов, влияющих на результат.
 
-## Workspaces и лимиты
+## accounts и лимиты
 
 - Создайте рабочее пространство:
   ```bash
-  http POST :8000/admin/workspaces/123e4567-e89b-12d3-a456-426614174000 name=Demo slug=demo
+  http POST :8000/admin/accounts/123e4567-e89b-12d3-a456-426614174000 name=Demo slug=demo
   ```
 - Все запросы к контенту выполняются через префикс рабочего пространства:
   ```bash
-  http GET :8000/admin/workspaces/123e4567-e89b-12d3-a456-426614174000/nodes/all
+  http GET :8000/admin/accounts/123e4567-e89b-12d3-a456-426614174000/nodes/all
   ```
 - Лимиты запросов настраиваются переменными `RATE_LIMIT_*` в `.env`.
 - Импортируйте коллекцию `docs/postman_collection.json` или используйте `docs/httpie_examples.sh` для быстрого теста API.

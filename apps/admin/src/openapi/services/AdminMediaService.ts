@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { Body_upload_media_asset_admin_media_post } from '../models/Body_upload_media_asset_admin_media_post';
-import type { Body_upload_media_asset_workspaces__workspace_id__admin_media_post } from '../models/Body_upload_media_asset_workspaces__workspace_id__admin_media_post';
+import type { Body_upload_media_asset_workspaces__account_id__admin_media_post } from '../models/Body_upload_media_asset_workspaces__account_id__admin_media_post';
 import type { MediaAssetOut } from '../models/MediaAssetOut';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -11,20 +11,20 @@ import { request as __request } from '../core/request';
 export class AdminMediaService {
     /**
      * Upload media asset
-     * @param workspaceId
+     * @param accountId
      * @param formData
      * @returns any Successful Response
      * @throws ApiError
      */
     public static uploadMediaAssetAdminMediaPost(
-        workspaceId: string,
+        accountId: string,
         formData?: Body_upload_media_asset_admin_media_post,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/media',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             formData: formData,
             mediaType: 'multipart/form-data',
@@ -37,14 +37,14 @@ export class AdminMediaService {
     }
     /**
      * List media assets
-     * @param workspaceId
+     * @param accountId
      * @param limit
      * @param offset
      * @returns MediaAssetOut Successful Response
      * @throws ApiError
      */
     public static listMediaAssetsAdminMediaGet(
-        workspaceId: string,
+        accountId: string,
         limit: number = 100,
         offset?: number,
     ): CancelablePromise<Array<MediaAssetOut>> {
@@ -52,7 +52,7 @@ export class AdminMediaService {
             method: 'GET',
             url: '/admin/media',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'limit': limit,
                 'offset': offset,
             },
@@ -65,20 +65,20 @@ export class AdminMediaService {
     }
     /**
      * Upload media asset
-     * @param workspaceId
+     * @param accountId
      * @param formData
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static uploadMediaAssetWorkspacesWorkspaceIdAdminMediaPost(
-        workspaceId: string,
-        formData?: Body_upload_media_asset_workspaces__workspace_id__admin_media_post,
+    public static uploadMediaAssetWorkspacesAccountIdAdminMediaPost(
+        accountId: string,
+        formData?: Body_upload_media_asset_workspaces__account_id__admin_media_post,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/workspaces/{workspace_id}/admin/media',
+            url: '/workspaces/{account_id}/admin/media',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             formData: formData,
             mediaType: 'multipart/form-data',
@@ -91,22 +91,22 @@ export class AdminMediaService {
     }
     /**
      * List media assets
-     * @param workspaceId
+     * @param accountId
      * @param limit
      * @param offset
      * @returns MediaAssetOut Successful Response
      * @throws ApiError
      */
-    public static listMediaAssetsWorkspacesWorkspaceIdAdminMediaGet(
-        workspaceId: string,
+    public static listMediaAssetsWorkspacesAccountIdAdminMediaGet(
+        accountId: string,
         limit: number = 100,
         offset?: number,
     ): CancelablePromise<Array<MediaAssetOut>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/workspaces/{workspace_id}/admin/media',
+            url: '/workspaces/{account_id}/admin/media',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             query: {
                 'limit': limit,

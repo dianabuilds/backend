@@ -18,7 +18,7 @@ export class NodesService {
      * List nodes.
      *
      * See :class:`NodeListParams` for available query parameters.
-     * @param workspaceId
+     * @param accountId
      * @param sort
      * @param ifNoneMatch
      * @param xWorkspaceId
@@ -26,7 +26,7 @@ export class NodesService {
      * @throws ApiError
      */
     public static listNodesNodesGet(
-        workspaceId: string,
+        accountId: string,
         sort: 'updated_desc' | 'created_desc' | 'created_asc' | 'views_desc' = 'updated_desc',
         ifNoneMatch?: (string | null),
         xWorkspaceId?: (string | null),
@@ -39,7 +39,7 @@ export class NodesService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'sort': sort,
             },
             errors: {
@@ -50,24 +50,27 @@ export class NodesService {
     /**
      * Create node
      * @param requestBody
-     * @param workspaceId
+     * @param accountId
+     * @param xFeatureFlags
      * @param xWorkspaceId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static createNodeNodesPost(
         requestBody: NodeCreate,
-        workspaceId?: (string | null),
+        accountId?: (string | null),
+        xFeatureFlags?: (string | null),
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/nodes',
             headers: {
+                'X-Feature-Flags': xFeatureFlags,
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -79,14 +82,14 @@ export class NodesService {
     /**
      * Get node
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param xWorkspaceId
      * @returns NodeOut Successful Response
      * @throws ApiError
      */
     public static readNodeNodesSlugGet(
         slug: string,
-        workspaceId?: (string | null),
+        accountId?: (string | null),
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeOut> {
         return __request(OpenAPI, {
@@ -99,7 +102,7 @@ export class NodesService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,
@@ -109,7 +112,7 @@ export class NodesService {
     /**
      * Update node
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param xWorkspaceId
      * @returns NodeOut Successful Response
@@ -117,7 +120,7 @@ export class NodesService {
      */
     public static updateNodeNodesSlugPatch(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: NodeUpdate,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeOut> {
@@ -131,7 +134,7 @@ export class NodesService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -143,14 +146,14 @@ export class NodesService {
     /**
      * Delete node
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param xWorkspaceId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static deleteNodeNodesSlugDelete(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -163,7 +166,7 @@ export class NodesService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,
@@ -173,14 +176,14 @@ export class NodesService {
     /**
      * Get node notification settings
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param xWorkspaceId
      * @returns NodeNotificationSettingsOut Successful Response
      * @throws ApiError
      */
     public static getNodeNotificationSettingsNodesNodeIdNotificationSettingsGet(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeNotificationSettingsOut> {
         return __request(OpenAPI, {
@@ -193,7 +196,7 @@ export class NodesService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,
@@ -203,7 +206,7 @@ export class NodesService {
     /**
      * Update node notification settings
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param xWorkspaceId
      * @returns NodeNotificationSettingsOut Successful Response
@@ -211,7 +214,7 @@ export class NodesService {
      */
     public static updateNodeNotificationSettingsNodesNodeIdNotificationSettingsPatch(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         requestBody: NodeNotificationSettingsUpdate,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeNotificationSettingsOut> {
@@ -225,7 +228,7 @@ export class NodesService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -237,14 +240,14 @@ export class NodesService {
     /**
      * List feedback
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param xWorkspaceId
      * @returns FeedbackOut Successful Response
      * @throws ApiError
      */
     public static listFeedbackNodesSlugFeedbackGet(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Array<FeedbackOut>> {
         return __request(OpenAPI, {
@@ -257,7 +260,7 @@ export class NodesService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,
@@ -267,7 +270,7 @@ export class NodesService {
     /**
      * Create feedback
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param xWorkspaceId
      * @returns FeedbackOut Successful Response
@@ -275,7 +278,7 @@ export class NodesService {
      */
     public static createFeedbackNodesSlugFeedbackPost(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: FeedbackCreate,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<FeedbackOut> {
@@ -289,7 +292,7 @@ export class NodesService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -302,7 +305,7 @@ export class NodesService {
      * Delete feedback
      * @param slug
      * @param feedbackId
-     * @param workspaceId
+     * @param accountId
      * @param xWorkspaceId
      * @returns any Successful Response
      * @throws ApiError
@@ -310,7 +313,7 @@ export class NodesService {
     public static deleteFeedbackNodesSlugFeedbackFeedbackIdDelete(
         slug: string,
         feedbackId: string,
-        workspaceId: string,
+        accountId: string,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
@@ -324,7 +327,7 @@ export class NodesService {
                 'X-Workspace-Id': xWorkspaceId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,
@@ -336,24 +339,24 @@ export class NodesService {
      * List nodes.
      *
      * See :class:`NodeListParams` for available query parameters.
-     * @param workspaceId
+     * @param accountId
      * @param sort
      * @param ifNoneMatch
      * @param xWorkspaceId
      * @returns NodeOut Successful Response
      * @throws ApiError
      */
-    public static listNodesWorkspacesWorkspaceIdNodesGet(
-        workspaceId: string,
+    public static listNodesWorkspacesAccountIdNodesGet(
+        accountId: string,
         sort: 'updated_desc' | 'created_desc' | 'created_asc' | 'views_desc' = 'updated_desc',
         ifNoneMatch?: (string | null),
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Array<NodeOut>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/workspaces/{workspace_id}/nodes',
+            url: '/workspaces/{account_id}/nodes',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'If-None-Match': ifNoneMatch,
@@ -369,22 +372,22 @@ export class NodesService {
     }
     /**
      * Create node
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param xWorkspaceId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static createNodeWorkspacesWorkspaceIdNodesPost(
-        workspaceId: (string | null),
+    public static createNodeWorkspacesAccountIdNodesPost(
+        accountId: (string | null),
         requestBody: NodeCreate,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/workspaces/{workspace_id}/nodes',
+            url: '/workspaces/{account_id}/nodes',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'X-Workspace-Id': xWorkspaceId,
@@ -399,22 +402,22 @@ export class NodesService {
     /**
      * Get node
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param xWorkspaceId
      * @returns NodeOut Successful Response
      * @throws ApiError
      */
-    public static readNodeWorkspacesWorkspaceIdNodesSlugGet(
+    public static readNodeWorkspacesAccountIdNodesSlugGet(
         slug: string,
-        workspaceId: (string | null),
+        accountId: (string | null),
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeOut> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/workspaces/{workspace_id}/nodes/{slug}',
+            url: '/workspaces/{account_id}/nodes/{slug}',
             path: {
                 'slug': slug,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'X-Workspace-Id': xWorkspaceId,
@@ -427,24 +430,24 @@ export class NodesService {
     /**
      * Update node
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param xWorkspaceId
      * @returns NodeOut Successful Response
      * @throws ApiError
      */
-    public static updateNodeWorkspacesWorkspaceIdNodesSlugPatch(
+    public static updateNodeWorkspacesAccountIdNodesSlugPatch(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: NodeUpdate,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/workspaces/{workspace_id}/nodes/{slug}',
+            url: '/workspaces/{account_id}/nodes/{slug}',
             path: {
                 'slug': slug,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'X-Workspace-Id': xWorkspaceId,
@@ -459,22 +462,22 @@ export class NodesService {
     /**
      * Delete node
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param xWorkspaceId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static deleteNodeWorkspacesWorkspaceIdNodesSlugDelete(
+    public static deleteNodeWorkspacesAccountIdNodesSlugDelete(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/workspaces/{workspace_id}/nodes/{slug}',
+            url: '/workspaces/{account_id}/nodes/{slug}',
             path: {
                 'slug': slug,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'X-Workspace-Id': xWorkspaceId,
@@ -487,22 +490,22 @@ export class NodesService {
     /**
      * Get node notification settings
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param xWorkspaceId
      * @returns NodeNotificationSettingsOut Successful Response
      * @throws ApiError
      */
-    public static getNodeNotificationSettingsWorkspacesWorkspaceIdNodesNodeIdNotificationSettingsGet(
+    public static getNodeNotificationSettingsWorkspacesAccountIdNodesNodeIdNotificationSettingsGet(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeNotificationSettingsOut> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/workspaces/{workspace_id}/nodes/{node_id}/notification-settings',
+            url: '/workspaces/{account_id}/nodes/{node_id}/notification-settings',
             path: {
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'X-Workspace-Id': xWorkspaceId,
@@ -515,24 +518,24 @@ export class NodesService {
     /**
      * Update node notification settings
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param xWorkspaceId
      * @returns NodeNotificationSettingsOut Successful Response
      * @throws ApiError
      */
-    public static updateNodeNotificationSettingsWorkspacesWorkspaceIdNodesNodeIdNotificationSettingsPatch(
+    public static updateNodeNotificationSettingsWorkspacesAccountIdNodesNodeIdNotificationSettingsPatch(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         requestBody: NodeNotificationSettingsUpdate,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<NodeNotificationSettingsOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/workspaces/{workspace_id}/nodes/{node_id}/notification-settings',
+            url: '/workspaces/{account_id}/nodes/{node_id}/notification-settings',
             path: {
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'X-Workspace-Id': xWorkspaceId,
@@ -547,22 +550,22 @@ export class NodesService {
     /**
      * List feedback
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param xWorkspaceId
      * @returns FeedbackOut Successful Response
      * @throws ApiError
      */
-    public static listFeedbackWorkspacesWorkspaceIdNodesSlugFeedbackGet(
+    public static listFeedbackWorkspacesAccountIdNodesSlugFeedbackGet(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Array<FeedbackOut>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/workspaces/{workspace_id}/nodes/{slug}/feedback',
+            url: '/workspaces/{account_id}/nodes/{slug}/feedback',
             path: {
                 'slug': slug,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'X-Workspace-Id': xWorkspaceId,
@@ -575,24 +578,24 @@ export class NodesService {
     /**
      * Create feedback
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param xWorkspaceId
      * @returns FeedbackOut Successful Response
      * @throws ApiError
      */
-    public static createFeedbackWorkspacesWorkspaceIdNodesSlugFeedbackPost(
+    public static createFeedbackWorkspacesAccountIdNodesSlugFeedbackPost(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: FeedbackCreate,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<FeedbackOut> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/workspaces/{workspace_id}/nodes/{slug}/feedback',
+            url: '/workspaces/{account_id}/nodes/{slug}/feedback',
             path: {
                 'slug': slug,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'X-Workspace-Id': xWorkspaceId,
@@ -608,24 +611,24 @@ export class NodesService {
      * Delete feedback
      * @param slug
      * @param feedbackId
-     * @param workspaceId
+     * @param accountId
      * @param xWorkspaceId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static deleteFeedbackWorkspacesWorkspaceIdNodesSlugFeedbackFeedbackIdDelete(
+    public static deleteFeedbackWorkspacesAccountIdNodesSlugFeedbackFeedbackIdDelete(
         slug: string,
         feedbackId: string,
-        workspaceId: string,
+        accountId: string,
         xWorkspaceId?: (string | null),
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/workspaces/{workspace_id}/nodes/{slug}/feedback/{feedback_id}',
+            url: '/workspaces/{account_id}/nodes/{slug}/feedback/{feedback_id}',
             path: {
                 'slug': slug,
                 'feedback_id': feedbackId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'X-Workspace-Id': xWorkspaceId,

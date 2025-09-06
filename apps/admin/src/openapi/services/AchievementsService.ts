@@ -13,18 +13,18 @@ import { request as __request } from '../core/request';
 export class AchievementsService {
     /**
      * List achievements
-     * @param workspaceId
+     * @param accountId
      * @returns AchievementOut Successful Response
      * @throws ApiError
      */
     public static listAchievementsAchievementsGet(
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<Array<AchievementOut>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/achievements',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,
@@ -33,18 +33,18 @@ export class AchievementsService {
     }
     /**
      * List achievements (admin)
-     * @param workspaceId
+     * @param accountId
      * @returns AchievementAdminOut Successful Response
      * @throws ApiError
      */
     public static listAchievementsAdminAdminAchievementsGet(
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<Array<AchievementAdminOut>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/achievements',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -55,20 +55,20 @@ export class AchievementsService {
     }
     /**
      * Create achievement
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns AchievementAdminOut Successful Response
      * @throws ApiError
      */
     public static createAchievementAdminAdminAchievementsPost(
-        workspaceId: string,
+        accountId: string,
         requestBody: AchievementCreateIn,
     ): CancelablePromise<AchievementAdminOut> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/achievements',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -82,14 +82,14 @@ export class AchievementsService {
     /**
      * Update achievement
      * @param achievementId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns AchievementAdminOut Successful Response
      * @throws ApiError
      */
     public static updateAchievementAdminAdminAchievementsAchievementIdPatch(
         achievementId: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: AchievementUpdateIn,
     ): CancelablePromise<AchievementAdminOut> {
         return __request(OpenAPI, {
@@ -99,7 +99,7 @@ export class AchievementsService {
                 'achievement_id': achievementId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -113,13 +113,13 @@ export class AchievementsService {
     /**
      * Delete achievement
      * @param achievementId
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static deleteAchievementAdminAdminAchievementsAchievementIdDelete(
         achievementId: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -128,7 +128,7 @@ export class AchievementsService {
                 'achievement_id': achievementId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -140,14 +140,14 @@ export class AchievementsService {
     /**
      * Grant achievement to user
      * @param achievementId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
     public static grantAchievementAdminAchievementsAchievementIdGrantPost(
         achievementId: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: UserIdIn,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -157,7 +157,7 @@ export class AchievementsService {
                 'achievement_id': achievementId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -171,14 +171,14 @@ export class AchievementsService {
     /**
      * Revoke achievement from user
      * @param achievementId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
     public static revokeAchievementAdminAchievementsAchievementIdRevokePost(
         achievementId: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: UserIdIn,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -188,7 +188,7 @@ export class AchievementsService {
                 'achievement_id': achievementId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',

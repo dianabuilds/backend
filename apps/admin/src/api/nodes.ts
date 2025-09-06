@@ -129,7 +129,7 @@ export interface NodeResponse extends NodeOut {
 
 export async function getNode(workspaceId: string, id: number): Promise<NodeResponse> {
     try {
-        const res = await AdminService.getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
+        const res = await AdminService.getNodeByIdAdminWorkspacesAccountIdNodesNodeIdGet(
             id,
             workspaceId,
         );
@@ -143,12 +143,12 @@ export async function getNode(workspaceId: string, id: number): Promise<NodeResp
             const res = await AdminService.getGlobalNodeByIdAdminNodesNodeIdGet(id);
             return res as NodeResponse;
         }
-        await AdminService.replaceNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPut(
+        await AdminService.replaceNodeByIdAdminWorkspacesAccountIdNodesNodeIdPut(
             id,
             workspaceId,
             {},
         );
-        const res = await AdminService.getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
+        const res = await AdminService.getNodeByIdAdminWorkspacesAccountIdNodesNodeIdGet(
             id,
             workspaceId,
         );
@@ -164,7 +164,7 @@ export async function patchNode(
 ): Promise<NodeResponse> {
     const body: Record<string, unknown> = { ...patch };
 
-    const res = await AdminService.updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch(
+    const res = await AdminService.updateNodeByIdAdminWorkspacesAccountIdNodesNodeIdPatch(
         id,
         workspaceId,
         body,
@@ -178,7 +178,7 @@ export async function publishNode(
     id: number,
     body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
-    const res = await AdminService.publishNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPublishPost(
+    const res = await AdminService.publishNodeByIdAdminWorkspacesAccountIdNodesNodeIdPublishPost(
         id,
         workspaceId,
         body,

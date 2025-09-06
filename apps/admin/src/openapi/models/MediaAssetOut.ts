@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type MediaAssetOut = {
     id: string;
-    workspace_id: string;
+    account_id: string;
     url: string;
     type: string;
     metadata_json?: (Record<string, any> | null);

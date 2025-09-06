@@ -290,7 +290,7 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": false,
             "schema": {
@@ -303,7 +303,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -396,7 +396,7 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": false,
             "schema": {
@@ -409,7 +409,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -3597,13 +3597,13 @@
         }
       }
     },
-    "/admin/ai/usage/workspaces/{workspace_id}/users": {
+    "/admin/ai/usage/workspaces/{account_id}/users": {
       "get": {
         "tags": [
           "admin-ai-usage"
         ],
         "summary": "Usage by user in workspace",
-        "operationId": "get_usage_by_user_admin_ai_usage_workspaces__workspace_id__users_get",
+        "operationId": "get_usage_by_user_admin_ai_usage_workspaces__account_id__users_get",
         "security": [
           {
             "bearerAuth": []
@@ -3611,13 +3611,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -3708,13 +3708,13 @@
         }
       }
     },
-    "/admin/ai/usage/workspaces/{workspace_id}/models": {
+    "/admin/ai/usage/workspaces/{account_id}/models": {
       "get": {
         "tags": [
           "admin-ai-usage"
         ],
         "summary": "Usage by model in workspace",
-        "operationId": "get_usage_by_model_admin_ai_usage_workspaces__workspace_id__models_get",
+        "operationId": "get_usage_by_model_admin_ai_usage_workspaces__account_id__models_get",
         "security": [
           {
             "bearerAuth": []
@@ -3722,13 +3722,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -3829,13 +3829,13 @@
         "operationId": "list_quests_quests_get",
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -3880,7 +3880,7 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": false,
             "schema": {
@@ -3893,7 +3893,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -3940,13 +3940,13 @@
         "operationId": "search_quests_quests_search_get",
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -4101,13 +4101,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4160,13 +4160,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4227,13 +4227,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4288,13 +4288,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4347,13 +4347,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4406,13 +4406,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4584,13 +4584,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4644,13 +4644,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4702,13 +4702,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4770,13 +4770,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4836,13 +4836,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4892,13 +4892,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -4948,13 +4948,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -5014,13 +5014,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -5072,13 +5072,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -5140,13 +5140,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -5188,13 +5188,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -5303,13 +5303,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -5410,13 +5410,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -5610,13 +5610,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -5820,13 +5820,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -6022,13 +6022,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -6222,13 +6222,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -7164,13 +7164,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/moderation/nodes/{slug}/hide": {
+    "/admin/accounts/{account_id}/moderation/nodes/{slug}/hide": {
       "post": {
         "tags": [
           "admin"
         ],
         "summary": "Hide Node",
-        "operationId": "hide_node_admin_workspaces__workspace_id__moderation_nodes__slug__hide_post",
+        "operationId": "hide_node_admin_workspaces__account_id__moderation_nodes__slug__hide_post",
         "security": [
           {
             "bearerAuth": []
@@ -7178,13 +7178,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -7217,7 +7217,7 @@
                   "additionalProperties": {
                     "type": "string"
                   },
-                  "title": "Response Hide Node Admin Workspaces  Workspace Id  Moderation Nodes  Slug  Hide Post"
+                  "title": "Response Hide Node Admin Workspaces  Account Id  Moderation Nodes  Slug  Hide Post"
                 }
               }
             }
@@ -7284,13 +7284,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/moderation/nodes/{slug}/restore": {
+    "/admin/accounts/{account_id}/moderation/nodes/{slug}/restore": {
       "post": {
         "tags": [
           "admin"
         ],
         "summary": "Restore Node",
-        "operationId": "restore_node_admin_workspaces__workspace_id__moderation_nodes__slug__restore_post",
+        "operationId": "restore_node_admin_workspaces__account_id__moderation_nodes__slug__restore_post",
         "security": [
           {
             "bearerAuth": []
@@ -7298,13 +7298,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -7327,7 +7327,7 @@
                   "additionalProperties": {
                     "type": "string"
                   },
-                  "title": "Response Restore Node Admin Workspaces  Workspace Id  Moderation Nodes  Slug  Restore Post"
+                  "title": "Response Restore Node Admin Workspaces  Account Id  Moderation Nodes  Slug  Restore Post"
                 }
               }
             }
@@ -8087,13 +8087,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -8149,13 +8149,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -9014,13 +9014,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -9116,13 +9116,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -9226,14 +9226,14 @@
         }
       }
     },
-    "/workspaces/{workspace_id}/media": {
+    "/workspaces/{account_id}/media": {
       "post": {
         "tags": [
           "media"
         ],
         "summary": "Upload Media",
         "description": "Accept an uploaded image and return its public URL.",
-        "operationId": "upload_media_workspaces__workspace_id__media_post",
+        "operationId": "upload_media_workspaces__account_id__media_post",
         "security": [
           {
             "bearerAuth": []
@@ -9264,7 +9264,7 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_media_workspaces__workspace_id__media_post"
+                "$ref": "#/components/schemas/Body_upload_media_workspaces__account_id__media_post"
               }
             }
           }
@@ -9291,13 +9291,13 @@
         }
       }
     },
-    "/workspaces/{workspace_id}/admin/media": {
+    "/workspaces/{account_id}/admin/media": {
       "post": {
         "tags": [
           "admin-media"
         ],
         "summary": "Upload media asset",
-        "operationId": "upload_media_asset_workspaces__workspace_id__admin_media_post",
+        "operationId": "upload_media_asset_workspaces__account_id__admin_media_post",
         "security": [
           {
             "bearerAuth": []
@@ -9305,13 +9305,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -9319,7 +9319,7 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_media_asset_workspaces__workspace_id__admin_media_post"
+                "$ref": "#/components/schemas/Body_upload_media_asset_workspaces__account_id__admin_media_post"
               }
             }
           }
@@ -9399,7 +9399,7 @@
           "admin-media"
         ],
         "summary": "List media assets",
-        "operationId": "list_media_assets_workspaces__workspace_id__admin_media_get",
+        "operationId": "list_media_assets_workspaces__account_id__admin_media_get",
         "security": [
           {
             "bearerAuth": []
@@ -9407,13 +9407,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -9450,7 +9450,7 @@
                   "items": {
                     "$ref": "#/components/schemas/MediaAssetOut"
                   },
-                  "title": "Response List Media Assets Workspaces  Workspace Id  Admin Media Get"
+                  "title": "Response List Media Assets Workspaces  Account Id  Admin Media Get"
                 }
               }
             }
@@ -9531,13 +9531,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -9584,13 +9584,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -9684,13 +9684,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -9802,13 +9802,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -9918,13 +9918,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -10024,13 +10024,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -10140,13 +10140,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -10353,13 +10353,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -10463,13 +10463,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -11070,13 +11070,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -11290,13 +11290,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -11606,13 +11606,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -11707,7 +11707,7 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": false,
             "schema": {
@@ -11720,7 +11720,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -11818,7 +11818,7 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": false,
             "schema": {
@@ -11831,7 +11831,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -11899,13 +11899,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -11983,13 +11983,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12057,13 +12057,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12131,13 +12131,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12217,13 +12217,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12295,13 +12295,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12391,13 +12391,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12446,14 +12446,14 @@
         }
       }
     },
-    "/workspaces/{workspace_id}/nodes": {
+    "/workspaces/{account_id}/nodes": {
       "get": {
         "tags": [
           "nodes"
         ],
         "summary": "List nodes",
         "description": "List nodes.\n\nSee :class:`NodeListParams` for available query parameters.",
-        "operationId": "list_nodes_workspaces__workspace_id__nodes_get",
+        "operationId": "list_nodes_workspaces__account_id__nodes_get",
         "security": [
           {
             "bearerAuth": []
@@ -12461,13 +12461,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12532,7 +12532,7 @@
                   "items": {
                     "$ref": "#/components/schemas/NodeOut"
                   },
-                  "title": "Response List Nodes Workspaces  Workspace Id  Nodes Get"
+                  "title": "Response List Nodes Workspaces  Account Id  Nodes Get"
                 }
               }
             }
@@ -12554,7 +12554,7 @@
           "nodes"
         ],
         "summary": "Create node",
-        "operationId": "create_node_workspaces__workspace_id__nodes_post",
+        "operationId": "create_node_workspaces__account_id__nodes_post",
         "security": [
           {
             "bearerAuth": []
@@ -12562,7 +12562,7 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
@@ -12575,7 +12575,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12616,7 +12616,7 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Create Node Workspaces  Workspace Id  Nodes Post"
+                  "title": "Response Create Node Workspaces  Account Id  Nodes Post"
                 }
               }
             }
@@ -12634,13 +12634,13 @@
         }
       }
     },
-    "/workspaces/{workspace_id}/nodes/{slug}": {
+    "/workspaces/{account_id}/nodes/{slug}": {
       "get": {
         "tags": [
           "nodes"
         ],
         "summary": "Get node",
-        "operationId": "read_node_workspaces__workspace_id__nodes__slug__get",
+        "operationId": "read_node_workspaces__account_id__nodes__slug__get",
         "security": [
           {
             "bearerAuth": []
@@ -12657,7 +12657,7 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
@@ -12670,7 +12670,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12721,7 +12721,7 @@
           "nodes"
         ],
         "summary": "Update node",
-        "operationId": "update_node_workspaces__workspace_id__nodes__slug__patch",
+        "operationId": "update_node_workspaces__account_id__nodes__slug__patch",
         "security": [
           {
             "bearerAuth": []
@@ -12738,13 +12738,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12805,7 +12805,7 @@
           "nodes"
         ],
         "summary": "Delete node",
-        "operationId": "delete_node_workspaces__workspace_id__nodes__slug__delete",
+        "operationId": "delete_node_workspaces__account_id__nodes__slug__delete",
         "security": [
           {
             "bearerAuth": []
@@ -12822,13 +12822,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12873,13 +12873,13 @@
         }
       }
     },
-    "/workspaces/{workspace_id}/nodes/{node_id}/notification-settings": {
+    "/workspaces/{account_id}/nodes/{node_id}/notification-settings": {
       "get": {
         "tags": [
           "nodes"
         ],
         "summary": "Get node notification settings",
-        "operationId": "get_node_notification_settings_workspaces__workspace_id__nodes__node_id__notification_settings_get",
+        "operationId": "get_node_notification_settings_workspaces__account_id__nodes__node_id__notification_settings_get",
         "security": [
           {
             "bearerAuth": []
@@ -12896,13 +12896,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -12953,7 +12953,7 @@
           "nodes"
         ],
         "summary": "Update node notification settings",
-        "operationId": "update_node_notification_settings_workspaces__workspace_id__nodes__node_id__notification_settings_patch",
+        "operationId": "update_node_notification_settings_workspaces__account_id__nodes__node_id__notification_settings_patch",
         "security": [
           {
             "bearerAuth": []
@@ -12970,13 +12970,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -13033,13 +13033,13 @@
         }
       }
     },
-    "/workspaces/{workspace_id}/nodes/{slug}/feedback": {
+    "/workspaces/{account_id}/nodes/{slug}/feedback": {
       "get": {
         "tags": [
           "nodes"
         ],
         "summary": "List feedback",
-        "operationId": "list_feedback_workspaces__workspace_id__nodes__slug__feedback_get",
+        "operationId": "list_feedback_workspaces__account_id__nodes__slug__feedback_get",
         "security": [
           {
             "bearerAuth": []
@@ -13056,13 +13056,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -13095,7 +13095,7 @@
                   "items": {
                     "$ref": "#/components/schemas/FeedbackOut"
                   },
-                  "title": "Response List Feedback Workspaces  Workspace Id  Nodes  Slug  Feedback Get"
+                  "title": "Response List Feedback Workspaces  Account Id  Nodes  Slug  Feedback Get"
                 }
               }
             }
@@ -13117,7 +13117,7 @@
           "nodes"
         ],
         "summary": "Create feedback",
-        "operationId": "create_feedback_workspaces__workspace_id__nodes__slug__feedback_post",
+        "operationId": "create_feedback_workspaces__account_id__nodes__slug__feedback_post",
         "security": [
           {
             "bearerAuth": []
@@ -13134,13 +13134,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -13197,13 +13197,13 @@
         }
       }
     },
-    "/workspaces/{workspace_id}/nodes/{slug}/feedback/{feedback_id}": {
+    "/workspaces/{account_id}/nodes/{slug}/feedback/{feedback_id}": {
       "delete": {
         "tags": [
           "nodes"
         ],
         "summary": "Delete feedback",
-        "operationId": "delete_feedback_workspaces__workspace_id__nodes__slug__feedback__feedback_id__delete",
+        "operationId": "delete_feedback_workspaces__account_id__nodes__slug__feedback__feedback_id__delete",
         "security": [
           {
             "bearerAuth": []
@@ -13230,13 +13230,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -13267,7 +13267,7 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Delete Feedback Workspaces  Workspace Id  Nodes  Slug  Feedback  Feedback Id  Delete"
+                  "title": "Response Delete Feedback Workspaces  Account Id  Nodes  Slug  Feedback  Feedback Id  Delete"
                 }
               }
             }
@@ -13301,13 +13301,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -13399,13 +13399,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -13467,13 +13467,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -13523,13 +13523,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -13589,13 +13589,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -15305,7 +15305,7 @@
         }
       }
     },
-    "/admin/workspaces": {
+    "/admin/accounts": {
       "get": {
         "tags": [
           "admin"
@@ -15477,13 +15477,13 @@
         ]
       }
     },
-    "/admin/workspaces/{workspace_id}": {
+    "/admin/accounts/{account_id}": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "Get workspace",
-        "operationId": "get_workspace_admin_workspaces__workspace_id__get",
+        "operationId": "get_workspace_admin_workspaces__account_id__get",
         "security": [
           {
             "bearerAuth": []
@@ -15491,13 +15491,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -15578,7 +15578,7 @@
           "admin"
         ],
         "summary": "Update workspace",
-        "operationId": "update_workspace_admin_workspaces__workspace_id__patch",
+        "operationId": "update_workspace_admin_workspaces__account_id__patch",
         "security": [
           {
             "bearerAuth": []
@@ -15586,13 +15586,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -15683,7 +15683,7 @@
           "admin"
         ],
         "summary": "Delete workspace",
-        "operationId": "delete_workspace_admin_workspaces__workspace_id__delete",
+        "operationId": "delete_workspace_admin_workspaces__account_id__delete",
         "security": [
           {
             "bearerAuth": []
@@ -15691,13 +15691,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -15767,13 +15767,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/members": {
+    "/admin/accounts/{account_id}/members": {
       "post": {
         "tags": [
           "admin"
         ],
         "summary": "Add workspace member",
-        "operationId": "add_member_admin_workspaces__workspace_id__members_post",
+        "operationId": "add_member_admin_workspaces__account_id__members_post",
         "security": [
           {
             "bearerAuth": []
@@ -15781,13 +15781,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -15878,7 +15878,7 @@
           "admin"
         ],
         "summary": "List workspace members",
-        "operationId": "list_members_admin_workspaces__workspace_id__members_get",
+        "operationId": "list_members_admin_workspaces__account_id__members_get",
         "security": [
           {
             "bearerAuth": []
@@ -15886,13 +15886,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -15906,7 +15906,7 @@
                   "items": {
                     "$ref": "#/components/schemas/WorkspaceMemberOut"
                   },
-                  "title": "Response List Members Admin Workspaces  Workspace Id  Members Get"
+                  "title": "Response List Members Admin Workspaces  Account Id  Members Get"
                 }
               }
             }
@@ -15973,13 +15973,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/members/{user_id}": {
+    "/admin/accounts/{account_id}/members/{user_id}": {
       "patch": {
         "tags": [
           "admin"
         ],
         "summary": "Update workspace member",
-        "operationId": "update_member_admin_workspaces__workspace_id__members__user_id__patch",
+        "operationId": "update_member_admin_workspaces__account_id__members__user_id__patch",
         "security": [
           {
             "bearerAuth": []
@@ -15987,13 +15987,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -16094,7 +16094,7 @@
           "admin"
         ],
         "summary": "Remove workspace member",
-        "operationId": "remove_member_admin_workspaces__workspace_id__members__user_id__delete",
+        "operationId": "remove_member_admin_workspaces__account_id__members__user_id__delete",
         "security": [
           {
             "bearerAuth": []
@@ -16102,13 +16102,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -16188,13 +16188,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/settings/ai-presets": {
+    "/admin/accounts/{account_id}/settings/ai-presets": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "Get workspace AI presets",
-        "operationId": "get_ai_presets_admin_workspaces__workspace_id__settings_ai_presets_get",
+        "operationId": "get_ai_presets_admin_workspaces__account_id__settings_ai_presets_get",
         "security": [
           {
             "bearerAuth": []
@@ -16202,13 +16202,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -16220,7 +16220,7 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Get Ai Presets Admin Workspaces  Workspace Id  Settings Ai Presets Get"
+                  "title": "Response Get Ai Presets Admin Workspaces  Account Id  Settings Ai Presets Get"
                 }
               }
             }
@@ -16291,7 +16291,7 @@
           "admin"
         ],
         "summary": "Update workspace AI presets",
-        "operationId": "put_ai_presets_admin_workspaces__workspace_id__settings_ai_presets_put",
+        "operationId": "put_ai_presets_admin_workspaces__account_id__settings_ai_presets_put",
         "security": [
           {
             "bearerAuth": []
@@ -16299,13 +16299,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -16329,7 +16329,7 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Put Ai Presets Admin Workspaces  Workspace Id  Settings Ai Presets Put"
+                  "title": "Response Put Ai Presets Admin Workspaces  Account Id  Settings Ai Presets Put"
                 }
               }
             }
@@ -16396,13 +16396,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/settings/notifications": {
+    "/admin/accounts/{account_id}/settings/notifications": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "Get workspace notification rules",
-        "operationId": "get_notifications_admin_workspaces__workspace_id__settings_notifications_get",
+        "operationId": "get_notifications_admin_workspaces__account_id__settings_notifications_get",
         "security": [
           {
             "bearerAuth": []
@@ -16410,13 +16410,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -16497,7 +16497,7 @@
           "admin"
         ],
         "summary": "Update workspace notification rules",
-        "operationId": "put_notifications_admin_workspaces__workspace_id__settings_notifications_put",
+        "operationId": "put_notifications_admin_workspaces__account_id__settings_notifications_put",
         "security": [
           {
             "bearerAuth": []
@@ -16505,13 +16505,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -16598,13 +16598,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/settings/limits": {
+    "/admin/accounts/{account_id}/settings/limits": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "Get workspace limits",
-        "operationId": "get_limits_admin_workspaces__workspace_id__settings_limits_get",
+        "operationId": "get_limits_admin_workspaces__account_id__settings_limits_get",
         "security": [
           {
             "bearerAuth": []
@@ -16612,13 +16612,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -16632,7 +16632,7 @@
                   "additionalProperties": {
                     "type": "integer"
                   },
-                  "title": "Response Get Limits Admin Workspaces  Workspace Id  Settings Limits Get"
+                  "title": "Response Get Limits Admin Workspaces  Account Id  Settings Limits Get"
                 }
               }
             }
@@ -16703,7 +16703,7 @@
           "admin"
         ],
         "summary": "Update workspace limits",
-        "operationId": "put_limits_admin_workspaces__workspace_id__settings_limits_put",
+        "operationId": "put_limits_admin_workspaces__account_id__settings_limits_put",
         "security": [
           {
             "bearerAuth": []
@@ -16711,13 +16711,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -16745,7 +16745,7 @@
                   "additionalProperties": {
                     "type": "integer"
                   },
-                  "title": "Response Put Limits Admin Workspaces  Workspace Id  Settings Limits Put"
+                  "title": "Response Put Limits Admin Workspaces  Account Id  Settings Limits Put"
                 }
               }
             }
@@ -16812,13 +16812,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/usage": {
+    "/admin/accounts/{account_id}/usage": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "Get workspace AI usage",
-        "operationId": "get_workspace_usage_admin_workspaces__workspace_id__usage_get",
+        "operationId": "get_workspace_usage_admin_workspaces__account_id__usage_get",
         "security": [
           {
             "bearerAuth": []
@@ -16826,13 +16826,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -16844,7 +16844,7 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Get Workspace Usage Admin Workspaces  Workspace Id  Usage Get"
+                  "title": "Response Get Workspace Usage Admin Workspaces  Account Id  Usage Get"
                 }
               }
             }
@@ -16911,13 +16911,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes/{node_id}": {
+    "/admin/accounts/{account_id}/nodes/{node_id}": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "Get node item by id",
-        "operationId": "get_node_by_id_admin_workspaces__workspace_id__nodes__node_id__get",
+        "operationId": "get_node_by_id_admin_workspaces__account_id__nodes__node_id__get",
         "security": [
           {
             "bearerAuth": []
@@ -16934,13 +16934,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -17021,7 +17021,7 @@
           "admin"
         ],
         "summary": "Update node item by id",
-        "operationId": "update_node_by_id_admin_workspaces__workspace_id__nodes__node_id__patch",
+        "operationId": "update_node_by_id_admin_workspaces__account_id__nodes__node_id__patch",
         "security": [
           {
             "bearerAuth": []
@@ -17038,13 +17038,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -17147,7 +17147,7 @@
           "admin"
         ],
         "summary": "Replace node item by id",
-        "operationId": "replace_node_by_id_admin_workspaces__workspace_id__nodes__node_id__put",
+        "operationId": "replace_node_by_id_admin_workspaces__account_id__nodes__node_id__put",
         "security": [
           {
             "bearerAuth": []
@@ -17164,13 +17164,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -17269,13 +17269,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes/{node_id}/publish": {
+    "/admin/accounts/{account_id}/nodes/{node_id}/publish": {
       "post": {
         "tags": [
           "admin"
         ],
         "summary": "Publish node item by id",
-        "operationId": "publish_node_by_id_admin_workspaces__workspace_id__nodes__node_id__publish_post",
+        "operationId": "publish_node_by_id_admin_workspaces__account_id__nodes__node_id__publish_post",
         "security": [
           {
             "bearerAuth": []
@@ -17292,13 +17292,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -17392,13 +17392,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes/types/{node_type}": {
+    "/admin/accounts/{account_id}/nodes/types/{node_type}": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "List nodes by type",
-        "operationId": "list_nodes_admin_workspaces__workspace_id__nodes_types__node_type__get",
+        "operationId": "list_nodes_admin_workspaces__account_id__nodes_types__node_type__get",
         "security": [
           {
             "bearerAuth": []
@@ -17415,13 +17415,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -17538,7 +17538,7 @@
           "admin"
         ],
         "summary": "Create node item",
-        "operationId": "create_node_admin_workspaces__workspace_id__nodes_types__node_type__post",
+        "operationId": "create_node_admin_workspaces__account_id__nodes_types__node_type__post",
         "security": [
           {
             "bearerAuth": []
@@ -17555,13 +17555,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -17638,13 +17638,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes/types/{node_type}/{node_id}": {
+    "/admin/accounts/{account_id}/nodes/types/{node_type}/{node_id}": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "Get node item",
-        "operationId": "get_node_admin_workspaces__workspace_id__nodes_types__node_type___node_id__get",
+        "operationId": "get_node_admin_workspaces__account_id__nodes_types__node_type___node_id__get",
         "security": [
           {
             "bearerAuth": []
@@ -17670,13 +17670,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -17757,7 +17757,7 @@
           "admin"
         ],
         "summary": "Update node item",
-        "operationId": "update_node_admin_workspaces__workspace_id__nodes_types__node_type___node_id__patch",
+        "operationId": "update_node_admin_workspaces__account_id__nodes_types__node_type___node_id__patch",
         "security": [
           {
             "bearerAuth": []
@@ -17783,13 +17783,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -17888,13 +17888,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes/types/{node_type}/{node_id}/publish": {
+    "/admin/accounts/{account_id}/nodes/types/{node_type}/{node_id}/publish": {
       "post": {
         "tags": [
           "admin"
         ],
         "summary": "Publish node item",
-        "operationId": "publish_node_admin_workspaces__workspace_id__nodes_types__node_type___node_id__publish_post",
+        "operationId": "publish_node_admin_workspaces__account_id__nodes_types__node_type___node_id__publish_post",
         "security": [
           {
             "bearerAuth": []
@@ -17920,13 +17920,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -18024,7 +18024,7 @@
           "admin"
         ],
         "summary": "Publish node item (PATCH alias)",
-        "operationId": "publish_node_patch_admin_workspaces__workspace_id__nodes_types__node_type___node_id__publish_patch",
+        "operationId": "publish_node_patch_admin_workspaces__account_id__nodes_types__node_type___node_id__publish_patch",
         "security": [
           {
             "bearerAuth": []
@@ -18050,13 +18050,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -18150,13 +18150,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/articles": {
+    "/admin/accounts/{account_id}/articles": {
       "post": {
         "tags": [
           "admin"
         ],
         "summary": "Create article (admin)",
-        "operationId": "create_article_admin_workspaces__workspace_id__articles_post",
+        "operationId": "create_article_admin_workspaces__account_id__articles_post",
         "security": [
           {
             "bearerAuth": []
@@ -18164,13 +18164,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -18263,13 +18263,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/articles/{node_id}": {
+    "/admin/accounts/{account_id}/articles/{node_id}": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "Get article (admin)",
-        "operationId": "get_article_admin_workspaces__workspace_id__articles__node_id__get",
+        "operationId": "get_article_admin_workspaces__account_id__articles__node_id__get",
         "security": [
           {
             "bearerAuth": []
@@ -18286,13 +18286,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -18371,7 +18371,7 @@
           "admin"
         ],
         "summary": "Update article (admin)",
-        "operationId": "update_article_admin_workspaces__workspace_id__articles__node_id__patch",
+        "operationId": "update_article_admin_workspaces__account_id__articles__node_id__patch",
         "security": [
           {
             "bearerAuth": []
@@ -18388,13 +18388,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -18491,13 +18491,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/articles/{node_id}/publish": {
+    "/admin/accounts/{account_id}/articles/{node_id}/publish": {
       "post": {
         "tags": [
           "admin"
         ],
         "summary": "Publish article (admin)",
-        "operationId": "publish_article_admin_workspaces__workspace_id__articles__node_id__publish_post",
+        "operationId": "publish_article_admin_workspaces__account_id__articles__node_id__publish_post",
         "security": [
           {
             "bearerAuth": []
@@ -18514,13 +18514,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -18612,14 +18612,14 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes": {
+    "/admin/accounts/{account_id}/nodes": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "List nodes (admin)",
         "description": "List nodes in workspace.\n\nSee :class:`AdminNodeListParams` for available query parameters.",
-        "operationId": "list_nodes_admin_admin_workspaces__workspace_id__nodes_get",
+        "operationId": "list_nodes_admin_admin_workspaces__account_id__nodes_get",
         "security": [
           {
             "bearerAuth": []
@@ -18627,13 +18627,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -18833,7 +18833,7 @@
                   "items": {
                     "$ref": "#/components/schemas/NodeOut"
                   },
-                  "title": "Response List Nodes Admin Admin Workspaces  Workspace Id  Nodes Get"
+                  "title": "Response List Nodes Admin Admin Workspaces  Account Id  Nodes Get"
                 }
               }
             }
@@ -18904,7 +18904,7 @@
           "admin"
         ],
         "summary": "Create node (admin)",
-        "operationId": "create_node_admin_admin_workspaces__workspace_id__nodes_post",
+        "operationId": "create_node_admin_admin_workspaces__account_id__nodes_post",
         "security": [
           {
             "bearerAuth": []
@@ -18912,13 +18912,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -19025,13 +19025,13 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes/bulk": {
+    "/admin/accounts/{account_id}/nodes/bulk": {
       "post": {
         "tags": [
           "admin"
         ],
         "summary": "Bulk node operations",
-        "operationId": "bulk_node_operation_admin_workspaces__workspace_id__nodes_bulk_post",
+        "operationId": "bulk_node_operation_admin_workspaces__account_id__nodes_bulk_post",
         "security": [
           {
             "bearerAuth": []
@@ -19039,13 +19039,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -19134,7 +19134,7 @@
           "admin"
         ],
         "summary": "Bulk update nodes",
-        "operationId": "bulk_patch_nodes_admin_workspaces__workspace_id__nodes_bulk_patch",
+        "operationId": "bulk_patch_nodes_admin_workspaces__account_id__nodes_bulk_patch",
         "security": [
           {
             "bearerAuth": []
@@ -19142,13 +19142,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -19233,14 +19233,14 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes/{id}": {
+    "/admin/accounts/{account_id}/nodes/{id}": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "Get node by ID (admin, full)",
         "description": "Единая точка для загрузки полной ноды по ID (числовой node.id).\nДелегирует обработку в контент‑роутер, который самостоятельно\nрезолвит идентификатор контента.",
-        "operationId": "get_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__get",
+        "operationId": "get_node_by_id_admin_admin_workspaces__account_id__nodes__id__get",
         "security": [
           {
             "bearerAuth": []
@@ -19248,13 +19248,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -19343,7 +19343,7 @@
         ],
         "summary": "Update node by ID (admin, full)",
         "description": "Обновление полной ноды по числовому ID с возвратом полного объекта.\nДелегируем в контент‑роутер, который резолвит идентификатор контента.",
-        "operationId": "update_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__patch",
+        "operationId": "update_node_by_id_admin_admin_workspaces__account_id__nodes__id__patch",
         "security": [
           {
             "bearerAuth": []
@@ -19351,13 +19351,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -19467,14 +19467,14 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes/{id}/publish": {
+    "/admin/accounts/{account_id}/nodes/{id}/publish": {
       "post": {
         "tags": [
           "admin"
         ],
         "summary": "Publish node by ID (admin)",
         "description": "Публикация ноды по числовому ID. Возвращает обновлённую полную ноду.\nДелегируем в контент‑роутер, который резолвит идентификатор контента.",
-        "operationId": "publish_node_by_id_admin_admin_workspaces__workspace_id__nodes__id__publish_post",
+        "operationId": "publish_node_by_id_admin_admin_workspaces__account_id__nodes__id__publish_post",
         "security": [
           {
             "bearerAuth": []
@@ -19482,13 +19482,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -19590,14 +19590,14 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes/{id}/publish_info": {
+    "/admin/accounts/{account_id}/nodes/{id}/publish_info": {
       "get": {
         "tags": [
           "admin"
         ],
         "summary": "Publish status and schedule (admin)",
         "description": "Возвращает статус публикации и запланированную публикацию.",
-        "operationId": "get_publish_info_admin_workspaces__workspace_id__nodes__id__publish_info_get",
+        "operationId": "get_publish_info_admin_workspaces__account_id__nodes__id__publish_info_get",
         "security": [
           {
             "bearerAuth": []
@@ -19605,13 +19605,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -19695,14 +19695,14 @@
         }
       }
     },
-    "/admin/workspaces/{workspace_id}/nodes/{id}/schedule_publish": {
+    "/admin/accounts/{account_id}/nodes/{id}/schedule_publish": {
       "post": {
         "tags": [
           "admin"
         ],
         "summary": "Schedule publish by date/time (admin)",
         "description": "Создаёт или заменяет задание на публикацию.",
-        "operationId": "schedule_publish_admin_workspaces__workspace_id__nodes__id__schedule_publish_post",
+        "operationId": "schedule_publish_admin_workspaces__account_id__nodes__id__schedule_publish_post",
         "security": [
           {
             "bearerAuth": []
@@ -19710,13 +19710,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -19814,7 +19814,7 @@
           "admin"
         ],
         "summary": "Cancel scheduled publish (admin)",
-        "operationId": "cancel_scheduled_publish_admin_workspaces__workspace_id__nodes__id__schedule_publish_delete",
+        "operationId": "cancel_scheduled_publish_admin_workspaces__account_id__nodes__id__schedule_publish_delete",
         "security": [
           {
             "bearerAuth": []
@@ -19822,13 +19822,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -22275,7 +22275,7 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": false,
             "schema": {
@@ -22288,7 +22288,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           },
           {
@@ -25743,13 +25743,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -25842,13 +25842,13 @@
         ],
         "parameters": [
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -25959,13 +25959,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -26074,13 +26074,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -26179,13 +26179,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -26288,13 +26288,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -26405,13 +26405,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -26520,13 +26520,13 @@
             }
           },
           {
-            "name": "workspace_id",
+            "name": "account_id",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Workspace Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -27943,7 +27943,7 @@
             ],
             "title": "Resource Id"
           },
-          "workspace_id": {
+          "account_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -27953,7 +27953,7 @@
                 "type": "null"
               }
             ],
-            "title": "Workspace Id"
+            "title": "Account Id"
           },
           "before": {
             "anyOf": [
@@ -28156,7 +28156,7 @@
         "type": "object",
         "title": "Body_upload_media_admin_admin_media_post"
       },
-      "Body_upload_media_admin_workspaces__workspace_id__admin_media_post": {
+      "Body_upload_media_admin_workspaces__account_id__admin_media_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -28165,7 +28165,7 @@
           }
         },
         "type": "object",
-        "title": "Body_upload_media_admin_workspaces__workspace_id__admin_media_post"
+        "title": "Body_upload_media_admin_workspaces__account_id__admin_media_post"
       },
       "Body_upload_media_asset_admin_media_post": {
         "properties": {
@@ -28178,7 +28178,7 @@
         "type": "object",
         "title": "Body_upload_media_asset_admin_media_post"
       },
-      "Body_upload_media_asset_workspaces__workspace_id__admin_media_post": {
+      "Body_upload_media_asset_workspaces__account_id__admin_media_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -28187,7 +28187,7 @@
           }
         },
         "type": "object",
-        "title": "Body_upload_media_asset_workspaces__workspace_id__admin_media_post"
+        "title": "Body_upload_media_asset_workspaces__account_id__admin_media_post"
       },
       "Body_upload_media_media_post": {
         "properties": {
@@ -28200,7 +28200,7 @@
         "type": "object",
         "title": "Body_upload_media_media_post"
       },
-      "Body_upload_media_workspaces__workspace_id__media_post": {
+      "Body_upload_media_workspaces__account_id__media_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -28209,7 +28209,7 @@
           }
         },
         "type": "object",
-        "title": "Body_upload_media_workspaces__workspace_id__media_post"
+        "title": "Body_upload_media_workspaces__account_id__media_post"
       },
       "BulkIds": {
         "properties": {
@@ -29475,7 +29475,7 @@
             "title": "Remember",
             "default": false
           },
-          "workspace_id": {
+          "account_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -29485,7 +29485,7 @@
                 "type": "null"
               }
             ],
-            "title": "Workspace Id"
+            "title": "Account Id"
           }
         },
         "type": "object",
@@ -29778,10 +29778,10 @@
             "format": "uuid",
             "title": "Id"
           },
-          "workspace_id": {
+          "account_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Workspace Id"
+            "title": "Account Id"
           },
           "url": {
             "type": "string",
@@ -29807,7 +29807,7 @@
         "type": "object",
         "required": [
           "id",
-          "workspace_id",
+          "account_id",
           "url",
           "type"
         ],
@@ -31086,10 +31086,10 @@
       },
       "PreviewLinkRequest": {
         "properties": {
-          "workspace_id": {
+          "account_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Workspace Id"
+            "title": "Account Id"
           },
           "ttl": {
             "anyOf": [
@@ -31105,7 +31105,7 @@
         },
         "type": "object",
         "required": [
-          "workspace_id"
+          "account_id"
         ],
         "title": "PreviewLinkRequest"
       },
@@ -32879,10 +32879,10 @@
       },
       "SendNotificationPayload": {
         "properties": {
-          "workspace_id": {
+          "account_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Workspace Id"
+            "title": "Account Id"
           },
           "user_id": {
             "type": "string",
@@ -32904,7 +32904,7 @@
         },
         "type": "object",
         "required": [
-          "workspace_id",
+          "account_id",
           "user_id",
           "title",
           "message"
@@ -33589,10 +33589,10 @@
       },
       "WorkspaceMemberOut": {
         "properties": {
-          "workspace_id": {
+          "account_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Workspace Id"
+            "title": "Account Id"
           },
           "user_id": {
             "type": "string",
@@ -33605,7 +33605,7 @@
         },
         "type": "object",
         "required": [
-          "workspace_id",
+          "account_id",
           "user_id",
           "role"
         ],
@@ -34087,10 +34087,10 @@
       },
       "app__domains__navigation__api__preview_router__SimulateRequest": {
         "properties": {
-          "workspace_id": {
+          "account_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Workspace Id"
+            "title": "Account Id"
           },
           "start": {
             "type": "string",
@@ -34159,7 +34159,7 @@
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "workspace_id",
+          "account_id",
           "start"
         ],
         "title": "SimulateRequest"

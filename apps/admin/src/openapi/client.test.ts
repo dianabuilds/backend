@@ -1,5 +1,6 @@
-import { expectTypeOf, describe, it } from 'vitest';
-import { NodeOut } from './';
+import { describe, expectTypeOf, it } from 'vitest';
+
+import type { NodeOut } from './';
 
 describe('generated client', () => {
   it('NodeOut has no node_type field', () => {
