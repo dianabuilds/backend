@@ -37,7 +37,6 @@ export interface NodeListParams {
     q?: string;
     status?: Status;
     scope_mode?: string;
-    space_id?: string | number;
 }
 
 export interface NodePatchParams {

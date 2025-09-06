@@ -258,7 +258,6 @@ export default function Nodes() {
         limit,
         offset: page * limit,
         scope_mode: scopeMode === 'space' ? `space:${accountId}` : scopeMode,
-        space_id: accountId,
       };
       if (q) params.q = q;
       if (status !== 'all') params.status = status;

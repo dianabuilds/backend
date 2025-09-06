@@ -4,11 +4,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getOverrideState } from "../shared/hooks/useOverrideStore";
 import { AccountBranchProvider } from "../account/AccountContext";
+import { getOverrideState } from "../shared/hooks/useOverrideStore";
 import ScopeControls from "./ScopeControls";
 
-const queryData = { data: [] as any[] };
+const queryData: { data: unknown[] } = { data: [] };
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => queryData,
 }));
@@ -32,7 +32,7 @@ describe("ScopeControls", () => {
     );
     fireEvent.change(screen.getByTestId("scope-mode-select"), { target: { value: "global" } });
     expect(handle).toHaveBeenCalledWith("global");
-    fireEvent.change(screen.getByTestId("space-select"), { target: { value: "ws2" } });
+    fireEvent.change(screen.getByTestId("account-select"), { target: { value: "ws2" } });
   });
 
   it("toggles override store", () => {
