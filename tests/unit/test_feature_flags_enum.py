@@ -91,6 +91,8 @@ NEW_FLAGS = [
     FeatureFlagKey.FALLBACK_POLICY,
     FeatureFlagKey.ADMIN_OVERRIDE,
     FeatureFlagKey.NAV_CACHE_V2,
+    FeatureFlagKey.PROFILE_ENABLED,
+    FeatureFlagKey.ROUTING_ACCOUNTS_V2,
 ]
 
 

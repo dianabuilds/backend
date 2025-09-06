@@ -7,7 +7,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.core.log_filters import ip_var, request_id_var, ua_var, workspace_id_var
+from app.core.log_filters import (
+    account_id_var,
+    ip_var,
+    request_id_var,
+    ua_var,
+    workspace_id_var,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +32,12 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         if not workspace_id and hasattr(request.state, "preview_token"):
             workspace_id = request.state.preview_token.get("workspace_id")
         workspace_token = workspace_id_var.set(workspace_id)
+        account_token = account_id_var.set(workspace_id)
         try:
             response: Response = await call_next(request)
         finally:
             request_id_var.reset(token)
             workspace_id_var.reset(workspace_token)
+            account_id_var.reset(account_token)
         response.headers["X-Request-Id"] = request_id
         return response

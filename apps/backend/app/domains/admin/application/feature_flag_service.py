@@ -28,6 +28,8 @@ class FeatureFlagKey(StrEnum):
     FALLBACK_POLICY = "navigation.fallback_policy"
     ADMIN_OVERRIDE = "admin.override"
     NAV_CACHE_V2 = "navigation.cache_v2"
+    PROFILE_ENABLED = "profile.enabled"
+    ROUTING_ACCOUNTS_V2 = "routing.accounts_v2"
 
 
 # Predefined feature flags available in the system with optional descriptions
@@ -53,6 +55,11 @@ KNOWN_FLAGS: dict[FeatureFlagKey, tuple[str, str]] = {
     FeatureFlagKey.ADMIN_OVERRIDE: ("Enable admin override headers", "all"),
     FeatureFlagKey.NAV_CACHE_V2: (
         "Enable space aware navigation cache",
+        "all",
+    ),
+    FeatureFlagKey.PROFILE_ENABLED: ("Enable user profile feature", "all"),
+    FeatureFlagKey.ROUTING_ACCOUNTS_V2: (
+        "Enable accounts v2 routing",
         "all",
     ),
 }

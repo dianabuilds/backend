@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import load_only
 
-from app.core.log_filters import user_id_var, workspace_id_var
+from app.core.log_filters import account_id_var, user_id_var, workspace_id_var
 from app.core.preview import PreviewContext, get_preview_context
 from app.core.security import verify_access_token
 from app.domains.moderation.infrastructure.models.moderation_models import (
@@ -230,4 +230,5 @@ async def current_workspace(
     Raises 404 if workspace is not found or the user lacks access.
     """
     workspace_id_var.set(str(account_id))
+    account_id_var.set(str(account_id))
     return await WorkspaceService.get_for_user(db, account_id, user)
