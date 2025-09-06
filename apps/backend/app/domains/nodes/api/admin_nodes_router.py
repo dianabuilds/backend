@@ -13,6 +13,7 @@ from fastapi import (
     HTTPException,
     Path,
     Query,
+    Request,
     Response,
 )
 from pydantic import BaseModel
@@ -20,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.log_events import cache_invalidate
+from app.domains.audit.application.audit_service import audit_log
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
@@ -43,6 +45,9 @@ from app.domains.nodes.content_admin_router import (
     update_node_by_id as _content_update_node_by_id,
 )
 from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.nodes.infrastructure.repositories.node_repository import (
+    NodeRepository,
+)
 from app.domains.nodes.models import NodeItem, NodePublishJob
 from app.domains.nodes.schemas.node import NodeBulkOperation, NodeBulkPatch, NodeOut
 from app.domains.workspaces.infrastructure.models import Workspace
@@ -484,3 +489,30 @@ async def cancel_scheduled_publish(
     job.status = "canceled"
     await db.commit()
     return {"canceled": True}
+
+
+@router.post("/{id}/versions/{version}/rollback", summary="Rollback node to version")
+async def rollback_version(
+    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    id: Annotated[int, Path(...)],  # noqa: B008
+    version: Annotated[int, Path(...)],  # noqa: B008
+    request: Request,
+    current_user=Depends(admin_required),  # noqa: B008
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
+):
+    repo = NodeRepository(db)
+    node = await repo.get_by_id(id, workspace_id.int)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    node = await repo.rollback(node, version, current_user.id)
+    await audit_log(
+        db,
+        actor_id=str(current_user.id),
+        action="node_version_rollback",
+        resource_type="node",
+        resource_id=str(id),
+        after={"to_version": version},
+        request=request,
+        workspace_id=str(workspace_id),
+    )
+    return NodeOut.model_validate(node)

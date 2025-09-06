@@ -52,6 +52,15 @@ class NodeRepository(INodeRepository):
         res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
+    async def get_version(self, node_id: int, version: int) -> NodeVersion | None:
+        """Return stored snapshot for a node version."""
+        res = await self._db.execute(
+            select(NodeVersion).where(
+                NodeVersion.node_id == node_id, NodeVersion.version == version
+            )
+        )
+        return res.scalar_one_or_none()
+
     async def get_by_id(self, node_id: int, account_id: int) -> Node | None:
         """Fetch node by numeric primary key."""
         query = (
@@ -123,6 +132,31 @@ class NodeRepository(INodeRepository):
             created_by_user_id=str(actor_id),
         )
         self._db.add(snapshot)
+        await self._db.commit()
+        loaded = await self.get_by_id(node.id, node.account_id)
+        return loaded  # type: ignore[return-value]
+
+    async def rollback(self, node: Node, version: int, actor_id: UUID) -> Node:
+        """Rollback node state to a specific version."""
+        snap = await self.get_version(node.id, version)
+        if not snap:
+            raise ValueError("Version not found")
+
+        node.title = snap.title
+        node.meta = snap.meta or {}
+        node.updated_at = datetime.utcnow()
+        node.updated_by_user_id = actor_id
+        node.version = int(node.version or 1) + 1
+
+        new_snap = NodeVersion(
+            node_id=node.id,
+            version=node.version,
+            title=node.title,
+            meta=node.meta or {},
+            created_at=node.updated_at,
+            created_by_user_id=str(actor_id),
+        )
+        self._db.add(new_snap)
         await self._db.commit()
         loaded = await self.get_by_id(node.id, node.account_id)
         return loaded  # type: ignore[return-value]
