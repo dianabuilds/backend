@@ -17,7 +17,6 @@ app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
 from app.api import deps as api_deps  # noqa: E402
-from app.api.workspace_context import optional_workspace  # noqa: E402
 from app.core.preview import PreviewContext  # noqa: E402
 from app.domains.navigation.api.nodes_public_router import router as nav_router  # noqa: E402
 from app.domains.nodes.api.nodes_router import router as nodes_router  # noqa: E402
@@ -29,7 +28,6 @@ from app.domains.quests.infrastructure.models.navigation_cache_models import (  
 from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 from app.providers.db.session import get_db  # noqa: E402
 from app.schemas.nodes_common import Status, Visibility  # noqa: E402
-from app.security import require_ws_guest  # noqa: E402
 
 # Minimal workspaces table for NodeItem foreign keys
 workspace_stub = sa.Table(
@@ -70,8 +68,7 @@ async def app_and_session():
     app.dependency_overrides[api_deps.get_current_user] = lambda: user
     app.dependency_overrides[api_deps.get_current_user_optional] = lambda: None
     app.dependency_overrides[api_deps.get_preview_context] = lambda: PreviewContext()
-    app.dependency_overrides[optional_workspace] = lambda: None
-    app.dependency_overrides[require_ws_guest] = lambda **_: None
+    nodes_router.require_ws_guest = lambda account_id, user, db: None
 
     return app, async_session, user
 

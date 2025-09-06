@@ -32,7 +32,7 @@ os.environ["CACHE__REDIS_URL"] = "fakeredis://"
 os.environ["CORS_ALLOW_ORIGINS"] = '["https://example.com", "http://client.example"]'
 os.environ["CORS_ALLOW_HEADERS"] = (
     '["X-Custom-Header", "Authorization", "Content-Type", "X-CSRF-Token", '
-    '"X-CSRFToken", "X-Requested-With", "Workspace-Id", "X-Workspace-Id", '
+    '"X-CSRFToken", "X-Requested-With", '
     '"X-Feature-Flags", "X-Preview-Token", "X-BlockSketch-Workspace-Id"]'
 )
 

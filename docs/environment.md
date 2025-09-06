@@ -9,7 +9,7 @@
 - `APP_CORS_ALLOW_METHODS` и `APP_CORS_ALLOW_HEADERS` дополняют стандартные значения бэкенда.
   По умолчанию разрешены методы `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`, `PATCH`
   и заголовки `Authorization`, `Content-Type`, `X-CSRF-Token`, `X-CSRFToken`,
-  `X-Requested-With`, `X-Workspace-Id`, `Workspace-Id`, `X-Feature-Flags`,
+  `X-Requested-With`, `X-Feature-Flags`,
   `X-Preview-Token`, `X-Request-ID`, `X-BlockSketch-Workspace-Id`,
   `X-Client-Platform`, `X-XSRF-Token`, `X-Client-Language`, `X-Client-Version`,
   `X-User-Timezone`.

@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import get_current_user
-from app.api.workspace_context import optional_workspace, require_workspace
 from app.domains.navigation.infrastructure.models.transition_models import (
     NodeTrace,
     NodeTraceVisibility,
@@ -18,6 +17,7 @@ from app.domains.navigation.schemas.traces import NodeTraceCreate, NodeTraceOut
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
 from app.providers.db.session import get_db
+from app.security import require_ws_guest
 
 router = APIRouter(prefix="/traces", tags=["traces"])
 
@@ -27,11 +27,11 @@ async def create_trace(
     payload: NodeTraceCreate,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    _workspace: Annotated[object, Depends(require_workspace)],
 ):
     node = await db.get(Node, payload.node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
+    await require_ws_guest(account_id=node.account_id, user=current_user, db=db)
     trace = NodeTrace(
         node_id=node.id,
         user_id=current_user.id,
@@ -51,9 +51,12 @@ async def list_traces(
     node_id: Annotated[UUID, Query(...)],
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    workspace_dep: Annotated[object, Depends(optional_workspace)],
     visible_to: Annotated[str, Query(pattern="^(all|me)$")] = "all",
 ):
+    node = await db.get(Node, node_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    await require_ws_guest(account_id=node.account_id, user=current_user, db=db)
     stmt = select(NodeTrace).where(NodeTrace.node_id == node_id)
     if visible_to == "me":
         stmt = stmt.where(

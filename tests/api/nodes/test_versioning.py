@@ -25,7 +25,6 @@ _editorjs.render_html = lambda *args, **kwargs: ""  # type: ignore[assign]
 sys.modules.setdefault(module_name, _editorjs)
 
 from app.api import deps as api_deps  # noqa: E402
-from app.api.workspace_context import optional_workspace  # noqa: E402
 from app.domains.admin.infrastructure.models.audit_log import AuditLog  # noqa: E402
 from app.domains.nodes.api.admin_nodes_router import (  # noqa: E402
     admin_required,
@@ -98,13 +97,7 @@ async def app_and_session():
     app.dependency_overrides[api_deps.get_current_user] = lambda: user
     app.dependency_overrides[api_deps.get_current_user_optional] = lambda: user
 
-    async def fake_optional_workspace(request):
-        sid = request.query_params.get("space_id")
-        if sid is not None:
-            request.state.space_id = int(sid)
-        return None
-
-    app.dependency_overrides[optional_workspace] = fake_optional_workspace
+    nodes_router.require_ws_guest = lambda account_id, user, db: None
     app.dependency_overrides[require_ws_guest] = lambda **_: None
     app.dependency_overrides[admin_required] = lambda: user
 
