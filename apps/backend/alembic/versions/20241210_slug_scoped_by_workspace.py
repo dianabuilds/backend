@@ -10,7 +10,15 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.drop_constraint("nodes_slug_key", "nodes", type_="unique")
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+
+    node_constraints = {
+        constraint["name"] for constraint in inspector.get_unique_constraints("nodes")
+    }
+    if "nodes_slug_key" in node_constraints:
+        op.drop_constraint("nodes_slug_key", "nodes", type_="unique")
+
     op.create_index(
         "ix_nodes_account_id_slug",
         "nodes",
@@ -23,7 +31,12 @@ def upgrade() -> None:
         ["account_id", "created_at"],
     )
 
-    op.drop_constraint("content_items_slug_key", "content_items", type_="unique")
+    content_constraints = {
+        constraint["name"] for constraint in inspector.get_unique_constraints("content_items")
+    }
+    if "content_items_slug_key" in content_constraints:
+        op.drop_constraint("content_items_slug_key", "content_items", type_="unique")
+
     op.create_index(
         "ix_content_items_workspace_id_slug",
         "content_items",
