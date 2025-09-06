@@ -48,7 +48,7 @@ async def app_and_session():
 
     app = FastAPI()
     app.include_router(nodes_router)
-    app.include_router(nodes_router, prefix="/workspaces/{workspace_id}")
+    app.include_router(nodes_router, prefix="/accounts/{account_id}")
 
     async def override_db():
         async with async_session() as session:
@@ -98,7 +98,7 @@ async def test_scope_modes(app_and_session):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         for mode in ["mine", "member", "invited"]:
-            resp = await ac.get(f"/workspaces/{ws_id}/nodes", params={"scope_mode": mode})
+            resp = await ac.get(f"/accounts/{ws_id}/nodes", params={"scope_mode": mode})
             assert resp.status_code == 200
         resp = await ac.get("/nodes", params={"scope_mode": f"space:{ws_id}"})
         assert resp.status_code == 200
