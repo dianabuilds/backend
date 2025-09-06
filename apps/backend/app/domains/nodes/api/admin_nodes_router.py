@@ -57,7 +57,7 @@ from app.schemas.workspaces import WorkspaceType
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
-    prefix="/admin/workspaces/{workspace_id}/nodes",
+    prefix="/admin/accounts/{account_id}/nodes",
     tags=["admin"],
     responses=ADMIN_AUTH_RESPONSES,
 )
@@ -100,7 +100,7 @@ class AdminNodeListParams(TypedDict, total=False):
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin)")
 async def list_nodes_admin(
     response: Response,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     if_none_match: Annotated[str | None, Header(alias="If-None-Match")] = None,
     author: UUID | None = None,
     sort: Annotated[
@@ -134,15 +134,15 @@ async def list_nodes_admin(
     """
     if scope_mode is None:
         scope_mode = "member"
-    spec_workspace_id: UUID | None = workspace_id
+    spec_account_id: UUID | None = account_id
     if scope_mode == "global":
-        spec_workspace_id = None
+        spec_account_id = None
     else:
-        workspace = await db.get(Workspace, workspace_id)
+        workspace = await db.get(Workspace, account_id)
         if workspace and workspace.is_system and workspace.type == WorkspaceType.global_:
-            spec_workspace_id = None
+            spec_account_id = None
     spec = NodeFilterSpec(
-        workspace_id=spec_workspace_id,
+        workspace_id=spec_account_id,
         author_id=author,
         is_visible=visible,
         premium_only=premium_only,
@@ -172,7 +172,7 @@ async def list_nodes_admin(
         _logging.getLogger(__name__).info(
             "admin.nodes_list_timing",
             extra={
-                "workspace_id": str(workspace_id),
+                "account_id": str(account_id),
                 "compute_etag_ms": int((t_etag - t0) * 1000),
                 "list_nodes_ms": int((t_list - t_etag) * 1000),
                 "total_ms": int((t_list - t0) * 1000),
@@ -187,7 +187,7 @@ async def list_nodes_admin(
 
 @router.post("", summary="Create node (admin)")
 async def create_node_admin(
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: dict | None = Body(  # noqa: B008
         default=None,
         example={
@@ -201,12 +201,12 @@ async def create_node_admin(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.create(workspace_id, actor_id=current_user.id)
+    item = await svc.create(account_id, actor_id=current_user.id)
     # Если в теле пришёл title/slug/content и т.п. — применим сразу же
     if payload:
         try:
             item = await svc.update(
-                workspace_id,
+                account_id,
                 item.id,
                 payload,
                 actor_id=current_user.id,
@@ -220,12 +220,12 @@ async def create_node_admin(
 @router.post("/bulk", summary="Bulk node operations")
 async def bulk_node_operation(
     payload: NodeBulkOperation,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     result = await db.execute(
-        select(Node).where(Node.id.in_(payload.ids), Node.account_id == workspace_id)
+        select(Node).where(Node.id.in_(payload.ids), Node.account_id == account_id)
     )
     nodes = result.scalars().all()
     invalidate_slugs: list[str] = []
@@ -250,8 +250,8 @@ async def bulk_node_operation(
         node.updated_by_user_id = current_user.id
     await db.commit()
     for slug in invalidate_slugs:
-        await navcache.invalidate_navigation_by_node(workspace_id, slug)
-        await navcache.invalidate_modes_by_node(workspace_id, slug)
+        await navcache.invalidate_navigation_by_node(account_id, slug)
+        await navcache.invalidate_modes_by_node(account_id, slug)
         cache_invalidate("nav", reason="node_bulk", key=slug)
         cache_invalidate("navm", reason="node_bulk", key=slug)
     if invalidate_slugs:
@@ -263,12 +263,12 @@ async def bulk_node_operation(
 @router.patch("/bulk", summary="Bulk update nodes")
 async def bulk_patch_nodes(
     payload: NodeBulkPatch,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     result = await db.execute(
-        select(Node).where(Node.id.in_(payload.ids), Node.account_id == workspace_id)
+        select(Node).where(Node.id.in_(payload.ids), Node.account_id == account_id)
     )
     nodes = result.scalars().all()
     updated_ids: list[int] = []
@@ -312,8 +312,8 @@ async def bulk_patch_nodes(
                 pass
     await db.commit()
     for slug in invalidate_slugs:
-        await navcache.invalidate_navigation_by_node(workspace_id, slug)
-        await navcache.invalidate_modes_by_node(workspace_id, slug)
+        await navcache.invalidate_navigation_by_node(account_id, slug)
+        await navcache.invalidate_modes_by_node(account_id, slug)
         cache_invalidate("nav", reason="node_bulk_patch", key=slug)
         cache_invalidate("navm", reason="node_bulk_patch", key=slug)
     if invalidate_slugs:
@@ -324,7 +324,7 @@ async def bulk_patch_nodes(
 
 @router.get("/{id}", summary="Get node by ID (admin, full)")
 async def get_node_by_id_admin(
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     id: Annotated[int, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -334,12 +334,12 @@ async def get_node_by_id_admin(
     Делегирует обработку в контент‑роутер, который самостоятельно
     резолвит идентификатор контента.
     """
-    return await _content_get_node_by_id(node_id=id, workspace_id=workspace_id, db=db)
+    return await _content_get_node_by_id(node_id=id, account_id=account_id, db=db)
 
 
 @router.patch("/{id}", summary="Update node by ID (admin, full)")
 async def update_node_by_id_admin(
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     id: Annotated[int, Path(...)],  # noqa: B008
     payload: dict = Body(  # noqa: B008
         example={
@@ -359,7 +359,7 @@ async def update_node_by_id_admin(
     return await _content_update_node_by_id(
         node_id=id,
         payload=payload,
-        workspace_id=workspace_id,
+        account_id=account_id,
         current_user=current_user,
         db=db,
     )
@@ -367,7 +367,7 @@ async def update_node_by_id_admin(
 
 @router.post("/{id}/publish", summary="Publish node by ID (admin)")
 async def publish_node_by_id_admin(
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     id: Annotated[int, Path(...)],  # noqa: B008
     payload: dict | None = None,
     current_user=Depends(admin_required),  # noqa: B008
@@ -379,7 +379,7 @@ async def publish_node_by_id_admin(
     """
     return await _content_publish_node_by_id(
         node_id=id,
-        workspace_id=workspace_id,
+        account_id=account_id,
         payload=payload or {},
         current_user=current_user,
         db=db,
@@ -393,19 +393,19 @@ class SchedulePublishIn(BaseModel):
 
 @router.get("/{id}/publish_info", summary="Publish status and schedule (admin)")
 async def get_publish_info(
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     id: Annotated[int, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     """Возвращает статус публикации и запланированную публикацию."""
-    item = await _resolve_content_item_id(db, workspace_id=workspace_id, node_or_item_id=id)
-    if item.workspace_id != workspace_id:
+    item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=id)
+    if item.workspace_id != account_id:
         raise HTTPException(status_code=404, detail="Node not found")
 
     res = await db.execute(
         select(NodePublishJob).where(
-            NodePublishJob.workspace_id == workspace_id,
+            NodePublishJob.workspace_id == account_id,
             NodePublishJob.node_id == id,
             NodePublishJob.status == "pending",
         )
@@ -430,17 +430,17 @@ async def get_publish_info(
 @router.post("/{id}/schedule_publish", summary="Schedule publish by date/time (admin)")
 async def schedule_publish(
     payload: SchedulePublishIn,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     id: Annotated[int, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008,
 ):
     """Создаёт или заменяет задание на публикацию."""
-    item = await _resolve_content_item_id(db, workspace_id=workspace_id, node_or_item_id=id)
+    item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=id)
 
     res = await db.execute(
         select(NodePublishJob).where(
-            NodePublishJob.workspace_id == workspace_id,
+            NodePublishJob.workspace_id == account_id,
             NodePublishJob.node_id == id,
             NodePublishJob.status == "pending",
         )
@@ -450,7 +450,7 @@ async def schedule_publish(
         existing.status = "canceled"
 
     job = NodePublishJob(
-        workspace_id=workspace_id,
+        workspace_id=account_id,
         node_id=id,
         content_id=item.id,
         access=payload.access,
@@ -471,14 +471,14 @@ async def schedule_publish(
 
 @router.delete("/{id}/schedule_publish", summary="Cancel scheduled publish (admin)")
 async def cancel_scheduled_publish(
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     id: Annotated[int, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008,
 ):
     res = await db.execute(
         select(NodePublishJob).where(
-            NodePublishJob.workspace_id == workspace_id,
+            NodePublishJob.workspace_id == account_id,
             NodePublishJob.node_id == id,
             NodePublishJob.status == "pending",
         )
@@ -493,7 +493,7 @@ async def cancel_scheduled_publish(
 
 @router.post("/{id}/versions/{version}/rollback", summary="Rollback node to version")
 async def rollback_version(
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     id: Annotated[int, Path(...)],  # noqa: B008
     version: Annotated[int, Path(...)],  # noqa: B008
     request: Request,
@@ -501,7 +501,7 @@ async def rollback_version(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     repo = NodeRepository(db)
-    node = await repo.get_by_id(id, workspace_id.int)
+    node = await repo.get_by_id(id, account_id.int)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     node = await repo.rollback(node, version, current_user.id)
@@ -513,6 +513,6 @@ async def rollback_version(
         resource_id=str(id),
         after={"to_version": version},
         request=request,
-        workspace_id=str(workspace_id),
+        workspace_id=str(account_id),
     )
     return NodeOut.model_validate(node)

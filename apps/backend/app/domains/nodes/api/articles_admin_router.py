@@ -16,7 +16,7 @@ from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
-    prefix="/admin/workspaces/{workspace_id}/articles",
+    prefix="/admin/accounts/{account_id}/articles",
     tags=["admin"],
     responses=ADMIN_AUTH_RESPONSES,
 )
@@ -103,13 +103,13 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
 @router.post("", summary="Create article (admin)")
 async def create_article(
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: dict | None = None,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.create(workspace_id, actor_id=current_user.id)
+    item = await svc.create(account_id, actor_id=current_user.id)
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
@@ -117,12 +117,12 @@ async def create_article(
 @router.get("/{node_id}", summary="Get article (admin)")
 async def get_article(
     node_id: int,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.get(workspace_id, node_id)
+    item = await svc.get(account_id, node_id)
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
@@ -131,14 +131,14 @@ async def get_article(
 async def update_article(
     node_id: int,
     payload: dict,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
     item = await svc.update(
-        workspace_id,
+        account_id,
         node_id,
         payload,
         actor_id=current_user.id,
@@ -154,14 +154,14 @@ async def update_article(
 @router.post("/{node_id}/publish", summary="Publish article (admin)")
 async def publish_article(
     node_id: int,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
     item = await svc.publish(
-        workspace_id,
+        account_id,
         node_id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
@@ -170,7 +170,7 @@ async def publish_article(
         node_id=item.id,
         slug=item.slug,
         author_id=current_user.id,
-        workspace_id=workspace_id,
+        workspace_id=account_id,
     )
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)

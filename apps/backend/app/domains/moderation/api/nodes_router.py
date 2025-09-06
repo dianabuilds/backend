@@ -16,7 +16,7 @@ from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 admin_required = require_admin_role()
 
 router = APIRouter(
-    prefix="/admin/workspaces/{workspace_id}/moderation/nodes",
+    prefix="/admin/accounts/{account_id}/moderation/nodes",
     tags=["admin"],
     dependencies=[Depends(admin_required)],
     responses=ADMIN_AUTH_RESPONSES,
@@ -29,13 +29,13 @@ class HidePayload(BaseModel):
 
 @router.post("/{slug}/hide")
 async def hide_node(
-    workspace_id: int,
+    account_id: int,
     slug: str,
     payload: HidePayload,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict[str, str]:
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug, workspace_id)
+    node = await repo.get_by_slug(slug, account_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     if node.is_visible:
@@ -47,12 +47,12 @@ async def hide_node(
 
 @router.post("/{slug}/restore")
 async def restore_node(
-    workspace_id: int,
+    account_id: int,
     slug: str,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict[str, str]:
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug, workspace_id)
+    node = await repo.get_by_slug(slug, account_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     if not node.is_visible:

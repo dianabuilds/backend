@@ -118,7 +118,7 @@ def register_domain_routers(app: FastAPI) -> None:
         from app.domains.media.api.routers import router as media_router
 
         app.include_router(media_router)
-        app.include_router(media_router, prefix="/workspaces/{workspace_id}")
+        app.include_router(media_router, prefix="/accounts/{account_id}")
     except Exception as exc:
         logger.exception("Failed to load media router. Startup aborted")
         raise RuntimeError("Failed to load media router") from exc
@@ -175,7 +175,7 @@ def register_domain_routers(app: FastAPI) -> None:
         from app.domains.nodes.api.nodes_router import router as nodes_router
 
         app.include_router(nodes_router)
-        app.include_router(nodes_router, prefix="/workspaces/{workspace_id}")
+        app.include_router(nodes_router, prefix="/accounts/{account_id}")
     except Exception as exc:
         logger.exception("Failed to load nodes router. Startup aborted")
         raise RuntimeError("Failed to load nodes router") from exc

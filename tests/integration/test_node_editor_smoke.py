@@ -67,18 +67,18 @@ async def app_client():
         )
         session.add_all([ws, node, item])
         await session.commit()
-        ws_id = ws.id
+        acc_id = ws.id
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, ws_id
+        yield client, acc_id
 
 
 @pytest.mark.asyncio
 async def test_open_node_from_list(app_client):
-    client, ws_id = app_client
-    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes")
+    client, acc_id = app_client
+    resp = await client.get(f"/admin/accounts/{acc_id}/nodes")
     assert resp.status_code == 200
     node_id = resp.json()[0]["id"]
-    resp2 = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
+    resp2 = await client.get(f"/admin/accounts/{acc_id}/nodes/{node_id}")
     assert resp2.status_code == 200

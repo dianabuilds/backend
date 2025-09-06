@@ -71,11 +71,11 @@ async def workspace_admin_client():
         )
         session.add_all([ws, node, item])
         await session.commit()
-        ws_id, item_id, node_id = ws.id, item.id, node.id
+        acc_id, item_id, node_id = ws.id, item.id, node.id
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, async_session, ws_id, item_id, node_id
+        yield client, async_session, acc_id, item_id, node_id
 
 
 @pytest_asyncio.fixture()
@@ -164,12 +164,12 @@ async def forbidden_global_client():
 
 @pytest.mark.asyncio
 async def test_workspace_node_load_and_edit(workspace_admin_client):
-    client, session_factory, ws_id, item_id, node_id = workspace_admin_client
-    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{item_id}")
+    client, session_factory, acc_id, item_id, node_id = workspace_admin_client
+    resp = await client.get(f"/admin/accounts/{acc_id}/nodes/{item_id}")
     assert resp.status_code == 200
     assert resp.json()["id"] == node_id
 
-    resp = await client.put(f"/admin/workspaces/{ws_id}/nodes/{item_id}", json={"title": "Updated"})
+    resp = await client.put(f"/admin/accounts/{acc_id}/nodes/{item_id}", json={"title": "Updated"})
     assert resp.status_code == 200
     assert resp.json()["title"] == "Updated"
 

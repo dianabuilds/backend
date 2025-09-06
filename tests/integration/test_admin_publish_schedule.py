@@ -68,11 +68,11 @@ async def admin_client():
         )
         session.add_all([ws, node, item])
         await session.commit()
-        ws_id, node_id, item_id = ws.id, node.id, item.id
+        acc_id, node_id, item_id = ws.id, node.id, item.id
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, async_session, ws_id, node_id, item_id
+        yield client, async_session, acc_id, node_id, item_id
 
 
 @pytest_asyncio.fixture()
@@ -119,37 +119,37 @@ async def forbidden_client():
         )
         session.add_all([ws, node, item])
         await session.commit()
-        ws_id, node_id = ws.id, node.id
+        acc_id, node_id = ws.id, node.id
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, ws_id, node_id
+        yield client, acc_id, node_id
 
 
 @pytest.mark.asyncio
 async def test_publish_info_ok(admin_client):
-    client, _, ws_id, node_id, _ = admin_client
-    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}/publish_info")
+    client, _, acc_id, node_id, _ = admin_client
+    resp = await client.get(f"/admin/accounts/{acc_id}/nodes/{node_id}/publish_info")
     assert resp.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_publish_info_forbidden(forbidden_client):
-    client, ws_id, node_id = forbidden_client
-    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}/publish_info")
+    client, acc_id, node_id = forbidden_client
+    resp = await client.get(f"/admin/accounts/{acc_id}/nodes/{node_id}/publish_info")
     assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_publish_info_not_found(admin_client):
-    client, _, ws_id, node_id, _ = admin_client
-    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/9999/publish_info")
+    client, _, acc_id, node_id, _ = admin_client
+    resp = await client.get(f"/admin/accounts/{acc_id}/nodes/9999/publish_info")
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_schedule_publish_ok(admin_client, monkeypatch):
-    client, session_factory, ws_id, node_id, _ = admin_client
+    client, session_factory, acc_id, node_id, _ = admin_client
 
     orig_init = NodePublishJob.__init__
 
@@ -162,7 +162,7 @@ async def test_schedule_publish_ok(admin_client, monkeypatch):
 
     payload = {"run_at": datetime.utcnow().isoformat()}
     resp = await client.post(
-        f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish",
+        f"/admin/accounts/{acc_id}/nodes/{node_id}/schedule_publish",
         json=payload,
     )
     assert resp.status_code == 200
@@ -170,10 +170,10 @@ async def test_schedule_publish_ok(admin_client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_schedule_publish_forbidden(forbidden_client):
-    client, ws_id, node_id = forbidden_client
+    client, acc_id, node_id = forbidden_client
     payload = {"run_at": datetime.utcnow().isoformat()}
     resp = await client.post(
-        f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish",
+        f"/admin/accounts/{acc_id}/nodes/{node_id}/schedule_publish",
         json=payload,
     )
     assert resp.status_code == 403
@@ -181,10 +181,10 @@ async def test_schedule_publish_forbidden(forbidden_client):
 
 @pytest.mark.asyncio
 async def test_schedule_publish_not_found(admin_client):
-    client, _, ws_id, node_id, _ = admin_client
+    client, _, acc_id, node_id, _ = admin_client
     payload = {"run_at": datetime.utcnow().isoformat()}
     resp = await client.post(
-        f"/admin/workspaces/{ws_id}/nodes/9999/schedule_publish",
+        f"/admin/accounts/{acc_id}/nodes/9999/schedule_publish",
         json=payload,
     )
     assert resp.status_code == 404
@@ -192,11 +192,11 @@ async def test_schedule_publish_not_found(admin_client):
 
 @pytest.mark.asyncio
 async def test_cancel_scheduled_publish_ok(admin_client):
-    client, session_factory, ws_id, node_id, item_id = admin_client
+    client, session_factory, acc_id, node_id, item_id = admin_client
     async with session_factory() as session:
         job = NodePublishJob(
             id=1,
-            workspace_id=ws_id,
+            workspace_id=acc_id,
             node_id=node_id,
             content_id=item_id,
             access="everyone",
@@ -206,20 +206,20 @@ async def test_cancel_scheduled_publish_ok(admin_client):
         session.add(job)
         await session.commit()
 
-    resp = await client.delete(f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish")
+    resp = await client.delete(f"/admin/accounts/{acc_id}/nodes/{node_id}/schedule_publish")
     assert resp.status_code == 200
     assert resp.json()["canceled"] is True
 
 
 @pytest.mark.asyncio
 async def test_cancel_scheduled_publish_forbidden(forbidden_client):
-    client, ws_id, node_id = forbidden_client
-    resp = await client.delete(f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish")
+    client, acc_id, node_id = forbidden_client
+    resp = await client.delete(f"/admin/accounts/{acc_id}/nodes/{node_id}/schedule_publish")
     assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_cancel_scheduled_publish_not_found(admin_client):
-    client, _, ws_id, node_id, _ = admin_client
-    resp = await client.delete(f"/admin/workspaces/{ws_id}/nodes/{node_id}/schedule_publish")
+    client, _, acc_id, node_id, _ = admin_client
+    resp = await client.delete(f"/admin/accounts/{acc_id}/nodes/{node_id}/schedule_publish")
     assert resp.status_code == 404
