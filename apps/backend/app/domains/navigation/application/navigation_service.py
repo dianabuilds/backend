@@ -11,10 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps.guards import check_transition
 from app.core.preview import PreviewContext
-from app.domains.admin.application.feature_flag_service import (
-    FeatureFlagKey,
-    get_effective_flags,
-)
 from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.navigation.infrastructure.history_store import RedisHistoryStore
@@ -151,14 +147,7 @@ class NavigationService:
         user: User | None,
         preview: PreviewContext | None = None,
     ) -> list[dict[str, object]]:
-        try:
-            flags = await get_effective_flags(db, None, user)
-        except Exception:
-            flags = set()
-        account_id = getattr(node, "account_id", None)
         stmt = select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
-        if FeatureFlagKey.NAV_CACHE_V2.value in flags and account_id is not None:
-            stmt = stmt.where(NavigationCache.space_id == account_id)
         result = await db.execute(stmt)
         data = result.scalar_one_or_none()
         if not data:
@@ -173,14 +162,7 @@ class NavigationService:
         user: User | None,
         preview: PreviewContext | None = None,
     ) -> dict[str, object]:
-        try:
-            flags = await get_effective_flags(db, None, user)
-        except Exception:
-            flags = set()
-        account_id = getattr(node, "account_id", None)
         stmt = select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
-        if FeatureFlagKey.NAV_CACHE_V2.value in flags and account_id is not None:
-            stmt = stmt.where(NavigationCache.space_id == account_id)
         result = await db.execute(stmt)
         data = result.scalar_one_or_none()
         if data:
@@ -196,13 +178,6 @@ class NavigationService:
         }
 
     async def invalidate_navigation_cache(self, db: AsyncSession, node: Node) -> None:
-        try:
-            flags = await get_effective_flags(db, None, None)
-        except Exception:
-            flags = set()
-        account_id = getattr(node, "account_id", None)
         stmt = delete(NavigationCache).where(NavigationCache.node_slug == node.slug)
-        if FeatureFlagKey.NAV_CACHE_V2.value in flags and account_id is not None:
-            stmt = stmt.where(NavigationCache.space_id == account_id)
         await db.execute(stmt)
         await db.flush()

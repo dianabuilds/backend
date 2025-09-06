@@ -414,8 +414,10 @@ class NodeService:
             await navsvc.invalidate_navigation_cache(self._db, node)
             space_id = getattr(node, "account_id", None)
             if space_id is not None:
-                await navcache.invalidate_navigation_by_node(space_id, node.slug)
-                await navcache.invalidate_modes_by_node(space_id, node.slug)
+                await navcache.invalidate_navigation_by_node(
+                    account_id=space_id, node_slug=node.slug
+                )
+                await navcache.invalidate_modes_by_node(account_id=space_id, node_slug=node.slug)
             await navcache.invalidate_compass_all()
             cache_invalidate("nav", reason="node_update", key=node.slug)
             cache_invalidate("navm", reason="node_update", key=node.slug)

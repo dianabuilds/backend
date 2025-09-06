@@ -46,11 +46,11 @@ from app.providers.db.session import get_db  # noqa: E402
 # Patch navcache to no-op implementation
 class DummyNav:
     async def invalidate_navigation_by_node(
-        self, space_id: object, slug: str
+        self, account_id: object, slug: str
     ) -> None:  # noqa: ANN401
         return None
 
-    async def invalidate_modes_by_node(self, space_id: object, slug: str) -> None:  # noqa: ANN401
+    async def invalidate_modes_by_node(self, account_id: object, slug: str) -> None:  # noqa: ANN401
         return None
 
     async def invalidate_compass_all(self) -> None:

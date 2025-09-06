@@ -250,8 +250,8 @@ async def bulk_node_operation(
         node.updated_by_user_id = current_user.id
     await db.commit()
     for slug in invalidate_slugs:
-        await navcache.invalidate_navigation_by_node(account_id, slug)
-        await navcache.invalidate_modes_by_node(account_id, slug)
+        await navcache.invalidate_navigation_by_node(account_id=account_id, node_slug=slug)
+        await navcache.invalidate_modes_by_node(account_id=account_id, node_slug=slug)
         cache_invalidate("nav", reason="node_bulk", key=slug)
         cache_invalidate("navm", reason="node_bulk", key=slug)
     if invalidate_slugs:
@@ -312,8 +312,8 @@ async def bulk_patch_nodes(
                 pass
     await db.commit()
     for slug in invalidate_slugs:
-        await navcache.invalidate_navigation_by_node(account_id, slug)
-        await navcache.invalidate_modes_by_node(account_id, slug)
+        await navcache.invalidate_navigation_by_node(account_id=account_id, node_slug=slug)
+        await navcache.invalidate_modes_by_node(account_id=account_id, node_slug=slug)
         cache_invalidate("nav", reason="node_bulk_patch", key=slug)
         cache_invalidate("navm", reason="node_bulk_patch", key=slug)
     if invalidate_slugs:

@@ -63,7 +63,9 @@ class _Handlers:
             await self.update_node_embedding(session, event.node_id)
         if event.tags_changed and event.workspace_id is not None:
             try:
-                await navcache.invalidate_navigation_by_node(event.workspace_id, event.slug)
+                await navcache.invalidate_navigation_by_node(
+                    account_id=event.workspace_id, node_slug=event.slug
+                )
             except Exception:
                 logger.exception(
                     "navcache.invalidate_navigation_by_node_failed",
@@ -81,8 +83,12 @@ class _Handlers:
             logger.exception("index_content_failed", extra={"event": event})
         try:
             if event.workspace_id is not None:
-                await navcache.invalidate_navigation_by_node(event.workspace_id, event.slug)
-                await navcache.invalidate_modes_by_node(event.workspace_id, event.slug)
+                await navcache.invalidate_navigation_by_node(
+                    account_id=event.workspace_id, node_slug=event.slug
+                )
+                await navcache.invalidate_modes_by_node(
+                    account_id=event.workspace_id, node_slug=event.slug
+                )
             await navcache.invalidate_compass_all()
         except Exception:
             logger.exception("navcache.invalidate_post_publish_failed", extra={"event": event})
