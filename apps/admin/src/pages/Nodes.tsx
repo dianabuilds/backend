@@ -7,6 +7,7 @@ import { listNodes, type NodeListParams } from '../api/nodes';
 import { createPreviewLink } from '../api/preview';
 import { wsApi } from '../api/wsApi';
 import FlagsCell from '../components/FlagsCell';
+import ScopeControls from '../components/ScopeControls';
 import StatusCell from '../components/StatusCell';
 import { useToast } from '../components/ToastProvider';
 import { Card, CardContent } from '../components/ui/card';
@@ -18,8 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import WorkspaceControlPanel from '../components/WorkspaceControlPanel';
-import WorkspaceSelector from '../components/WorkspaceSelector';
 import type { Status as NodeStatus } from '../openapi';
 import { Button } from '../shared/ui';
 import { ensureArray } from '../shared/utils';
@@ -52,6 +51,8 @@ export default function Nodes() {
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [scopeMode, setScopeMode] = useState('member');
+  const [roles, setRoles] = useState<string[]>([]);
 
   const copySlug = (slug: string) => {
     if (typeof navigator !== 'undefined' && slug) {
@@ -62,8 +63,12 @@ export default function Nodes() {
   if (!workspaceId) {
     return (
       <div className="p-4">
-        <p className="mb-4">Выберите воркспейс, чтобы создать контент</p>
-        <WorkspaceSelector />
+        <ScopeControls
+          scopeMode={scopeMode}
+          onScopeModeChange={setScopeMode}
+          roles={roles}
+          onRolesChange={setRoles}
+        />
       </div>
     );
   }
@@ -243,11 +248,14 @@ export default function Nodes() {
       recommendable,
       page,
       limit,
+      scopeMode,
     ],
     queryFn: async () => {
       const params: NodeListParams = {
         limit,
         offset: page * limit,
+        scope_mode: scopeMode === 'space' ? `space:${workspaceId}` : scopeMode,
+        space_id: workspaceId,
       };
       if (q) params.q = q;
       if (status !== 'all') params.status = status;
@@ -477,7 +485,12 @@ export default function Nodes() {
       <div className="flex-1">
         <h1 className="text-2xl font-bold mb-4">Ноды</h1>
 
-        <WorkspaceControlPanel />
+        <ScopeControls
+          scopeMode={scopeMode}
+          onScopeModeChange={setScopeMode}
+          roles={roles}
+          onRolesChange={setRoles}
+        />
 
         <Card className="sticky top-0 z-10 mb-4">
           <CardContent className="flex flex-col gap-2">
