@@ -42,14 +42,14 @@ class DummyService:
         *,
         user=None,
         preview: PreviewContext | None = None,
-        space_id=None,
+        account_id=None,
     ):
         other_ws = uuid.uuid4()
         candidates = [
             DummyNode("a", workspace_id=node.workspace_id),
             DummyNode("b", workspace_id=other_ws),
         ]
-        return [n for n in candidates if n.workspace_id == space_id]
+        return [n for n in candidates if n.workspace_id == account_id]
 
 
 def test_echo_provider_filters_workspace():

@@ -86,6 +86,7 @@ async def update_transition_admin(
         if not new_from:
             raise HTTPException(status_code=404, detail="Source node not found")
         transition.from_node_id = new_from.id
+        transition.account_id = new_from.account_id
     if payload.to_slug:
         res = await db.execute(select(Node).where(Node.slug == payload.to_slug))
         new_to = res.scalars().first()

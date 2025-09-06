@@ -32,7 +32,7 @@ class CompassService:
             account_id = getattr(node, "account_id", None)
         stmt = select(NavigationCache.compass).where(NavigationCache.node_slug == node.slug)
         if account_id is not None:
-            stmt = stmt.where(NavigationCache.space_id == account_id)
+            stmt = stmt.where(NavigationCache.account_id == account_id)
         result = await db.execute(stmt)
         slugs = result.scalar_one_or_none() or []
         nodes: list[Node] = []

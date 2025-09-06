@@ -158,7 +158,7 @@ class NavigationService:
         account_id = getattr(node, "account_id", None)
         stmt = select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
         if FeatureFlagKey.NAV_CACHE_V2.value in flags and account_id is not None:
-            stmt = stmt.where(NavigationCache.space_id == account_id)
+            stmt = stmt.where(NavigationCache.account_id == account_id)
         result = await db.execute(stmt)
         data = result.scalar_one_or_none()
         if not data:
@@ -180,7 +180,7 @@ class NavigationService:
         account_id = getattr(node, "account_id", None)
         stmt = select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
         if FeatureFlagKey.NAV_CACHE_V2.value in flags and account_id is not None:
-            stmt = stmt.where(NavigationCache.space_id == account_id)
+            stmt = stmt.where(NavigationCache.account_id == account_id)
         result = await db.execute(stmt)
         data = result.scalar_one_or_none()
         if data:
@@ -203,6 +203,6 @@ class NavigationService:
         account_id = getattr(node, "account_id", None)
         stmt = delete(NavigationCache).where(NavigationCache.node_slug == node.slug)
         if FeatureFlagKey.NAV_CACHE_V2.value in flags and account_id is not None:
-            stmt = stmt.where(NavigationCache.space_id == account_id)
+            stmt = stmt.where(NavigationCache.account_id == account_id)
         await db.execute(stmt)
         await db.flush()
