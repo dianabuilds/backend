@@ -11,6 +11,7 @@ from app.domains.notifications.application.ports.notification_repo import (
 from app.domains.notifications.infrastructure.models.notification_models import (
     Notification,
 )
+from app.domains.workspaces.application.space_resolver import resolve_workspace_id
 from app.schemas.notification import NotificationOut
 
 
@@ -21,6 +22,7 @@ class NotificationRepository(INotificationRepository):
     async def create_and_commit(
         self,
         *,
+        space_id: UUID | None = None,
         workspace_id: UUID | None = None,
         user_id: UUID,
         title: str,
@@ -29,8 +31,9 @@ class NotificationRepository(INotificationRepository):
         placement: Any,
         is_preview: bool = False,
     ) -> dict[str, Any]:
+        ws_id = resolve_workspace_id(space_id, workspace_id)
         notif = Notification(
-            workspace_id=workspace_id,
+            workspace_id=ws_id,
             user_id=user_id,
             title=title,
             message=message,

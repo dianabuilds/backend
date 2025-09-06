@@ -8,6 +8,7 @@ from app.domains.notifications.application.ports.notification_repo import (
     INotificationRepository,
 )
 from app.domains.notifications.application.ports.pusher import INotificationPusher
+from app.domains.workspaces.application.space_resolver import resolve_workspace_id
 from app.domains.workspaces.limits import workspace_limit
 from app.schemas.notification import NotificationPlacement
 
@@ -21,6 +22,7 @@ class NotifyService:
     async def create_notification(
         self,
         *,
+        space_id: UUID | None = None,
         workspace_id: UUID | None = None,
         user_id: UUID,
         title: str,
@@ -29,8 +31,10 @@ class NotifyService:
         placement: Any = NotificationPlacement.inbox,
         preview: PreviewContext | None = None,
     ) -> dict[str, Any]:
+        resolve_workspace_id(space_id, workspace_id)
         is_shadow = bool(preview and preview.mode == "shadow")
         dto = await self._repo.create_and_commit(
+            space_id=space_id,
             workspace_id=workspace_id,
             user_id=user_id,
             title=title,
