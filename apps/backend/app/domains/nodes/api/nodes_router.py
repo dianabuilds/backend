@@ -22,6 +22,7 @@ from app.domains.navigation.application.navigation_cache_service import (
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.navigation.application.traces_service import TracesService
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.audit.application.audit_service import audit_log
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
     PageRequest,
@@ -189,8 +190,24 @@ async def update_node(
         raise HTTPException(status_code=404, detail="Node not found")
     override = bool(getattr(request.state, "admin_override", False))
     NodePolicy.ensure_can_edit(node, current_user, override=override)
+    before_snapshot = NodeOut.model_validate(node).model_dump()
     was_visible = node.is_visible
     node = await repo.update(node, payload, current_user.id)
+    if override:
+        after_snapshot = NodeOut.model_validate(node).model_dump()
+        await audit_log(
+            db,
+            actor_id=str(current_user.id),
+            action="node_update",
+            resource_type="node",
+            resource_id=str(node.id),
+            before=before_snapshot,
+            after=after_snapshot,
+            request=request,
+            reason=getattr(request.state, "override_reason", None),
+            override=True,
+            workspace_id=str(space_id),
+        )
     if was_visible != node.is_visible:
         await navsvc.invalidate_navigation_cache(db, node)
         await navcache.invalidate_navigation_by_node(slug)
@@ -227,7 +244,22 @@ async def delete_node(
         raise HTTPException(status_code=404, detail="Node not found")
     override = bool(getattr(request.state, "admin_override", False))
     NodePolicy.ensure_can_edit(node, current_user, override=override)
+    before_snapshot = NodeOut.model_validate(node).model_dump()
     await repo.delete(node)
+    if override:
+        await audit_log(
+            db,
+            actor_id=str(current_user.id),
+            action="node_delete",
+            resource_type="node",
+            resource_id=str(node.id),
+            before=before_snapshot,
+            after=None,
+            request=request,
+            reason=getattr(request.state, "override_reason", None),
+            override=True,
+            workspace_id=str(space_id),
+        )
     await navsvc.invalidate_navigation_cache(db, node)
     await navcache.invalidate_navigation_by_node(slug)
     await navcache.invalidate_modes_by_node(slug)

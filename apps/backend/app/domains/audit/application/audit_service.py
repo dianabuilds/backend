@@ -19,13 +19,12 @@ async def audit_log(
     after: dict[str, Any] | None = None,
     request: Any = None,
     reason: str | None = None,
+    override: bool = False,
     extra: dict[str, Any] | None = None,
     workspace_id: str | None = None,
     node_type: str | None = None,
 ) -> None:
     payload: dict[str, Any] = extra.copy() if extra else {}
-    if reason:
-        payload["reason"] = reason
     await log_admin_action(
         db,
         actor_id=actor_id,
@@ -35,6 +34,8 @@ async def audit_log(
         before=before,
         after=after,
         workspace_id=workspace_id,
+        override=override,
+        reason=reason,
         **payload,
     )
 
