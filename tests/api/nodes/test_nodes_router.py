@@ -56,6 +56,7 @@ async def app_and_session():
 
     app = FastAPI()
     app.include_router(nodes_router)
+    app.include_router(nodes_router, prefix="/accounts/{account_id}")
     app.include_router(nav_router)
 
     async def override_db():
@@ -98,11 +99,11 @@ async def test_get_node_scoped_by_space(app_and_session):
         await session.commit()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp_ok = await ac.get(f"/nodes/{node.slug}", params={"space_id": ws1.id})
+        resp_ok = await ac.get(f"/accounts/{ws1.id}/nodes/{node.slug}")
     assert resp_ok.status_code == 200
     assert resp_ok.json()["slug"] == node.slug
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp_not_found = await ac.get(f"/nodes/{node.slug}", params={"space_id": ws2.id})
+        resp_not_found = await ac.get(f"/accounts/{ws2.id}/nodes/{node.slug}")
     assert resp_not_found.status_code == 404
 
 
@@ -198,13 +199,13 @@ async def test_list_nodes_sorted(app_and_session):
         await session.commit()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.get("/nodes", params={"space_id": ws.id, "sort": "created_desc"})
+        resp = await ac.get(f"/accounts/{ws.id}/nodes", params={"sort": "created_desc"})
     assert [n["slug"] for n in resp.json()] == ["n3", "n2", "n1"]
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.get("/nodes", params={"space_id": ws.id, "sort": "created_asc"})
+        resp = await ac.get(f"/accounts/{ws.id}/nodes", params={"sort": "created_asc"})
     assert [n["slug"] for n in resp.json()] == ["n1", "n2", "n3"]
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.get("/nodes", params={"space_id": ws.id, "sort": "views_desc"})
+        resp = await ac.get(f"/accounts/{ws.id}/nodes", params={"sort": "views_desc"})
     assert [n["slug"] for n in resp.json()] == ["n2", "n1", "n3"]
 
 
