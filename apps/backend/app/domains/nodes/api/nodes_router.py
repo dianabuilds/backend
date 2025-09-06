@@ -5,6 +5,7 @@ from typing import List, Literal, TypedDict, Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
+from starlette.background import BackgroundTask
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -140,6 +141,7 @@ async def create_node(
 async def read_node(
     request: Request,
     slug: str,
+    response: Response,
     _feature_flags: Annotated[str | None, Header(alias="X-Feature-Flags")] = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
@@ -158,9 +160,11 @@ async def read_node(
         await require_premium(current_user)
     if node.nft_required and not await user_has_nft(current_user, node.nft_required):
         raise HTTPException(status_code=403, detail="NFT required")
-    node = await repo.increment_views(node)
+    node.views = int(node.views or 0) + 1
+    await db.flush()
     event_metrics.inc("node_visit", str(space_id))
     await TracesService().maybe_add_auto_trace(db, node, current_user)
+    response.background = BackgroundTask(db.commit)
     return node
 
 
