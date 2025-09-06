@@ -10,6 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps.guards import check_transition
 from app.core.preview import PreviewContext
+from app.domains.admin.application.feature_flag_service import (
+    FeatureFlagKey,
+    get_effective_flags,
+)
 from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.navigation_cache_models import (
@@ -124,9 +128,15 @@ class NavigationService:
         user: User | None,
         preview: PreviewContext | None = None,
     ) -> list[dict[str, object]]:
-        result = await db.execute(
-            select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
-        )
+        try:
+            flags = await get_effective_flags(db, None, user)
+        except Exception:
+            flags = set()
+        space_id = getattr(node, "workspace_id", None)
+        stmt = select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
+        if FeatureFlagKey.NAV_CACHE_V2.value in flags and space_id is not None:
+            stmt = stmt.where(NavigationCache.space_id == space_id)
+        result = await db.execute(stmt)
         data = result.scalar_one_or_none()
         if not data:
             return []
@@ -140,9 +150,15 @@ class NavigationService:
         user: User | None,
         preview: PreviewContext | None = None,
     ) -> dict[str, object]:
-        result = await db.execute(
-            select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
-        )
+        try:
+            flags = await get_effective_flags(db, None, user)
+        except Exception:
+            flags = set()
+        space_id = getattr(node, "workspace_id", None)
+        stmt = select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
+        if FeatureFlagKey.NAV_CACHE_V2.value in flags and space_id is not None:
+            stmt = stmt.where(NavigationCache.space_id == space_id)
+        result = await db.execute(stmt)
         data = result.scalar_one_or_none()
         if data:
             transitions: list[dict[str, object]] = data.get("transitions", [])
@@ -157,5 +173,13 @@ class NavigationService:
         }
 
     async def invalidate_navigation_cache(self, db: AsyncSession, node: Node) -> None:
-        await db.execute(delete(NavigationCache).where(NavigationCache.node_slug == node.slug))
+        try:
+            flags = await get_effective_flags(db, None, None)
+        except Exception:
+            flags = set()
+        space_id = getattr(node, "workspace_id", None)
+        stmt = delete(NavigationCache).where(NavigationCache.node_slug == node.slug)
+        if FeatureFlagKey.NAV_CACHE_V2.value in flags and space_id is not None:
+            stmt = stmt.where(NavigationCache.space_id == space_id)
+        await db.execute(stmt)
         await db.flush()
