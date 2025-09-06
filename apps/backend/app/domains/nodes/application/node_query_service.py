@@ -29,15 +29,15 @@ class NodeQueryService:
         page: PageRequest,
         *,
         scope_mode: str | None = None,
-        space_id: int | None = None,
+        account_id: int | None = None,
     ) -> str:
         base = select(func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at)).join(
             NodeItem,
             and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
             isouter=True,
         )
-        if scope_mode is not None or space_id is not None:
-            base, _ = apply_scope(base, getattr(ctx, "user", None), scope_mode, space_id)
+        if scope_mode is not None or account_id is not None:
+            base, _ = apply_scope(base, getattr(ctx, "user", None), scope_mode, account_id)
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
@@ -90,15 +90,15 @@ class NodeQueryService:
         ctx: QueryContext,
         *,
         scope_mode: str | None = None,
-        space_id: int | None = None,
+        account_id: int | None = None,
     ) -> list[Node]:
         stmt = select(Node).join(
             NodeItem,
             and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
             isouter=True,
         )
-        if scope_mode is not None or space_id is not None:
-            stmt, _ = apply_scope(stmt, getattr(ctx, "user", None), scope_mode, space_id)
+        if scope_mode is not None or account_id is not None:
+            stmt, _ = apply_scope(stmt, getattr(ctx, "user", None), scope_mode, account_id)
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))

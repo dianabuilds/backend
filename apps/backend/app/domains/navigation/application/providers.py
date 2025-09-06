@@ -29,7 +29,7 @@ class TransitionProvider(ABC):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        space_id: int,
+        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         """Return candidate nodes for transition."""
@@ -50,10 +50,12 @@ class ManualTransitionsProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        space_id: int,
+        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
-        transitions = await self._service.get_transitions(db, node, user, space_id, preview=preview)
+        transitions = await self._service.get_transitions(
+            db, node, user, account_id, preview=preview
+        )
         nodes: list[Node] = []
         for t in transitions:
             n = t.to_node
@@ -78,11 +80,11 @@ class CompassProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        space_id: int,
+        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         return await self._service.get_compass_nodes(
-            db, node, user, self._limit, preview=preview, space_id=space_id
+            db, node, user, self._limit, preview=preview, account_id=account_id
         )
 
 
@@ -100,11 +102,11 @@ class EchoProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        space_id: int,
+        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         return await self._service.get_echo_transitions(
-            db, node, self._limit, user=user, preview=preview, space_id=space_id
+            db, node, self._limit, user=user, preview=preview, account_id=account_id
         )
 
 
@@ -122,7 +124,7 @@ class RandomProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        space_id: int,
+        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         from app.domains.accounts.application.service import scope_by_account
@@ -135,11 +137,8 @@ class RandomProvider(TransitionProvider):
             Node.is_recommendable,
             Node.id != node.id,
         )
-        if hasattr(Node, "workspace_id"):
-            query = query.where(Node.workspace_id == space_id)
-        else:
-            query = query.where(Node.account_id == space_id)
-        query = scope_by_account(query, space_id)
+        query = query.where(Node.account_id == account_id)
+        query = scope_by_account(query, account_id)
         result = await db.execute(query)
         nodes: list[Node] = result.scalars().all()
         nodes = [n for n in nodes if await has_access_async(n, user, preview)]

@@ -42,27 +42,19 @@ class EchoService:
         *,
         user: User | None = None,
         preview: PreviewContext | None = None,
-        space_id: int | None = None,
+        account_id: int | None = None,
     ) -> list[Node]:
-        if space_id is None:
-            space_id = getattr(node, "workspace_id", getattr(node, "account_id", None))
+        if account_id is None:
+            account_id = getattr(node, "account_id", None)
         stmt = select(NavigationCache.echo).where(NavigationCache.node_slug == node.slug)
-        if space_id is not None:
-            stmt = stmt.where(NavigationCache.space_id == space_id)
+        if account_id is not None:
+            stmt = stmt.where(NavigationCache.space_id == account_id)
         result = await db.execute(stmt)
         slugs = result.scalar_one_or_none() or []
         ordered_nodes: list[Node] = []
         for slug in slugs[:limit]:
-            if space_id is not None:
-                if hasattr(Node, "workspace_id"):
-                    node_query = select(Node).where(
-                        Node.slug == slug, Node.workspace_id == space_id
-                    )
-                else:
-                    node_query = select(Node).where(
-                        Node.slug == slug,
-                        Node.account_id == space_id,
-                    )
+            if account_id is not None:
+                node_query = select(Node).where(Node.slug == slug, Node.account_id == account_id)
             else:
                 node_query = select(Node).where(Node.slug == slug)
             res = await db.execute(node_query)
