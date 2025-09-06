@@ -84,11 +84,16 @@ async def set_cache(
 async def invalidate_cache(
     payload: NavigationCacheInvalidateRequest,
     current_user: Annotated[User, Depends(admin_required)] = ...,
+    db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     if payload.scope == "node":
-        if not payload.node_slug or not payload.account_id:
-            raise HTTPException(status_code=400, detail="node_slug and account_id required")
-        await navcache.invalidate_navigation_by_node(payload.account_id, payload.node_slug)
+        if not payload.node_slug:
+            raise HTTPException(status_code=400, detail="node_slug required")
+        node_result = await db.execute(select(Node).where(Node.slug == payload.node_slug))
+        node = node_result.scalars().first()
+        if not node:
+            raise HTTPException(status_code=404, detail="Node not found")
+        await navcache.invalidate_navigation_by_node(node.account_id, payload.node_slug)
     elif payload.scope == "user":
         if not payload.user_id:
             raise HTTPException(status_code=400, detail="user_id required")

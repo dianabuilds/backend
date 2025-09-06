@@ -127,8 +127,6 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
         "id": node_pk,
         "contentId": item.id,
         "nodeId": node_pk,
-        "workspace_id": str(item.workspace_id),  # kept for compatibility
-        "workspaceId": str(item.workspace_id),  # explicit camelCase for clients not using aliases
         "nodeType": item.type,
         "type": item.type,  # legacy
         "slug": item.slug,

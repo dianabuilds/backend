@@ -22,7 +22,6 @@ class AdminNodeOut(BaseModel):
     id: int
     content_id: int = Field(alias="contentId")
     node_id: int = Field(alias="nodeId")
-    workspace_id: UUID = Field(alias="workspaceId")
     node_type: str = Field(alias="nodeType")
     type: str | None = None
     slug: str
