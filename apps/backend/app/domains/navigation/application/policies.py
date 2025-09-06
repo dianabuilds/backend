@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.preview import PreviewContext  # isort: skip
 
+from .access_policy import has_access_async
 from .providers import TransitionProvider
 
 if TYPE_CHECKING:  # pragma: no cover - used for type hints only
@@ -58,16 +59,18 @@ class ManualPolicy(Policy):
             )
         except TypeError:
             candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
+        candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
         candidates, filt2 = repeat_filter.filter(candidates)
         filtered.extend(filt2)
-        from .router import TransitionTrace
+        from .router import TransitionTrace, score_nodes
 
+        candidates, scores = score_nodes(candidates, repeat_filter)
         for n in candidates:
-            return n, TransitionTrace(candidate_slugs, filtered, n.slug)
-        return None, TransitionTrace(candidate_slugs, filtered, None)
+            return n, TransitionTrace(candidate_slugs, filtered, n.slug, scores=scores)
+        return None, TransitionTrace(candidate_slugs, filtered, None, scores=scores)
 
 
 class CompassPolicy(Policy):
@@ -88,16 +91,18 @@ class CompassPolicy(Policy):
             )
         except TypeError:
             candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
+        candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
         candidates, filt2 = repeat_filter.filter(candidates)
         filtered.extend(filt2)
-        from .router import TransitionTrace
+        from .router import TransitionTrace, score_nodes
 
+        candidates, scores = score_nodes(candidates, repeat_filter)
         for n in candidates:
-            return n, TransitionTrace(candidate_slugs, filtered, n.slug)
-        return None, TransitionTrace(candidate_slugs, filtered, None)
+            return n, TransitionTrace(candidate_slugs, filtered, n.slug, scores=scores)
+        return None, TransitionTrace(candidate_slugs, filtered, None, scores=scores)
 
 
 class EchoPolicy(Policy):
@@ -118,16 +123,18 @@ class EchoPolicy(Policy):
             )
         except TypeError:
             candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
+        candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
         candidates, filt2 = repeat_filter.filter(candidates)
         filtered.extend(filt2)
-        from .router import TransitionTrace
+        from .router import TransitionTrace, score_nodes
 
+        candidates, scores = score_nodes(candidates, repeat_filter)
         for n in candidates:
-            return n, TransitionTrace(candidate_slugs, filtered, n.slug)
-        return None, TransitionTrace(candidate_slugs, filtered, None)
+            return n, TransitionTrace(candidate_slugs, filtered, n.slug, scores=scores)
+        return None, TransitionTrace(candidate_slugs, filtered, None, scores=scores)
 
 
 class RandomPolicy(Policy):
@@ -157,17 +164,19 @@ class RandomPolicy(Policy):
             )
         except TypeError:
             candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
+        candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
         candidates = [n for n in candidates if n.slug not in history]
         candidates, filt2 = repeat_filter.filter(candidates)
         filtered.extend(filt2)
-        from .router import TransitionTrace
+        from .router import TransitionTrace, score_nodes
 
+        candidates, scores = score_nodes(candidates, repeat_filter)
         if not candidates:
-            return None, TransitionTrace(candidate_slugs, filtered, None)
+            return None, TransitionTrace(candidate_slugs, filtered, None, scores=scores)
         chosen = self._rnd.choice(candidates)
-        return chosen, TransitionTrace(candidate_slugs, filtered, chosen.slug)
+        return chosen, TransitionTrace(candidate_slugs, filtered, chosen.slug, scores=scores)
 
 
 class _NoOpProvider(TransitionProvider):

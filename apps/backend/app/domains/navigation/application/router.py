@@ -108,6 +108,22 @@ class RepeatFilter:
         return allowed, filtered
 
 
+def score_nodes(
+    nodes: Sequence[Node], repeat_filter: RepeatFilter
+) -> tuple[list[Node], dict[str, float]]:
+    """Score and sort nodes using repeat penalty and novelty bonus."""
+    scored: list[tuple[Node, float]] = []
+    for n in nodes:
+        weight = getattr(n, "weight", 1) or 1
+        penalty = repeat_filter._score(n)
+        tags = getattr(n, "tags", []) or []
+        novelty = sum(1 for t in tags if t not in repeat_filter.tag_counts)
+        bonus = 0.1 * novelty
+        scored.append((n, weight * penalty + bonus))
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return [n for n, _ in scored], {n.slug: s for n, s in scored}
+
+
 @dataclass
 class TransitionTrace:
     candidates: list[str]
@@ -115,6 +131,7 @@ class TransitionTrace:
     selected: str | None
     reason: str | None = None
     policy: str | None = None
+    scores: dict[str, float] | None = None
 
 
 class NoRouteReason(Enum):

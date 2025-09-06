@@ -54,7 +54,12 @@ class ManualTransitionsProvider(TransitionProvider):
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         transitions = await self._service.get_transitions(db, node, user, space_id, preview=preview)
-        return [t.to_node for t in transitions]
+        nodes: list[Node] = []
+        for t in transitions:
+            n = t.to_node
+            n.weight = t.weight
+            nodes.append(n)
+        return nodes
 
 
 class CompassProvider(TransitionProvider):

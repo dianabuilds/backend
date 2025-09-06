@@ -32,6 +32,11 @@ class DummyNode:
     workspace_id: str = "ws"
     tags: list[str] | None = None
     source: str | None = None
+    is_visible: bool = True
+    is_public: bool = True
+    is_recommendable: bool = True
+    premium_only: bool = False
+    nft_required: str | None = None
 
 
 class StaticProvider(TransitionProvider):
