@@ -155,7 +155,8 @@ async def read_node(
         raise HTTPException(status_code=404, detail="Node not found")
     request.state.space_id = space_id
     await require_ws_guest(account_id=space_id, user=current_user, db=db)
-    NodePolicy.ensure_can_view(node, current_user)
+    override = bool(getattr(request.state, "admin_override", False))
+    NodePolicy.ensure_can_view(node, current_user, override=override)
     if node.premium_only:
         await require_premium(current_user)
     if node.nft_required and not await user_has_nft(current_user, node.nft_required):
@@ -186,7 +187,8 @@ async def update_node(
     node = await repo.get_by_slug(slug, space_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    NodePolicy.ensure_can_edit(node, current_user)
+    override = bool(getattr(request.state, "admin_override", False))
+    NodePolicy.ensure_can_edit(node, current_user, override=override)
     was_visible = node.is_visible
     node = await repo.update(node, payload, current_user.id)
     if was_visible != node.is_visible:
@@ -223,7 +225,8 @@ async def delete_node(
     node = await repo.get_by_slug(slug, space_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    NodePolicy.ensure_can_edit(node, current_user)
+    override = bool(getattr(request.state, "admin_override", False))
+    NodePolicy.ensure_can_edit(node, current_user, override=override)
     await repo.delete(node)
     await navsvc.invalidate_navigation_cache(db, node)
     await navcache.invalidate_navigation_by_node(slug)

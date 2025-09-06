@@ -26,6 +26,7 @@ class FeatureFlagKey(StrEnum):
     NODE_NAVIGATION_V2 = "nodes.navigation_v2"
     WEIGHTED_MANUAL_TRANSITIONS = "navigation.weighted_manual_transitions"
     FALLBACK_POLICY = "navigation.fallback_policy"
+    ADMIN_OVERRIDE = "admin.override"
 
 
 # Predefined feature flags available in the system with optional descriptions
@@ -48,6 +49,7 @@ KNOWN_FLAGS: dict[FeatureFlagKey, tuple[str, str]] = {
         "Enable fallback navigation policy",
         "all",
     ),
+    FeatureFlagKey.ADMIN_OVERRIDE: ("Enable admin override headers", "all"),
 }
 
 
