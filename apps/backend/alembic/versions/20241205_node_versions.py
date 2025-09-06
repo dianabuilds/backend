@@ -11,6 +11,11 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if inspector.has_table("node_versions"):
+        return
+
     op.create_table(
         "node_versions",
         sa.Column("node_id", sa.BigInteger(), sa.ForeignKey("nodes.id"), nullable=False),
@@ -27,4 +32,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:  # pragma: no cover
-    op.drop_table("node_versions")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if inspector.has_table("node_versions"):
+        op.drop_table("node_versions")
