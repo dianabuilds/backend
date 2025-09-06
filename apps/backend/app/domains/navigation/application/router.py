@@ -255,7 +255,7 @@ class TransitionRouter:
         record_route_latency_ms(elapsed_ms)
         record_repeat_rate(repeat_rate)
         record_novelty_rate(novelty_rate)
-        ws_id = str(start.workspace_id)
+        ws_id = str(start.account_id)
         metrics_mode = mode or (preview.mode if preview else "normal")
         transition_metrics.observe_latency(ws_id, metrics_mode, elapsed_ms)
         transition_metrics.observe_repeat_rate(ws_id, metrics_mode, repeat_rate)

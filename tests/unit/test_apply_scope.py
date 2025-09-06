@@ -1,3 +1,4 @@
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -5,7 +6,6 @@ from fastapi import HTTPException
 from sqlalchemy import Column, Integer, select
 from sqlalchemy.orm import declarative_base
 
-import sys
 sys.path.append("apps/backend")
 from app.common.scoping import apply_scope
 
@@ -56,9 +56,9 @@ def test_scope_invited(user):
     assert "items.account_id = 8" in text
 
 
-def test_scope_space(user):
+def test_scope_account(user):
     q = select(Item)
-    q, _ = apply_scope(q, user, "space:7", None)
+    q, _ = apply_scope(q, user, "account:7", None)
     text = _where_text(q)
     assert "items.account_id = 7" in text
 

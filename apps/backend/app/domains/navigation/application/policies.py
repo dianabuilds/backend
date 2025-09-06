@@ -55,10 +55,10 @@ class ManualPolicy(Policy):
     ) -> tuple[Node | None, TransitionTrace]:
         try:
             candidates = await self.provider.get_transitions(
-                db, node, user, node.workspace_id, preview=preview
+                db, node, user, node.account_id, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
+            candidates = await self.provider.get_transitions(db, node, user, node.account_id)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -87,10 +87,10 @@ class CompassPolicy(Policy):
     ) -> tuple[Node | None, TransitionTrace]:
         try:
             candidates = await self.provider.get_transitions(
-                db, node, user, node.workspace_id, preview=preview
+                db, node, user, node.account_id, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
+            candidates = await self.provider.get_transitions(db, node, user, node.account_id)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -119,10 +119,10 @@ class EchoPolicy(Policy):
     ) -> tuple[Node | None, TransitionTrace]:
         try:
             candidates = await self.provider.get_transitions(
-                db, node, user, node.workspace_id, preview=preview
+                db, node, user, node.account_id, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
+            candidates = await self.provider.get_transitions(db, node, user, node.account_id)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -160,10 +160,10 @@ class RandomPolicy(Policy):
     ) -> tuple[Node | None, TransitionTrace]:
         try:
             candidates = await self.provider.get_transitions(
-                db, node, user, node.workspace_id, preview=preview
+                db, node, user, node.account_id, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, node.workspace_id)
+            candidates = await self.provider.get_transitions(db, node, user, node.account_id)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -220,7 +220,7 @@ class FallbackPolicy(Policy):
 
         fallback_node = SimpleNamespace(
             slug="fallback",
-            workspace_id=getattr(node, "workspace_id", None),
+            account_id=getattr(node, "account_id", None),
             tags=[],
         )
         return fallback_node, TransitionTrace([node.slug], [], "fallback", reason="fallback")
