@@ -21,4 +21,3 @@ class NavigationCacheInvalidateRequest(BaseModel):
     scope: Literal["node", "user", "all"]
     node_slug: str | None = None
     user_id: UUID | None = None
-    account_id: UUID | None = None
