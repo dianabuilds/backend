@@ -8,7 +8,7 @@ class FeatureFlags(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="FF_", case_sensitive=False)
 
-    profile_enabled: bool = False
+    profile_enabled: bool = True
     routing_accounts_v2: bool = False
 
 
