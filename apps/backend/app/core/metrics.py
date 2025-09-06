@@ -255,6 +255,35 @@ class MetricsStorage:
                 f'http_requests_total{{workspace="{ws}",method="{method}",path="{route}",status="{status}"}} {cnt}'
             )
 
+        total_requests = len(records)
+        admin_ws_count = sum(1 for r in records if r.route.startswith("/admin/workspaces"))
+        lines.append(
+            "# HELP http_requests_admin_workspaces_total Total HTTP requests to /admin/workspaces"
+        )
+        lines.append("# TYPE http_requests_admin_workspaces_total counter")
+        lines.append(f"http_requests_admin_workspaces_total {admin_ws_count}")
+        ratio = admin_ws_count / total_requests if total_requests else 0.0
+        lines.append(
+            "# HELP http_requests_admin_workspaces_ratio Ratio of /admin/workspaces requests to total"
+        )
+        lines.append("# TYPE http_requests_admin_workspaces_ratio gauge")
+        lines.append(f"http_requests_admin_workspaces_ratio {ratio}")
+
+        lines.append(
+            "# HELP domain_request_errors_total Total request errors by domain and status class"
+        )
+        lines.append("# TYPE domain_request_errors_total counter")
+        domain_error_map: dict[tuple[str, str], int] = defaultdict(int)
+        for r in records:
+            for domain in ("users", "accounts", "nodes"):
+                if r.route.startswith(f"/{domain}"):
+                    if 400 <= r.status_code < 500:
+                        domain_error_map[(domain, "4xx")] += 1
+                    elif r.status_code >= 500:
+                        domain_error_map[(domain, "5xx")] += 1
+        for (domain, cls), cnt in domain_error_map.items():
+            lines.append(f'domain_request_errors_total{{domain="{domain}",status="{cls}"}} {cnt}')
+
         lines.append("# HELP http_request_duration_ms Request duration milliseconds")
         lines.append("# TYPE http_request_duration_ms histogram")
         buckets = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
