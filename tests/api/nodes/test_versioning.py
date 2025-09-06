@@ -85,6 +85,7 @@ async def app_and_session():
 
     app = FastAPI()
     app.include_router(nodes_router)
+    app.include_router(nodes_router, prefix="/accounts/{account_id}")
     app.include_router(admin_router)
 
     async def override_db():
@@ -128,8 +129,7 @@ async def test_preview_version(app_and_session):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.get(
-            f"/nodes/{slug}",
-            params={"space_id": ws_id},
+            f"/accounts/{ws_id}/nodes/{slug}",
             headers={"X-Preview-Version": "1"},
         )
     assert resp.status_code == 200
