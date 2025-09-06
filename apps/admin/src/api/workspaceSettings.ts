@@ -23,7 +23,7 @@ export type WorkspaceLimits = {
 
 export async function getAIPresets(workspaceId: string): Promise<AIPresets> {
   const res = await api.get<AIPresets>(
-    `/admin/workspaces/${workspaceId}/settings/ai-presets`,
+    `/admin/accounts/${workspaceId}/settings/ai-presets`,
   );
   return res.data ?? {};
 }
@@ -33,7 +33,7 @@ export async function saveAIPresets(
   presets: AIPresets,
 ): Promise<AIPresets> {
   const res = await api.put<AIPresets>(
-    `/admin/workspaces/${workspaceId}/settings/ai-presets`,
+    `/admin/accounts/${workspaceId}/settings/ai-presets`,
     presets,
   );
   return res.data ?? {};
@@ -44,7 +44,7 @@ export async function validateAIPresets(
   presets: AIPresets,
 ): Promise<void> {
   await api.post(
-    `/admin/workspaces/${workspaceId}/settings/ai-presets/validate`,
+    `/admin/accounts/${workspaceId}/settings/ai-presets/validate`,
     presets,
   );
 }
@@ -53,7 +53,7 @@ export async function getNotificationRules(
   workspaceId: string,
 ): Promise<NotificationRules> {
   const res = await api.get<NotificationRules>(
-    `/admin/workspaces/${workspaceId}/settings/notifications`,
+    `/admin/accounts/${workspaceId}/settings/notifications`,
   );
   return (
     res.data ?? {
@@ -68,7 +68,7 @@ export async function saveNotificationRules(
   rules: NotificationRules,
 ): Promise<NotificationRules> {
   const res = await api.put<NotificationRules>(
-    `/admin/workspaces/${workspaceId}/settings/notifications`,
+    `/admin/accounts/${workspaceId}/settings/notifications`,
     rules,
   );
   return res.data ?? {
@@ -82,7 +82,7 @@ export async function validateNotificationRules(
   rules: NotificationRules,
 ): Promise<void> {
   await api.post(
-    `/admin/workspaces/${workspaceId}/settings/notifications/validate`,
+    `/admin/accounts/${workspaceId}/settings/notifications/validate`,
     rules,
   );
 }
@@ -91,7 +91,7 @@ export async function getLimits(
   workspaceId: string,
 ): Promise<WorkspaceLimits> {
   const res = await api.get<WorkspaceLimits>(
-    `/admin/workspaces/${workspaceId}/settings/limits`,
+    `/admin/accounts/${workspaceId}/settings/limits`,
   );
   return (
     res.data ?? {
@@ -107,7 +107,7 @@ export async function saveLimits(
   limits: WorkspaceLimits,
 ): Promise<WorkspaceLimits> {
   const res = await api.put<WorkspaceLimits>(
-    `/admin/workspaces/${workspaceId}/settings/limits`,
+    `/admin/accounts/${workspaceId}/settings/limits`,
     limits,
   );
   return res.data ?? {
@@ -122,7 +122,7 @@ export async function validateLimits(
   limits: WorkspaceLimits,
 ): Promise<void> {
   await api.post(
-    `/admin/workspaces/${workspaceId}/settings/limits/validate`,
+    `/admin/accounts/${workspaceId}/settings/limits/validate`,
     limits,
   );
 }

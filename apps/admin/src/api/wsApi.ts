@@ -54,8 +54,8 @@ async function request<
   const finalParams: Record<string, unknown> = { ...(params || {}) };
 
   if (workspaceId && workspace === "path") {
-    if (finalUrl.startsWith("/admin/") && !finalUrl.startsWith("/admin/workspaces/")) {
-      finalUrl = `/admin/workspaces/${encodeURIComponent(workspaceId)}${finalUrl.slice(
+    if (finalUrl.startsWith("/admin/") && !finalUrl.startsWith("/admin/accounts/")) {
+      finalUrl = `/admin/accounts/${encodeURIComponent(workspaceId)}${finalUrl.slice(
         "/admin".length,
       )}`;
     }

@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { api } from "../api/client";
-import { useWorkspace } from "../workspace/WorkspaceContext";
 import ValidationReportView from "../components/ValidationReportView";
 import type { ValidationReport as ValidationReportModel } from "../openapi";
+import { useWorkspace } from "../workspace/WorkspaceContext";
 import PageLayout from "./_shared/PageLayout";
 
 export default function ValidationReport() {
@@ -22,7 +22,7 @@ export default function ValidationReport() {
     setLoading(true);
     try {
       const res = await api.post(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/validate`,
+        `/admin/accounts/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/validate`,
       );
       setReport(res.data?.report ?? null);
     } finally {
@@ -35,7 +35,7 @@ export default function ValidationReport() {
     setAiLoading(true);
     try {
       const res = await api.post(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/validate_ai`,
+        `/admin/accounts/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/validate_ai`,
       );
       setAiReport(res.data?.report ?? null);
     } finally {

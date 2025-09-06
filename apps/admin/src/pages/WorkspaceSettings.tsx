@@ -1,22 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent } from "react";
+import { type FormEvent,useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 
 import { api } from "../api/client";
 import {
-  getAIPresets,
-  saveAIPresets,
-  validateAIPresets,
-  getNotificationRules,
-  saveNotificationRules,
-  validateNotificationRules,
-  getLimits,
-  saveLimits,
-  validateLimits,
   type AIPresets,
-  type NotificationRules,
-  type WorkspaceLimits,
+  getAIPresets,
+  getLimits,
+  getNotificationRules,
   type NotificationChannel,
+  type NotificationRules,
+  saveAIPresets,
+  saveLimits,
+  saveNotificationRules,
+  validateAIPresets,
+  validateLimits,
+  validateNotificationRules,
+  type WorkspaceLimits,
 } from "../api/workspaceSettings";
 import { useToast } from "../components/ToastProvider";
 import Tooltip from "../components/Tooltip";
@@ -44,7 +44,7 @@ export default function WorkspaceSettings() {
     queryKey: ["workspace", id],
     enabled: !!id,
     queryFn: async () => {
-      const res = await api.get<WorkspaceOut>(`/admin/workspaces/${id}`);
+      const res = await api.get<WorkspaceOut>(`/admin/accounts/${id}`);
       return res.data as WorkspaceOut;
     },
   });
@@ -236,7 +236,7 @@ export default function WorkspaceSettings() {
     enabled: tab === "Members" && !!id,
     queryFn: async () => {
       const res = await api.get<WorkspaceMemberOut[]>(
-        `/admin/workspaces/${id}/members`,
+        `/admin/accounts/${id}/members`,
       );
       return (res.data as WorkspaceMemberOut[]) || [];
     },
@@ -249,7 +249,7 @@ export default function WorkspaceSettings() {
 
   const inviteMember = async () => {
     try {
-      await api.post(`/admin/workspaces/${id}/members`, {
+      await api.post(`/admin/accounts/${id}/members`, {
         user_id: inviteUser,
         role: inviteRole,
       });
@@ -277,7 +277,7 @@ export default function WorkspaceSettings() {
   const applyEdit = async () => {
     if (!editMember) return;
     try {
-      await api.patch(`/admin/workspaces/${id}/members/${editMember.user_id}`, {
+      await api.patch(`/admin/accounts/${id}/members/${editMember.user_id}`, {
         user_id: editMember.user_id,
         role: editRole,
       });
@@ -300,7 +300,7 @@ export default function WorkspaceSettings() {
   const confirmRemove = async () => {
     if (!removeMember) return;
     try {
-      await api.del(`/admin/workspaces/${id}/members/${removeMember.user_id}`);
+      await api.del(`/admin/accounts/${id}/members/${removeMember.user_id}`);
       addToast({ title: "Member removed", variant: "success" });
       setRemoveMember(null);
       refetchMembers();

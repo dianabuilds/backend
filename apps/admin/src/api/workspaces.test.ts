@@ -10,7 +10,7 @@ describe("listWorkspaces", () => {
     vi.mocked(api.get).mockResolvedValue({ data: [] });
     await listWorkspaces({ q: "test", type: "team", limit: 5, offset: 10 });
     expect(api.get).toHaveBeenCalledWith(
-      "/admin/workspaces?q=test&type=team&limit=5&offset=10",
+      "/admin/accounts?q=test&type=team&limit=5&offset=10",
     );
   });
 });

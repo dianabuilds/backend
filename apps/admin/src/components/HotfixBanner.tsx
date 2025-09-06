@@ -12,7 +12,7 @@ export default function HotfixBanner() {
   const { data } = useQuery<Workspace>({
     queryKey: ["workspace-info", workspaceId],
     queryFn: async () => {
-      const res = await api.get<Workspace>(`/admin/workspaces/${workspaceId}`);
+      const res = await api.get<Workspace>(`/admin/accounts/${workspaceId}`);
       return res.data;
     },
     enabled: !!workspaceId && isEditor,

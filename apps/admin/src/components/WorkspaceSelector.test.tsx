@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { safeLocalStorage } from "../utils/safeStorage";
-import { WorkspaceBranchProvider, useWorkspace } from "../workspace/WorkspaceContext";
+import { useWorkspace,WorkspaceBranchProvider } from "../workspace/WorkspaceContext";
 import WorkspaceSelector from "./WorkspaceSelector";
 
 const queryData = { data: [] as any[], error: null };
@@ -60,7 +60,7 @@ describe("WorkspaceSelector", () => {
       </MemoryRouter>,
     );
     const link = screen.getByText("Создать воркспейс");
-    expect(link).toHaveAttribute("href", "/admin/workspaces");
+    expect(link).toHaveAttribute("href", "/admin/accounts");
   });
 
   it("clears missing workspace", async () => {

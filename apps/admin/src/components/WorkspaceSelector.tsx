@@ -2,11 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import ErrorBanner from "./ErrorBanner";
-
 import { api } from "../api/client";
 import type { Workspace } from "../api/types";
 import { useWorkspace } from "../workspace/WorkspaceContext";
+import ErrorBanner from "./ErrorBanner";
 
 export default function WorkspaceSelector() {
   const { workspaceId, setWorkspace } = useWorkspace();
@@ -15,7 +14,7 @@ export default function WorkspaceSelector() {
     queryKey: ["workspaces"],
     queryFn: async () => {
       const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
-        "/admin/workspaces",
+        "/admin/accounts",
       );
       const data = res.data;
       if (Array.isArray(data)) return data;
@@ -100,7 +99,7 @@ export default function WorkspaceSelector() {
 
   if (data && data.length === 0) {
     return (
-      <Link to="/admin/workspaces" className="text-blue-600 hover:underline">
+      <Link to="/admin/accounts" className="text-blue-600 hover:underline">
         Создать воркспейс
       </Link>
     );

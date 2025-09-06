@@ -357,7 +357,7 @@ export default function Nodes() {
     const results: string[] = [];
     try {
       for (const { ids, changes } of groups.values()) {
-        await wsApi.patch(`/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/bulk`, {
+        await wsApi.patch(`/admin/accounts/${encodeURIComponent(workspaceId)}/nodes/bulk`, {
           ids,
           changes,
         });
@@ -429,7 +429,7 @@ export default function Nodes() {
     try {
       for (const id of ids) {
         await wsApi.delete(
-          `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(id)}`,
+          `/admin/accounts/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(id)}`,
         );
       }
       setItems((prev) => prev.filter((n) => !selected.has(n.id)));

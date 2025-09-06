@@ -21,21 +21,19 @@ async def test_notification_rules_crud(
 
     # create workspace
     payload = {"name": "WS", "slug": "ws"}
-    res = await client.post("/admin/workspaces", json=payload, headers=auth_headers)
+    res = await client.post("/admin/accounts", json=payload, headers=auth_headers)
     assert res.status_code == 201
     ws_id = res.json()["id"]
 
     # default rules
-    res = await client.get(
-        f"/admin/workspaces/{ws_id}/settings/notifications", headers=auth_headers
-    )
+    res = await client.get(f"/admin/accounts/{ws_id}/settings/notifications", headers=auth_headers)
     assert res.status_code == 200
     assert res.json() == {"achievement": [], "publish": []}
 
     # update rules
     rules = {"achievement": ["in-app"], "publish": ["email"]}
     res = await client.put(
-        f"/admin/workspaces/{ws_id}/settings/notifications",
+        f"/admin/accounts/{ws_id}/settings/notifications",
         headers=auth_headers,
         json=rules,
     )
@@ -45,7 +43,7 @@ async def test_notification_rules_crud(
     # invalid rules should fail
     bad = {"unknown": ["in-app"]}
     res = await client.put(
-        f"/admin/workspaces/{ws_id}/settings/notifications",
+        f"/admin/accounts/{ws_id}/settings/notifications",
         headers=auth_headers,
         json=bad,
     )

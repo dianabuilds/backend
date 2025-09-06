@@ -2,7 +2,7 @@ import type { NodeOut } from "../../../openapi";
 import { client } from "../../../shared/api/client";
 
 const base = (workspaceId: string) =>
-  `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes`;
+  `/admin/accounts/${encodeURIComponent(workspaceId)}/nodes`;
 
 function withQuery(baseUrl: string, params?: Record<string, unknown>) {
   if (!params) return baseUrl;
@@ -37,7 +37,7 @@ export const nodesApi = {
   },
   create(workspaceId: string, payload: NodeMutationPayload) {
     const body = enrichPayload(payload);
-    // Backend expects POST /admin/workspaces/{ws}/nodes for creation
+    // Backend expects POST /admin/accounts/{ws}/nodes for creation
     return client.post<NodeMutationPayload, NodeOut>(
       base(workspaceId),
       body,

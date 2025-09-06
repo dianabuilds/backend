@@ -105,8 +105,8 @@ export async function listNodes(
         return data;
     };
 
-    // Единственный актуальный маршрут: /admin/workspaces/{ws}/nodes
-    const url = `/admin/workspaces/${encodeURIComponent(
+    // Единственный актуальный маршрут: /admin/accounts/{ws}/nodes
+    const url = `/admin/accounts/${encodeURIComponent(
         workspaceId,
     )}/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
     return await getWithCache(url);
@@ -114,7 +114,7 @@ export async function listNodes(
 
 export async function createNode(workspaceId: string): Promise<NodeOut> {
     const res = await wsApi.post<undefined, NodeOut>(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes`,
+        `/admin/accounts/${encodeURIComponent(workspaceId)}/nodes`,
         undefined,
         { workspace: false },
     );
@@ -188,7 +188,7 @@ export async function publishNode(
 
 export async function archiveNode(workspaceId: string, id: number): Promise<void> {
     await wsApi.post(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/archive`,
+        `/admin/accounts/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/archive`,
         undefined,
         { workspace: false },
     );
@@ -196,7 +196,7 @@ export async function archiveNode(workspaceId: string, id: number): Promise<void
 
 export async function duplicateNode(workspaceId: string, id: number): Promise<NodeOut> {
     const res = await wsApi.post<undefined, NodeOut>(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/duplicate`,
+        `/admin/accounts/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/duplicate`,
         undefined,
         { workspace: false },
     );
@@ -205,7 +205,7 @@ export async function duplicateNode(workspaceId: string, id: number): Promise<No
 
 export async function previewNode(workspaceId: string, id: number): Promise<void> {
     await wsApi.post(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/preview`,
+        `/admin/accounts/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/preview`,
         undefined,
         { workspace: false },
     );
@@ -217,7 +217,7 @@ export async function simulateNode(
     payload: NodeSimulatePayload,
 ): Promise<unknown> {
     const res = await wsApi.post<NodeSimulatePayload, unknown>(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/simulate`,
+        `/admin/accounts/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(id))}/simulate`,
         payload,
         {workspace: false},
     );

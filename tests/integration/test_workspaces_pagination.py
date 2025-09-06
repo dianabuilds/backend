@@ -22,13 +22,13 @@ async def test_list_workspaces_pagination(
     await db_session.commit()
     for i in range(3):
         resp = await client.post(
-            "/admin/workspaces",
+            "/admin/accounts",
             json={"name": f"WS{i}", "slug": f"ws-{i}"},
         )
         assert resp.status_code == 201
 
     resp = await client.get(
-        "/admin/workspaces?limit=2",
+        "/admin/accounts?limit=2",
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -38,7 +38,7 @@ async def test_list_workspaces_pagination(
 
     next_cursor = data["next_cursor"]
     resp = await client.get(
-        f"/admin/workspaces?cursor={next_cursor}&limit=2",
+        f"/admin/accounts?cursor={next_cursor}&limit=2",
     )
     assert resp.status_code == 200
     data2 = resp.json()

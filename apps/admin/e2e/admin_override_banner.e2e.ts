@@ -25,7 +25,7 @@ test("shows warning banner when override response includes warning_banner", asyn
     }),
   );
 
-  await page.route("**/admin/workspaces/ws1/nodes", (route) =>
+  await page.route("**/admin/accounts/ws1/nodes", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",

@@ -1,4 +1,5 @@
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { afterEach,describe, expect, it, vi } from 'vitest';
+
 import {
   cancelScheduledPublish,
   getPublishInfo,
@@ -25,7 +26,7 @@ describe('getPublishInfo', () => {
       );
     await getPublishInfo('ws1', 42);
     expect(fetchSpy).toHaveBeenCalledWith(
-      '/admin/workspaces/ws1/nodes/42/publish_info',
+      '/admin/accounts/ws1/nodes/42/publish_info',
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({
@@ -47,7 +48,7 @@ describe('publishNow', () => {
       .mockResolvedValue(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
     await publishNow('ws1', 42, 'early_access');
     expect(fetchSpy).toHaveBeenCalledWith(
-      '/admin/workspaces/ws1/nodes/42/publish',
+      '/admin/accounts/ws1/nodes/42/publish',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
@@ -76,7 +77,7 @@ describe('schedulePublish', () => {
       );
     await schedulePublish('ws1', 42, '2025-01-01T00:00:00Z', 'premium_only');
     expect(fetchSpy).toHaveBeenCalledWith(
-      '/admin/workspaces/ws1/nodes/42/schedule_publish',
+      '/admin/accounts/ws1/nodes/42/schedule_publish',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
@@ -105,7 +106,7 @@ describe('cancelScheduledPublish', () => {
       );
     await cancelScheduledPublish('ws1', 42);
     expect(fetchSpy).toHaveBeenCalledWith(
-      '/admin/workspaces/ws1/nodes/42/schedule_publish',
+      '/admin/accounts/ws1/nodes/42/schedule_publish',
       expect.objectContaining({
         method: 'DELETE',
         headers: expect.objectContaining({

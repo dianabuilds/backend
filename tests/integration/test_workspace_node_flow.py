@@ -15,7 +15,7 @@ pytestmark = pytest.mark.skip("requires full database schema")
 async def test_workspace_node_simulation_trace(client: AsyncClient, auth_headers: dict[str, str]):
     # Create workspace
     resp = await client.post(
-        "/admin/workspaces",
+        "/admin/accounts",
         json={"name": "Test WS", "slug": "test-ws"},
         headers=auth_headers,
     )

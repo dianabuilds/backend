@@ -1,11 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { confirmWithEnv } from "../utils/env";
 
 import { api } from "../api/client";
 import { createDraft } from "../api/questEditor";
 import CursorPager from "../components/CursorPager";
+import { confirmWithEnv } from "../utils/env";
 import { useWorkspace } from "../workspace/WorkspaceContext";
 
 type WorldTemplate = {
@@ -134,7 +134,7 @@ export default function AIQuests() {
     if (!workspaceId) return;
     try {
       const res = await api.get<any>(
-        `/admin/workspaces/${workspaceId}/settings/ai-presets`
+        `/admin/accounts/${workspaceId}/settings/ai-presets`
       );
       const arr = Array.isArray(res.data?.allowed_models)
         ? (res.data.allowed_models as string[])

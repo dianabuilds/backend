@@ -3,10 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 
 import { api } from "../api/client";
 import { listWorkspaces, type Workspace } from "../api/workspaces";
-import type { WorkspaceMemberOut } from "../openapi";
 import { useToast } from "../components/ToastProvider";
-import PageLayout from "./_shared/PageLayout";
+import type { WorkspaceMemberOut } from "../openapi";
 import { confirmDialog, promptDialog } from "../shared/ui";
+import PageLayout from "./_shared/PageLayout";
 
 const PAGE_SIZE = 50;
 
@@ -46,7 +46,7 @@ export default function Workspaces() {
     Promise.all(
       workspaces.map(async (ws) => {
         const res = await api.get<WorkspaceMemberOut[]>(
-          `/admin/workspaces/${ws.id}/members`,
+          `/admin/accounts/${ws.id}/members`,
         );
         return [ws.id, (res.data ?? []).length] as [string, number];
       }),
@@ -71,7 +71,7 @@ export default function Workspaces() {
         | "global"
         | null) || "team";
     try {
-      await api.post("/admin/workspaces", { name, slug, type });
+      await api.post("/admin/accounts", { name, slug, type });
       refresh();
       addToast({ title: "Воркспейс создан", variant: "success" });
     } catch (e) {
@@ -94,7 +94,7 @@ export default function Workspaces() {
         | "global"
         | null) || ws.type;
     try {
-      await api.patch(`/admin/workspaces/${ws.id}`, { name, slug, type });
+      await api.patch(`/admin/accounts/${ws.id}`, { name, slug, type });
       refresh();
       addToast({ title: "Воркспейс обновлён", variant: "success" });
     } catch (e) {
@@ -109,7 +109,7 @@ export default function Workspaces() {
   const handleDelete = async (ws: Workspace) => {
     if (!(await confirmDialog(`Удалить воркспейс "${ws.name}"?`))) return;
     try {
-      await api.del(`/admin/workspaces/${ws.id}`);
+      await api.del(`/admin/accounts/${ws.id}`);
       refresh();
       addToast({ title: "Воркспейс удалён", variant: "success" });
     } catch (e) {

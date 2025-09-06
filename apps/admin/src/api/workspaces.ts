@@ -1,5 +1,5 @@
-import type { Workspace } from "./types";
 import { api } from "./client";
+import type { Workspace } from "./types";
 
 export interface ListWorkspacesParams {
   q?: string;
@@ -17,7 +17,7 @@ export async function listWorkspaces(
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
   const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
-    `/admin/workspaces${qs.size ? `?${qs.toString()}` : ""}`,
+    `/admin/accounts${qs.size ? `?${qs.toString()}` : ""}`,
   );
   const data = res.data;
   if (Array.isArray(data)) return data;

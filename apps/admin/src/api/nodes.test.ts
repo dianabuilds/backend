@@ -43,7 +43,7 @@ describe('listNodes', () => {
     const res = await listNodes('ws1');
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(
-      '/admin/workspaces/ws1/nodes',
+      '/admin/accounts/ws1/nodes',
       expect.objectContaining({ workspace: false, raw: true, acceptNotModified: true }),
     );
     expect(res).toEqual([
