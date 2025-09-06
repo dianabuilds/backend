@@ -12,7 +12,7 @@ from app.providers.db.session import get_db
 from app.security import auth_user
 
 
-def get_workspace_id(request: Request, header_wid: int | str | None = None) -> int | None:
+def get_workspace_id(request: Request, header_wid: int | str | None = None) -> int:
     """Extract workspace identifier from path params, headers or query params."""
     if not isinstance(header_wid, str | int | type(None)):
         header_wid = None
@@ -23,7 +23,7 @@ def get_workspace_id(request: Request, header_wid: int | str | None = None) -> i
         or request.query_params.get("workspace_id")
     )
     if not wid:
-        return None
+        raise HTTPException(status_code=400, detail="workspace_id required")
     try:
         return int(str(wid))
     except (TypeError, ValueError) as exc:
@@ -49,8 +49,6 @@ async def require_workspace(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> Workspace:
     account_id = get_workspace_id(request, workspace_header)
-    if account_id is None:
-        raise HTTPException(status_code=400, detail="workspace_id required")
     workspace = await resolve_workspace(account_id, user, db)
     request.state.workspace_id = str(account_id)
     request.state.workspace = workspace
@@ -62,14 +60,13 @@ async def optional_workspace(
     workspace_header: Annotated[int | None, Header(alias="X-Workspace-Id", deprecated=True)] = None,
     user: Annotated[User, Depends(auth_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-) -> Workspace | None:
-    account_id = get_workspace_id(request, workspace_header)
-    if account_id is None:
-        return None
-    workspace = await resolve_workspace(account_id, user, db)
-    request.state.workspace_id = str(account_id)
-    request.state.workspace = workspace
-    return workspace
+) -> Workspace:
+    return await require_workspace(
+        request=request,
+        workspace_header=workspace_header,
+        user=user,
+        db=db,
+    )
 
 
 __all__ = [

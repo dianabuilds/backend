@@ -99,9 +99,6 @@ def account_limit(
                 db = getattr(repo, "_db", None)
             account_id = kwargs.get("account_id")
             user_id = kwargs.get("user_id") or kwargs.get("created_by") or kwargs.get("user")
-            node = kwargs.get("node")
-            if account_id is None and node is not None:
-                account_id = getattr(node, "account_id", None)
             uid = getattr(user_id, "id", None)
             if uid is not None:
                 user_id = uid
