@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { nodesApi } from "../features/content/api/nodes.api";
 import { queryKeys } from "../shared/api/queryKeys";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import { useAccount } from "../account/AccountContext";
 
 interface NodeItem {
   id: string;
@@ -11,23 +11,23 @@ interface NodeItem {
 }
 
 export default function ContentAll() {
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
   const [status, setStatus] = useState("");
   const [tag, setTag] = useState("");
 
   const { data } = useQuery({
-    queryKey: queryKeys.nodes(workspaceId || "", {
+    queryKey: queryKeys.nodes(accountId || "", {
       status: status || undefined,
       tags: tag || undefined,
     }),
     queryFn: async () => {
-      if (!workspaceId) return [] as NodeItem[];
-      return (await nodesApi.list(workspaceId, {
+      if (!accountId) return [] as NodeItem[];
+      return (await nodesApi.list(accountId, {
         status: status || undefined,
         tags: tag || undefined,
       })) as NodeItem[];
     },
-    enabled: !!workspaceId,
+    enabled: !!accountId,
   });
 
   return (

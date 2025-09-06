@@ -15,45 +15,45 @@ export type NotificationRules = {
   publish: NotificationChannel[];
 };
 
-export type WorkspaceLimits = {
+export type AccountLimits = {
   ai_tokens: number;
   notif_per_day: number;
   compass_calls: number;
 };
 
-export async function getAIPresets(workspaceId: string): Promise<AIPresets> {
+export async function getAIPresets(accountId: string): Promise<AIPresets> {
   const res = await api.get<AIPresets>(
-    `/admin/workspaces/${workspaceId}/settings/ai-presets`,
+    `/admin/accounts/${accountId}/settings/ai-presets`,
   );
   return res.data ?? {};
 }
 
 export async function saveAIPresets(
-  workspaceId: string,
+  accountId: string,
   presets: AIPresets,
 ): Promise<AIPresets> {
   const res = await api.put<AIPresets>(
-    `/admin/workspaces/${workspaceId}/settings/ai-presets`,
+    `/admin/accounts/${accountId}/settings/ai-presets`,
     presets,
   );
   return res.data ?? {};
 }
 
 export async function validateAIPresets(
-  workspaceId: string,
+  accountId: string,
   presets: AIPresets,
 ): Promise<void> {
   await api.post(
-    `/admin/workspaces/${workspaceId}/settings/ai-presets/validate`,
+    `/admin/accounts/${accountId}/settings/ai-presets/validate`,
     presets,
   );
 }
 
 export async function getNotificationRules(
-  workspaceId: string,
+  accountId: string,
 ): Promise<NotificationRules> {
   const res = await api.get<NotificationRules>(
-    `/admin/workspaces/${workspaceId}/settings/notifications`,
+    `/admin/accounts/${accountId}/settings/notifications`,
   );
   return (
     res.data ?? {
@@ -64,11 +64,11 @@ export async function getNotificationRules(
 }
 
 export async function saveNotificationRules(
-  workspaceId: string,
+  accountId: string,
   rules: NotificationRules,
 ): Promise<NotificationRules> {
   const res = await api.put<NotificationRules>(
-    `/admin/workspaces/${workspaceId}/settings/notifications`,
+    `/admin/accounts/${accountId}/settings/notifications`,
     rules,
   );
   return res.data ?? {
@@ -78,20 +78,20 @@ export async function saveNotificationRules(
 }
 
 export async function validateNotificationRules(
-  workspaceId: string,
+  accountId: string,
   rules: NotificationRules,
 ): Promise<void> {
   await api.post(
-    `/admin/workspaces/${workspaceId}/settings/notifications/validate`,
+    `/admin/accounts/${accountId}/settings/notifications/validate`,
     rules,
   );
 }
 
 export async function getLimits(
-  workspaceId: string,
-): Promise<WorkspaceLimits> {
-  const res = await api.get<WorkspaceLimits>(
-    `/admin/workspaces/${workspaceId}/settings/limits`,
+  accountId: string,
+): Promise<AccountLimits> {
+  const res = await api.get<AccountLimits>(
+    `/admin/accounts/${accountId}/settings/limits`,
   );
   return (
     res.data ?? {
@@ -103,11 +103,11 @@ export async function getLimits(
 }
 
 export async function saveLimits(
-  workspaceId: string,
-  limits: WorkspaceLimits,
-): Promise<WorkspaceLimits> {
-  const res = await api.put<WorkspaceLimits>(
-    `/admin/workspaces/${workspaceId}/settings/limits`,
+  accountId: string,
+  limits: AccountLimits,
+): Promise<AccountLimits> {
+  const res = await api.put<AccountLimits>(
+    `/admin/accounts/${accountId}/settings/limits`,
     limits,
   );
   return res.data ?? {
@@ -118,11 +118,11 @@ export async function saveLimits(
 }
 
 export async function validateLimits(
-  workspaceId: string,
-  limits: WorkspaceLimits,
+  accountId: string,
+  limits: AccountLimits,
 ): Promise<void> {
   await api.post(
-    `/admin/workspaces/${workspaceId}/settings/limits/validate`,
+    `/admin/accounts/${accountId}/settings/limits/validate`,
     limits,
   );
 }

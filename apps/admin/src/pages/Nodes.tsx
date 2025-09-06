@@ -23,7 +23,7 @@ import type { Status as NodeStatus } from '../openapi';
 import { Button } from '../shared/ui';
 import { ensureArray } from '../shared/utils';
 import { notify } from '../utils/notify';
-import { useWorkspace } from '../workspace/WorkspaceContext';
+import { useAccount } from '../account/AccountContext';
 
   type NodeItem = {
     id: number;
@@ -48,7 +48,7 @@ type ChangeSet = Partial<Record<ChangeKey, boolean>>;
 
 export default function Nodes() {
   const { addToast } = useToast();
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [scopeMode, setScopeMode] = useState('member');
@@ -60,7 +60,7 @@ export default function Nodes() {
     }
   };
 
-  if (!workspaceId) {
+  if (!accountId) {
     return (
       <div className="p-4">
         <ScopeControls
@@ -239,7 +239,7 @@ export default function Nodes() {
   } = useQuery<NodeItem[]>({
     queryKey: [
       'nodes',
-      workspaceId,
+      accountId,
       q,
       status,
       visibility,
@@ -254,8 +254,8 @@ export default function Nodes() {
       const params: NodeListParams = {
         limit,
         offset: page * limit,
-        scope_mode: scopeMode === 'space' ? `space:${workspaceId}` : scopeMode,
-        space_id: workspaceId,
+        scope_mode: scopeMode === 'space' ? `space:${accountId}` : scopeMode,
+        space_id: accountId,
       };
       if (q) params.q = q;
       if (status !== 'all') params.status = status;
@@ -263,10 +263,10 @@ export default function Nodes() {
       if (isPublic !== 'all') params.is_public = isPublic === 'true';
       if (premium !== 'all') params.premium_only = premium === 'true';
       if (recommendable !== 'all') params.recommendable = recommendable === 'true';
-      const res = await listNodes(workspaceId, params);
+      const res = await listNodes(accountId, params);
       return ensureArray<NodeItem>(res);
     },
-    enabled: !!workspaceId,
+    enabled: !!accountId,
     placeholderData: (prev) => prev,
     onError: (e) => {
       const msg = e instanceof Error ? e.message : String(e);
@@ -357,7 +357,7 @@ export default function Nodes() {
     const results: string[] = [];
     try {
       for (const { ids, changes } of groups.values()) {
-        await wsApi.patch(`/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/bulk`, {
+        await wsApi.patch(`/admin/accounts/${encodeURIComponent(accountId)}/nodes/bulk`, {
           ids,
           changes,
         });
@@ -406,11 +406,11 @@ export default function Nodes() {
   };
 
   const previewSelected = async (id: number) => {
-    if (!workspaceId) return;
+    if (!accountId) return;
     const node = items.find((n) => n.id === id);
     if (!node) return;
     try {
-      const { url } = await createPreviewLink(workspaceId);
+      const { url } = await createPreviewLink(accountId);
       const t = node.type || 'article';
       window.open(`${url}/nodes/${t}/${id}`, '_blank');
     } catch (e) {
@@ -429,7 +429,7 @@ export default function Nodes() {
     try {
       for (const id of ids) {
         await wsApi.delete(
-          `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(id)}`,
+          `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(id)}`,
         );
       }
       setItems((prev) => prev.filter((n) => !selected.has(n.id)));
@@ -461,7 +461,7 @@ export default function Nodes() {
           const item = baseline.get(first);
           if (item) {
             const t = item.type || 'article';
-            navigate(`/nodes/${t}/${first}?workspace_id=${workspaceId}`);
+            navigate(`/nodes/${t}/${first}?account_id=${accountId}`);
           }
         }
       } else if (e.key === 'p' || e.key === 'P') {
@@ -478,7 +478,7 @@ export default function Nodes() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selected, items, workspaceId, navigate, applyChanges]);
+  }, [selected, items, accountId, navigate, applyChanges]);
 
   return (
     <div className="flex gap-6">
@@ -611,8 +611,8 @@ export default function Nodes() {
                   type="button"
                   className="bg-blue-600 text-white"
                   onClick={() => {
-                    const qs = workspaceId
-                      ? `?workspace_id=${encodeURIComponent(workspaceId)}`
+                    const qs = accountId
+                      ? `?account_id=${encodeURIComponent(accountId)}`
                       : '';
                     navigate(`/nodes/article/new${qs}`);
                   }}
@@ -867,7 +867,7 @@ export default function Nodes() {
                             type="button"
                             onClick={() => {
                               const t = n.type || 'article';
-                              navigate(`/nodes/${t}/${n.id}?workspace_id=${workspaceId}`);
+                              navigate(`/nodes/${t}/${n.id}?account_id=${accountId}`);
                             }}
                           >
                             Редактировать
@@ -875,9 +875,9 @@ export default function Nodes() {
                           <Button
                             type="button"
                             onClick={async () => {
-                              if (!workspaceId) return;
+                              if (!accountId) return;
                               try {
-                                const { url } = await createPreviewLink(workspaceId);
+                                const { url } = await createPreviewLink(accountId);
                                 const t = n.type || 'article';
                                 window.open(`${url}/nodes/${t}/${n.id}`, '_blank');
                               } catch (e) {

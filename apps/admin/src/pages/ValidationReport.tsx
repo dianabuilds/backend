@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { api } from "../api/client";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import { useAccount } from "../account/AccountContext";
 import ValidationReportView from "../components/ValidationReportView";
 import type { ValidationReport as ValidationReportModel } from "../openapi";
 import PageLayout from "./_shared/PageLayout";
 
 export default function ValidationReport() {
   const { id } = useParams<{ id: string }>();
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
   const [report, setReport] = useState<ValidationReportModel | null>(null);
   const [loading, setLoading] = useState(false);
   const [aiReport, setAiReport] = useState<ValidationReportModel | null>(null);
@@ -18,11 +18,11 @@ export default function ValidationReport() {
   const nodeId = Number(id);
 
   const run = async () => {
-    if (!Number.isInteger(nodeId) || !workspaceId) return;
+    if (!Number.isInteger(nodeId) || !accountId) return;
     setLoading(true);
     try {
       const res = await api.post(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/validate`,
+        `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(nodeId))}/validate`,
       );
       setReport(res.data?.report ?? null);
     } finally {
@@ -31,11 +31,11 @@ export default function ValidationReport() {
   };
 
   const runAi = async () => {
-    if (!Number.isInteger(nodeId) || !workspaceId) return;
+    if (!Number.isInteger(nodeId) || !accountId) return;
     setAiLoading(true);
     try {
       const res = await api.post(
-        `/admin/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(String(nodeId))}/validate_ai`,
+        `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(nodeId))}/validate_ai`,
       );
       setAiReport(res.data?.report ?? null);
     } finally {
@@ -46,7 +46,7 @@ export default function ValidationReport() {
   useEffect(() => {
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId, workspaceId]);
+  }, [nodeId, accountId]);
 
   return (
     <PageLayout title="Validation report">

@@ -5,8 +5,8 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { safeLocalStorage } from "../utils/safeStorage";
-import { WorkspaceBranchProvider, useWorkspace } from "../workspace/WorkspaceContext";
-import WorkspaceSelector from "./WorkspaceSelector";
+import { AccountBranchProvider, useAccount } from "../account/AccountContext";
+import AccountSelector from "./AccountSelector";
 
 const queryData = { data: [] as any[], error: null };
 vi.mock("@tanstack/react-query", () => ({
@@ -17,70 +17,70 @@ vi.mock("../api/client", () => ({
   api: { get: vi.fn() },
 }));
 
-describe("WorkspaceSelector", () => {
+describe("AccountSelector", () => {
   beforeEach(() => {
     safeLocalStorage.clear();
-    safeLocalStorage.setItem("workspaceId", "ws1");
+    safeLocalStorage.setItem("accountId", "ws1");
     queryData.error = null;
     queryData.data = [
-      { id: "ws1", name: "Workspace One", slug: "one", role: "owner" },
-      { id: "ws2", name: "Workspace Two", slug: "two", role: "editor" },
+      { id: "ws1", name: "Account One", slug: "one", role: "owner" },
+      { id: "ws2", name: "Account Two", slug: "two", role: "editor" },
     ];
   });
 
-  it("switches workspace via keyboard", async () => {
+  it("switches account via keyboard", async () => {
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <WorkspaceBranchProvider>
-          <WorkspaceSelector />
-        </WorkspaceBranchProvider>
+        <AccountBranchProvider>
+          <AccountSelector />
+        </AccountBranchProvider>
       </MemoryRouter>,
     );
     fireEvent.keyDown(document, { key: "k", ctrlKey: true });
-    await waitFor(() => screen.getByPlaceholderText("Search workspace..."));
-    fireEvent.keyDown(screen.getByPlaceholderText("Search workspace..."), {
+    await waitFor(() => screen.getByPlaceholderText("Search account..."));
+    fireEvent.keyDown(screen.getByPlaceholderText("Search account..."), {
       key: "ArrowDown",
     });
-    fireEvent.keyDown(screen.getByPlaceholderText("Search workspace..."), {
+    fireEvent.keyDown(screen.getByPlaceholderText("Search account..."), {
       key: "Enter",
     });
     await waitFor(() => {
-      const link = screen.getByTitle("Settings for Workspace Two");
-      expect(link).toHaveAttribute("href", "/workspaces/ws2");
+      const link = screen.getByTitle("Settings for Account Two");
+      expect(link).toHaveAttribute("href", "/accounts/ws2");
     });
   });
 
-  it("shows create link when no workspaces", () => {
+  it("shows create link when no accounts", () => {
     queryData.data = [];
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <WorkspaceBranchProvider>
-          <WorkspaceSelector />
-        </WorkspaceBranchProvider>
+        <AccountBranchProvider>
+          <AccountSelector />
+        </AccountBranchProvider>
       </MemoryRouter>,
     );
     const link = screen.getByText("Создать воркспейс");
-    expect(link).toHaveAttribute("href", "/admin/workspaces");
+    expect(link).toHaveAttribute("href", "/admin/accounts");
   });
 
-  it("clears missing workspace", async () => {
+  it("clears missing account", async () => {
     queryData.data = [];
     const ShowWs = () => {
-      const { workspaceId } = useWorkspace();
-      return <div data-testid="ws">{workspaceId}</div>;
+      const { accountId } = useAccount();
+      return <div data-testid="ws">{accountId}</div>;
     };
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <WorkspaceBranchProvider>
-          <WorkspaceSelector />
+        <AccountBranchProvider>
+          <AccountSelector />
           <ShowWs />
-        </WorkspaceBranchProvider>
+        </AccountBranchProvider>
       </MemoryRouter>,
     );
     await waitFor(() =>
       expect(screen.getByTestId("ws").textContent).toBe(""),
     );
-    expect(safeLocalStorage.getItem("workspaceId")).toBeNull();
+    expect(safeLocalStorage.getItem("accountId")).toBeNull();
   });
 
   it("shows login banner on error", () => {
@@ -88,9 +88,9 @@ describe("WorkspaceSelector", () => {
     queryData.data = undefined as any;
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <WorkspaceBranchProvider>
-          <WorkspaceSelector />
-        </WorkspaceBranchProvider>
+        <AccountBranchProvider>
+          <AccountSelector />
+        </AccountBranchProvider>
       </MemoryRouter>,
     );
     screen.getByText("Не удалось загрузить список воркспейсов.");

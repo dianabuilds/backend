@@ -10,7 +10,7 @@ import {
   validateQuest,
   type ValidationReport,
 } from "../api/quests";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import { useAccount } from "../account/AccountContext";
 import PageLayout from "./_shared/PageLayout";
 
 interface QuestItem {
@@ -27,7 +27,7 @@ interface QuestItem {
 
 export default function QuestsList() {
   const nav = useNavigate();
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
 
   // filters
   const [search, setSearch] = useState("");
@@ -53,7 +53,7 @@ export default function QuestsList() {
   } = useQuery<QuestItem[]>({
     queryKey: [
       "quests",
-      workspaceId,
+      accountId,
       search,
       draftOnly,
       lenFilter,
@@ -70,7 +70,7 @@ export default function QuestsList() {
       });
       return rows as QuestItem[];
     },
-    enabled: !!workspaceId,
+    enabled: !!accountId,
     placeholderData: (prev) => prev,
   });
 

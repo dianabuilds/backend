@@ -12,7 +12,7 @@ export class TagsService {
     /**
      * List tags
      * Retrieve available tags with optional search and popularity filter.
-     * @param workspaceId
+     * @param accountId
      * @param q
      * @param popular
      * @param limit
@@ -21,7 +21,7 @@ export class TagsService {
      * @throws ApiError
      */
     public static listTagsTagsTagsGet(
-        workspaceId: string,
+        accountId: string,
         q?: (string | null),
         popular: boolean = false,
         limit: number = 10,
@@ -31,7 +31,7 @@ export class TagsService {
             method: 'GET',
             url: '/tags/tags/',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'q': q,
                 'popular': popular,
                 'limit': limit,
@@ -44,20 +44,20 @@ export class TagsService {
     }
     /**
      * Create tag
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns TagOut Successful Response
      * @throws ApiError
      */
     public static createTagTagsTagsPost(
-        workspaceId: string,
+        accountId: string,
         requestBody: TagCreate,
     ): CancelablePromise<TagOut> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/tags/tags/',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -69,13 +69,13 @@ export class TagsService {
     /**
      * Get tag
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @returns TagOut Successful Response
      * @throws ApiError
      */
     public static getTagTagsTagsSlugGet(
         slug: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<TagOut> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -84,7 +84,7 @@ export class TagsService {
                 'slug': slug,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,
@@ -94,14 +94,14 @@ export class TagsService {
     /**
      * Update tag
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns TagOut Successful Response
      * @throws ApiError
      */
     public static updateTagTagsTagsSlugPut(
         slug: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: TagUpdate,
     ): CancelablePromise<TagOut> {
         return __request(OpenAPI, {
@@ -111,7 +111,7 @@ export class TagsService {
                 'slug': slug,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -123,13 +123,13 @@ export class TagsService {
     /**
      * Delete tag
      * @param slug
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static deleteTagTagsTagsSlugDelete(
         slug: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -138,7 +138,7 @@ export class TagsService {
                 'slug': slug,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,

@@ -134,11 +134,11 @@ export async function sendDraftCampaign(id: string): Promise<unknown> {
 }
 
 export async function listNotifications(
-  workspaceId?: string,
+  accountId?: string,
   placement?: string,
 ): Promise<NotificationItem[]> {
   const params: Record<string, string> = {};
-  if (workspaceId) params.workspace_id = workspaceId;
+  if (accountId) params.account_id = accountId;
   if (placement) params.placement = placement;
   const res = await api.get<NotificationItem[]>("/notifications", {
     params: Object.keys(params).length ? params : undefined,
@@ -148,12 +148,12 @@ export async function listNotifications(
 
 export async function markNotificationRead(
   id: string,
-  workspaceId?: string,
+  accountId?: string,
 ): Promise<unknown> {
   const res = await api.post<unknown>(
     `/notifications/${id}/read`,
     {},
-    { params: workspaceId ? { workspace_id: workspaceId } : undefined },
+    { params: accountId ? { account_id: accountId } : undefined },
   );
   return res.data;
 }

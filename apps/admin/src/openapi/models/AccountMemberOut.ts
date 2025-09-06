@@ -2,9 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { WorkspaceRole } from './WorkspaceRole';
-export type WorkspaceMemberIn = {
+import type { AccountRole } from './AccountRole';
+export type AccountMemberOut = {
+    account_id: string;
     user_id: string;
-    role: WorkspaceRole;
+    role: AccountRole;
 };
 

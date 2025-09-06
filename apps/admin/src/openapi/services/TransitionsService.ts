@@ -10,15 +10,15 @@ export class TransitionsService {
      * Delete transition
      * Delete a specific manual transition between nodes.
      * @param transitionId
-     * @param workspaceId
-     * @param xWorkspaceId
+     * @param accountId
+     * @param xAccountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static deleteTransitionTransitionsTransitionIdDelete(
         transitionId: string,
-        workspaceId: string,
-        xWorkspaceId?: (string | null),
+        accountId: string,
+        xAccountId?: (string | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -27,10 +27,10 @@ export class TransitionsService {
                 'transition_id': transitionId,
             },
             headers: {
-                'X-Workspace-Id': xWorkspaceId,
+                'X-Account-Id': xAccountId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,

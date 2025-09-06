@@ -12,6 +12,6 @@ export type GenerateQuestIn = {
     extras?: (Record<string, any> | null);
     model?: (string | null);
     remember?: boolean;
-    workspace_id?: (string | null);
+    account_id?: (string | null);
 };
 

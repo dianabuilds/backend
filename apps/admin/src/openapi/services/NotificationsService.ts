@@ -9,18 +9,18 @@ import { request as __request } from '../core/request';
 export class NotificationsService {
     /**
      * List notifications
-     * @param workspaceId
+     * @param accountId
      * @returns NotificationOut Successful Response
      * @throws ApiError
      */
     public static listNotificationsNotificationsGet(
-        workspaceId?: string,
+        accountId: string,
     ): CancelablePromise<Array<NotificationOut>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/notifications',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,
@@ -30,13 +30,13 @@ export class NotificationsService {
     /**
      * Mark notification read
      * @param notificationId
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static markReadNotificationsNotificationIdReadPost(
         notificationId: string,
-        workspaceId?: string,
+        accountId: string,
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -45,7 +45,7 @@ export class NotificationsService {
                 'notification_id': notificationId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,

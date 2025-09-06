@@ -1,19 +1,19 @@
 import { safeLocalStorage } from "../utils/safeStorage";
 import { api, type RequestOptions as ApiRequestOptions } from "./client";
 
-function getWorkspaceId(): string {
-  return safeLocalStorage.getItem("workspaceId") || "";
+function getAccountId(): string {
+  return safeLocalStorage.getItem("accountId") || "";
 }
 
-function ensureWorkspaceId(): string {
-  const id = getWorkspaceId();
+function ensureAccountId(): string {
+  const id = getAccountId();
   if (!id) {
     try {
-      window.dispatchEvent(new Event("workspace-missing"));
+      window.dispatchEvent(new Event("account-missing"));
     } catch {
       // ignore
     }
-    throw new Error("Workspace is not selected");
+    throw new Error("Account is not selected");
   }
   return id;
 }
@@ -23,24 +23,24 @@ export interface WsRequestOptions<P extends Record<string, unknown> = Record<str
   params?: P;
   raw?: boolean;
   /**
-   * Configure workspace ID handling. By default the workspace ID is injected
-   * into the URL path. Set to `false` to skip any automatic workspace handling
-   * or to `"query"` to append the ID as `workspace_id` query parameter.
+   * Configure account ID handling. By default the account ID is injected
+   * into the URL path. Set to `false` to skip any automatic account handling
+   * or to `"query"` to append the ID as `account_id` query parameter.
    */
-  workspace?: "path" | "query" | false;
+  account?: "path" | "query" | false;
 }
 
 async function request<
   T = unknown,
   P extends Record<string, unknown> = Record<string, never>,
 >(url: string, opts: WsRequestOptions<P> = {}): Promise<T> {
-  const { params, headers: optHeaders, raw, workspace = "path", ...rest } = opts as WsRequestOptions<P> & {
+  const { params, headers: optHeaders, raw, account = "path", ...rest } = opts as WsRequestOptions<P> & {
     raw?: boolean;
   };
 
-  let workspaceId: string | undefined;
-  if (workspace !== false) {
-    workspaceId = ensureWorkspaceId();
+  let accountId: string | undefined;
+  if (account !== false) {
+    accountId = ensureAccountId();
   }
   const headers: Record<string, string> = {
     ...(optHeaders as Record<string, string> | undefined),
@@ -53,15 +53,15 @@ async function request<
   let finalUrl = url;
   const finalParams: Record<string, unknown> = { ...(params || {}) };
 
-  if (workspaceId && workspace === "path") {
-    if (finalUrl.startsWith("/admin/") && !finalUrl.startsWith("/admin/workspaces/")) {
-      finalUrl = `/admin/workspaces/${encodeURIComponent(workspaceId)}${finalUrl.slice(
+  if (accountId && account === "path") {
+    if (finalUrl.startsWith("/admin/") && !finalUrl.startsWith("/admin/accounts/")) {
+      finalUrl = `/admin/accounts/${encodeURIComponent(accountId)}${finalUrl.slice(
         "/admin".length,
       )}`;
     }
-  } else if (workspaceId && workspace === "query") {
-    if (finalParams.workspace_id === undefined) {
-      finalParams.workspace_id = workspaceId;
+  } else if (accountId && account === "query") {
+    if (finalParams.account_id === undefined) {
+      finalParams.account_id = accountId;
     }
   }
 

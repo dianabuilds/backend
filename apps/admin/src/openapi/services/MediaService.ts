@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { Body_upload_media_accounts__account_id__media_post } from '../models/Body_upload_media_accounts__account_id__media_post';
 import type { Body_upload_media_media_post } from '../models/Body_upload_media_media_post';
-import type { Body_upload_media_workspaces__workspace_id__media_post } from '../models/Body_upload_media_workspaces__workspace_id__media_post';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -11,20 +11,20 @@ export class MediaService {
     /**
      * Upload Media
      * Accept an uploaded image and return its public URL.
-     * @param xWorkspaceId
+     * @param xAccountId
      * @param formData
      * @returns any Successful Response
      * @throws ApiError
      */
     public static uploadMediaMediaPost(
-        xWorkspaceId?: (string | null),
+        xAccountId?: (string | null),
         formData?: Body_upload_media_media_post,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/media',
             headers: {
-                'X-Workspace-Id': xWorkspaceId,
+                'X-Account-Id': xAccountId,
             },
             formData: formData,
             mediaType: 'multipart/form-data',
@@ -36,20 +36,20 @@ export class MediaService {
     /**
      * Upload Media
      * Accept an uploaded image and return its public URL.
-     * @param xWorkspaceId
+     * @param xAccountId
      * @param formData
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static uploadMediaWorkspacesWorkspaceIdMediaPost(
-        xWorkspaceId?: (string | null),
-        formData?: Body_upload_media_workspaces__workspace_id__media_post,
+    public static uploadMediaAccountsAccountIdMediaPost(
+        xAccountId?: (string | null),
+        formData?: Body_upload_media_accounts__account_id__media_post,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/workspaces/{workspace_id}/media',
+            url: '/accounts/{account_id}/media',
             headers: {
-                'X-Workspace-Id': xWorkspaceId,
+                'X-Account-Id': xAccountId,
             },
             formData: formData,
             mediaType: 'multipart/form-data',

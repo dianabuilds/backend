@@ -2,6 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AccountIn } from '../models/AccountIn';
+import type { AccountMemberIn } from '../models/AccountMemberIn';
+import type { AccountMemberOut } from '../models/AccountMemberOut';
+import type { AccountOut } from '../models/AccountOut';
+import type { AccountUpdate } from '../models/AccountUpdate';
+import type { AccountWithRoleOut } from '../models/AccountWithRoleOut';
 import type { AchievementAdminOut } from '../models/AchievementAdminOut';
 import type { AchievementCreateIn } from '../models/AchievementCreateIn';
 import type { AchievementUpdateIn } from '../models/AchievementUpdateIn';
@@ -90,12 +96,6 @@ import type { UserIdIn } from '../models/UserIdIn';
 import type { UserPremiumUpdate } from '../models/UserPremiumUpdate';
 import type { UserRoleUpdate } from '../models/UserRoleUpdate';
 import type { ValidateResult } from '../models/ValidateResult';
-import type { WorkspaceIn } from '../models/WorkspaceIn';
-import type { WorkspaceMemberIn } from '../models/WorkspaceMemberIn';
-import type { WorkspaceMemberOut } from '../models/WorkspaceMemberOut';
-import type { WorkspaceOut } from '../models/WorkspaceOut';
-import type { WorkspaceUpdate } from '../models/WorkspaceUpdate';
-import type { WorkspaceWithRoleOut } from '../models/WorkspaceWithRoleOut';
 import type { WorldTemplateIn } from '../models/WorldTemplateIn';
 import type { WorldTemplateOut } from '../models/WorldTemplateOut';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -135,19 +135,44 @@ export class AdminService {
         });
     }
     /**
+     * Resolve Alert
+     * Mark alert resolved.
+     * @param alertId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static resolveAlertAdminOpsAlertsAlertIdResolvePost(
+        alertId: string,
+    ): CancelablePromise<{
+        status: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/ops/alerts/{alert_id}/resolve',
+            path: {
+                'alert_id': alertId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                502: `Bad Gateway`,
+            },
+        });
+    }
+    /**
      * Get Status
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static getStatusAdminOpsStatusGet(
-        workspaceId?: (string | null),
+        accountId?: (string | null),
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/ops/status',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -158,18 +183,18 @@ export class AdminService {
     }
     /**
      * Get Limits
-     * @param workspaceId
+     * @param accountId
      * @returns number Successful Response
      * @throws ApiError
      */
     public static getLimitsAdminOpsLimitsGet(
-        workspaceId?: (string | null),
+        accountId?: (string | null),
     ): CancelablePromise<Record<string, number>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/ops/limits',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -522,20 +547,20 @@ export class AdminService {
     }
     /**
      * Create a quest (skeleton)
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
     public static createQuestAdminQuestsCreatePost(
-        workspaceId: string,
+        accountId: string,
         requestBody: QuestCreateIn,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/quests/create',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -549,13 +574,13 @@ export class AdminService {
     /**
      * Quest with versions
      * @param questId
-     * @param workspaceId
+     * @param accountId
      * @returns QuestSummary Successful Response
      * @throws ApiError
      */
     public static getQuestAdminQuestsQuestIdGet(
         questId: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<QuestSummary> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -564,7 +589,7 @@ export class AdminService {
                 'quest_id': questId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -576,13 +601,13 @@ export class AdminService {
     /**
      * Create a draft version
      * @param questId
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static createDraftAdminQuestsQuestIdDraftPost(
         questId: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -591,7 +616,7 @@ export class AdminService {
                 'quest_id': questId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -625,13 +650,13 @@ export class AdminService {
     /**
      * Delete draft version
      * @param versionId
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static deleteDraftAdminQuestsVersionsVersionIdDelete(
         versionId: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -640,7 +665,7 @@ export class AdminService {
                 'version_id': versionId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -678,13 +703,13 @@ export class AdminService {
     /**
      * Validate graph
      * @param versionId
-     * @param workspaceId
+     * @param accountId
      * @returns ValidateResult Successful Response
      * @throws ApiError
      */
     public static validateVersionAdminQuestsVersionsVersionIdValidatePost(
         versionId: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<ValidateResult> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -693,7 +718,7 @@ export class AdminService {
                 'version_id': versionId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -727,13 +752,13 @@ export class AdminService {
     /**
      * Publish version
      * @param versionId
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static publishVersionAdminQuestsVersionsVersionIdPublishPost(
         versionId: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -742,7 +767,7 @@ export class AdminService {
                 'version_id': versionId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -776,14 +801,14 @@ export class AdminService {
     /**
      * Simulate run
      * @param versionId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns SimulateResult Successful Response
      * @throws ApiError
      */
     public static simulateVersionAdminQuestsVersionsVersionIdSimulatePost(
         versionId: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: SimulateIn,
     ): CancelablePromise<SimulateResult> {
         return __request(OpenAPI, {
@@ -793,7 +818,7 @@ export class AdminService {
                 'version_id': versionId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -994,22 +1019,22 @@ export class AdminService {
     }
     /**
      * Hide Node
-     * @param workspaceId
+     * @param accountId
      * @param slug
      * @param requestBody
      * @returns string Successful Response
      * @throws ApiError
      */
-    public static hideNodeAdminWorkspacesWorkspaceIdModerationNodesSlugHidePost(
-        workspaceId: string,
+    public static hideNodeAdminAccountsAccountIdModerationNodesSlugHidePost(
+        accountId: string,
         slug: string,
         requestBody: HidePayload,
     ): CancelablePromise<Record<string, string>> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/moderation/nodes/{slug}/hide',
+            url: '/admin/accounts/{account_id}/moderation/nodes/{slug}/hide',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'slug': slug,
             },
             body: requestBody,
@@ -1023,20 +1048,20 @@ export class AdminService {
     }
     /**
      * Restore Node
-     * @param workspaceId
+     * @param accountId
      * @param slug
      * @returns string Successful Response
      * @throws ApiError
      */
-    public static restoreNodeAdminWorkspacesWorkspaceIdModerationNodesSlugRestorePost(
-        workspaceId: string,
+    public static restoreNodeAdminAccountsAccountIdModerationNodesSlugRestorePost(
+        accountId: string,
         slug: string,
     ): CancelablePromise<Record<string, string>> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/moderation/nodes/{slug}/restore',
+            url: '/admin/accounts/{account_id}/moderation/nodes/{slug}/restore',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'slug': slug,
             },
             errors: {
@@ -1214,19 +1239,20 @@ export class AdminService {
         });
     }
     /**
-     * Estimate campaign recipients
-     * @param requestBody
+     * List campaigns
+     * @param limit
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static estimateCampaignAdminNotificationsCampaignsEstimatePost(
-        requestBody: CampaignFilters,
+    public static listCampaignsAdminNotificationsCampaignsGet(
+        limit: number = 50,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
-            method: 'POST',
-            url: '/admin/notifications/campaigns/estimate',
-            body: requestBody,
-            mediaType: 'application/json',
+            method: 'GET',
+            url: '/admin/notifications/campaigns',
+            query: {
+                'limit': limit,
+            },
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
@@ -1248,28 +1274,6 @@ export class AdminService {
             url: '/admin/notifications/campaigns',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List campaigns
-     * @param limit
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static listCampaignsAdminNotificationsCampaignsGet(
-        limit: number = 50,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/admin/notifications/campaigns',
-            query: {
-                'limit': limit,
-            },
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
@@ -1326,52 +1330,6 @@ export class AdminService {
         });
     }
     /**
-     * Start campaign
-     * @param campaignId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static startCampaignAdminNotificationsCampaignsCampaignIdStartPost(
-        campaignId: string,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/admin/notifications/campaigns/{campaign_id}/start',
-            path: {
-                'campaign_id': campaignId,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Cancel campaign
-     * @param campaignId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static cancelCampaignAdminNotificationsCampaignsCampaignIdCancelPost(
-        campaignId: string,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/admin/notifications/campaigns/{campaign_id}/cancel',
-            path: {
-                'campaign_id': campaignId,
-            },
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
      * Delete campaign
      * @param campaignId
      * @returns any Successful Response
@@ -1395,18 +1353,18 @@ export class AdminService {
     }
     /**
      * List achievements (admin)
-     * @param workspaceId
+     * @param accountId
      * @returns AchievementAdminOut Successful Response
      * @throws ApiError
      */
     public static listAchievementsAdminAdminAchievementsGet(
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<Array<AchievementAdminOut>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/achievements',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -1417,20 +1375,20 @@ export class AdminService {
     }
     /**
      * Create achievement
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns AchievementAdminOut Successful Response
      * @throws ApiError
      */
     public static createAchievementAdminAdminAchievementsPost(
-        workspaceId: string,
+        accountId: string,
         requestBody: AchievementCreateIn,
     ): CancelablePromise<AchievementAdminOut> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/achievements',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -1444,14 +1402,14 @@ export class AdminService {
     /**
      * Update achievement
      * @param achievementId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns AchievementAdminOut Successful Response
      * @throws ApiError
      */
     public static updateAchievementAdminAdminAchievementsAchievementIdPatch(
         achievementId: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: AchievementUpdateIn,
     ): CancelablePromise<AchievementAdminOut> {
         return __request(OpenAPI, {
@@ -1461,7 +1419,7 @@ export class AdminService {
                 'achievement_id': achievementId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -1475,13 +1433,13 @@ export class AdminService {
     /**
      * Delete achievement
      * @param achievementId
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
     public static deleteAchievementAdminAdminAchievementsAchievementIdDelete(
         achievementId: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -1490,7 +1448,7 @@ export class AdminService {
                 'achievement_id': achievementId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -1502,14 +1460,14 @@ export class AdminService {
     /**
      * Grant achievement to user
      * @param achievementId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
     public static grantAchievementAdminAchievementsAchievementIdGrantPost(
         achievementId: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: UserIdIn,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -1519,7 +1477,7 @@ export class AdminService {
                 'achievement_id': achievementId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -1533,14 +1491,14 @@ export class AdminService {
     /**
      * Revoke achievement from user
      * @param achievementId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
     public static revokeAchievementAdminAchievementsAchievementIdRevokePost(
         achievementId: string,
-        workspaceId: string,
+        accountId: string,
         requestBody: UserIdIn,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -1550,7 +1508,7 @@ export class AdminService {
                 'achievement_id': achievementId,
             },
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -1677,20 +1635,20 @@ export class AdminService {
     }
     /**
      * Create Preview Link Get
-     * @param workspaceId
+     * @param accountId
      * @param ttl
      * @returns string Successful Response
      * @throws ApiError
      */
     public static createPreviewLinkGetAdminPreviewLinkGet(
-        workspaceId: string,
+        accountId: string,
         ttl?: (number | null),
     ): CancelablePromise<Record<string, string>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/preview/link',
             query: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'ttl': ttl,
             },
             errors: {
@@ -2050,14 +2008,14 @@ export class AdminService {
         });
     }
     /**
-     * List workspaces
-     * @returns WorkspaceWithRoleOut Successful Response
+     * List accounts
+     * @returns AccountWithRoleOut Successful Response
      * @throws ApiError
      */
-    public static listWorkspacesAdminWorkspacesGet(): CancelablePromise<Array<WorkspaceWithRoleOut>> {
+    public static listAccountsAdminAccountsGet(): CancelablePromise<Array<AccountWithRoleOut>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces',
+            url: '/admin/accounts',
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
@@ -2065,17 +2023,17 @@ export class AdminService {
         });
     }
     /**
-     * Create workspace
+     * Create account
      * @param requestBody
-     * @returns WorkspaceOut Successful Response
+     * @returns AccountOut Successful Response
      * @throws ApiError
      */
-    public static createWorkspaceAdminWorkspacesPost(
-        requestBody: WorkspaceIn,
-    ): CancelablePromise<WorkspaceOut> {
+    public static createAccountAdminAccountsPost(
+        requestBody: AccountIn,
+    ): CancelablePromise<AccountOut> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces',
+            url: '/admin/accounts',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -2086,19 +2044,19 @@ export class AdminService {
         });
     }
     /**
-     * Get workspace
-     * @param workspaceId
-     * @returns WorkspaceOut Successful Response
+     * Get account
+     * @param accountId
+     * @returns AccountOut Successful Response
      * @throws ApiError
      */
-    public static getWorkspaceAdminWorkspacesWorkspaceIdGet(
-        workspaceId: string,
-    ): CancelablePromise<WorkspaceOut> {
+    public static getAccountAdminAccountsAccountIdGet(
+        accountId: string,
+    ): CancelablePromise<AccountOut> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}',
+            url: '/admin/accounts/{account_id}',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2108,21 +2066,21 @@ export class AdminService {
         });
     }
     /**
-     * Update workspace
-     * @param workspaceId
+     * Update account
+     * @param accountId
      * @param requestBody
-     * @returns WorkspaceOut Successful Response
+     * @returns AccountOut Successful Response
      * @throws ApiError
      */
-    public static updateWorkspaceAdminWorkspacesWorkspaceIdPatch(
-        workspaceId: string,
-        requestBody: WorkspaceUpdate,
-    ): CancelablePromise<WorkspaceOut> {
+    public static updateAccountAdminAccountsAccountIdPatch(
+        accountId: string,
+        requestBody: AccountUpdate,
+    ): CancelablePromise<AccountOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/admin/workspaces/{workspace_id}',
+            url: '/admin/accounts/{account_id}',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2134,19 +2092,19 @@ export class AdminService {
         });
     }
     /**
-     * Delete workspace
-     * @param workspaceId
+     * Delete account
+     * @param accountId
      * @returns void
      * @throws ApiError
      */
-    public static deleteWorkspaceAdminWorkspacesWorkspaceIdDelete(
-        workspaceId: string,
+    public static deleteAccountAdminAccountsAccountIdDelete(
+        accountId: string,
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/admin/workspaces/{workspace_id}',
+            url: '/admin/accounts/{account_id}',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2156,21 +2114,21 @@ export class AdminService {
         });
     }
     /**
-     * Add workspace member
-     * @param workspaceId
+     * Add account member
+     * @param accountId
      * @param requestBody
-     * @returns WorkspaceMemberOut Successful Response
+     * @returns AccountMemberOut Successful Response
      * @throws ApiError
      */
-    public static addMemberAdminWorkspacesWorkspaceIdMembersPost(
-        workspaceId: string,
-        requestBody: WorkspaceMemberIn,
-    ): CancelablePromise<WorkspaceMemberOut> {
+    public static addMemberAdminAccountsAccountIdMembersPost(
+        accountId: string,
+        requestBody: AccountMemberIn,
+    ): CancelablePromise<AccountMemberOut> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/members',
+            url: '/admin/accounts/{account_id}/members',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2182,19 +2140,19 @@ export class AdminService {
         });
     }
     /**
-     * List workspace members
-     * @param workspaceId
-     * @returns WorkspaceMemberOut Successful Response
+     * List account members
+     * @param accountId
+     * @returns AccountMemberOut Successful Response
      * @throws ApiError
      */
-    public static listMembersAdminWorkspacesWorkspaceIdMembersGet(
-        workspaceId: string,
-    ): CancelablePromise<Array<WorkspaceMemberOut>> {
+    public static listMembersAdminAccountsAccountIdMembersGet(
+        accountId: string,
+    ): CancelablePromise<Array<AccountMemberOut>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/members',
+            url: '/admin/accounts/{account_id}/members',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2204,23 +2162,23 @@ export class AdminService {
         });
     }
     /**
-     * Update workspace member
-     * @param workspaceId
+     * Update account member
+     * @param accountId
      * @param userId
      * @param requestBody
-     * @returns WorkspaceMemberOut Successful Response
+     * @returns AccountMemberOut Successful Response
      * @throws ApiError
      */
-    public static updateMemberAdminWorkspacesWorkspaceIdMembersUserIdPatch(
-        workspaceId: string,
+    public static updateMemberAdminAccountsAccountIdMembersUserIdPatch(
+        accountId: string,
         userId: string,
-        requestBody: WorkspaceMemberIn,
-    ): CancelablePromise<WorkspaceMemberOut> {
+        requestBody: AccountMemberIn,
+    ): CancelablePromise<AccountMemberOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/admin/workspaces/{workspace_id}/members/{user_id}',
+            url: '/admin/accounts/{account_id}/members/{user_id}',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'user_id': userId,
             },
             body: requestBody,
@@ -2233,21 +2191,21 @@ export class AdminService {
         });
     }
     /**
-     * Remove workspace member
-     * @param workspaceId
+     * Remove account member
+     * @param accountId
      * @param userId
      * @returns void
      * @throws ApiError
      */
-    public static removeMemberAdminWorkspacesWorkspaceIdMembersUserIdDelete(
-        workspaceId: string,
+    public static removeMemberAdminAccountsAccountIdMembersUserIdDelete(
+        accountId: string,
         userId: string,
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/admin/workspaces/{workspace_id}/members/{user_id}',
+            url: '/admin/accounts/{account_id}/members/{user_id}',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'user_id': userId,
             },
             errors: {
@@ -2258,19 +2216,19 @@ export class AdminService {
         });
     }
     /**
-     * Get workspace AI presets
-     * @param workspaceId
+     * Get account AI presets
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getAiPresetsAdminWorkspacesWorkspaceIdSettingsAiPresetsGet(
-        workspaceId: string,
+    public static getAiPresetsAdminAccountsAccountIdSettingsAiPresetsGet(
+        accountId: string,
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/settings/ai-presets',
+            url: '/admin/accounts/{account_id}/settings/ai-presets',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2280,21 +2238,21 @@ export class AdminService {
         });
     }
     /**
-     * Update workspace AI presets
-     * @param workspaceId
+     * Update account AI presets
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static putAiPresetsAdminWorkspacesWorkspaceIdSettingsAiPresetsPut(
-        workspaceId: string,
+    public static putAiPresetsAdminAccountsAccountIdSettingsAiPresetsPut(
+        accountId: string,
         requestBody: Record<string, any>,
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/admin/workspaces/{workspace_id}/settings/ai-presets',
+            url: '/admin/accounts/{account_id}/settings/ai-presets',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2306,19 +2264,19 @@ export class AdminService {
         });
     }
     /**
-     * Get workspace notification rules
-     * @param workspaceId
+     * Get account notification rules
+     * @param accountId
      * @returns NotificationRules Successful Response
      * @throws ApiError
      */
-    public static getNotificationsAdminWorkspacesWorkspaceIdSettingsNotificationsGet(
-        workspaceId: string,
+    public static getNotificationsAdminAccountsAccountIdSettingsNotificationsGet(
+        accountId: string,
     ): CancelablePromise<NotificationRules> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/settings/notifications',
+            url: '/admin/accounts/{account_id}/settings/notifications',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2328,21 +2286,21 @@ export class AdminService {
         });
     }
     /**
-     * Update workspace notification rules
-     * @param workspaceId
+     * Update account notification rules
+     * @param accountId
      * @param requestBody
      * @returns NotificationRules Successful Response
      * @throws ApiError
      */
-    public static putNotificationsAdminWorkspacesWorkspaceIdSettingsNotificationsPut(
-        workspaceId: string,
+    public static putNotificationsAdminAccountsAccountIdSettingsNotificationsPut(
+        accountId: string,
         requestBody: NotificationRules,
     ): CancelablePromise<NotificationRules> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/admin/workspaces/{workspace_id}/settings/notifications',
+            url: '/admin/accounts/{account_id}/settings/notifications',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2354,19 +2312,19 @@ export class AdminService {
         });
     }
     /**
-     * Get workspace limits
-     * @param workspaceId
+     * Get account limits
+     * @param accountId
      * @returns number Successful Response
      * @throws ApiError
      */
-    public static getLimitsAdminWorkspacesWorkspaceIdSettingsLimitsGet(
-        workspaceId: string,
+    public static getLimitsAdminAccountsAccountIdSettingsLimitsGet(
+        accountId: string,
     ): CancelablePromise<Record<string, number>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/settings/limits',
+            url: '/admin/accounts/{account_id}/settings/limits',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2376,21 +2334,21 @@ export class AdminService {
         });
     }
     /**
-     * Update workspace limits
-     * @param workspaceId
+     * Update account limits
+     * @param accountId
      * @param requestBody
      * @returns number Successful Response
      * @throws ApiError
      */
-    public static putLimitsAdminWorkspacesWorkspaceIdSettingsLimitsPut(
-        workspaceId: string,
+    public static putLimitsAdminAccountsAccountIdSettingsLimitsPut(
+        accountId: string,
         requestBody: Record<string, number>,
     ): CancelablePromise<Record<string, number>> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/admin/workspaces/{workspace_id}/settings/limits',
+            url: '/admin/accounts/{account_id}/settings/limits',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2402,19 +2360,19 @@ export class AdminService {
         });
     }
     /**
-     * Get workspace AI usage
-     * @param workspaceId
+     * Get account AI usage
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getWorkspaceUsageAdminWorkspacesWorkspaceIdUsageGet(
-        workspaceId: string,
+    public static getAccountUsageAdminAccountsAccountIdUsageGet(
+        accountId: string,
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/usage',
+            url: '/admin/accounts/{account_id}/usage',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2426,20 +2384,20 @@ export class AdminService {
     /**
      * Get node item by id
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
-    public static getNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdGet(
+    public static getNodeByIdAdminAccountsAccountIdNodesNodeIdGet(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/nodes/{node_id}',
+            url: '/admin/accounts/{account_id}/nodes/{node_id}',
             path: {
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2451,24 +2409,24 @@ export class AdminService {
     /**
      * Update node item by id
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param next
      * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
-    public static updateNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPatch(
+    public static updateNodeByIdAdminAccountsAccountIdNodesNodeIdPatch(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         requestBody: Record<string, any>,
         next?: number,
     ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/admin/workspaces/{workspace_id}/nodes/{node_id}',
+            url: '/admin/accounts/{account_id}/nodes/{node_id}',
             path: {
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             query: {
                 'next': next,
@@ -2485,24 +2443,24 @@ export class AdminService {
     /**
      * Replace node item by id
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param next
      * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
-    public static replaceNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPut(
+    public static replaceNodeByIdAdminAccountsAccountIdNodesNodeIdPut(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         requestBody: Record<string, any>,
         next?: number,
     ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/admin/workspaces/{workspace_id}/nodes/{node_id}',
+            url: '/admin/accounts/{account_id}/nodes/{node_id}',
             path: {
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             query: {
                 'next': next,
@@ -2519,22 +2477,22 @@ export class AdminService {
     /**
      * Publish node item by id
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
-    public static publishNodeByIdAdminWorkspacesWorkspaceIdNodesNodeIdPublishPost(
+    public static publishNodeByIdAdminAccountsAccountIdNodesNodeIdPublishPost(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         requestBody?: (app__domains__nodes__content_admin_router__PublishIn | null),
     ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/nodes/{node_id}/publish',
+            url: '/admin/accounts/{account_id}/nodes/{node_id}/publish',
             path: {
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2548,26 +2506,26 @@ export class AdminService {
     /**
      * List nodes by type
      * @param nodeType
-     * @param workspaceId
+     * @param accountId
      * @param page
      * @param perPage
      * @param q
      * @returns AdminNodeList Successful Response
      * @throws ApiError
      */
-    public static listNodesAdminWorkspacesWorkspaceIdNodesTypesNodeTypeGet(
+    public static listNodesAdminAccountsAccountIdNodesTypesNodeTypeGet(
         nodeType: string,
-        workspaceId: string,
+        accountId: string,
         page: number = 1,
         perPage: number = 10,
         q?: (string | null),
     ): CancelablePromise<AdminNodeList> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}',
+            url: '/admin/accounts/{account_id}/nodes/types/{node_type}',
             path: {
                 'node_type': nodeType,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             query: {
                 'page': page,
@@ -2584,20 +2542,20 @@ export class AdminService {
     /**
      * Create node item
      * @param nodeType
-     * @param workspaceId
+     * @param accountId
      * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
-    public static createNodeAdminWorkspacesWorkspaceIdNodesTypesNodeTypePost(
+    public static createNodeAdminAccountsAccountIdNodesTypesNodeTypePost(
         nodeType: string,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}',
+            url: '/admin/accounts/{account_id}/nodes/types/{node_type}',
             path: {
                 'node_type': nodeType,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2610,22 +2568,22 @@ export class AdminService {
      * Get node item
      * @param nodeType
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
-    public static getNodeAdminWorkspacesWorkspaceIdNodesTypesNodeTypeNodeIdGet(
+    public static getNodeAdminAccountsAccountIdNodesTypesNodeTypeNodeIdGet(
         nodeType: string,
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}/{node_id}',
+            url: '/admin/accounts/{account_id}/nodes/types/{node_type}/{node_id}',
             path: {
                 'node_type': nodeType,
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2638,26 +2596,26 @@ export class AdminService {
      * Update node item
      * @param nodeType
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param next
      * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
-    public static updateNodeAdminWorkspacesWorkspaceIdNodesTypesNodeTypeNodeIdPatch(
+    public static updateNodeAdminAccountsAccountIdNodesTypesNodeTypeNodeIdPatch(
         nodeType: string,
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         requestBody: Record<string, any>,
         next?: number,
     ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}/{node_id}',
+            url: '/admin/accounts/{account_id}/nodes/types/{node_type}/{node_id}',
             path: {
                 'node_type': nodeType,
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             query: {
                 'next': next,
@@ -2675,24 +2633,24 @@ export class AdminService {
      * Publish node item
      * @param nodeType
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
-    public static publishNodeAdminWorkspacesWorkspaceIdNodesTypesNodeTypeNodeIdPublishPost(
+    public static publishNodeAdminAccountsAccountIdNodesTypesNodeTypeNodeIdPublishPost(
         nodeType: string,
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         requestBody?: (app__domains__nodes__content_admin_router__PublishIn | null),
     ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}/{node_id}/publish',
+            url: '/admin/accounts/{account_id}/nodes/types/{node_type}/{node_id}/publish',
             path: {
                 'node_type': nodeType,
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2707,24 +2665,24 @@ export class AdminService {
      * Publish node item (PATCH alias)
      * @param nodeType
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns AdminNodeOut Successful Response
      * @throws ApiError
      */
-    public static publishNodePatchAdminWorkspacesWorkspaceIdNodesTypesNodeTypeNodeIdPublishPatch(
+    public static publishNodePatchAdminAccountsAccountIdNodesTypesNodeTypeNodeIdPublishPatch(
         nodeType: string,
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         requestBody?: (app__domains__nodes__content_admin_router__PublishIn | null),
     ): CancelablePromise<AdminNodeOut> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/admin/workspaces/{workspace_id}/nodes/types/{node_type}/{node_id}/publish',
+            url: '/admin/accounts/{account_id}/nodes/types/{node_type}/{node_id}/publish',
             path: {
                 'node_type': nodeType,
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2737,20 +2695,20 @@ export class AdminService {
     }
     /**
      * Create article (admin)
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static createArticleAdminWorkspacesWorkspaceIdArticlesPost(
-        workspaceId: string,
+    public static createArticleAdminAccountsAccountIdArticlesPost(
+        accountId: string,
         requestBody?: (Record<string, any> | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/articles',
+            url: '/admin/accounts/{account_id}/articles',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2764,20 +2722,20 @@ export class AdminService {
     /**
      * Get article (admin)
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getArticleAdminWorkspacesWorkspaceIdArticlesNodeIdGet(
+    public static getArticleAdminAccountsAccountIdArticlesNodeIdGet(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/articles/{node_id}',
+            url: '/admin/accounts/{account_id}/articles/{node_id}',
             path: {
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             errors: {
                 401: `Unauthorized`,
@@ -2789,24 +2747,24 @@ export class AdminService {
     /**
      * Update article (admin)
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @param next
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static updateArticleAdminWorkspacesWorkspaceIdArticlesNodeIdPatch(
+    public static updateArticleAdminAccountsAccountIdArticlesNodeIdPatch(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         requestBody: Record<string, any>,
         next?: number,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/admin/workspaces/{workspace_id}/articles/{node_id}',
+            url: '/admin/accounts/{account_id}/articles/{node_id}',
             path: {
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             query: {
                 'next': next,
@@ -2823,22 +2781,22 @@ export class AdminService {
     /**
      * Publish article (admin)
      * @param nodeId
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static publishArticleAdminWorkspacesWorkspaceIdArticlesNodeIdPublishPost(
+    public static publishArticleAdminAccountsAccountIdArticlesNodeIdPublishPost(
         nodeId: number,
-        workspaceId: string,
+        accountId: string,
         requestBody?: (app__domains__nodes__api__articles_admin_router__PublishIn | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/articles/{node_id}/publish',
+            url: '/admin/accounts/{account_id}/articles/{node_id}/publish',
             path: {
                 'node_id': nodeId,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2851,10 +2809,10 @@ export class AdminService {
     }
     /**
      * List nodes (admin)
-     * List nodes in workspace.
+     * List nodes in account.
      *
      * See :class:`AdminNodeListParams` for available query parameters.
-     * @param workspaceId
+     * @param accountId
      * @param author
      * @param sort
      * @param status
@@ -2870,8 +2828,8 @@ export class AdminService {
      * @returns NodeOut Successful Response
      * @throws ApiError
      */
-    public static listNodesAdminAdminWorkspacesWorkspaceIdNodesGet(
-        workspaceId: string,
+    public static listNodesAdminAdminAccountsAccountIdNodesGet(
+        accountId: string,
         author?: (string | null),
         sort: 'updated_desc' | 'created_desc' | 'created_asc' | 'views_desc' = 'updated_desc',
         status?: (Status | null),
@@ -2887,9 +2845,9 @@ export class AdminService {
     ): CancelablePromise<Array<NodeOut>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/nodes',
+            url: '/admin/accounts/{account_id}/nodes',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             headers: {
                 'If-None-Match': ifNoneMatch,
@@ -2916,20 +2874,20 @@ export class AdminService {
     }
     /**
      * Create node (admin)
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static createNodeAdminAdminWorkspacesWorkspaceIdNodesPost(
-        workspaceId: string,
+    public static createNodeAdminAdminAccountsAccountIdNodesPost(
+        accountId: string,
         requestBody?: (Record<string, any> | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/nodes',
+            url: '/admin/accounts/{account_id}/nodes',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2942,20 +2900,20 @@ export class AdminService {
     }
     /**
      * Bulk node operations
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static bulkNodeOperationAdminWorkspacesWorkspaceIdNodesBulkPost(
-        workspaceId: string,
+    public static bulkNodeOperationAdminAccountsAccountIdNodesBulkPost(
+        accountId: string,
         requestBody: NodeBulkOperation,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/nodes/bulk',
+            url: '/admin/accounts/{account_id}/nodes/bulk',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2968,20 +2926,20 @@ export class AdminService {
     }
     /**
      * Bulk update nodes
-     * @param workspaceId
+     * @param accountId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static bulkPatchNodesAdminWorkspacesWorkspaceIdNodesBulkPatch(
-        workspaceId: string,
+    public static bulkPatchNodesAdminAccountsAccountIdNodesBulkPatch(
+        accountId: string,
         requestBody: NodeBulkPatch,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/admin/workspaces/{workspace_id}/nodes/bulk',
+            url: '/admin/accounts/{account_id}/nodes/bulk',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2997,20 +2955,20 @@ export class AdminService {
      * Единая точка для загрузки полной ноды по ID (числовой node.id).
      * Делегирует обработку в контент‑роутер, который самостоятельно
      * резолвит идентификатор контента.
-     * @param workspaceId
+     * @param accountId
      * @param id
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getNodeByIdAdminAdminWorkspacesWorkspaceIdNodesIdGet(
-        workspaceId: string,
+    public static getNodeByIdAdminAdminAccountsAccountIdNodesIdGet(
+        accountId: string,
         id: number,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/nodes/{id}',
+            url: '/admin/accounts/{account_id}/nodes/{id}',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'id': id,
             },
             errors: {
@@ -3024,22 +2982,22 @@ export class AdminService {
      * Update node by ID (admin, full)
      * Обновление полной ноды по числовому ID с возвратом полного объекта.
      * Делегируем в контент‑роутер, который резолвит идентификатор контента.
-     * @param workspaceId
+     * @param accountId
      * @param id
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static updateNodeByIdAdminAdminWorkspacesWorkspaceIdNodesIdPatch(
-        workspaceId: string,
+    public static updateNodeByIdAdminAdminAccountsAccountIdNodesIdPatch(
+        accountId: string,
         id: number,
         requestBody: Record<string, any>,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/admin/workspaces/{workspace_id}/nodes/{id}',
+            url: '/admin/accounts/{account_id}/nodes/{id}',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'id': id,
             },
             body: requestBody,
@@ -3055,22 +3013,22 @@ export class AdminService {
      * Publish node by ID (admin)
      * Публикация ноды по числовому ID. Возвращает обновлённую полную ноду.
      * Делегируем в контент‑роутер, который резолвит идентификатор контента.
-     * @param workspaceId
+     * @param accountId
      * @param id
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static publishNodeByIdAdminAdminWorkspacesWorkspaceIdNodesIdPublishPost(
-        workspaceId: string,
+    public static publishNodeByIdAdminAdminAccountsAccountIdNodesIdPublishPost(
+        accountId: string,
         id: number,
         requestBody?: (Record<string, any> | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/nodes/{id}/publish',
+            url: '/admin/accounts/{account_id}/nodes/{id}/publish',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'id': id,
             },
             body: requestBody,
@@ -3085,20 +3043,20 @@ export class AdminService {
     /**
      * Publish status and schedule (admin)
      * Возвращает статус публикации и запланированную публикацию.
-     * @param workspaceId
+     * @param accountId
      * @param id
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getPublishInfoAdminWorkspacesWorkspaceIdNodesIdPublishInfoGet(
-        workspaceId: string,
+    public static getPublishInfoAdminAccountsAccountIdNodesIdPublishInfoGet(
+        accountId: string,
         id: number,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/workspaces/{workspace_id}/nodes/{id}/publish_info',
+            url: '/admin/accounts/{account_id}/nodes/{id}/publish_info',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'id': id,
             },
             errors: {
@@ -3111,22 +3069,22 @@ export class AdminService {
     /**
      * Schedule publish by date/time (admin)
      * Создаёт или заменяет задание на публикацию.
-     * @param workspaceId
+     * @param accountId
      * @param id
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static schedulePublishAdminWorkspacesWorkspaceIdNodesIdSchedulePublishPost(
-        workspaceId: string,
+    public static schedulePublishAdminAccountsAccountIdNodesIdSchedulePublishPost(
+        accountId: string,
         id: number,
         requestBody: SchedulePublishIn,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/admin/workspaces/{workspace_id}/nodes/{id}/schedule_publish',
+            url: '/admin/accounts/{account_id}/nodes/{id}/schedule_publish',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'id': id,
             },
             body: requestBody,
@@ -3140,20 +3098,20 @@ export class AdminService {
     }
     /**
      * Cancel scheduled publish (admin)
-     * @param workspaceId
+     * @param accountId
      * @param id
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static cancelScheduledPublishAdminWorkspacesWorkspaceIdNodesIdSchedulePublishDelete(
-        workspaceId: string,
+    public static cancelScheduledPublishAdminAccountsAccountIdNodesIdSchedulePublishDelete(
+        accountId: string,
         id: number,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/admin/workspaces/{workspace_id}/nodes/{id}/schedule_publish',
+            url: '/admin/accounts/{account_id}/nodes/{id}/schedule_publish',
             path: {
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'id': id,
             },
             errors: {
@@ -3705,7 +3663,7 @@ export class AdminService {
      * @param actorId
      * @param action
      * @param resource
-     * @param workspaceId
+     * @param accountId
      * @param dateFrom
      * @param dateTo
      * @param page
@@ -3717,7 +3675,7 @@ export class AdminService {
         actorId?: (string | null),
         action?: (string | null),
         resource?: (string | null),
-        workspaceId?: (string | null),
+        accountId?: (string | null),
         dateFrom?: (string | null),
         dateTo?: (string | null),
         page: number = 1,
@@ -3730,7 +3688,7 @@ export class AdminService {
                 'actor_id': actorId,
                 'action': action,
                 'resource': resource,
-                'workspace_id': workspaceId,
+                'account_id': accountId,
                 'date_from': dateFrom,
                 'date_to': dateTo,
                 'page': page,
@@ -4251,18 +4209,83 @@ export class AdminService {
     }
     /**
      * Metrics Reliability
-     * @param workspace
+     * @param account
      * @returns ReliabilityMetrics Successful Response
      * @throws ApiError
      */
     public static metricsReliabilityAdminMetricsReliabilityGet(
-        workspace?: string,
+        account?: string,
     ): CancelablePromise<ReliabilityMetrics> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/metrics/reliability',
             query: {
-                'workspace': workspace,
+                'account': account,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Estimate campaign recipients
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static estimateCampaignAdminNotificationsCampaignsEstimatePost(
+        requestBody: CampaignFilters,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/notifications/campaigns/estimate',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Cancel campaign
+     * @param campaignId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static cancelCampaignAdminNotificationsCampaignsCampaignIdCancelPost(
+        campaignId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/notifications/campaigns/{campaign_id}/cancel',
+            path: {
+                'campaign_id': campaignId,
+            },
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Start campaign
+     * @param campaignId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static startCampaignAdminNotificationsCampaignsCampaignIdStartPost(
+        campaignId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/notifications/campaigns/{campaign_id}/start',
+            path: {
+                'campaign_id': campaignId,
             },
             errors: {
                 401: `Unauthorized`,

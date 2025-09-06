@@ -10,7 +10,7 @@ export type AdminNodeOut = {
     id: number;
     contentId: number;
     nodeId: number;
-    workspaceId: string;
+    accountId: string;
     nodeType: string;
     type?: (string | null);
     slug: string;

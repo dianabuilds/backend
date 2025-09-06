@@ -4,7 +4,7 @@
 /* eslint-disable */
 import type { NotificationChannel } from './NotificationChannel';
 /**
- * Workspace notification rules mapped by trigger.
+ * Account notification rules mapped by trigger.
  */
 export type NotificationRules = {
     achievement?: Array<NotificationChannel>;

@@ -14,7 +14,7 @@ import { useToast } from '../ToastProvider';
 import { Button, TextInput } from '../../shared/ui';
 
 type Props = {
-  workspaceId: string;
+  accountId: string;
   nodeId: number;
   disabled?: boolean;
   onChanged?: () => void;
@@ -52,14 +52,14 @@ function Spinner(
   );
 }
 
-export default function PublishControls({ workspaceId, nodeId, disabled, onChanged, className }: Props) {
+export default function PublishControls({ accountId, nodeId, disabled, onChanged, className }: Props) {
   const { addToast } = useToast();
   const qc = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery<PublishInfo>({
-    queryKey: ['publish-info', workspaceId, nodeId],
-    queryFn: () => getPublishInfo(workspaceId, nodeId),
-    enabled: !!workspaceId && Number.isFinite(nodeId),
+    queryKey: ['publish-info', accountId, nodeId],
+    queryFn: () => getPublishInfo(accountId, nodeId),
+    enabled: !!accountId && Number.isFinite(nodeId),
   });
 
   const [access, setAccess] = useState<AccessMode>('everyone');
@@ -83,10 +83,10 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
   }, [data]);
 
   const mPublish = useMutation({
-    mutationFn: () => publishNow(workspaceId, nodeId, access),
+    mutationFn: () => publishNow(accountId, nodeId, access),
     onSuccess: async () => {
       addToast({ title: 'Опубликовано', variant: 'success' });
-      await qc.invalidateQueries({ queryKey: ['publish-info', workspaceId, nodeId] });
+      await qc.invalidateQueries({ queryKey: ['publish-info', accountId, nodeId] });
       onChanged?.();
     },
     onError: (e: unknown) => {
@@ -96,10 +96,10 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
   });
 
   const mSchedule = useMutation({
-    mutationFn: () => schedulePublish(workspaceId, nodeId, toUTCISOFromLocal(when), access),
+    mutationFn: () => schedulePublish(accountId, nodeId, toUTCISOFromLocal(when), access),
     onSuccess: async () => {
       addToast({ title: 'Публикация запланирована', variant: 'success' });
-      await qc.invalidateQueries({ queryKey: ['publish-info', workspaceId, nodeId] });
+      await qc.invalidateQueries({ queryKey: ['publish-info', accountId, nodeId] });
       onChanged?.();
     },
     onError: (e: unknown) => {
@@ -109,10 +109,10 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
   });
 
   const mCancel = useMutation({
-    mutationFn: () => cancelScheduledPublish(workspaceId, nodeId),
+    mutationFn: () => cancelScheduledPublish(accountId, nodeId),
     onSuccess: async () => {
       addToast({ title: 'Расписание отменено', variant: 'success' });
-      await qc.invalidateQueries({ queryKey: ['publish-info', workspaceId, nodeId] });
+      await qc.invalidateQueries({ queryKey: ['publish-info', accountId, nodeId] });
       onChanged?.();
     },
     onError: (e: unknown) => {
@@ -122,10 +122,10 @@ export default function PublishControls({ workspaceId, nodeId, disabled, onChang
   });
 
   const mUnpublish = useMutation({
-    mutationFn: () => patchNode(workspaceId, nodeId, { isPublic: false }),
+    mutationFn: () => patchNode(accountId, nodeId, { isPublic: false }),
     onSuccess: async () => {
       addToast({ title: 'Снято с публикации', variant: 'success' });
-      await qc.invalidateQueries({ queryKey: ['publish-info', workspaceId, nodeId] });
+      await qc.invalidateQueries({ queryKey: ['publish-info', accountId, nodeId] });
       onChanged?.();
     },
     onError: (e: unknown) => {

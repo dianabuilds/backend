@@ -3,5 +3,5 @@ export const corsConfig = {
   allowOrigins: ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174", "http://localhost:5175", "http://127.0.0.1:5175", "http://localhost:5176", "http://127.0.0.1:5176"],
   allowCredentials: true,
   allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowHeaders: ["Authorization", "Content-Type", "X-CSRF-Token", "X-CSRFToken", "X-Requested-With", "X-Workspace-Id", "Workspace-Id", "X-Feature-Flags", "X-Preview-Token", "X-Request-ID", "X-BlockSketch-Workspace-Id", "X-Client-Platform", "X-XSRF-Token", "X-Client-Language", "X-Client-Version", "X-User-Timezone"],
+  allowHeaders: ["Authorization", "Content-Type", "X-CSRF-Token", "X-CSRFToken", "X-Requested-With", "X-Account-Id", "Account-Id", "X-Feature-Flags", "X-Preview-Token", "X-Request-ID", "X-BlockSketch-Account-Id", "X-Client-Platform", "X-XSRF-Token", "X-Client-Language", "X-Client-Version", "X-User-Timezone"],
 } as const;

@@ -12,7 +12,7 @@ describe("NodeSidebar", () => {
   const node = { id: 1, title: "Test", slug: "test" };
 
   it("omits validation and advanced sections", () => {
-    render(<NodeSidebar node={node} workspaceId="ws" onChange={() => {}} />);
+    render(<NodeSidebar node={node} accountId="ws" onChange={() => {}} />);
     expect(screen.queryByText("Validation")).toBeNull();
     expect(screen.queryByText("Advanced")).toBeNull();
   });

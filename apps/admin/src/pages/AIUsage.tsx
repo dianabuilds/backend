@@ -3,7 +3,7 @@ import PageLayout from "./_shared/PageLayout";
 import { api } from "../api/client";
 
 interface UsageRow {
-  workspace_id: string;
+  account_id: string;
   tokens: number;
   limit: number;
   progress: number;
@@ -13,7 +13,7 @@ export default function AIUsage() {
   const { data } = useQuery({
     queryKey: ["ai-usage"],
     queryFn: async () => {
-      const res = await api.get<UsageRow[]>("/admin/ai/usage/workspaces");
+      const res = await api.get<UsageRow[]>("/admin/ai/usage/accounts");
       return res.data ?? [];
     },
   });
@@ -21,9 +21,9 @@ export default function AIUsage() {
     <PageLayout title="AI Usage">
       <div className="space-y-4">
         {data?.map((row) => (
-          <div key={row.workspace_id} className="space-y-1">
+          <div key={row.account_id} className="space-y-1">
             <div className="flex justify-between text-sm">
-              <span>{row.workspace_id}</span>
+              <span>{row.account_id}</span>
               <span>
                 {row.tokens}/{row.limit || 0}
               </span>

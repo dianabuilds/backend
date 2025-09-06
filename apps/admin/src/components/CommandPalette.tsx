@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import { useAccount } from "../account/AccountContext";
 
 interface Command {
   cmd: string;
@@ -18,7 +18,7 @@ export default function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -38,8 +38,8 @@ export default function CommandPalette() {
   const onSelect = (path: string) => {
     setOpen(false);
     const to =
-      workspaceId && path.startsWith("/nodes")
-        ? `${path}?workspace_id=${workspaceId}`
+      accountId && path.startsWith("/nodes")
+        ? `${path}?account_id=${accountId}`
         : path;
     navigate(to);
   };

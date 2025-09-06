@@ -5,41 +5,41 @@ import EditorJSEmbed from "../../../components/EditorJSEmbed";
 import FieldCover from "../../../components/fields/FieldCover";
 import FieldTags from "../../../components/fields/FieldTags";
 import { Button } from "../../../shared/ui";
-import { useWorkspace } from "../../../workspace/WorkspaceContext";
+import { useAccount } from "../../../account/AccountContext";
 import { nodesApi } from "../api/nodes.api";
 import NodeSidebar from "../components/NodeSidebar";
 import useNodeEditor from "../hooks/useNodeEditor";
 
 export default function NodeEditorPage() {
   const { type = "article", id = "new" } = useParams<{ type?: string; id?: string }>();
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
   const navigate = useNavigate();
   const [context, setContext] = useState("default");
   const idParam: number | "new" = id === "new" ? "new" : Number(id);
   const { node, update, save, loading, error, isSaving } = useNodeEditor(
-    workspaceId || "",
+    accountId || "",
     idParam,
   );
 
   const refreshPublishInfo = async () => {
-    if (!workspaceId || !node.id) return;
+    if (!accountId || !node.id) return;
     try {
       type MaybePublic = { isPublic?: boolean; is_public?: boolean };
-      const updated = (await nodesApi.get(workspaceId, node.id)) as unknown as MaybePublic;
+      const updated = (await nodesApi.get(accountId, node.id)) as unknown as MaybePublic;
       update({ isPublic: updated.isPublic ?? updated.is_public ?? false });
     } catch {
       // ignore
     }
   };
 
-  if (!workspaceId) return <div>Workspace not selected</div>;
+  if (!accountId) return <div>Account not selected</div>;
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error instanceof Error ? error.message : String(error)}</div>;
 
   const handleSave = async () => {
     const res = (await save()) as { id?: string } | undefined;
     if (id === "new" && res?.id) {
-      navigate(`/nodes/${type}/${res.id}?workspace_id=${workspaceId}`);
+      navigate(`/nodes/${type}/${res.id}?account_id=${accountId}`);
     }
   };
 
@@ -77,7 +77,7 @@ export default function NodeEditorPage() {
             <Button
               onClick={() => {
                 const base = `/nodes/${type}/${id}`;
-                const qs = workspaceId ? `?workspace_id=${workspaceId}` : '';
+                const qs = accountId ? `?account_id=${accountId}` : '';
                 navigate(`${base}/preview${qs}`);
               }}
             >
@@ -115,7 +115,7 @@ export default function NodeEditorPage() {
           >
             <NodeSidebar
               node={node}
-              workspaceId={workspaceId}
+              accountId={accountId}
               onChange={update}
               onPublishChange={refreshPublishInfo}
             />

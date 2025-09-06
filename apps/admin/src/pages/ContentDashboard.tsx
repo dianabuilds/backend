@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import { useAccount } from "../account/AccountContext";
 
 import { api } from "../api/client";
 import { createNode, listNodes } from "../api/nodes";
@@ -36,7 +36,7 @@ function Progress({ label, value, limit }: { label: string; value: number; limit
 
 export default function ContentDashboard() {
   const navigate = useNavigate();
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
   const [search, setSearch] = useState("");
   const [recomputeLimit, setRecomputeLimit] = useState(10);
   const [recomputeMessage, setRecomputeMessage] = useState<string | null>(null);
@@ -47,8 +47,8 @@ export default function ContentDashboard() {
     refetch,
     isLoading,
   } = useQuery<NodeItem[]>({
-    queryKey: ["content", "dashboard", "nodes", workspaceId],
-    queryFn: async () => (workspaceId ? await listNodes(workspaceId) : []),
+    queryKey: ["content", "dashboard", "nodes", accountId],
+    queryFn: async () => (accountId ? await listNodes(accountId) : []),
   });
 
   const { data: tags = [] } = useQuery<{ id: string }[]>({
@@ -79,17 +79,17 @@ export default function ContentDashboard() {
     )[0];
 
   const createQuest = async () => {
-    const n = await createNode(workspaceId);
-    const path = workspaceId
-      ? `/nodes/quest/${n.id}?workspace_id=${workspaceId}`
+    const n = await createNode(accountId);
+    const path = accountId
+      ? `/nodes/quest/${n.id}?account_id=${accountId}`
       : `/nodes/quest/${n.id}`;
     navigate(path);
   };
 
   const createGenericNode = async () => {
-    const n = await createNode(workspaceId);
-    const path = workspaceId
-      ? `/nodes/article/${n.id}?workspace_id=${workspaceId}`
+    const n = await createNode(accountId);
+    const path = accountId
+      ? `/nodes/article/${n.id}?account_id=${accountId}`
       : `/nodes/article/${n.id}`;
     navigate(path);
   };

@@ -4,8 +4,8 @@ import { api } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
 import NodeEditorModal from "../components/NodeEditorModal";
-import WorkspaceSelector from "../components/WorkspaceSelector";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import AccountSelector from "../components/AccountSelector";
+import { useAccount } from "../account/AccountContext";
 
 type Id = string;
 
@@ -42,13 +42,13 @@ function clamp(n: number, min: number, max: number) {
 export default function QuestEditor() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
 
-  if (!workspaceId) {
+  if (!accountId) {
     return (
       <div className="p-4">
         <p className="mb-4">Выберите воркспейс, чтобы создать квест</p>
-        <WorkspaceSelector />
+        <AccountSelector />
       </div>
     );
   }

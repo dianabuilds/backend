@@ -14,18 +14,12 @@ export class AdminTelemetryService {
      * @throws ApiError
      */
     public static listRumEventsAdminTelemetryRumGet(
-        event?: (string | null),
-        url?: (string | null),
-        offset?: number,
         limit: number = 200,
     ): CancelablePromise<Array<Record<string, any>>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/admin/telemetry/rum',
             query: {
-                'event': event,
-                'url': url,
-                'offset': offset,
                 'limit': limit,
             },
             errors: {

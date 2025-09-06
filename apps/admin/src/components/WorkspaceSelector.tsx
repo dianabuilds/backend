@@ -5,21 +5,21 @@ import { Link } from "react-router-dom";
 import ErrorBanner from "./ErrorBanner";
 
 import { api } from "../api/client";
-import type { Workspace } from "../api/types";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import type { Account } from "../api/types";
+import { useAccount } from "../account/AccountContext";
 
-export default function WorkspaceSelector() {
-  const { workspaceId, setWorkspace } = useWorkspace();
+export default function AccountSelector() {
+  const { accountId, setAccount } = useAccount();
 
   const { data, error } = useQuery({
-    queryKey: ["workspaces"],
+    queryKey: ["accounts"],
     queryFn: async () => {
-      const res = await api.get<Workspace[] | { workspaces: Workspace[] }>(
-        "/admin/workspaces",
+      const res = await api.get<Account[] | { accounts: Account[] }>(
+        "/admin/accounts",
       );
       const data = res.data;
       if (Array.isArray(data)) return data;
-      return data?.workspaces ?? [];
+      return data?.accounts ?? [];
     },
   });
 
@@ -28,16 +28,16 @@ export default function WorkspaceSelector() {
   const [active, setActive] = useState(0);
 
   useEffect(() => {
-    if (!workspaceId && data && data.length > 0) {
+    if (!accountId && data && data.length > 0) {
       setOpen(true);
     }
-  }, [workspaceId, data]);
+  }, [accountId, data]);
 
   useEffect(() => {
-    if (workspaceId && data && !data.some((ws) => ws.id === workspaceId)) {
-      setWorkspace(undefined);
+    if (accountId && data && !data.some((ws) => ws.id === accountId)) {
+      setAccount(undefined);
     }
-  }, [workspaceId, data, setWorkspace]);
+  }, [accountId, data, setAccount]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -51,14 +51,14 @@ export default function WorkspaceSelector() {
     };
     const onMissing = () => setOpen(true);
     document.addEventListener("keydown", onKeyDown);
-    window.addEventListener("workspace-missing", onMissing);
+    window.addEventListener("account-missing", onMissing);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("workspace-missing", onMissing);
+      window.removeEventListener("account-missing", onMissing);
     };
   }, []);
 
-  const selected = data?.find((ws) => ws.id === workspaceId);
+  const selected = data?.find((ws) => ws.id === accountId);
 
   const items = (data || []).filter(
     (ws) =>
@@ -66,8 +66,8 @@ export default function WorkspaceSelector() {
       ws.slug.toLowerCase().includes(query.toLowerCase()),
   );
 
-  const onSelect = (ws: Workspace) => {
-    setWorkspace(ws);
+  const onSelect = (ws: Account) => {
+    setAccount(ws);
     setOpen(false);
     setQuery("");
     setActive(0);
@@ -100,7 +100,7 @@ export default function WorkspaceSelector() {
 
   if (data && data.length === 0) {
     return (
-      <Link to="/admin/workspaces" className="text-blue-600 hover:underline">
+      <Link to="/admin/accounts" className="text-blue-600 hover:underline">
         Создать воркспейс
       </Link>
     );
@@ -114,18 +114,18 @@ export default function WorkspaceSelector() {
         className="px-2 py-1 border rounded bg-white text-sm dark:bg-gray-800"
         title={selected ? selected.name : "Выбрать воркспейс"}
       >
-        {selected ? selected.name : "Select workspace"}
+        {selected ? selected.name : "Select account"}
       </button>
       <Link
-        to="/workspaces"
+        to="/accounts"
         title="Список воркспейсов"
         className="text-gray-600 hover:text-gray-900"
       >
         📂
       </Link>
-      {workspaceId && selected && (
+      {accountId && selected && (
         <Link
-          to={`/workspaces/${workspaceId}`}
+          to={`/accounts/${accountId}`}
           title={`Settings for ${selected.name}`}
           className="text-gray-600 hover:text-gray-900"
         >
@@ -143,7 +143,7 @@ export default function WorkspaceSelector() {
                 setActive(0);
               }}
               onKeyDown={onInputKeyDown}
-              placeholder="Search workspace..."
+              placeholder="Search account..."
               className="w-full mb-2 px-2 py-1 border rounded bg-gray-50 dark:bg-gray-700"
             />
             <div className="max-h-60 overflow-y-auto">
@@ -162,7 +162,7 @@ export default function WorkspaceSelector() {
                 </button>
               ))}
               {items.length === 0 && (
-                <div className="px-2 py-1 text-sm text-gray-500">No workspaces</div>
+                <div className="px-2 py-1 text-sm text-gray-500">No accounts</div>
               )}
             </div>
           </div>

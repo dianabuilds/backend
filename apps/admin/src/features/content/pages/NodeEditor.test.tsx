@@ -10,8 +10,8 @@ vi.mock('../../../components/publish/PublishControls', () => ({
   default: () => <div data-testid="publish-controls" />,
 }));
 
-vi.mock('../../../workspace/WorkspaceContext', () => ({
-  useWorkspace: () => ({ workspaceId: 'ws1' }),
+vi.mock('../../../account/AccountContext', () => ({
+  useAccount: () => ({ accountId: 'ws1' }),
 }));
 
 vi.mock('../hooks/useNodeEditor', () => ({

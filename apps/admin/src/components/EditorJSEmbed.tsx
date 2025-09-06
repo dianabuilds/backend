@@ -118,7 +118,7 @@ export default function EditorJSEmbed({
                       method: "POST",
                       body: form,
                       raw: true,
-                      workspace: "query",
+                      account: "query",
                     });
                     const rawUrl = extractUrl((res as any)?.data ?? res);
                     const url = resolveUrl(rawUrl);

@@ -2,70 +2,70 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
 import { api } from "../api/client";
-import type { Workspace } from "../api/types";
+import type { Account } from "../api/types";
 import { safeLocalStorage } from "../utils/safeStorage";
 
-function persistWorkspaceId(id: string | null) {
-  if (id) safeLocalStorage.setItem("workspaceId", id);
-  else safeLocalStorage.removeItem("workspaceId");
+function persistAccountId(id: string | null) {
+  if (id) safeLocalStorage.setItem("accountId", id);
+  else safeLocalStorage.removeItem("accountId");
 }
 
-interface WorkspaceContextType {
-  workspaceId: string;
-  setWorkspace: (workspace: Workspace | undefined) => void;
+interface AccountContextType {
+  accountId: string;
+  setAccount: (account: Account | undefined) => void;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextType>({
-  workspaceId: "",
-  setWorkspace: () => {},
+const AccountContext = createContext<AccountContextType>({
+  accountId: "",
+  setAccount: () => {},
 });
 
 function updateUrl(id: string) {
   try {
     const url = new URL(window.location.href);
-    if (id) url.searchParams.set("workspace_id", id);
-    else url.searchParams.delete("workspace_id");
+    if (id) url.searchParams.set("account_id", id);
+    else url.searchParams.delete("account_id");
     window.history.replaceState({}, "", url.pathname + url.search + url.hash);
   } catch {
     // ignore
   }
 }
 
-export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
-  const [workspaceId, setWorkspaceIdState] = useState<string>(() => {
+export function AccountBranchProvider({ children }: { children: ReactNode }) {
+  const [accountId, setAccountIdState] = useState<string>(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      const fromUrl = params.get("workspace_id") || "";
-      const stored = safeLocalStorage.getItem("workspaceId") || "";
+      const fromUrl = params.get("account_id") || "";
+      const stored = safeLocalStorage.getItem("accountId") || "";
       return fromUrl || stored;
     } catch {
       return "";
     }
   });
 
-  const setWorkspace = useCallback((ws: Workspace | undefined) => {
+  const setAccount = useCallback((ws: Account | undefined) => {
     const id = ws?.id ?? "";
-    setWorkspaceIdState(id);
-    persistWorkspaceId(id || null);
+    setAccountIdState(id);
+    persistAccountId(id || null);
     updateUrl(id);
   }, []);
 
   useEffect(() => {
-    persistWorkspaceId(workspaceId || null);
-    updateUrl(workspaceId);
-  }, [workspaceId]);
+    persistAccountId(accountId || null);
+    updateUrl(accountId);
+  }, [accountId]);
 
   useEffect(() => {
-    if (workspaceId) return;
+    if (accountId) return;
     (async () => {
       try {
-        const me = await api.get<{ default_workspace_id: string | null }>(
+        const me = await api.get<{ default_account_id: string | null }>(
           "/users/me",
         );
-        const defId = me.data?.default_workspace_id;
+        const defId = me.data?.default_account_id;
         if (defId) {
-          setWorkspaceIdState(defId);
-          persistWorkspaceId(defId);
+          setAccountIdState(defId);
+          persistAccountId(defId);
           updateUrl(defId);
           return;
         }
@@ -73,7 +73,7 @@ export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
         // ignore
       }
       try {
-        const res = await api.get<Workspace[] | { accounts: Workspace[] }>(
+        const res = await api.get<Account[] | { accounts: Account[] }>(
           "/accounts",
         );
         const payload = Array.isArray(res.data)
@@ -83,23 +83,23 @@ export function WorkspaceBranchProvider({ children }: { children: ReactNode }) {
           (ws) => ws.type === "global" || ws.slug === "global",
         );
         if (globalWs) {
-          setWorkspaceIdState(globalWs.id);
-          persistWorkspaceId(globalWs.id);
+          setAccountIdState(globalWs.id);
+          persistAccountId(globalWs.id);
           updateUrl(globalWs.id);
         }
       } catch {
         // ignore
       }
     })();
-  }, [workspaceId]);
+  }, [accountId]);
 
   return (
-    <WorkspaceContext.Provider value={{ workspaceId, setWorkspace }}>
+    <AccountContext.Provider value={{ accountId, setAccount }}>
       {children}
-    </WorkspaceContext.Provider>
+    </AccountContext.Provider>
   );
 }
 
-export function useWorkspace() {
-  return useContext(WorkspaceContext);
+export function useAccount() {
+  return useContext(AccountContext);
 }

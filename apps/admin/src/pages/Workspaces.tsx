@@ -2,15 +2,15 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { api } from "../api/client";
-import { listWorkspaces, type Workspace } from "../api/workspaces";
-import type { WorkspaceMemberOut } from "../openapi";
+import { listAccounts, type Account } from "../api/accounts";
+import type { AccountMemberOut } from "../openapi";
 import { useToast } from "../components/ToastProvider";
 import PageLayout from "./_shared/PageLayout";
 import { confirmDialog, promptDialog } from "../shared/ui";
 
 const PAGE_SIZE = 50;
 
-export default function Workspaces() {
+export default function Accounts() {
   const { addToast } = useToast();
   const queryClient = useQueryClient();
 
@@ -25,9 +25,9 @@ export default function Workspaces() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["workspaces-list", search, typeFilter],
+    queryKey: ["accounts-list", search, typeFilter],
     queryFn: ({ pageParam = 0 }) =>
-      listWorkspaces({
+      listAccounts({
         q: search || undefined,
         type: typeFilter || undefined,
         limit: PAGE_SIZE,
@@ -38,23 +38,23 @@ export default function Workspaces() {
     initialPageParam: 0,
   });
 
-  const workspaces = useMemo(() => data?.pages.flat() ?? [], [data]);
+  const accounts = useMemo(() => data?.pages.flat() ?? [], [data]);
 
   const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   useEffect(() => {
-    if (workspaces.length === 0) return;
+    if (accounts.length === 0) return;
     Promise.all(
-      workspaces.map(async (ws) => {
-        const res = await api.get<WorkspaceMemberOut[]>(
-          `/admin/workspaces/${ws.id}/members`,
+      accounts.map(async (ws) => {
+        const res = await api.get<AccountMemberOut[]>(
+          `/admin/accounts/${ws.id}/members`,
         );
         return [ws.id, (res.data ?? []).length] as [string, number];
       }),
     ).then((entries) => setMemberCounts(Object.fromEntries(entries)));
-  }, [workspaces]);
+  }, [accounts]);
 
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: ["workspaces-list"] });
+    queryClient.invalidateQueries({ queryKey: ["accounts-list"] });
 
   const handleCreate = async () => {
     const name = await promptDialog("Название воркспейса?");
@@ -71,7 +71,7 @@ export default function Workspaces() {
         | "global"
         | null) || "team";
     try {
-      await api.post("/admin/workspaces", { name, slug, type });
+      await api.post("/admin/accounts", { name, slug, type });
       refresh();
       addToast({ title: "Воркспейс создан", variant: "success" });
     } catch (e) {
@@ -83,7 +83,7 @@ export default function Workspaces() {
     }
   };
 
-  const handleEdit = async (ws: Workspace) => {
+  const handleEdit = async (ws: Account) => {
     const name = await promptDialog("Название воркспейса?", ws.name);
     if (!name) return;
     const slug = (await promptDialog("Откуда (slug)?", ws.slug)) || ws.slug;
@@ -94,7 +94,7 @@ export default function Workspaces() {
         | "global"
         | null) || ws.type;
     try {
-      await api.patch(`/admin/workspaces/${ws.id}`, { name, slug, type });
+      await api.patch(`/admin/accounts/${ws.id}`, { name, slug, type });
       refresh();
       addToast({ title: "Воркспейс обновлён", variant: "success" });
     } catch (e) {
@@ -106,10 +106,10 @@ export default function Workspaces() {
     }
   };
 
-  const handleDelete = async (ws: Workspace) => {
+  const handleDelete = async (ws: Account) => {
     if (!(await confirmDialog(`Удалить воркспейс "${ws.name}"?`))) return;
     try {
-      await api.del(`/admin/workspaces/${ws.id}`);
+      await api.del(`/admin/accounts/${ws.id}`);
       refresh();
       addToast({ title: "Воркспейс удалён", variant: "success" });
     } catch (e) {
@@ -170,7 +170,7 @@ export default function Workspaces() {
               </tr>
             </thead>
             <tbody>
-              {workspaces.map((ws) => (
+              {accounts.map((ws) => (
                 <tr key={ws.id} className="border-b hover:bg-gray-50">
                   <td className="p-2">{ws.name}</td>
                   <td className="p-2 capitalize">{ws.type}</td>

@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getOverrideState } from "../shared/hooks/useOverrideStore";
-import { WorkspaceBranchProvider } from "../workspace/WorkspaceContext";
+import { AccountBranchProvider } from "../account/AccountContext";
 import ScopeControls from "./ScopeControls";
 
 const queryData = { data: [] as any[] };
@@ -25,9 +25,9 @@ describe("ScopeControls", () => {
     const handle = vi.fn();
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <WorkspaceBranchProvider>
+        <AccountBranchProvider>
           <ScopeControls scopeMode="member" onScopeModeChange={handle} roles={[]} onRolesChange={() => {}} />
-        </WorkspaceBranchProvider>
+        </AccountBranchProvider>
       </MemoryRouter>,
     );
     fireEvent.change(screen.getByTestId("scope-mode-select"), { target: { value: "global" } });
@@ -38,9 +38,9 @@ describe("ScopeControls", () => {
   it("toggles override store", () => {
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <WorkspaceBranchProvider>
+        <AccountBranchProvider>
           <ScopeControls scopeMode="member" onScopeModeChange={() => {}} roles={[]} onRolesChange={() => {}} />
-        </WorkspaceBranchProvider>
+        </AccountBranchProvider>
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByTestId("override-toggle"));
@@ -55,9 +55,9 @@ describe("ScopeControls", () => {
     const handle = vi.fn();
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <WorkspaceBranchProvider>
+        <AccountBranchProvider>
           <ScopeControls scopeMode="member" onScopeModeChange={() => {}} roles={[]} onRolesChange={handle} />
-        </WorkspaceBranchProvider>
+        </AccountBranchProvider>
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByTestId("role-admin"));

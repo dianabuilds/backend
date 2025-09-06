@@ -2,8 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export enum WorkspaceType {
-    PERSONAL = 'personal',
-    TEAM = 'team',
-    GLOBAL = 'global',
-}
+export type Body_upload_media_accounts__account_id__media_post = {
+    file?: Blob;
+};
+

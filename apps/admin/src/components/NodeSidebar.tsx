@@ -38,7 +38,7 @@ interface NodeSidebarProps {
     allowFeedback: boolean;
     premiumOnly: boolean;
   };
-  workspaceId: string;
+  accountId: string;
   onSlugChange?: (slug: string, updatedAt?: string) => void;
   onCoverChange?: (data: CoverChange) => void;
   onStatusChange?: (isPublic: boolean, updatedAt?: string) => void;
@@ -49,7 +49,7 @@ interface NodeSidebarProps {
 
 export default function NodeSidebar({
   node,
-  workspaceId,
+  accountId,
   onSlugChange,
   onCoverChange,
   onStatusChange,
@@ -192,7 +192,7 @@ export default function NodeSidebar({
   const handleStatusChange = async (checked: boolean) => {
     setStatusSaving(true);
     try {
-      const res = await patchNode(workspaceId, node.id, {
+      const res = await patchNode(accountId, node.id, {
         isPublic: checked,
         updatedAt: node.updatedAt,
       });
@@ -207,7 +207,7 @@ export default function NodeSidebar({
   const handleAllowFeedbackChange = async (checked: boolean) => {
     setAllowSaving(true);
     try {
-      const res = await patchNode(workspaceId, node.id, {
+      const res = await patchNode(accountId, node.id, {
         allowFeedback: checked,
         updatedAt: node.updatedAt,
       });
@@ -222,7 +222,7 @@ export default function NodeSidebar({
   const handlePremiumOnlyChange = async (checked: boolean) => {
     setPremiumSaving(true);
     try {
-      const res = await patchNode(workspaceId, node.id, {
+      const res = await patchNode(accountId, node.id, {
         premiumOnly: checked,
         updatedAt: node.updatedAt,
       });
@@ -239,7 +239,7 @@ export default function NodeSidebar({
     setScheduleSaving(true);
     try {
       const iso = value ? new Date(value).toISOString() : null;
-      const res = await patchNode(workspaceId, node.id, {
+      const res = await patchNode(accountId, node.id, {
         publishedAt: iso,
         updatedAt: node.updatedAt,
       });
@@ -252,35 +252,35 @@ export default function NodeSidebar({
   };
 
   const handlePublish = async () => {
-    await publishNode(workspaceId, Number(node.id));
+    await publishNode(accountId, Number(node.id));
     onStatusChange?.(true);
   };
 
   const handleHide = async () => {
-    await patchNode(workspaceId, node.id, { isPublic: false, updatedAt: node.updatedAt });
+    await patchNode(accountId, node.id, { isPublic: false, updatedAt: node.updatedAt });
     onStatusChange?.(false);
   };
 
   const handleArchive = async () => {
-    await archiveNode(workspaceId, Number(node.id));
+    await archiveNode(accountId, Number(node.id));
   };
 
   const handleMakePublic = async () => {
-    await patchNode(workspaceId, node.id, { premiumOnly: false, updatedAt: node.updatedAt });
+    await patchNode(accountId, node.id, { premiumOnly: false, updatedAt: node.updatedAt });
     onPremiumOnlyChange?.(false);
   };
 
   const handleMakePremium = async () => {
-    await patchNode(workspaceId, node.id, { premiumOnly: true, updatedAt: node.updatedAt });
+    await patchNode(accountId, node.id, { premiumOnly: true, updatedAt: node.updatedAt });
     onPremiumOnlyChange?.(true);
   };
 
   const handleDuplicate = async () => {
-    await duplicateNode(workspaceId, Number(node.id));
+    await duplicateNode(accountId, Number(node.id));
   };
 
   const handlePreview = async () => {
-    await previewNode(workspaceId, Number(node.id));
+    await previewNode(accountId, Number(node.id));
   };
 
   const copy = (v: string) => {
@@ -298,7 +298,7 @@ export default function NodeSidebar({
   const saveSlug = async () => {
     setSlugSaving(true);
     try {
-      const res = await patchNode(workspaceId, node.id, {
+      const res = await patchNode(accountId, node.id, {
         slug: slugDraft,
         updatedAt: node.updatedAt,
       });

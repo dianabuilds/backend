@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export enum WorkspaceRole {
-    OWNER = 'owner',
-    EDITOR = 'editor',
-    VIEWER = 'viewer',
+export enum AccountType {
+    PERSONAL = 'personal',
+    TEAM = 'team',
+    GLOBAL = 'global',
 }

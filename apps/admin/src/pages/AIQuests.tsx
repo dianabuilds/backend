@@ -6,7 +6,7 @@ import { confirmWithEnv } from "../utils/env";
 import { api } from "../api/client";
 import { createDraft } from "../api/questEditor";
 import CursorPager from "../components/CursorPager";
-import { useWorkspace } from "../workspace/WorkspaceContext";
+import { useAccount } from "../account/AccountContext";
 
 type WorldTemplate = {
   id: string;
@@ -90,7 +90,7 @@ export default function AIQuests() {
   });
   const [aiSecret, setAISecret] = useState<string>("");
 
-  const { workspaceId } = useWorkspace();
+  const { accountId } = useAccount();
 
   // Источник истины — React Query
   const queryClient = useQueryClient();
@@ -131,10 +131,10 @@ export default function AIQuests() {
   };
 
   const loadAllowedModels = async () => {
-    if (!workspaceId) return;
+    if (!accountId) return;
     try {
       const res = await api.get<any>(
-        `/admin/workspaces/${workspaceId}/settings/ai-presets`
+        `/admin/accounts/${accountId}/settings/ai-presets`
       );
       const arr = Array.isArray(res.data?.allowed_models)
         ? (res.data.allowed_models as string[])
@@ -152,7 +152,7 @@ export default function AIQuests() {
 
   useEffect(() => {
     loadAllowedModels().catch(() => void 0);
-  }, [workspaceId]);
+  }, [accountId]);
 
   // загрузка первой страницы jobs
   const loadJobsFirst = useCallback(async () => {
@@ -291,7 +291,7 @@ export default function AIQuests() {
         extras: {},
         model: model || null,
         remember,
-        workspace_id: workspaceId || null,
+        account_id: accountId || null,
       });
       await load();
     } catch (e) {
