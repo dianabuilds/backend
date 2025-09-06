@@ -9,17 +9,11 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.drop_constraint(
-        "node_transitions_from_node_id_fkey",
-        "node_transitions",
-        type_="foreignkey",
-        if_exists=True,
+    op.execute(
+        "ALTER TABLE node_transitions DROP CONSTRAINT IF EXISTS node_transitions_from_node_id_fkey"
     )
-    op.drop_constraint(
-        "fk_node_transitions_from_node_id_nodes",
-        "node_transitions",
-        type_="foreignkey",
-        if_exists=True,
+    op.execute(
+        "ALTER TABLE node_transitions DROP CONSTRAINT IF EXISTS fk_node_transitions_from_node_id_nodes"
     )
     op.create_foreign_key(
         "fk_node_transitions_from_node_id_nodes",
@@ -30,17 +24,11 @@ def upgrade() -> None:
         ondelete="CASCADE",
     )
 
-    op.drop_constraint(
-        "node_transitions_to_node_id_fkey",
-        "node_transitions",
-        type_="foreignkey",
-        if_exists=True,
+    op.execute(
+        "ALTER TABLE node_transitions DROP CONSTRAINT IF EXISTS node_transitions_to_node_id_fkey"
     )
-    op.drop_constraint(
-        "fk_node_transitions_to_node_id_nodes",
-        "node_transitions",
-        type_="foreignkey",
-        if_exists=True,
+    op.execute(
+        "ALTER TABLE node_transitions DROP CONSTRAINT IF EXISTS fk_node_transitions_to_node_id_nodes"
     )
     op.create_foreign_key(
         "fk_node_transitions_to_node_id_nodes",
@@ -57,13 +45,9 @@ def downgrade() -> None:
         "fk_node_transitions_from_node_id_nodes",
         "node_transitions",
         type_="foreignkey",
-        if_exists=True,
     )
-    op.drop_constraint(
-        "node_transitions_from_node_id_fkey",
-        "node_transitions",
-        type_="foreignkey",
-        if_exists=True,
+    op.execute(
+        "ALTER TABLE node_transitions DROP CONSTRAINT IF EXISTS node_transitions_from_node_id_fkey"
     )
     op.create_foreign_key(
         "fk_node_transitions_from_node_id_nodes",
@@ -77,13 +61,9 @@ def downgrade() -> None:
         "fk_node_transitions_to_node_id_nodes",
         "node_transitions",
         type_="foreignkey",
-        if_exists=True,
     )
-    op.drop_constraint(
-        "node_transitions_to_node_id_fkey",
-        "node_transitions",
-        type_="foreignkey",
-        if_exists=True,
+    op.execute(
+        "ALTER TABLE node_transitions DROP CONSTRAINT IF EXISTS node_transitions_to_node_id_fkey"
     )
     op.create_foreign_key(
         "fk_node_transitions_to_node_id_nodes",
