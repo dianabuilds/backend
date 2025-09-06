@@ -11,7 +11,11 @@ depends_on = None
 
 def upgrade() -> None:
     with op.batch_alter_table("node_transitions") as batch:
-        batch.drop_constraint("node_transitions_from_node_id_fkey", type_="foreignkey")
+        batch.drop_constraint(
+            "node_transitions_from_node_id_fkey",
+            type_="foreignkey",
+            if_exists=True,
+        )
         batch.create_foreign_key(
             "node_transitions_from_node_id_fkey",
             "nodes",
@@ -19,7 +23,11 @@ def upgrade() -> None:
             ["id"],
             ondelete="CASCADE",
         )
-        batch.drop_constraint("node_transitions_to_node_id_fkey", type_="foreignkey")
+        batch.drop_constraint(
+            "node_transitions_to_node_id_fkey",
+            type_="foreignkey",
+            if_exists=True,
+        )
         batch.create_foreign_key(
             "node_transitions_to_node_id_fkey",
             "nodes",
@@ -31,14 +39,22 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     with op.batch_alter_table("node_transitions") as batch:
-        batch.drop_constraint("node_transitions_from_node_id_fkey", type_="foreignkey")
+        batch.drop_constraint(
+            "node_transitions_from_node_id_fkey",
+            type_="foreignkey",
+            if_exists=True,
+        )
         batch.create_foreign_key(
             "node_transitions_from_node_id_fkey",
             "nodes",
             ["from_node_id"],
             ["id"],
         )
-        batch.drop_constraint("node_transitions_to_node_id_fkey", type_="foreignkey")
+        batch.drop_constraint(
+            "node_transitions_to_node_id_fkey",
+            type_="foreignkey",
+            if_exists=True,
+        )
         batch.create_foreign_key(
             "node_transitions_to_node_id_fkey",
             "nodes",
