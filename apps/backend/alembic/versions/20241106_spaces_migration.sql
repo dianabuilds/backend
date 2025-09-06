@@ -34,7 +34,7 @@ ALTER TABLE navigation_cache ADD CONSTRAINT uq_nav_cache_space_slug UNIQUE (spac
 CREATE INDEX ix_navigation_cache_space_id_generated_at ON navigation_cache (space_id, generated_at);
 
 INSERT INTO spaces (id, type, owner_id, title, settings)
-SELECT id, kind::text, owner_user_id, name, settings_json FROM accounts;
+SELECT id, type::text, owner_user_id, name, settings_json FROM accounts;
 SELECT setval('spaces_id_seq', (SELECT COALESCE(MAX(id),0) FROM spaces));
 INSERT INTO space_members (space_id, user_id, role)
 SELECT account_id, user_id, role::text FROM account_members;
