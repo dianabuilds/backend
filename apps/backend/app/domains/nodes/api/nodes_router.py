@@ -51,6 +51,7 @@ from app.schemas.notification_settings import (
     NodeNotificationSettingsUpdate,
 )
 from app.security import require_ws_guest, require_ws_viewer
+from app.schemas.workspaces import WorkspaceRole
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -80,6 +81,13 @@ async def list_nodes(
     request: Request,
     response: Response,
     space_id: int | None = None,
+    scope_mode: Annotated[
+        str | None,
+        Query(
+            regex="^(mine|member|invited|space:[0-9]+|global)$",
+            description="Listing scope mode",
+        ),
+    ] = None,
     if_none_match: Annotated[str | None, Header(alias="If-None-Match")] = None,
     sort: Annotated[
         Literal[
@@ -93,14 +101,31 @@ async def list_nodes(
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
-    _: Annotated[object, Depends(require_ws_guest)] = ...,
+    member: Annotated[object, Depends(require_ws_guest)] = ...,
 ) -> List[NodeOut]:
     """List nodes.
 
     See :class:`NodeListParams` for available query parameters.
     """
-    space_id = _ensure_space_id(request, space_id)
-    spec = NodeFilterSpec(account_id=space_id, sort=sort)
+    if scope_mode is None:
+        if getattr(member, "role", None) in {WorkspaceRole.owner, WorkspaceRole.editor}:
+            scope_mode = "member"
+        else:
+            scope_mode = "mine"
+
+    if scope_mode == "global":
+        if current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="Forbidden")
+        space_id_resolved = None
+    elif scope_mode.startswith("space:"):
+        try:
+            space_id_resolved = int(scope_mode.split(":", 1)[1])
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid scope_mode") from None
+    else:
+        space_id_resolved = _ensure_space_id(request, space_id)
+
+    spec = NodeFilterSpec(account_id=space_id_resolved, sort=sort)
     ctx = QueryContext(user=current_user, is_admin=False)
     service = NodeQueryService(db)
     page = PageRequest()

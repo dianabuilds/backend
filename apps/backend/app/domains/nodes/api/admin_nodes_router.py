@@ -116,6 +116,10 @@ async def list_nodes_admin(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     q: str | None = None,
+    scope_mode: Annotated[
+        str | None,
+        Query(regex="^(mine|member|invited|space:[0-9]+|global)$"),
+    ] = None,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
@@ -123,10 +127,15 @@ async def list_nodes_admin(
 
     See :class:`AdminNodeListParams` for available query parameters.
     """
+    if scope_mode is None:
+        scope_mode = "member"
     spec_workspace_id: UUID | None = workspace_id
-    workspace = await db.get(Workspace, workspace_id)
-    if workspace and workspace.is_system and workspace.type == WorkspaceType.global_:
+    if scope_mode == "global":
         spec_workspace_id = None
+    else:
+        workspace = await db.get(Workspace, workspace_id)
+        if workspace and workspace.is_system and workspace.type == WorkspaceType.global_:
+            spec_workspace_id = None
     spec = NodeFilterSpec(
         workspace_id=spec_workspace_id,
         author_id=author,
