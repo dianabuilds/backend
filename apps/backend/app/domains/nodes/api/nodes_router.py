@@ -113,28 +113,24 @@ async def list_nodes(
         else:
             scope_mode = "mine"
 
-    if scope_mode == "global":
-        if current_user.role != "admin":
-            raise HTTPException(status_code=403, detail="Forbidden")
-        space_id_resolved = None
-    elif scope_mode.startswith("space:"):
-        try:
-            space_id_resolved = int(scope_mode.split(":", 1)[1])
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid scope_mode") from None
-    else:
-        space_id_resolved = _ensure_space_id(request, space_id)
+    resolved_space_id = None
+    if scope_mode and not (scope_mode == "global" or scope_mode.startswith("space:")):
+        resolved_space_id = _ensure_space_id(request, space_id)
 
-    spec = NodeFilterSpec(account_id=space_id_resolved, sort=sort)
+    spec = NodeFilterSpec(sort=sort)
     ctx = QueryContext(user=current_user, is_admin=False)
     service = NodeQueryService(db)
     page = PageRequest()
-    etag = await service.compute_nodes_etag(spec, ctx, page)
+    etag = await service.compute_nodes_etag(
+        spec, ctx, page, scope_mode=scope_mode, space_id=resolved_space_id
+    )
     if if_none_match and if_none_match == etag:
         response.headers["ETag"] = etag
         # 304 Not Modified
         raise HTTPException(status_code=304, detail="Not Modified")
-    nodes = await service.list_nodes(spec, page, ctx)
+    nodes = await service.list_nodes(
+        spec, page, ctx, scope_mode=scope_mode, space_id=resolved_space_id
+    )
     response.headers["ETag"] = etag
     return nodes
 
