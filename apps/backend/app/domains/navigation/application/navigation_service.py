@@ -17,7 +17,13 @@ from app.domains.quests.infrastructure.models.navigation_cache_models import (
 )
 from app.domains.users.infrastructure.models.user import User
 
-from .policies import CompassPolicy, EchoPolicy, ManualPolicy, RandomPolicy
+from .policies import (
+    CompassPolicy,
+    EchoPolicy,
+    FallbackPolicy,
+    ManualPolicy,
+    RandomPolicy,
+)
 from .providers import (
     CompassProvider,
     EchoProvider,
@@ -36,6 +42,7 @@ class NavigationService:
             EchoPolicy(EchoProvider()),
             CompassPolicy(CompassProvider()),
             RandomPolicy(RandomProvider()),
+            FallbackPolicy(),
         ]
         self._router = TransitionRouter(
             policies,
