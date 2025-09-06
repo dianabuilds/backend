@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ChangeEvent } from "react";
 
-import { listAccounts, type Account } from "../api/accounts";
-import { setOverrideState,useOverrideStore } from "../shared/hooks";
 import { useAccount } from "../account/AccountContext";
+import { type Account,listAccounts } from "../api/accounts";
+import { setOverrideState,useOverrideStore } from "../shared/hooks";
 
 interface ScopeControlsProps {
   scopeMode: string;
@@ -21,16 +21,16 @@ export default function ScopeControls({
   onRolesChange,
 }: ScopeControlsProps) {
   const { accountId, setAccount } = useAccount();
-  const { data: spaces } = useQuery({
+  const { data: accounts } = useQuery({
     queryKey: ["accounts", "all"],
     queryFn: () => listAccounts(),
   });
   const override = useOverrideStore();
 
-  const onSpaceChange = (e: ChangeEvent<HTMLSelectElement>) => {
+  const onAccountChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
-    const ws = spaces?.find((w) => w.id === id);
-    setAccount(ws);
+    const account = accounts?.find((a) => a.id === id);
+    setAccount(account);
   };
 
   const onRoleToggle = (r: string) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -49,14 +49,14 @@ export default function ScopeControls({
     <div className="flex flex-wrap items-center gap-2" data-testid="scope-controls">
       <select
         value={accountId || ""}
-        onChange={onSpaceChange}
+        onChange={onAccountChange}
         className="border rounded px-2 py-1 text-sm"
-        data-testid="space-select"
+        data-testid="account-select"
       >
-        <option value="">Select space</option>
-        {spaces?.map((ws: Account) => (
-          <option key={ws.id} value={ws.id}>
-            {ws.name || ws.slug || ws.id}
+        <option value="">Select account</option>
+        {accounts?.map((acc: Account) => (
+          <option key={acc.id} value={acc.id}>
+            {acc.name || acc.slug || acc.id}
           </option>
         ))}
       </select>
@@ -69,7 +69,7 @@ export default function ScopeControls({
         <option value="mine">mine</option>
         <option value="member">member</option>
         <option value="invited">invited</option>
-        <option value="space">space</option>
+        <option value="space">account</option>
         <option value="global">global</option>
       </select>
       <div className="flex items-center gap-2">
