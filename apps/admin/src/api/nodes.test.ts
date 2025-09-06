@@ -44,7 +44,12 @@ describe('listNodes', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(
       '/admin/accounts/ws1/nodes',
-      expect.objectContaining({ account: false, raw: true, acceptNotModified: true }),
+      expect.objectContaining({
+        accountId: 'ws1',
+        account: false,
+        raw: true,
+        acceptNotModified: true,
+      }),
     );
     expect(res).toEqual([
       {

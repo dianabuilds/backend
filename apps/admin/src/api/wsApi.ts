@@ -1,47 +1,28 @@
-import { safeLocalStorage } from "../utils/safeStorage";
 import { api, type RequestOptions as ApiRequestOptions } from "./client";
-
-function getAccountId(): string {
-  return safeLocalStorage.getItem("accountId") || "";
-}
-
-function ensureAccountId(): string {
-  const id = getAccountId();
-  if (!id) {
-    try {
-      window.dispatchEvent(new Event("account-missing"));
-    } catch {
-      // ignore
-    }
-    throw new Error("Account is not selected");
-  }
-  return id;
-}
 
 export interface WsRequestOptions<P extends Record<string, unknown> = Record<string, never>>
   extends ApiRequestOptions {
   params?: P;
   raw?: boolean;
+  /** Account identifier to attach to the request. */
+  accountId: string;
   /**
-   * Configure account ID handling. By default the account ID is injected
-   * into the URL path. Set to `false` to skip any automatic account handling
-   * or to `"query"` to append the ID as `account_id` query parameter.
+   * Configure account ID handling. By default the ID is appended as
+   * `account_id` query parameter. Set to `false` to skip automatic
+   * handling.
    */
-  account?: "path" | "query" | false;
+  account?: "query" | false;
 }
 
 async function request<
   T = unknown,
   P extends Record<string, unknown> = Record<string, never>,
->(url: string, opts: WsRequestOptions<P> = {}): Promise<T> {
-  const { params, headers: optHeaders, raw, account = "path", ...rest } = opts as WsRequestOptions<P> & {
+>(url: string, opts: WsRequestOptions<P>): Promise<T> {
+  const { params, headers: optHeaders, raw, accountId, account = "query", ...rest } =
+    opts as WsRequestOptions<P> & {
     raw?: boolean;
   };
 
-  let accountId: string | undefined;
-  if (account !== false) {
-    accountId = ensureAccountId();
-  }
   const headers: Record<string, string> = {
     ...(optHeaders as Record<string, string> | undefined),
   };
@@ -52,14 +33,7 @@ async function request<
 
   let finalUrl = url;
   const finalParams: Record<string, unknown> = { ...(params || {}) };
-
-  if (accountId && account === "path") {
-    if (finalUrl.startsWith("/admin/") && !finalUrl.startsWith("/admin/accounts/")) {
-      finalUrl = `/admin/accounts/${encodeURIComponent(accountId)}${finalUrl.slice(
-        "/admin".length,
-      )}`;
-    }
-  } else if (accountId && account === "query") {
+  if (accountId && account === "query") {
     if (finalParams.account_id === undefined) {
       finalParams.account_id = accountId;
     }
@@ -87,7 +61,7 @@ async function request<
 
 export const wsApi = {
   request,
-  get: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts?: WsRequestOptions<P>) =>
+  get: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts: WsRequestOptions<P>) =>
     request<T, P>(url, { ...opts, method: "GET" }),
   post: <
     TReq = unknown,
@@ -96,7 +70,7 @@ export const wsApi = {
   >(
     url: string,
     json?: TReq,
-    opts?: WsRequestOptions<P>,
+    opts: WsRequestOptions<P>,
   ) => request<TRes, P>(url, { ...opts, method: "POST", json }),
   put: <
     TReq = unknown,
@@ -105,7 +79,7 @@ export const wsApi = {
   >(
     url: string,
     json?: TReq,
-    opts?: WsRequestOptions<P>,
+    opts: WsRequestOptions<P>,
   ) => request<TRes, P>(url, { ...opts, method: "PUT", json }),
   patch: <
     TReq = unknown,
@@ -114,9 +88,9 @@ export const wsApi = {
   >(
     url: string,
     json?: TReq,
-    opts?: WsRequestOptions<P>,
+    opts: WsRequestOptions<P>,
   ) => request<TRes, P>(url, { ...opts, method: "PATCH", json }),
-  delete: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts?: WsRequestOptions<P>) =>
+  delete: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts: WsRequestOptions<P>) =>
     request<T, P>(url, { ...opts, method: "DELETE" }),
 };
 

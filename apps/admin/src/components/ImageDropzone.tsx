@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { wsApi } from "../api/wsApi";
 import { extractUrlFromUploadResponse, resolveBackendUrl } from "../utils/url";
+import { useAccount } from "../workspace/WorkspaceContext";
 
 interface ImageDropzoneProps {
   value?: string | null;
@@ -19,6 +20,7 @@ export default function ImageDropzone({
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { accountId } = useAccount();
 
   // Локальный URL для мгновенного превью после загрузки
   const [internalUrl, setInternalUrl] = useState<string | null>(
@@ -45,7 +47,7 @@ export default function ImageDropzone({
           method: "POST",
           body: form,
           raw: true,
-          account: "query",
+          accountId,
         });
         const url = extractUrlFromUploadResponse(res.data, res.response.headers);
         if (!url) {

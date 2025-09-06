@@ -4,11 +4,11 @@ import Cropper, { type Area } from 'react-easy-crop';
 
 import { listFlags } from '../api/flags';
 import {
-  patchNode,
-  publishNode,
   archiveNode,
   duplicateNode,
+  patchNode,
   previewNode,
+  publishNode,
 } from '../api/nodes';
 import { wsApi } from '../api/wsApi';
 import { useAuth } from '../auth/AuthContext';
@@ -144,6 +144,7 @@ export default function NodeSidebar({
             method: 'POST',
             body: form,
             raw: true,
+            accountId,
           });
           const data = res.data as any;
           const id = data?.id ?? data?.asset_id ?? data?.assetId ?? null;

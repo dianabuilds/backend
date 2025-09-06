@@ -1,10 +1,11 @@
 import type EditorJS from "@editorjs/editorjs";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback,useEffect, useRef, useState } from "react";
 
 import { wsApi } from "../api/wsApi";
+import type { OutputData } from "../types/editorjs";
 import { compressImage } from "../utils/compressImage";
 import { resolveUrl } from "../utils/resolveUrl";
-import type { OutputData } from "../types/editorjs";
+import { useAccount } from "../workspace/WorkspaceContext";
 
 interface Props {
   value?: OutputData;
@@ -32,6 +33,8 @@ export default function EditorJSEmbed({
   const applyingExternal = useRef(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+
+  const { accountId } = useAccount();
 
   const extractUrl = (data: unknown): string => {
     if (typeof data === "string") return data;
@@ -118,7 +121,7 @@ export default function EditorJSEmbed({
                       method: "POST",
                       body: form,
                       raw: true,
-                      account: "query",
+                      accountId,
                     });
                     const rawUrl = extractUrl((res as any)?.data ?? res);
                     const url = resolveUrl(rawUrl);
