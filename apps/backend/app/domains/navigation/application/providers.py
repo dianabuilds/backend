@@ -76,12 +76,9 @@ class CompassProvider(TransitionProvider):
         space_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
-        nodes = await self._service.get_compass_nodes(db, node, user, self._limit, preview=preview)
-        return [
-            n
-            for n in nodes
-            if getattr(n, "workspace_id", getattr(n, "account_id", None)) == space_id
-        ]
+        return await self._service.get_compass_nodes(
+            db, node, user, self._limit, preview=preview, space_id=space_id
+        )
 
 
 class EchoProvider(TransitionProvider):
@@ -101,14 +98,9 @@ class EchoProvider(TransitionProvider):
         space_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
-        nodes = await self._service.get_echo_transitions(
-            db, node, self._limit, user=user, preview=preview
+        return await self._service.get_echo_transitions(
+            db, node, self._limit, user=user, preview=preview, space_id=space_id
         )
-        return [
-            n
-            for n in nodes
-            if getattr(n, "workspace_id", getattr(n, "account_id", None)) == space_id
-        ]
 
 
 class RandomProvider(TransitionProvider):

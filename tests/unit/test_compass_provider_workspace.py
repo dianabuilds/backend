@@ -21,7 +21,7 @@ sys.modules.setdefault("fastapi", fastapi_stub)
 sys.modules.setdefault("app", importlib.import_module("apps.backend.app"))
 
 from apps.backend.app.domains.navigation.application.providers import (  # noqa: E402
-    EchoProvider,
+    CompassProvider,
 )
 
 from app.core.preview import PreviewContext  # noqa: E402
@@ -34,14 +34,14 @@ class DummyNode:
 
 
 class DummyService:
-    async def get_echo_transitions(
+    async def get_compass_nodes(
         self,
         db,
         node,
+        user,
         limit,
-        *,
-        user=None,
         preview: PreviewContext | None = None,
+        *,
         space_id=None,
     ):
         other_ws = uuid.uuid4()
@@ -52,9 +52,9 @@ class DummyService:
         return [n for n in candidates if n.workspace_id == space_id]
 
 
-def test_echo_provider_filters_workspace():
+def test_compass_provider_filters_workspace() -> None:
     ws_id = uuid.uuid4()
-    provider = EchoProvider(DummyService())
+    provider = CompassProvider(DummyService())
     node = DummyNode("start", workspace_id=ws_id)
     result = asyncio.run(provider.get_transitions(None, node, None, ws_id))
     assert [n.slug for n in result] == ["a"]

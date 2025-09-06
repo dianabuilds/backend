@@ -4,10 +4,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.preview import PreviewContext
-from app.domains.admin.application.feature_flag_service import (
-    FeatureFlagKey,
-    get_effective_flags,
-)
 from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.navigation_cache_models import (
@@ -29,20 +25,31 @@ class CompassService:
         user: User | None,
         limit: int = 5,
         preview: PreviewContext | None = None,
+        *,
+        space_id: int | None = None,
     ) -> list[Node]:
-        try:
-            flags = await get_effective_flags(db, None, user)
-        except Exception:
-            flags = set()
-        space_id = getattr(node, "workspace_id", None)
+        if space_id is None:
+            space_id = getattr(node, "workspace_id", getattr(node, "account_id", None))
         stmt = select(NavigationCache.compass).where(NavigationCache.node_slug == node.slug)
-        if FeatureFlagKey.NAV_CACHE_V2.value in flags and space_id is not None:
+        if space_id is not None:
             stmt = stmt.where(NavigationCache.space_id == space_id)
         result = await db.execute(stmt)
         slugs = result.scalar_one_or_none() or []
         nodes: list[Node] = []
         for slug in slugs[:limit]:
-            res = await db.execute(select(Node).where(Node.slug == slug))
+            if space_id is not None:
+                if hasattr(Node, "workspace_id"):
+                    node_query = select(Node).where(
+                        Node.slug == slug, Node.workspace_id == space_id
+                    )
+                else:
+                    node_query = select(Node).where(
+                        Node.slug == slug,
+                        Node.account_id == space_id,
+                    )
+            else:
+                node_query = select(Node).where(Node.slug == slug)
+            res = await db.execute(node_query)
             n = res.scalar_one_or_none()
             if n and await has_access_async(n, user, preview):
                 nodes.append(n)
