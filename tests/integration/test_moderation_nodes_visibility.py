@@ -51,25 +51,25 @@ async def client_with_node():
         )
         session.add_all([ws, node])
         await session.commit()
-        ws_id, slug = ws.id, node.slug
+        acc_id, slug = ws.id, node.slug
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, async_session, ws_id, slug
+        yield client, async_session, acc_id, slug
 
 
 @pytest.mark.asyncio
 async def test_restore_and_hide(client_with_node):
-    client, async_session, ws_id, slug = client_with_node
+    client, async_session, acc_id, slug = client_with_node
 
-    resp = await client.post(f"/admin/workspaces/{ws_id}/moderation/nodes/{slug}/restore")
+    resp = await client.post(f"/admin/accounts/{acc_id}/moderation/nodes/{slug}/restore")
     assert resp.status_code == 200
     async with async_session() as session:
         node = await session.get(Node, 1)
         assert node.is_visible is True
 
     resp = await client.post(
-        f"/admin/workspaces/{ws_id}/moderation/nodes/{slug}/hide",
+        f"/admin/accounts/{acc_id}/moderation/nodes/{slug}/hide",
         json={"reason": ""},
     )
     assert resp.status_code == 200

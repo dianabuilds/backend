@@ -28,7 +28,7 @@ from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/admin/workspaces/{workspace_id}/nodes",
+    prefix="/admin/accounts/{account_id}/nodes",
     tags=["admin"],
     responses=ADMIN_AUTH_RESPONSES,
 )
@@ -183,17 +183,17 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
 
 async def _resolve_content_item_id(
-    db: AsyncSession, *, workspace_id: UUID, node_or_item_id: int
+    db: AsyncSession, *, account_id: UUID, node_or_item_id: int
 ) -> NodeItem:
     # 1) Direct NodeItem by id (allow global items)
     item = await db.get(NodeItem, node_or_item_id)
     if item is not None:
-        if item.workspace_id not in (workspace_id, None):
+        if item.workspace_id not in (account_id, None):
             logger.warning(
                 "content_item.workspace_mismatch",
                 extra={
-                    "workspace_id": str(workspace_id),
-                    "item_workspace_id": str(item.workspace_id),
+                    "account_id": str(account_id),
+                    "item_account_id": str(item.workspace_id),
                     "node_or_item_id": node_or_item_id,
                 },
             )
@@ -206,18 +206,18 @@ async def _resolve_content_item_id(
         logger.warning(
             "content_item.node_missing",
             extra={
-                "workspace_id": str(workspace_id),
+                "account_id": str(account_id),
                 "node_or_item_id": node_or_item_id,
             },
         )
         raise HTTPException(status_code=404, detail="Node not found")
 
-    if node.account_id not in (workspace_id, None):
+    if node.account_id not in (account_id, None):
         logger.warning(
             "content_item.workspace_mismatch",
             extra={
-                "workspace_id": str(workspace_id),
-                "node_workspace_id": str(node.account_id),
+                "account_id": str(account_id),
+                "node_account_id": str(node.account_id),
                 "node_or_item_id": node_or_item_id,
             },
         )
@@ -237,19 +237,17 @@ async def _resolve_content_item_id(
 @id_router.get("/{node_id}", response_model=AdminNodeOut, summary="Get node item by id")
 async def get_node_by_id(
     node_id: Annotated[int, Path(...)],
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     import time as _t
 
     t0 = _t.perf_counter()
-    node_item = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_or_item_id=node_id
-    )
+    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
     t_resolve = _t.perf_counter()
     svc = NodeService(db)
-    item = await svc.get(workspace_id, node_item.id)
+    item = await svc.get(account_id, node_item.id)
     t_item = _t.perf_counter()
     node = await db.scalar(
         select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags))
@@ -278,18 +276,16 @@ async def get_node_by_id(
 async def update_node_by_id(
     node_id: Annotated[int, Path(...)],
     payload: dict,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    node_item = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_or_item_id=node_id
-    )
+    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.update(
-        workspace_id,
+        account_id,
         node_item.id,
         payload,
         actor_id=current_user.id,
@@ -308,18 +304,16 @@ async def update_node_by_id(
 async def replace_node_by_id(
     node_id: Annotated[int, Path(...)],
     payload: dict,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008,
 ):
-    node_item = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_or_item_id=node_id
-    )
+    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.update(
-        workspace_id,
+        account_id,
         node_item.id,
         payload,
         actor_id=current_user.id,
@@ -341,18 +335,16 @@ async def replace_node_by_id(
 )
 async def publish_node_by_id(
     node_id: Annotated[int, Path(...)],
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    node_item = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_or_item_id=node_id
-    )
+    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.publish(
-        workspace_id,
+        account_id,
         node_item.id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
@@ -362,7 +354,7 @@ async def publish_node_by_id(
         node_id=item.id,
         slug=item.slug,
         author_id=current_user.id,
-        workspace_id=workspace_id,
+        workspace_id=account_id,
     )
     node = await db.scalar(select(Node).where(Node.id == item.node_id))
     return _serialize(item, node)
@@ -371,7 +363,7 @@ async def publish_node_by_id(
 @type_router.get("/{node_type}", response_model=AdminNodeList, summary="List nodes by type")
 async def list_nodes(
     node_type: str,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     page: int = 1,
     per_page: int = 10,
     q: str | None = None,
@@ -385,16 +377,16 @@ async def list_nodes(
         )
     svc = NodeService(db)
     if q:
-        items = await svc.search(workspace_id, q, page=page, per_page=per_page)
+        items = await svc.search(account_id, q, page=page, per_page=per_page)
     else:
-        items = await svc.list(workspace_id, page=page, per_page=per_page)
+        items = await svc.list(account_id, page=page, per_page=per_page)
     return {"items": [_serialize(i) for i in items]}
 
 
 @type_router.post("/{node_type}", response_model=AdminNodeOut, summary="Create node item")
 async def create_node(
     node_type: str,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -405,7 +397,7 @@ async def create_node(
             detail="quest nodes are read-only; use /quests/*",
         )
     svc = NodeService(db)
-    item = await svc.create(workspace_id, actor_id=current_user.id)
+    item = await svc.create(account_id, actor_id=current_user.id)
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
@@ -418,7 +410,7 @@ async def create_node(
 async def get_node(
     node_type: str,
     node_id: Annotated[int, Path(...)],
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
@@ -427,11 +419,9 @@ async def get_node(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
-    node_item = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_or_item_id=node_id
-    )
+    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
     svc = NodeService(db)
-    item = await svc.get(workspace_id, node_item.id)
+    item = await svc.get(account_id, node_item.id)
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
@@ -445,7 +435,7 @@ async def update_node(
     node_type: str,
     node_id: Annotated[int, Path(...)],
     payload: dict,
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
@@ -457,12 +447,10 @@ async def update_node(
             detail="quest nodes are read-only; use /quests/*",
         )
 
-    node_item = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_or_item_id=node_id
-    )
+    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.update(
-        workspace_id,
+        account_id,
         node_item.id,
         payload,
         actor_id=current_user.id,
@@ -483,7 +471,7 @@ async def update_node(
 async def publish_node(
     node_type: str,
     node_id: Annotated[int, Path(...)],
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
@@ -494,12 +482,10 @@ async def publish_node(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
-    node_item = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_or_item_id=node_id
-    )
+    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.publish(
-        workspace_id,
+        account_id,
         node_item.id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
@@ -509,7 +495,7 @@ async def publish_node(
         node_id=item.id,
         slug=item.slug,
         author_id=current_user.id,
-        workspace_id=workspace_id,
+        workspace_id=account_id,
     )
     node = await db.get(Node, item.node_id or item.id)
     return _serialize(item, node)
@@ -524,7 +510,7 @@ async def publish_node(
 async def publish_node_patch(
     node_type: str,
     node_id: Annotated[int, Path(...)],
-    workspace_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_ws_editor)] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
@@ -535,12 +521,10 @@ async def publish_node_patch(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
-    node_item = await _resolve_content_item_id(
-        db, workspace_id=workspace_id, node_or_item_id=node_id
-    )
+    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.publish(
-        workspace_id,
+        account_id,
         node_item.id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
@@ -549,7 +533,7 @@ async def publish_node_patch(
         node_id=item.id,
         slug=item.slug,
         author_id=current_user.id,
-        workspace_id=workspace_id,
+        workspace_id=account_id,
     )
     node = await db.get(Node, item.node_id or item.id)
     return _serialize(item, node)

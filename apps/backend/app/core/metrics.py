@@ -254,18 +254,18 @@ class MetricsStorage:
             )
 
         total_requests = len(records)
-        admin_ws_count = sum(1 for r in records if r.route.startswith("/admin/workspaces"))
+        admin_accounts_count = sum(1 for r in records if r.route.startswith("/admin/accounts"))
         lines.append(
-            "# HELP http_requests_admin_workspaces_total Total HTTP requests to /admin/workspaces"
+            "# HELP http_requests_admin_accounts_total Total HTTP requests to /admin/accounts"
         )
-        lines.append("# TYPE http_requests_admin_workspaces_total counter")
-        lines.append(f"http_requests_admin_workspaces_total {admin_ws_count}")
-        ratio = admin_ws_count / total_requests if total_requests else 0.0
+        lines.append("# TYPE http_requests_admin_accounts_total counter")
+        lines.append(f"http_requests_admin_accounts_total {admin_accounts_count}")
+        ratio = admin_accounts_count / total_requests if total_requests else 0.0
         lines.append(
-            "# HELP http_requests_admin_workspaces_ratio Ratio of /admin/workspaces requests to total"
+            "# HELP http_requests_admin_accounts_ratio Ratio of /admin/accounts requests to total"
         )
-        lines.append("# TYPE http_requests_admin_workspaces_ratio gauge")
-        lines.append(f"http_requests_admin_workspaces_ratio {ratio}")
+        lines.append("# TYPE http_requests_admin_accounts_ratio gauge")
+        lines.append(f"http_requests_admin_accounts_ratio {ratio}")
 
         lines.append(
             "# HELP domain_request_errors_total Total request errors by domain and status class"

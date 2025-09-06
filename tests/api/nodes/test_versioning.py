@@ -160,7 +160,7 @@ async def test_rollback_creates_audit_entry(app_and_session):
         await repo.update(node, NodeUpdate(title="V2"), user.id)
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.post(f"/admin/workspaces/{ws_uuid}/nodes/1/versions/1/rollback")
+        resp = await ac.post(f"/admin/accounts/{ws_uuid}/nodes/1/versions/1/rollback")
     assert resp.status_code == 200
     async with async_session() as session:
         refreshed = await session.get(Node, 1)
@@ -202,7 +202,7 @@ async def test_publish_node(app_and_session):
         await session.commit()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.post(f"/admin/workspaces/{ws_uuid}/nodes/{node.id}/publish")
+        resp = await ac.post(f"/admin/accounts/{ws_uuid}/nodes/{node.id}/publish")
     assert resp.status_code == 200
     assert resp.json()["status"] == "published"
     async with async_session() as session:

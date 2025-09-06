@@ -141,8 +141,8 @@ async def app_client_with_session():
 
 @pytest.mark.asyncio
 async def test_get_node_by_id(app_client):
-    client, ws_id, item_id, node_id = app_client
-    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{item_id}")
+    client, acc_id, item_id, node_id = app_client
+    resp = await client.get(f"/admin/accounts/{acc_id}/nodes/{item_id}")
     assert resp.status_code == 200
     data = resp.json()
     assert data["id"] == node_id
@@ -152,8 +152,8 @@ async def test_get_node_by_id(app_client):
 
 @pytest.mark.asyncio
 async def test_put_node_by_id_updates(app_client_with_session):
-    client, ws_id, item_id, node_id, async_session = app_client_with_session
-    resp = await client.put(f"/admin/workspaces/{ws_id}/nodes/{item_id}", json={"title": "N2"})
+    client, acc_id, item_id, node_id, async_session = app_client_with_session
+    resp = await client.put(f"/admin/accounts/{acc_id}/nodes/{item_id}", json={"title": "N2"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["id"] == node_id
@@ -213,8 +213,8 @@ async def app_client_node_only():
 
 @pytest.mark.asyncio
 async def test_get_node_auto_creates_item(app_client_node_only):
-    client, ws_id, node_id, async_session = app_client_node_only
-    resp = await client.get(f"/admin/workspaces/{ws_id}/nodes/{node_id}")
+    client, acc_id, node_id, async_session = app_client_node_only
+    resp = await client.get(f"/admin/accounts/{acc_id}/nodes/{node_id}")
     assert resp.status_code == 200
     async with async_session() as session:
         res = await session.execute(sa.select(NodeItem).where(NodeItem.node_id == node_id))

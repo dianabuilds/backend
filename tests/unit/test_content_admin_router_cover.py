@@ -62,11 +62,11 @@ async def app_client():
 
 @pytest.mark.asyncio
 async def test_cover_saved_when_using_cover_key(app_client):
-    client, ws_id, async_session = app_client
+    client, acc_id, async_session = app_client
     async with async_session() as session:
         node = Node(
             id=1,
-            account_id=ws_id,
+            account_id=acc_id,
             slug="article-1",
             title="New article",
             content={},
@@ -75,7 +75,7 @@ async def test_cover_saved_when_using_cover_key(app_client):
         item = NodeItem(
             id=2,
             node_id=node.id,
-            workspace_id=ws_id,
+            workspace_id=acc_id,
             type="article",
             slug="article-1",
             title="New article",
@@ -87,7 +87,7 @@ async def test_cover_saved_when_using_cover_key(app_client):
     cover = "http://example.com/img.jpg"
 
     resp = await client.patch(
-        f"/admin/workspaces/{ws_id}/nodes/types/article/{node_id}",
+        f"/admin/accounts/{acc_id}/nodes/types/article/{node_id}",
         json={"cover": cover},
     )
     assert resp.status_code == 200
@@ -96,7 +96,7 @@ async def test_cover_saved_when_using_cover_key(app_client):
     assert data["nodeId"] == node_pk
 
     resp = await client.get(
-        f"/admin/workspaces/{ws_id}/nodes/types/article/{node_id}",
+        f"/admin/accounts/{acc_id}/nodes/types/article/{node_id}",
     )
     assert resp.status_code == 200
     data = resp.json()
