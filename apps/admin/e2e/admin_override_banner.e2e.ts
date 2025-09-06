@@ -5,11 +5,11 @@ test("shows warning banner when override response includes warning_banner", asyn
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ default_workspace_id: "ws1" }),
+      body: JSON.stringify({ default_account_id: "ws1" }),
     }),
   );
 
-  await page.route("**/accounts", (route) =>
+  await page.route("**/admin/accounts", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -25,7 +25,7 @@ test("shows warning banner when override response includes warning_banner", asyn
     }),
   );
 
-  await page.route("**/admin/workspaces/ws1/nodes", (route) =>
+  await page.route("**/admin/accounts/ws1/nodes", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",

@@ -35,6 +35,6 @@ def test_cors_allows_post(monkeypatch):
         "Origin": "http://example.com",
         "Access-Control-Request-Method": "POST",
     }
-    resp = client.options("/admin/workspaces", headers=headers)
+    resp = client.options("/admin/accounts", headers=headers)
     assert resp.status_code == 200
     assert "POST" in resp.headers.get("access-control-allow-methods", "")
