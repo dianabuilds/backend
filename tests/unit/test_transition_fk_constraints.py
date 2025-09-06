@@ -130,6 +130,7 @@ async def test_delete_from_node_cascades(session: AsyncSession) -> None:
     transition = NodeTransition(
         from_node_id=from_node.id,
         to_node_id=to_node.id,
+        account_id=ws.id,
         created_by=user.id,
     )
     session.add(transition)
@@ -148,6 +149,7 @@ async def test_delete_to_node_restricts(session: AsyncSession) -> None:
     transition = NodeTransition(
         from_node_id=from_node.id,
         to_node_id=to_node.id,
+        account_id=ws.id,
         created_by=user.id,
     )
     session.add(transition)

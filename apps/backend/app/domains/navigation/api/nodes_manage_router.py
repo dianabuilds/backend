@@ -77,7 +77,9 @@ async def create_transition(
     if not to_node:
         raise HTTPException(status_code=404, detail="Target node not found")
     t_repo = TransitionRepository(db)
-    transition = await t_repo.create(from_node.id, to_node.id, payload, current_user.id)
-    await navcache.invalidate_navigation_by_node(account_id=workspace_id, node_slug=slug)
+    transition = await t_repo.create(
+        from_node.id, from_node.account_id, to_node.id, payload, current_user.id
+    )
+    await navcache.invalidate_navigation_by_node(workspace_id, slug)
     cache_invalidate("nav", reason="transition_create", key=slug)
     return {"id": str(transition.id)}

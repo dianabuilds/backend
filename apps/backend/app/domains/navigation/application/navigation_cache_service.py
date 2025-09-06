@@ -11,34 +11,28 @@ from app.domains.navigation.application.ports.cache_port import IKeyValueCache
 
 def _k_nav(user_id: str, slug: str, mode: str, account_id: str | None = None) -> str:
     m = mode or "auto"
-    if account_id:
-        pass
-    return cache_key("navigation", slug, user_id, m)
+    if account_id is not None:
+        return cache_key("navigation", account_id, slug, user_id, m)
 
 
 def _k_navm(user_id: str, slug: str, account_id: str | None = None) -> str:
-    if account_id:
-        pass
-    return cache_key("navigation", slug, "modes", user_id)
+    if account_id is not None:
+        return cache_key("navigation", account_id, slug, "modes", user_id)
 
 
 def _k_comp(user_id: str, phash: str, account_id: str | None = None) -> str:
-    if account_id:
-        pass
-    return cache_key("compass", user_id, phash)
+    if account_id is not None:
+        return cache_key("compass", account_id, user_id, phash)
 
 
 def _idx_node_nav(slug: str, account_id: str | None = None) -> str:
-    if account_id:
-        pass
-    return f"{node_key(slug)}:nav"
+    if account_id is not None:
+        return cache_key("node", account_id, slug, "nav")
 
 
 def _idx_node_navm(slug: str, account_id: str | None = None) -> str:
-    if account_id:
-        pass
-    return f"{node_key(slug)}:navm"
-
+    if account_id is not None:
+        return cache_key("node", account_id, slug, "navm")
 
 def _idx_user_nav(uid: str) -> str:
     return cache_key("user", uid, "nav")
@@ -49,9 +43,8 @@ def _idx_user_comp(uid: str) -> str:
 
 
 def _idx_node_comp(slug: str, account_id: str | None = None) -> str:
-    if account_id:
-        pass
-    return f"{node_key(slug)}:comp"
+    if account_id is not None:
+        return cache_key("node", account_id, slug, "comp")
 
 
 class NavigationCacheService:
@@ -93,9 +86,8 @@ class NavigationCacheService:
         account_id: UUID | str | None = None,
     ) -> dict | None:
         uid = str(user_id)
-        if account_id:
-            pass
-        key = _k_nav(uid, node_slug, mode or "auto")
+        aid = str(account_id) if account_id is not None else None
+        key = _k_nav(uid, node_slug, mode or "auto", aid)
         data = await self._cache.get(key)
         if data:
             cache_hit("nav", key, user=uid)
@@ -113,31 +105,30 @@ class NavigationCacheService:
         account_id: UUID | str | None = None,
     ) -> None:
         uid = str(user_id)
-        if account_id:
-            pass
-        key = _k_nav(uid, node_slug, mode or "auto")
+        aid = str(account_id) if account_id is not None else None
+        key = _k_nav(uid, node_slug, mode or "auto", aid)
         ttl = ttl_sec or settings.cache.nav_cache_ttl
         await self._cache.set(key, json.dumps(payload), ttl)
         await self._add_to_set(_idx_user_nav(uid), key)
-        await self._add_to_set(_idx_node_nav(node_slug), key)
+        await self._add_to_set(_idx_node_nav(node_slug, aid), key)
 
     async def invalidate_navigation_by_node(
         self, account_id: UUID | str | int, node_slug: str
     ) -> None:
-        if account_id:
-            pass
-        keys = await self._get_set(_idx_node_nav(node_slug))
+        aid = str(account_id)
+        keys = await self._get_set(_idx_node_nav(node_slug, aid))
         count = len(keys)
         if keys:
             await self._cache.delete(*list(keys))
-        await self._del_set_key(_idx_node_nav(node_slug))
-        keys_modes = await self._get_set(_idx_node_navm(node_slug))
+        await self._del_set_key(_idx_node_nav(node_slug, aid))
+        keys_modes = await self._get_set(_idx_node_navm(node_slug, aid))
         count += len(keys_modes)
         if keys_modes:
             await self._cache.delete(*list(keys_modes))
-        await self._del_set_key(_idx_node_navm(node_slug))
+        await self._del_set_key(_idx_node_navm(node_slug, aid))
         if count:
-            cache_invalidate("nav", reason="by_node", key=node_slug)
+            cache_invalidate("nav", reason="by_node", key=f"{aid}:{node_slug}")
+
 
     async def invalidate_navigation_by_user(self, user_id: UUID | str) -> None:
         uid = str(user_id)
@@ -170,9 +161,9 @@ class NavigationCacheService:
         self, user_id: UUID | str, node_slug: str, account_id: UUID | str | None = None
     ) -> dict | None:
         uid = str(user_id)
-        if account_id:
-            pass
-        key = _k_navm(uid, node_slug)
+        aid = str(account_id) if account_id is not None else None
+        key = _k_navm(uid, node_slug, aid)
+
         data = await self._cache.get(key)
         if data:
             cache_hit("navm", key, user=uid)
@@ -189,23 +180,21 @@ class NavigationCacheService:
         account_id: UUID | str | None = None,
     ) -> None:
         uid = str(user_id)
-        if account_id:
-            pass
-        key = _k_navm(uid, node_slug)
+        aid = str(account_id) if account_id is not None else None
+        key = _k_navm(uid, node_slug, aid)
         ttl = ttl_sec or settings.cache.nav_cache_ttl
         await self._cache.set(key, json.dumps(payload), ttl)
         await self._add_to_set(_idx_user_nav(uid), key)
-        await self._add_to_set(_idx_node_navm(node_slug), key)
+        await self._add_to_set(_idx_node_navm(node_slug, aid), key)
 
     async def invalidate_modes_by_node(self, account_id: UUID | str | int, node_slug: str) -> None:
-        if account_id:
-            pass
-        keys = await self._get_set(_idx_node_navm(node_slug))
+        aid = str(account_id)
+        keys = await self._get_set(_idx_node_navm(node_slug, aid))
         if keys:
             await self._cache.delete(*list(keys))
-        await self._del_set_key(_idx_node_navm(node_slug))
+        await self._del_set_key(_idx_node_navm(node_slug, aid))
         if keys:
-            cache_invalidate("navm", reason="by_node", key=node_slug)
+            cache_invalidate("navm", reason="by_node", key=f"{aid}:{node_slug}")
 
     # Compass -----------------------------------------------------------
     async def get_compass(
@@ -215,9 +204,8 @@ class NavigationCacheService:
         account_id: UUID | str | None = None,
     ) -> dict | None:
         uid = str(user_id)
-        if account_id:
-            pass
-        key = _k_comp(uid, params_hash)
+        aid = str(account_id) if account_id is not None else None
+        key = _k_comp(uid, params_hash, aid)
         data = await self._cache.get(key)
         if data:
             cache_hit("comp", key, user=uid)
@@ -234,9 +222,9 @@ class NavigationCacheService:
         account_id: UUID | str | None = None,
     ) -> None:
         uid = str(user_id)
-        if account_id:
-            pass
-        key = _k_comp(uid, params_hash)
+        aid = str(account_id) if account_id is not None else None
+        key = _k_comp(uid, params_hash, aid)
+
         ttl = ttl_sec or settings.cache.compass_cache_ttl
         await self._cache.set(key, json.dumps(payload), ttl)
         await self._add_to_set(_idx_user_comp(uid), key)
@@ -251,18 +239,17 @@ class NavigationCacheService:
         if keys:
             cache_invalidate("comp", reason="by_user", key=uid)
 
-    async def invalidate_compass_by_node(
-        self, account_id: UUID | str | int, node_slug: str
-    ) -> None:
-        if account_id:
-            pass
-        idx = _idx_node_comp(node_slug)
+    async def invalidate_compass_by_node(self, account_id: UUID | str | int, node_slug: str) -> None:
+        aid = str(account_id)
+        idx = _idx_node_comp(node_slug, aid)
+
         keys = await self._get_set(idx)
         if keys:
             await self._cache.delete(*list(keys))
         await self._del_set_key(idx)
         if keys:
-            cache_invalidate("comp", reason="by_node", key=node_slug)
+            cache_invalidate("comp", reason="by_node", key=f"{aid}:{node_slug}")
+
 
     async def invalidate_compass_all(self) -> None:
         pattern = f"{settings.cache.key_version}:compass*"

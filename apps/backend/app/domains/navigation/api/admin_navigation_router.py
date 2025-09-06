@@ -88,9 +88,7 @@ async def invalidate_cache(
     if payload.scope == "node":
         if not payload.node_slug or not payload.account_id:
             raise HTTPException(status_code=400, detail="node_slug and account_id required")
-        await navcache.invalidate_navigation_by_node(
-            account_id=payload.account_id, node_slug=payload.node_slug
-        )
+        await navcache.invalidate_navigation_by_node(payload.account_id, payload.node_slug)
     elif payload.scope == "user":
         if not payload.user_id:
             raise HTTPException(status_code=400, detail="user_id required")

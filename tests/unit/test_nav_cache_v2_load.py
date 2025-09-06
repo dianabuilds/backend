@@ -33,7 +33,7 @@ class DummyCache(IKeyValueCache):
 
 
 @pytest.mark.asyncio
-async def test_cache_hit_miss_without_account_scope() -> None:
+async def test_cache_hit_miss_with_account_id() -> None:
     cache = DummyCache()
     svc = NavigationCacheService(cache)
     user = uuid.uuid4()
@@ -45,10 +45,12 @@ async def test_cache_hit_miss_without_account_scope() -> None:
     await svc.set_navigation(user, slug, "auto", payload, account_id=account_a)
 
     for _ in range(20):
-        assert await svc.get_navigation(user, slug, "auto", account_id=account_a) == payload
+        assert (
+            await svc.get_navigation(user, slug, "auto", account_id=account_a) == payload
+        )
 
-    # account_id is ignored and should return cached payload
-    assert await svc.get_navigation(user, slug, "auto", account_id=account_b) == payload
+    assert await svc.get_navigation(user, slug, "auto", account_id=account_b) is None
+
 
 
 @pytest.mark.asyncio
@@ -58,10 +60,13 @@ async def test_invalidate_by_node() -> None:
     user = uuid.uuid4()
     slug = "node"
     account_a = uuid.uuid4()
+    account_b = uuid.uuid4()
     payload = {"t": []}
 
     await svc.set_navigation(user, slug, "auto", payload, account_id=account_a)
+    await svc.set_navigation(user, slug, "auto", payload, account_id=account_b)
 
-    await svc.invalidate_navigation_by_node(account_id=account_a, node_slug=slug)
+    await svc.invalidate_navigation_by_node(account_a, slug)
 
     assert await svc.get_navigation(user, slug, "auto", account_id=account_a) is None
+    assert await svc.get_navigation(user, slug, "auto", account_id=account_b) == payload

@@ -148,6 +148,8 @@ class NavigationService:
         preview: PreviewContext | None = None,
     ) -> list[dict[str, object]]:
         stmt = select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
+        if FeatureFlagKey.NAV_CACHE_V2.value in flags and account_id is not None:
+            stmt = stmt.where(NavigationCache.account_id == account_id)
         result = await db.execute(stmt)
         data = result.scalar_one_or_none()
         if not data:
@@ -163,6 +165,8 @@ class NavigationService:
         preview: PreviewContext | None = None,
     ) -> dict[str, object]:
         stmt = select(NavigationCache.navigation).where(NavigationCache.node_slug == node.slug)
+        if FeatureFlagKey.NAV_CACHE_V2.value in flags and account_id is not None:
+            stmt = stmt.where(NavigationCache.account_id == account_id)
         result = await db.execute(stmt)
         data = result.scalar_one_or_none()
         if data:
@@ -179,5 +183,7 @@ class NavigationService:
 
     async def invalidate_navigation_cache(self, db: AsyncSession, node: Node) -> None:
         stmt = delete(NavigationCache).where(NavigationCache.node_slug == node.slug)
+        if FeatureFlagKey.NAV_CACHE_V2.value in flags and account_id is not None:
+            stmt = stmt.where(NavigationCache.account_id == account_id)
         await db.execute(stmt)
         await db.flush()

@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import uuid4
 
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Integer, String, Text, Index
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import backref, relationship
@@ -22,6 +22,7 @@ class NodeTransition(Base):
     __tablename__ = "node_transitions"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
+    account_id = Column(BigInteger, ForeignKey("accounts.id"), nullable=False, index=True)
     from_node_id = Column(
         BigInteger,
         ForeignKey("nodes.id", ondelete="CASCADE"),
@@ -46,6 +47,10 @@ class NodeTransition(Base):
         backref=backref("outgoing_transitions", passive_deletes=True),
     )
     to_node = relationship("Node", foreign_keys=[to_node_id])
+
+    __table_args__ = (
+        Index("ix_node_transitions_account_id_created_at", "account_id", "created_at"),
+    )
 
 
 class NodeTraceKind(str, Enum):
