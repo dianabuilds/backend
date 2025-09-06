@@ -64,20 +64,20 @@ class NodeListParams(TypedDict, total=False):
     ]
 
 
-def _ensure_workspace_id(request: Request, workspace_id: UUID | None) -> UUID:
-    if workspace_id is not None:
-        return workspace_id
-    wid = getattr(request.state, "workspace_id", None)
-    if wid is None:
-        raise HTTPException(status_code=400, detail="workspace_id is required")
-    return UUID(str(wid))
+def _ensure_space_id(request: Request, space_id: int | None) -> int:
+    if space_id is not None:
+        return int(space_id)
+    sid = getattr(request.state, "space_id", None)
+    if sid is None:
+        raise HTTPException(status_code=400, detail="space_id is required")
+    return int(sid)
 
 
 @router.get("", response_model=List[NodeOut], summary="List nodes")
 async def list_nodes(
     request: Request,
     response: Response,
-    workspace_id: UUID | None = None,
+    space_id: int | None = None,
     if_none_match: Annotated[str | None, Header(alias="If-None-Match")] = None,
     sort: Annotated[
         Literal[
@@ -97,8 +97,8 @@ async def list_nodes(
 
     See :class:`NodeListParams` for available query parameters.
     """
-    workspace_id = _ensure_workspace_id(request, workspace_id)
-    spec = NodeFilterSpec(workspace_id=workspace_id, sort=sort)
+    space_id = _ensure_space_id(request, space_id)
+    spec = NodeFilterSpec(account_id=space_id, sort=sort)
     ctx = QueryContext(user=current_user, is_admin=False)
     service = NodeQueryService(db)
     page = PageRequest()
@@ -116,21 +116,21 @@ async def list_nodes(
 async def create_node(
     request: Request,
     payload: NodeCreate,
-    workspace_id: UUID | None = None,
+    space_id: int | None = None,
     current_user: Annotated[User, Depends(ensure_can_post)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
-    workspace_id = _ensure_workspace_id(request, workspace_id)
-    await require_ws_viewer(workspace_id=workspace_id, user=current_user, db=db)
+    space_id = _ensure_space_id(request, space_id)
+    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
     repo = NodeRepository(db)
-    node = await repo.create(payload, current_user.id, workspace_id)
+    node = await repo.create(payload, current_user.id, space_id)
     await get_event_bus().publish(
         NodeCreated(
             node_id=node.id,
             slug=node.slug,
             author_id=current_user.id,
-            workspace_id=workspace_id,
+            workspace_id=space_id,
         )
     )
     return {"slug": node.slug}
@@ -140,36 +140,28 @@ async def create_node(
 async def read_node(
     request: Request,
     slug: str,
-    workspace_id: UUID | None = None,
     _feature_flags: Annotated[str | None, Header(alias="X-Feature-Flags")] = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
 ):
-    if workspace_id is None:
-        wid = getattr(request.state, "workspace_id", None)
-        if wid is not None:
-            workspace_id = UUID(str(wid))
+    sid = getattr(request.state, "space_id", None)
+    space_id = int(sid) if sid is not None else None
     repo = NodeRepository(db)
-    if workspace_id is not None:
-        node = await repo.get_by_slug(slug, workspace_id)
-    else:
-        node = await repo.get_by_slug(slug)
+    node = await repo.get_by_slug(slug, space_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    if workspace_id is None:
-        workspace_id = node.workspace_id
-    if workspace_id is None:
-        raise HTTPException(status_code=400, detail="workspace_id is required")
-    request.state.workspace_id = str(workspace_id)
-    await require_ws_guest(workspace_id=workspace_id, user=current_user, db=db)
+    if space_id is None:
+        space_id = node.account_id
+    request.state.space_id = space_id
+    await require_ws_guest(account_id=space_id, user=current_user, db=db)
     NodePolicy.ensure_can_view(node, current_user)
     if node.premium_only:
         await require_premium(current_user)
     if node.nft_required and not await user_has_nft(current_user, node.nft_required):
         raise HTTPException(status_code=403, detail="NFT required")
     node = await repo.increment_views(node)
-    event_metrics.inc("node_visit", str(workspace_id))
+    event_metrics.inc("node_visit", str(space_id))
     await TracesService().maybe_add_auto_trace(db, node, current_user)
     return node
 
@@ -179,15 +171,17 @@ async def update_node(
     request: Request,
     slug: str,
     payload: NodeUpdate,
-    workspace_id: UUID | None = None,
+    _space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _workspace: Annotated[object, Depends(require_workspace)] = ...,
     _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
-    workspace_id = _ensure_workspace_id(request, workspace_id)
+    sid = getattr(request.state, "space_id", None)
+    space_id = int(sid) if sid is not None else None
+    space_id = _ensure_space_id(request, space_id)
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug, workspace_id)
+    node = await repo.get_by_slug(slug, space_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(node, current_user)
@@ -206,7 +200,7 @@ async def update_node(
             node_id=node.id,
             slug=node.slug,
             author_id=current_user.id,
-            workspace_id=workspace_id,
+            workspace_id=space_id,
         )
     )
     return node
@@ -216,15 +210,15 @@ async def update_node(
 async def delete_node(
     request: Request,
     slug: str,
-    workspace_id: UUID | None = None,
+    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _workspace: Annotated[object, Depends(require_workspace)] = ...,
     _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
-    workspace_id = _ensure_workspace_id(request, workspace_id)
+    space_id = _ensure_space_id(request, space_id)
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug, workspace_id)
+    node = await repo.get_by_slug(slug, space_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(node, current_user)
@@ -247,15 +241,15 @@ async def delete_node(
 async def get_node_notification_settings(
     request: Request,
     node_id: int,
-    workspace_id: UUID | None = None,
+    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
     _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ) -> NodeNotificationSettingsOut:
-    workspace_id = _ensure_workspace_id(request, workspace_id)
+    space_id = _ensure_space_id(request, space_id)
     repo = NodeRepository(db)
-    node = await repo.get_by_id(node_id, workspace_id)
+    node = await repo.get_by_id(node_id, space_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     settings_repo = NodeNotificationSettingsRepository(db)
@@ -274,15 +268,15 @@ async def update_node_notification_settings(
     request: Request,
     node_id: int,
     payload: NodeNotificationSettingsUpdate,
-    workspace_id: UUID | None = None,
+    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _workspace: Annotated[object, Depends(require_workspace)] = ...,
     _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ) -> NodeNotificationSettingsOut:
-    workspace_id = _ensure_workspace_id(request, workspace_id)
+    space_id = _ensure_space_id(request, space_id)
     repo = NodeRepository(db)
-    node = await repo.get_by_id(node_id, workspace_id)
+    node = await repo.get_by_id(node_id, space_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     settings_repo = NodeNotificationSettingsRepository(db)
@@ -294,7 +288,7 @@ async def update_node_notification_settings(
 async def list_feedback(
     request: Request,
     slug: str,
-    workspace_id: UUID | None = None,
+    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
@@ -305,9 +299,9 @@ async def list_feedback(
         NodeRepository,
     )
 
-    workspace_id = _ensure_workspace_id(request, workspace_id)
+    space_id = _ensure_space_id(request, space_id)
     service = FeedbackService(NodeRepository(db))
-    return await service.list_feedback(db, slug, current_user, workspace_id)
+    return await service.list_feedback(db, slug, current_user, space_id)
 
 
 @router.post("/{slug}/feedback", response_model=FeedbackOut, summary="Create feedback")
@@ -315,7 +309,7 @@ async def create_feedback(
     request: Request,
     slug: str,
     payload: FeedbackCreate,
-    workspace_id: UUID | None = None,
+    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _workspace: Annotated[object, Depends(require_workspace)] = ...,
@@ -337,10 +331,10 @@ async def create_feedback(
     )
 
     notifier = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
-    workspace_id = _ensure_workspace_id(request, workspace_id)
+    space_id = _ensure_space_id(request, space_id)
     service = FeedbackService(NodeRepository(db), notifier)
     return await service.create_feedback(
-        db, slug, payload.content, payload.is_anonymous, current_user, workspace_id
+        db, slug, payload.content, payload.is_anonymous, current_user, space_id
     )
 
 
@@ -349,7 +343,7 @@ async def delete_feedback(
     request: Request,
     slug: str,
     feedback_id: UUID,
-    workspace_id: UUID | None = None,
+    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _workspace: Annotated[object, Depends(require_workspace)] = ...,
@@ -360,6 +354,6 @@ async def delete_feedback(
         NodeRepository,
     )
 
-    workspace_id = _ensure_workspace_id(request, workspace_id)
+    space_id = _ensure_space_id(request, space_id)
     service = FeedbackService(NodeRepository(db))
-    return await service.delete_feedback(db, slug, feedback_id, current_user, workspace_id)
+    return await service.delete_feedback(db, slug, feedback_id, current_user, space_id)
