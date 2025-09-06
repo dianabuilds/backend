@@ -66,22 +66,22 @@ class NodeListParams(TypedDict, total=False):
     ]
 
 
-def _ensure_space_id(request: Request, space_id: int | None) -> int:
-    if space_id is not None:
-        return int(space_id)
-    if "workspace_id" in request.path_params:
-        return int(request.path_params["workspace_id"])
-    sid = getattr(request.state, "space_id", None)
-    if sid is None:
-        raise HTTPException(status_code=400, detail="space_id is required")
-    return int(sid)
+def _get_account_id(request: Request) -> int:
+    value = (
+        request.path_params.get("account_id")
+        or request.path_params.get("workspace_id")
+        or getattr(request.state, "account_id", None)
+        or getattr(request.state, "workspace_id", None)
+    )
+    if value is None:
+        raise HTTPException(status_code=400, detail="account_id is required")
+    return int(value)
 
 
 @router.get("", response_model=List[NodeOut], summary="List nodes")
 async def list_nodes(
     request: Request,
     response: Response,
-    space_id: int | None = None,
     scope_mode: Annotated[
         str | None,
         Query(
@@ -107,32 +107,30 @@ async def list_nodes(
     See :class:`NodeListParams` for available query parameters.
     """
     member = None
-    resolved_space_id = None
+    account_id = None
     if scope_mode is None:
-        resolved_space_id = _ensure_space_id(request, space_id)
-        member = await require_ws_guest(account_id=resolved_space_id, user=current_user, db=db)
+        account_id = _get_account_id(request)
+        member = await require_ws_guest(account_id=account_id, user=current_user, db=db)
         if getattr(member, "role", None) in {WorkspaceRole.owner, WorkspaceRole.editor}:
             scope_mode = "member"
         else:
             scope_mode = "mine"
     elif not (scope_mode == "global" or scope_mode.startswith("space:")):
-        resolved_space_id = _ensure_space_id(request, space_id)
-        await require_ws_guest(account_id=resolved_space_id, user=current_user, db=db)
+        account_id = _get_account_id(request)
+        await require_ws_guest(account_id=account_id, user=current_user, db=db)
 
     spec = NodeFilterSpec(sort=sort)
     ctx = QueryContext(user=current_user, is_admin=False)
     service = NodeQueryService(db)
     page = PageRequest()
     etag = await service.compute_nodes_etag(
-        spec, ctx, page, scope_mode=scope_mode, space_id=resolved_space_id
+        spec, ctx, page, scope_mode=scope_mode, space_id=account_id
     )
     if if_none_match and if_none_match == etag:
         response.headers["ETag"] = etag
         # 304 Not Modified
         raise HTTPException(status_code=304, detail="Not Modified")
-    nodes = await service.list_nodes(
-        spec, page, ctx, scope_mode=scope_mode, space_id=resolved_space_id
-    )
+    nodes = await service.list_nodes(spec, page, ctx, scope_mode=scope_mode, space_id=account_id)
     response.headers["ETag"] = etag
     return nodes
 
@@ -141,20 +139,19 @@ async def list_nodes(
 async def create_node(
     request: Request,
     payload: NodeCreate,
-    space_id: int | None = None,
     current_user: Annotated[User, Depends(ensure_can_post)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    space_id = _ensure_space_id(request, space_id)
-    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
+    account_id = _get_account_id(request)
+    await require_ws_viewer(account_id=account_id, user=current_user, db=db)
     repo = NodeRepository(db)
-    node = await repo.create(payload, current_user.id, space_id)
+    node = await repo.create(payload, current_user.id, account_id)
     await get_event_bus().publish(
         NodeCreated(
             node_id=node.id,
             slug=node.slug,
             author_id=current_user.id,
-            workspace_id=space_id,
+            workspace_id=account_id,
         )
     )
     return {"slug": node.slug}
@@ -170,14 +167,13 @@ async def read_node(
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    sid = getattr(request.state, "space_id", None)
-    space_id = _ensure_space_id(request, int(sid) if sid is not None else None)
+    account_id = _get_account_id(request)
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug, space_id)
+    node = await repo.get_by_slug(slug, account_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    request.state.space_id = space_id
-    await require_ws_guest(account_id=space_id, user=current_user, db=db)
+    request.state.account_id = account_id
+    await require_ws_guest(account_id=account_id, user=current_user, db=db)
     override = bool(getattr(request.state, "admin_override", False))
     NodePolicy.ensure_can_view(node, current_user, override=override)
     if node.premium_only:
@@ -193,7 +189,7 @@ async def read_node(
             return out
     node.views = int(node.views or 0) + 1
     await db.flush()
-    event_metrics.inc("node_visit", str(space_id))
+    event_metrics.inc("node_visit", str(account_id))
     await TracesService().maybe_add_auto_trace(db, node, current_user)
     response.background = BackgroundTask(db.commit)
     return node
@@ -204,16 +200,13 @@ async def update_node(
     request: Request,
     slug: str,
     payload: NodeUpdate,
-    _space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    sid = getattr(request.state, "space_id", None)
-    space_id = int(sid) if sid is not None else None
-    space_id = _ensure_space_id(request, space_id)
-    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
+    account_id = _get_account_id(request)
+    await require_ws_viewer(account_id=account_id, user=current_user, db=db)
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug, space_id)
+    node = await repo.get_by_slug(slug, account_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     override = bool(getattr(request.state, "admin_override", False))
@@ -234,12 +227,12 @@ async def update_node(
             request=request,
             reason=getattr(request.state, "override_reason", None),
             override=True,
-            workspace_id=str(space_id),
+            workspace_id=str(account_id),
         )
     if was_visible != node.is_visible:
         await navsvc.invalidate_navigation_cache(db, node)
-        await navcache.invalidate_navigation_by_node(space_id, slug)
-        await navcache.invalidate_modes_by_node(space_id, slug)
+        await navcache.invalidate_navigation_by_node(account_id=space_id, node_slug=slug)
+        await navcache.invalidate_modes_by_node(account_id=space_id, node_slug=slug)
         await navcache.invalidate_compass_all()
         cache_invalidate("nav", reason="node_update", key=slug)
         cache_invalidate("navm", reason="node_update", key=slug)
@@ -249,7 +242,7 @@ async def update_node(
             node_id=node.id,
             slug=node.slug,
             author_id=current_user.id,
-            workspace_id=space_id,
+            workspace_id=account_id,
         )
     )
     return node
@@ -259,14 +252,13 @@ async def update_node(
 async def delete_node(
     request: Request,
     slug: str,
-    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    space_id = _ensure_space_id(request, space_id)
-    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
+    account_id = _get_account_id(request)
+    await require_ws_viewer(account_id=account_id, user=current_user, db=db)
     repo = NodeRepository(db)
-    node = await repo.get_by_slug(slug, space_id)
+    node = await repo.get_by_slug(slug, account_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     override = bool(getattr(request.state, "admin_override", False))
@@ -285,11 +277,12 @@ async def delete_node(
             request=request,
             reason=getattr(request.state, "override_reason", None),
             override=True,
-            workspace_id=str(space_id),
+            workspace_id=str(account_id),
         )
     await navsvc.invalidate_navigation_cache(db, node)
-    await navcache.invalidate_navigation_by_node(space_id, slug)
-    await navcache.invalidate_modes_by_node(space_id, slug)
+    await navcache.invalidate_navigation_by_node(account_id=space_id, node_slug=slug)
+    await navcache.invalidate_modes_by_node(account_id=space_id, node_slug=slug)
+
     await navcache.invalidate_compass_all()
     cache_invalidate("nav", reason="node_delete", key=slug)
     cache_invalidate("navm", reason="node_delete", key=slug)
@@ -305,14 +298,13 @@ async def delete_node(
 async def get_node_notification_settings(
     request: Request,
     node_id: int,
-    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> NodeNotificationSettingsOut:
-    space_id = _ensure_space_id(request, space_id)
-    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
+    account_id = _get_account_id(request)
+    await require_ws_viewer(account_id=account_id, user=current_user, db=db)
     repo = NodeRepository(db)
-    node = await repo.get_by_id(node_id, space_id)
+    node = await repo.get_by_id(node_id, account_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     settings_repo = NodeNotificationSettingsRepository(db)
@@ -331,14 +323,13 @@ async def update_node_notification_settings(
     request: Request,
     node_id: int,
     payload: NodeNotificationSettingsUpdate,
-    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> NodeNotificationSettingsOut:
-    space_id = _ensure_space_id(request, space_id)
-    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
+    account_id = _get_account_id(request)
+    await require_ws_viewer(account_id=account_id, user=current_user, db=db)
     repo = NodeRepository(db)
-    node = await repo.get_by_id(node_id, space_id)
+    node = await repo.get_by_id(node_id, account_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     settings_repo = NodeNotificationSettingsRepository(db)
@@ -350,7 +341,6 @@ async def update_node_notification_settings(
 async def list_feedback(
     request: Request,
     slug: str,
-    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -359,10 +349,10 @@ async def list_feedback(
         NodeRepository,
     )
 
-    space_id = _ensure_space_id(request, space_id)
-    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
+    account_id = _get_account_id(request)
+    await require_ws_viewer(account_id=account_id, user=current_user, db=db)
     service = FeedbackService(NodeRepository(db))
-    return await service.list_feedback(db, slug, current_user, space_id)
+    return await service.list_feedback(db, slug, current_user, account_id)
 
 
 @router.post("/{slug}/feedback", response_model=FeedbackOut, summary="Create feedback")
@@ -370,7 +360,6 @@ async def create_feedback(
     request: Request,
     slug: str,
     payload: FeedbackCreate,
-    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -390,11 +379,11 @@ async def create_feedback(
     )
 
     notifier = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
-    space_id = _ensure_space_id(request, space_id)
-    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
+    account_id = _get_account_id(request)
+    await require_ws_viewer(account_id=account_id, user=current_user, db=db)
     service = FeedbackService(NodeRepository(db), notifier)
     return await service.create_feedback(
-        db, slug, payload.content, payload.is_anonymous, current_user, space_id
+        db, slug, payload.content, payload.is_anonymous, current_user, account_id
     )
 
 
@@ -403,7 +392,6 @@ async def delete_feedback(
     request: Request,
     slug: str,
     feedback_id: UUID,
-    space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -412,7 +400,7 @@ async def delete_feedback(
         NodeRepository,
     )
 
-    space_id = _ensure_space_id(request, space_id)
-    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
+    account_id = _get_account_id(request)
+    await require_ws_viewer(account_id=account_id, user=current_user, db=db)
     service = FeedbackService(NodeRepository(db))
-    return await service.delete_feedback(db, slug, feedback_id, current_user, space_id)
+    return await service.delete_feedback(db, slug, feedback_id, current_user, account_id)

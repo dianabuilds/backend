@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, UniqueConstraint
+
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 
 from app.providers.db.adapters import ARRAY, JSONB, UUID

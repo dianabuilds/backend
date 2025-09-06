@@ -64,7 +64,7 @@ async def test_read_node_no_commit(monkeypatch: pytest.MonkeyPatch, db: AsyncSes
 
     scope = {"type": "http", "headers": []}
     request = Request(scope)
-    request.state.space_id = account.id
+    request.state.account_id = account.id
     response = Response()
 
     result = await read_node(request, node.slug, response, None, user, db, object())

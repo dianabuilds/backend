@@ -52,8 +52,9 @@ async def test_cache_hit_miss_with_account_id() -> None:
     assert await svc.get_navigation(user, slug, "auto", account_id=account_b) is None
 
 
+
 @pytest.mark.asyncio
-async def test_invalidate_by_account() -> None:
+async def test_invalidate_by_node() -> None:
     cache = DummyCache()
     svc = NavigationCacheService(cache)
     user = uuid.uuid4()

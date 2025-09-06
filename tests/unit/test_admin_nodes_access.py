@@ -122,12 +122,12 @@ async def test_require_ws_viewer_roles() -> None:
         user = SimpleNamespace(id=user_id, role="user")
 
         with pytest.raises(HTTPException):
-            await require_ws_viewer(workspace_id=ws.id, user=user, db=session)
+            await require_ws_viewer(account_id=ws.id, user=user, db=session)
 
         member = WorkspaceMember(workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer)
         session.add(member)
         await session.commit()
-        res = await require_ws_viewer(workspace_id=ws.id, user=user, db=session)
+        res = await require_ws_viewer(account_id=ws.id, user=user, db=session)
         assert res.role == WorkspaceRole.viewer
 
 
@@ -150,10 +150,10 @@ async def test_require_ws_guest_roles() -> None:
         user = SimpleNamespace(id=user_id, role="user")
 
         with pytest.raises(HTTPException):
-            await require_ws_guest(workspace_id=ws.id, user=user, db=session)
+            await require_ws_guest(account_id=ws.id, user=user, db=session)
 
         member = WorkspaceMember(workspace_id=ws.id, user_id=user_id, role=WorkspaceRole.viewer)
         session.add(member)
         await session.commit()
-        res = await require_ws_guest(workspace_id=ws.id, user=user, db=session)
+        res = await require_ws_guest(account_id=ws.id, user=user, db=session)
         assert res.role == WorkspaceRole.viewer

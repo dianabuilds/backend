@@ -18,8 +18,8 @@ sys.modules.setdefault("app.domains", domains_module)
 security_stub = types.ModuleType("app.security")
 security_stub.ADMIN_AUTH_RESPONSES = {}
 security_stub.bearer_scheme = lambda: None
-security_stub.require_ws_guest = lambda workspace_id=None: None
-security_stub.require_ws_viewer = lambda workspace_id=None, user=None, db=None: None
+security_stub.require_ws_guest = lambda account_id=None: None
+security_stub.require_ws_viewer = lambda account_id=None, user=None, db=None: None
 security_stub.auth_user = lambda: None
 sys.modules["app.security"] = security_stub
 
