@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 
 import { wsApi } from "../api/wsApi";
 import { addToCatalog } from "../utils/tagManager";
+import { resolveBackendUrl } from "../utils/url";
+import { useAccount } from "../workspace/WorkspaceContext";
 import ImageDropzone from "./ImageDropzone";
 import TagInput from "./TagInput";
-import { resolveBackendUrl } from "../utils/url";
 
 interface Props {
   value?: string | null;
@@ -40,9 +41,10 @@ export default function MediaPicker({
   const [items, setItems] = useState<MediaAsset[]>([]);
   const [query, setQuery] = useState("");
   const [filterTags, setFilterTags] = useState<string[]>([]);
+  const { accountId } = useAccount();
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !accountId) return;
     if (mediaCache) {
       setItems(mediaCache);
       return;
@@ -50,9 +52,7 @@ export default function MediaPicker({
     (async () => {
       try {
         const data =
-          (await wsApi.get<ApiMediaAsset[]>("/admin/media", {
-            account: "query",
-          })) || [];
+          (await wsApi.get<ApiMediaAsset[]>("/admin/media", { accountId })) || [];
         const mapped = data.map((d) => ({
           id: d.id,
           url: resolveBackendUrl(d.url) || d.url,

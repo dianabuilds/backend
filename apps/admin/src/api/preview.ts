@@ -33,7 +33,10 @@ export async function simulatePreview(
   const res = await wsApi.post<
     SimulatePreviewRequest,
     SimulatePreviewResponse
-  >(`/admin/preview/transitions/simulate`, body, { account: false });
+  >(`/admin/preview/transitions/simulate`, body, {
+    accountId: body.account_id,
+    account: false,
+  });
   return res ?? {};
 }
 
@@ -48,7 +51,10 @@ export async function createPreviewLink(
   const res = await wsApi.post<
     { account_id: string },
     PreviewLinkResponse
-  >(`/admin/preview/link`, { account_id }, { account: false });
+  >(`/admin/preview/link`, { account_id }, {
+    accountId: account_id,
+    account: false,
+  });
   return res;
 }
 

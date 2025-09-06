@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { useAccount } from '../account/AccountContext';
 import { listNodes, type NodeListParams } from '../api/nodes';
 import { createPreviewLink } from '../api/preview';
 import { wsApi } from '../api/wsApi';
@@ -23,7 +24,6 @@ import type { Status as NodeStatus } from '../openapi';
 import { Button } from '../shared/ui';
 import { ensureArray } from '../shared/utils';
 import { notify } from '../utils/notify';
-import { useAccount } from '../account/AccountContext';
 
   type NodeItem = {
     id: number;
@@ -166,6 +166,8 @@ export default function Nodes() {
           setModBusy(true);
           await wsApi.post(
             `/admin/moderation/nodes/${encodeURIComponent(String(node.slug))}/restore`,
+            undefined,
+            { accountId },
           );
           // Оптимистично обновляем строку и baseline
           setItems((prev) => prev.map((n) => (n.id === node.id ? { ...n, is_visible: true } : n)));
@@ -205,6 +207,7 @@ export default function Nodes() {
       await wsApi.post(
         `/admin/moderation/nodes/${encodeURIComponent(String(modTarget.slug))}/hide`,
         { reason: modReason || '' },
+        { accountId },
       );
       setModOpen(false);
       // Оптимистично: делаем ноду невидимой и фиксируем в baseline
@@ -357,10 +360,14 @@ export default function Nodes() {
     const results: string[] = [];
     try {
       for (const { ids, changes } of groups.values()) {
-        await wsApi.patch(`/admin/accounts/${encodeURIComponent(accountId)}/nodes/bulk`, {
-          ids,
-          changes,
-        });
+        await wsApi.patch(
+          `/admin/accounts/${encodeURIComponent(accountId)}/nodes/bulk`,
+          {
+            ids,
+            changes,
+          },
+          { accountId, account: false },
+        );
         results.push(`${Object.keys(changes).join(',')}: ${ids.length}`);
       }
       if (results.length > 0) {
@@ -430,6 +437,7 @@ export default function Nodes() {
       for (const id of ids) {
         await wsApi.delete(
           `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(id)}`,
+          { accountId, account: false },
         );
       }
       setItems((prev) => prev.filter((n) => !selected.has(n.id)));

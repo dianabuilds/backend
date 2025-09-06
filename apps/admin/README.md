@@ -6,8 +6,8 @@ This template provides a minimal setup to get React working in Vite with HMR and
 
 The admin UI talks to the backend using two helpers:
 
-- `wsApi` — injects the selected workspace into `/admin/*` paths and sets common headers. Use this for admin endpoints. If the backend expects the workspace ID in the body or query instead of the path, pass `{ workspace: false }` or `{ workspace: 'query' }`.
-- `api` — thin wrapper around `fetch` without workspace logic. Use it for public or auth routes.
+- `wsApi` — sets common headers and appends the selected account ID as the `account_id` query parameter. Pass the account ID explicitly to every call: `wsApi.get('/admin/…', { accountId })`. To skip automatic query injection, use `{ account: false }`.
+- `api` — thin wrapper around `fetch` without account handling. Use it for public or auth routes.
 
 ## Hotkeys
 

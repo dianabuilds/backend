@@ -85,6 +85,7 @@ export async function listNodes(
             etag: cached?.etag ?? undefined,
             acceptNotModified: true,
             raw: true,
+            accountId,
             account: false, // критично: ничего не переписываем автоматически
         })) as ApiResponse<AdminNodeItem[]>;
         if (res.status === 304 && cached) return cached.data;
@@ -116,7 +117,7 @@ export async function createNode(accountId: string): Promise<NodeOut> {
     const res = await wsApi.post<undefined, NodeOut>(
         `/admin/accounts/${encodeURIComponent(accountId)}/nodes`,
         undefined,
-        { account: false },
+        { accountId, account: false },
     );
     return res;
 }
@@ -190,7 +191,7 @@ export async function archiveNode(accountId: string, id: number): Promise<void> 
     await wsApi.post(
         `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/archive`,
         undefined,
-        { account: false },
+        { accountId, account: false },
     );
 }
 
@@ -198,7 +199,7 @@ export async function duplicateNode(accountId: string, id: number): Promise<Node
     const res = await wsApi.post<undefined, NodeOut>(
         `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/duplicate`,
         undefined,
-        { account: false },
+        { accountId, account: false },
     );
     return res;
 }
@@ -207,7 +208,7 @@ export async function previewNode(accountId: string, id: number): Promise<void> 
     await wsApi.post(
         `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/preview`,
         undefined,
-        { account: false },
+        { accountId, account: false },
     );
 }
 
@@ -219,11 +220,15 @@ export async function simulateNode(
     const res = await wsApi.post<NodeSimulatePayload, unknown>(
         `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/simulate`,
         payload,
-        {account: false},
+        { accountId, account: false },
     );
     return res;
 }
 
-export async function recomputeNodeEmbedding(id: number): Promise<void> {
-    await wsApi.post(`/admin/ai/nodes/${encodeURIComponent(id)}/embedding/recompute`);
+export async function recomputeNodeEmbedding(accountId: string, id: number): Promise<void> {
+    await wsApi.post(
+        `/admin/ai/nodes/${encodeURIComponent(id)}/embedding/recompute`,
+        undefined,
+        { accountId, account: false },
+    );
 }
