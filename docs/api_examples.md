@@ -1,6 +1,6 @@
 # API Examples
 
-Quick examples for interacting with workspace-aware endpoints.
+Quick examples for interacting with account-aware endpoints.
 
 ## Error format
 
@@ -32,8 +32,8 @@ different error scenarios. Supported mappings are:
 ### Versioned requests
 
 ```bash
-# list workspaces
-http GET :8000/workspaces limit==5
+# list accounts
+http GET :8000/accounts limit==5
 
 # get node by id (UUID)
 http GET :8000/nodes/d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef
@@ -43,10 +43,10 @@ http GET :8000/nodes/d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef
 
 ```bash
 # Fetch first page
-http GET :8000/v2/workspaces/123e4567-e89b-12d3-a456-426614174000/nodes?limit=2
+http GET :8000/v2/accounts/123e4567-e89b-12d3-a456-426614174000/nodes?limit=2
 
 # Follow the next link
-http GET :8000/v2/workspaces/123e4567-e89b-12d3-a456-426614174000/nodes?cursor=eyJrIjoiMTIzIn0=
+http GET :8000/v2/accounts/123e4567-e89b-12d3-a456-426614174000/nodes?cursor=eyJrIjoiMTIzIn0=
 ```
 
 Typical responses include a ``next`` link:
@@ -54,10 +54,10 @@ Typical responses include a ``next`` link:
 ```json
 {
   "items": [],
-  "next": "/v2/workspaces/123e4567-e89b-12d3-a456-426614174000/nodes?cursor=eyJrIjoiMTIzIn0="
+  "next": "/v2/accounts/123e4567-e89b-12d3-a456-426614174000/nodes?cursor=eyJrIjoiMTIzIn0="
 }
 ```
 
 ## Postman
 
-Import the `docs/postman_collection.json` file in Postman and set the `baseUrl`, `workspace_id` and optional `cursor` variables. The collection contains requests for listing workspaces, creating a workspace and querying nodes within a workspace with pagination.
+Import the `docs/postman_collection.json` file in Postman and set the `baseUrl`, `account_id` and optional `cursor` variables. The collection contains requests for listing accounts, creating an account and querying nodes within an account with pagination.
