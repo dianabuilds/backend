@@ -9,6 +9,7 @@ import {wsApi} from './wsApi';
 export interface AdminNodeItem extends NodeOut {
     status: string;
     nodeId?: number | null;
+    space?: string;
 }
 
 const listCache = new Map<string, { etag: string | null; data: AdminNodeItem[] }>();

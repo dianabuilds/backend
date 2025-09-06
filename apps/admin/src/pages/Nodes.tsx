@@ -827,7 +827,7 @@ export default function Nodes() {
                                 className="ml-2 text-xs rounded bg-blue-100 text-blue-800 px-1"
                                 data-testid="space-badge"
                               >
-                                space: {n.space}
+                                space:{n.space}
                               </span>
                             )}
                             {n.slug && (
