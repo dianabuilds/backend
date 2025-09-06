@@ -24,13 +24,13 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         route = request.scope.get("route")
         route_path = getattr(route, "path", None) or request.url.path
         method = request.method.upper()
-        workspace_id = (
-            request.query_params.get("workspace_id")
-            or getattr(request.state, "workspace_id", None)
-            or request.path_params.get("workspace_id")
+        account_id = (
+            request.query_params.get("account_id")
+            or getattr(request.state, "account_id", None)
+            or request.path_params.get("account_id")
         )
-        if workspace_id is not None:
-            workspace_id = str(workspace_id)
+        if account_id is not None:
+            account_id = str(account_id)
 
-        metrics_storage.record(duration_ms, response.status_code, method, route_path, workspace_id)
+        metrics_storage.record(duration_ms, response.status_code, method, route_path, account_id)
         return response

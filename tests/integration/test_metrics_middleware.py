@@ -9,7 +9,7 @@ from app.core.metrics_middleware import MetricsMiddleware
 
 
 @pytest.mark.asyncio
-async def test_workspace_from_query() -> None:
+async def test_account_from_query() -> None:
     app = FastAPI()
     app.add_middleware(MetricsMiddleware)
 
@@ -20,41 +20,41 @@ async def test_workspace_from_query() -> None:
     metrics_storage.reset()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        await client.get("/q", params={"workspace_id": "ws1"})
-    summary = metrics_storage.summary(3600, workspace_id="ws1")
+        await client.get("/q", params={"account_id": "acc1"})
+    summary = metrics_storage.summary(3600, account_id="acc1")
     assert summary["count"] == 1
 
 
 @pytest.mark.asyncio
-async def test_workspace_from_state() -> None:
+async def test_account_from_state() -> None:
     app = FastAPI()
     app.add_middleware(MetricsMiddleware)
 
     @app.get("/s")
     async def _s(request: Request) -> dict[str, str]:
-        request.state.workspace_id = "ws2"
+        request.state.account_id = "acc2"
         return {"status": "ok"}
 
     metrics_storage.reset()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         await client.get("/s")
-    summary = metrics_storage.summary(3600, workspace_id="ws2")
+    summary = metrics_storage.summary(3600, account_id="acc2")
     assert summary["count"] == 1
 
 
 @pytest.mark.asyncio
-async def test_workspace_from_path() -> None:
+async def test_account_from_path() -> None:
     app = FastAPI()
     app.add_middleware(MetricsMiddleware)
 
-    @app.get("/p/{workspace_id}")
-    async def _p(workspace_id: str) -> dict[str, str]:
-        return {"status": workspace_id}
+    @app.get("/p/{account_id}")
+    async def _p(account_id: str) -> dict[str, str]:
+        return {"status": account_id}
 
     metrics_storage.reset()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        await client.get("/p/ws3")
-    summary = metrics_storage.summary(3600, workspace_id="ws3")
+        await client.get("/p/acc3")
+    summary = metrics_storage.summary(3600, account_id="acc3")
     assert summary["count"] == 1
