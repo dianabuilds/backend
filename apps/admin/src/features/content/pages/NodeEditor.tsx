@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import EditorJSEmbed from "../../../components/EditorJSEmbed";
@@ -13,6 +14,7 @@ export default function NodeEditorPage() {
   const { type = "article", id = "new" } = useParams<{ type?: string; id?: string }>();
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
+  const [context, setContext] = useState("default");
   const idParam: number | "new" = id === "new" ? "new" : Number(id);
   const { node, update, save, loading, error, isSaving } = useNodeEditor(
     workspaceId || "",
@@ -60,7 +62,17 @@ export default function NodeEditorPage() {
               {node.isPublic ? "Published" : "Draft"}
             </span>
           </div>
-          <div className="space-x-2">
+          <div className="flex items-center space-x-2">
+            <select
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              className="border rounded px-2 py-1"
+              data-testid="context-switcher"
+            >
+              <option value="default">Default</option>
+              <option value="alt">Alt</option>
+            </select>
+            <div className="space-x-2">
             <Button onClick={() => navigate(-1)}>Close</Button>
             <Button
               onClick={() => {
@@ -78,6 +90,7 @@ export default function NodeEditorPage() {
             >
               Save
             </Button>
+            </div>
           </div>
         </header>
 
