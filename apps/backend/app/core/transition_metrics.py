@@ -8,6 +8,7 @@ from collections import defaultdict, deque
 _transition_lock = threading.Lock()
 _route_latencies: deque[int] = deque(maxlen=1000)
 _repeat_rates: deque[float] = deque(maxlen=1000)
+_novelty_rates: deque[float] = deque(maxlen=1000)
 _route_lengths: dict[str, deque[int]] = defaultdict(lambda: deque(maxlen=1000))
 _tag_entropies: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=1000))
 _transition_counts: dict[str, int] = defaultdict(int)
@@ -26,6 +27,11 @@ def record_route_latency_ms(value: float) -> None:
 def record_repeat_rate(rate: float) -> None:
     with _transition_lock:
         _repeat_rates.append(rate)
+
+
+def record_novelty_rate(rate: float) -> None:
+    with _transition_lock:
+        _novelty_rates.append(rate)
 
 
 def record_route_length(length: int, workspace_id: str | None, preview: bool = False) -> None:
@@ -74,6 +80,7 @@ def prometheus() -> str:
     with _transition_lock:
         lat = list(_route_latencies)
         rates = list(_repeat_rates)
+        novs = list(_novelty_rates)
         lengths: dict[str, list[int]] = {ws: list(v) for ws, v in _route_lengths.items()}
         entropies = {ws: list(v) for ws, v in _tag_entropies.items()}
         totals = dict(_transition_counts)
@@ -101,6 +108,12 @@ def prometheus() -> str:
         lines.append(f"repeat_rate {sum(rates) / len(rates)}")
     else:
         lines.append("repeat_rate 0")
+    lines.append("# HELP novelty_rate Novelty rate of filtered candidates")
+    lines.append("# TYPE novelty_rate gauge")
+    if novs:
+        lines.append(f"novelty_rate {sum(novs) / len(novs)}")
+    else:
+        lines.append("novelty_rate 0")
     lines.append("# HELP transition_no_route_percent Percentage of transitions without route")
     lines.append("# TYPE transition_no_route_percent gauge")
     for ws, cnt in no_routes.items():

@@ -17,6 +17,7 @@ from app.core.log_events import no_route, transition_finish, transition_start
 from app.core.transition_metrics import (
     record_fallback_used,
     record_no_route,
+    record_novelty_rate,
     record_repeat_rate,
     record_route_latency_ms,
     record_route_length,
@@ -226,18 +227,23 @@ class TransitionRouter:
         elapsed_ms = (time.monotonic() - start_time) * 1000
         total_candidates = sum(len(t.candidates) for t in self.trace)
         repeat_rate = filtered_total / total_candidates if total_candidates else 0.0
+        novelty_rate = 1.0 - repeat_rate
         metrics = {
             "elapsed_ms": elapsed_ms,
             "db_queries": queries,
             "repeat_rate": repeat_rate,
+            "novelty_rate": novelty_rate,
             "fallback_used": fallback_used,
         }
         record_route_latency_ms(elapsed_ms)
         record_repeat_rate(repeat_rate)
+        record_novelty_rate(novelty_rate)
         ws_id = str(start.workspace_id)
         metrics_mode = mode or (preview.mode if preview else "normal")
         transition_metrics.observe_latency(ws_id, metrics_mode, elapsed_ms)
         transition_metrics.observe_repeat_rate(ws_id, metrics_mode, repeat_rate)
+        transition_metrics.observe_novelty_rate(ws_id, metrics_mode, novelty_rate)
+        logger.info("navigation.novelty", extra={"novelty_rate": novelty_rate})
         if reason is None and nxt is None:
             reason = NoRouteReason.NO_ROUTE
             no_route(start.slug)
