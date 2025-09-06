@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 class MediaAssetOut(BaseModel):
     id: UUID
-    workspace_id: UUID
     url: str
     type: str
     metadata_json: dict[str, Any] | None = None

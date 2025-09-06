@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from datetime import datetime
 from typing import Any
@@ -12,7 +14,6 @@ class AuditLogOut(BaseModel):
     action: str
     resource_type: str | None = None
     resource_id: str | None = None
-    workspace_id: UUID | None = None
     before: dict[str, Any] | None = None
     after: dict[str, Any] | None = None
     override: bool = False

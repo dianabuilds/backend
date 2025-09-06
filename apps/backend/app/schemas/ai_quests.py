@@ -17,7 +17,6 @@ class GenerateQuestIn(BaseModel):
     extras: dict[str, Any] | None = None
     model: str | None = None
     remember: bool = False
-    workspace_id: UUID | None = None
 
 
 class GenerationJobOut(BaseModel):

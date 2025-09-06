@@ -20,7 +20,6 @@ class ContentBase(BaseModel):
 class NodeItem(ContentBase):
     id: int
     type: str
-    workspace_id: UUID
     version: Version
     cover_media_id: UUID | None = None
     created_at: datetime | None = None
