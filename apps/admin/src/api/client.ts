@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ADMIN_DEV_TOOLS } from "../utils/env";
+import { setWarningBanner } from "../shared/hooks/useWarningBannerStore";
 import { safeLocalStorage, safeSessionStorage } from "../utils/safeStorage";
 
 let csrfTokenMem: string | null = safeSessionStorage.getItem("csrfToken");
@@ -202,6 +203,19 @@ export async function apiFetch(
     await syncCsrfFromResponse(resp);
   } catch {
     // no-op
+  }
+  try {
+    const cloned = resp.clone();
+    const ct = cloned.headers.get("Content-Type") || "";
+    if (ct.includes("application/json")) {
+      const data = (await cloned.json().catch(() => null)) as
+        | Record<string, unknown>
+        | null;
+      const banner = (data as any)?.warning_banner;
+      if (typeof banner === "string" && banner) setWarningBanner(banner);
+    }
+  } catch {
+    // ignore
   }
 
   return resp;

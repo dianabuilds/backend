@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { useWorkspace } from "../../workspace/WorkspaceContext";
 import HotfixBanner from "../../components/HotfixBanner";
 import EnvBanner from "../../components/EnvBanner";
+import AdminOverrideBanner from "../../components/AdminOverrideBanner";
 import Sidebar from "../../components/Sidebar";
 import WorkspaceSelector from "../../components/WorkspaceSelector";
 import SystemStatus from "../../components/SystemStatus";
@@ -49,6 +50,7 @@ export default function AdminLayout() {
           </div>
           <EnvBanner />
           <HotfixBanner />
+          <AdminOverrideBanner />
           <Breadcrumbs />
           <Outlet />
         </main>
