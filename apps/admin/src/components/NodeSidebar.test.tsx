@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -16,8 +17,8 @@ vi.mock("../api/nodes", () => ({
   previewNode: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock("../api/wsApi", () => ({
-  wsApi: { request: vi.fn() },
+vi.mock("../api/accountApi", () => ({
+  accountApi: { request: vi.fn() },
 }));
 
 vi.mock("../auth/AuthContext", () => ({

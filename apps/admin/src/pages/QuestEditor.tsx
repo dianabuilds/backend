@@ -1,11 +1,12 @@
 // @ts-nocheck
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api } from "../api/client";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "../components/ToastProvider";
-import NodeEditorModal from "../components/NodeEditorModal";
-import AccountSelector from "../components/AccountSelector";
+
 import { useAccount } from "../account/AccountContext";
+import { api } from "../api/client";
+import AccountSelector from "../components/AccountSelector";
+import NodeEditorModal from "../components/NodeEditorModal";
+import { useToast } from "../components/ToastProvider";
 
 type Id = string;
 
@@ -47,7 +48,7 @@ export default function QuestEditor() {
   if (!accountId) {
     return (
       <div className="p-4">
-        <p className="mb-4">Выберите воркспейс, чтобы создать квест</p>
+        <p className="mb-4">Выберите аккаунт, чтобы создать квест</p>
         <AccountSelector />
       </div>
     );

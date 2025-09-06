@@ -2,20 +2,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
+import { useAccount } from '../account/AccountContext';
 import { createNode, getNode, patchNode } from '../api/nodes';
 import { useAuth } from '../auth/AuthContext';
+import AccountSelector from '../components/AccountSelector';
 import ContentTab from '../components/content/ContentTab';
 import GeneralTab from '../components/content/GeneralTab';
-import PublishControls from '../components/publish/PublishControls';
 import ErrorBanner from '../components/ErrorBanner';
 import NodeSidebar from '../components/NodeSidebar';
+import PublishControls from '../components/publish/PublishControls';
 import StatusBadge from '../components/StatusBadge';
-import AccountSelector from '../components/AccountSelector';
+import { confirmDialog } from '../shared/ui';
 import type { OutputData } from '../types/editorjs';
 import { usePatchQueue } from '../utils/usePatchQueue';
 import { useUnsavedChanges } from '../utils/useUnsavedChanges';
-import { useAccount } from '../account/AccountContext';
-import { confirmDialog } from '../shared/ui';
 
 type NodeEditorData = {
   id: number;
@@ -211,7 +211,7 @@ export default function NodeEditor() {
   if (!accountId) {
     return (
       <div className="p-4">
-        <p className="mb-4">Выберите воркспейс, чтобы создать контент</p>
+        <p className="mb-4">Выберите аккаунт, чтобы создать контент</p>
         <AccountSelector />
       </div>
     );

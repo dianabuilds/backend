@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminService } from '../openapi';
+import { accountApi } from './accountApi';
 import { listNodes, patchNode } from './nodes';
-import { wsApi } from './wsApi';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -30,7 +30,7 @@ describe('patchNode', () => {
 
 describe('listNodes', () => {
   it('requests admin account route only', async () => {
-    const spy = vi.spyOn(wsApi, 'get').mockResolvedValue({
+    const spy = vi.spyOn(accountApi, 'get').mockResolvedValue({
       status: 200,
       data: [
         {
@@ -61,7 +61,7 @@ describe('listNodes', () => {
   });
 
   it('propagates 404 errors', async () => {
-    vi.spyOn(wsApi, 'get').mockResolvedValue({ status: 404 } as never);
+    vi.spyOn(accountApi, 'get').mockResolvedValue({ status: 404 } as never);
     await expect(listNodes('ws1')).rejects.toMatchObject({ response: { status: 404 } });
   });
 });

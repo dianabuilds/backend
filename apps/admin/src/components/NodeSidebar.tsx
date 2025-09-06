@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 
+import { accountApi } from '../api/accountApi';
 import { listFlags } from '../api/flags';
 import {
   archiveNode,
@@ -10,7 +11,6 @@ import {
   previewNode,
   publishNode,
 } from '../api/nodes';
-import { wsApi } from '../api/wsApi';
 import { useAuth } from '../auth/AuthContext';
 import { compressImage } from '../utils/compressImage';
 
@@ -140,7 +140,7 @@ export default function NodeSidebar({
           const compressed = await compressImage(file);
           const form = new FormData();
           form.append('file', compressed);
-          const res = await wsApi.request('/admin/media/assets', {
+          const res = await accountApi.request('/admin/media/assets', {
             method: 'POST',
             body: form,
             raw: true,

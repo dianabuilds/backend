@@ -1,4 +1,4 @@
-import { wsApi } from './wsApi';
+import { accountApi } from './accountApi';
 
 export type AccessMode = 'everyone' | 'premium_only' | 'early_access';
 
@@ -9,7 +9,7 @@ export type PublishInfo = {
 };
 
 export async function getPublishInfo(accountId: string, nodeId: number): Promise<PublishInfo> {
-  const info = await wsApi.get<PublishInfo>(
+  const info = await accountApi.get<PublishInfo>(
     `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(nodeId))}/publish_info`,
     { accountId, account: false },
   );
@@ -21,7 +21,7 @@ export async function publishNow(
   nodeId: number,
   access: AccessMode = 'everyone',
 ): Promise<{ ok: true } | Record<string, unknown>> {
-  const res = await wsApi.post<{ access: AccessMode }, { ok: true } | Record<string, unknown>>(
+  const res = await accountApi.post<{ access: AccessMode }, { ok: true } | Record<string, unknown>>(
     `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(nodeId))}/publish`,
     { access },
     { accountId, account: false },
@@ -35,7 +35,7 @@ export async function schedulePublish(
   runAtISO: string,
   access: AccessMode = 'everyone',
 ): Promise<PublishInfo> {
-  const info = await wsApi.post<{ run_at: string; access: AccessMode }, PublishInfo>(
+  const info = await accountApi.post<{ run_at: string; access: AccessMode }, PublishInfo>(
     `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(nodeId))}/schedule_publish`,
     { run_at: runAtISO, access },
     { accountId, account: false },
@@ -47,7 +47,7 @@ export async function cancelScheduledPublish(
   accountId: string,
   nodeId: number,
 ): Promise<{ canceled: boolean }> {
-  const res = await wsApi.delete<{ canceled: boolean }>(
+  const res = await accountApi.delete<{ canceled: boolean }>(
     `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(nodeId))}/schedule_publish`,
     { accountId, account: false },
   );

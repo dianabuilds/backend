@@ -214,7 +214,7 @@ POST /admin/accounts/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article/d6f5b4e2
 
 The admin UI communicates with these routes:
 
-- **Workspace selection** – `WorkspaceSelector` fetches `/admin/accounts` and
+- **Account selection** – `AccountSelector` fetches `/admin/accounts` and
   stores the chosen ID in session storage. The API client automatically
   prefixes requests with `/admin/accounts/{id}`.
 - **Dashboard** – `ContentDashboard` calls `/admin/accounts/{id}/nodes` to show counts of

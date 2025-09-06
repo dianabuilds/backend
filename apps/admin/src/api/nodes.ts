@@ -1,6 +1,6 @@
 import {AdminService, type NodeOut, type PublishIn, type Status} from '../openapi';
+import {accountApi} from './accountApi';
 import type {ApiResponse} from './client';
-import {wsApi} from './wsApi';
 
 // The admin nodes list endpoint returns additional metadata compared to the
 // public NodeOut model. In particular it includes the `status` of each item.
@@ -69,7 +69,7 @@ export async function listNodes(
     accountId: string,
     params: NodeListParams = {},
 ): Promise<AdminNodeItem[]> {
-    // Собираем query для cacheKey (те же параметры уйдут в wsApi через opts.params)
+    // Собираем query для cacheKey (те же параметры уйдут в accountApi через opts.params)
     // Собираем QS один раз
     const qs = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
@@ -81,7 +81,7 @@ export async function listNodes(
     // Helper: запрос с ETag-кэшем по явному URL (без account-переписываний)
     const getWithCache = async (url: string) => {
         const cached = listCache.get(url);
-        const res = (await wsApi.get(url, {
+        const res = (await accountApi.get(url, {
             etag: cached?.etag ?? undefined,
             acceptNotModified: true,
             raw: true,
@@ -114,7 +114,7 @@ export async function listNodes(
 }
 
 export async function createNode(accountId: string): Promise<NodeOut> {
-    const res = await wsApi.post<undefined, NodeOut>(
+    const res = await accountApi.post<undefined, NodeOut>(
         `/admin/accounts/${encodeURIComponent(accountId)}/nodes`,
         undefined,
         { accountId, account: false },
@@ -188,7 +188,7 @@ export async function publishNode(
 }
 
 export async function archiveNode(accountId: string, id: number): Promise<void> {
-    await wsApi.post(
+        await accountApi.post(
         `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/archive`,
         undefined,
         { accountId, account: false },
@@ -196,7 +196,7 @@ export async function archiveNode(accountId: string, id: number): Promise<void> 
 }
 
 export async function duplicateNode(accountId: string, id: number): Promise<NodeOut> {
-    const res = await wsApi.post<undefined, NodeOut>(
+    const res = await accountApi.post<undefined, NodeOut>(
         `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/duplicate`,
         undefined,
         { accountId, account: false },
@@ -205,7 +205,7 @@ export async function duplicateNode(accountId: string, id: number): Promise<Node
 }
 
 export async function previewNode(accountId: string, id: number): Promise<void> {
-    await wsApi.post(
+        await accountApi.post(
         `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/preview`,
         undefined,
         { accountId, account: false },
@@ -217,7 +217,7 @@ export async function simulateNode(
     id: number,
     payload: NodeSimulatePayload,
 ): Promise<unknown> {
-    const res = await wsApi.post<NodeSimulatePayload, unknown>(
+    const res = await accountApi.post<NodeSimulatePayload, unknown>(
         `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(id))}/simulate`,
         payload,
         { accountId, account: false },
@@ -226,7 +226,7 @@ export async function simulateNode(
 }
 
 export async function recomputeNodeEmbedding(accountId: string, id: number): Promise<void> {
-    await wsApi.post(
+        await accountApi.post(
         `/admin/ai/nodes/${encodeURIComponent(id)}/embedding/recompute`,
         undefined,
         { accountId, account: false },

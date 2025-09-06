@@ -6,7 +6,7 @@ This template provides a minimal setup to get React working in Vite with HMR and
 
 The admin UI talks to the backend using two helpers:
 
-- `wsApi` — sets common headers and appends the selected account ID as the `account_id` query parameter. Pass the account ID explicitly to every call: `wsApi.get('/admin/…', { accountId })`. To skip automatic query injection, use `{ account: false }`.
+- `accountApi` — sets common headers and appends the selected account ID as the `account_id` query parameter. Pass the account ID explicitly to every call: `accountApi.get('/admin/…', { accountId })`. To skip automatic query injection, use `{ account: false }`.
 - `api` — thin wrapper around `fetch` without account handling. Use it for public or auth routes.
 
 ## Hotkeys

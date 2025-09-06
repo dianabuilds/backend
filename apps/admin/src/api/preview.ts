@@ -1,4 +1,4 @@
-import { wsApi } from "./wsApi";
+import { accountApi } from "./accountApi";
 
 export interface SimulatePreviewRequest {
   account_id: string;
@@ -30,7 +30,7 @@ export interface SimulatePreviewResponse {
 export async function simulatePreview(
   body: SimulatePreviewRequest,
 ): Promise<SimulatePreviewResponse> {
-  const res = await wsApi.post<
+  const res = await accountApi.post<
     SimulatePreviewRequest,
     SimulatePreviewResponse
   >(`/admin/preview/transitions/simulate`, body, {
@@ -48,7 +48,7 @@ export async function createPreviewLink(
   account_id: string,
 ): Promise<PreviewLinkResponse> {
   // Корректный эндпоинт — без account в пути. account_id передаём в теле.
-  const res = await wsApi.post<
+  const res = await accountApi.post<
     { account_id: string },
     PreviewLinkResponse
   >(`/admin/preview/link`, { account_id }, {
