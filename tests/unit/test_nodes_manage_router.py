@@ -16,7 +16,6 @@ from sqlalchemy.orm import sessionmaker
 app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
-import app.api.workspace_context as ws_ctx  # noqa: E402
 from app.api import deps as api_deps  # noqa: E402
 from app.domains.navigation.api.nodes_manage_router import (  # noqa: E402
     router as manage_router,  # noqa: E402
@@ -57,7 +56,9 @@ async def app_and_session():
         return user
 
     app.dependency_overrides[api_deps.get_current_user] = override_user
-    app.dependency_overrides[ws_ctx.require_workspace] = lambda: None
+    from app.security import require_ws_guest  # noqa: E402
+
+    app.dependency_overrides[require_ws_guest] = lambda **_: None
 
     return app, async_session, user
 

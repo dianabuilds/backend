@@ -15,7 +15,6 @@ from app.api.deps import (
 )
 from app.providers.db.session import get_db
 from app.core.log_events import cache_invalidate
-from app.api.workspace_context import optional_workspace, require_workspace
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
@@ -70,6 +69,8 @@ class NodeListParams(TypedDict, total=False):
 def _ensure_space_id(request: Request, space_id: int | None) -> int:
     if space_id is not None:
         return int(space_id)
+    if "workspace_id" in request.path_params:
+        return int(request.path_params["workspace_id"])
     sid = getattr(request.state, "space_id", None)
     if sid is None:
         raise HTTPException(status_code=400, detail="space_id is required")
@@ -100,22 +101,23 @@ async def list_nodes(
     ] = "updated_desc",
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
-    member: Annotated[object, Depends(require_ws_guest)] = ...,
 ) -> List[NodeOut]:
     """List nodes.
 
     See :class:`NodeListParams` for available query parameters.
     """
+    member = None
+    resolved_space_id = None
     if scope_mode is None:
+        resolved_space_id = _ensure_space_id(request, space_id)
+        member = await require_ws_guest(account_id=resolved_space_id, user=current_user, db=db)
         if getattr(member, "role", None) in {WorkspaceRole.owner, WorkspaceRole.editor}:
             scope_mode = "member"
         else:
             scope_mode = "mine"
-
-    resolved_space_id = None
-    if scope_mode and not (scope_mode == "global" or scope_mode.startswith("space:")):
+    elif not (scope_mode == "global" or scope_mode.startswith("space:")):
         resolved_space_id = _ensure_space_id(request, space_id)
+        await require_ws_guest(account_id=resolved_space_id, user=current_user, db=db)
 
     spec = NodeFilterSpec(sort=sort)
     ctx = QueryContext(user=current_user, is_admin=False)
@@ -142,7 +144,6 @@ async def create_node(
     space_id: int | None = None,
     current_user: Annotated[User, Depends(ensure_can_post)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
 ):
     space_id = _ensure_space_id(request, space_id)
     await require_ws_viewer(account_id=space_id, user=current_user, db=db)
@@ -168,7 +169,6 @@ async def read_node(
     preview_version: Annotated[int | None, Header(alias="X-Preview-Version")] = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
 ):
     sid = getattr(request.state, "space_id", None)
     space_id = _ensure_space_id(request, int(sid) if sid is not None else None)
@@ -207,12 +207,11 @@ async def update_node(
     _space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
-    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
     sid = getattr(request.state, "space_id", None)
     space_id = int(sid) if sid is not None else None
     space_id = _ensure_space_id(request, space_id)
+    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
     repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, space_id)
     if not node:
@@ -263,10 +262,9 @@ async def delete_node(
     space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
-    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
     space_id = _ensure_space_id(request, space_id)
+    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
     repo = NodeRepository(db)
     node = await repo.get_by_slug(slug, space_id)
     if not node:
@@ -310,10 +308,9 @@ async def get_node_notification_settings(
     space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
-    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ) -> NodeNotificationSettingsOut:
     space_id = _ensure_space_id(request, space_id)
+    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
     repo = NodeRepository(db)
     node = await repo.get_by_id(node_id, space_id)
     if not node:
@@ -337,10 +334,9 @@ async def update_node_notification_settings(
     space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
-    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ) -> NodeNotificationSettingsOut:
     space_id = _ensure_space_id(request, space_id)
+    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
     repo = NodeRepository(db)
     node = await repo.get_by_id(node_id, space_id)
     if not node:
@@ -357,8 +353,6 @@ async def list_feedback(
     space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    workspace_dep: Annotated[object, Depends(optional_workspace)] = ...,
-    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import (
@@ -366,6 +360,7 @@ async def list_feedback(
     )
 
     space_id = _ensure_space_id(request, space_id)
+    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
     service = FeedbackService(NodeRepository(db))
     return await service.list_feedback(db, slug, current_user, space_id)
 
@@ -378,8 +373,6 @@ async def create_feedback(
     space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
-    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import (
@@ -398,6 +391,7 @@ async def create_feedback(
 
     notifier = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
     space_id = _ensure_space_id(request, space_id)
+    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
     service = FeedbackService(NodeRepository(db), notifier)
     return await service.create_feedback(
         db, slug, payload.content, payload.is_anonymous, current_user, space_id
@@ -412,8 +406,6 @@ async def delete_feedback(
     space_id: int | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
-    _: Annotated[object, Depends(require_ws_viewer)] = ...,
 ):
     from app.domains.nodes.application.feedback_service import FeedbackService
     from app.domains.nodes.infrastructure.repositories.node_repository import (
@@ -421,5 +413,6 @@ async def delete_feedback(
     )
 
     space_id = _ensure_space_id(request, space_id)
+    await require_ws_viewer(account_id=space_id, user=current_user, db=db)
     service = FeedbackService(NodeRepository(db))
     return await service.delete_feedback(db, slug, feedback_id, current_user, space_id)

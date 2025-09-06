@@ -6,7 +6,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.api.deps import get_current_user
-from app.api.workspace_context import require_workspace
 from app.core.deps import get_storage
 from app.core.log_events import (
     node_cover_upload_fail,
@@ -15,6 +14,7 @@ from app.core.log_events import (
 )
 from app.domains.media.application.ports.storage_port import IStorageGateway
 from app.domains.media.application.storage_service import StorageService
+from app.security import require_ws_guest
 
 router = APIRouter(tags=["media"])
 
@@ -24,7 +24,7 @@ async def upload_media(
     file: Annotated[UploadFile, File(...)] = ...,  # noqa: B008
     user=Depends(get_current_user),  # noqa: B008
     storage: Annotated[IStorageGateway, Depends(get_storage)] = ...,  # noqa: B008
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    _member: Annotated[object, Depends(require_ws_guest)] = ...,
 ):
     """Accept an uploaded image and return its public URL."""
     node_cover_upload_start(str(getattr(user, "id", None)))
@@ -50,6 +50,6 @@ async def upload_media_admin(
     file: Annotated[UploadFile, File(...)] = ...,  # noqa: B008
     user=Depends(get_current_user),  # noqa: B008
     storage: Annotated[IStorageGateway, Depends(get_storage)] = ...,  # noqa: B008
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    _member: Annotated[object, Depends(require_ws_guest)] = ...,
 ):
-    return await upload_media(file=file, user=user, storage=storage, _workspace=_workspace)
+    return await upload_media(file=file, user=user, storage=storage, _member=_member)

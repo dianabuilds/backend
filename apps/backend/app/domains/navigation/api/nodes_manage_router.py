@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
-from app.api.workspace_context import require_workspace
 from app.core.log_events import cache_invalidate
 from app.domains.navigation.application.echo_service import EchoService
 from app.domains.navigation.application.navigation_cache_service import (
@@ -22,6 +21,7 @@ from app.domains.nodes.infrastructure.repositories.node_repository import (
 from app.domains.nodes.policies.node_policy import NodePolicy
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.transition import NodeTransitionCreate
+from app.security import require_ws_guest
 
 router = APIRouter(prefix="/nodes", tags=["nodes-navigation-manage"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -40,7 +40,7 @@ async def record_visit(
     channel: str | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    _member: Annotated[object, Depends(require_ws_guest)] = ...,
 ):
     repo = NodeRepository(db)
     from_node = await repo.get_by_slug(slug, workspace_id)
@@ -66,7 +66,7 @@ async def create_transition(
     workspace_id: int,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    _member: Annotated[object, Depends(require_ws_guest)] = ...,
 ):
     repo = NodeRepository(db)
     from_node = await repo.get_by_slug(slug, workspace_id)

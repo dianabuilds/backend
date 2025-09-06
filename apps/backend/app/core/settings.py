@@ -120,8 +120,6 @@ DEFAULT_CORS_HEADERS = [
     "X-CSRF-Token",
     "X-CSRFToken",
     "X-Requested-With",
-    "X-Workspace-Id",
-    "Workspace-Id",
     "X-Feature-Flags",
     "X-Preview-Token",
     "X-Request-ID",

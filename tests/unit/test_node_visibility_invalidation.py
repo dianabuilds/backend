@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.api import deps as api_deps
-from app.api.workspace_context import require_workspace
 from app.domains.nodes.api.nodes_router import router as nodes_router
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.navigation_cache_models import (
@@ -19,7 +18,6 @@ from app.domains.quests.infrastructure.models.navigation_cache_models import (
 )
 from app.domains.workspaces.infrastructure.models import Workspace
 from app.providers.db.session import get_db
-from app.security import require_ws_viewer
 
 
 @pytest.mark.asyncio
@@ -42,8 +40,9 @@ async def test_update_node_invalidates_navigation_cache(monkeypatch) -> None:
 
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[api_deps.get_current_user] = lambda: user
-    app.dependency_overrides[require_workspace] = lambda **_: None
-    app.dependency_overrides[require_ws_viewer] = lambda **_: None
+    from app.domains.nodes.api import nodes_router as nr
+
+    nr.require_ws_viewer = lambda account_id, user, db: None
 
     class DummyBus:
         async def publish(self, *args, **kwargs):

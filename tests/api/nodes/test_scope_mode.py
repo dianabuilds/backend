@@ -15,14 +15,12 @@ app_module = importlib.import_module("apps.backend.app")
 sys.modules.setdefault("app", app_module)
 
 from app.api import deps as api_deps  # noqa: E402
-from app.api.workspace_context import optional_workspace  # noqa: E402
 from app.domains.nodes.api.nodes_router import router as nodes_router  # noqa: E402
 from app.domains.nodes.infrastructure.models.node import Node  # noqa: E402
 from app.domains.nodes.models import NodeItem  # noqa: E402
 from app.providers.db.session import get_db  # noqa: E402
 from app.schemas.nodes_common import Status, Visibility  # noqa: E402
 from app.schemas.workspaces import WorkspaceRole  # noqa: E402
-from app.security import require_ws_guest  # noqa: E402
 
 
 @pytest_asyncio.fixture()
@@ -61,8 +59,7 @@ async def app_and_session():
 
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[api_deps.get_current_user] = lambda: user
-    app.dependency_overrides[optional_workspace] = lambda: None
-    app.dependency_overrides[require_ws_guest] = lambda **_: member
+    nodes_router.require_ws_guest = lambda account_id, user, db: member
 
     return app, async_session, user
 

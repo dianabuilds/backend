@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
-from app.api.workspace_context import require_workspace
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
@@ -20,6 +19,7 @@ from app.domains.nodes.infrastructure.repositories.node_repository import (
 )
 from app.domains.users.infrastructure.models.user import User
 from app.providers.db.session import get_db
+from app.security import require_ws_guest
 
 router = APIRouter(prefix="/transitions", tags=["transitions"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -31,7 +31,7 @@ async def delete_transition(
     workspace_id: int,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _workspace: Annotated[object, Depends(require_workspace)] = ...,
+    _member: Annotated[object, Depends(require_ws_guest)] = ...,
 ):
     """Delete a specific manual transition between nodes."""
     repo = TransitionRepository(db)
