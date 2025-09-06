@@ -90,6 +90,7 @@ NEW_FLAGS = [
     FeatureFlagKey.WEIGHTED_MANUAL_TRANSITIONS,
     FeatureFlagKey.FALLBACK_POLICY,
     FeatureFlagKey.ADMIN_OVERRIDE,
+    FeatureFlagKey.NAV_CACHE_V2,
 ]
 
 

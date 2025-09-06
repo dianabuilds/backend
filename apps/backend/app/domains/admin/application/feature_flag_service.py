@@ -27,6 +27,7 @@ class FeatureFlagKey(StrEnum):
     WEIGHTED_MANUAL_TRANSITIONS = "navigation.weighted_manual_transitions"
     FALLBACK_POLICY = "navigation.fallback_policy"
     ADMIN_OVERRIDE = "admin.override"
+    NAV_CACHE_V2 = "navigation.cache_v2"
 
 
 # Predefined feature flags available in the system with optional descriptions
@@ -50,6 +51,10 @@ KNOWN_FLAGS: dict[FeatureFlagKey, tuple[str, str]] = {
         "all",
     ),
     FeatureFlagKey.ADMIN_OVERRIDE: ("Enable admin override headers", "all"),
+    FeatureFlagKey.NAV_CACHE_V2: (
+        "Enable space aware navigation cache",
+        "all",
+    ),
 }
 
 

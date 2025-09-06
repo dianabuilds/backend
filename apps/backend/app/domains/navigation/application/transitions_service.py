@@ -28,7 +28,7 @@ class TransitionsService:
         db: AsyncSession,
         node: Node,
         user: User,
-        account_id: int,
+        space_id: int,
         transition_type: NodeTransitionType | None = None,
         preview: PreviewContext | None = None,
     ) -> list[NodeTransition]:
@@ -37,7 +37,7 @@ class TransitionsService:
             .join(Node, NodeTransition.to_node_id == Node.id)
             .where(
                 NodeTransition.from_node_id == node.id,
-                Node.account_id == account_id,
+                Node.account_id == space_id,
             )
         )
         if transition_type is not None:
