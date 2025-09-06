@@ -76,6 +76,7 @@ NEW_FLAGS = [
     FeatureFlagKey.NOTIFICATIONS_DIGEST,
     FeatureFlagKey.PREMIUM_GIFTING,
     FeatureFlagKey.NODE_NAVIGATION_V2,
+    FeatureFlagKey.WEIGHTED_MANUAL_TRANSITIONS,
 ]
 
 
