@@ -55,7 +55,7 @@ Before promoting a draft to `published`:
 - Required tags are assigned and follow the taxonomy rules.
 - Cover media and other mandatory fields are set.
 - Peer review is completed (`in_review`).
-- Publish via `POST /admin/workspaces/{workspace_id}/nodes/{type}/{id}/publish` and verify in the
+- Publish via `POST /admin/accounts/{account_id}/nodes/{type}/{id}/publish` and verify in the
   dashboard.
 
 ## API routes
@@ -64,18 +64,18 @@ Administrative endpoints exposed by the backend:
 
 ### Workspaces
 
-- `GET /admin/workspaces` – list available workspaces. Supports cursor pagination
+- `GET /admin/accounts` – list available workspaces. Supports cursor pagination
   via the `limit`, `cursor`, `sort` (default `created_at`) and `order` query
   parameters.
-- `POST /admin/workspaces/{workspace_id}` – create a workspace with a fixed ID.
-- `GET /admin/workspaces/{workspace_id}` – fetch workspace metadata.
-- `PATCH /admin/workspaces/{workspace_id}` – update workspace fields.
-- `DELETE /admin/workspaces/{workspace_id}` – remove a workspace.
+- `POST /admin/accounts/{account_id}` – create a workspace with a fixed ID.
+- `GET /admin/accounts/{account_id}` – fetch workspace metadata.
+- `PATCH /admin/accounts/{account_id}` – update workspace fields.
+- `DELETE /admin/accounts/{account_id}` – remove a workspace.
 
 Example:
 
 ```bash
-GET /admin/workspaces?limit=2
+GET /admin/accounts?limit=2
 ```
 
 ```json
@@ -104,7 +104,7 @@ GET /admin/workspaces?limit=2
 Creating a workspace:
 
 ```bash
-POST /admin/workspaces/123e4567-e89b-12d3-a456-426614174000
+POST /admin/accounts/123e4567-e89b-12d3-a456-426614174000
 Content-Type: application/json
 
 { "name": "Demo", "slug": "demo" }
@@ -125,28 +125,28 @@ Content-Type: application/json
 ### Nodes
 
 Most node routes are namespaced by workspace and use the path prefix
-`/admin/workspaces/{workspace_id}`.
+`/admin/accounts/{account_id}`.
 
 Common endpoints:
 
 | Operation | Path |
 |-----------|------|
-| List nodes | `/admin/workspaces/{id}/nodes` |
-| List all nodes | `/admin/workspaces/{id}/nodes/all` |
-| Create node | `POST /admin/workspaces/{id}/nodes/{type}` |
-| Get node | `/admin/workspaces/{id}/nodes/{type}/{id}` |
-| Update node | `/admin/workspaces/{id}/nodes/{type}/{id}` |
-| Publish node | `/admin/workspaces/{id}/nodes/{type}/{id}/publish` |
+| List nodes | `/admin/accounts/{id}/nodes` |
+| List all nodes | `/admin/accounts/{id}/nodes/all` |
+| Create node | `POST /admin/accounts/{id}/nodes/{type}` |
+| Get node | `/admin/accounts/{id}/nodes/{type}/{id}` |
+| Update node | `/admin/accounts/{id}/nodes/{type}/{id}` |
+| Publish node | `/admin/accounts/{id}/nodes/{type}/{id}/publish` |
 
-- `GET /admin/workspaces/{id}/nodes` – dashboard with counts of drafts, reviews
+- `GET /admin/accounts/{id}/nodes` – dashboard with counts of drafts, reviews
   and published items.
-- `GET /admin/workspaces/{id}/nodes/all` – list nodes with optional filters
+- `GET /admin/accounts/{id}/nodes/all` – list nodes with optional filters
   (`node_type`, `status`).
-- `POST /admin/workspaces/{id}/nodes/{type}` – create a new item of a given
+- `POST /admin/accounts/{id}/nodes/{type}` – create a new item of a given
   `type`.
-- `GET /admin/workspaces/{id}/nodes/{type}/{id}` – fetch a single node item.
-- `PATCH /admin/workspaces/{id}/nodes/{type}/{id}` – update an item.
-- `POST /admin/workspaces/{id}/nodes/{type}/{id}/publish` – mark the item as
+- `GET /admin/accounts/{id}/nodes/{type}/{id}` – fetch a single node item.
+- `PATCH /admin/accounts/{id}/nodes/{type}/{id}` – update an item.
+- `POST /admin/accounts/{id}/nodes/{type}/{id}/publish` – mark the item as
   published.
 
 Identifiers in these endpoints are **UUIDs** of the corresponding ``NodeItem``.
@@ -156,7 +156,7 @@ should migrate to the UUID form.
 Example listing and creation:
 
 ```bash
-GET /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/all?node_type=article
+GET /admin/accounts/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/all?node_type=article
 ```
 
 ```json
@@ -174,7 +174,7 @@ GET /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/all?node_type=a
 ```
 
 ```bash
-POST /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article
+POST /admin/accounts/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article
 Content-Type: application/json
 
 { "title": "Hello world", "slug": "hello-world" }
@@ -186,14 +186,14 @@ Content-Type: application/json
   "node_type": "article",
   "title": "Hello world",
   "status": "draft",
-  "workspace_id": "8b112b04-1769-44ef-abc6-3c7ce7c8de4e"
+  "account_id": "8b112b04-1769-44ef-abc6-3c7ce7c8de4e"
 }
 ```
 
 Updating content:
 
 ```bash
-PATCH /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article/d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef
+PATCH /admin/accounts/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article/d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef
 Content-Type: application/json
 
 { "content": { "time": 0, "blocks": [], "version": "2.30.7" } }
@@ -203,7 +203,7 @@ Legacy `nodes` field has been removed; use `content` instead.
 Publishing:
 
 ```bash
-POST /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article/d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef/publish
+POST /admin/accounts/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article/d6f5b4e2-1c02-4b7a-a1f0-b6b0b7a9f6ef/publish
 ```
 
 ```json
@@ -214,12 +214,12 @@ POST /admin/workspaces/8b112b04-1769-44ef-abc6-3c7ce7c8de4e/nodes/article/d6f5b4
 
 The admin UI communicates with these routes:
 
-- **Workspace selection** – `WorkspaceSelector` fetches `/admin/workspaces` and
+- **Workspace selection** – `WorkspaceSelector` fetches `/admin/accounts` and
   stores the chosen ID in session storage. The API client automatically
-  prefixes requests with `/admin/workspaces/{id}`.
-- **Dashboard** – `ContentDashboard` calls `/admin/workspaces/{id}/nodes` to show counts of
+  prefixes requests with `/admin/accounts/{id}`.
+- **Dashboard** – `ContentDashboard` calls `/admin/accounts/{id}/nodes` to show counts of
   drafts, reviews and published items.
-- **Content list** – `ContentAll` uses `/admin/workspaces/{id}/nodes/all` with filters for type
+- **Content list** – `ContentAll` uses `/admin/accounts/{id}/nodes/all` with filters for type
   and status.
 - **Tag management** – `TagMerge` and other components operate on tags using the
   standard admin tag endpoints.
