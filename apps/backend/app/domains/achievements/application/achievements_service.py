@@ -89,14 +89,14 @@ class AchievementsService:
 
         counter = await db.get(
             UserEventCounter,
-            {"workspace_id": workspace_id, "user_id": user_id, "event": event},
+            {"account_id": workspace_id, "user_id": user_id, "event": event},
         )
         current_count = int(counter.count or 0) if counter else 0
         new_count = current_count + 1
         if not dry_run:
             if not counter:
                 counter = UserEventCounter(
-                    workspace_id=workspace_id, user_id=user_id, event=event, count=0
+                    account_id=workspace_id, user_id=user_id, event=event, count=0
                 )
                 db.add(counter)
                 await db.flush()

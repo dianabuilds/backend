@@ -50,7 +50,6 @@ from app.domains.nodes.infrastructure.repositories.node_repository import (
 )
 from app.domains.nodes.models import NodeItem, NodePublishJob
 from app.domains.nodes.schemas.node import NodeBulkOperation, NodeBulkPatch, NodeOut
-from app.domains.workspaces.infrastructure.models import Workspace
 from app.providers.db.session import get_db
 from app.schemas.nodes_common import Status
 from app.schemas.workspaces import WorkspaceType

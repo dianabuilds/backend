@@ -21,13 +21,12 @@ export default function ContentAll() {
       tags: tag || undefined,
     }),
     queryFn: async () => {
-      if (!accountId) return [] as NodeItem[];
-      return (await nodesApi.list(accountId, {
+      return (await nodesApi.list(accountId || '', {
         status: status || undefined,
         tags: tag || undefined,
       })) as NodeItem[];
     },
-    enabled: !!accountId,
+    enabled: true,
   });
 
   return (

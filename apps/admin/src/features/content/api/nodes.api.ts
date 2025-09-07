@@ -2,7 +2,7 @@ import type { NodeOut } from "../../../openapi";
 import { client } from "../../../shared/api/client";
 
 const base = (accountId: string) =>
-  `/admin/accounts/${encodeURIComponent(accountId)}/nodes`;
+  accountId ? `/admin/accounts/${encodeURIComponent(accountId)}/nodes` : `/users/me/nodes`;
 
 function withQuery(baseUrl: string, params?: Record<string, unknown>) {
   if (!params) return baseUrl;
@@ -37,18 +37,11 @@ export const nodesApi = {
   },
   create(accountId: string, payload: NodeMutationPayload) {
     const body = enrichPayload(payload);
-    // Backend expects POST /admin/accounts/{ws}/nodes for creation
-    return client.post<NodeMutationPayload, NodeOut>(
-      base(accountId),
-      body,
-    );
+    return client.post<NodeMutationPayload, NodeOut>(base(accountId), body);
   },
   update(accountId: string, id: number, payload: NodeMutationPayload) {
     const body = enrichPayload(payload);
-    const url = withQuery(
-      `${base(accountId)}/${encodeURIComponent(String(id))}`,
-      { next: 1 },
-    );
+    const url = withQuery(`${base(accountId)}/${encodeURIComponent(String(id))}`, { next: 1 });
     return client.patch<NodeMutationPayload, NodeOut>(url, body);
   },
   delete(accountId: string, id: number) {

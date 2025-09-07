@@ -88,6 +88,19 @@ class AuthService:
             ),
             owner=user,
         )
+        # Handle referral code (best-effort)
+        try:
+            if payload.referral_code:
+                from app.domains.referrals.application.referrals_service import ReferralsService
+                from app.domains.referrals.infrastructure.repositories.referrals_repository import (
+                    ReferralsRepository,
+                )
+
+                svc = ReferralsService(ReferralsRepository(db))
+                await svc.process_signup_referral(db, referral_code=payload.referral_code, referee_user_id=user.id)
+        except Exception:
+            # do not block signup on referral errors
+            pass
         token = uuid4().hex
         await self._verification_store.set(token, str(user.id))
         return {"verification_token": token, "account_slug": account.slug}

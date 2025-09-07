@@ -177,7 +177,7 @@ return {allowed, retry}
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Token-bucket rate limiting using Redis.
 
-    The key has the format ``rl:{workspace_id}:{user_id}:{operation}``.
+    The key has the format ``rl:{account_id}:{user_id}:{operation}``.
     When the limit is exceeded the middleware sets the ``Retry-After`` header
     and returns ``429``.
     """
@@ -210,7 +210,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
         if policy.rate_limit_mode != "enforce":
             return await call_next(request)
-        workspace_id = request.headers.get("X-Workspace-ID", "0")
+        # Prefer X-Account-ID; keep X-Workspace-ID for backward compatibility
+        workspace_id = request.headers.get("X-Account-ID") or request.headers.get("X-Workspace-ID", "0")
         user_id = request.headers.get("X-User-ID", "0")
         operation = request.headers.get("X-Operation", request.url.path)
         allowed, retry_after = await self._acquire(workspace_id, user_id, operation)

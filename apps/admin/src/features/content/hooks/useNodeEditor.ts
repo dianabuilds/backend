@@ -32,9 +32,9 @@ export function useNodeEditor(
   const isNew = id === "new";
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["node", accountId || "global", id],
+    queryKey: ["node", accountId || "personal", id],
     queryFn: () => nodesApi.get(accountId, id as number),
-    enabled: !!accountId && !isNew,
+    enabled: !isNew,
   });
 
   const [node, setNode] = useState<NodeEditorData>({

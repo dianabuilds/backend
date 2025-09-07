@@ -18,7 +18,6 @@ from app.domains.achievements.infrastructure.repositories.achievements_repositor
     AchievementsRepository,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.domains.workspaces.infrastructure.models import Workspace
 from app.providers.db.session import get_db
 from app.schemas.achievement import AchievementOut
 from app.schemas.achievement_admin import (
@@ -57,12 +56,14 @@ def _svc(db: AsyncSession) -> AchievementsService:
     summary="List achievements",
 )
 async def list_achievements(
-    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     _: Annotated[object, Depends(require_ws_guest)] = ...,
 ) -> list[AchievementOut]:
-    rows = await _svc(db).list(workspace.id, current_user.id)
+    ws_id = getattr(current_user, "default_account_id", None)
+    if not ws_id:
+        return []
+    rows = await _svc(db).list(ws_id, current_user.id)
     items: list[AchievementOut] = []
     for ach, ua in rows:
         items.append(
@@ -86,11 +87,10 @@ async def list_achievements(
 )
 async def list_achievements_admin(
     workspace_id: UUID,
-    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     _: Annotated[object, Depends(require_ws_editor)] = ...,
 ) -> list[AchievementAdminOut]:
-    rows = await _admin_svc(db).list(workspace.id)
+    rows = await _admin_svc(db).list(workspace_id)
     return [AchievementAdminOut.model_validate(r) for r in rows]
 
 
@@ -102,7 +102,6 @@ async def list_achievements_admin(
 async def create_achievement_admin(
     body: AchievementCreateIn,
     workspace_id: UUID,
-    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     current: Annotated[User, Depends(auth_user)] = ...,
     _: Annotated[object, Depends(require_ws_editor)] = ...,
@@ -116,7 +115,7 @@ async def create_achievement_admin(
         "condition": body.condition or {},
     }
     try:
-        item = await _admin_svc(db).create(db, workspace.id, data, current.id)
+        item = await _admin_svc(db).create(db, workspace_id, data, current.id)
     except ValueError as err:
         if str(err) == "code_conflict":
             raise HTTPException(status_code=409, detail="Code already exists") from err
@@ -133,14 +132,13 @@ async def update_achievement_admin(
     achievement_id: UUID,
     body: AchievementUpdateIn,
     workspace_id: UUID,
-    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     current: Annotated[User, Depends(auth_user)] = ...,
     _: Annotated[object, Depends(require_ws_editor)] = ...,
 ) -> AchievementAdminOut:
     data = body.model_dump(exclude_unset=True)
     try:
-        item = await _admin_svc(db).update(db, workspace.id, achievement_id, data, current.id)
+        item = await _admin_svc(db).update(db, workspace_id, achievement_id, data, current.id)
     except ValueError as err:
         if str(err) == "code_conflict":
             raise HTTPException(status_code=409, detail="Code already exists") from err
@@ -154,12 +152,11 @@ async def update_achievement_admin(
 async def delete_achievement_admin(
     achievement_id: UUID,
     workspace_id: UUID,
-    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     current: Annotated[User, Depends(auth_user)] = ...,
     _: Annotated[object, Depends(require_ws_editor)] = ...,
 ):
-    ok = await _admin_svc(db).delete(db, workspace.id, achievement_id)
+    ok = await _admin_svc(db).delete(db, workspace_id, achievement_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Not found")
     return {"ok": True}
@@ -167,6 +164,7 @@ async def delete_achievement_admin(
 
 class UserIdIn(BaseModel):
     user_id: UUID
+    reason: str | None = None
 
 
 @admin_router.post(
@@ -177,12 +175,27 @@ async def grant_achievement(
     achievement_id: UUID,
     body: UserIdIn,
     workspace_id: UUID,
-    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     current: Annotated[User, Depends(auth_user)] = ...,
     _: Annotated[object, Depends(require_ws_editor)] = ...,
 ):
-    granted = await _svc(db).grant_manual(db, workspace.id, body.user_id, achievement_id)
+    granted = await _svc(db).grant_manual(db, workspace_id, body.user_id, achievement_id)
+    # audit
+    try:
+        from app.domains.audit.application.audit_service import audit_log
+
+        await audit_log(
+            db,
+            actor_id=str(current.id),
+            action="achievement_grant",
+            resource_type="achievement",
+            resource_id=str(achievement_id),
+            after={"user_id": str(body.user_id), "granted": granted},
+            reason=body.reason,
+            workspace_id=str(workspace_id),
+        )
+    except Exception:
+        pass
     return {"granted": granted}
 
 
@@ -194,14 +207,30 @@ async def revoke_achievement(
     achievement_id: UUID,
     body: UserIdIn,
     workspace_id: UUID,
-    workspace: Annotated[Workspace, Depends(current_workspace)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     current: Annotated[User, Depends(auth_user)] = ...,
     _: Annotated[object, Depends(require_ws_editor)] = ...,
 ):
-    revoked = await _svc(db).revoke_manual(db, workspace.id, body.user_id, achievement_id)
+    revoked = await _svc(db).revoke_manual(db, workspace_id, body.user_id, achievement_id)
+    # audit
+    try:
+        from app.domains.audit.application.audit_service import audit_log
+
+        await audit_log(
+            db,
+            actor_id=str(current.id),
+            action="achievement_revoke",
+            resource_type="achievement",
+            resource_id=str(achievement_id),
+            after={"user_id": str(body.user_id), "revoked": revoked},
+            reason=body.reason,
+            workspace_id=str(workspace_id),
+        )
+    except Exception:
+        pass
     return {"revoked": revoked}
 
 
 router.include_router(user_router)
 router.include_router(admin_router)
+

@@ -58,7 +58,7 @@ async def get_current_user(
                 User.username,
                 User.bio,
                 User.avatar_url,
-                User.default_workspace_id,
+                User.default_account_id,
                 User.role,
                 User.deleted_at,
             )
@@ -123,7 +123,7 @@ async def get_current_user_optional(
                 User.username,
                 User.bio,
                 User.avatar_url,
-                User.default_workspace_id,
+                User.default_account_id,
                 User.role,
                 User.deleted_at,
             )

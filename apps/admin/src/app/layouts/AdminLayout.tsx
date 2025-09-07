@@ -1,32 +1,22 @@
 import { Link, Outlet } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
-import { useAccount } from "../../account/AccountContext";
 import HotfixBanner from "../../components/HotfixBanner";
 import EnvBanner from "../../components/EnvBanner";
 import AdminOverrideBanner from "../../components/AdminOverrideBanner";
 import Sidebar from "../../components/Sidebar";
-import AccountSelector from "../../components/AccountSelector";
 import SystemStatus from "../../components/SystemStatus";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import AlertsBadge from "../../components/AlertsBadge";
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
-  const { accountId } = useAccount();
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
       <Sidebar />
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <AccountSelector />
-            {accountId && (
-              <span className="px-1 py-0.5 rounded bg-blue-100 text-blue-700 text-xs">
-                active
-              </span>
-            )}
-          </div>
+          <div className="flex items-center gap-2" />
           <div className="flex items-center gap-4">
             <AlertsBadge />
             <SystemStatus />

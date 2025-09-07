@@ -22,17 +22,17 @@ export default function NodeEditorPage() {
   );
 
   const refreshPublishInfo = async () => {
-    if (!accountId || !node.id) return;
+    if (!node.id) return;
     try {
       type MaybePublic = { isPublic?: boolean; is_public?: boolean };
-      const updated = (await nodesApi.get(accountId, node.id)) as unknown as MaybePublic;
+      const updated = (await nodesApi.get(accountId || '', node.id)) as unknown as MaybePublic;
       update({ isPublic: updated.isPublic ?? updated.is_public ?? false });
     } catch {
       // ignore
     }
   };
 
-  if (!accountId) return <div>Account not selected</div>;
+  // accountId optional: alias routes use default_account_id
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error instanceof Error ? error.message : String(error)}</div>;
 
@@ -115,7 +115,7 @@ export default function NodeEditorPage() {
           >
             <NodeSidebar
               node={node}
-              accountId={accountId}
+              accountId={accountId || ''}
               onChange={update}
               onPublishChange={refreshPublishInfo}
             />

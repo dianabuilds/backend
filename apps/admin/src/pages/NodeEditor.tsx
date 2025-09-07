@@ -5,7 +5,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAccount } from '../account/AccountContext';
 import { createNode, getNode, patchNode } from '../api/nodes';
 import { useAuth } from '../auth/AuthContext';
-import AccountSelector from '../components/AccountSelector';
 import ContentTab from '../components/content/ContentTab';
 import GeneralTab from '../components/content/GeneralTab';
 import ErrorBanner from '../components/ErrorBanner';
@@ -147,12 +146,11 @@ export default function NodeEditor() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!accountId) return;
     const load = async () => {
       if (!id || id === 'new') return;
 
       try {
-        const n = await getNode(accountId, id);
+        const n = await getNode(accountId || '', id);
 
         const normalizedCover = resolveAssetUrl(normalizeCoverUrl(n));
         const normalizedTags = normalizeTags((n as any).tags);
@@ -208,7 +206,7 @@ export default function NodeEditor() {
     void load();
   }, [id, accountId]);
 
-  if (!accountId) {
+  if (false && !accountId) {
     return (
       <div className="p-4">
         <p className="mb-4">Выберите аккаунт, чтобы создать контент</p>
@@ -218,7 +216,7 @@ export default function NodeEditor() {
   }
 
   if (id === 'new') {
-    return <NodeCreate accountId={accountId} nodeType="article" />;
+    return <NodeCreate accountId={accountId || ''} nodeType="article" />;
   }
 
   if (loading) {
@@ -237,7 +235,7 @@ export default function NodeEditor() {
   }
   if (!node) return null;
 
-  return <NodeEditorInner initialNode={node} accountId={accountId} />;
+  return <NodeEditorInner initialNode={node} accountId={accountId || ''} />;
 }
 
 function NodeCreate({ accountId, nodeType }: { accountId: string; nodeType: string }) {

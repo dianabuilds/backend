@@ -57,9 +57,9 @@ export default function PublishControls({ accountId, nodeId, disabled, onChanged
   const qc = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery<PublishInfo>({
-    queryKey: ['publish-info', accountId, nodeId],
-    queryFn: () => getPublishInfo(accountId, nodeId),
-    enabled: !!accountId && Number.isFinite(nodeId),
+    queryKey: ['publish-info', accountId || 'default', nodeId],
+    queryFn: () => getPublishInfo(accountId || '', nodeId),
+    enabled: Number.isFinite(nodeId),
   });
 
   const [access, setAccess] = useState<AccessMode>('everyone');
@@ -83,10 +83,10 @@ export default function PublishControls({ accountId, nodeId, disabled, onChanged
   }, [data]);
 
   const mPublish = useMutation({
-    mutationFn: () => publishNow(accountId, nodeId, access),
+    mutationFn: () => publishNow(accountId || '', nodeId, access),
     onSuccess: async () => {
       addToast({ title: 'Опубликовано', variant: 'success' });
-      await qc.invalidateQueries({ queryKey: ['publish-info', accountId, nodeId] });
+      await qc.invalidateQueries({ queryKey: ['publish-info', accountId || 'default', nodeId] });
       onChanged?.();
     },
     onError: (e: unknown) => {
@@ -96,10 +96,10 @@ export default function PublishControls({ accountId, nodeId, disabled, onChanged
   });
 
   const mSchedule = useMutation({
-    mutationFn: () => schedulePublish(accountId, nodeId, toUTCISOFromLocal(when), access),
+    mutationFn: () => schedulePublish(accountId || '', nodeId, toUTCISOFromLocal(when), access),
     onSuccess: async () => {
       addToast({ title: 'Публикация запланирована', variant: 'success' });
-      await qc.invalidateQueries({ queryKey: ['publish-info', accountId, nodeId] });
+      await qc.invalidateQueries({ queryKey: ['publish-info', accountId || 'default', nodeId] });
       onChanged?.();
     },
     onError: (e: unknown) => {
@@ -109,10 +109,10 @@ export default function PublishControls({ accountId, nodeId, disabled, onChanged
   });
 
   const mCancel = useMutation({
-    mutationFn: () => cancelScheduledPublish(accountId, nodeId),
+    mutationFn: () => cancelScheduledPublish(accountId || '', nodeId),
     onSuccess: async () => {
       addToast({ title: 'Расписание отменено', variant: 'success' });
-      await qc.invalidateQueries({ queryKey: ['publish-info', accountId, nodeId] });
+      await qc.invalidateQueries({ queryKey: ['publish-info', accountId || 'default', nodeId] });
       onChanged?.();
     },
     onError: (e: unknown) => {
@@ -122,7 +122,7 @@ export default function PublishControls({ accountId, nodeId, disabled, onChanged
   });
 
   const mUnpublish = useMutation({
-    mutationFn: () => patchNode(accountId, nodeId, { isPublic: false }),
+    mutationFn: () => patchNode(accountId || '', nodeId, { isPublic: false }),
     onSuccess: async () => {
       addToast({ title: 'Снято с публикации', variant: 'success' });
       await qc.invalidateQueries({ queryKey: ['publish-info', accountId, nodeId] });

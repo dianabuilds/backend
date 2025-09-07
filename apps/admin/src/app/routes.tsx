@@ -38,6 +38,7 @@ const Worlds = lazy(() => import("../pages/Worlds"));
 const AISettings = lazy(() => import("../pages/AISettings"));
 const AISystemSettings = lazy(() => import("../pages/AISystemSettings"));
 const Achievements = lazy(() => import("../pages/Achievements"));
+const Referrals = lazy(() => import("../pages/Referrals"));
 const Accounts = lazy(() => import("../pages/Accounts"));
 const AccountSettings = lazy(() => import("../pages/AccountSettings"));
 const Profile = lazy(() => import("../pages/Profile"));
@@ -125,6 +126,7 @@ const protectedChildren: RouteObject[] = [
   { path: "ai/settings", element: <AISettings /> },
   { path: "ai/system", element: <AISystemSettings /> },
   { path: "achievements", element: <Achievements /> },
+  { path: "referrals", element: <Referrals /> },
   { path: "accounts", element: <Accounts /> },
   { path: "accounts/:id", element: <AccountSettings /> },
   { path: "profile", element: <Profile /> },

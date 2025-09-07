@@ -29,10 +29,10 @@ class NodeRepository(INodeRepository):
         self._db = db
         self._hex_re = re.compile(r"[a-f0-9]{16}")
 
-    async def _unique_slug(
+    async def _unique_slug_for_author(
         self,
         base: str,
-        account_id: int,
+        author_id: UUID,
         *,
         skip_id: int | None = None,
     ) -> str:
@@ -42,7 +42,7 @@ class NodeRepository(INodeRepository):
             text = slug_base if idx == 0 else f"{slug_base}-{idx}"
             candidate = hashlib.sha256(text.encode()).hexdigest()[:16]
             res = await self._db.execute(
-                select(Node).where(Node.slug == candidate, Node.account_id == account_id)
+                select(Node).where(Node.slug == candidate, Node.author_id == author_id)
             )
             existing = res.scalar_one_or_none()
             if not existing or existing.id == skip_id:
@@ -56,6 +56,15 @@ class NodeRepository(INodeRepository):
             select(Node)
             .options(selectinload(Node.tags))
             .where(Node.slug == slug, Node.account_id == account_id)
+        )
+        res = await self._db.execute(query)
+        return res.scalar_one_or_none()
+
+    async def get_by_slug_for_author(self, slug: str, author_id: UUID) -> Node | None:
+        query = (
+            select(Node)
+            .options(selectinload(Node.tags))
+            .where(Node.slug == slug, Node.author_id == author_id)
         )
         res = await self._db.execute(query)
         return res.scalar_one_or_none()
@@ -79,19 +88,24 @@ class NodeRepository(INodeRepository):
         res = await self._db.execute(query)
         return res.scalar_one_or_none()
 
+    async def get_by_id_simple(self, node_id: int) -> Node | None:
+        query = select(Node).options(selectinload(Node.tags)).where(Node.id == node_id)
+        res = await self._db.execute(query)
+        return res.scalar_one_or_none()
+
     # ------------------------------------------------------------------
     # Mutating operations
     async def create(self, payload: NodeCreate, author_id: UUID, account_id: int) -> Node:
         candidate = (payload.slug or "").strip().lower()
         if candidate and self._hex_re.fullmatch(candidate):
             res = await self._db.execute(
-                select(Node).where(Node.slug == candidate, Node.account_id == account_id)
+                select(Node).where(Node.slug == candidate, Node.author_id == author_id)
             )
             if res.scalar_one_or_none():
-                candidate = await self._unique_slug(candidate, account_id)
+                candidate = await self._unique_slug_for_author(candidate, author_id)
         else:
             base = candidate or (payload.title or "node")
-            candidate = await self._unique_slug(base, account_id)
+            candidate = await self._unique_slug_for_author(base, author_id)
 
         node = Node(
             title=payload.title,
@@ -110,7 +124,44 @@ class NodeRepository(INodeRepository):
         self._db.add(node)
         await self._db.flush()
         await self._db.commit()
-        loaded = await self.get_by_id(node.id, account_id)
+        loaded = await self.get_by_id_simple(node.id)
+        return loaded  # type: ignore[return-value]
+
+    async def create_personal(self, payload: NodeCreate, author_id: UUID) -> Node:
+        """Create a node that is scoped to the author's profile (no account).
+
+        During the transition away from workspaces/accounts, ``account_id`` is left
+        NULL and slug uniqueness is enforced per-author.
+        """
+        candidate = (payload.slug or "").strip().lower()
+        if candidate and self._hex_re.fullmatch(candidate):
+            res = await self._db.execute(
+                select(Node).where(Node.slug == candidate, Node.author_id == author_id)
+            )
+            if res.scalar_one_or_none():
+                candidate = await self._unique_slug_for_author(candidate, author_id)
+        else:
+            base = candidate or (payload.title or "node")
+            candidate = await self._unique_slug_for_author(base, author_id)
+
+        node = Node(
+            title=payload.title,
+            slug=candidate,
+            author_id=author_id,
+            account_id=None,
+            is_visible=payload.is_visible,
+            meta=payload.meta or {},
+            premium_only=payload.premium_only or False,
+            nft_required=payload.nft_required,
+            ai_generated=payload.ai_generated or False,
+            allow_feedback=payload.allow_feedback,
+            is_recommendable=payload.is_recommendable,
+            created_by_user_id=author_id,
+        )
+        self._db.add(node)
+        await self._db.flush()
+        await self._db.commit()
+        loaded = await self.get_by_id_simple(node.id)
         return loaded  # type: ignore[return-value]
 
     async def update(self, node: Node, payload: NodeUpdate, actor_id: UUID) -> Node:
@@ -155,7 +206,7 @@ class NodeRepository(INodeRepository):
         )
         self._db.add(snapshot)
         await self._db.commit()
-        loaded = await self.get_by_id(node.id, node.account_id)
+        loaded = await self.get_by_id_simple(node.id)
         return loaded  # type: ignore[return-value]
 
     async def rollback(self, node: Node, version: int, actor_id: UUID) -> Node:
@@ -180,7 +231,7 @@ class NodeRepository(INodeRepository):
         )
         self._db.add(new_snap)
         await self._db.commit()
-        loaded = await self.get_by_id(node.id, node.account_id)
+        loaded = await self.get_by_id_simple(node.id)
         return loaded  # type: ignore[return-value]
 
     async def delete(self, node: Node) -> None:
@@ -198,13 +249,13 @@ class NodeRepository(INodeRepository):
     async def list_by_author(
         self,
         author_id: UUID,
-        account_id: int,
+        *,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Node]:
         query = (
             select(Node)
-            .where(Node.author_id == author_id, Node.account_id == account_id)
+            .where(Node.author_id == author_id)
             .order_by(Node.created_at.desc())
             .offset(offset)
             .limit(limit)
@@ -213,14 +264,14 @@ class NodeRepository(INodeRepository):
         return list(res.scalars().all())
 
     async def bulk_set_visibility(
-        self, node_ids: list[int], is_visible: bool, account_id: int
+        self, node_ids: list[int], is_visible: bool
     ) -> int:
         if not node_ids:
             return 0
         count = 0
         for nid in node_ids:
             n = await self._db.get(Node, nid)
-            if n is None or n.account_id != account_id:
+            if n is None:
                 continue
             n.is_visible = bool(is_visible)
             count += 1

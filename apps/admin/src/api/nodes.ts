@@ -1,6 +1,6 @@
 import {AdminService, type NodeOut, type PublishIn, type Status} from '../openapi';
 import {accountApi} from './accountApi';
-import type {ApiResponse} from './client';
+import { api, type ApiResponse } from './client';
 
 // The admin nodes list endpoint returns additional metadata compared to the
 // public NodeOut model. In particular it includes the `status` of each item.
@@ -68,6 +68,32 @@ export async function listNodes(
     accountId: string,
     params: NodeListParams = {},
 ): Promise<AdminNodeItem[]> {
+    // Profile-centric path: no account → use personal nodes API
+    if (!accountId) {
+        const res = await api.get<NodeOut[]>(`/users/me/nodes`);
+        const data = (Array.isArray(res.data) ? res.data : []) as RawAdminNodeItem[];
+        return data.map(({ created_at, updated_at, createdAt, updatedAt, ...rest }) => ({
+            status: (rest as any).status ?? 'draft',
+            nodeId: (rest as any).nodeId ?? (rest as any).id,
+            space: undefined,
+            ...rest,
+            createdAt: createdAt ?? created_at ?? '',
+            updatedAt: updatedAt ?? updated_at ?? '',
+        })) as AdminNodeItem[];
+    }
+    try {
+        const fromUrl = new URLSearchParams(window.location.search);
+        if (!params.scope_mode) {
+            const scope = fromUrl.get('scope');
+            if (scope) params.scope_mode = scope;
+        }
+        if (!params.author) {
+            const author = fromUrl.get('author');
+            if (author) params.author = author;
+        }
+    } catch {
+        // ignore in non-browser contexts
+    }
     // Собираем query для cacheKey (те же параметры уйдут в accountApi через opts.params)
     // Собираем QS один раз
     const qs = new URLSearchParams();
@@ -105,20 +131,18 @@ export async function listNodes(
         return data;
     };
 
-    // Единственный актуальный маршрут: /admin/accounts/{ws}/nodes
-    const url = `/admin/accounts/${encodeURIComponent(
-        accountId,
-    )}/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
+    // Per-account route retained for legacy/admin screens
+    const url = `/admin/accounts/${encodeURIComponent(accountId)}/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
     return await getWithCache(url);
 }
 
 export async function createNode(accountId: string): Promise<NodeOut> {
-    const res = await accountApi.post<undefined, NodeOut>(
-        `/admin/accounts/${encodeURIComponent(accountId)}/nodes`,
-        undefined,
-        { accountId, account: false },
-    );
-    return res;
+    if (!accountId) {
+        const res = await api.post<NodeOut>(`/users/me/nodes`, {});
+        return res.data as NodeOut;
+    }
+    const url = `/admin/accounts/${encodeURIComponent(accountId)}/nodes`;
+    return await accountApi.post<undefined, NodeOut>(url, undefined, { accountId, account: false });
 }
 
 export interface NodeResponse extends NodeOut {
@@ -129,11 +153,15 @@ export interface NodeResponse extends NodeOut {
 
 export async function getNode(accountId: string, id: number): Promise<NodeResponse> {
     try {
-        const res = await AdminService.getNodeByIdAdminAccountsAccountIdNodesNodeIdGet(
-            id,
-            accountId,
-        );
-        return res as NodeResponse;
+        if (accountId) {
+            const res = await AdminService.getNodeByIdAdminAccountsAccountIdNodesNodeIdGet(
+                id,
+                accountId,
+            );
+            return res as NodeResponse;
+        }
+        const res = await api.get<NodeResponse>(`/users/me/nodes/${encodeURIComponent(String(id))}`);
+        return res.data as NodeResponse;
     } catch (e: unknown) {
         const status =
             (e as { status?: number; response?: { status?: number } }).status ??
@@ -143,16 +171,22 @@ export async function getNode(accountId: string, id: number): Promise<NodeRespon
             const res = await AdminService.getGlobalNodeByIdAdminNodesNodeIdGet(id);
             return res as NodeResponse;
         }
-        await AdminService.replaceNodeByIdAdminAccountsAccountIdNodesNodeIdPut(
-            id,
-            accountId,
-            {},
-        );
-        const res = await AdminService.getNodeByIdAdminAccountsAccountIdNodesNodeIdGet(
-            id,
-            accountId,
-        );
-        return res as NodeResponse;
+        if (accountId) {
+            await AdminService.replaceNodeByIdAdminAccountsAccountIdNodesNodeIdPut(
+                id,
+                accountId,
+                {},
+            );
+            const res = await AdminService.getNodeByIdAdminAccountsAccountIdNodesNodeIdGet(
+                id,
+                accountId,
+            );
+            return res as NodeResponse;
+        }
+        // No more alias path without account; fall back to 404
+        const err = new Error('Not Found') as Error & { response?: { status: number } };
+        err.response = { status: 404 };
+        throw err;
     }
 }
 
@@ -163,14 +197,21 @@ export async function patchNode(
     opts: { signal?: AbortSignal; next?: boolean } = {},
 ): Promise<NodeResponse> {
     const body: Record<string, unknown> = { ...patch };
-
-    const res = await AdminService.updateNodeByIdAdminAccountsAccountIdNodesNodeIdPatch(
-        id,
-        accountId,
+    if (accountId) {
+        const res = await AdminService.updateNodeByIdAdminAccountsAccountIdNodesNodeIdPatch(
+            id,
+            accountId,
+            body,
+            opts.next === false ? undefined : 1,
+        );
+        return res as NodeResponse;
+    }
+    const res = await api.patch<NodeResponse>(
+        `/users/me/nodes/${encodeURIComponent(String(id))}`,
         body,
-        opts.next === false ? undefined : 1,
+        { signal: opts.signal },
     );
-    return res as NodeResponse;
+    return res.data as NodeResponse;
 }
 
 export async function publishNode(
@@ -178,12 +219,20 @@ export async function publishNode(
     id: number,
     body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
-    const res = await AdminService.publishNodeByIdAdminAccountsAccountIdNodesNodeIdPublishPost(
-        id,
-        accountId,
+    if (accountId) {
+        const res = await AdminService.publishNodeByIdAdminAccountsAccountIdNodesNodeIdPublishPost(
+            id,
+            accountId,
+            body,
+        );
+        return res as NodeOut;
+    }
+    const res = await accountApi.post<typeof body, NodeOut>(
+        `/admin/nodes/${encodeURIComponent(String(id))}/publish`,
         body,
+        { accountId: "", account: false },
     );
-    return res as NodeOut;
+    return res;
 }
 
 export async function archiveNode(accountId: string, id: number): Promise<void> {

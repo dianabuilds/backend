@@ -18,7 +18,9 @@ class Account(Base):
     slug = sa.Column(sa.String, nullable=False, unique=True, index=True)
     owner_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=False, index=True)
     settings_json = sa.Column(JSONB, nullable=False, server_default=sa.text("'{}'"))
+    # Column name in DB historically is 'type'; map it to attribute 'kind'
     kind = sa.Column(
+        "type",
         sa.Enum(
             AccountKind,
             name="account_kind",

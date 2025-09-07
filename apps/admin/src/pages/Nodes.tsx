@@ -51,7 +51,9 @@ export default function Nodes() {
   const { accountId } = useAccount();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [scopeMode, setScopeMode] = useState('member');
+  const [scopeMode, setScopeMode] = useState(() => searchParams.get('scope') || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('account_id') ? 'member' : 'mine'));
+  const [authorTab, setAuthorTab] = useState(false);
+  const [authorId, setAuthorId] = useState('');
   const [roles, setRoles] = useState<string[]>([]);
 
   const copySlug = (slug: string) => {
@@ -60,18 +62,7 @@ export default function Nodes() {
     }
   };
 
-  if (!accountId) {
-    return (
-      <div className="p-4">
-        <ScopeControls
-          scopeMode={scopeMode}
-          onScopeModeChange={setScopeMode}
-          roles={roles}
-          onRolesChange={setRoles}
-        />
-      </div>
-    );
-  }
+  // accountId optional — при отсутствии используем алиасы и показываем список
 
   // Пагинация/поиск
   const [q, setQ] = useState(() => searchParams.get('q') || '');
@@ -117,6 +108,8 @@ export default function Nodes() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
+    if (scopeMode) params.set('scope', scopeMode);
+    if (authorTab && authorId) params.set('author', authorId);
     if (status !== 'all') params.set('status', status);
     if (visibility !== 'all') params.set('visible', visibility === 'visible' ? 'true' : 'false');
     if (isPublic !== 'all') params.set('is_public', isPublic);
@@ -129,6 +122,9 @@ export default function Nodes() {
     }
   }, [
     q,
+    scopeMode,
+    authorTab,
+    authorId,
     status,
     visibility,
     isPublic,
@@ -268,7 +264,7 @@ export default function Nodes() {
       const res = await listNodes(accountId, params);
       return ensureArray<NodeItem>(res);
     },
-    enabled: !!accountId,
+    enabled: true,
     placeholderData: (prev) => prev,
     onError: (e) => {
       const msg = e instanceof Error ? e.message : String(e);
@@ -359,13 +355,13 @@ export default function Nodes() {
     const results: string[] = [];
     try {
       for (const { ids, changes } of groups.values()) {
+        const bulkUrl = accountId
+          ? `/admin/accounts/${encodeURIComponent(accountId)}/nodes/bulk`
+          : `/admin/nodes/bulk`;
         await accountApi.patch(
-          `/admin/accounts/${encodeURIComponent(accountId)}/nodes/bulk`,
-          {
-            ids,
-            changes,
-          },
-          { accountId, account: false },
+          bulkUrl,
+          { ids, changes },
+          { accountId: accountId || "", account: false },
         );
         results.push(`${Object.keys(changes).join(',')}: ${ids.length}`);
       }
@@ -434,9 +430,12 @@ export default function Nodes() {
     if (!(await confirmWithEnv(`Удалить ${ids.length} нод${ids.length === 1 ? 'у' : 'ы'}?`))) return;
     try {
       for (const id of ids) {
+        const delUrl = accountId
+          ? `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(id)}`
+          : `/admin/nodes/${encodeURIComponent(id)}`;
         await accountApi.delete(
-          `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(id)}`,
-          { accountId, account: false },
+          delUrl,
+          { accountId: accountId || "", account: false },
         );
       }
       setItems((prev) => prev.filter((n) => !selected.has(n.id)));
@@ -490,7 +489,68 @@ export default function Nodes() {
   return (
     <div className="flex gap-6">
       <div className="flex-1">
-        <h1 className="text-2xl font-bold mb-4">Ноды</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold">Ноды</h1>
+          <Button
+            type="button"
+            onClick={() => {
+              const qs = accountId ? `?account_id=${accountId}` : '';
+              navigate(`/nodes/article/new${qs}`);
+            }}
+          >
+            Создать
+          </Button>
+        </div>
+
+        {/* Quick scope filter */}
+        <div className="flex items-center gap-2 mb-2">
+          <Button
+            type="button"
+            variant={scopeMode === 'member' && !authorTab ? undefined : 'outline'}
+            onClick={() => {
+              setAuthorTab(false);
+              setScopeMode('member');
+              setPage(0);
+            }}
+          >
+            Все
+          </Button>
+          <Button
+            type="button"
+            variant={scopeMode === 'mine' && !authorTab ? undefined : 'outline'}
+            onClick={() => {
+              setAuthorTab(false);
+              setScopeMode('mine');
+              setPage(0);
+            }}
+          >
+            Мои
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant={authorTab ? undefined : 'outline'}
+              onClick={() => {
+                setAuthorTab(true);
+                setScopeMode('member');
+                setPage(0);
+              }}
+            >
+              Автор
+            </Button>
+            {authorTab && (
+              <input
+                className="border rounded px-2 py-1 text-sm"
+                placeholder="UUID автора"
+                value={authorId}
+                onChange={(e) => {
+                  setAuthorId(e.target.value);
+                  setPage(0);
+                }}
+              />
+            )}
+          </div>
+        </div>
 
         <ScopeControls
           scopeMode={scopeMode}

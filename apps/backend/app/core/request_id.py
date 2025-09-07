@@ -7,13 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.core.log_filters import (
-    account_id_var,
-    ip_var,
-    request_id_var,
-    ua_var,
-    workspace_id_var,
-)
+from app.core.log_filters import account_id_var, ip_var, request_id_var, ua_var, workspace_id_var
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +22,18 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         token = request_id_var.set(request_id)
         ip_var.set(request.client.host if request.client else None)
         ua_var.set(request.headers.get("user-agent"))
-        workspace_id = request.query_params.get("workspace_id")
-        if not workspace_id and hasattr(request.state, "preview_token"):
-            workspace_id = request.state.preview_token.get("workspace_id")
-        workspace_token = workspace_id_var.set(workspace_id)
-        account_token = account_id_var.set(workspace_id)
+        # Prefer explicit account_id; keep preview token fallback for legacy preview flows
+        account_id = request.query_params.get("account_id")
+        if not account_id and hasattr(request.state, "preview_token"):
+            account_id = request.state.preview_token.get("workspace_id")
+        # Store in request state for downstream handlers
+        try:
+            request.state.account_id = account_id
+        except Exception:
+            pass
+        # For backward-compatible logs, mirror the same value to workspace_id_var
+        workspace_token = workspace_id_var.set(account_id)
+        account_token = account_id_var.set(account_id)
         try:
             response: Response = await call_next(request)
         finally:

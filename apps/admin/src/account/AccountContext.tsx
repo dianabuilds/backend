@@ -55,42 +55,9 @@ export function AccountBranchProvider({ children }: { children: ReactNode }) {
     updateUrl(accountId);
   }, [accountId]);
 
+  // In profile-centric mode, do not auto-select any workspace/account.
   useEffect(() => {
-    if (accountId) return;
-    (async () => {
-      try {
-        const me = await api.get<{ default_account_id: string | null }>(
-          "/users/me",
-        );
-        const defId = me.data?.default_account_id;
-        if (defId) {
-          setAccountIdState(defId);
-          persistAccountId(defId);
-          updateUrl(defId);
-          return;
-        }
-      } catch {
-        // ignore
-      }
-      try {
-        const res = await api.get<Account[] | { accounts: Account[] }>(
-          "/accounts",
-        );
-        const payload = Array.isArray(res.data)
-          ? res.data
-          : res.data?.accounts || [];
-        const globalWs = payload.find(
-          (ws) => ws.type === "global" || ws.slug === "global",
-        );
-        if (globalWs) {
-          setAccountIdState(globalWs.id);
-          persistAccountId(globalWs.id);
-          updateUrl(globalWs.id);
-        }
-      } catch {
-        // ignore
-      }
-    })();
+    // Intentionally left blank: keep accountId empty to use personal scope.
   }, [accountId]);
 
   return (

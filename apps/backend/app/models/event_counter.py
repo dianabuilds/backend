@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import Column, ForeignKey, Integer, String
+import sqlalchemy as sa
 
 from app.providers.db.base import Base
 
@@ -12,7 +13,7 @@ class UserEventCounter(Base):
 
     __tablename__ = "user_event_counters"
 
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), primary_key=True, index=True)
+    account_id = Column(sa.BigInteger, ForeignKey("accounts.id"), primary_key=True, index=True)
     user_id = Column(UUID(), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     event = Column(String, primary_key=True)
     count = Column(Integer, default=0, nullable=False)

@@ -15,10 +15,10 @@ export default function NodePreview() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!accountId || !id) return;
+    if (!id) return;
     (async () => {
       try {
-        const n = await getNode(accountId, id);
+        const n = await getNode(accountId || '', id);
         const blocks = Array.isArray((n.content as any)?.blocks) ? (n.content as any).blocks : [];
         setDoc({
           title: n.title || '',
@@ -34,8 +34,6 @@ export default function NodePreview() {
       }
     })();
   }, [accountId, type, id]);
-
-  if (!accountId) return <div>Account not selected</div>;
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
   if (!doc) return <div>No data</div>;

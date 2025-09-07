@@ -9,6 +9,7 @@ class FeatureFlags(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="FF_", case_sensitive=False)
 
     profile_enabled: bool = True
+    referrals_program: bool = False
     routing_accounts_v2: bool = False
 
 

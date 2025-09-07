@@ -31,9 +31,9 @@ export default function NodeDiff() {
   const nodeId = Number(id);
 
   useEffect(() => {
-    if (!Number.isInteger(nodeId) || !accountId) return;
+    if (!Number.isInteger(nodeId)) return;
     (async () => {
-      const node = await getNode(accountId, nodeId);
+      const node = await getNode(accountId || '', nodeId);
       const localRaw = localStorage.getItem(`node-draft-${nodeId}`);
       const localData = localRaw ? JSON.parse(localRaw) : null;
       const remoteData = {
@@ -47,7 +47,7 @@ export default function NodeDiff() {
     })();
   }, [nodeId, accountId]);
 
-  if (!Number.isInteger(nodeId) || !accountId) {
+  if (!Number.isInteger(nodeId)) {
     return <div className="p-4">Invalid id</div>;
   }
 

@@ -86,6 +86,14 @@ BASE_MENU: list[dict] = [
                 "icon": "achievements",
                 "order": 6,
             },
+            {
+                "id": "referrals",
+                "label": "Referrals",
+                "path": "/referrals",
+                "icon": "users",
+                "order": 7,
+                "featureFlag": "referrals.program",
+            },
         ],
     },
     {

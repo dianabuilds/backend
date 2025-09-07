@@ -119,6 +119,8 @@ def register_domain_routers(app: FastAPI) -> None:
 
         app.include_router(media_router)
         app.include_router(media_router, prefix="/accounts/{account_id}")
+        # New profiles prefix (accepts {profile_id} as path param)
+        app.include_router(media_router, prefix="/profiles/{profile_id}")
     except Exception as exc:
         logger.exception("Failed to load media router. Startup aborted")
         raise RuntimeError("Failed to load media router") from exc
@@ -131,6 +133,15 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load achievements router. Startup aborted")
         raise RuntimeError("Failed to load achievements router") from exc
+
+    # Referrals
+    try:
+        from app.domains.referrals.api.routers import router as referrals_router
+
+        app.include_router(referrals_router)
+    except Exception as exc:
+        logger.exception("Failed to load referrals router. Startup aborted")
+        raise RuntimeError("Failed to load referrals router") from exc
 
     # Navigation
     try:
@@ -173,9 +184,14 @@ def register_domain_routers(app: FastAPI) -> None:
     # Nodes
     try:
         from app.domains.nodes.api.nodes_router import router as nodes_router
+        from app.domains.nodes.api.my_nodes_router import router as my_nodes_router
 
         app.include_router(nodes_router)
         app.include_router(nodes_router, prefix="/accounts/{account_id}")
+        # New profiles prefix (accepts {profile_id} as path param)
+        app.include_router(nodes_router, prefix="/profiles/{profile_id}")
+        # Profile-centric endpoints
+        app.include_router(my_nodes_router)
     except Exception as exc:
         logger.exception("Failed to load nodes router. Startup aborted")
         raise RuntimeError("Failed to load nodes router") from exc
@@ -188,6 +204,17 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load tags router. Startup aborted")
         raise RuntimeError("Failed to load tags router") from exc
+
+    # Profiles (aliases for Accounts during transition)
+    try:
+        from app.domains.profiles.api import user_router as profiles_user_router
+        from app.domains.profiles.api import router as profiles_admin_router
+
+        app.include_router(profiles_user_router)
+        app.include_router(profiles_admin_router)
+    except Exception as exc:
+        logger.exception("Failed to load profiles router. Startup aborted")
+        raise RuntimeError("Failed to load profiles router") from exc
 
     # Search
     try:
@@ -287,6 +314,16 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load admin nodes content router. Startup aborted")
         raise RuntimeError("Failed to load admin nodes content router") from exc
+    # Admin nodes alias (default_account_id)
+    try:
+        from app.domains.nodes.api.admin_nodes_alias_router import (
+            router as admin_nodes_alias_router,
+        )
+
+        app.include_router(admin_nodes_alias_router)
+    except Exception as exc:
+        logger.exception("Failed to load admin nodes alias router. Startup aborted")
+        raise RuntimeError("Failed to load admin nodes alias router") from exc
     # Admin articles (isolated nodes)
     try:
         from app.domains.nodes.api.articles_admin_router import (
@@ -445,14 +482,7 @@ def register_domain_routers(app: FastAPI) -> None:
         logger.exception("Failed to load admin search router. Startup aborted")
         raise RuntimeError("Failed to load admin search router") from exc
 
-    # Workspaces
-    try:
-        from app.domains.workspaces.api import router as workspaces_router
-
-        app.include_router(workspaces_router)
-    except Exception as exc:
-        logger.exception("Failed to load workspaces router. Startup aborted")
-        raise RuntimeError("Failed to load workspaces router") from exc
+    # Workspaces removed: routes no longer included
 
     # Worlds
     try:

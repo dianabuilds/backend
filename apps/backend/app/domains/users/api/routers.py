@@ -15,7 +15,12 @@ from app.domains.users.infrastructure.repositories.user_profile_repository impor
     UserProfileRepository,
 )
 from app.domains.users.infrastructure.repositories.user_repository import UserRepository
-from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO
+# Workspaces module is optional in this build; import lazily where needed
+try:  # pragma: no cover - optional dependency
+    from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO  # type: ignore
+except Exception:  # pragma: no cover
+    WorkspaceDAO = None  # type: ignore
+    WorkspaceMemberDAO = None  # type: ignore
 from app.providers.db.session import get_db
 from app.schemas.user import (
     UserDefaultWorkspaceUpdate,
@@ -131,7 +136,8 @@ async def set_default_workspace(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> User:
     workspace_id = payload.default_workspace_id
-    if workspace_id is not None:
+    # If workspaces module present, perform validation; otherwise accept value as-is
+    if workspace_id is not None and WorkspaceDAO is not None and WorkspaceMemberDAO is not None:
         workspace = await WorkspaceDAO.get(db, workspace_id)
         if not workspace:
             raise HTTPException(status_code=404, detail="Workspace not found")

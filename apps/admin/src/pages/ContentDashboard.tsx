@@ -47,8 +47,8 @@ export default function ContentDashboard() {
     refetch,
     isLoading,
   } = useQuery<NodeItem[]>({
-    queryKey: ["content", "dashboard", "nodes", accountId],
-    queryFn: async () => (accountId ? await listNodes(accountId) : []),
+    queryKey: ["content", "dashboard", "nodes", accountId || 'default'],
+    queryFn: async () => await listNodes(accountId || ''),
   });
 
   const { data: tags = [] } = useQuery<{ id: string }[]>({

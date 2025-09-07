@@ -30,7 +30,10 @@ class NodeQueryService:
         *,
         scope_mode: str | None = None,
         account_id: int | None = None,
+        space_id: int | None = None,
     ) -> str:
+        if account_id is None:
+            account_id = space_id
         base = select(func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at)).join(
             NodeItem,
             and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
@@ -91,7 +94,10 @@ class NodeQueryService:
         *,
         scope_mode: str | None = None,
         account_id: int | None = None,
+        space_id: int | None = None,
     ) -> list[Node]:
+        if account_id is None:
+            account_id = space_id
         stmt = select(Node).join(
             NodeItem,
             and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
@@ -111,8 +117,7 @@ class NodeQueryService:
             clauses.append(Node.is_recommendable == bool(spec.recommendable))
         if spec.author_id is not None:
             clauses.append(Node.author_id == spec.author_id)
-        if spec.account_id is not None:
-            clauses.append(Node.account_id == spec.account_id)
+        # account_id filter is deprecated in profile-centric mode
         if spec.status is not None:
             clauses.append(Node.status == spec.status)
         if spec.created_from:

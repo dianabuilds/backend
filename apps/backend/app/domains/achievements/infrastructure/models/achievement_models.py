@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+import sqlalchemy as sa
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
 
@@ -25,7 +26,7 @@ class Achievement(Base):
     __tablename__ = "achievements"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    account_id = Column(sa.BigInteger, ForeignKey("accounts.id"), nullable=True, index=True)
     code = Column(String, unique=True, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
@@ -56,7 +57,7 @@ class UserAchievement(Base):
     achievement_id = Column(
         UUID(), ForeignKey("achievements.id", ondelete="CASCADE"), primary_key=True
     )
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    account_id = Column(sa.BigInteger, ForeignKey("accounts.id"), nullable=True, index=True)
     unlocked_at = Column(DateTime, default=datetime.utcnow)
 
     achievement = relationship("Achievement", back_populates="users")

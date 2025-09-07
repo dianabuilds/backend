@@ -23,6 +23,7 @@ class SignupSchema(BaseModel):
     email: EmailStr
     password: str
     username: str
+    referral_code: str | None = None
 
     @field_validator("username")
     @classmethod

@@ -174,16 +174,18 @@ async def auth_user(
 
 
 def _load_workspace_security() -> None:
-    """Load workspace-related security helpers lazily to avoid circular imports.
+    """Provide workspace-like security helpers using accounts domain.
 
-    If the workspaces module is absent, provide no-op placeholders so that
-    imports continue to work without workspace support."""
+    The codebase historically imported workspace guards (require_ws_*). We now
+    alias these to the equivalent account guards so callers don't need to change.
+    If accounts service is unavailable for any reason, fall back to no-ops.
+    """
     try:  # pragma: no cover - optional dependency
-        from app.domains.workspaces.application.service import (
-            require_ws_editor,
-            require_ws_guest,
-            require_ws_owner,
-            require_ws_viewer,
+        from app.domains.accounts.application.service import (
+            require_account_editor as require_ws_editor,  # type: ignore
+            require_account_guest as require_ws_guest,  # type: ignore
+            require_account_owner as require_ws_owner,  # type: ignore
+            require_account_viewer as require_ws_viewer,  # type: ignore
         )
     except Exception:  # pragma: no cover
 

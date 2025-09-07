@@ -18,9 +18,18 @@ class FeedbackService:
         self._notifier = notifier
 
     async def list_feedback(
-        self, db: AsyncSession, slug: str, current_user, workspace_id: int
+        self,
+        db: AsyncSession,
+        slug: str,
+        current_user,
+        workspace_id: int | None,
+        *,
+        author_id: UUID | None = None,
     ) -> list[Feedback]:
-        node = await self._repo.get_by_slug(slug, workspace_id)
+        if workspace_id is None:
+            node = await self._repo.get_by_slug_for_author(slug, author_id or current_user.id)
+        else:
+            node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         if not node.allow_feedback and node.author_id != current_user.id:
@@ -37,7 +46,9 @@ class FeedbackService:
         content: dict,
         is_anonymous: bool,
         current_user,
-        workspace_id: int,
+        workspace_id: int | None,
+        *,
+        author_id: UUID | None = None,
     ) -> Feedback:
         if (
             not isinstance(content, dict)
@@ -45,7 +56,10 @@ class FeedbackService:
             or not str(content["text"]).strip()
         ):
             raise HTTPException(status_code=400, detail="Empty feedback")
-        node = await self._repo.get_by_slug(slug, workspace_id)
+        if workspace_id is None:
+            node = await self._repo.get_by_slug_for_author(slug, author_id or current_user.id)
+        else:
+            node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         if not node.allow_feedback:
@@ -96,9 +110,14 @@ class FeedbackService:
         slug: str,
         feedback_id: UUID,
         current_user,
-        workspace_id: int,
+        workspace_id: int | None,
+        *,
+        author_id: UUID | None = None,
     ) -> dict:
-        node = await self._repo.get_by_slug(slug, workspace_id)
+        if workspace_id is None:
+            node = await self._repo.get_by_slug_for_author(slug, author_id or current_user.id)
+        else:
+            node = await self._repo.get_by_slug(slug, workspace_id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         result = await db.execute(

@@ -30,7 +30,7 @@ class AchievementsRepository(IAchievementsRepository):
             select(UserAchievement).where(
                 UserAchievement.user_id == user_id,
                 UserAchievement.achievement_id == achievement_id,
-                UserAchievement.workspace_id == workspace_id,
+                (UserAchievement.account_id == workspace_id),
             )
         )
         return res.scalars().first() is not None
@@ -39,7 +39,7 @@ class AchievementsRepository(IAchievementsRepository):
         res = await self._db.execute(
             select(Achievement).where(
                 Achievement.id == achievement_id,
-                Achievement.workspace_id == workspace_id,
+                (Achievement.account_id == workspace_id),
             )
         )
         return res.scalars().first()
@@ -51,7 +51,7 @@ class AchievementsRepository(IAchievementsRepository):
             UserAchievement(
                 user_id=user_id,
                 achievement_id=achievement_id,
-                workspace_id=workspace_id,
+                account_id=workspace_id,
             )
         )
 
@@ -62,7 +62,7 @@ class AchievementsRepository(IAchievementsRepository):
             select(UserAchievement).where(
                 UserAchievement.user_id == user_id,
                 UserAchievement.achievement_id == achievement_id,
-                UserAchievement.workspace_id == workspace_id,
+                (UserAchievement.account_id == workspace_id),
             )
         )
         ua = res.scalars().first()
@@ -81,7 +81,7 @@ class AchievementsRepository(IAchievementsRepository):
                 (UserAchievement.achievement_id == Achievement.id)
                 & (UserAchievement.user_id == user_id),
             )
-            .where(Achievement.workspace_id == workspace_id)
+            .where(Achievement.account_id == workspace_id)
             .order_by(Achievement.title.asc())
         )
         return list(res.all())
@@ -92,7 +92,7 @@ class AchievementsRepository(IAchievementsRepository):
             select(UserEventCounter).where(
                 UserEventCounter.user_id == user_id,
                 UserEventCounter.event == key,
-                UserEventCounter.workspace_id == workspace_id,
+                UserEventCounter.account_id == workspace_id,
             )
         )
         counter = res.scalars().first()
@@ -113,7 +113,7 @@ class AchievementsRepository(IAchievementsRepository):
             select(UserEventCounter.count).where(
                 UserEventCounter.user_id == user_id,
                 UserEventCounter.event == key,
-                UserEventCounter.workspace_id == workspace_id,
+                UserEventCounter.account_id == workspace_id,
             )
         )
         return int(res.scalar() or 0)
@@ -123,11 +123,11 @@ class AchievementsRepository(IAchievementsRepository):
     ) -> list[Achievement]:
         res = await self._db.execute(
             select(Achievement).where(
-                Achievement.workspace_id == workspace_id,
+                Achievement.account_id == workspace_id,
                 ~Achievement.id.in_(
                     select(UserAchievement.achievement_id).where(
                         UserAchievement.user_id == user_id,
-                        UserAchievement.workspace_id == workspace_id,
+                        UserAchievement.account_id == workspace_id,
                     )
                 ),
             )

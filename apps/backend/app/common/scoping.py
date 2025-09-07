@@ -10,52 +10,23 @@ def apply_scope(
     query: Select,
     user: Any,
     scope_mode: str | None,
-    account_id: int | None,
+    account_id: int | None,  # kept for signature compatibility; ignored
 ) -> tuple[Select, int | None]:
-    """Apply scope filtering to a SQLAlchemy query.
+    """Apply profile-centric scoping to a SQLAlchemy query.
 
-    Parameters
-    ----------
-    query: ``Select``
-        Base SQLAlchemy select query to modify.
-    user: ``Any``
-        Current authenticated user. ``user.id`` and ``user.role`` are used.
-    scope_mode: ``str | None``
-        Scope mode specifying how to filter the query. Supported values:
-        ``mine``, ``member``, ``invited``, ``account:<id>``, ``global``.
-    account_id: ``int | None``
-        Account identifier from request path or context.
-
-    Returns
-    -------
-    tuple
-        Modified query and resolved account identifier (``None`` for global).
+    This replaces legacy workspace/account scoping. Supported modes:
+    - mine: filter by current user's authored content
+    - global: no author filter; visibility is handled by caller
+    Other modes are accepted for compatibility but behave like "mine".
     """
 
-    mode = scope_mode or "member"
+    mode = (scope_mode or "mine").lower()
 
     if mode == "global":
-        if getattr(user, "role", None) != "admin":
-            raise HTTPException(status_code=403, detail="Forbidden")
         return query, None
 
-    if mode.startswith("account:"):
-        try:
-            resolved_account = int(mode.split(":", 1)[1])
-        except ValueError as exc:  # pragma: no cover - defensive
-            raise HTTPException(status_code=400, detail="Invalid scope_mode") from exc
-    else:
-        resolved_account = account_id
-        if resolved_account is None:
-            raise HTTPException(status_code=400, detail="account_id is required")
-
+    # Default: personal scope
     entity = query.column_descriptions[0]["entity"]
-    # Apply account filter
-    if hasattr(entity, "account_id"):
-        query = query.where(entity.account_id == resolved_account)
-
-    # "mine" scope additionally filters by author
-    if mode == "mine" and hasattr(entity, "author_id"):
-        query = query.where(entity.author_id == user.id)
-
-    return query, resolved_account
+    if hasattr(entity, "author_id"):
+        query = query.where(entity.author_id == getattr(user, "id", None))
+    return query, None
