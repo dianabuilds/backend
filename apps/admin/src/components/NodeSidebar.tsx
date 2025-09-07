@@ -326,9 +326,11 @@ export default function NodeSidebar({
               <button type="button" className="underline text-left" onClick={handleHide}>
                 Hide
               </button>
-              <button type="button" className="underline text-left" onClick={handleArchive}>
-                Archive
-              </button>
+              {accountId ? (
+                <button type="button" className="underline text-left" onClick={handleArchive}>
+                  Archive
+                </button>
+              ) : null}
             </div>
           </div>
           <div>
@@ -342,14 +344,16 @@ export default function NodeSidebar({
               </button>
             </div>
           </div>
-          <div className="flex flex-col gap-1">
-            <button type="button" className="underline text-left" onClick={handleDuplicate}>
-              Duplicate
-            </button>
-            <button type="button" className="underline text-left" onClick={handlePreview}>
-              Preview
-            </button>
-          </div>
+          {accountId ? (
+            <div className="flex flex-col gap-1">
+              <button type="button" className="underline text-left" onClick={handleDuplicate}>
+                Duplicate
+              </button>
+              <button type="button" className="underline text-left" onClick={handlePreview}>
+                Preview
+              </button>
+            </div>
+          ) : null}
         </div>
       </details>
       {nodesCover ? (

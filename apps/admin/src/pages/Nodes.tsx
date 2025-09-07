@@ -861,6 +861,23 @@ export default function Nodes() {
 
         {!loading && !errorMsg && (
           <>
+            {!accountId && scopeMode === 'mine' && items.length === 0 ? (
+              <div className="my-4 p-3 border rounded bg-yellow-50 text-sm text-gray-700 dark:bg-yellow-900/20 dark:text-gray-200">
+                Раздел "Мои" пуст. Показать глобальные ноды?
+                <Button
+                  type="button"
+                  className="ml-2 px-2 py-1 border rounded"
+                  onClick={() => {
+                    setScopeMode('global');
+                    const sp = new URLSearchParams(searchParams);
+                    sp.set('scope', 'global');
+                    setSearchParams(sp, { replace: true });
+                  }}
+                >
+                  Переключить на Global
+                </Button>
+              </div>
+            ) : null}
             <div className="overflow-x-auto">
               <Table className="min-w-full text-left">
                 <TableHeader>

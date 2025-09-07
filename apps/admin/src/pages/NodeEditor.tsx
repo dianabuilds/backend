@@ -344,7 +344,7 @@ function NodeEditorInner({
     cover: string | null;
   }>({ title: null, cover: null });
 
-  const { enqueue, saving, pending } = usePatchQueue(async (patch, signal) => {
+  const { enqueue, saving, pending, saveNow } = usePatchQueue(async (patch, signal) => {
     try {
       const updated = await patchNode(
         accountId,
@@ -649,12 +649,19 @@ function NodeEditorInner({
               </button>
             </div>
             {canEdit && (
-              <div className="text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
                 {unsaved
                   ? 'несохранённые изменения'
                   : savedAt
                     ? `сохранено ${savedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                     : null}
+                <button
+                  type="button"
+                  className="ml-2 px-2 py-1 border rounded text-gray-700 dark:text-gray-200"
+                  onClick={() => void saveNow()}
+                >
+                  Сохранить
+                </button>
               </div>
             )}
           </div>

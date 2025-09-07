@@ -10,29 +10,29 @@ from app.domains.navigation.application.ports.cache_port import IKeyValueCache
 
 
 def _k_nav(user_id: str, slug: str, mode: str, account_id: str | None = None) -> str:
+    # account_id is ignored after accounts deprecation; keep param for compatibility
     m = mode or "auto"
-    if account_id is not None:
-        return cache_key("navigation", account_id, slug, user_id, m)
+    return cache_key("navigation", slug, user_id, m)
 
 
 def _k_navm(user_id: str, slug: str, account_id: str | None = None) -> str:
-    if account_id is not None:
-        return cache_key("navigation", account_id, slug, "modes", user_id)
+    # account_id is ignored after accounts deprecation
+    return cache_key("navigation", slug, "modes", user_id)
 
 
 def _k_comp(user_id: str, phash: str, account_id: str | None = None) -> str:
-    if account_id is not None:
-        return cache_key("compass", account_id, user_id, phash)
+    # account_id is ignored after accounts deprecation
+    return cache_key("compass", user_id, phash)
 
 
 def _idx_node_nav(slug: str, account_id: str | None = None) -> str:
-    if account_id is not None:
-        return cache_key("node", account_id, slug, "nav")
+    # account_id is ignored; indexing by node only
+    return cache_key("node", slug, "nav")
 
 
 def _idx_node_navm(slug: str, account_id: str | None = None) -> str:
-    if account_id is not None:
-        return cache_key("node", account_id, slug, "navm")
+    # account_id is ignored; indexing by node only
+    return cache_key("node", slug, "navm")
 
 def _idx_user_nav(uid: str) -> str:
     return cache_key("user", uid, "nav")
@@ -43,8 +43,8 @@ def _idx_user_comp(uid: str) -> str:
 
 
 def _idx_node_comp(slug: str, account_id: str | None = None) -> str:
-    if account_id is not None:
-        return cache_key("node", account_id, slug, "comp")
+    # account_id is ignored; indexing by node only
+    return cache_key("node", slug, "comp")
 
 
 class NavigationCacheService:
@@ -115,17 +115,17 @@ class NavigationCacheService:
     async def invalidate_navigation_by_node(
         self, account_id: UUID | str | int, node_slug: str
     ) -> None:
-        aid = str(account_id)
-        keys = await self._get_set(_idx_node_nav(node_slug, aid))
+        # account_id ignored; invalidate by node only
+        keys = await self._get_set(_idx_node_nav(node_slug))
         count = len(keys)
         if keys:
             await self._cache.delete(*list(keys))
-        await self._del_set_key(_idx_node_nav(node_slug, aid))
-        keys_modes = await self._get_set(_idx_node_navm(node_slug, aid))
+        await self._del_set_key(_idx_node_nav(node_slug))
+        keys_modes = await self._get_set(_idx_node_navm(node_slug))
         count += len(keys_modes)
         if keys_modes:
             await self._cache.delete(*list(keys_modes))
-        await self._del_set_key(_idx_node_navm(node_slug, aid))
+        await self._del_set_key(_idx_node_navm(node_slug))
         if count:
             cache_invalidate("nav", reason="by_node", key=f"{aid}:{node_slug}")
 
@@ -188,13 +188,13 @@ class NavigationCacheService:
         await self._add_to_set(_idx_node_navm(node_slug, aid), key)
 
     async def invalidate_modes_by_node(self, account_id: UUID | str | int, node_slug: str) -> None:
-        aid = str(account_id)
-        keys = await self._get_set(_idx_node_navm(node_slug, aid))
+        # account_id ignored; invalidate by node only
+        keys = await self._get_set(_idx_node_navm(node_slug))
         if keys:
             await self._cache.delete(*list(keys))
-        await self._del_set_key(_idx_node_navm(node_slug, aid))
+        await self._del_set_key(_idx_node_navm(node_slug))
         if keys:
-            cache_invalidate("navm", reason="by_node", key=f"{aid}:{node_slug}")
+            cache_invalidate("navm", reason="by_node", key=f"{node_slug}")
 
     # Compass -----------------------------------------------------------
     async def get_compass(
@@ -240,15 +240,15 @@ class NavigationCacheService:
             cache_invalidate("comp", reason="by_user", key=uid)
 
     async def invalidate_compass_by_node(self, account_id: UUID | str | int, node_slug: str) -> None:
-        aid = str(account_id)
-        idx = _idx_node_comp(node_slug, aid)
+        # account_id ignored; invalidate by node only
+        idx = _idx_node_comp(node_slug)
 
         keys = await self._get_set(idx)
         if keys:
             await self._cache.delete(*list(keys))
         await self._del_set_key(idx)
         if keys:
-            cache_invalidate("comp", reason="by_node", key=f"{aid}:{node_slug}")
+            cache_invalidate("comp", reason="by_node", key=f"{node_slug}")
 
 
     async def invalidate_compass_all(self) -> None:
