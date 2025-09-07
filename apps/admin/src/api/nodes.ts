@@ -136,13 +136,21 @@ export async function listNodes(
     return await getWithCache(url);
 }
 
-export async function createNode(accountId: string): Promise<NodeOut> {
+export interface CreateNodePayload {
+    title?: string | null;
+    slug?: string | null;
+    isVisible?: boolean;
+    premiumOnly?: boolean;
+    allowFeedback?: boolean;
+}
+
+export async function createNode(accountId: string, payload: CreateNodePayload = {}): Promise<NodeOut> {
     if (!accountId) {
-        const res = await api.post<NodeOut>(`/users/me/nodes`, {});
+        const res = await api.post<NodeOut>(`/users/me/nodes`, payload);
         return res.data as NodeOut;
     }
     const url = `/admin/accounts/${encodeURIComponent(accountId)}/nodes`;
-    return await accountApi.post<undefined, NodeOut>(url, undefined, { accountId, account: false });
+    return await accountApi.post<CreateNodePayload, NodeOut>(url, payload, { accountId, account: false });
 }
 
 export interface NodeResponse extends NodeOut {
@@ -279,4 +287,30 @@ export async function recomputeNodeEmbedding(accountId: string, id: number): Pro
         undefined,
         { accountId, account: false },
     );
+}
+
+// Convenience helper for personal mode with global scope
+export async function listNodesGlobal(
+    params: NodeListParams = {},
+): Promise<AdminNodeItem[]> {
+    const qs = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null) qs.set(key, String(value));
+    }
+    if (!qs.has('scope_mode')) qs.set('scope_mode', 'global');
+    const url = `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
+    const res = (await accountApi.get(url, {
+        etag: undefined,
+        acceptNotModified: false,
+        raw: true,
+        accountId: '',
+        account: false,
+    })) as ApiResponse<AdminNodeItem[]>;
+    const raw: RawAdminNodeItem[] = Array.isArray(res.data) ? (res.data as RawAdminNodeItem[]) : [];
+    const data = raw.map(({ created_at, updated_at, createdAt, updatedAt, ...rest }) => ({
+        ...rest,
+        createdAt: createdAt ?? created_at ?? '',
+        updatedAt: updatedAt ?? updated_at ?? '',
+    })) as AdminNodeItem[];
+    return data;
 }

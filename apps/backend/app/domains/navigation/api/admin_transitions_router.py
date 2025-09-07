@@ -86,7 +86,7 @@ async def update_transition_admin(
         if not new_from:
             raise HTTPException(status_code=404, detail="Source node not found")
         transition.from_node_id = new_from.id
-        transition.account_id = new_from.account_id
+        transition.account_id = getattr(new_from, "account_id", None)
     if payload.to_slug:
         res = await db.execute(select(Node).where(Node.slug == payload.to_slug))
         new_to = res.scalars().first()
@@ -109,12 +109,13 @@ async def update_transition_admin(
     from_slug = from_node.slug if from_node else old_from_slug
 
     if from_node:
-        await navcache.invalidate_navigation_by_node(
-            account_id=from_node.account_id, node_slug=from_slug
-        )
-        await navcache.invalidate_compass_by_node(
-            account_id=from_node.account_id, node_slug=from_slug
-        )
+        aid = getattr(from_node, "account_id", None)
+        if aid is not None:
+            await navcache.invalidate_navigation_by_node(account_id=aid, node_slug=from_slug)
+            await navcache.invalidate_compass_all()
+        else:
+            await navcache.invalidate_navigation_by_user(from_node.author_id)
+            await navcache.invalidate_compass_by_user(from_node.author_id)
 
     to_node = await db.get(Node, transition.to_node_id)
     return AdminTransitionOut(
@@ -142,12 +143,13 @@ async def delete_transition_admin(
     await db.delete(transition)
     await db.commit()
     if from_node:
-        await navcache.invalidate_navigation_by_node(
-            account_id=from_node.account_id, node_slug=from_node.slug
-        )
-        await navcache.invalidate_compass_by_node(
-            account_id=from_node.account_id, node_slug=from_node.slug
-        )
+        aid = getattr(from_node, "account_id", None)
+        if aid is not None:
+            await navcache.invalidate_navigation_by_node(account_id=aid, node_slug=from_node.slug)
+            await navcache.invalidate_compass_all()
+        else:
+            await navcache.invalidate_navigation_by_user(from_node.author_id)
+            await navcache.invalidate_compass_by_user(from_node.author_id)
     return {"message": "Transition deleted"}
 
 
@@ -169,6 +171,11 @@ async def disable_transitions_by_node(
     for t in transitions:
         t.type = NodeTransitionType.locked
     await db.commit()
-    await navcache.invalidate_navigation_by_node(account_id=node.account_id, node_slug=node.slug)
-    await navcache.invalidate_compass_by_node(account_id=node.account_id, node_slug=node.slug)
+    aid = getattr(node, "account_id", None)
+    if aid is not None:
+        await navcache.invalidate_navigation_by_node(account_id=aid, node_slug=node.slug)
+        await navcache.invalidate_compass_all()
+    else:
+        await navcache.invalidate_navigation_by_user(node.author_id)
+        await navcache.invalidate_compass_by_user(node.author_id)
     return {"disabled": len(transitions)}

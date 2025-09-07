@@ -13,6 +13,7 @@ class JSONFormatter(logging.Formatter):
             "user_id": getattr(record, "user_id", "-"),
             "workspace_id": getattr(record, "workspace_id", "-"),
             "account_id": getattr(record, "account_id", "-"),
+            "profile_id": getattr(record, "profile_id", "-"),
             "msg": record.getMessage(),
         }
         if record.exc_info:

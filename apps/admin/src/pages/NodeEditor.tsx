@@ -206,14 +206,7 @@ export default function NodeEditor() {
     void load();
   }, [id, accountId]);
 
-  if (false && !accountId) {
-    return (
-      <div className="p-4">
-        <p className="mb-4">Выберите аккаунт, чтобы создать контент</p>
-        <AccountSelector />
-      </div>
-    );
-  }
+  // Account selection removed; editor works in personal/global modes
 
   if (id === 'new') {
     return <NodeCreate accountId={accountId || ''} nodeType="article" />;
@@ -253,7 +246,7 @@ function NodeCreate({ accountId, nodeType }: { accountId: string; nodeType: stri
     setCreating(true);
     try {
       const t = nodeType === 'article' || nodeType === 'quest' ? nodeType : 'article';
-      const n = await createNode(accountId);
+      const n = await createNode(accountId, { title });
       const path = accountId
         ? `/nodes/${t}/${n.id}?account_id=${accountId}`
         : `/nodes/${t}/${n.id}`;

@@ -99,7 +99,7 @@ class AdminNodeListParams(TypedDict, total=False):
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin)")
 async def list_nodes_admin(
     response: Response,
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
+    account_id: Annotated[int, Path(...)],  # noqa: B008 - accounts are integers
     if_none_match: Annotated[str | None, Header(alias="If-None-Match")] = None,
     author: UUID | None = None,
     sort: Annotated[
@@ -133,15 +133,9 @@ async def list_nodes_admin(
     """
     if scope_mode is None:
         scope_mode = "member"
-    spec_account_id: UUID | None = account_id
-    if scope_mode == "global":
-        spec_account_id = None
-    else:
-        workspace = await db.get(Workspace, account_id)
-        if workspace and workspace.is_system and workspace.type == WorkspaceType.global_:
-            spec_account_id = None
+    # In profile-first mode, account_id acts as a workspace filter. Global scope ignores it.
+    filter_account_id: int | None = None if scope_mode == "global" else int(account_id)
     spec = NodeFilterSpec(
-        workspace_id=spec_account_id,
         author_id=author,
         is_visible=visible,
         premium_only=premium_only,
@@ -156,9 +150,9 @@ async def list_nodes_admin(
     svc = NodeQueryService(db)
     page = PageRequest(limit=limit, offset=offset)
     t0 = _t.perf_counter()
-    etag = await svc.compute_nodes_etag(spec, ctx, page)
+    etag = await svc.compute_nodes_etag(spec, ctx, page, account_id=filter_account_id)
     t_etag = _t.perf_counter()
-    nodes = await svc.list_nodes(spec, page, ctx)
+    nodes = await svc.list_nodes(spec, page, ctx, account_id=filter_account_id)
     t_list = _t.perf_counter()
     try:
         response.headers["ETag"] = etag
@@ -224,7 +218,9 @@ async def bulk_node_operation(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     result = await db.execute(
-        select(Node).where(Node.id.in_(payload.ids), Node.account_id == account_id)
+        select(Node)
+        .join(NodeItem, NodeItem.node_id == Node.id)
+        .where(Node.id.in_(payload.ids), NodeItem.workspace_id == account_id)
     )
     nodes = result.scalars().all()
     invalidate_slugs: list[str] = []
@@ -267,7 +263,9 @@ async def bulk_patch_nodes(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     result = await db.execute(
-        select(Node).where(Node.id.in_(payload.ids), Node.account_id == account_id)
+        select(Node)
+        .join(NodeItem, NodeItem.node_id == Node.id)
+        .where(Node.id.in_(payload.ids), NodeItem.workspace_id == account_id)
     )
     nodes = result.scalars().all()
     updated_ids: list[int] = []

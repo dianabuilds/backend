@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { useAccount } from "../account/AccountContext";
 import { listNodes } from "../api/nodes";
-import { useAccount } from "../account/AccountContext";
 import { getMyReferralCode, getMyReferralStats } from "../api/referrals";
 import { useToast } from "../components/ToastProvider";
 import PageLayout from "./_shared/PageLayout";
@@ -86,7 +85,6 @@ export default function Profile() {
   });
 
   // My Nodes (compact list)
-  const { accountId } = useAccount();
   const [myQ, setMyQ] = useState("");
   const [myVis, setMyVis] = useState<"all" | "visible" | "hidden">("all");
   const [myStatus, setMyStatus] = useState<string | "all">("all");

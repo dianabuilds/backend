@@ -219,3 +219,4 @@ admin-frontend/.vite/
 
 !apps/admin/src/lib/**
 apps/admin/coverage/
+/uploads/

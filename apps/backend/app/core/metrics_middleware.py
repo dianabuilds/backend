@@ -24,13 +24,20 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         route = request.scope.get("route")
         route_path = getattr(route, "path", None) or request.url.path
         method = request.method.upper()
-        account_id = (
+        # Prefer profile_id; fall back to legacy account_id
+        raw_profile_id = (
+            request.query_params.get("profile_id")
+            or getattr(request.state, "profile_id", None)
+            or request.path_params.get("profile_id")
+        )
+        raw_account_id = (
             request.query_params.get("account_id")
             or getattr(request.state, "account_id", None)
             or request.path_params.get("account_id")
         )
-        if account_id is not None:
-            account_id = str(account_id)
+        effective_id = raw_profile_id or raw_account_id
+        if effective_id is not None:
+            effective_id = str(effective_id)
 
-        metrics_storage.record(duration_ms, response.status_code, method, route_path, account_id)
+        metrics_storage.record(duration_ms, response.status_code, method, route_path, effective_id)
         return response

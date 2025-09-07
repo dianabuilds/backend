@@ -81,6 +81,9 @@ class NodeUpdate(BaseModel):
     )
     nft_required: str | None = Field(default=None, alias="nftRequired")
     ai_generated: bool | None = Field(default=None, alias="aiGenerated")
+    # Personal mode extensions: allow updating content and cover via Node.meta
+    content: dict | list | None = None
+    cover_url: str | None = Field(default=None, alias="coverUrl")
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 

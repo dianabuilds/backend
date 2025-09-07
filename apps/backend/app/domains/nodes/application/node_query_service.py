@@ -34,9 +34,13 @@ class NodeQueryService:
     ) -> str:
         if account_id is None:
             account_id = space_id
+        join_cond = and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published)
+        if account_id is not None:
+            # In workspace mode, scope by workspace via content items
+            join_cond = and_(join_cond, NodeItem.workspace_id == account_id)
         base = select(func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at)).join(
             NodeItem,
-            and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
+            join_cond,
             isouter=True,
         )
         if scope_mode is not None or account_id is not None:
@@ -53,8 +57,7 @@ class NodeQueryService:
             clauses.append(Node.is_recommendable == bool(spec.recommendable))
         if spec.author_id is not None:
             clauses.append(Node.author_id == spec.author_id)
-        if spec.account_id is not None:
-            clauses.append(Node.account_id == spec.account_id)
+        # account_id filter is handled via the join condition above
         if spec.status is not None:
             clauses.append(Node.status == spec.status)
         if spec.created_from:
@@ -98,9 +101,12 @@ class NodeQueryService:
     ) -> list[Node]:
         if account_id is None:
             account_id = space_id
+        join_cond = and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published)
+        if account_id is not None:
+            join_cond = and_(join_cond, NodeItem.workspace_id == account_id)
         stmt = select(Node).join(
             NodeItem,
-            and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published),
+            join_cond,
             isouter=True,
         )
         if scope_mode is not None or account_id is not None:
@@ -117,7 +123,7 @@ class NodeQueryService:
             clauses.append(Node.is_recommendable == bool(spec.recommendable))
         if spec.author_id is not None:
             clauses.append(Node.author_id == spec.author_id)
-        # account_id filter is deprecated in profile-centric mode
+        # account_id filter is handled via the join condition above
         if spec.status is not None:
             clauses.append(Node.status == spec.status)
         if spec.created_from:

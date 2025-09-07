@@ -17,7 +17,7 @@ export default function NodeSidebar({
 }: NodeSidebarProps) {
   return (
     <div className="space-y-6">
-      {node.id ? (
+      {node.id && accountId ? (
         <PublishControls
           accountId={accountId}
           nodeId={node.id}

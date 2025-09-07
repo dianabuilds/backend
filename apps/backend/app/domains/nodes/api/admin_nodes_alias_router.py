@@ -47,19 +47,20 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 navsvc = NavigationService()
 
 
-def _resolve_workspace_id(user) -> int | None:
+def _resolve_workspace_id(user) -> UUID | None:
     """Return user's workspace/account id when present, else None for personal mode.
 
     Personal mode allows the admin editor to operate on profile-scoped content
     without requiring any workspace/account. NodeService and DAO already
     tolerate ``workspace_id=None``.
     """
-    acc = getattr(user, "default_account_id", None)
-    if not acc:
+    # Use profile default workspace when present; accounts are optional now
+    wid = getattr(user, "default_workspace_id", None)
+    if not wid:
         return None
 
 
-def _require_workspace(account_id: int | None) -> int:
+def _require_workspace(account_id: UUID | None) -> UUID:
     """Ensure a workspace/account is present for content-admin endpoints.
 
     These alias endpoints operate on content items/jobs which are workspace-scoped.
@@ -71,11 +72,6 @@ def _require_workspace(account_id: int | None) -> int:
             detail="Workspace/account is required for this admin endpoint",
         )
     return account_id
-    try:
-        return int(acc)
-    except Exception:
-        # If it's not an int, keep personal mode to avoid hard failures
-        return None
 
 
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin, alias)")
@@ -158,9 +154,17 @@ async def bulk_node_operation_alias(
 ):
     account_id = _resolve_workspace_id(current_user)
     if account_id is None:
-        result = await db.execute(select(Node).where(Node.id.in_(payload.ids), Node.account_id.is_(None)))
+        # personal mode: select nodes by author (current user)
+        result = await db.execute(select(Node).where(Node.id.in_(payload.ids), Node.author_id == current_user.id))
     else:
-        result = await db.execute(select(Node).where(Node.id.in_(payload.ids), Node.account_id == account_id))
+        # workspace mode: join via NodeItem to scope by workspace
+        from app.domains.nodes.models import NodeItem
+
+        result = await db.execute(
+            select(Node)
+            .join(NodeItem, NodeItem.node_id == Node.id)
+            .where(Node.id.in_(payload.ids), NodeItem.workspace_id == account_id)
+        )
     nodes = list(result.scalars().all())
     updated_ids: list[int] = []
     deleted_ids: list[int] = []

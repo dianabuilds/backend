@@ -15,14 +15,14 @@ from app.domains.users.infrastructure.models.user import User
 
 class EchoService:
     async def record_echo_trace(
-        self,
-        db: AsyncSession,
-        from_node: Node,
-        to_node: Node,
-        user: User | None,
-        *,
-        source: str | None = None,
-        channel: str | None = None,
+            self,
+            db: AsyncSession,
+            from_node: Node,
+            to_node: Node,
+            user: User | None,
+            *,
+            source: str | None = None,
+            channel: str | None = None,
     ) -> None:
         trace = EchoTrace(
             from_node_id=from_node.id,
@@ -45,7 +45,7 @@ class EchoService:
         account_id: int | None = None,
     ) -> list[Node]:
         if account_id is None:
-            account_id = getattr(node, "account_id", None)
+            account_id = None
         stmt = select(NavigationCache.echo).where(NavigationCache.node_slug == node.slug)
         if account_id is not None:
             stmt = stmt.where(NavigationCache.account_id == account_id)
@@ -53,12 +53,10 @@ class EchoService:
         slugs = result.scalar_one_or_none() or []
         ordered_nodes: list[Node] = []
         for slug in slugs[:limit]:
-            if account_id is not None:
-                node_query = select(Node).where(Node.slug == slug, Node.account_id == account_id)
-            else:
-                node_query = select(Node).where(Node.slug == slug)
+            node_query = select(Node).where(Node.slug == slug)
             res = await db.execute(node_query)
             n = res.scalar_one_or_none()
             if n and await has_access_async(n, user, preview):
                 ordered_nodes.append(n)
+
         return ordered_nodes

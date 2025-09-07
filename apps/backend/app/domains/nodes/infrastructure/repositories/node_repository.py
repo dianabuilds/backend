@@ -20,6 +20,7 @@ from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.infrastructure.models.node_version import NodeVersion
 from app.schemas.node import NodeCreate, NodeUpdate
+from app.domains.nodes.models import NodeItem
 
 
 class NodeRepository(INodeRepository):
@@ -52,12 +53,18 @@ class NodeRepository(INodeRepository):
     # ------------------------------------------------------------------
     # Basic getters
     async def get_by_slug(self, slug: str, account_id: int) -> Node | None:
-        query = (
+        """Fetch node by slug within a workspace by joining NodeItem.
+
+        After removing Node.account_id, workspace scoping is enforced via
+        NodeItem.workspace_id.
+        """
+        stmt = (
             select(Node)
+            .join(NodeItem, NodeItem.node_id == Node.id)
             .options(selectinload(Node.tags))
-            .where(Node.slug == slug, Node.account_id == account_id)
+            .where(Node.slug == slug, NodeItem.workspace_id == account_id)
         )
-        res = await self._db.execute(query)
+        res = await self._db.execute(stmt)
         return res.scalar_one_or_none()
 
     async def get_by_slug_for_author(self, slug: str, author_id: UUID) -> Node | None:
@@ -79,13 +86,14 @@ class NodeRepository(INodeRepository):
         return res.scalar_one_or_none()
 
     async def get_by_id(self, node_id: int, account_id: int) -> Node | None:
-        """Fetch node by numeric primary key."""
-        query = (
+        """Fetch node by id scoped to workspace via NodeItem."""
+        stmt = (
             select(Node)
+            .join(NodeItem, NodeItem.node_id == Node.id)
             .options(selectinload(Node.tags))
-            .where(Node.id == node_id, Node.account_id == account_id)
+            .where(Node.id == node_id, NodeItem.workspace_id == account_id)
         )
-        res = await self._db.execute(query)
+        res = await self._db.execute(stmt)
         return res.scalar_one_or_none()
 
     async def get_by_id_simple(self, node_id: int) -> Node | None:
@@ -111,7 +119,6 @@ class NodeRepository(INodeRepository):
             title=payload.title,
             slug=candidate,
             author_id=author_id,
-            account_id=account_id,
             is_visible=payload.is_visible,
             meta=payload.meta or {},
             premium_only=payload.premium_only or False,
@@ -148,7 +155,6 @@ class NodeRepository(INodeRepository):
             title=payload.title,
             slug=candidate,
             author_id=author_id,
-            account_id=None,
             is_visible=payload.is_visible,
             meta=payload.meta or {},
             premium_only=payload.premium_only or False,
@@ -167,31 +173,30 @@ class NodeRepository(INodeRepository):
     async def update(self, node: Node, payload: NodeUpdate, actor_id: UUID) -> Node:
         data = payload.model_dump(exclude_unset=True)
         slug_candidate = data.pop("slug", None)
+        # Handle content and cover URL updates stored in Node.meta
+        if "content" in data:
+            try:
+                node.content = data.pop("content")  # type: ignore[assignment]
+            except Exception:
+                pass
+        if "cover_url" in data:
+            try:
+                node.cover_url = data.pop("cover_url")  # type: ignore[assignment]
+            except Exception:
+                pass
         for field, value in data.items():
             setattr(node, field, value)
         if slug_candidate is not None:
             candidate = (slug_candidate or "").strip().lower()
             if candidate and self._hex_re.fullmatch(candidate):
                 res = await self._db.execute(
-                    select(Node).where(
-                        Node.slug == candidate,
-                        Node.account_id == node.account_id,
-                        Node.id != node.id,
-                    )
+                    select(Node).where(Node.slug == candidate, Node.author_id == node.author_id, Node.id != node.id)
                 )
                 if res.scalar_one_or_none():
-                    candidate = await self._unique_slug(
-                        candidate,
-                        node.account_id,
-                        skip_id=node.id,
-                    )
+                    candidate = await self._unique_slug_for_author(candidate, node.author_id, skip_id=node.id)
             else:
                 base = candidate or data.get("title") or node.title or "node"
-                candidate = await self._unique_slug(
-                    base,
-                    node.account_id,
-                    skip_id=node.id,
-                )
+                candidate = await self._unique_slug_for_author(base, node.author_id, skip_id=node.id)
             node.slug = candidate
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = actor_id
@@ -241,7 +246,7 @@ class NodeRepository(INodeRepository):
     async def increment_views(self, node: Node) -> Node:
         node.views = int(node.views or 0) + 1
         await self._db.commit()
-        loaded = await self.get_by_id(node.id, node.account_id)
+        loaded = await self.get_by_id_simple(node.id)
         return loaded  # type: ignore[return-value]
 
     # ------------------------------------------------------------------

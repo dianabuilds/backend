@@ -67,17 +67,8 @@ class NodeService:
             if res.scalar_one_or_none():
                 idx += 1
                 continue
-            stmt_node = select(Node).where(Node.slug == candidate)
-            if workspace_id is None:
-                stmt_node = stmt_node.where(Node.account_id.is_(None))
-            else:
-                stmt_node = stmt_node.where(Node.account_id == workspace_id)
-            if skip_node_id is not None:
-                stmt_node = stmt_node.where(Node.id != skip_node_id)
-            res = await self._db.execute(stmt_node)
-            if res.scalar_one_or_none():
-                idx += 1
-                continue
+            # Node table no longer stores account/workspace. Uniqueness is
+            # enforced via NodeItem per workspace above; skip Node-level check.
             return candidate
 
     # Queries -----------------------------------------------------------------
@@ -207,24 +198,7 @@ class NodeService:
     async def create_item_for_node(self, node: Node) -> NodeItem:
         """Backfill a ``NodeItem`` for an existing ``Node`` record."""
 
-        item = await NodeItemDAO.create(
-            self._db,
-            node_id=node.id,
-            workspace_id=node.account_id,
-            type="quest",
-            status=node.status,
-            visibility=node.visibility,
-            version=getattr(node, "version", 1),
-            slug=node.slug,
-            title=node.title or "Untitled",
-            created_by_user_id=node.created_by_user_id,
-            updated_by_user_id=node.updated_by_user_id,
-            published_at=(node.updated_at if node.status == Status.published else None),
-            created_at=node.created_at,
-            updated_at=node.updated_at,
-        )
-        await self._db.commit()
-        return item
+        raise ValueError("create_item_for_node is not supported without accounts; use explicit content creation flow")
 
     async def create(self, workspace_id: UUID | None, *, actor_id: UUID) -> NodeItem:
         # В некоторых установках колонка content_items.node_id имеет NOT NULL.
@@ -233,7 +207,6 @@ class NodeService:
         title = "New quest"
         slug = await self._unique_slug(title, workspace_id)
         node = Node(
-            account_id=workspace_id,
             slug=slug,
             title=title,
             author_id=actor_id,
@@ -302,14 +275,8 @@ class NodeService:
                         )
                     )
                     existing_item = res.scalar_one_or_none()
-                    res = await self._db.execute(
-                        select(Node).where(
-                            Node.slug == candidate,
-                            Node.account_id == item.workspace_id,
-                        )
-                    )
-                    existing_node = res.scalar_one_or_none()
-                    if existing_item or (existing_node and existing_node.id != item.node_id):
+                    # Node table is global; rely on NodeItem uniqueness within workspace
+                    if existing_item:
                         candidate = await self._unique_slug(
                             candidate,
                             item.workspace_id,
@@ -340,7 +307,6 @@ class NodeService:
         if node is None:
             # На случай старых записей, созданных до появления связанного Node
             node = Node(
-                account_id=item.workspace_id,
                 slug=item.slug,
                 title=item.title,
                 author_id=item.created_by_user_id or actor_id,
@@ -412,13 +378,14 @@ class NodeService:
         await self._db.commit()
         if changed:
             await navsvc.invalidate_navigation_cache(self._db, node)
-            space_id = getattr(node, "account_id", None)
-            if space_id is not None:
-                await navcache.invalidate_navigation_by_node(
-                    account_id=space_id, node_slug=node.slug
-                )
-                await navcache.invalidate_modes_by_node(account_id=space_id, node_slug=node.slug)
-            await navcache.invalidate_compass_all()
+            # Invalidate by workspace when available, otherwise by user
+            ws_id = item.workspace_id
+            if ws_id is not None:
+                await navcache.invalidate_navigation_by_node(account_id=ws_id, node_slug=node.slug)
+                await navcache.invalidate_compass_all()
+            else:
+                await navcache.invalidate_navigation_by_user(node.author_id)
+                await navcache.invalidate_compass_by_user(node.author_id)
             cache_invalidate("nav", reason="node_update", key=node.slug)
             cache_invalidate("navm", reason="node_update", key=node.slug)
             cache_invalidate("comp", reason="node_update")
@@ -442,7 +409,6 @@ class NodeService:
             node = await self._db.get(Node, item.node_id) if item.node_id else None
             if node is None:
                 node = Node(
-                    account_id=item.workspace_id,
                     slug=item.slug,
                     title=item.title,
                     author_id=item.created_by_user_id or actor_id,
@@ -477,7 +443,6 @@ class NodeService:
         node = await self._db.get(Node, item.node_id) if item.node_id else None
         if node is None:
             node = Node(
-                account_id=item.workspace_id,
                 slug=item.slug,
                 title=item.title,
                 author_id=item.created_by_user_id or actor_id,

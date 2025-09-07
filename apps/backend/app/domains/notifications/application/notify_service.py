@@ -4,7 +4,6 @@ from typing import Any
 from uuid import UUID
 
 from app.core.preview import PreviewContext
-from app.domains.accounts.limits import account_limit
 from app.domains.notifications.application.ports.notification_repo import (
     INotificationRepository,
 )
@@ -12,12 +11,24 @@ from app.domains.notifications.application.ports.pusher import INotificationPush
 from app.schemas.notification import NotificationPlacement
 
 
+def user_limit(*_args, **_kwargs):
+    """No-op rate limiter placeholder keyed by user profile.
+
+    Replaces account-scoped limiter during migration away from accounts.
+    """
+
+    def _decorator(func):  # type: ignore
+        return func
+
+    return _decorator
+
+
 class NotifyService:
     def __init__(self, repo: INotificationRepository, pusher: INotificationPusher) -> None:
         self._repo = repo
         self._pusher = pusher
 
-    @account_limit("notif_per_day", scope="day", amount=1, degrade=True)
+    @user_limit("notif_per_day", scope="day", amount=1, degrade=True)
     async def create_notification(
         self,
         *,

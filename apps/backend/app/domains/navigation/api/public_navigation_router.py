@@ -37,7 +37,7 @@ async def compass_endpoint(
             raise HTTPException(status_code=404, detail="User not found")
 
     nodes = await CompassService().get_compass_nodes(db, node, user, 5, preview)
-    event_metrics.inc("compass", str(node.account_id))
+    event_metrics.inc("compass", str(getattr(node, "author_id", "")))
     return [
         {
             "id": str(n.id),

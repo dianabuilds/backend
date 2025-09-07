@@ -7,6 +7,7 @@ ip_var: ContextVar[str | None] = ContextVar("ip", default=None)
 ua_var: ContextVar[str | None] = ContextVar("ua", default=None)
 workspace_id_var: ContextVar[str | None] = ContextVar("workspace_id", default=None)
 account_id_var: ContextVar[str | None] = ContextVar("account_id", default=None)
+profile_id_var: ContextVar[str | None] = ContextVar("profile_id", default=None)
 
 
 class RequestContextFilter(logging.Filter):
@@ -22,4 +23,6 @@ class RequestContextFilter(logging.Filter):
         record.user_agent = ua_var.get() or "-"
         record.workspace_id = workspace_id_var.get() or "-"
         record.account_id = account_id_var.get() or "-"
+        # New profile-centric id; keep account/workspace for backward compatibility
+        record.profile_id = profile_id_var.get() or account_id_var.get() or workspace_id_var.get() or "-"
         return True

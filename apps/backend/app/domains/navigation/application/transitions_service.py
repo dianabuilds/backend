@@ -35,10 +35,7 @@ class TransitionsService:
         query = (
             select(NodeTransition)
             .join(Node, NodeTransition.to_node_id == Node.id)
-            .where(
-                NodeTransition.from_node_id == node.id,
-                Node.account_id == account_id,
-            )
+            .where(NodeTransition.from_node_id == node.id)
         )
         if transition_type is not None:
             query = query.where(NodeTransition.type == transition_type)

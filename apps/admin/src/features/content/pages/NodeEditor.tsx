@@ -39,7 +39,8 @@ export default function NodeEditorPage() {
   const handleSave = async () => {
     const res = (await save()) as { id?: string } | undefined;
     if (id === "new" && res?.id) {
-      navigate(`/nodes/${type}/${res.id}?account_id=${accountId}`);
+      const qs = accountId ? `?account_id=${accountId}` : '';
+      navigate(`/nodes/${type}/${res.id}${qs}`);
     }
   };
 

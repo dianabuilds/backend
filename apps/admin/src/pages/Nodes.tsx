@@ -5,10 +5,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAccount } from '../account/AccountContext';
 import { accountApi } from '../api/accountApi';
-import { listNodes, type NodeListParams } from '../api/nodes';
+import { listNodes, listNodesGlobal, type NodeListParams } from '../api/nodes';
 import { createPreviewLink } from '../api/preview';
 import FlagsCell from '../components/FlagsCell';
-import ScopeControls from '../components/ScopeControls';
+// ScopeControls removed from this page to avoid duplicate scope UI
 import StatusCell from '../components/StatusCell';
 import { useToast } from '../components/ToastProvider';
 import { Card, CardContent } from '../components/ui/card';
@@ -91,6 +91,13 @@ export default function Nodes() {
     return Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20;
   });
 
+  // If no account is selected, restrict scope to personal/global options
+  useEffect(() => {
+    if (!accountId && scopeMode && scopeMode !== 'mine' && scopeMode !== 'global') {
+      setScopeMode('mine');
+    }
+  }, [accountId]);
+
   // Данные
   const [items, setItems] = useState<NodeItem[]>([]);
   const [baseline, setBaseline] = useState<Map<number, NodeItem>>(new Map()); // снимок исходных значений
@@ -144,6 +151,7 @@ export default function Nodes() {
   // Превью ноды
 
   const openModerationFor = (node: NodeItem) => {
+    if (!accountId) return; // moderation only in workspace mode
     // Если нода сейчас видима — запрашиваем причину и скрываем
     if (node.is_visible) {
       setModTarget(node);
@@ -189,7 +197,7 @@ export default function Nodes() {
   };
 
   const submitModerationHide = async () => {
-    if (!modTarget) return;
+    if (!modTarget || !accountId) return;
     if (!modTarget.slug) {
       addToast({
         title: 'Не удалось скрыть',
@@ -261,8 +269,12 @@ export default function Nodes() {
       if (isPublic !== 'all') params.is_public = isPublic === 'true';
       if (premium !== 'all') params.premium_only = premium === 'true';
       if (recommendable !== 'all') params.recommendable = recommendable === 'true';
+      if (!accountId && params.scope_mode === 'global') {
+        const res = await listNodesGlobal(params);
+        return ensureArray<NodeItem>(res as any);
+      }
       const res = await listNodes(accountId, params);
-      return ensureArray<NodeItem>(res);
+      return ensureArray<NodeItem>(res as any);
     },
     enabled: true,
     placeholderData: (prev) => prev,
@@ -526,6 +538,17 @@ export default function Nodes() {
           >
             Мои
           </Button>
+          <Button
+            type="button"
+            variant={scopeMode === 'global' && !authorTab ? undefined : 'outline'}
+            onClick={() => {
+              setAuthorTab(false);
+              setScopeMode('global');
+              setPage(0);
+            }}
+          >
+            global
+          </Button>
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -552,12 +575,7 @@ export default function Nodes() {
           </div>
         </div>
 
-        <ScopeControls
-          scopeMode={scopeMode}
-          onScopeModeChange={setScopeMode}
-          roles={roles}
-          onRolesChange={setRoles}
-        />
+        {/* ScopeControls removed to avoid duplicated filters; Admin override lives elsewhere. */}
 
         <Card className="sticky top-0 z-10 mb-4">
           <CardContent className="flex flex-col gap-2">
@@ -934,7 +952,8 @@ export default function Nodes() {
                             type="button"
                             onClick={() => {
                               const t = n.type || 'article';
-                              navigate(`/nodes/${t}/${n.id}?account_id=${accountId}`);
+                              const qs = accountId ? `?account_id=${accountId}` : '';
+                              navigate(`/nodes/${t}/${n.id}${qs}`);
                             }}
                           >
                             Редактировать

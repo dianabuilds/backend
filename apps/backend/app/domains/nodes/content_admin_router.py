@@ -67,7 +67,6 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
     node_data = node or Node(
         id=item.node_id or 0,
-        account_id=item.workspace_id,
         slug=item.slug,
         title=item.title,
         content={},
@@ -210,25 +209,15 @@ async def _resolve_content_item_id(
         )
         raise HTTPException(status_code=404, detail="Node not found")
 
-    if node.account_id not in (account_id, None):
-        logger.warning(
-            "content_item.workspace_mismatch",
-            extra={
-                "account_id": str(account_id),
-                "node_account_id": str(node.account_id),
-                "node_or_item_id": node_or_item_id,
-            },
-        )
-        raise HTTPException(status_code=404, detail="Node not found")
-
-    # Resolve by Node.id (without workspace filter for global nodes)
+    # Resolve by Node.id and workspace match
     res = await db.execute(
-        select(NodeItem).where(NodeItem.node_id == node.id).order_by(NodeItem.updated_at.desc())
+        select(NodeItem)
+        .where(NodeItem.node_id == node.id, NodeItem.workspace_id == account_id)
+        .order_by(NodeItem.updated_at.desc())
     )
     item = res.scalar_one_or_none()
     if item is None:
-        svc = NodeService(db)
-        item = await svc.create_item_for_node(node)
+        raise HTTPException(status_code=404, detail="Node not found")
     return item
 
 

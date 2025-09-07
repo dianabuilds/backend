@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 
 import { setPreviewToken } from "../api/client";
 import { simulatePreview, createPreviewLink } from "../api/preview";
-import AccountSelector from "../components/AccountSelector";
 import { useAccount } from "../account/AccountContext";
 
 export default function Simulation() {
@@ -125,12 +124,7 @@ export default function Simulation() {
         Simulate navigation without affecting real data.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-        {!sharedMode && (
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-600">Account</span>
-            <AccountSelector />
-          </label>
-        )}
+        {/* Account selector removed with accounts cleanup */}
         <label className="flex flex-col gap-1">
           <span className="text-sm text-gray-600">Start node/quest</span>
           <input
@@ -267,4 +261,3 @@ export default function Simulation() {
     </div>
   );
 }
-

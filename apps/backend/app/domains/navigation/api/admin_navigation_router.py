@@ -93,7 +93,12 @@ async def invalidate_cache(
         node = node_result.scalars().first()
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
-        await navcache.invalidate_navigation_by_node(node.account_id, payload.node_slug)
+        aid = getattr(node, "account_id", None)
+        if aid is not None:
+            await navcache.invalidate_navigation_by_node(aid, payload.node_slug)
+        else:
+            # Personal mode: invalidate by author
+            await navcache.invalidate_navigation_by_user(node.author_id)
     elif payload.scope == "user":
         if not payload.user_id:
             raise HTTPException(status_code=400, detail="user_id required")

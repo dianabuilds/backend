@@ -31,7 +31,9 @@ async def create_trace(
     node = await db.get(Node, payload.node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    await require_ws_guest(account_id=node.account_id, user=current_user, db=db)
+    aid = getattr(node, "account_id", None)
+    if aid is not None:
+        await require_ws_guest(account_id=aid, user=current_user, db=db)
     trace = NodeTrace(
         node_id=node.id,
         user_id=current_user.id,
@@ -56,7 +58,9 @@ async def list_traces(
     node = await db.get(Node, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    await require_ws_guest(account_id=node.account_id, user=current_user, db=db)
+    aid = getattr(node, "account_id", None)
+    if aid is not None:
+        await require_ws_guest(account_id=aid, user=current_user, db=db)
     stmt = select(NodeTrace).where(NodeTrace.node_id == node_id)
     if visible_to == "me":
         stmt = stmt.where(

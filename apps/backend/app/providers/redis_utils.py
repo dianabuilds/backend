@@ -32,6 +32,16 @@ def create_async_redis(
     pool's blocking timeout.
     """
 
+    if url.startswith("fakeredis://"):
+        # Lightweight in-memory backend for local/dev and tests
+        # Import lazily to avoid hard dependency in production
+        try:  # pragma: no cover - exercised in tests
+            import fakeredis.aioredis as fakeredis  # type: ignore
+
+            return fakeredis.FakeRedis(decode_responses=decode_responses)
+        except Exception as exc:  # pragma: no cover
+            raise RuntimeError("fakeredis backend requested but not available") from exc
+
     if redis is None:
         raise RuntimeError("redis library is not installed")
 

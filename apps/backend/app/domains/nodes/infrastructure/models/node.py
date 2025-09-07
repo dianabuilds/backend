@@ -35,8 +35,6 @@ class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    # Legacy: account-based scoping (now optional during transition to profiles)
-    account_id = Column(BigInteger, ForeignKey("accounts.id"), nullable=True, index=True)
     slug = Column(String, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=True)
     embedding_vector = Column(MutableList.as_mutable(VECTOR(settings.embedding.dim)), nullable=True)
@@ -81,10 +79,7 @@ class Node(Base):
     )
 
     __table_args__ = (
-        # Legacy account-scoped indexes (kept for backward compatibility during transition)
-        Index("ix_nodes_account_id_slug", "account_id", "slug", unique=True),
-        Index("ix_nodes_account_id_created_at", "account_id", "created_at"),
-        # New profile/user-scoped indexes
+        # New profile/user-scoped indexes only
         Index("uq_nodes_author_id_slug", "author_id", "slug", unique=True),
         Index("ix_nodes_author_id_created_at", "author_id", "created_at"),
     )

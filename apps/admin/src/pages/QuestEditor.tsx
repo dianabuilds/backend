@@ -2,9 +2,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { useAccount } from "../account/AccountContext";
+
 import { api } from "../api/client";
-import AccountSelector from "../components/AccountSelector";
+
 import NodeEditorModal from "../components/NodeEditorModal";
 import { useToast } from "../components/ToastProvider";
 
@@ -43,19 +43,8 @@ function clamp(n: number, min: number, max: number) {
 export default function QuestEditor() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { accountId } = useAccount();
-
-  if (!accountId) {
-    return (
-      <div className="p-4">
-        <p className="mb-4">Выберите аккаунт, чтобы создать квест</p>
-        <AccountSelector />
-      </div>
-    );
-  }
-
-  // Метаданные квеста
-  const [title, setTitle] = useState("");
+    // Account selection removed; editor works without accounts
+const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
@@ -575,3 +564,4 @@ export default function QuestEditor() {
     </div>
   );
 }
+

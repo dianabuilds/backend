@@ -118,9 +118,6 @@ def register_domain_routers(app: FastAPI) -> None:
         from app.domains.media.api.routers import router as media_router
 
         app.include_router(media_router)
-        app.include_router(media_router, prefix="/accounts/{account_id}")
-        # New profiles prefix (accepts {profile_id} as path param)
-        app.include_router(media_router, prefix="/profiles/{profile_id}")
     except Exception as exc:
         logger.exception("Failed to load media router. Startup aborted")
         raise RuntimeError("Failed to load media router") from exc
@@ -187,9 +184,6 @@ def register_domain_routers(app: FastAPI) -> None:
         from app.domains.nodes.api.my_nodes_router import router as my_nodes_router
 
         app.include_router(nodes_router)
-        app.include_router(nodes_router, prefix="/accounts/{account_id}")
-        # New profiles prefix (accepts {profile_id} as path param)
-        app.include_router(nodes_router, prefix="/profiles/{profile_id}")
         # Profile-centric endpoints
         app.include_router(my_nodes_router)
     except Exception as exc:
@@ -205,16 +199,7 @@ def register_domain_routers(app: FastAPI) -> None:
         logger.exception("Failed to load tags router. Startup aborted")
         raise RuntimeError("Failed to load tags router") from exc
 
-    # Profiles (aliases for Accounts during transition)
-    try:
-        from app.domains.profiles.api import user_router as profiles_user_router
-        from app.domains.profiles.api import router as profiles_admin_router
-
-        app.include_router(profiles_user_router)
-        app.include_router(profiles_admin_router)
-    except Exception as exc:
-        logger.exception("Failed to load profiles router. Startup aborted")
-        raise RuntimeError("Failed to load profiles router") from exc
+    # Profiles removed with accounts cleanup
 
     # Search
     try:
@@ -296,24 +281,8 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load admin users router. Startup aborted")
         raise RuntimeError("Failed to load admin users router") from exc
-    # Admin accounts
-    try:
-        from app.domains.accounts.api import router as admin_accounts_router
-
-        app.include_router(admin_accounts_router)
-    except Exception as exc:
-        logger.exception("Failed to load admin accounts router. Startup aborted")
-        raise RuntimeError("Failed to load admin accounts router") from exc
-    # Admin nodes content
-    try:
-        from app.domains.nodes.content_admin_router import (
-            router as admin_nodes_content_router,
-        )
-
-        app.include_router(admin_nodes_content_router)
-    except Exception as exc:
-        logger.exception("Failed to load admin nodes content router. Startup aborted")
-        raise RuntimeError("Failed to load admin nodes content router") from exc
+    # Admin accounts removed: use profiles admin instead
+    # Admin nodes accounts/profiles routes removed
     # Admin nodes alias (default_account_id)
     try:
         from app.domains.nodes.api.admin_nodes_alias_router import (
@@ -324,26 +293,8 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load admin nodes alias router. Startup aborted")
         raise RuntimeError("Failed to load admin nodes alias router") from exc
-    # Admin articles (isolated nodes)
-    try:
-        from app.domains.nodes.api.articles_admin_router import (
-            router as admin_articles_router,
-        )
-
-        app.include_router(admin_articles_router)
-    except Exception as exc:
-        logger.exception("Failed to load admin articles router. Startup aborted")
-        raise RuntimeError("Failed to load admin articles router") from exc
-    # Admin nodes
-    try:
-        from app.domains.nodes.api.admin_nodes_router import (
-            router as admin_nodes_router,
-        )
-
-        app.include_router(admin_nodes_router)
-    except Exception as exc:
-        logger.exception("Failed to load admin nodes router. Startup aborted")
-        raise RuntimeError("Failed to load admin nodes router") from exc
+    # Admin articles routes removed (account-scoped)
+    # Admin nodes (workspace-scoped) removed from registry after accounts removal
     # Admin global nodes
     try:
         from app.domains.nodes.api.admin_nodes_global_router import (

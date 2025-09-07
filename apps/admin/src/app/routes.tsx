@@ -38,9 +38,7 @@ const Worlds = lazy(() => import("../pages/Worlds"));
 const AISettings = lazy(() => import("../pages/AISettings"));
 const AISystemSettings = lazy(() => import("../pages/AISystemSettings"));
 const Achievements = lazy(() => import("../pages/Achievements"));
-const Referrals = lazy(() => import("../pages/Referrals"));
-const Accounts = lazy(() => import("../pages/Accounts"));
-const AccountSettings = lazy(() => import("../pages/AccountSettings"));
+// Accounts/Referrals pages removed with accounts cleanup
 const Profile = lazy(() => import("../pages/Profile"));
 const Quests = lazy(() => import("../pages/Quests"));
 const QuestEditor = lazy(() => import("../pages/QuestEditor"));
@@ -126,9 +124,7 @@ const protectedChildren: RouteObject[] = [
   { path: "ai/settings", element: <AISettings /> },
   { path: "ai/system", element: <AISystemSettings /> },
   { path: "achievements", element: <Achievements /> },
-  { path: "referrals", element: <Referrals /> },
-  { path: "accounts", element: <Accounts /> },
-  { path: "accounts/:id", element: <AccountSettings /> },
+  // referrals/accounts routes removed
   { path: "profile", element: <Profile /> },
   { path: "quests", element: <Quests /> },
   { path: "quests/:id", element: <QuestEditor /> },

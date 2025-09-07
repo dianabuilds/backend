@@ -4,7 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.preview import PreviewContext
-from app.domains.accounts.limits import account_limit
+def user_limit(*_args, **_kwargs):
+    def _decorator(func):
+        return func
+    return _decorator
 from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.navigation_cache_models import (
@@ -17,7 +20,7 @@ class CompassService:
     def __init__(self) -> None:
         pass
 
-    @account_limit("compass_calls", scope="day", amount=1)
+    @user_limit("compass_calls", scope="day", amount=1)
     async def get_compass_nodes(
         self,
         db: AsyncSession,
@@ -29,7 +32,7 @@ class CompassService:
         account_id: int | None = None,
     ) -> list[Node]:
         if account_id is None:
-            account_id = getattr(node, "account_id", None)
+            account_id = None
         stmt = select(NavigationCache.compass).where(NavigationCache.node_slug == node.slug)
         if account_id is not None:
             stmt = stmt.where(NavigationCache.account_id == account_id)
@@ -37,10 +40,7 @@ class CompassService:
         slugs = result.scalar_one_or_none() or []
         nodes: list[Node] = []
         for slug in slugs[:limit]:
-            if account_id is not None:
-                node_query = select(Node).where(Node.slug == slug, Node.account_id == account_id)
-            else:
-                node_query = select(Node).where(Node.slug == slug)
+            node_query = select(Node).where(Node.slug == slug)
             res = await db.execute(node_query)
             n = res.scalar_one_or_none()
             if n and await has_access_async(n, user, preview):

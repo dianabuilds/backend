@@ -55,10 +55,10 @@ class ManualPolicy(Policy):
     ) -> tuple[Node | None, TransitionTrace]:
         try:
             candidates = await self.provider.get_transitions(
-                db, node, user, node.account_id, preview=preview
+                db, node, user, 0, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, node.account_id)
+            candidates = await self.provider.get_transitions(db, node, user, 0)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -87,10 +87,10 @@ class CompassPolicy(Policy):
     ) -> tuple[Node | None, TransitionTrace]:
         try:
             candidates = await self.provider.get_transitions(
-                db, node, user, node.account_id, preview=preview
+                db, node, user, 0, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, node.account_id)
+            candidates = await self.provider.get_transitions(db, node, user, 0)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -119,10 +119,10 @@ class EchoPolicy(Policy):
     ) -> tuple[Node | None, TransitionTrace]:
         try:
             candidates = await self.provider.get_transitions(
-                db, node, user, node.account_id, preview=preview
+                db, node, user, 0, preview=preview
             )
         except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, node.account_id)
+            candidates = await self.provider.get_transitions(db, node, user, 0)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -218,9 +218,5 @@ class FallbackPolicy(Policy):
             return None, TransitionTrace([], [], None, reason="disabled")
         from types import SimpleNamespace
 
-        fallback_node = SimpleNamespace(
-            slug="fallback",
-            account_id=getattr(node, "account_id", None),
-            tags=[],
-        )
+        fallback_node = SimpleNamespace(slug="fallback", tags=[])
         return fallback_node, TransitionTrace([node.slug], [], "fallback", reason="fallback")

@@ -127,7 +127,6 @@ class RandomProvider(TransitionProvider):
         account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
-        from app.domains.accounts.application.service import scope_by_account
         from app.domains.navigation.application.access_policy import has_access_async
         from app.domains.nodes.infrastructure.models.node import Node
 
@@ -137,8 +136,7 @@ class RandomProvider(TransitionProvider):
             Node.is_recommendable,
             Node.id != node.id,
         )
-        query = query.where(Node.account_id == account_id)
-        query = scope_by_account(query, account_id)
+        # accounts/workspaces removed: no workspace scoping here
         result = await db.execute(query)
         nodes: list[Node] = result.scalars().all()
         nodes = [n for n in nodes if await has_access_async(n, user, preview)]
