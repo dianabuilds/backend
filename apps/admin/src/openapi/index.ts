@@ -147,3 +147,6 @@ export type { ValidationError } from './models/ValidationError';
 export type { VersionSummary } from './models/VersionSummary';
 export type { WorldTemplateIn } from './models/WorldTemplateIn';
 export type { WorldTemplateOut } from './models/WorldTemplateOut';
+
+// Thin hand-written service for telemetry endpoints used in the app
+export { AdminTelemetryService } from './services/AdminTelemetryService';

@@ -87,7 +87,7 @@ export default function QuestVersionEditor() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [showSim, setShowSim] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, VersionGraph['nodes'][number]>();

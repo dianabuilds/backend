@@ -41,7 +41,7 @@ class User(Base):
     username = Column(String, unique=True, nullable=True)
     bio = Column(Text, nullable=True)
     avatar_url = Column(String, nullable=True)
-    default_workspace_id = Column(UUID(), nullable=True)
+    # Legacy column removed: default_workspace_id
 
     # Activity
     last_login_at = Column(DateTime, nullable=True)

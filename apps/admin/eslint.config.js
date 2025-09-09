@@ -9,9 +9,18 @@ import tseslint from 'typescript-eslint';
 import { globalIgnores } from 'eslint/config';
 import requireSanitizedDangerouslySetInnerHTML from './eslint/rules/require-sanitized-dangerously-set-inner-html.js';
 
+// Flat config without "extends": include configs as separate items.
 export default tseslint.config([
   // Ignore generated/build outputs and dependencies
   globalIgnores(['dist', 'node_modules', 'coverage', 'jscpd-report', 'jscpd-report-app']),
+
+  // Base JS and framework configs
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  reactHooks.configs['recommended-latest'],
+  reactRefresh.configs.vite,
+
+  // Project rules for TS/TSX files
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
@@ -24,20 +33,12 @@ export default tseslint.config([
         },
       },
     },
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs['recommended-latest'],
-      reactRefresh.configs.vite,
-    ],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
     },
     settings: {
-      react: {
-        version: 'detect',
-      },
+      react: { version: 'detect' },
     },
     rules: {
       'eslint-comments/no-unused-disable': 'error',
@@ -69,11 +70,11 @@ export default tseslint.config([
       'no-useless-escape': 'warn',
     },
   },
+
+  // Soften strictness for generated OpenAPI models
   {
     files: ['src/openapi/**'],
-    linterOptions: {
-      reportUnusedDisableDirectives: false,
-    },
+    linterOptions: { reportUnusedDisableDirectives: false },
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       'eslint-comments/no-unused-disable': 'off',

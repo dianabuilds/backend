@@ -3,7 +3,7 @@ interface OverrideState {
   reason: string;
 }
 
-let state: OverrideState = { enabled: false, reason: '' };
+const state: OverrideState = { enabled: false, reason: '' };
 
 export function getOverrideState(): OverrideState {
   return state;

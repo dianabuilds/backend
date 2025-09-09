@@ -17,7 +17,6 @@ from app.domains.users.infrastructure.repositories.user_profile_repository impor
 from app.domains.users.infrastructure.repositories.user_repository import UserRepository
 from app.providers.db.session import get_db
 from app.schemas.user import (
-    UserDefaultWorkspaceUpdate,
     UserOut,
     UserUpdate,
 )
