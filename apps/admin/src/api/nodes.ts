@@ -176,8 +176,7 @@ export async function getNode(accountId: string, id: number): Promise<NodeRespon
   try {
     if (accountId) {
       const url = `/admin/nodes/${encodeURIComponent(String(id))}`;
-      const res = await accountApi.get<NodeResponse>(url, { accountId: '', account: false });
-      return res as NodeResponse;
+      return (await accountApi.get<NodeResponse>(url, { accountId: '', account: false })) as NodeResponse;
     }
     const res = await api.get<NodeResponse>(`/users/me/nodes/${encodeURIComponent(String(id))}`);
     return res.data as NodeResponse;
@@ -188,11 +187,10 @@ export async function getNode(accountId: string, id: number): Promise<NodeRespon
     if (status !== 404) throw e;
     // Try admin alias as a fallback for personal mode when not found
     try {
-      const res = await accountApi.get<NodeResponse>(
+      return (await accountApi.get<NodeResponse>(
         `/admin/nodes/${encodeURIComponent(String(id))}`,
         { accountId: '', account: false },
-      );
-      return res as NodeResponse;
+      )) as NodeResponse;
     } catch {
       const err = new Error('Not Found') as Error & { response?: { status: number } };
       err.response = { status: 404 };
@@ -209,12 +207,11 @@ export async function patchNode(
 ): Promise<NodeResponse> {
   const body: Record<string, unknown> = { ...patch };
   if (accountId) {
-    const res = await accountApi.patch<typeof body, NodeResponse>(
+    return (await accountApi.patch<typeof body, NodeResponse>(
       `/admin/nodes/${encodeURIComponent(String(id))}`,
       body,
       { accountId: '', account: false, params: { next: opts.next === false ? 0 : 1 } },
-    );
-    return res as NodeResponse;
+    )) as NodeResponse;
   }
   const res = await api.patch<NodeResponse>(
     `/users/me/nodes/${encodeURIComponent(String(id))}`,
@@ -296,10 +293,9 @@ export async function listNodesGlobal(params: NodeListParams = {}): Promise<Admi
     account: false,
   })) as ApiResponse<AdminNodeItem[]>;
   const raw: RawAdminNodeItem[] = Array.isArray(res.data) ? (res.data as RawAdminNodeItem[]) : [];
-  const data = raw.map(({ created_at, updated_at, createdAt, updatedAt, ...rest }) => ({
+  return raw.map(({ created_at, updated_at, createdAt, updatedAt, ...rest }) => ({
     ...rest,
     createdAt: createdAt ?? created_at ?? '',
     updatedAt: updatedAt ?? updated_at ?? '',
   })) as AdminNodeItem[];
-  return data;
 }

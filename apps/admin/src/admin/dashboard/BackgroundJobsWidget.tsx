@@ -10,15 +10,18 @@ interface JobItem {
 }
 
 export default function BackgroundJobsWidget({
-  query,
-  refreshInterval,
+  query = '',
+  refreshInterval = 60000,
 }: {
-  query: string;
-  refreshInterval: number;
+  query?: string;
+  refreshInterval?: number;
 }) {
   const { data = [] } = useQuery<JobItem[]>({
     queryKey: ['widget', query],
-    queryFn: async () => (await api.get(query)).data,
+    queryFn: async (): Promise<JobItem[]> => {
+      const res = await api.get<JobItem[]>(query);
+      return (res.data as JobItem[] | undefined) ?? [];
+    },
     refetchInterval: refreshInterval,
   });
   return (

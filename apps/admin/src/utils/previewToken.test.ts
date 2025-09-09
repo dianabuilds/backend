@@ -1,16 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-// Hook into client storage used by setPreviewToken
-import { setPreviewToken } from '../api/client';
 import { initPreviewTokenFromUrl } from './previewToken';
-
-vi.mock('../api/client', async (orig) => {
-  const mod = await (orig as unknown as () => Promise<unknown>)();
-  return {
-    ...mod,
-    setPreviewToken: vi.fn(mod.setPreviewToken),
-  };
-});
 
 describe('initPreviewTokenFromUrl', () => {
   afterEach(() => {
@@ -22,22 +12,25 @@ describe('initPreviewTokenFromUrl', () => {
 
   it('stores token from search param and cleans URL', () => {
     window.history.replaceState(null, 'test', '/admin/?token=abc.def.ghi&x=1');
-    initPreviewTokenFromUrl();
-    expect(setPreviewToken).toHaveBeenCalledWith('abc.def.ghi');
+    const save = vi.fn();
+    initPreviewTokenFromUrl(save);
+    expect(save).toHaveBeenCalledWith('abc.def.ghi');
     expect(window.location.search).toBe('?x=1');
   });
 
   it('stores token from hash param and cleans hash', () => {
     window.history.replaceState(null, 'test', '/admin/#token=zzz.yyy.xxx');
-    initPreviewTokenFromUrl();
-    expect(setPreviewToken).toHaveBeenCalledWith('zzz.yyy.xxx');
+    const save = vi.fn();
+    initPreviewTokenFromUrl(save);
+    expect(save).toHaveBeenCalledWith('zzz.yyy.xxx');
     expect(window.location.hash).toBe('');
   });
 
   it('does nothing when no token provided', () => {
     window.history.replaceState(null, 'test', '/admin/?a=1#b=2');
-    initPreviewTokenFromUrl();
-    expect(setPreviewToken).not.toHaveBeenCalled();
+    const save = vi.fn();
+    initPreviewTokenFromUrl(save);
+    expect(save).not.toHaveBeenCalled();
     expect(window.location.search).toBe('?a=1');
     expect(window.location.hash).toBe('#b=2');
   });

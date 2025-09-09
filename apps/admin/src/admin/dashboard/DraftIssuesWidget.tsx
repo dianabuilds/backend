@@ -12,15 +12,18 @@ interface DraftIssue {
 }
 
 export default function DraftIssuesWidget({
-  query,
-  refreshInterval,
+  query = '',
+  refreshInterval = 60000,
 }: {
-  query: string;
-  refreshInterval: number;
+  query?: string;
+  refreshInterval?: number;
 }) {
   const { data = [] } = useQuery<DraftIssue[]>({
     queryKey: ['widget', query],
-    queryFn: async () => (await api.get(query)).data,
+    queryFn: async (): Promise<DraftIssue[]> => {
+      const res = await api.get<DraftIssue[]>(query);
+      return (res.data as DraftIssue[] | undefined) ?? [];
+    },
     refetchInterval: refreshInterval,
   });
   return (

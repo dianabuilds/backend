@@ -84,6 +84,15 @@ export default function EditorJSEmbed({
     }
   }, []);
 
+  const applyIncoming = useCallback(
+    async (inst: EditorInstance, val: OutputData, incoming: string) => {
+      await renderEditor(inst, val);
+      lastRendered.current = incoming;
+      applyingExternal.current = false;
+    },
+    [renderEditor],
+  );
+
   useEffect(() => {
     let destroyed = false;
 
@@ -139,11 +148,7 @@ export default function EditorJSEmbed({
                         console.error('Empty URL from /media');
                         return { success: 0 };
                       }
-                      const normalized: ImageUploadResult = {
-                        success: 1,
-                        file: { url },
-                      };
-                      return normalized;
+                      return { success: 1, file: { url } } as ImageUploadResult;
                     } catch (e) {
                       console.error('Image upload failed:', e);
                       return { success: 0 };
@@ -153,11 +158,7 @@ export default function EditorJSEmbed({
                     try {
                       if (url) {
                         const final = resolveUrl(url);
-                        const normalized: ImageUploadResult = {
-                          success: 1,
-                          file: { url: final },
-                        };
-                        return normalized;
+                        return { success: 1, file: { url: final } } as ImageUploadResult;
                       }
                     } catch (e) {
                       console.error('Image uploadByUrl failed:', e);
@@ -238,14 +239,9 @@ export default function EditorJSEmbed({
     }
     if (!incoming || incoming === lastRendered.current) return;
     applyingExternal.current = true;
-    const doRender = async () => {
-      await renderEditor(inst, value as OutputData);
-      lastRendered.current = incoming;
-      applyingExternal.current = false;
-    };
-    void doRender();
+    void applyIncoming(inst, value as OutputData, incoming);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialized]);
+  }, [initialized, applyIncoming]);
 
   // When value prop changes after async load, re-render the editor content
   useEffect(() => {
@@ -259,13 +255,8 @@ export default function EditorJSEmbed({
     }
     if (!incoming || incoming === lastRendered.current) return;
     applyingExternal.current = true;
-    const doRender = async () => {
-      await renderEditor(inst, value as OutputData);
-      lastRendered.current = incoming;
-      applyingExternal.current = false;
-    };
-    void doRender();
-  }, [value, renderEditor]);
+    void applyIncoming(inst, value as OutputData, incoming);
+  }, [value, renderEditor, applyIncoming]);
 
   if (loadError) {
     return <div className={className || ''}>Не удалось загрузить редактор: {loadError}</div>;

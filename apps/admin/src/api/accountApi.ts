@@ -1,4 +1,4 @@
-import { api, type RequestOptions as ApiRequestOptions } from './client';
+import { api, type ApiResponse, type RequestOptions as ApiRequestOptions } from './client';
 
 export interface AccountRequestOptions<P extends Record<string, unknown> = Record<string, never>>
   extends ApiRequestOptions {
@@ -14,10 +14,19 @@ export interface AccountRequestOptions<P extends Record<string, unknown> = Recor
   account?: 'query' | false;
 }
 
+// Overloads to support raw ApiResponse return when opts.raw === true
+async function request<T = unknown, P extends Record<string, unknown> = Record<string, never>>(
+  url: string,
+  opts: AccountRequestOptions<P> & { raw: true },
+): Promise<ApiResponse<T>>;
 async function request<T = unknown, P extends Record<string, unknown> = Record<string, never>>(
   url: string,
   opts: AccountRequestOptions<P>,
-): Promise<T> {
+): Promise<T>;
+async function request<T = unknown, P extends Record<string, unknown> = Record<string, never>>(
+  url: string,
+  opts: AccountRequestOptions<P>,
+): Promise<T | ApiResponse<T>> {
   const {
     params,
     headers: optHeaders,
@@ -66,7 +75,7 @@ async function request<T = unknown, P extends Record<string, unknown> = Record<s
   }
 
   const res = await api.request<T>(finalUrl, { ...rest, headers });
-  return raw ? res : (res.data as T);
+  return raw ? res : ((res.data as T) satisfies T);
 }
 
 export const accountApi = {
@@ -78,13 +87,13 @@ export const accountApi = {
   post: <TReq = unknown, TRes = unknown, P extends Record<string, unknown> = Record<string, never>>(
     url: string,
     json?: TReq,
-    opts: AccountRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...opts, method: 'POST', json }),
+    opts?: AccountRequestOptions<P>,
+  ) => request<TRes, P>(url, { ...(opts || ({} as AccountRequestOptions<P>)), method: 'POST', json }),
   put: <TReq = unknown, TRes = unknown, P extends Record<string, unknown> = Record<string, never>>(
     url: string,
     json?: TReq,
-    opts: AccountRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...opts, method: 'PUT', json }),
+    opts?: AccountRequestOptions<P>,
+  ) => request<TRes, P>(url, { ...(opts || ({} as AccountRequestOptions<P>)), method: 'PUT', json }),
   patch: <
     TReq = unknown,
     TRes = unknown,
@@ -92,8 +101,8 @@ export const accountApi = {
   >(
     url: string,
     json?: TReq,
-    opts: AccountRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...opts, method: 'PATCH', json }),
+    opts?: AccountRequestOptions<P>,
+  ) => request<TRes, P>(url, { ...(opts || ({} as AccountRequestOptions<P>)), method: 'PATCH', json }),
   delete: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(
     url: string,
     opts: AccountRequestOptions<P>,

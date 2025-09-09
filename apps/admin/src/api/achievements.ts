@@ -23,7 +23,7 @@ export async function listAdminAchievements(params: {
 export async function createAdminAchievement(
   body: Partial<AchievementAdmin> & { code: string; title: string },
 ): Promise<AchievementAdmin> {
-  const res = await api.post<AchievementAdmin>('/admin/achievements', body);
+  const res = await api.post<typeof body, AchievementAdmin>('/admin/achievements', body);
   return res.data as AchievementAdmin;
 }
 
@@ -31,7 +31,7 @@ export async function updateAdminAchievement(
   id: string,
   patch: Partial<AchievementAdmin>,
 ): Promise<AchievementAdmin> {
-  const res = await api.patch<AchievementAdmin>(
+  const res = await api.patch<Partial<AchievementAdmin>, AchievementAdmin>(
     `/admin/achievements/${encodeURIComponent(id)}`,
     patch,
   );
@@ -47,7 +47,10 @@ export async function grantAchievement(
   user_id: string,
   reason?: string,
 ): Promise<void> {
-  await api.post(`/admin/achievements/${id}/grant`, { user_id, reason });
+  await api.post<{ user_id: string; reason?: string }, unknown>(
+    `/admin/achievements/${id}/grant`,
+    { user_id, reason },
+  );
 }
 
 export async function revokeAchievement(
@@ -55,5 +58,8 @@ export async function revokeAchievement(
   user_id: string,
   reason?: string,
 ): Promise<void> {
-  await api.post(`/admin/achievements/${id}/revoke`, { user_id, reason });
+  await api.post<{ user_id: string; reason?: string }, unknown>(
+    `/admin/achievements/${id}/revoke`,
+    { user_id, reason },
+  );
 }

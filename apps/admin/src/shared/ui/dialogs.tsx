@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import Button from './Button';
-import Modal from './Modal';
-import TextInput from './TextInput';
+import { Button } from './Button';
+import { Modal } from './Modal';
+import { TextInput } from './TextInput';
 
 export function alertDialog(message: string): void {
   const div = document.createElement('div');

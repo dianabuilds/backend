@@ -1,12 +1,12 @@
 /**
- * Преобразует относительный URL (например, /static/uploads/...) в абсолютный к бэкенду.
- * Учитывает VITE_API_BASE и dev-порт Vite (5173–5176 -> http://<host>:8000).
+ * Convert a relative URL (e.g. /static/uploads/...) to an absolute backend URL.
+ * Honours VITE_API_BASE and maps Vite dev ports (5173–5176) to http://<host>:8000.
  */
 export function resolveBackendUrl(u: string | null | undefined): string | null {
   if (!u) return null;
   const url = u;
 
-  // Протокольно-относительный
+  // Protocol-relative
   if (url.startsWith('//')) {
     try {
       return (typeof window !== 'undefined' ? window.location.protocol : 'http:') + url;
@@ -14,10 +14,10 @@ export function resolveBackendUrl(u: string | null | undefined): string | null {
       return 'http:' + url;
     }
   }
-  // Уже абсолютный http/https
+  // Already absolute http/https
   if (/^https?:\/\//i.test(url)) return url;
 
-  // База API
+  // API base
   let base: string | undefined;
   try {
     const envBase = (import.meta as ImportMeta & { env?: Record<string, string | undefined> })?.env
@@ -41,30 +41,30 @@ export function resolveBackendUrl(u: string | null | undefined): string | null {
 }
 
 /**
- * Достаёт URL из тела ответа/заголовка Location и нормализует его.
- * Приоритет: file.url -> url -> path -> location -> Location header.
- * Дополнительно удаляет обрамляющие кавычки и экранирование из строки.
+ * Extracts a URL from a typical upload response body or Location header
+ * and normalizes it to an absolute backend URL.
  */
 export function extractUrlFromUploadResponse(data: unknown, headers?: Headers): string | null {
-  let u: string | null =
+  // Gather potential URL candidates from common response shapes or Location header
+  const candidate: unknown =
     (data &&
       typeof data === 'object' &&
-      (((data as Record<string, unknown>).file as { url?: string } | undefined)?.url ||
-        (data as Record<string, unknown>).url ||
-        (data as Record<string, unknown>).path ||
-        (data as Record<string, unknown>).location)) ??
-    (typeof data === 'string' ? data : null) ??
-    (headers ? headers.get('Location') : null);
+      ((((data as Record<string, unknown>).file as { url?: unknown } | undefined)?.url ??
+        (data as Record<string, unknown>).url ??
+        (data as Record<string, unknown>).path ??
+        (data as Record<string, unknown>).location) as unknown)) ??
+    (typeof data === 'string' ? (data as unknown) : null) ??
+    (headers ? (headers.get('Location') as unknown) : null);
 
-  if (!u) return null;
+  if (candidate == null) return null;
 
-  // Нормализуем: trim и удаление обрамляющих кавычек/экранирования
+  let u = '';
+  // Normalize: trim and remove surrounding quotes/escaping when present
   try {
-    u = String(u).trim();
-    // Если строка в виде "\"/static/..\"" — снимем экранирование
-    if (/^\\?["'].*\\?["']$/.test(u)) {
-      // убираем один уровень backslash-экранирования
-      u = u.replace(/\\"/g, '"').replace(/\\'/g, "'");
+    u = String(candidate).trim();
+    // If string looks like "\"/static/...\"" — unescape and strip quotes
+    if (/^\\?[\"'].*\\?[\"']$/.test(u)) {
+      u = u.replace(/\\\"/g, '"').replace(/\\'/g, "'");
     }
     if ((u.startsWith('"') && u.endsWith('"')) || (u.startsWith("'") && u.endsWith("'"))) {
       u = u.slice(1, -1).trim();
@@ -75,3 +75,4 @@ export function extractUrlFromUploadResponse(data: unknown, headers?: Headers): 
 
   return resolveBackendUrl(u || null);
 }
+

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getOverrideState, setWarningBanner } from '../shared/hooks';
+import { getOverrideState } from '../shared/hooks/useOverrideStore';
+import { setWarningBanner } from '../shared/hooks/useWarningBannerStore';
 import { ADMIN_DEV_TOOLS } from '../utils/env';
 import { safeLocalStorage, safeSessionStorage } from '../utils/safeStorage';
 

@@ -16,15 +16,18 @@ interface QueueResponse {
 }
 
 export default function ModerationQueueWidget({
-  query,
-  refreshInterval,
+  query = '',
+  refreshInterval = 60000,
 }: {
-  query: string;
-  refreshInterval: number;
+  query?: string;
+  refreshInterval?: number;
 }) {
   const { data } = useQuery<QueueResponse>({
     queryKey: ['widget', query],
-    queryFn: async () => (await api.get(query)).data,
+    queryFn: async (): Promise<QueueResponse> => {
+      const res = await api.get<QueueResponse>(query);
+      return (res.data as QueueResponse | undefined) ?? { items: [] };
+    },
     refetchInterval: refreshInterval,
   });
   const items = data?.items ?? [];

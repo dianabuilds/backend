@@ -34,13 +34,13 @@ export default function Alerts() {
 
   const filtered = useMemo(
     () =>
-      (data || []).filter((a) => {
-        if (typeFilter && a.type !== typeFilter) return false;
-        if (severityFilter && a.severity !== severityFilter) return false;
-        if (statusFilter && a.status !== statusFilter) return false;
-        if (search && !a.description.toLowerCase().includes(search.toLowerCase())) return false;
-        return true;
-      }),
+      (data || []).filter(
+        (a) =>
+          (!typeFilter || a.type === typeFilter) &&
+          (!severityFilter || a.severity === severityFilter) &&
+          (!statusFilter || a.status === statusFilter) &&
+          (!search || a.description.toLowerCase().includes(search.toLowerCase())),
+      ),
     [data, typeFilter, severityFilter, statusFilter, search],
   );
 

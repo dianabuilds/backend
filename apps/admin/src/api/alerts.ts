@@ -40,9 +40,9 @@ export async function getAlerts(): Promise<AlertItem[]> {
   const raw = res.data as unknown;
   const list: unknown[] = Array.isArray(raw)
     ? (raw as unknown[])
-    : (raw && (raw as Record<string, unknown>)?.alerts) ||
-      (raw && (raw as Record<string, unknown>)?.data) ||
-      [];
+    : ((raw && ((raw as Record<string, unknown>).alerts as unknown[] | undefined)) ??
+        ((raw as Record<string, unknown>).data as unknown[] | undefined) ??
+        []);
   return (list as AlertLike[]).map((a, i) => ({
     id: a.id || a.fingerprint || a.labels?.alertname || String(i),
     startsAt: a.startsAt || a.starts_at || a.activeAt || a.active_at,

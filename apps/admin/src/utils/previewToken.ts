@@ -5,7 +5,9 @@ import { setPreviewToken } from '../api/client';
  * and store it via setPreviewToken so that X-Preview-Token header is sent.
  * Optionally removes the token from the visible URL using history.replaceState.
  */
-export function initPreviewTokenFromUrl(): void {
+export function initPreviewTokenFromUrl(
+  saveToken: (token: string | null) => void = setPreviewToken,
+): void {
   try {
     const loc = window.location;
     const url = new URL(loc.href);
@@ -26,7 +28,7 @@ export function initPreviewTokenFromUrl(): void {
     if (!token) return;
 
     // Save token for this session
-    setPreviewToken(token);
+    saveToken(token);
 
     // Clean the URL by removing token params from both search and hash
     url.searchParams.delete('token');

@@ -9,11 +9,10 @@ export type PublishInfo = {
 };
 
 export async function getPublishInfo(accountId: string, nodeId: number): Promise<PublishInfo> {
-  const info = await accountApi.get<PublishInfo>(
+  return await accountApi.get<PublishInfo>(
     `/admin/nodes/${encodeURIComponent(String(nodeId))}/publish_info`,
     { accountId: '', account: false },
   );
-  return info;
 }
 
 export async function publishNow(

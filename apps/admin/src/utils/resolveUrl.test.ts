@@ -20,7 +20,7 @@ describe('resolveUrl', () => {
         host: 'localhost:5173',
         origin: 'https://localhost:5173',
       } as unknown as Location,
-    } as unknown as Window;
+    } as unknown as Window & typeof globalThis;
     expect(resolveUrl('/static/img.png')).toBe('http://localhost:8000/static/img.png');
   });
 
@@ -34,7 +34,7 @@ describe('resolveUrl', () => {
         host: 'example.com',
         origin: 'https://example.com',
       } as unknown as Location,
-    } as unknown as Window;
+    } as unknown as Window & typeof globalThis;
     expect(resolveUrl('/static/img.png')).toBe('https://example.com/static/img.png');
   });
 });

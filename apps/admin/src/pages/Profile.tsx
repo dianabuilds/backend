@@ -91,7 +91,7 @@ export default function Profile() {
       if (!accountId) return [] as { id: number; title?: string; slug?: string; status?: string }[];
       const params: Record<string, unknown> = { scope_mode: 'mine', limit: 50 };
       if (myQ) params.q = myQ;
-      if (myVis !== 'all') params.visible = myVis === 'visible' ? true : false;
+      if (myVis !== 'all') params.visible = myVis === 'visible';
       if (myStatus !== 'all') params.status = myStatus;
       const items = await listNodes(accountId, params);
       return items as { id: number; title?: string; slug?: string; status?: string }[];
