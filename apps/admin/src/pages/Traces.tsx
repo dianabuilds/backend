@@ -219,7 +219,7 @@ export default function Traces() {
                   <button
                     onClick={async () => {
                       await anonymizeTrace(t.id);
-                      refresh();
+                      await refresh();
                     }}
                     className="text-blue-600"
                   >
@@ -228,7 +228,7 @@ export default function Traces() {
                   <button
                     onClick={async () => {
                       await deleteTrace(t.id);
-                      refresh();
+                      await refresh();
                     }}
                     className="text-red-600"
                   >

@@ -88,7 +88,7 @@ export default function RateLimitTools() {
   };
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   return (

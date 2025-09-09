@@ -51,7 +51,7 @@ export default function JobsTab() {
   };
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   return (

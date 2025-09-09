@@ -10,7 +10,8 @@ import { globalIgnores } from 'eslint/config';
 import requireSanitizedDangerouslySetInnerHTML from './eslint/rules/require-sanitized-dangerously-set-inner-html.js';
 
 export default tseslint.config([
-  globalIgnores(['dist']),
+  // Ignore generated/build outputs and dependencies
+  globalIgnores(['dist', 'node_modules', 'coverage', 'jscpd-report', 'jscpd-report-app']),
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {

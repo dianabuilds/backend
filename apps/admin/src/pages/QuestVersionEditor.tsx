@@ -177,7 +177,7 @@ export default function QuestVersionEditor() {
   }, [id, questId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   useEffect(() => {

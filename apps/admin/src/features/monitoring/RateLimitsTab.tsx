@@ -63,7 +63,7 @@ export default function RateLimitsTab() {
   };
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   const entries = Object.entries(draft);

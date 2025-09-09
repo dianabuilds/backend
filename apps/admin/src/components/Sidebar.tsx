@@ -277,7 +277,7 @@ export default function Sidebar() {
   }, [filterByRole]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const content = useMemo(() => {

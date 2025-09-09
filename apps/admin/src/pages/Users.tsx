@@ -109,7 +109,7 @@ export default function Users() {
     if (items.length === 0) return;
     const last = items[items.length - 1];
     if (last.index >= users.length - 1 && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+      void fetchNextPage();
     }
   }, [rowVirtualizer, users.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 

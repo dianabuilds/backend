@@ -31,7 +31,7 @@ export default function PaymentsRecent() {
         setLoading(false);
       }
     };
-    load();
+    void load();
   }, []);
 
   const cols: Column<RecentTx>[] = [
@@ -63,4 +63,3 @@ export default function PaymentsRecent() {
     </div>
   );
 }
-

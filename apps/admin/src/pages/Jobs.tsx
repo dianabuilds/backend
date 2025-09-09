@@ -24,7 +24,7 @@ export default function Jobs() {
   };
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   return (

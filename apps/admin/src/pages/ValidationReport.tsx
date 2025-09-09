@@ -38,7 +38,7 @@ export default function ValidationReport() {
   };
 
   useEffect(() => {
-    run();
+    void run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodeId, accountId]);
 

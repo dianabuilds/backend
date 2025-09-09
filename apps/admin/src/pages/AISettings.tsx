@@ -94,7 +94,7 @@ export default function AISettingsPage() {
   };
 
   useEffect(() => {
-    loadAISettings();
+    void loadAISettings();
   }, []);
 
   return (

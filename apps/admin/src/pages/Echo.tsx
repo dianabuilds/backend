@@ -133,14 +133,14 @@ export default function Echo() {
     if (idsSelected.length === 0) return;
     await bulkAnonymizeEcho(idsSelected);
     clearSelection();
-    refresh();
+    await refresh();
   };
 
   const handleBulkDelete = async () => {
     if (idsSelected.length === 0) return;
     await bulkDeleteEcho(idsSelected);
     clearSelection();
-    refresh();
+    await refresh();
   };
 
   return (

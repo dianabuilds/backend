@@ -65,7 +65,7 @@ export default function ImageDropzone({
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    handleFiles(e.dataTransfer.files);
+    void handleFiles(e.dataTransfer.files);
   };
 
   const onClick = () => inputRef.current?.click();
@@ -141,7 +141,7 @@ export default function ImageDropzone({
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => handleFiles(e.target.files)}
+        onChange={(e) => void handleFiles(e.target.files)}
       />
     </div>
   );

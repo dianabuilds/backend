@@ -211,7 +211,7 @@ export default function EditorJSEmbed({
       }
     }
 
-    init();
+    void init();
 
     return () => {
       destroyed = true;

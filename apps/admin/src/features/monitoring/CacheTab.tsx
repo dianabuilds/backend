@@ -56,7 +56,7 @@ export default function CacheTab() {
   };
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   return (

@@ -268,7 +268,7 @@ export default function AIQuests() {
 
   // начальная загрузка
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   // авто‑обновление выполняется через React Query (refetchInterval)

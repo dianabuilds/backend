@@ -38,7 +38,7 @@ export default function AIRateLimits() {
   };
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   const setProv = (k: string, v: string) => {
