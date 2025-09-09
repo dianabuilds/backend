@@ -2,12 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export { ApiError } from './core/ApiError';
-export { CancelablePromise, CancelError } from './core/CancelablePromise';
+// Core re-exports trimmed to only what's used by the app
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
-// Accounts models removed from exports after accounts cleanup
 export type { AchievementAdminOut } from './models/AchievementAdminOut';
 export type { AchievementCreateIn } from './models/AchievementCreateIn';
 export type { AchievementOut } from './models/AchievementOut';
@@ -21,8 +19,6 @@ export type { AliasOut } from './models/AliasOut';
 export type { app__api__admin__quests__steps__QuestGraphOut } from './models/app__api__admin__quests__steps__QuestGraphOut';
 export type { app__domains__navigation__api__admin_transitions_simulate__SimulateRequest } from './models/app__domains__navigation__api__admin_transitions_simulate__SimulateRequest';
 export type { app__domains__navigation__api__preview_router__SimulateRequest } from './models/app__domains__navigation__api__preview_router__SimulateRequest';
-export { app__domains__nodes__api__articles_admin_router__PublishIn } from './models/app__domains__nodes__api__articles_admin_router__PublishIn';
-export { app__domains__nodes__content_admin_router__PublishIn } from './models/app__domains__nodes__content_admin_router__PublishIn';
 export type { app__domains__quests__schemas__graph__QuestGraphOut } from './models/app__domains__quests__schemas__graph__QuestGraphOut';
 export type { AuditLogOut } from './models/AuditLogOut';
 export type { BackgroundJobHistoryOut } from './models/BackgroundJobHistoryOut';
@@ -68,11 +64,9 @@ export type { MediaAssetOut } from './models/MediaAssetOut';
 export type { MergeIn } from './models/MergeIn';
 export type { MergeReport } from './models/MergeReport';
 export type { MetricsSummary } from './models/MetricsSummary';
-export { NavigationCacheInvalidateRequest } from './models/NavigationCacheInvalidateRequest';
 export type { NavigationCacheSetRequest } from './models/NavigationCacheSetRequest';
 export type { NavigationNodeProblem } from './models/NavigationNodeProblem';
 export type { NavigationRunRequest } from './models/NavigationRunRequest';
-export { NodeBulkOperation } from './models/NodeBulkOperation';
 export type { NodeBulkPatch } from './models/NodeBulkPatch';
 export type { NodeBulkPatchChanges } from './models/NodeBulkPatchChanges';
 export type { NodeCreate } from './models/NodeCreate';
@@ -83,14 +77,10 @@ export type { NodePatchCreate } from './models/NodePatchCreate';
 export type { NodePatchDiffOut } from './models/NodePatchDiffOut';
 export type { NodePatchOut } from './models/NodePatchOut';
 export type { NodeTraceCreate } from './models/NodeTraceCreate';
-export { NodeTraceKind } from './models/NodeTraceKind';
 export type { NodeTraceOut } from './models/NodeTraceOut';
-export { NodeTraceVisibility } from './models/NodeTraceVisibility';
 export type { NodeTransitionCreate } from './models/NodeTransitionCreate';
-export { NodeTransitionType } from './models/NodeTransitionType';
 export type { NodeTransitionUpdate } from './models/NodeTransitionUpdate';
 export type { NodeUpdate } from './models/NodeUpdate';
-export { NotificationChannel } from './models/NotificationChannel';
 export type { NotificationOut } from './models/NotificationOut';
 export type { NotificationRules } from './models/NotificationRules';
 export { NotificationType } from './models/NotificationType';
@@ -128,11 +118,9 @@ export type { RelevancePutIn } from './models/RelevancePutIn';
 export type { RelevanceQueryParams } from './models/RelevanceQueryParams';
 export type { RelevanceWeights } from './models/RelevanceWeights';
 export type { ReliabilityMetrics } from './models/ReliabilityMetrics';
-export { RestrictionAdminCreate } from './models/RestrictionAdminCreate';
 export type { RestrictionAdminUpdate } from './models/RestrictionAdminUpdate';
 export type { RestrictionOut } from './models/RestrictionOut';
 export type { RuleUpdatePayload } from './models/RuleUpdatePayload';
-export { SchedulePublishIn } from './models/SchedulePublishIn';
 export type { SearchOverviewOut } from './models/SearchOverviewOut';
 export type { SearchTopQuery } from './models/SearchTopQuery';
 export type { SendNotificationPayload } from './models/SendNotificationPayload';
@@ -153,39 +141,9 @@ export type { UserAIPrefOut } from './models/UserAIPrefOut';
 export type { UserIdIn } from './models/UserIdIn';
 export type { UserOut } from './models/UserOut';
 export type { UserPremiumUpdate } from './models/UserPremiumUpdate';
-export { UserRoleUpdate } from './models/UserRoleUpdate';
 export type { UserUpdate } from './models/UserUpdate';
 export type { ValidateResult } from './models/ValidateResult';
 export type { ValidationError } from './models/ValidationError';
 export type { VersionSummary } from './models/VersionSummary';
 export type { WorldTemplateIn } from './models/WorldTemplateIn';
 export type { WorldTemplateOut } from './models/WorldTemplateOut';
-
-export { AchievementsService } from './services/AchievementsService';
-export { AdminAiQuestsService } from './services/AdminAiQuestsService';
-export { AdminAiSettingsService } from './services/AdminAiSettingsService';
-export { AdminAiUsageService } from './services/AdminAiUsageService';
-export { AdminAiUserPrefService } from './services/AdminAiUserPrefService';
-export { AdminMediaService } from './services/AdminMediaService';
-export { AdminPaymentsService } from './services/AdminPaymentsService';
-export { AdminTagsService } from './services/AdminTagsService';
-export { AdminTelemetryService } from './services/AdminTelemetryService';
-export { AdminWorldsService } from './services/AdminWorldsService';
-export { AuthService } from './services/AuthService';
-export { DefaultService } from './services/DefaultService';
-export { MediaService } from './services/MediaService';
-export { MetricsService } from './services/MetricsService';
-export { ModerationService } from './services/ModerationService';
-export { NavigationService } from './services/NavigationService';
-// NodesService removed from exports (legacy account_id routes)
-export { NodesNavigationService } from './services/NodesNavigationService';
-// NodesNavigationManageService removed from exports (legacy account_id param)
-export { NotificationsService } from './services/NotificationsService';
-export { PaymentsService } from './services/PaymentsService';
-export { PremiumService } from './services/PremiumService';
-export { QuestsService } from './services/QuestsService';
-export { SearchService } from './services/SearchService';
-export { TagsService } from './services/TagsService';
-export { TracesService } from './services/TracesService';
-export { TransitionsService } from './services/TransitionsService';
-export { UsersService } from './services/UsersService';

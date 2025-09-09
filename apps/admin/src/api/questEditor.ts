@@ -1,5 +1,5 @@
-import type { QuestGraphIn,QuestOut, QuestUpdate, ValidateResult } from '../openapi';
-// Local alias for the graph used by editor. Keep it broad to avoid tight coupling
+import type { QuestGraphIn,QuestOut, ValidateResult } from '../openapi';
+// Local alias for the graph used by the editor. Keep it broad to avoid tight coupling
 // to generated types that may change naming between versions.
 export type VersionGraph = unknown;
 import { api } from './client';
@@ -47,10 +47,4 @@ export async function getQuestMeta(questId: string): Promise<QuestOut> {
   return res.data!;
 }
 
-export async function updateQuestMeta(questId: string, patch: QuestUpdate): Promise<QuestOut> {
-  const res = await api.patch<QuestUpdate, QuestOut>(
-    `/admin/quests/${encodeURIComponent(questId)}/meta`,
-    patch,
-  );
-  return res.data!;
-}
+// Removed unused updateQuestMeta helper

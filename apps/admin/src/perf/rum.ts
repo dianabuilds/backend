@@ -1,4 +1,4 @@
-// Lightweight RUM helpers: send navigation timings and custom events to backend
+// Lightweight RUM helpers: send navigation timings and custom events to the backend
 import { apiFetch } from '../lib/http';
 
 type RUMPayload = Record<string, unknown>;
@@ -84,7 +84,7 @@ function sendFirstInteraction() {
   }
 }
 
-// Auto-send navigation timings after full load and measure first interaction
+// Auto-send navigation timings after a full load and measure the first interaction
 if (typeof window !== 'undefined') {
   if (document.readyState === 'complete') {
     setTimeout(sendNavigation, 0);

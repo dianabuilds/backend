@@ -34,7 +34,6 @@ export default function Breadcrumbs() {
       return { to, text, isLast, segment };
     })
     .filter((i): i is { to: string; text: string; isLast: boolean; segment: string } => Boolean(i))
-    // Remove immediate duplicates (e.g. repeated segment labels)
     .filter((item, index, arr) => index === 0 || item.text !== arr[index - 1].text);
 
   return (

@@ -14,7 +14,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // защита от дабл-кликов
+    if (loading) return;
     setError(null);
     setLoading(true);
     const t0 = performance.now();

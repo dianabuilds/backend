@@ -63,7 +63,7 @@ function configureOpenAPI() {
 const queryClient = new QueryClient();
 
 export function AppProviders({ children }: { children: ReactNode }) {
-  // one‑time OpenAPI setup on provider mount
+  // one‑time OpenAPI setup on the provider mount
   configureOpenAPI();
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

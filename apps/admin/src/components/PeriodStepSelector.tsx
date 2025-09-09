@@ -1,4 +1,3 @@
-// React import not required for JSX
 
 export interface PeriodStepSelectorProps {
   range: '1h' | '24h';

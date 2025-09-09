@@ -1,5 +1,5 @@
 /**
- * Convert relative URLs (e.g. /static/uploads/...) into absolute ones.
+ * Convert relative URLs (e.g., /static/uploads/...) into absolute ones.
  * Resolves against VITE_API_BASE, maps Vite dev ports (5173–5176) to backend :8000,
  * otherwise falls back to the current window origin.
  */

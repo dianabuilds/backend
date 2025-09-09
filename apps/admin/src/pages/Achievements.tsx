@@ -36,7 +36,6 @@ export default function Achievements() {
   const createModal = useModal();
   const assignModal = useModal();
 
-  // create modal state
   const [cCode, setCCode] = useState('');
   const [cTitle, setCTitle] = useState('');
   const [cDesc, setCDesc] = useState('');

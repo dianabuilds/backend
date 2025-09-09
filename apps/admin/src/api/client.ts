@@ -60,7 +60,7 @@ function getCookie(name: string): string {
 /**
  * Низкоуровневый fetch с поддержкой cookie‑сессии,
  * авторефрешем access/CSRF на 401 и синхронизацией CSRF.
- * Поддерживает таймаут через AbortController (VITE_API_TIMEOUT_MS или 15000 мс по умолчанию).
+ * Поддерживает Тайм-аут через AbortController (VITE_API_TIMEOUT_MS или 15000 мс по умолчанию).
  */
 type RequestInitEx = RequestInit & { timeoutMs?: number };
 
@@ -145,7 +145,7 @@ export async function apiFetch(
     return u;
   };
 
-  // Таймаут запроса: можно задать VITE_API_TIMEOUT_MS, иначе 15с для обычных запросов и 60с для /auth/*
+  // Тайм-аут запроса: можно задать VITE_API_TIMEOUT_MS, иначе 15с для обычных запросов и 60с для /auth/*
   const envTimeout = Number(
     (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
       ?.VITE_API_TIMEOUT_MS || 0,
@@ -195,7 +195,7 @@ export async function apiFetch(
       const csrfForRefresh = getCsrfToken();
       if (csrfForRefresh) refreshHeaders['X-CSRF-Token'] = csrfForRefresh;
 
-      // Отдельный контроллер/таймаут для refresh, чтобы не зависеть от уже сработавшего abort
+      // Отдельный контроллер/Тайм-аут для refresh, чтобы не зависеть от уже сработавшего abort
       const refreshCtl = new AbortController();
       const refreshTimeout = setTimeout(() => refreshCtl.abort(), 15000);
       let refresh: Response;
@@ -371,7 +371,7 @@ async function request<T = unknown>(
 // Простое кеширование ответов по ETag для GET-запросов
 const responseCache = new Map<string, { etag: string; data: unknown }>();
 
-export async function cachedGet<T = unknown>(
+async function cachedGet<T = unknown>(
   url: string,
   opts: RequestOptions = {},
 ): Promise<ApiResponse<T>> {
@@ -396,28 +396,28 @@ export async function cachedGet<T = unknown>(
   return res;
 }
 
-export const get = <T = unknown>(url: string, opts?: RequestOptions): Promise<ApiResponse<T>> =>
+const get = <T = unknown>(url: string, opts?: RequestOptions): Promise<ApiResponse<T>> =>
   request<T>(url, { ...opts, method: 'GET' });
 
-export const post = <TReq = unknown, TRes = unknown>(
+const post = <TReq = unknown, TRes = unknown>(
   url: string,
   json?: TReq,
   opts?: RequestOptions,
 ): Promise<ApiResponse<TRes>> => request<TRes>(url, { ...opts, method: 'POST', json });
 
-export const put = <TReq = unknown, TRes = unknown>(
+const put = <TReq = unknown, TRes = unknown>(
   url: string,
   json?: TReq,
   opts?: RequestOptions,
 ): Promise<ApiResponse<TRes>> => request<TRes>(url, { ...opts, method: 'PUT', json });
 
-export const patch = <TReq = unknown, TRes = unknown>(
+const patch = <TReq = unknown, TRes = unknown>(
   url: string,
   json?: TReq,
   opts?: RequestOptions,
 ): Promise<ApiResponse<TRes>> => request<TRes>(url, { ...opts, method: 'PATCH', json });
 
-export const del = <T = unknown>(url: string, opts?: RequestOptions): Promise<ApiResponse<T>> =>
+const del = <T = unknown>(url: string, opts?: RequestOptions): Promise<ApiResponse<T>> =>
   request<T>(url, { ...opts, method: 'DELETE' });
 
 export const api = {

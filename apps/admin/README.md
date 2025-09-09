@@ -38,14 +38,14 @@ The **Flags** column groups toggleable icons. Clicking an icon sends a `PATCH` r
 
 ### Icon legend
 
-| Icon    | Meaning            |
-| ------- | ------------------ |
-| 📝      | Draft              |
-| 🔍      | In review          |
-| ✅      | Published          |
+| Icon     | Meaning            |
+|----------|--------------------|
+| 📝       | Draft              |
+| 🔍       | In review          |
+| ✅        | Published          |
 | 🗄️      | Archived           |
-| 💎      | Premium flag       |
-| ⭐      | Recommendable flag |
+| 💎       | Premium flag       |
+| ⭐        | Recommendable flag |
 | 👁️ / 🚫 | Visible / hidden   |
 
 ## UI components

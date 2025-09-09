@@ -1,9 +1,9 @@
-import type { NodeOut, Status } from '../openapi';
-import { accountApi } from './accountApi';
-import { api, type ApiResponse } from './client';
+import type {NodeOut, Status} from '../openapi';
+import {accountApi} from './accountApi';
+import {api, type ApiResponse} from './client';
 
 // The admin nodes list endpoint returns additional metadata compared to the
-// public NodeOut model. In particular it includes the `status` of each item.
+// public NodeOut model. In particular, it includes the `status` of each item.
 // We extend the generated `NodeOut` type to capture these fields for stronger
 // typing inside the admin UI.
 export interface AdminNodeItem extends NodeOut {
@@ -226,56 +226,14 @@ export async function publishNode(
   id: number,
   body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
-  const res = await accountApi.post<typeof body, NodeOut>(
-    `/admin/nodes/${encodeURIComponent(String(id))}/publish`,
-    body,
-    { accountId: '', account: false },
-  );
-  return res;
-}
-
-export async function archiveNode(accountId: string, id: number): Promise<void> {
-  // Not supported after accounts cleanup. Keep no-op for UI compatibility.
-  void accountId;
-  void id;
-  if (typeof console !== 'undefined') console.warn('archiveNode: not supported');
-}
-
-export async function duplicateNode(accountId: string, id: number): Promise<NodeOut> {
-  // Not supported after accounts cleanup. Keep no-op for UI compatibility.
-  void accountId;
-  void id;
-  if (typeof console !== 'undefined') console.warn('duplicateNode: not supported');
-  return {} as unknown as NodeOut;
-}
-
-export async function previewNode(accountId: string, id: number): Promise<void> {
-  // Not supported after accounts cleanup. Keep no-op for UI compatibility.
-  void accountId;
-  void id;
-  if (typeof console !== 'undefined') console.warn('previewNode: not supported');
-}
-
-export async function simulateNode(
-  accountId: string,
-  id: number,
-  payload: NodeSimulatePayload,
-): Promise<unknown> {
-  // Not supported after accounts cleanup. Keep no-op for UI compatibility.
-  void accountId;
-  void id;
-  void payload;
-  if (typeof console !== 'undefined') console.warn('simulateNode: not supported');
-  return {};
-}
-
-export async function recomputeNodeEmbedding(accountId: string, id: number): Promise<void> {
-  await accountApi.post(
-    `/admin/ai/nodes/${encodeURIComponent(id)}/embedding/recompute`,
-    undefined,
-    { accountId, account: false },
+    return await accountApi.post<typeof body, NodeOut>(
+      `/admin/nodes/${encodeURIComponent(String(id))}/publish`,
+      body,
+      {accountId: '', account: false},
   );
 }
+
+// Removed unused legacy helpers (archive/duplicate/preview/simulate/recompute embedding)
 
 // Convenience helper for personal mode with global scope
 export async function listNodesGlobal(params: NodeListParams = {}): Promise<AdminNodeItem[]> {

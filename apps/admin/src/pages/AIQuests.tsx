@@ -46,7 +46,6 @@ type JobParams = {
   tone?: 'light' | 'dark' | 'ironic';
   genre?: string;
   locale?: string | null;
-  // allow extra fields from server
   [key: string]: unknown;
 };
 type AISettings = {
@@ -158,7 +157,6 @@ export default function AIQuests() {
     loadAllowedModels().catch(() => void 0);
   }, [accountId, loadAllowedModels]);
 
-  // set default model after allowed models load
   useEffect(() => {
     if (!model && allowedModels.length) setModel(allowedModels[0]);
   }, [model, allowedModels]);

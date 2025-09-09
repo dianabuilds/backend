@@ -46,7 +46,7 @@ export type IconName =
   | 'compass'
   | 'shuffle';
 
-export const iconRegistry: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+const iconRegistry: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
   home: Home,
   users: UsersIcon,
   activity: Activity,

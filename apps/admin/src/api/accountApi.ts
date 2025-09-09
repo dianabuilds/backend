@@ -7,7 +7,7 @@ export interface AccountRequestOptions<P extends Record<string, unknown> = Recor
   /** Account identifier to attach to the request. */
   accountId: string;
   /**
-   * Configure account ID handling. By default the ID is appended as
+   * Configure account ID handling. By default, the ID is appended as
    * `account_id` query parameter. Set to `false` to skip automatic
    * handling.
    */
@@ -110,6 +110,6 @@ export const accountApi = {
 };
 
 // Provide alias to reduce confusion, but prefer accountApi.delete across the codebase
-export const del = accountApi.delete;
+// Removed unused alias `del` (use accountApi.delete directly if needed)
 
 // type is already exported above; avoid duplicate re-export that confuses TS

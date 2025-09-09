@@ -16,10 +16,9 @@ declare global {
   }
 }
 
-// Initialize preview token if present in URL before any API calls
+
 initPreviewTokenFromUrl();
 
-// Replace default alert with styled modal
 
 window.alert = alertDialog;
 

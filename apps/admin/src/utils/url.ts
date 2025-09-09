@@ -1,5 +1,5 @@
 /**
- * Convert a relative URL (e.g. /static/uploads/...) to an absolute backend URL.
+ * Convert a relative URL (e.g., /static/uploads/...) to an absolute backend URL.
  * Honours VITE_API_BASE and maps Vite dev ports (5173–5176) to http://<host>:8000.
  */
 export function resolveBackendUrl(u: string | null | undefined): string | null {
@@ -62,7 +62,7 @@ export function extractUrlFromUploadResponse(data: unknown, headers?: Headers): 
   // Normalize: trim and remove surrounding quotes/escaping when present
   try {
     u = String(candidate).trim();
-    // If string looks like "\"/static/...\"" — unescape and strip quotes
+    // If a string looks like "\"/static/...\"" — unescape and strip quotes
     if (/^\\?["'].*\\?["']$/.test(u)) {
       u = u.replace(/\\"/g, '"').replace(/\\'/g, "'");
     }

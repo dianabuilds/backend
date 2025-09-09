@@ -62,7 +62,7 @@ export function AccountBranchProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        // Try server-provided default account
+        // Try a server-provided default account
         const me = await api.get('/users/me');
         const did =
           (me?.data as { default_account_id?: string | null } | undefined)?.default_account_id ??
@@ -72,7 +72,7 @@ export function AccountBranchProvider({ children }: { children: ReactNode }) {
           return;
         }
       } catch {
-        // ignore and try fallback
+        // ignore and try to fallback
       }
       try {
         // Fallback: query available accounts and pick global, then first

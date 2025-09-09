@@ -57,9 +57,7 @@ export async function createCase(data: CaseCreateIn): Promise<string> {
   return res.data!.id;
 }
 
-export async function patchCase(id: string, patch: CasePatchIn): Promise<void> {
-  await api.patch(`/admin/moderation/cases/${id}`, patch);
-}
+// Removed unused patchCase helper to reduce dead code noise
 
 export interface CaseNote {
   id: string;

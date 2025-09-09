@@ -75,7 +75,7 @@ function normalizePath(p?: string | null): string | null {
     const url = new URL(p, window.location.origin);
     path = url.pathname;
   } catch {
-    // p уже относительный путь — ок
+    // Относительный путь — ок
   }
   if (path === '/admin') return '/';
   if (path.startsWith('/admin/')) return path.slice('/admin'.length);

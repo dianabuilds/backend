@@ -19,7 +19,7 @@ export default function TagInput({
   const [input, setInput] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Sync internal state when value prop changes (e.g. after async load)
+  // Sync internal state when value prop changes (e.g., after an async load)
   useEffect(() => {
     const next = mergeTags(value || []);
     // Avoid unnecessary rerenders

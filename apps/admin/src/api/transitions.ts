@@ -37,7 +37,7 @@ export type CreateTransitionBody = {
   weight?: number;
   priority?: number;
   disabled?: boolean;
-  // любые доп. поля
+
   [k: string]: unknown;
 };
 
@@ -47,7 +47,7 @@ export async function createTransition(body: CreateTransitionBody): Promise<Tran
 }
 
 export type UpdateTransitionBody = Partial<Omit<CreateTransitionBody, 'from_slug' | 'to_slug'>> & {
-  // возможно у бекенда другие поля для обновления — оставим запас
+  // возможно, у бэкенда другие поля для обновления — оставим запас
   [k: string]: unknown;
 };
 
@@ -55,9 +55,6 @@ export async function updateTransition(id: string, body: UpdateTransitionBody): 
   await api.patch(`/admin/transitions/${encodeURIComponent(id)}`, body);
 }
 
-export async function deleteTransition(id: string): Promise<void> {
-  await api.del(`/admin/transitions/${encodeURIComponent(id)}`);
-}
 
 // Клиентские bulk-хелперы поверх одиночных запросов
 
@@ -67,11 +64,6 @@ export async function bulkUpdate(ids: string[], patch: UpdateTransitionBody): Pr
   }
 }
 
-export async function bulkDelete(ids: string[]): Promise<void> {
-  for (const id of ids) {
-    await deleteTransition(id);
-  }
-}
 
 export interface SimulateTransitionsBody {
   start: string;
@@ -96,12 +88,4 @@ export interface SimulateTransitionsResponse {
   metrics?: Record<string, unknown>;
 }
 
-export async function simulateTransitions(
-  body: SimulateTransitionsBody,
-): Promise<SimulateTransitionsResponse> {
-  const res = await api.post<SimulateTransitionsBody, SimulateTransitionsResponse>(
-    `/admin/transitions/simulate`,
-    body,
-  );
-  return res.data || {};
-}
+// Removed unused helpers: deleteTransition, bulkDelete, simulateTransitions
