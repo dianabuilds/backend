@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { confirmWithEnv } from '../utils/env';
 import EditDeleteActions from '../components/common/EditDeleteActions';
 import ListSection from '../components/common/ListSection';
+import FormActions from '../components/common/FormActions';
 
 type Gateway = {
   id: string;
@@ -25,7 +26,7 @@ const TYPES = [
 export default function PaymentsGateways() {
   const qc = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
+  const { data = [], isLoading, error } = useQuery({
     queryKey: ['payments', 'gateways'],
     queryFn: async () => (await api.get<Gateway[]>('/admin/payments/gateways')).data || [],
     staleTime: 10_000,
@@ -139,7 +140,7 @@ export default function PaymentsGateways() {
     <div className="p-4 space-y-4">
       <h1 className="text-lg font-semibold">Payments — Gateways</h1>
 
-      <ListSection title="Список шлюзов" loading={isLoading} error={error}>
+      <div className="rounded border p-3">
         <div className="text-sm text-gray-500 mb-2">
           {isEdit ? 'Редактирование шлюза' : 'Создание шлюза'}
         </div>
@@ -182,102 +183,63 @@ export default function PaymentsGateways() {
           </div>
           <div className="flex items-center gap-2">
             <input
-              id="gw-enabled"
+              id="enabled"
               type="checkbox"
               checked={!!draft.enabled}
               onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
             />
-            <label htmlFor="gw-enabled" className="text-sm">
+            <label htmlFor="enabled" className="text-sm">
               Enabled
             </label>
           </div>
-
-          <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-3 mt-2">
-            <div>
-              <label className="block text-xs text-gray-500">Fee mode</label>
-              <select
-                className="w-full rounded border px-2 py-1"
-                value={
-                  typeof draft.config?.fee_mode === 'string' ? draft.config.fee_mode : 'percent'
-                }
-                onChange={(e) => setFee('fee_mode', e.target.value)}
-              >
-                <option value="none">none</option>
-                <option value="percent">percent</option>
-                <option value="fixed">fixed</option>
-                <option value="mixed">mixed</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500">Fee percent</label>
-              <input
-                className="w-full rounded border px-2 py-1"
-                type="number"
-                step="0.1"
-                value={Number(draft.config?.fee_percent || 0)}
-                onChange={(e) => setFee('fee_percent', parseFloat(e.target.value || '0'))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500">Fee fixed (cents)</label>
-              <input
-                className="w-full rounded border px-2 py-1"
-                type="number"
-                value={Number(draft.config?.fee_fixed_cents || 0)}
-                onChange={(e) => setFee('fee_fixed_cents', parseInt(e.target.value || '0', 10))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500">Min fee (cents)</label>
-              <input
-                className="w-full rounded border px-2 py-1"
-                type="number"
-                value={Number(draft.config?.min_fee_cents || 0)}
-                onChange={(e) => setFee('min_fee_cents', parseInt(e.target.value || '0', 10))}
-              />
-            </div>
-
-            <div className="md:col-span-4">
-              <label className="block text-xs text-gray-500">Config (JSON)</label>
-              <textarea
-                className="w-full rounded border px-2 py-1 font-mono text-xs min-h-[120px]"
-                value={JSON.stringify(draft.config || {}, null, 2)}
-                onChange={(e) => {
-                  try {
-                    const v = JSON.parse(e.target.value || '{}');
-                    setDraft((d) => ({ ...d, config: v }));
-                  } catch {
-                    // игнорируем при вводе; можно добавить подсветку ошибки
-                  }
-                }}
-              />
-            </div>
+          <div>
+            <label className="block text-xs text-gray-500">Fee mode</label>
+            <select
+              className="w-full rounded border px-2 py-1"
+              value={(draft.config as any)?.fee_mode ?? 'percent'}
+              onChange={(e) => setFee('fee_mode', e.target.value)}
+            >
+              <option value="none">none</option>
+              <option value="percent">percent</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500">Fee percent</label>
+            <input
+              className="w-full rounded border px-2 py-1"
+              type="number"
+              value={Number((draft.config as any)?.fee_percent ?? 0)}
+              onChange={(e) => setFee('fee_percent', parseFloat(e.target.value || '0'))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500">Fee fixed (cents)</label>
+            <input
+              className="w-full rounded border px-2 py-1"
+              type="number"
+              value={Number((draft.config as any)?.fee_fixed_cents ?? 0)}
+              onChange={(e) => setFee('fee_fixed_cents', parseInt(e.target.value || '0', 10))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500">Min fee (cents)</label>
+            <input
+              className="w-full rounded border px-2 py-1"
+              type="number"
+              value={Number((draft.config as any)?.min_fee_cents ?? 0)}
+              onChange={(e) => setFee('min_fee_cents', parseInt(e.target.value || '0', 10))}
+            />
           </div>
         </div>
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={save}
-            className="text-sm px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
-          >
-            {isEdit ? 'Сохранить' : 'Создать'}
-          </button>
-          <button
-            onClick={resetDraft}
-            className="text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
-          >
-            Сбросить
-          </button>
-        </div>
+        <FormActions
+          primaryLabel={isEdit ? 'Save' : 'Create'}
+          onPrimary={save}
+          secondaryLabel="Reset"
+          onSecondary={resetDraft}
+        />
       </div>
 
-      <div className="rounded border p-3">
-        <div className="text-sm text-gray-500 mb-2">Список шлюзов</div>
-        {isLoading ? <div className="text-sm text-gray-500">Загрузка…</div> : null}
-        {error ? (
-          <div className="text-sm text-red-600">
-            {error instanceof Error ? error.message : String(error)}
-          </div>
-        ) : null}
+      <ListSection title="Список шлюзов" loading={isLoading} error={error}>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -291,7 +253,7 @@ export default function PaymentsGateways() {
               </tr>
             </thead>
             <tbody>
-              {(data || []).map((g) => (
+              {data.map((g) => (
                 <tr key={g.id} className="border-t">
                   <td className="px-2 py-1">{g.slug}</td>
                   <td className="px-2 py-1">{g.type}</td>
@@ -299,7 +261,7 @@ export default function PaymentsGateways() {
                   <td className="px-2 py-1">{g.enabled ? 'yes' : 'no'}</td>
                   <td className="px-2 py-1">
                     {(() => {
-                      const c = g.config || {};
+                      const c = g.config || {} as any;
                       const mode = c.fee_mode || 'none';
                       const pct = Number(c.fee_percent || 0);
                       const fx = Number(c.fee_fixed_cents || 0);
@@ -311,7 +273,7 @@ export default function PaymentsGateways() {
                   </td>
                 </tr>
               ))}
-              {(data || []).length === 0 ? (
+              {data.length === 0 ? (
                 <tr>
                   <td className="px-2 py-3 text-gray-500" colSpan={6}>
                     Нет шлюзов
@@ -378,3 +340,4 @@ export default function PaymentsGateways() {
     </div>
   );
 }
+

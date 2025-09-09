@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { confirmWithEnv } from '../utils/env';
 import EditDeleteActions from '../components/common/EditDeleteActions';
+import FormActions from '../components/common/FormActions';
 import ListSection from '../components/common/ListSection';
 
 type Plan = {
@@ -21,10 +22,10 @@ type Plan = {
 
 export default function PremiumPlans() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useQuery({
+  const { data = [], isLoading, error } = useQuery({
     queryKey: ['premium', 'plans'],
     queryFn: async () => (await api.get<Plan[]>('/admin/premium/plans')).data || [],
-    staleTime: 10000,
+    staleTime: 10_000,
   });
 
   const [draft, setDraft] = useState<Partial<Plan>>({
@@ -39,7 +40,6 @@ export default function PremiumPlans() {
 
   useEffect(() => {
     if (!data || data.length === 0) return;
-    // no-op
   }, [data]);
 
   const save = async () => {
@@ -94,7 +94,7 @@ export default function PremiumPlans() {
     <div className="p-4 space-y-4">
       <h1 className="text-lg font-semibold">Premium — Plans</h1>
 
-      <ListSection title="Список тарифов" loading={isLoading} error={error}>
+      <div className="rounded border p-3">
         <div className="text-sm text-gray-500 mb-2">Создать/изменить тариф</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
@@ -140,7 +140,7 @@ export default function PremiumPlans() {
             <input
               className="w-full rounded border px-2 py-1"
               type="number"
-              value={draft.order || 100}
+              value={draft.order ?? 100}
               onChange={(e) =>
                 setDraft({
                   ...draft,
@@ -196,40 +196,25 @@ export default function PremiumPlans() {
             />
           </div>
         </div>
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={save}
-            className="text-sm px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
-          >
-            Сохранить
-          </button>
-          <button
-            onClick={() =>
-              setDraft({
-                slug: '',
-                title: '',
-                is_active: true,
-                order: 100,
-                currency: 'USD',
-                monthly_limits: { stories: 0 },
-                features: {},
-              })
-            }
-            className="text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
-          >
-            Сбросить
-          </button>
-        </div>
+        <FormActions
+          primaryLabel="Save"
+          onPrimary={save}
+          secondaryLabel="Reset"
+          onSecondary={() =>
+            setDraft({
+              slug: '',
+              title: '',
+              is_active: true,
+              order: 100,
+              currency: 'USD',
+              monthly_limits: { stories: 0 },
+              features: {},
+            })
+          }
+        />
       </div>
 
-      <div className="rounded border p-3">
-        <div className="text-sm text-gray-500 mb-2">Список тарифов</div>
-        {isLoading ? <div className="text-sm text-gray-500">Загрузка…</div> : null}
-        {error ? (
-          <div className="text-sm text-red-600">
-            {error instanceof Error ? error.message : String(error)}
-          </div>
-        ) : null}
+      <ListSection title="Список тарифов" loading={isLoading} error={error}>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -243,7 +228,7 @@ export default function PremiumPlans() {
               </tr>
             </thead>
             <tbody>
-              {(data || []).map((p) => (
+              {data.map((p) => (
                 <tr key={p.id} className="border-t">
                   <td className="px-2 py-1">{p.slug}</td>
                   <td className="px-2 py-1">{p.title}</td>
@@ -257,7 +242,7 @@ export default function PremiumPlans() {
                   </td>
                 </tr>
               ))}
-              {(data || []).length === 0 ? (
+              {data.length === 0 ? (
                 <tr>
                   <td className="px-2 py-3 text-gray-500" colSpan={6}>
                     Нет тарифов
@@ -271,3 +256,4 @@ export default function PremiumPlans() {
     </div>
   );
 }
+
