@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
+import type { ApiResponse } from '../api/client';
 import { api } from '../api/client';
 import SystemStatus from './SystemStatus';
 
@@ -16,7 +17,7 @@ describe('SystemStatus', () => {
       data: {
         ready: { db: 'ok', redis: 'fail', queue: 'ok', ai: 'ok', payment: 'ok' },
       },
-    } as unknown as import('../api/client').ApiResponse<{ ready: Record<string, string> }>);
+    } as unknown as ApiResponse<{ ready: Record<string, string> }>);
 
     render(<SystemStatus />);
     await waitFor(() => expect(screen.getByTestId('status-dot-db')).toHaveClass('bg-green-500'));

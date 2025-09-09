@@ -82,7 +82,7 @@ export default function AISettingsPage() {
       await loadAISettings();
       await refreshLimits();
       alert('Настройки сохранены');
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof ApiError && e.status === 429) {
         const retry = Number(e.headers?.get('Retry-After') || 0);
         await handleLimit429('ai_tokens', retry);

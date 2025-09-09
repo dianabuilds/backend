@@ -17,14 +17,16 @@ export default function ReliabilityDashboard() {
     refetchInterval: 15000,
   });
 
-  const metrics: ReliabilityMetrics = data || {
-    rps: 0,
-    p95: 0,
-    errors_4xx: 0,
-    errors_5xx: 0,
-    no_route_percent: 0,
-    fallback_percent: 0,
-  };
+  const metrics = useMemo<ReliabilityMetrics>(() => (
+    data || {
+      rps: 0,
+      p95: 0,
+      errors_4xx: 0,
+      errors_5xx: 0,
+      no_route_percent: 0,
+      fallback_percent: 0,
+    }
+  ), [data]);
 
   const { nodes, edges } = useMemo(() => {
     const nodes: GraphNode[] = [

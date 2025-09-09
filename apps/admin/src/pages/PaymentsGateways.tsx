@@ -10,7 +10,7 @@ type Gateway = {
   type: string;
   enabled: boolean;
   priority: number;
-  config: any;
+  config: Record<string, unknown>;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -128,8 +128,8 @@ export default function PaymentsGateways() {
       const ok = (res.data as unknown as { ok?: boolean }).ok;
       const gateway = (res.data as unknown as { gateway?: string }).gateway || '-';
       setVerifyRes(`ok=${String(ok)}, gateway=${gateway}`);
-    } catch (e: any) {
-      setVerifyRes(`Ошибка: ${e?.message || String(e)}`);
+    } catch (e: unknown) {
+      setVerifyRes(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
 

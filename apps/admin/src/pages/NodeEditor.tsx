@@ -160,7 +160,7 @@ function resolveAssetUrl(u?: string | null): string | null {
 
 export default function NodeEditor() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  // navigate not used in NodeEditor; navigate is used in NodeCreate
   const { accountId } = useAccount();
   const [node, setNode] = useState<NodeEditorData | null>(null);
   const [loading, setLoading] = useState(true);

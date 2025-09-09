@@ -14,11 +14,11 @@ type JobDetails = {
     created_by?: string | null;
     provider?: string | null;
     model?: string | null;
-    params: any;
+    params?: Record<string, unknown> | null;
     result_quest_id?: string | null;
     result_version_id?: string | null;
     cost?: number | null;
-    token_usage?: any;
+    token_usage?: { prompt?: number; completion?: number; total?: number } | null;
     reused?: boolean;
     progress?: number;
     logs_inline?: string[] | null;

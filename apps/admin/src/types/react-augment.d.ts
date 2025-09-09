@@ -7,11 +7,11 @@ import 'react';
 import type { HTMLAttributes } from 'react';
 
 declare module 'react' {
-  interface DOMAttributes<T> {
-    onCommit?: (action: any) => void;
+  interface DOMAttributes {
+    onCommit?: (action: unknown) => void;
   }
 
   interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
-    onCommit?: (action: any) => void;
+    onCommit?: (action: unknown) => void;
   }
 }

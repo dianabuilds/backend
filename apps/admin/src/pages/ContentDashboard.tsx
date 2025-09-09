@@ -41,11 +41,7 @@ export default function ContentDashboard() {
   const [recomputeMessage, setRecomputeMessage] = useState<string | null>(null);
   const [rebuildMessage, setRebuildMessage] = useState<string | null>(null);
 
-  const {
-    data: nodes = [],
-    refetch,
-    isLoading,
-  } = useQuery<NodeItem[]>({
+  const { data: nodes = [], isLoading } = useQuery<NodeItem[]>({
     queryKey: ['content', 'dashboard', 'nodes', accountId || 'default'],
     queryFn: async () => await listNodes(accountId || ''),
   });

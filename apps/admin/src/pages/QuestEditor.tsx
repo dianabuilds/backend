@@ -1,10 +1,10 @@
-// @ts-nocheck
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api } from '../api/client';
 import NodeEditorModal from '../components/NodeEditorModal';
 import { useToast } from '../components/ToastProvider';
+import type { OutputData } from '../types/editorjs';
 
 type Id = string;
 
@@ -17,7 +17,7 @@ interface LocalNode {
   tags?: string[];
   allow_comments?: boolean;
   is_premium_only?: boolean;
-  contentData: any; // Editor.js data
+  contentData: OutputData; // Editor.js data
   x: number;
   y: number;
   width: number;
@@ -288,10 +288,10 @@ export default function QuestEditor() {
     try {
       const nodesIds = nodes.map((n) => n.backendId!) as string[];
       // custom_transitions: { [fromId]: { [toId]: {...meta} } }
-      const transitions: Record<string, Record<string, any>> = {};
+      const transitions: Record<string, Record<string, unknown>> = {};
       edges.forEach((e) => {
-        const from = nodes.find((n) => n.id === e.from)?.backendId!;
-        const to = nodes.find((n) => n.id === e.to)?.backendId!;
+        const from = nodes.find((n) => n.id === e.from)?.backendId || null;
+        const to = nodes.find((n) => n.id === e.to)?.backendId || null;
         if (!from || !to) return;
         if (!transitions[from]) transitions[from] = {};
         transitions[from][to] = { type: 'manual' };
@@ -599,7 +599,7 @@ export default function QuestEditor() {
                 {(() => {
                   const blocks = Array.isArray(n.contentData?.blocks) ? n.contentData.blocks : [];
                   const text = blocks
-                    .map((b: any) => b?.data?.text || '')
+                    .map((b: { data?: { text?: string } }) => b?.data?.text || '')
                     .filter(Boolean)
                     .join(' ')
                     .replace(/<[^>]*>/g, '') // убрать HTML-теги

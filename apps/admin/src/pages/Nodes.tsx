@@ -61,7 +61,7 @@ export default function Nodes() {
   );
   const [authorTab, setAuthorTab] = useState(false);
   const [authorId, setAuthorId] = useState('');
-  const [roles, setRoles] = useState<string[]>([]);
+    // Roles selection removed from this page; keep local stub if needed in future
 
   const copySlug = (slug: string) => {
     if (typeof navigator !== 'undefined' && slug) {
@@ -594,7 +594,7 @@ export default function Nodes() {
                 className="border rounded px-2 py-1"
                 value={status}
                 onChange={(e) => {
-                  setStatus(e.target.value as import('../openapi').Status | 'all');
+                  setStatus(e.target.value as NodeStatus | 'all');
                   setPage(0);
                 }}
               >
@@ -944,11 +944,7 @@ export default function Nodes() {
                           </div>
                         </TableCell>
                         <TableCell className="w-32 text-center">
-                          <StatusCell
-                            status={
-                              (n.status as import('../openapi').Status | undefined) ?? 'draft'
-                            }
-                          />
+                          <StatusCell status={(n.status as NodeStatus | undefined) ?? 'draft'} />
                         </TableCell>
                         <TableCell className="w-32 text-center">
                           <FlagsCell

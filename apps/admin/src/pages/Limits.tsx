@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useAccount } from '../account/AccountContext';
 import { api } from '../api/client';
@@ -24,20 +24,20 @@ export default function Limits() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadLimits = async () => {
+  const loadLimits = useCallback(async () => {
     setError(null);
     setLoading(true);
     try {
       const q = tab === 'User' && userId ? `?user_id=${encodeURIComponent(userId)}` : '';
       const res = await api.get<LimitMap>(`/admin/ops/limits${q}`);
       setLimits(res.data || {});
-    } catch (e: any) {
-      setError(e?.message || 'Failed to load limits');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load limits');
       setLimits({});
     } finally {
       setLoading(false);
     }
-  };
+  }, [tab, userId]);
 
   const loadBlocks = async () => {
     try {
@@ -50,7 +50,7 @@ export default function Limits() {
 
   useEffect(() => {
     loadLimits();
-  }, [tab, accountId]);
+  }, [loadLimits, accountId]);
 
   useEffect(() => {
     loadBlocks();

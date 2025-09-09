@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     try {
-      // 1) Логин: увеличенный таймаут (60с), чтобы исключить обрыв на медленных стендах
+      // 1) Логин: увеличенный тайм-аут (60с), чтобы исключить обрыв на медленных стендах.
       // Отправляем данные как form-data, чтобы избежать preflight-запроса CORS
       const form = new URLSearchParams();
       form.set('username', username);
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(me);
     } catch (e) {
       const err = e as Error;
-      // Нормализуем таймаут
+      // Нормализуем тайм-аут
       const raw = String(err?.message || '');
       const msg =
         raw === 'RequestTimeout'

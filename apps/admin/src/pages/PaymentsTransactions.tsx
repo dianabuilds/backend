@@ -20,7 +20,7 @@ type Tx = {
   net_cents: number;
   status: string;
   created_at?: string | null;
-  meta?: any;
+  meta?: unknown;
 };
 
 type CursorResp = {
@@ -57,7 +57,7 @@ export default function PaymentsTransactions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>(`/admin/payments/transactions_cursor?${buildQuery(null)}`, {
+      const res = await api.get<CursorResp>(`/admin/payments/transactions_cursor?${buildQuery(null)}`, {
         retry: 1,
       });
       const data: CursorResp = res.data || { items: [], next_cursor: null };
@@ -80,7 +80,7 @@ export default function PaymentsTransactions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>(`/admin/payments/transactions_cursor?${buildQuery(next)}`, {
+      const res = await api.get<CursorResp>(`/admin/payments/transactions_cursor?${buildQuery(next)}`, {
         retry: 1,
       });
       const data: CursorResp = res.data || { items: [], next_cursor: null };

@@ -27,8 +27,8 @@ export default function PaymentsRecent() {
           retry: 1,
         });
         setRows(Array.isArray(res.data) ? res.data : []);
-      } catch (e: any) {
-        setError(e?.message || 'Ошибка загрузки');
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Ошибка загрузки');
       } finally {
         setLoading(false);
       }

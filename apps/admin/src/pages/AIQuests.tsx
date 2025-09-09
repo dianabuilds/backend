@@ -225,12 +225,12 @@ export default function AIQuests() {
   }, [tError]);
 
   // Совместимость: load() теперь просто инвалидирует кэш и триггерит перезагрузку
-  const load = async () => {
+  const load = useCallback(async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['ai-quests', 'templates'] }),
       queryClient.invalidateQueries({ queryKey: ['ai-quests', 'jobs'] }),
     ]);
-  };
+  }, [queryClient]);
 
   const loadWorlds = async () => {
     try {
@@ -269,7 +269,7 @@ export default function AIQuests() {
   // начальная загрузка
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   // авто‑обновление выполняется через React Query (refetchInterval)
 

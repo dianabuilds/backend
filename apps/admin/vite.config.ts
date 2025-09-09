@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import process from 'node:process';
 
 import react from '@vitejs/plugin-react';
+import type { ViteDevServer } from 'vite';
 import { defineConfig, loadEnv, type ProxyOptions } from 'vite';
 
 export default defineConfig(({ mode, command }) => {
@@ -100,8 +101,8 @@ export default defineConfig(({ mode, command }) => {
   // This avoids the classic "Cannot GET /admin" when proxying.
   const spaFallback = () => ({
     name: 'admin-spa-fallback',
-    configureServer(server: any) {
-      server.middlewares.use(async (req: any, res: any, next: any) => {
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use(async (req, res, next) => {
         try {
           const url = (req.url as string) || '';
           const accept = (req.headers?.accept as string) || '';

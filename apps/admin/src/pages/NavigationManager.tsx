@@ -1,5 +1,5 @@
 import * as Tabs from '@radix-ui/react-tabs';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { api, ApiError } from '../api/client';
@@ -43,7 +43,7 @@ export default function NavigationManager() {
   const [bulkLabel, setBulkLabel] = useState('');
   const [bulkWeight, setBulkWeight] = useState('');
 
-  const loadTransitions = async () => {
+  const loadTransitions = useCallback(async () => {
     setLoadingList(true);
     setListError(null);
     try {
@@ -53,16 +53,16 @@ export default function NavigationManager() {
         status: filterStatus,
       });
       setTransitions(rows);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setListError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoadingList(false);
     }
-  };
+  }, [filterFrom, filterTo, filterStatus]);
 
   useEffect(() => {
     void loadTransitions();
-  }, []);
+  }, [loadTransitions]);
 
   // Autogeneration state
   const [nodeSlug, setNodeSlug] = useState('');
@@ -87,7 +87,7 @@ export default function NavigationManager() {
       setLabel('');
       setWeight('');
       await loadTransitions();
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     }
   };
@@ -99,7 +99,7 @@ export default function NavigationManager() {
       setMessage('Transition enabled');
       setEnableId('');
       await loadTransitions();
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     }
   };
@@ -111,7 +111,7 @@ export default function NavigationManager() {
       setMessage('Transition disabled');
       setDisableId('');
       await loadTransitions();
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     }
   };
@@ -128,7 +128,7 @@ export default function NavigationManager() {
         : 0;
       setResult(`Generated transitions: ${count}`);
       await refreshLimits();
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof ApiError && e.status === 429) {
         const retry = Number(e.headers?.get('Retry-After') || 0);
         await handleLimit429('compass_calls', retry);
@@ -153,7 +153,7 @@ export default function NavigationManager() {
   const commitUpdate = async (id: string, patch: { label?: string | null; weight?: number }) => {
     try {
       await updateTransition(id, patch);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     }
   };
@@ -175,7 +175,7 @@ export default function NavigationManager() {
       setSelectedIds([]);
       setBulkLabel('');
       setBulkWeight('');
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     }
   };

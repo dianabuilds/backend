@@ -43,8 +43,8 @@ export function useAutosave<T>(
       if (storageKey) {
         safeLocalStorage.removeItem(storageKey);
       }
-    } catch (e: any) {
-      if (e?.name !== 'AbortError') throw e;
+    } catch (e: unknown) {
+      if ((e as Error)?.name !== 'AbortError') throw e;
     } finally {
       abortRef.current = null;
       setSaving(false);

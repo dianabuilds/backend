@@ -14,7 +14,7 @@ type Plan = {
   is_active: boolean;
   order: number;
   monthly_limits: Record<string, number>;
-  features: Record<string, any>;
+  features: Record<string, unknown>;
 };
 
 export default function PremiumPlans() {

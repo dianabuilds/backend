@@ -5,8 +5,8 @@ import { api } from '../api/client';
 type LimitStatus = {
   plan: string;
   limits: {
-    stories?: { month: any };
-    [k: string]: any;
+    stories?: { month: number };
+    [k: string]: unknown;
   };
 };
 
@@ -22,8 +22,8 @@ export default function PremiumLimits() {
     try {
       const res = await api.get<LimitStatus>(`/premium/users/${encodeURIComponent(userId)}/limits`);
       setData(res.data!);
-    } catch (e: any) {
-      setErr(e?.message || 'Ошибка');
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Ошибка');
     } finally {
       setLoading(false);
     }

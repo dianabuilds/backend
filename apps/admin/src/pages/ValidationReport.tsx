@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { useAccount } from '../account/AccountContext';
-import { api } from '../api/client';
 import ValidationReportView from '../components/ValidationReportView';
 import type { ValidationReport as ValidationReportModel } from '../openapi';
 import PageLayout from './_shared/PageLayout';
@@ -21,7 +20,7 @@ export default function ValidationReport() {
     if (!Number.isInteger(nodeId)) return;
     setLoading(true);
     try {
-      // Endpoint not available. Keep no-op to avoid breaking page.
+      // Endpoint not available. Keep no-op to avoid breaking the page.
       setReport(null);
     } finally {
       setLoading(false);

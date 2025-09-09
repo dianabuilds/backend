@@ -7,7 +7,15 @@ import PageLayout from './_shared/PageLayout';
 export default function TagMerge() {
   const [fromId, setFromId] = useState('');
   const [toId, setToId] = useState('');
-  const [report, setReport] = useState<any | null>(null);
+  type MergeReport = {
+    from?: { id?: string; name?: string } | null;
+    to?: { id?: string; name?: string } | null;
+    content_touched?: number;
+    aliases_moved?: number;
+    errors?: string[];
+    warnings?: string[];
+  };
+  const [report, setReport] = useState<MergeReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

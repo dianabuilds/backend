@@ -151,7 +151,7 @@ export default function Tags() {
                             try {
                               await deleteAdminTag(t.id);
                               await reload();
-                            } catch (e) {
+                            } catch {
                               // ignore error reporting here; page error state will show
                             }
                           }}
@@ -277,7 +277,7 @@ export default function Tags() {
                 createModal.close();
                 reset();
                 await reload();
-              } catch (e) {
+              } catch {
                 // ignore error here; overall error state
               }
             }}

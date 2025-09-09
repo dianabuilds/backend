@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
+import type { ApiResponse } from '../../api/client';
 import { api } from '../../api/client';
 import RateLimitsTab from './RateLimitsTab';
 
@@ -16,21 +17,19 @@ describe('RateLimitsTab', () => {
       if (url === '/admin/ratelimit/rules') {
         return Promise.resolve({
           data: { enabled: true, rules: { foo: '5/min' } },
-        } as unknown as import('../../api/client').ApiResponse<{
+        } as unknown as ApiResponse<{
           enabled: boolean;
           rules: Record<string, string>;
         }>);
       }
       if (url === '/admin/ratelimit/recent429') {
-        return Promise.resolve({ data: [] } as unknown as import('../../api/client').ApiResponse<
-          unknown[]
-        >);
+        return Promise.resolve({ data: [] } as unknown as ApiResponse<unknown[]>);
       }
       throw new Error('unexpected url ' + url);
     });
     const patch = vi
       .spyOn(api, 'patch')
-      .mockResolvedValue({} as unknown as import('../../api/client').ApiResponse<unknown>);
+      .mockResolvedValue({} as unknown as ApiResponse<unknown>);
 
     render(<RateLimitsTab />);
 

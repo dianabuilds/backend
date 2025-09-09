@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 
 import { accountApi } from '../api/accountApi';
+import type { ApiResponse } from '../api/client';
 import { listFlags } from '../api/flags';
 import { patchNode, publishNode } from '../api/nodes';
 import { useAuth } from '../auth/AuthContext';
@@ -147,7 +148,7 @@ export default function NodeSidebar({
             file_url?: string | null;
             src?: string | null;
           };
-          const res = await accountApi.request<import('../api/client').ApiResponse<UploadRes>>(
+          const res = await accountApi.request<ApiResponse<UploadRes>>(
             '/admin/media/assets',
             {
               method: 'POST',

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import {
@@ -146,7 +146,7 @@ export default function QuestVersionEditor() {
     setClientWarnings(warnings);
   }, [graph]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!id) return;
     setErr(null);
     try {
@@ -174,11 +174,11 @@ export default function QuestVersionEditor() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     }
-  };
+  }, [id, questId]);
 
   useEffect(() => {
     load();
-  }, [id]);
+  }, [load]);
 
   useEffect(() => {
     if (!graph || !id) return;
@@ -327,7 +327,7 @@ export default function QuestVersionEditor() {
     [filteredEdges, edgesPage, edgesPageSize],
   );
 
-  const commitEditor = async (_action: 'save' | 'next') => {
+  const commitEditor = async () => {
     if (!editorNode || !graph) return;
     setSavingNode(true);
     try {
