@@ -1,11 +1,17 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { z } from 'zod';
 
 import { createCampaign, estimateCampaign } from '../../api/notifications';
 import type { CampaignCreate, CampaignFilters } from '../../openapi';
 import Modal from '../../shared/ui/Modal';
 import { useToast } from '../ToastProvider';
+import NotificationFilters from './NotificationFilters';
+import {
+  NotificationFormFields,
+  validateNotification,
+  type NotificationFormValues,
+  type NotificationErrors,
+} from './NotificationFormCore';
 
 interface Props {
   isOpen: boolean;
@@ -15,9 +21,11 @@ interface Props {
 export default function BroadcastForm({ isOpen, onClose }: Props) {
   const { addToast } = useToast();
   const qc = useQueryClient();
-  const [bType, setBType] = useState<'system' | 'info' | 'warning' | 'quest'>('system');
-  const [bTitle, setBTitle] = useState('');
-  const [bMessage, setBMessage] = useState('');
+  const [values, setValues] = useState<NotificationFormValues>({
+    title: '',
+    message: '',
+    type: 'system',
+  });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [role, setRole] = useState('');
   const [isActive, setIsActive] = useState('any');
@@ -25,23 +33,12 @@ export default function BroadcastForm({ isOpen, onClose }: Props) {
   const [createdFrom, setCreatedFrom] = useState('');
   const [createdTo, setCreatedTo] = useState('');
   const [estimate, setEstimate] = useState<number | null>(null);
-  const [errors, setErrors] = useState<{ title: string | null; message: string | null }>({
-    title: null,
-    message: null,
-  });
-
-  const schema = z.object({
-    title: z.string().min(1, 'Title required'),
-    message: z.string().min(1, 'Message required'),
-  });
+  const [errors, setErrors] = useState<NotificationErrors>({ title: null, message: null });
 
   const validate = () => {
-    const res = schema.safeParse({ title: bTitle, message: bMessage });
-    setErrors({
-      title: res.success ? null : (res.error.formErrors.fieldErrors.title?.[0] ?? null),
-      message: res.success ? null : (res.error.formErrors.fieldErrors.message?.[0] ?? null),
-    });
-    return res.success;
+    const { valid, errors: e } = validateNotification(values);
+    setErrors(e);
+    return valid;
   };
 
   const payloadFilters = useMemo(() => {
@@ -79,15 +76,14 @@ export default function BroadcastForm({ isOpen, onClose }: Props) {
     if (!validate()) return;
     try {
       const payload: CampaignCreate = {
-        title: bTitle,
-        message: bMessage,
-        type: bType,
+        title: values.title,
+        message: values.message,
+        type: values.type,
         filters: payloadFilters,
       };
       await createCampaign(payload);
       setEstimate(null);
-      setBTitle('');
-      setBMessage('');
+      setValues((v) => ({ ...v, title: '', message: '' }));
       addToast({ title: 'Broadcast started', variant: 'success' });
       qc.invalidateQueries({ queryKey: ['campaigns'] });
       onClose();
@@ -103,38 +99,12 @@ export default function BroadcastForm({ isOpen, onClose }: Props) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Start broadcast">
       <div className="flex flex-col gap-2">
-        <div className="flex flex-col">
-          <label className="text-sm text-gray-600">Title</label>
-          <input
-            className="border rounded px-2 py-1"
-            value={bTitle}
-            onChange={(e) => setBTitle(e.target.value)}
-          />
-          {errors.title && <span className="text-xs text-red-600">{errors.title}</span>}
-        </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-gray-600">Type</label>
-          <select
-            className="border rounded px-2 py-1"
-            value={bType}
-            onChange={(e) => setBType(e.target.value as 'system' | 'info' | 'warning' | 'quest')}
-          >
-            <option value="system">system</option>
-            <option value="info">info</option>
-            <option value="warning">warning</option>
-            <option value="quest">quest</option>
-          </select>
-        </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-gray-600">Message</label>
-          <textarea
-            className="border rounded px-2 py-1"
-            rows={3}
-            value={bMessage}
-            onChange={(e) => setBMessage(e.target.value)}
-          />
-          {errors.message && <span className="text-xs text-red-600">{errors.message}</span>}
-        </div>
+        <NotificationFormFields
+          values={values}
+          errors={errors}
+          onChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
+          multilineMessage
+        />
         <button
           className="self-start text-sm text-blue-600"
           onClick={() => setShowAdvanced((v) => !v)}
@@ -142,63 +112,18 @@ export default function BroadcastForm({ isOpen, onClose }: Props) {
           {showAdvanced ? 'Hide filters' : 'Show filters'}
         </button>
         {showAdvanced && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600">Role</label>
-              <select
-                className="border rounded px-2 py-1"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-              >
-                <option value="">any</option>
-                <option value="user">user</option>
-                <option value="moderator">moderator</option>
-                <option value="admin">admin</option>
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600">Active</label>
-              <select
-                className="border rounded px-2 py-1"
-                value={isActive}
-                onChange={(e) => setIsActive(e.target.value)}
-              >
-                <option value="any">any</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600">Premium</label>
-              <select
-                className="border rounded px-2 py-1"
-                value={isPremium}
-                onChange={(e) => setIsPremium(e.target.value)}
-              >
-                <option value="any">any</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600">Created from</label>
-              <input
-                type="datetime-local"
-                className="border rounded px-2 py-1"
-                value={createdFrom}
-                onChange={(e) => setCreatedFrom(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600">Created to</label>
-              <input
-                type="datetime-local"
-                className="border rounded px-2 py-1"
-                value={createdTo}
-                onChange={(e) => setCreatedTo(e.target.value)}
-              />
-            </div>
-          </div>
+          <NotificationFilters
+            role={role}
+            isActive={isActive as 'any' | 'true' | 'false'}
+            isPremium={isPremium as 'any' | 'true' | 'false'}
+            createdFrom={createdFrom}
+            createdTo={createdTo}
+            onRoleChange={setRole}
+            onIsActiveChange={(v) => setIsActive(v)}
+            onIsPremiumChange={(v) => setIsPremium(v)}
+            onCreatedFromChange={setCreatedFrom}
+            onCreatedToChange={setCreatedTo}
+          />
         )}
         <div className="flex items-center gap-2 mt-2">
           <button className="px-3 py-1 rounded border" onClick={doDryRun}>

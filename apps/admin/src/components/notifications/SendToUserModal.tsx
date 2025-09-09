@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
-import { z } from 'zod';
 
 import { sendNotification } from '../../api/notifications';
 import { useAuth } from '../../auth/AuthContext';
 import Modal from '../../shared/ui/Modal';
 import { useToast } from '../ToastProvider';
+import {
+  NotificationFormFields,
+  validateNotification,
+  type NotificationFormValues,
+  type NotificationErrors,
+} from './NotificationFormCore';
 
 interface Props {
   isOpen: boolean;
@@ -15,40 +20,26 @@ export default function SendToUserModal({ isOpen, onClose }: Props) {
   const { user } = useAuth();
   const { addToast } = useToast();
   const [userId, setUserId] = useState('');
-  const [title, setTitle] = useState('');
-  const [message, setMessage] = useState('');
-  const [type, setType] = useState('system');
-  const [errors, setErrors] = useState<{ title: string | null; message: string | null }>({
-    title: null,
-    message: null,
-  });
+  const [values, setValues] = useState<NotificationFormValues>({ title: '', message: '', type: 'system' });
+  const [errors, setErrors] = useState<NotificationErrors>({ title: null, message: null });
 
   useEffect(() => {
     if (user && !userId) setUserId(user.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const schema = z.object({
-    title: z.string().min(1, 'Title required'),
-    message: z.string().min(1, 'Message required'),
-  });
-
   const validate = () => {
-    const res = schema.safeParse({ title, message });
-    setErrors({
-      title: res.success ? null : (res.error.formErrors.fieldErrors.title?.[0] ?? null),
-      message: res.success ? null : (res.error.formErrors.fieldErrors.message?.[0] ?? null),
-    });
-    return res.success;
+    const { valid, errors: e } = validateNotification(values);
+    setErrors(e);
+    return valid;
   };
 
   const handleSend = async () => {
     if (!validate()) return;
     try {
-      await sendNotification({ user_id: userId, title, message, type });
+      await sendNotification({ user_id: userId, title: values.title, message: values.message, type: values.type });
       addToast({ title: 'Notification sent', variant: 'success' });
-      setTitle('');
-      setMessage('');
+      setValues((v) => ({ ...v, title: '', message: '' }));
       onClose();
     } catch (e) {
       addToast({
@@ -71,43 +62,11 @@ export default function SendToUserModal({ isOpen, onClose }: Props) {
             placeholder="UUID"
           />
         </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-gray-600">Type</label>
-          <select
-            className="border rounded px-2 py-1"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            <option value="system">system</option>
-            <option value="info">info</option>
-            <option value="warning">warning</option>
-            <option value="quest">quest</option>
-          </select>
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="send-title" className="text-sm text-gray-600">
-            Title
-          </label>
-          <input
-            id="send-title"
-            className="border rounded px-2 py-1"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          {errors.title && <span className="text-xs text-red-600">{errors.title}</span>}
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="send-message" className="text-sm text-gray-600">
-            Message
-          </label>
-          <input
-            id="send-message"
-            className="border rounded px-2 py-1"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
-          {errors.message && <span className="text-xs text-red-600">{errors.message}</span>}
-        </div>
+        <NotificationFormFields
+          values={values}
+          errors={errors}
+          onChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
+        />
         <div className="flex justify-end gap-2 mt-2">
           <button className="px-3 py-1 rounded border" onClick={onClose}>
             Cancel

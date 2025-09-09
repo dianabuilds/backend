@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 
 import { api } from '../api/client';
 import { confirmWithEnv } from '../utils/env';
+import EditDeleteActions from '../components/common/EditDeleteActions';
+import ListSection from '../components/common/ListSection';
 
 type Plan = {
   id: string;
@@ -92,7 +94,7 @@ export default function PremiumPlans() {
     <div className="p-4 space-y-4">
       <h1 className="text-lg font-semibold">Premium — Plans</h1>
 
-      <div className="rounded border p-3">
+      <ListSection title="Список тарифов" loading={isLoading} error={error}>
         <div className="text-sm text-gray-500 mb-2">Создать/изменить тариф</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
@@ -251,12 +253,7 @@ export default function PremiumPlans() {
                   <td className="px-2 py-1">{p.is_active ? 'yes' : 'no'}</td>
                   <td className="px-2 py-1">{p.monthly_limits?.stories ?? '-'}</td>
                   <td className="px-2 py-1">
-                    <button onClick={() => edit(p)} className="text-blue-600 hover:underline mr-2">
-                      Edit
-                    </button>
-                    <button onClick={() => remove(p.id)} className="text-red-600 hover:underline">
-                      Delete
-                    </button>
+                    <EditDeleteActions onEdit={() => edit(p)} onDelete={() => remove(p.id)} />
                   </td>
                 </tr>
               ))}
@@ -270,7 +267,7 @@ export default function PremiumPlans() {
             </tbody>
           </table>
         </div>
-      </div>
+      </ListSection>
     </div>
   );
 }

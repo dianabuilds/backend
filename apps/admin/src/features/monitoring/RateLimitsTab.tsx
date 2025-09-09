@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api/client';
 import Pill from '../../components/Pill';
 import { Card, CardContent } from '../../components/ui/card';
+import RateLimitRulesEditor from './RateLimitRulesEditor';
+import Recent429Table from './Recent429Table';
 
 interface RateRules {
   enabled: boolean;
@@ -81,26 +83,12 @@ export default function RateLimitsTab() {
           {loading && <p>Loading...</p>}
           {error && <p className="text-red-600">{error}</p>}
           {rules && (
-            <section className="space-y-2">
-              {entries.map(([key, value]) => (
-                <div key={key} className="flex items-center gap-2">
-                  <label className="w-40 text-sm text-gray-600">{key}</label>
-                  <input
-                    className="border rounded px-2 py-1 w-40"
-                    value={value}
-                    onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-                    placeholder="5/min, 10/sec"
-                  />
-                  <button
-                    className="px-3 py-1 rounded border"
-                    onClick={() => saveRule(key)}
-                    disabled={saving[key]}
-                  >
-                    {saving[key] ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-              ))}
-            </section>
+            <RateLimitRulesEditor
+              entries={entries}
+              onChange={(k, v) => setDraft((d) => ({ ...d, [k]: v }))}
+              onSave={saveRule}
+              saving={saving}
+            />
           )}
         </CardContent>
       </Card>
@@ -108,30 +96,7 @@ export default function RateLimitsTab() {
         <Card>
           <CardContent>
             <h3 className="font-semibold mb-2">Recent 429</h3>
-            {recent.length ? (
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="p-2 text-left">Path</th>
-                    <th className="p-2 text-left">IP</th>
-                    <th className="p-2 text-left">Rule</th>
-                    <th className="p-2 text-left">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recent.map((r, i) => (
-                    <tr key={i} className="border-b">
-                      <td className="p-2 font-mono">{r.path}</td>
-                      <td className="p-2">{r.ip}</td>
-                      <td className="p-2">{r.rule}</td>
-                      <td className="p-2">{r.ts}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-sm text-gray-500">No recent 429 errors.</p>
-            )}
+            <Recent429Table items={recent} />
           </CardContent>
         </Card>
       )}

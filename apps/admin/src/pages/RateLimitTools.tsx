@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import Pill from '../components/Pill';
 import Tooltip from '../components/Tooltip';
+import Recent429Table from '../features/monitoring/Recent429Table';
+import RateLimitRulesEditor from '../features/monitoring/RateLimitRulesEditor';
 
 interface RateRules {
   enabled: boolean;
@@ -111,66 +113,35 @@ export default function RateLimitTools() {
       {rules && (
         <section className="mb-6">
           <h2 className="font-semibold mb-2">Rules</h2>
-          <div className="space-y-2">
-            {entries.map(([key, value]) => (
-              <div key={key} className="flex items-center gap-2">
-                <label className="w-40 text-sm text-gray-600 flex items-center gap-1">
-                  {key} <Tooltip text="Rate rule like 5/min or 10/sec" />
-                </label>
-                <input
-                  className="border rounded px-2 py-1 w-40"
-                  value={value}
-                  onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-                  placeholder="5/min, 10/sec, 3/hour"
-                />
-                <button className="px-3 py-1 rounded border" onClick={() => saveRule(key)}>
-                  Save
-                </button>
-              </div>
-            ))}
-          </div>
+          <RateLimitRulesEditor
+            entries={entries}
+            onChange={(k, v) => setDraft((d) => ({ ...d, [k]: v }))}
+            onSave={saveRule}
+            renderLabel={(key) => (
+              <span className="flex items-center gap-1">
+                {key} <Tooltip text="Rate rule like 5/min or 10/sec" />
+              </span>
+            )}
+          />
         </section>
       )}
 
       {recent && (
         <section>
           <h2 className="font-semibold mb-2">Recent 429</h2>
+          <Recent429Table items={recent} className="mb-4" />
           {recent.length ? (
-            <>
-              <table className="min-w-full text-sm mb-4">
-                <thead>
-                  <tr className="border-b">
-                    <th className="p-2 text-left">Path</th>
-                    <th className="p-2 text-left">IP</th>
-                    <th className="p-2 text-left">Rule</th>
-                    <th className="p-2 text-left">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recent.map((r, i) => (
-                    <tr key={i} className="border-b">
-                      <td className="p-2 font-mono">{r.path}</td>
-                      <td className="p-2">{r.ip}</td>
-                      <td className="p-2">{r.rule}</td>
-                      <td className="p-2">{r.ts}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="flex items-end gap-2 h-32">
-                {Object.entries(counts).map(([p, c]) => (
-                  <div
-                    key={p}
-                    className="bg-blue-500 w-8"
-                    style={{ height: `${(c / max) * 100}%` }}
-                    title={`${p}: ${c}`}
-                  />
-                ))}
-              </div>
-            </>
-          ) : (
-            <p>No recent 429 errors.</p>
-          )}
+            <div className="flex items-end gap-2 h-32">
+              {Object.entries(counts).map(([p, c]) => (
+                <div
+                  key={p}
+                  className="bg-blue-500 w-8"
+                  style={{ height: `${(c / max) * 100}%` }}
+                  title={`${p}: ${c}`}
+                />
+              ))}
+            </div>
+          ) : null}
         </section>
       )}
     </div>

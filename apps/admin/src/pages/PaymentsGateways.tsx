@@ -3,6 +3,8 @@ import { useState } from 'react';
 
 import { api } from '../api/client';
 import { confirmWithEnv } from '../utils/env';
+import EditDeleteActions from '../components/common/EditDeleteActions';
+import ListSection from '../components/common/ListSection';
 
 type Gateway = {
   id: string;
@@ -137,7 +139,7 @@ export default function PaymentsGateways() {
     <div className="p-4 space-y-4">
       <h1 className="text-lg font-semibold">Payments — Gateways</h1>
 
-      <div className="rounded border p-3">
+      <ListSection title="Список шлюзов" loading={isLoading} error={error}>
         <div className="text-sm text-gray-500 mb-2">
           {isEdit ? 'Редактирование шлюза' : 'Создание шлюза'}
         </div>
@@ -305,12 +307,7 @@ export default function PaymentsGateways() {
                     })()}
                   </td>
                   <td className="px-2 py-1">
-                    <button onClick={() => edit(g)} className="text-blue-600 hover:underline mr-2">
-                      Edit
-                    </button>
-                    <button onClick={() => remove(g.id)} className="text-red-600 hover:underline">
-                      Delete
-                    </button>
+                    <EditDeleteActions onEdit={() => edit(g)} onDelete={() => remove(g.id)} />
                   </td>
                 </tr>
               ))}
@@ -324,7 +321,7 @@ export default function PaymentsGateways() {
             </tbody>
           </table>
         </div>
-      </div>
+      </ListSection>
 
       <div className="rounded border p-3">
         <div className="text-sm text-gray-500 mb-2">Проверка токена</div>
