@@ -103,6 +103,7 @@ function MenuItem({
   toggle: (id: string) => void;
   collapsed: boolean;
 }) {
+  const isDivider = (item as unknown as { divider?: boolean }).divider ?? false;
   const Icon = getIconComponent(item.icon || defaultIcons[item.id]);
 
   const content = (
@@ -130,6 +131,11 @@ function MenuItem({
       toggle(item.id);
     }
   }, [hasChildren, childActive, open, toggle, item.id]);
+
+  // Visual separator entry (after hooks to keep hooks order consistent)
+  if (isDivider) {
+    return <div role="separator" className="my-2 border-t border-gray-600" />;
+  }
 
   if (hasChildren) {
     // Если только один дочерний элемент и у родителя нет собственного path —
@@ -335,7 +341,4 @@ export default function Sidebar() {
       {content}
     </aside>
   );
-}
-if (item.divider) {
-  return <div role="separator" className="my-2 border-t border-gray-600" />;
 }

@@ -85,7 +85,7 @@ export async function apiFetch(
 
   // Распознаём /auth/*, чтобы избежать лишних заголовков и preflight
   const pathStr = typeof input === 'string' ? input : input instanceof Request ? input.url : '';
-  const isAuthCall = typeof pathStr === 'string' && pathStr.startsWith('/auth/');
+  const isAuthCall = pathStr.startsWith('/auth/');
   const isSafeMethod = method === 'GET' || method === 'HEAD';
 
   // Для безопасных методов (GET/HEAD) не отправляем CSRF. Для /auth/* — тоже не отправляем.

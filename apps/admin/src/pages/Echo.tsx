@@ -205,7 +205,7 @@ export default function Echo() {
                 <td className="p-2">
                   <input
                     type="checkbox"
-                    checked={!!selected[t.id]}
+                    checked={selected[t.id]}
                     onChange={(e) => setSelected((s) => ({ ...s, [t.id]: e.target.checked }))}
                   />
                 </td>

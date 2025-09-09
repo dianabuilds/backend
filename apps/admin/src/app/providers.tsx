@@ -50,7 +50,7 @@ function configureOpenAPI() {
   OpenAPI.TOKEN = async () => getAccessToken();
   OpenAPI.HEADERS = async (opts) => {
     const method = String(opts.method || 'GET').toUpperCase();
-    const isAuthCall = typeof opts.url === 'string' && opts.url.startsWith('/auth/');
+    const isAuthCall = opts.url.startsWith('/auth/');
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (!isAuthCall && method !== 'GET' && method !== 'HEAD') {
       const csrf = getCsrfToken();

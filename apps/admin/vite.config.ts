@@ -67,7 +67,7 @@ export default defineConfig(({ mode, command }) => {
 
   const htmlBypass = (req: { headers: Record<string, string | undefined> }) => {
     const accept = req.headers['accept'] || '';
-    if (typeof accept === 'string' && accept.includes('text/html')) {
+    if (accept.includes('text/html')) {
       // In dev, our base is "/", so index lives at "/index.html"
       return '/index.html';
     }

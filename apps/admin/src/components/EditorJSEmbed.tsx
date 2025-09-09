@@ -148,7 +148,7 @@ export default function EditorJSEmbed({
                   },
                   async uploadByUrl(url: string): Promise<ImageUploadResult> {
                     try {
-                      if (typeof url === 'string' && url) {
+                      if (url) {
                         const final = resolveUrl(url);
                         const normalized: ImageUploadResult = {
                           success: 1,
