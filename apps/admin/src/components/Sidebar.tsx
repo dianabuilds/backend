@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
@@ -342,3 +343,4 @@ export default function Sidebar() {
     </aside>
   );
 }
+

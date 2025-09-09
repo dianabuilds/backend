@@ -62,12 +62,14 @@ function getCookie(name: string): string {
  * авторефрешем access/CSRF на 401 и синхронизацией CSRF.
  * Поддерживает таймаут через AbortController (VITE_API_TIMEOUT_MS или 15000 мс по умолчанию).
  */
+type RequestInitEx = RequestInit & { timeoutMs?: number };
+
 export async function apiFetch(
   input: RequestInfo,
-  init: RequestInit = {},
+  init: RequestInitEx = {} as RequestInitEx,
   _retry = true,
 ): Promise<Response> {
-  const rest = init as RequestInit;
+  const rest = init as RequestInitEx;
   const method = (rest.method || 'GET').toUpperCase();
   const headers: Record<string, string> = {
     ...(rest.headers as Record<string, string> | undefined),
@@ -149,7 +151,7 @@ export async function apiFetch(
       ?.VITE_API_TIMEOUT_MS || 0,
   );
   const defaultTimeout = envTimeout > 0 ? envTimeout : isAuthCall ? 60000 : 15000;
-  const optTimeout = (init as RequestOptions).timeoutMs;
+  const optTimeout = (init as RequestOptions).timeoutMs ?? (init as RequestInitEx).timeoutMs;
   const timeoutMs = Number.isFinite(optTimeout as number)
     ? Math.max(0, Number(optTimeout))
     : defaultTimeout;

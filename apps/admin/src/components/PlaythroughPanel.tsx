@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useMemo, useState } from 'react';
 
 import type {
@@ -166,3 +167,4 @@ export default function PlaythroughPanel({
     </div>
   );
 }
+

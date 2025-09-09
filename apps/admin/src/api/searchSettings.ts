@@ -52,7 +52,10 @@ export async function dryRunRelevance(
   payload: RelevancePayload,
   sample: string[],
 ): Promise<RelevanceDryRunOut> {
-  const res = await api.put<RelevanceDryRunOut>('/admin/search/relevance', {
+  const res = await api.put<
+    { payload: RelevancePayload; dryRun: boolean; sample: string[] },
+    RelevanceDryRunOut
+  >('/admin/search/relevance', {
     payload,
     dryRun: true,
     sample,
@@ -64,7 +67,10 @@ export async function applyRelevance(
   payload: RelevancePayload,
   comment?: string,
 ): Promise<RelevanceGetOut> {
-  const res = await api.put<RelevanceGetOut>('/admin/search/relevance', {
+  const res = await api.put<
+    { payload: RelevancePayload; dryRun: boolean; comment?: string },
+    RelevanceGetOut
+  >('/admin/search/relevance', {
     payload,
     dryRun: false,
     comment,

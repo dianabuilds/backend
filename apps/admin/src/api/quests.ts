@@ -1,4 +1,4 @@
-import type { AutofixReport, ValidationReport } from '../openapi';
+import type { ValidateResult } from '../openapi';
 import { api } from './client';
 import type { Page } from './types';
 
@@ -49,8 +49,8 @@ export async function listQuests(params?: {
   return data;
 }
 
-export async function validateQuest(questId: string): Promise<ValidationReport> {
-  const res = await api.get<ValidationReport>(
+export async function validateQuest(questId: string): Promise<ValidateResult> {
+  const res = await api.get<ValidateResult>(
     `/admin/quests/${encodeURIComponent(questId)}/validation`,
   );
   return res.data!;
@@ -73,7 +73,7 @@ export async function publishQuest(
 }
 
 export async function autofixQuest(questId: string, actions: string[]) {
-  const res = await api.post<AutofixReport>(
+  const res = await api.post<unknown>(
     `/admin/quests/${encodeURIComponent(questId)}/autofix`,
     { actions },
   );

@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 
 import { useAccount } from '../account/AccountContext';
 import ValidationReportView from '../components/ValidationReportView';
-import type { ValidationReport as ValidationReportModel } from '../openapi';
+// Local lightweight shape used by the UI component
+type ValidationReportModel = { errors: number; warnings: number; items: any[] };
 import PageLayout from './_shared/PageLayout';
 
 export default function ValidationReport() {

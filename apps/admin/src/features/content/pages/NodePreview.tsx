@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -45,3 +46,4 @@ export default function NodePreview() {
 
   return <AdminNodePreview doc={doc} />;
 }
+

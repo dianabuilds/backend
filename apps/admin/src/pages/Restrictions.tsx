@@ -40,7 +40,7 @@ export default function Restrictions() {
         expires_at: expires ? new Date(expires).toISOString() : undefined,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setUserId('');
       setReason('');
       setExpires('');
@@ -55,7 +55,7 @@ export default function Restrictions() {
         expires_at: payload.expires_at,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['restrictions'] });
     },
   });
@@ -64,7 +64,7 @@ export default function Restrictions() {
     mutationFn: async (id: string) => {
       await api.del(`/admin/restrictions/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['restrictions'] });
     },
   });

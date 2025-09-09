@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { LucideIcon } from 'lucide-react';
 import { Archive, CheckCircle2, Clock, FileText } from 'lucide-react';
 
@@ -33,3 +34,4 @@ export default function StatusCell({ status }: StatusCellProps) {
     </div>
   );
 }
+

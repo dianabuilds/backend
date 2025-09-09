@@ -36,8 +36,11 @@ export async function activateReferralCode(
   reason?: string,
 ): Promise<{ ok: boolean; code: string }> {
   const url = `/admin/referrals/codes/${encodeURIComponent(owner_user_id)}/activate`;
-  const res = await api.post<{ ok: boolean; code: string }>(url, reason ? { reason } : undefined);
-  return res.data;
+  const res = await api.post<{ reason?: string }, { ok: boolean; code: string }>(
+    url,
+    reason ? { reason } : undefined,
+  );
+  return res.data!;
 }
 
 export async function deactivateReferralCode(
@@ -45,8 +48,11 @@ export async function deactivateReferralCode(
   reason?: string,
 ): Promise<{ ok: boolean }> {
   const url = `/admin/referrals/codes/${encodeURIComponent(owner_user_id)}/deactivate`;
-  const res = await api.post<{ ok: boolean }>(url, reason ? { reason } : undefined);
-  return res.data;
+  const res = await api.post<{ reason?: string }, { ok: boolean }>(
+    url,
+    reason ? { reason } : undefined,
+  );
+  return res.data!;
 }
 
 export async function listReferralEvents(params: {
@@ -77,10 +83,10 @@ export async function exportReferralEventsCSV(params: {
 export async function getMyReferralCode(): Promise<{ code: string; active: boolean }> {
   const url = '/referrals/me/code';
   const res = await api.get<{ code: string; active: boolean }>(url);
-  return res.data;
+  return res.data!;
 }
 
 export async function getMyReferralStats(): Promise<{ total_signups: number }> {
   const res = await api.get<{ total_signups: number }>('/referrals/me/stats');
-  return res.data;
+  return res.data!;
 }

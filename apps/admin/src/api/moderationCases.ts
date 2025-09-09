@@ -50,7 +50,10 @@ export async function listCases(params: Record<string, unknown> = {}): Promise<P
 }
 
 export async function createCase(data: CaseCreateIn): Promise<string> {
-  const res = await api.post<{ id: string }>('/admin/moderation/cases', data);
+  const res = await api.post<CaseCreateIn, { id: string }>(
+    '/admin/moderation/cases',
+    data,
+  );
   return res.data!.id;
 }
 
@@ -66,10 +69,13 @@ export interface CaseNote {
   internal: boolean;
 }
 export async function addNote(caseId: string, text: string, internal = true): Promise<CaseNote> {
-  const res = await api.post<CaseNote>(`/admin/moderation/cases/${caseId}/notes`, {
-    text,
-    internal,
-  });
+  const res = await api.post<{ text: string; internal: boolean }, CaseNote>(
+    `/admin/moderation/cases/${caseId}/notes`,
+    {
+      text,
+      internal,
+    },
+  );
   return res.data!;
 }
 

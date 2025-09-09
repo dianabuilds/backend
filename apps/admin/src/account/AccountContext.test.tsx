@@ -42,7 +42,9 @@ describe('AccountBranchProvider', () => {
     (api.get as Mock).mockImplementation(async (url: string) => {
       if (url === '/users/me') return { data: { default_account_id: null } };
       if (url === '/accounts') {
-        const accounts: Account[] = [{ id: 'gid', slug: 'global', type: 'global' }];
+        const accounts: Account[] = [
+          { id: 'gid', name: 'Global', slug: 'global', type: 'global' },
+        ];
         return { data: accounts };
       }
       throw new Error('unknown url');

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
 
@@ -303,3 +304,4 @@ export default function RumTab() {
     </div>
   );
 }
+

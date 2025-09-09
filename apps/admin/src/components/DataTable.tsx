@@ -1,4 +1,3 @@
-п»їimport React from 'react';
 
 import type { Column } from './DataTable.helpers';
 import Skeleton from './Skeleton';
@@ -87,7 +86,7 @@ export default function DataTable<T>({
             {!loading && (rows || []).length === 0 ? (
               <tr>
                 <td className="px-2 py-3 text-gray-500" colSpan={columns.length}>
-                  {emptyText || 'РќРµС‚ РґР°РЅРЅС‹С…'}
+                  {emptyText || 'Нет данных'}
                 </td>
               </tr>
             ) : null}
@@ -97,3 +96,4 @@ export default function DataTable<T>({
     </div>
   );
 }
+

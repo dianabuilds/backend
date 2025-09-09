@@ -21,7 +21,7 @@ export default function LimitBadge({ limitKey }: Props) {
     };
     const unsubscribe = subscribe(listener);
     void ensureFetched(limitKey);
-    return () => unsubscribe();
+    return unsubscribe;
   }, [limitKey]);
 
   const title = msg || undefined;

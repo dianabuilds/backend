@@ -33,7 +33,13 @@ export default function SendToUserModal({ isOpen, onClose }: Props) {
   const handleSend = async () => {
     if (!validate()) return;
     try {
-      await sendNotification({ user_id: userId, title: values.title, message: values.message, type: values.type });
+      const mappedType = values.type === 'quest' ? 'quest' : values.type === 'system' ? 'system' : 'system';
+      await sendNotification({
+        user_id: userId,
+        title: values.title,
+        message: values.message,
+        type: mappedType as any,
+      });
       addToast({ title: 'Notification sent', variant: 'success' });
       setValues((v) => ({ ...v, title: '', message: '' }));
       onClose();

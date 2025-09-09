@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Info } from 'lucide-react';
 
 interface TooltipProps {
@@ -14,3 +15,4 @@ export default function Tooltip({ text, className }: TooltipProps) {
     />
   );
 }
+

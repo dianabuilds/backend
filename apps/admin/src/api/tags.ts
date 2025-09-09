@@ -2,11 +2,14 @@ import type { BlacklistItem, MergeReport, TagListItem } from '../openapi';
 import { api } from './client';
 
 export async function dryRunMerge(from_id: string, to_id: string): Promise<MergeReport> {
-  const res = await api.post<MergeReport>('/admin/tags/merge', {
-    from_id,
-    to_id,
-    dryRun: true,
-  });
+  const res = await api.post<{ from_id: string; to_id: string; dryRun: boolean }, MergeReport>(
+    '/admin/tags/merge',
+    {
+      from_id,
+      to_id,
+      dryRun: true,
+    },
+  );
   return res.data!;
 }
 
@@ -15,12 +18,15 @@ export async function applyMerge(
   to_id: string,
   reason?: string,
 ): Promise<MergeReport> {
-  const res = await api.post<MergeReport>('/admin/tags/merge', {
-    from_id,
-    to_id,
-    dryRun: false,
-    reason,
-  });
+  const res = await api.post<{ from_id: string; to_id: string; dryRun: boolean; reason?: string }, MergeReport>(
+    '/admin/tags/merge',
+    {
+      from_id,
+      to_id,
+      dryRun: false,
+      reason,
+    },
+  );
   return res.data!;
 }
 
@@ -31,7 +37,10 @@ export async function getBlacklist(q?: string): Promise<BlacklistItem[]> {
 }
 
 export async function addToBlacklist(slug: string, reason?: string): Promise<BlacklistItem> {
-  const res = await api.post<BlacklistItem>('/admin/tags/blacklist', { slug, reason });
+  const res = await api.post<{ slug: string; reason?: string }, BlacklistItem>(
+    '/admin/tags/blacklist',
+    { slug, reason },
+  );
   return res.data!;
 }
 
@@ -58,9 +67,12 @@ export async function listAdminTags(params: {
 }
 
 export async function createAdminTag(slug: string, name: string): Promise<TagListItem> {
-  const res = await api.post<TagListItem>('/admin/tags', { slug, name });
+  const res = await api.post<{ slug: string; name: string }, TagListItem>('/admin/tags', { slug, name });
   return res.data!;
 }
+
+// Re-export for pages that import the type from this module
+export type { BlacklistItem } from '../openapi';
 
 export async function deleteAdminTag(id: string): Promise<void> {
   await api.del(`/admin/tags/${encodeURIComponent(id)}`);

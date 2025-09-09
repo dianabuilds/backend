@@ -239,7 +239,7 @@ export default function EditorJSEmbed({
     }
     if (!incoming || incoming === lastRendered.current) return;
     applyingExternal.current = true;
-    void applyIncoming(inst, value as OutputData, incoming);
+    void applyIncoming(inst as unknown as EditorInstance, value as OutputData, incoming);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialized, applyIncoming]);
 
@@ -255,7 +255,7 @@ export default function EditorJSEmbed({
     }
     if (!incoming || incoming === lastRendered.current) return;
     applyingExternal.current = true;
-    void applyIncoming(inst, value as OutputData, incoming);
+    void applyIncoming(inst as unknown as EditorInstance, value as OutputData, incoming);
   }, [value, renderEditor, applyIncoming]);
 
   if (loadError) {
@@ -288,3 +288,4 @@ export default function EditorJSEmbed({
     </>
   );
 }
+

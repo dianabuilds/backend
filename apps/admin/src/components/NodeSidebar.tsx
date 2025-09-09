@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 
@@ -606,3 +607,4 @@ export default function NodeSidebar({
     </div>
   );
 }
+

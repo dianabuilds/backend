@@ -79,10 +79,10 @@ export async function listNodes(
     return data.map(({ created_at, updated_at, createdAt, updatedAt, ...rest }) => {
       const r = rest as Partial<AdminNodeItem> & { id?: number | null };
       return {
+        ...rest,
         status: r.status ?? 'draft',
         nodeId: r.nodeId ?? r.id ?? null,
         space: undefined,
-        ...rest,
         createdAt: createdAt ?? created_at ?? '',
         updatedAt: updatedAt ?? updated_at ?? '',
       } as AdminNodeItem;
@@ -156,7 +156,7 @@ export async function createNode(
   payload: CreateNodePayload = {},
 ): Promise<NodeOut> {
   if (!accountId) {
-    const res = await api.post<NodeOut>(`/users/me/nodes`, payload);
+    const res = await api.post<CreateNodePayload, NodeOut>(`/users/me/nodes`, payload);
     return res.data as NodeOut;
   }
   const url = `/admin/nodes`;
@@ -207,13 +207,13 @@ export async function patchNode(
 ): Promise<NodeResponse> {
   const body: Record<string, unknown> = { ...patch };
   if (accountId) {
-    return (await accountApi.patch<typeof body, NodeResponse>(
+    return (await accountApi.patch<typeof body, NodeResponse, { next: number }>(
       `/admin/nodes/${encodeURIComponent(String(id))}`,
       body,
       { accountId: '', account: false, params: { next: opts.next === false ? 0 : 1 } },
     )) as NodeResponse;
   }
-  const res = await api.patch<NodeResponse>(
+  const res = await api.patch<typeof body, NodeResponse>(
     `/users/me/nodes/${encodeURIComponent(String(id))}`,
     body,
     { signal: opts.signal },
@@ -222,7 +222,7 @@ export async function patchNode(
 }
 
 export async function publishNode(
-  accountId: string,
+  _accountId: string,
   id: number,
   body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {

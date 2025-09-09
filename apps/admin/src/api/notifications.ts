@@ -4,7 +4,7 @@ import type {
   CampaignUpdate,
   SendNotificationPayload,
 } from '../openapi';
-import { ensureArray } from '../shared/utils';
+import { ensureArray, withQueryParams } from '../shared/utils';
 import { api } from './client';
 import type { ListResponse } from './types';
 
@@ -101,21 +101,19 @@ export async function listNotifications(
   accountId?: string,
   placement?: string,
 ): Promise<NotificationItem[]> {
-  const params: Record<string, string> = {};
-  if (accountId) params.account_id = accountId;
-  if (placement) params.placement = placement;
-  const res = await api.get<NotificationItem[]>('/notifications', {
-    params: Object.keys(params).length ? params : undefined,
+  const url = withQueryParams('/notifications', {
+    account_id: accountId,
+    placement,
   });
+  const res = await api.get<NotificationItem[]>(url);
   return ensureArray<NotificationItem>(res.data);
 }
 
 export async function markNotificationRead(id: string, accountId?: string): Promise<unknown> {
-  const res = await api.post<unknown>(
-    `/notifications/${id}/read`,
-    {},
-    { params: accountId ? { account_id: accountId } : undefined },
-  );
+  const url = withQueryParams(`/notifications/${id}/read`, {
+    account_id: accountId,
+  });
+  const res = await api.post<unknown>(url, {});
   return res.data;
 }
 

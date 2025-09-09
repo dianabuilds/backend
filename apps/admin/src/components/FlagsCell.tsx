@@ -1,5 +1,4 @@
 import { Eye, Globe, Star, ThumbsUp } from 'lucide-react';
-import type React from 'react';
 
 export type FlagField = 'is_visible' | 'is_public' | 'premium_only' | 'is_recommendable';
 
@@ -49,3 +48,4 @@ export default function FlagsCell({ value, onToggle, disabledVisible }: FlagsCel
     </div>
   );
 }
+

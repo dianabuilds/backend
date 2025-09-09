@@ -17,7 +17,10 @@ export async function listFlags(params: ListFlagsParams = {}): Promise<FeatureFl
 }
 
 export async function updateFlag(key: string, patch: FeatureFlagUpdateIn): Promise<FeatureFlagOut> {
-  const res = await api.patch<FeatureFlagOut>(`/admin/flags/${encodeURIComponent(key)}`, patch);
+  const res = await api.patch<FeatureFlagUpdateIn, FeatureFlagOut>(
+    `/admin/flags/${encodeURIComponent(key)}`,
+    patch,
+  );
   return res.data!;
 }
 

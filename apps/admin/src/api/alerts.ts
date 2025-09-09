@@ -38,11 +38,12 @@ type AlertLike = {
 export async function getAlerts(): Promise<AlertItem[]> {
   const res = await api.get<unknown>('/admin/ops/alerts');
   const raw = res.data as unknown;
-  const list: unknown[] = Array.isArray(raw)
-    ? (raw as unknown[])
-    : ((raw && ((raw as Record<string, unknown>).alerts as unknown[] | undefined)) ??
-        ((raw as Record<string, unknown>).data as unknown[] | undefined) ??
-        []);
+  let list: unknown[] = [];
+  if (Array.isArray(raw)) list = raw as unknown[];
+  else if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown> & { alerts?: unknown[]; data?: unknown[] };
+    list = (Array.isArray(obj.alerts) ? obj.alerts : Array.isArray(obj.data) ? obj.data : []) as unknown[];
+  }
   return (list as AlertLike[]).map((a, i) => ({
     id: a.id || a.fingerprint || a.labels?.alertname || String(i),
     startsAt: a.startsAt || a.starts_at || a.activeAt || a.active_at,
@@ -57,7 +58,9 @@ export async function getAlerts(): Promise<AlertItem[]> {
       null,
     type: a.type || a.labels?.type || a.labels?.alertname,
     severity: a.severity || a.labels?.severity || a.labels?.level,
-    status: a.status || (a.endsAt || a.ends_at ? 'resolved' : 'active'),
+    status: (a.status === 'resolved' ? 'resolved' : (a.endsAt || a.ends_at ? 'resolved' : 'active')) as
+      | 'active'
+      | 'resolved',
   }));
 }
 

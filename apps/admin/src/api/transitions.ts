@@ -42,7 +42,7 @@ export type CreateTransitionBody = {
 };
 
 export async function createTransition(body: CreateTransitionBody): Promise<Transition> {
-  const res = await api.post<Transition>('/admin/transitions', body);
+  const res = await api.post<CreateTransitionBody, Transition>('/admin/transitions', body);
   return res.data!;
 }
 
@@ -99,6 +99,9 @@ export interface SimulateTransitionsResponse {
 export async function simulateTransitions(
   body: SimulateTransitionsBody,
 ): Promise<SimulateTransitionsResponse> {
-  const res = await api.post<SimulateTransitionsResponse>(`/admin/transitions/simulate`, body);
+  const res = await api.post<SimulateTransitionsBody, SimulateTransitionsResponse>(
+    `/admin/transitions/simulate`,
+    body,
+  );
   return res.data || {};
 }

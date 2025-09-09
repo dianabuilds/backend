@@ -2,7 +2,7 @@ import { type InputHTMLAttributes, useId } from 'react';
 
 import TagInput from '../TagInput';
 
-interface Props extends InputHTMLAttributes<HTMLInputElement> {
+interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
   value?: string[];
   onChange?: (tags: string[]) => void;
   error?: string | null;
