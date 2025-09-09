@@ -4,12 +4,8 @@ import { sendNotification } from '../../api/notifications';
 import { useAuth } from '../../auth/AuthContext';
 import { Modal } from '../../shared/ui/Modal';
 import { useToast } from '../ToastProvider';
-import {
-  type NotificationErrors,
-  NotificationFormFields,
-  type NotificationFormValues,
-  validateNotification,
-} from './NotificationFormCore';
+import { validateNotification } from './NotificationForm.validation';
+import { type NotificationErrors, NotificationFormFields, type NotificationFormValues } from './NotificationFormCore';
 
 interface Props {
   isOpen: boolean;

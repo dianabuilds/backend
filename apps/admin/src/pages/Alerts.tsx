@@ -13,7 +13,9 @@ export default function Alerts() {
 
   const resolveMut = useMutation({
     mutationFn: (id: string) => resolveAlert(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts'] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['alerts'] });
+    },
   });
 
   const [search, setSearch] = useState('');

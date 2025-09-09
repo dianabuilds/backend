@@ -6,12 +6,8 @@ import type { CampaignCreate, CampaignFilters } from '../../openapi';
 import { Modal } from '../../shared/ui/Modal';
 import { useToast } from '../ToastProvider';
 import NotificationFilters from './NotificationFilters';
-import {
-  type NotificationErrors,
-  NotificationFormFields,
-  type NotificationFormValues,
-  validateNotification,
-} from './NotificationFormCore';
+import { validateNotification } from './NotificationForm.validation';
+import { type NotificationErrors, NotificationFormFields, type NotificationFormValues } from './NotificationFormCore';
 
 interface Props {
   isOpen: boolean;
@@ -85,7 +81,7 @@ export default function BroadcastForm({ isOpen, onClose }: Props) {
       setEstimate(null);
       setValues((v) => ({ ...v, title: '', message: '' }));
       addToast({ title: 'Broadcast started', variant: 'success' });
-      qc.invalidateQueries({ queryKey: ['campaigns'] });
+      void qc.invalidateQueries({ queryKey: ['campaigns'] });
       onClose();
     } catch (e) {
       addToast({

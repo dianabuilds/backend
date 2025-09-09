@@ -20,6 +20,13 @@ type Gateway = {
   updated_at?: string | null;
 };
 
+type GatewayFeeConfig = {
+  fee_mode?: 'none' | 'percent' | string;
+  fee_percent?: number;
+  fee_fixed_cents?: number;
+  min_fee_cents?: number;
+};
+
 const TYPES = [
   { value: 'crypto_jwt', label: 'Crypto (JWT token placeholder)' },
   { value: 'stripe_jwt', label: 'Stripe (JWT token placeholder)' },
@@ -198,7 +205,7 @@ export default function PaymentsGateways() {
             <label className="block text-xs text-gray-500">Fee mode</label>
             <select
               className="w-full rounded border px-2 py-1"
-              value={(draft.config as any)?.fee_mode ?? 'percent'}
+              value={(draft.config as GatewayFeeConfig | undefined)?.fee_mode ?? 'percent'}
               onChange={(e) => setFee('fee_mode', e.target.value)}
             >
               <option value="none">none</option>
@@ -210,7 +217,7 @@ export default function PaymentsGateways() {
             <input
               className="w-full rounded border px-2 py-1"
               type="number"
-              value={Number((draft.config as any)?.fee_percent ?? 0)}
+              value={Number((draft.config as GatewayFeeConfig | undefined)?.fee_percent ?? 0)}
               onChange={(e) => setFee('fee_percent', parseFloat(e.target.value || '0'))}
             />
           </div>
@@ -219,7 +226,7 @@ export default function PaymentsGateways() {
             <input
               className="w-full rounded border px-2 py-1"
               type="number"
-              value={Number((draft.config as any)?.fee_fixed_cents ?? 0)}
+              value={Number((draft.config as GatewayFeeConfig | undefined)?.fee_fixed_cents ?? 0)}
               onChange={(e) => setFee('fee_fixed_cents', parseInt(e.target.value || '0', 10))}
             />
           </div>
@@ -228,7 +235,7 @@ export default function PaymentsGateways() {
             <input
               className="w-full rounded border px-2 py-1"
               type="number"
-              value={Number((draft.config as any)?.min_fee_cents ?? 0)}
+              value={Number((draft.config as GatewayFeeConfig | undefined)?.min_fee_cents ?? 0)}
               onChange={(e) => setFee('min_fee_cents', parseInt(e.target.value || '0', 10))}
             />
           </div>
@@ -252,10 +259,10 @@ export default function PaymentsGateways() {
               key: 'fee',
               title: 'Fee',
               accessor: (r) => {
-                const c = (r.config || {}) as Record<string, unknown>;
-                const mode = (c['fee_mode'] as string) || 'none';
-                const pct = Number((c['fee_percent'] as number) || 0);
-                const fx = Number((c['fee_fixed_cents'] as number) || 0);
+                const c = (r.config || {}) as GatewayFeeConfig;
+                const mode = c.fee_mode || 'none';
+                const pct = Number(c.fee_percent || 0);
+                const fx = Number(c.fee_fixed_cents || 0);
                 return `${mode}${pct ? ` ${pct}%` : ''}${fx ? ` + ${fx}c` : ''}`;
               },
             },

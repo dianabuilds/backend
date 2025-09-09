@@ -44,7 +44,7 @@ export default function Restrictions() {
       setUserId('');
       setReason('');
       setExpires('');
-      queryClient.invalidateQueries({ queryKey: ['restrictions'] });
+      await queryClient.invalidateQueries({ queryKey: ['restrictions'] });
     },
   });
 
@@ -56,7 +56,7 @@ export default function Restrictions() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['restrictions'] });
+      await queryClient.invalidateQueries({ queryKey: ['restrictions'] });
     },
   });
 
@@ -65,7 +65,7 @@ export default function Restrictions() {
       await api.del(`/admin/restrictions/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['restrictions'] });
+      await queryClient.invalidateQueries({ queryKey: ['restrictions'] });
     },
   });
 

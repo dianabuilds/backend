@@ -96,12 +96,12 @@ export default function Echo() {
 
   const handleDelete = async (id: string) => {
     await deleteEcho(id);
-    refresh();
+    await refresh();
   };
 
   const handleAnon = async (id: string) => {
     await anonymizeEcho(id);
-    refresh();
+    await refresh();
   };
 
   const handleRecompute = async () => {

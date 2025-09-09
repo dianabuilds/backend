@@ -51,7 +51,7 @@ export default function FeatureFlagsPage() {
     try {
       await updateFlag(key, patch);
       setEditing(null);
-      queryClient.invalidateQueries({ queryKey: ['feature-flags'] });
+      await queryClient.invalidateQueries({ queryKey: ['feature-flags'] });
     } catch (e) {
       const msg =
         e instanceof ApiError

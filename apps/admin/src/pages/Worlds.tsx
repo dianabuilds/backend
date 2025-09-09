@@ -55,15 +55,15 @@ export default function WorldsPage() {
         description: payload.description || null,
         meta: null,
       }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.worlds });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: queryKeys.worlds });
     },
   });
 
   const removeWorldMutation = useMutation({
     mutationFn: (id: string) => client.del(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`),
-    onSuccess: (_data, id) => {
-      qc.invalidateQueries({ queryKey: queryKeys.worlds });
+    onSuccess: async (_data, id) => {
+      await qc.invalidateQueries({ queryKey: queryKeys.worlds });
       qc.removeQueries({ queryKey: queryKeys.worldCharacters(id) });
     },
   });
@@ -76,8 +76,8 @@ export default function WorldsPage() {
         description: payload.description || null,
         traits: null,
       }),
-    onSuccess: () => {
-      qc.invalidateQueries({
+    onSuccess: async () => {
+      await qc.invalidateQueries({
         queryKey: queryKeys.worldCharacters(selectedWorld),
       });
     },
@@ -85,8 +85,8 @@ export default function WorldsPage() {
 
   const removeCharacterMutation = useMutation({
     mutationFn: (id: string) => client.del(`/admin/ai/quests/characters/${encodeURIComponent(id)}`),
-    onSuccess: () => {
-      qc.invalidateQueries({
+    onSuccess: async () => {
+      await qc.invalidateQueries({
         queryKey: queryKeys.worldCharacters(selectedWorld),
       });
     },

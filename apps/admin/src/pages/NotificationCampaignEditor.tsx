@@ -36,7 +36,7 @@ export default function NotificationCampaignEditor() {
     try {
       await updateDraftCampaign(id, { title, message });
       addToast({ title: 'Saved', variant: 'success' });
-      qc.invalidateQueries({ queryKey: ['draftCampaign', id] });
+      await qc.invalidateQueries({ queryKey: ['draftCampaign', id] });
     } catch (e) {
       addToast({
         title: 'Failed to save',
@@ -50,7 +50,7 @@ export default function NotificationCampaignEditor() {
     try {
       await sendDraftCampaign(id);
       addToast({ title: 'Dispatched', variant: 'success' });
-      qc.invalidateQueries({ queryKey: ['draftCampaign', id] });
+      await qc.invalidateQueries({ queryKey: ['draftCampaign', id] });
     } catch (e) {
       addToast({
         title: 'Failed to dispatch',

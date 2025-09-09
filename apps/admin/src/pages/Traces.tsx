@@ -118,13 +118,13 @@ export default function Traces() {
     if (idsSelected.length === 0) return;
     await bulkAnonymize(idsSelected);
     clearSelection();
-    refresh();
+    await refresh();
   };
   const handleBulkDelete = async () => {
     if (idsSelected.length === 0) return;
     await bulkDelete(idsSelected);
     clearSelection();
-    refresh();
+    await refresh();
   };
 
   return (

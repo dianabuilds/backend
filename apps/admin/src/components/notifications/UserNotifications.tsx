@@ -19,7 +19,7 @@ export default function UserNotifications() {
   const handleRead = async (id: string) => {
     try {
       await markNotificationRead(id);
-      qc.invalidateQueries({ queryKey: ['notifications'] });
+      await qc.invalidateQueries({ queryKey: ['notifications'] });
     } catch (e) {
       addToast({
         title: 'Failed to mark as read',

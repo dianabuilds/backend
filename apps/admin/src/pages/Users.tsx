@@ -122,7 +122,7 @@ export default function Users() {
   const handleRoleChange = async (id: string, role: string) => {
     try {
       await updateRole(id, role);
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
       addToast({
         title: 'Role updated',
         description: `User role set to "${role}"`,
@@ -157,7 +157,7 @@ export default function Users() {
       );
       addToast({ title: 'Premium updated', variant: 'success' });
       setPremiumUser(null);
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (e) {
       addToast({
         title: 'Failed to update premium',
@@ -190,7 +190,7 @@ export default function Users() {
       );
       addToast({ title: 'Restriction applied', variant: 'success' });
       setRestrictUser(null);
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (e) {
       addToast({
         title: 'Failed to apply restriction',
@@ -208,7 +208,7 @@ export default function Users() {
     try {
       await deleteRestriction(r.id);
       addToast({ title: 'User unbanned', variant: 'success' });
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (e) {
       addToast({
         title: 'Failed to unban',

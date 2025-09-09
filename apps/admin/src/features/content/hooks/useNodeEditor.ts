@@ -109,7 +109,7 @@ export function useNodeEditor(accountId: string, id: number | 'new') {
       return nodesApi.update(accountId, payload.id as number, body);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ['node', accountId || 'global', id],
       });
     },
