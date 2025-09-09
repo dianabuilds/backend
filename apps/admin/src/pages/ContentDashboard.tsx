@@ -45,14 +45,24 @@ export default function ContentDashboard() {
     queryKey: ['content', 'dashboard', 'nodes', accountId || 'default'],
     queryFn: async () => {
       const res = await listNodes(accountId || '');
-      return (res as unknown[]).map((n: any) => ({
+      type RawNode = Partial<NodeItem> & {
+        id?: number;
+        nodeId?: number;
+        status?: string;
+        updated_at?: string;
+        updatedAt?: string;
+        created_at?: string;
+        createdAt?: string;
+      };
+      const arr = Array.isArray(res) ? (res as unknown as RawNode[]) : [];
+      return arr.map((n) => ({
         id: Number(n.nodeId ?? n.id ?? 0),
         status: String(n.status ?? ''),
-        updated_at: (n as any).updated_at,
-        updatedAt: (n as any).updatedAt,
-        created_at: (n as any).created_at,
-        createdAt: (n as any).createdAt,
-      })) as NodeItem[];
+        updated_at: n.updated_at,
+        updatedAt: n.updatedAt,
+        created_at: n.created_at,
+        createdAt: n.createdAt,
+      }));
     },
   });
 

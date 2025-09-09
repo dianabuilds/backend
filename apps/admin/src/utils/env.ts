@@ -1,4 +1,4 @@
-import { confirmDialog } from '../shared/ui/dialogs';
+import { confirmDialog } from '../shared/ui';
 
 function getEnv() {
   try {

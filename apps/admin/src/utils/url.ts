@@ -63,16 +63,16 @@ export function extractUrlFromUploadResponse(data: unknown, headers?: Headers): 
   try {
     u = String(candidate).trim();
     // If string looks like "\"/static/...\"" — unescape and strip quotes
-    if (/^\\?[\"'].*\\?[\"']$/.test(u)) {
-      u = u.replace(/\\\"/g, '"').replace(/\\'/g, "'");
+    if (/^\\?["'].*\\?["']$/.test(u)) {
+      u = u.replace(/\\"/g, '"').replace(/\\'/g, "'");
     }
     if ((u.startsWith('"') && u.endsWith('"')) || (u.startsWith("'") && u.endsWith("'"))) {
       u = u.slice(1, -1).trim();
     }
+
   } catch {
     // noop
   }
 
   return resolveBackendUrl(u || null);
 }
-

@@ -4,7 +4,8 @@ import { useParams } from 'react-router-dom';
 import { useAccount } from '../account/AccountContext';
 import ValidationReportView from '../components/ValidationReportView';
 // Local lightweight shape used by the UI component
-type ValidationReportModel = { errors: number; warnings: number; items: any[] };
+type ValidationItem = { level: 'error' | 'warning'; code: string; message: string };
+type ValidationReportModel = { errors: number; warnings: number; items: ValidationItem[] };
 import PageLayout from './_shared/PageLayout';
 
 export default function ValidationReport() {
