@@ -4,8 +4,8 @@ import { api } from '../api/client';
 import CursorPager from '../components/CursorPager';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable.helpers';
-import ErrorBanner from '../components/ErrorBanner';
 import JsonCard from '../components/JsonCard';
+import ListSection from '../components/common/ListSection';
 import { useToast } from '../components/ToastProvider';
 
 type Tx = {
@@ -64,12 +64,9 @@ export default function PaymentsTransactions() {
       setRows(Array.isArray(data.items) ? data.items : []);
       setNext((data as unknown as { next_cursor?: string | null }).next_cursor || null);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Ошибка загрузки');
-      addToast({
-        title: 'Ошибка загрузки',
-        description: e instanceof Error ? e.message : String(e),
-        variant: 'error',
-      });
+      const msg = e instanceof Error ? e.message : 'Ошибка загрузки';
+      setError(msg);
+      addToast({ title: 'Ошибка загрузки', description: msg, variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -88,12 +85,9 @@ export default function PaymentsTransactions() {
       setRows((prev) => [...prev, ...newItems]);
       setNext((data as unknown as { next_cursor?: string | null }).next_cursor || null);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Ошибка загрузки');
-      addToast({
-        title: 'Ошибка загрузки',
-        description: e instanceof Error ? e.message : String(e),
-        variant: 'error',
-      });
+      const msg = e instanceof Error ? e.message : 'Ошибка загрузки';
+      setError(msg);
+      addToast({ title: 'Ошибка загрузки', description: msg, variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -144,21 +138,12 @@ export default function PaymentsTransactions() {
         </div>
       </div>
 
-      <div className="rounded border p-3">
-        {error ? <ErrorBanner message={error} /> : null}
+      <ListSection title="Список транзакций" loading={loading && rows.length === 0} error={error}>
         {(() => {
           const cols: Column<Tx>[] = [
-            {
-              key: 'created_at',
-              title: 'Time',
-              accessor: (t) => t.created_at || '-',
-            },
+            { key: 'created_at', title: 'Time', accessor: (t) => t.created_at || '-' },
             { key: 'user_id', title: 'User' },
-            {
-              key: 'gateway',
-              title: 'Gateway',
-              accessor: (t) => t.gateway || '-',
-            },
+            { key: 'gateway', title: 'Gateway', accessor: (t) => t.gateway || '-' },
             {
               key: 'product',
               title: 'Product',
@@ -169,30 +154,10 @@ export default function PaymentsTransactions() {
                 </span>
               ),
             },
-            {
-              key: 'amount',
-              title: 'Amount',
-              render: (t) => (
-                <span>
-                  {(t.gross_cents / 100).toFixed(2)} {t.currency || 'USD'}
-                </span>
-              ),
-            },
-            {
-              key: 'fee_cents',
-              title: 'Fee',
-              render: (t) => (t.fee_cents / 100).toFixed(2),
-            },
-            {
-              key: 'net_cents',
-              title: 'Net',
-              render: (t) => (t.net_cents / 100).toFixed(2),
-            },
-            {
-              key: 'meta',
-              title: 'Meta',
-              render: (t) => <JsonCard data={t.meta ?? {}} />,
-            },
+            { key: 'amount', title: 'Amount', render: (t) => (<span>{(t.gross_cents / 100).toFixed(2)} {t.currency || 'USD'}</span>) },
+            { key: 'fee_cents', title: 'Fee', render: (t) => (t.fee_cents / 100).toFixed(2) },
+            { key: 'net_cents', title: 'Net', render: (t) => (t.net_cents / 100).toFixed(2) },
+            { key: 'meta', title: 'Meta', render: (t) => <JsonCard data={t.meta ?? {}} /> },
           ];
           return (
             <DataTable<Tx>
@@ -211,7 +176,8 @@ export default function PaymentsTransactions() {
           onLoadMore={loadMore}
           className="mt-3 flex justify-center"
         />
-      </div>
+      </ListSection>
     </div>
   );
 }
+

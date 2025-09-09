@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable.helpers';
-import ErrorBanner from '../components/ErrorBanner';
+import ListSection from '../components/common/ListSection';
 
 type RecentTx = {
   id: string;
@@ -23,9 +23,7 @@ export default function PaymentsRecent() {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.get<RecentTx[]>('/admin/payments/recent', {
-          retry: 1,
-        });
+        const res = await api.get<RecentTx[]>('/admin/payments/recent', { retry: 1 });
         setRows(Array.isArray(res.data) ? res.data : []);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Ошибка загрузки');
@@ -39,18 +37,12 @@ export default function PaymentsRecent() {
   const cols: Column<RecentTx>[] = [
     { key: 'user_id', title: 'User' },
     { key: 'tariff', title: 'Tariff', accessor: (r) => r.tariff || '-' },
-    {
-      key: 'amount',
-      title: 'Amount',
-      render: (r) => (r.amount / 100).toFixed(2),
-    },
+    { key: 'amount', title: 'Amount', render: (r) => (r.amount / 100).toFixed(2) },
     {
       key: 'status',
       title: 'Status',
       render: (r) => (
-        <span className={/error|fail|refund/i.test(r.status) ? 'text-red-600' : ''}>
-          {r.status}
-        </span>
+        <span className={/error|fail|refund/i.test(r.status) ? 'text-red-600' : ''}>{r.status}</span>
       ),
     },
   ];
@@ -58,8 +50,7 @@ export default function PaymentsRecent() {
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-lg font-semibold">Payments — Recent</h1>
-      <div className="rounded border p-3">
-        {error ? <ErrorBanner message={error} /> : null}
+      <ListSection title="Последние транзакции" loading={loading} error={error}>
         <DataTable<RecentTx>
           columns={cols}
           rows={rows}
@@ -68,7 +59,8 @@ export default function PaymentsRecent() {
           emptyText="Нет транзакций"
           rowClassName={(r) => (/error|fail|refund/i.test(r.status) ? 'bg-red-50' : '')}
         />
-      </div>
+      </ListSection>
     </div>
   );
 }
+

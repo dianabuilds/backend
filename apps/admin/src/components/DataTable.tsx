@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 import type { Column } from './DataTable.helpers';
 import Skeleton from './Skeleton';

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+﻿import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, type RouteObject, useLocation, useRoutes } from 'react-router-dom';
 
 import ProtectedRoute from '../components/ProtectedRoute';

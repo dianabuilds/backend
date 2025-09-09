@@ -6,6 +6,7 @@ import { confirmWithEnv } from '../utils/env';
 import EditDeleteActions from '../components/common/EditDeleteActions';
 import FormActions from '../components/common/FormActions';
 import ListSection from '../components/common/ListSection';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
 
 type Plan = {
   id: string;
@@ -216,44 +217,41 @@ export default function PremiumPlans() {
 
       <ListSection title="Список тарифов" loading={isLoading} error={error}>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-500">
-                <th className="px-2 py-1">Slug</th>
-                <th className="px-2 py-1">Title</th>
-                <th className="px-2 py-1">Price</th>
-                <th className="px-2 py-1">Active</th>
-                <th className="px-2 py-1">Stories/mo</th>
-                <th className="px-2 py-1">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="min-w-full text-sm">
+            <TableHeader>
+              <TableRow className="text-left text-gray-500">
+                <TableHead className="px-2 py-1">Slug</TableHead>
+                <TableHead className="px-2 py-1">Title</TableHead>
+                <TableHead className="px-2 py-1">Price</TableHead>
+                <TableHead className="px-2 py-1">Active</TableHead>
+                <TableHead className="px-2 py-1">Stories/mo</TableHead>
+                <TableHead className="px-2 py-1">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.map((p) => (
-                <tr key={p.id} className="border-t">
-                  <td className="px-2 py-1">{p.slug}</td>
-                  <td className="px-2 py-1">{p.title}</td>
-                  <td className="px-2 py-1">
-                    {(p.price_cents || 0) / 100} {p.currency || 'USD'}
-                  </td>
-                  <td className="px-2 py-1">{p.is_active ? 'yes' : 'no'}</td>
-                  <td className="px-2 py-1">{p.monthly_limits?.stories ?? '-'}</td>
-                  <td className="px-2 py-1">
+                <TableRow key={p.id} className="border-t">
+                  <TableCell className="px-2 py-1">{p.slug}</TableCell>
+                  <TableCell className="px-2 py-1">{p.title}</TableCell>
+                  <TableCell className="px-2 py-1">{(p.price_cents || 0) / 100} {p.currency || 'USD'}</TableCell>
+                  <TableCell className="px-2 py-1">{p.is_active ? 'yes' : 'no'}</TableCell>
+                  <TableCell className="px-2 py-1">{p.monthly_limits?.stories ?? '-'}</TableCell>
+                  <TableCell className="px-2 py-1">
                     <EditDeleteActions onEdit={() => edit(p)} onDelete={() => remove(p.id)} />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
               {data.length === 0 ? (
-                <tr>
-                  <td className="px-2 py-3 text-gray-500" colSpan={6}>
+                <TableRow>
+                  <TableCell className="px-2 py-3 text-gray-500" colSpan={6}>
                     Нет тарифов
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : null}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </ListSection>
     </div>
   );
 }
-

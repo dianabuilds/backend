@@ -6,6 +6,7 @@ import { confirmWithEnv } from '../utils/env';
 import EditDeleteActions from '../components/common/EditDeleteActions';
 import ListSection from '../components/common/ListSection';
 import FormActions from '../components/common/FormActions';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
 
 type Gateway = {
   id: string;
@@ -241,47 +242,47 @@ export default function PaymentsGateways() {
 
       <ListSection title="Список шлюзов" loading={isLoading} error={error}>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-500">
-                <th className="px-2 py-1">Slug</th>
-                <th className="px-2 py-1">Type</th>
-                <th className="px-2 py-1">Priority</th>
-                <th className="px-2 py-1">Enabled</th>
-                <th className="px-2 py-1">Fee</th>
-                <th className="px-2 py-1">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="min-w-full text-sm">
+            <TableHeader>
+              <TableRow className="text-left text-gray-500">
+                <TableHead className="px-2 py-1">Slug</TableHead>
+                <TableHead className="px-2 py-1">Type</TableHead>
+                <TableHead className="px-2 py-1">Priority</TableHead>
+                <TableHead className="px-2 py-1">Enabled</TableHead>
+                <TableHead className="px-2 py-1">Fee</TableHead>
+                <TableHead className="px-2 py-1">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.map((g) => (
-                <tr key={g.id} className="border-t">
-                  <td className="px-2 py-1">{g.slug}</td>
-                  <td className="px-2 py-1">{g.type}</td>
-                  <td className="px-2 py-1">{g.priority}</td>
-                  <td className="px-2 py-1">{g.enabled ? 'yes' : 'no'}</td>
-                  <td className="px-2 py-1">
+                <TableRow key={g.id} className="border-t">
+                  <TableCell className="px-2 py-1">{g.slug}</TableCell>
+                  <TableCell className="px-2 py-1">{g.type}</TableCell>
+                  <TableCell className="px-2 py-1">{g.priority}</TableCell>
+                  <TableCell className="px-2 py-1">{g.enabled ? 'yes' : 'no'}</TableCell>
+                  <TableCell className="px-2 py-1">
                     {(() => {
-                      const c = g.config || {} as any;
-                      const mode = c.fee_mode || 'none';
-                      const pct = Number(c.fee_percent || 0);
-                      const fx = Number(c.fee_fixed_cents || 0);
+                      const c = (g.config || {}) as Record<string, unknown>;
+                      const mode = (c['fee_mode'] as string) || 'none';
+                      const pct = Number((c['fee_percent'] as number) || 0);
+                      const fx = Number((c['fee_fixed_cents'] as number) || 0);
                       return `${mode}${pct ? ` ${pct}%` : ''}${fx ? ` + ${fx}c` : ''}`;
                     })()}
-                  </td>
-                  <td className="px-2 py-1">
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
                     <EditDeleteActions onEdit={() => edit(g)} onDelete={() => remove(g.id)} />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
               {data.length === 0 ? (
-                <tr>
-                  <td className="px-2 py-3 text-gray-500" colSpan={6}>
+                <TableRow>
+                  <TableCell className="px-2 py-3 text-gray-500" colSpan={6}>
                     Нет шлюзов
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : null}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </ListSection>
 
@@ -340,4 +341,3 @@ export default function PaymentsGateways() {
     </div>
   );
 }
-
