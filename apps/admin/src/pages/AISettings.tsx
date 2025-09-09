@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError } from '../api/client';
-import LimitBadge, { handleLimit429, refreshLimits } from '../components/LimitBadge';
+import LimitBadge from '../components/LimitBadge';
+import { handleLimit429, refreshLimits } from '../components/LimitBadgeController';
 
 type CBConfig = {
   fail_rate_threshold?: number;

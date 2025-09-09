@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { useAccount } from '../account/AccountContext';
@@ -6,7 +6,7 @@ import { nodesApi } from '../features/content/api/nodes.api';
 import { queryKeys } from '../shared/api/queryKeys';
 
 interface NodeItem {
-  id: string;
+  id: number;
   status: string;
 }
 
@@ -15,15 +15,19 @@ export default function ContentAll() {
   const [status, setStatus] = useState('');
   const [tag, setTag] = useState('');
 
-  const { data } = useQuery({
+  const { data } = useQuery<NodeItem[]>({
     queryKey: queryKeys.nodes(accountId || '', {
       status: status || undefined,
       tags: tag || undefined,
     }),
     queryFn: async () => {
-      return (await nodesApi.list(accountId || '', {
+      const rows = await nodesApi.list(accountId || '', {
         status: status || undefined,
         tags: tag || undefined,
+      });
+      return (rows as unknown[]).map((n: any) => ({
+        id: Number(n.nodeId ?? n.id ?? 0),
+        status: String(n.status ?? ''),
       })) as NodeItem[];
     },
     enabled: true,
@@ -48,8 +52,8 @@ export default function ContentAll() {
       </div>
       <ul className="space-y-1">
         {data?.map((item) => (
-          <li key={item.id} className="text-sm">
-            {item.status} – {item.id}
+          <li key={String(item.id)} className="text-sm">
+            {item.status} � {item.id}
           </li>
         ))}
       </ul>

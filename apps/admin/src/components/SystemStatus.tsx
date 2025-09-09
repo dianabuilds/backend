@@ -37,7 +37,7 @@ export default function SystemStatus() {
       setError(null);
       try {
         const res = await api.get<OpsStatusResponse>('/admin/ops/status');
-        const ready = res.data.ready || {};
+        const ready = (res.data?.ready as Record<string, string> | undefined) || {};
         const map: Record<string, Status> = {};
         for (const { key } of services) {
           const v = ready[key];

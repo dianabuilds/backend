@@ -15,8 +15,12 @@ export default function OpsAudit() {
 
   useEffect(() => {
     api
-      .get('/admin/audit')
-      .then((res) => setItems((res.data.items as AuditEntry[]) || []))
+      .get<{ items?: AuditEntry[] } | AuditEntry[]>('/admin/audit')
+      .then((res) => {
+        const d = res.data;
+        const arr = Array.isArray(d) ? d : d?.items || [];
+        setItems(arr);
+      })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, []);
 

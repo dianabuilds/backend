@@ -23,6 +23,7 @@ import {
 import type { Status as NodeStatus } from '../openapi';
 import { Button } from '../shared/ui';
 import { ensureArray } from '../shared/utils';
+import { confirmWithEnv } from '../utils/env';
 import { notify } from '../utils/notify';
 
 type NodeItem = {
@@ -61,15 +62,12 @@ export default function Nodes() {
   );
   const [authorTab, setAuthorTab] = useState(false);
   const [authorId, setAuthorId] = useState('');
-    // Roles selection removed from this page; keep local stub if needed in future
 
   const copySlug = (slug: string) => {
     if (typeof navigator !== 'undefined' && slug) {
       void navigator.clipboard?.writeText(slug);
     }
   };
-
-  // accountId optional — при отсутствии используем алиасы и показываем список
 
   // Пагинация/поиск
   const [q, setQ] = useState(() => searchParams.get('q') || '');
@@ -81,13 +79,13 @@ export default function Nodes() {
     () => (searchParams.get('status') as NodeStatus | null) || 'all',
   );
   const [isPublic, setIsPublic] = useState<'all' | 'true' | 'false'>(
-    () => searchParams.get('is_public') ?? 'all',
+    () => (searchParams.get('is_public') as 'all' | 'true' | 'false' | null) ?? 'all',
   );
   const [premium, setPremium] = useState<'all' | 'true' | 'false'>(
-    () => searchParams.get('premium_only') ?? 'all',
+    () => (searchParams.get('premium_only') as 'all' | 'true' | 'false' | null) ?? 'all',
   );
   const [recommendable, setRecommendable] = useState<'all' | 'true' | 'false'>(
-    () => searchParams.get('recommendable') ?? 'all',
+    () => (searchParams.get('recommendable') as 'all' | 'true' | 'false' | null) ?? 'all',
   );
   const [page, setPage] = useState(() => {
     const p = Number(searchParams.get('page') || '1');
@@ -98,7 +96,7 @@ export default function Nodes() {
     return Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20;
   });
 
-  // If no account is selected, restrict scope to personal/global options
+  // If no account is selected, restrict the scope to personal/global options
   useEffect(() => {
     if (!accountId && scopeMode && scopeMode !== 'mine' && scopeMode !== 'global') {
       setScopeMode('mine');
@@ -169,7 +167,7 @@ export default function Nodes() {
       if (!node.slug) {
         const msg = 'Отсутствует slug';
         notify(`Не удалось восстановить: ${msg}`);
-        addToast({ title: 'Не удалось восстановить', description: msg, variant: 'error' });
+        addToast({ title: 'Error', description: 'Operation failed', variant: 'error' });
         return;
       }
       (async () => {
@@ -189,13 +187,13 @@ export default function Nodes() {
             return m;
           });
           notify('Нода восстановлена');
-          addToast({ title: 'Нода восстановлена', variant: 'success' });
+          addToast({ title: 'OK', variant: 'success' });
           // Фоновая верификация
           await refetch();
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           notify(`Не удалось восстановить: ${msg}`);
-          addToast({ title: 'Не удалось восстановить', description: msg, variant: 'error' });
+          addToast({ title: 'Error', description: 'Operation failed', variant: 'error' });
         } finally {
           setModBusy(false);
         }
@@ -206,11 +204,7 @@ export default function Nodes() {
   const submitModerationHide = async () => {
     if (!modTarget || !accountId) return;
     if (!modTarget.slug) {
-      addToast({
-        title: 'Не удалось скрыть',
-        description: 'Отсутствует slug',
-        variant: 'error',
-      });
+      addToast({ title: 'Не удалось скрыть', description: 'Отсутствует slug', variant: 'error' });
       return;
     }
     try {
@@ -231,7 +225,7 @@ export default function Nodes() {
         m.set(modTarget.id, { ...base, is_visible: false });
         return m;
       });
-      addToast({ title: 'Нода скрыта', variant: 'success' });
+      addToast({ title: 'OK', variant: 'success' });
       await refetch();
     } catch (e) {
       addToast({
@@ -250,7 +244,7 @@ export default function Nodes() {
     isFetching,
     error,
     refetch,
-  } = useQuery<NodeItem[]>({
+  } = useQuery<NodeItem[], Error>({
     queryKey: [
       'nodes',
       accountId,
@@ -284,15 +278,6 @@ export default function Nodes() {
       return ensureArray<NodeItem>(res as unknown);
     },
     enabled: true,
-    placeholderData: (prev) => prev,
-    onError: (e) => {
-      const msg = e instanceof Error ? e.message : String(e);
-      addToast({
-        title: 'Не удалось загрузить ноды',
-        description: msg,
-        variant: 'error',
-      });
-    },
   });
 
   useEffect(() => {
@@ -383,11 +368,7 @@ export default function Nodes() {
         results.push(`${Object.keys(changes).join(',')}: ${ids.length}`);
       }
       if (results.length > 0) {
-        addToast({
-          title: 'Изменения применены',
-          description: results.join(', '),
-          variant: 'success',
-        });
+        addToast({ title: 'Изменения применены', description: results.join(', '), variant: 'success' });
         // Оптимистично фиксируем новые значения как базовые,
         // чтобы статус в таблице не «откатывался» визуально.
         setBaseline(new Map(items.map((n) => [n.id, { ...n }])));
@@ -395,14 +376,10 @@ export default function Nodes() {
         // Фоновая верификация серверного состояния
         await refetch();
       } else {
-        addToast({ title: 'Нет изменений для применения', variant: 'info' });
+        addToast({ title: 'OK', variant: 'success' });
       }
     } catch (e) {
-      addToast({
-        title: 'Не удалось применить изменения',
-        description: e instanceof Error ? e.message : String(e),
-        variant: 'error',
-      });
+      addToast({ title: 'Не удалось применить изменения', description: e instanceof Error ? e.message : String(e), variant: 'error' });
     } finally {
       setApplying(false);
     }
@@ -433,11 +410,7 @@ export default function Nodes() {
       const t = node.type || 'article';
       window.open(`${url}/nodes/${t}/${id}`, '_blank');
     } catch (e) {
-      addToast({
-        title: 'Предпросмотр не удалось',
-        description: e instanceof Error ? e.message : String(e),
-        variant: 'error',
-      });
+      addToast({ title: 'Предпросмотр не открылся', description: e instanceof Error ? e.message : String(e), variant: 'error' });
     }
   };
 
@@ -453,7 +426,7 @@ export default function Nodes() {
       }
       setItems((prev) => prev.filter((n) => !selected.has(n.id)));
       setSelected(new Set());
-      addToast({ title: 'Удалено', variant: 'success' });
+      addToast({ title: 'OK', variant: 'success' });
     } catch (e) {
       addToast({
         title: 'Не удалось удалить',
@@ -519,7 +492,6 @@ export default function Nodes() {
         <div className="flex items-center gap-2 mb-2">
           <Button
             type="button"
-            variant={scopeMode === 'member' && !authorTab ? undefined : 'outline'}
             onClick={() => {
               setAuthorTab(false);
               setScopeMode('member');
@@ -530,7 +502,6 @@ export default function Nodes() {
           </Button>
           <Button
             type="button"
-            variant={scopeMode === 'mine' && !authorTab ? undefined : 'outline'}
             onClick={() => {
               setAuthorTab(false);
               setScopeMode('mine');
@@ -541,7 +512,6 @@ export default function Nodes() {
           </Button>
           <Button
             type="button"
-            variant={scopeMode === 'global' && !authorTab ? undefined : 'outline'}
             onClick={() => {
               setAuthorTab(false);
               setScopeMode('global');
@@ -553,7 +523,6 @@ export default function Nodes() {
           <div className="flex items-center gap-2">
             <Button
               type="button"
-              variant={authorTab ? undefined : 'outline'}
               onClick={() => {
                 setAuthorTab(true);
                 setScopeMode('member');
@@ -984,11 +953,7 @@ export default function Nodes() {
                                 const t = n.type || 'article';
                                 window.open(`${url}/nodes/${t}/${n.id}`, '_blank');
                               } catch (e) {
-                                addToast({
-                                  title: 'Предпросмотр не удалось',
-                                  description: e instanceof Error ? e.message : String(e),
-                                  variant: 'error',
-                                });
+                                addToast({ title: 'Предпросмотр не открылся', description: e instanceof Error ? e.message : String(e), variant: 'error' });
                               }
                             }}
                           >
@@ -1059,3 +1024,11 @@ export default function Nodes() {
     </div>
   );
 }
+
+
+
+
+
+
+
+

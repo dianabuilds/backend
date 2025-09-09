@@ -10,7 +10,8 @@ import {
   type Transition,
   updateTransition,
 } from '../api/transitions';
-import LimitBadge, { handleLimit429, refreshLimits } from '../components/LimitBadge';
+import LimitBadge from '../components/LimitBadge';
+import { handleLimit429, refreshLimits } from '../components/LimitBadgeController';
 import Tooltip from '../components/Tooltip';
 import Simulation from './Simulation';
 
@@ -122,7 +123,7 @@ export default function NavigationManager() {
     try {
       const payload: Record<string, unknown> = { node_slug: nodeSlug.trim() };
       if (userId.trim()) payload.user_id = userId.trim();
-      const res = await api.post<RunResponse>('/admin/navigation/run', payload);
+      const res = await api.post<unknown, RunResponse>('/admin/navigation/run', payload);
       const count = Array.isArray(res.data?.transitions)
         ? (res.data?.transitions as unknown[]).length
         : 0;
@@ -453,3 +454,5 @@ export default function NavigationManager() {
     </div>
   );
 }
+
+

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { LucideIcon } from 'lucide-react';
 import { Archive, CheckCircle2, Clock, FileText } from 'lucide-react';
 
@@ -28,7 +27,6 @@ export default function StatusCell({ status }: StatusCellProps) {
           key={key}
           className={`h-4 w-4 ${status === key ? active : 'text-gray-400'}`}
           aria-label={label}
-          title={label}
         />
       ))}
     </div>

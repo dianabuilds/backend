@@ -14,8 +14,8 @@ export default function Jobs() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get('/admin/ops/jobs');
-      setJobs((res.data.jobs as Job[]) || []);
+      const res = await api.get<{ jobs?: Job[] }>('/admin/ops/jobs');
+      setJobs((res.data?.jobs as Job[]) || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

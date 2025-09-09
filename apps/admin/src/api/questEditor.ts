@@ -1,4 +1,4 @@
-import type { QuestOut, QuestUpdate, ValidateResult, QuestGraphIn } from '../openapi';
+import type { QuestGraphIn,QuestOut, QuestUpdate, ValidateResult } from '../openapi';
 // Local alias for the graph used by editor. Keep it broad to avoid tight coupling
 // to generated types that may change naming between versions.
 export type VersionGraph = unknown;

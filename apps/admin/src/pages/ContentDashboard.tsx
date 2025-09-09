@@ -8,7 +8,7 @@ import { createNode, listNodes } from '../api/nodes';
 import KpiCard from '../components/KpiCard';
 
 interface NodeItem {
-  id: string;
+  id: number;
   status: string;
   updated_at?: string;
   updatedAt?: string;
@@ -43,7 +43,17 @@ export default function ContentDashboard() {
 
   const { data: nodes = [], isLoading } = useQuery<NodeItem[]>({
     queryKey: ['content', 'dashboard', 'nodes', accountId || 'default'],
-    queryFn: async () => await listNodes(accountId || ''),
+    queryFn: async () => {
+      const res = await listNodes(accountId || '');
+      return (res as unknown[]).map((n: any) => ({
+        id: Number(n.nodeId ?? n.id ?? 0),
+        status: String(n.status ?? ''),
+        updated_at: (n as any).updated_at,
+        updatedAt: (n as any).updatedAt,
+        created_at: (n as any).created_at,
+        createdAt: (n as any).createdAt,
+      })) as NodeItem[];
+    },
   });
 
   const { data: tags = [] } = useQuery<{ id: string }[]>({
@@ -139,7 +149,7 @@ export default function ContentDashboard() {
               <div className="font-semibold">Last 5 edits</div>
               <ul className="list-disc pl-5">
                 {latestEdits.map((n) => (
-                  <li key={n.id}>{n.status}</li>
+                  <li key={String(n.id)}>{n.status}</li>
                 ))}
               </ul>
               {lastPublished && (

@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAccount } from '../account/AccountContext';
 import { createDraft, createQuest } from '../api/questEditor';
-import {
-  autofixQuest,
-  listQuests,
-  publishQuest,
-  validateQuest,
-  type ValidationReport,
-} from '../api/quests';
+import { autofixQuest, listQuests, publishQuest, validateQuest } from '../api/quests';
+import type { ValidateResult } from '../openapi';
+type ValidationReport = {
+  errors: number;
+  warnings: number;
+  items: Array<{ level: string; code: string; message: string }>;
+};
 import PageLayout from './_shared/PageLayout';
 
 interface QuestItem {
@@ -77,7 +77,7 @@ export default function QuestsList() {
     setReport(null);
     try {
       const r = await validateQuest(id);
-      setReport(r);
+      setReport(mapValidateResult(r));
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }
@@ -321,7 +321,7 @@ export default function QuestsList() {
                       if (!activeQuestId) return;
                       await autofixQuest(activeQuestId, ['ensure_entry', 'deduplicate_nodes']);
                       const r = await validateQuest(activeQuestId);
-                      setReport(r);
+                      setReport(mapValidateResult(r));
                     }}
                   >
                     Autofix (basic)
@@ -334,6 +334,19 @@ export default function QuestsList() {
       </>
     );
   })();
+
+  function mapValidateResult(r: ValidateResult): ValidationReport {
+    const errors = Array.isArray(r.errors) ? r.errors : [];
+    const warnings = Array.isArray(r.warnings) ? r.warnings : [];
+    return {
+      errors: errors.length,
+      warnings: warnings.length,
+      items: [
+        ...errors.map((m) => ({ level: 'error', code: '', message: String(m) })),
+        ...warnings.map((m) => ({ level: 'warning', code: '', message: String(m) })),
+      ],
+    };
+  }
 
   return (
     <PageLayout title="Quests" subtitle="Управление квестами">

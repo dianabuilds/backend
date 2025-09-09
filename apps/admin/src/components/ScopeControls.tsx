@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @deprecated Not used in runtime pages; preserved for tests only.
  */
 import type { ChangeEvent } from 'react';

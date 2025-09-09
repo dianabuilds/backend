@@ -101,7 +101,7 @@ export default function AIQuestJobDetails() {
       provider: data.job.provider || '-',
       model: data.job.model || '-',
       cost: data.job.cost ?? data.aggregates.cost,
-      tokens: data.job.token_usage?.total?.total ?? data.aggregates.total_tokens,
+      tokens: (data.job.token_usage?.total ?? data.aggregates.total_tokens) as number,
       progress: data.job.progress ?? null,
       reused: data.job.reused ?? false,
     };

@@ -18,6 +18,8 @@
     "audit:unused": "knip --include files,exports,duplicates --reporter compact -n",
     "audit:dup": "npx jscpd src --ignore src/openapi/** --min-tokens 70 --reporters console --silent",
     "preview": "vite preview",
+    "encoding:scan": "node ./scripts/encoding-tools.cjs scan",
+    "encoding:strip-bom": "node ./scripts/encoding-tools.cjs strip-bom",
     "test": "vitest run",
     "generate:types": "npx openapi-typescript-codegen --input ../../docs/openapi/openapi.json --output src/openapi --client fetch"
   },

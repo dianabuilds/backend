@@ -128,17 +128,27 @@ export default function PaymentsGateways() {
   });
   const [verifyRes, setVerifyRes] = useState<string>('');
 
+  type VerifyPayload = {
+    token: string;
+    amount: number;
+    currency: string | null;
+    preferred_slug: string | null;
+  };
+
   const doVerify = async () => {
     setVerifyRes('');
     try {
-      const res = await api.post<{ ok: boolean; gateway?: string }>(`/admin/payments/verify`, {
-        token: verify.token,
-        amount: Number(verify.amount || 0),
-        currency: verify.currency || null,
-        preferred_slug: verify.preferred_slug || null,
-      });
-      const ok = (res.data as unknown as { ok?: boolean }).ok;
-      const gateway = (res.data as unknown as { gateway?: string }).gateway || '-';
+      const res = await api.post<VerifyPayload, { ok: boolean; gateway?: string }>(
+        `/admin/payments/verify`,
+        {
+          token: verify.token,
+          amount: Number(verify.amount || 0),
+          currency: verify.currency || null,
+          preferred_slug: verify.preferred_slug || null,
+        },
+      );
+      const ok = Boolean(res.data?.ok);
+      const gateway = res.data?.gateway || '-';
       setVerifyRes(`ok=${String(ok)}, gateway=${gateway}`);
     } catch (e: unknown) {
       setVerifyRes(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);

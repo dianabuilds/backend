@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 
+import { useAccount } from '../../account/AccountContext';
 import { sendNotification } from '../../api/notifications';
 import { useAuth } from '../../auth/AuthContext';
+import { NotificationType } from '../../openapi';
 import { Modal } from '../../shared/ui';
 import { useToast } from '../ToastProvider';
 import { validateNotification } from './NotificationForm.validation';
@@ -14,6 +16,7 @@ interface Props {
 
 export default function SendToUserModal({ isOpen, onClose }: Props) {
   const { user } = useAuth();
+  const { accountId } = useAccount();
   const { addToast } = useToast();
   const [userId, setUserId] = useState('');
   const [values, setValues] = useState<NotificationFormValues>({ title: '', message: '', type: 'system' });
@@ -30,15 +33,22 @@ export default function SendToUserModal({ isOpen, onClose }: Props) {
     return valid;
   };
 
+  const mapType = (t: NotificationFormValues['type']): NotificationType | undefined => {
+    if (t === 'system') return NotificationType.SYSTEM;
+    if (t === 'quest') return NotificationType.QUEST;
+    // 'info' | 'warning' не поддерживаются сервером — не отправляем тип
+    return undefined;
+  };
+
   const handleSend = async () => {
     if (!validate()) return;
     try {
-      const mappedType = values.type === 'quest' ? 'quest' : values.type === 'system' ? 'system' : 'system';
       await sendNotification({
+        account_id: accountId || '',
         user_id: userId,
         title: values.title,
         message: values.message,
-        type: mappedType as any,
+        type: mapType(values.type),
       });
       addToast({ title: 'Notification sent', variant: 'success' });
       setValues((v) => ({ ...v, title: '', message: '' }));
