@@ -3,14 +3,9 @@ import { Link } from 'react-router-dom';
 
 import { api } from '../../api/client';
 import Pill from '../../components/Pill';
+import { type JobRow,JobsTable } from './JobsTable';
 
-interface Job {
-  id: string;
-  name: string;
-  status: string;
-  started_at: string;
-  finished_at?: string | null;
-}
+type Job = JobRow;
 
 interface QueueStats {
   pending: number;
@@ -21,23 +16,7 @@ interface Queues {
   [name: string]: QueueStats;
 }
 
-function statusVariant(status: string): 'ok' | 'warn' | 'danger' {
-  switch (status) {
-    case 'success':
-      return 'ok';
-    case 'failed':
-      return 'danger';
-    default:
-      return 'warn';
-  }
-}
-
-function formatDuration(start: string, finish?: string | null): string {
-  const startMs = new Date(start).getTime();
-  const endMs = finish ? new Date(finish).getTime() : Date.now();
-  const ms = Math.max(0, endMs - startMs);
-  return `${(ms / 1000).toFixed(1)}s`;
-}
+// status formatting and duration handled inside JobsTable
 
 export default function JobsTab() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -101,26 +80,7 @@ export default function JobsTab() {
               ))}
             </div>
           )}
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">Status</th>
-                <th className="p-2 text-left">Duration</th>
-              </tr>
-            </thead>
-            <tbody>
-              {jobs.map((job) => (
-                <tr key={job.id} className="border-b">
-                  <td className="p-2">{job.name}</td>
-                  <td className="p-2 align-middle">
-                    <Pill variant={statusVariant(job.status)}>{job.status}</Pill>
-                  </td>
-                  <td className="p-2">{formatDuration(job.started_at, job.finished_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <JobsTable jobs={jobs} variant="summary" />
         </>
       )}
     </div>

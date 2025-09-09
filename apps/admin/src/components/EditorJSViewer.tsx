@@ -1,3 +1,6 @@
+/**
+ * @deprecated Runtime usage removed. Kept for tests and manual previews.
+ */
 import type { OutputData } from '../types/editorjs';
 import { resolveUrl } from '../utils/resolveUrl';
 import { sanitizeHtml } from '../utils/sanitizeHtml';

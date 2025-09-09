@@ -2,11 +2,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { api } from '../api/client';
-import { confirmWithEnv } from '../utils/env';
 import EditDeleteActions from '../components/common/EditDeleteActions';
 import FormActions from '../components/common/FormActions';
 import ListSection from '../components/common/ListSection';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
+import DataTable from '../components/DataTable';
+import type { Column } from '../components/DataTable.helpers';
+import { confirmWithEnv } from '../utils/env';
 
 type Plan = {
   id: string;
@@ -216,41 +217,38 @@ export default function PremiumPlans() {
       </div>
 
       <ListSection title="Список тарифов" loading={isLoading} error={error}>
-        <div className="overflow-x-auto">
-          <Table className="min-w-full text-sm">
-            <TableHeader>
-              <TableRow className="text-left text-gray-500">
-                <TableHead className="px-2 py-1">Slug</TableHead>
-                <TableHead className="px-2 py-1">Title</TableHead>
-                <TableHead className="px-2 py-1">Price</TableHead>
-                <TableHead className="px-2 py-1">Active</TableHead>
-                <TableHead className="px-2 py-1">Stories/mo</TableHead>
-                <TableHead className="px-2 py-1">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((p) => (
-                <TableRow key={p.id} className="border-t">
-                  <TableCell className="px-2 py-1">{p.slug}</TableCell>
-                  <TableCell className="px-2 py-1">{p.title}</TableCell>
-                  <TableCell className="px-2 py-1">{(p.price_cents || 0) / 100} {p.currency || 'USD'}</TableCell>
-                  <TableCell className="px-2 py-1">{p.is_active ? 'yes' : 'no'}</TableCell>
-                  <TableCell className="px-2 py-1">{p.monthly_limits?.stories ?? '-'}</TableCell>
-                  <TableCell className="px-2 py-1">
-                    <EditDeleteActions onEdit={() => edit(p)} onDelete={() => remove(p.id)} />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {data.length === 0 ? (
-                <TableRow>
-                  <TableCell className="px-2 py-3 text-gray-500" colSpan={6}>
-                    Нет тарифов
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-        </div>
+        {(() => {
+          const columns: Column<Plan>[] = [
+            { key: 'slug', title: 'Slug', accessor: (r) => r.slug },
+            { key: 'title', title: 'Title', accessor: (r) => r.title },
+            {
+              key: 'price',
+              title: 'Price',
+              accessor: (r) => `${(r.price_cents || 0) / 100} ${r.currency || 'USD'}`,
+            },
+            { key: 'active', title: 'Active', accessor: (r) => (r.is_active ? 'yes' : 'no') },
+            {
+              key: 'stories',
+              title: 'Stories/mo',
+              accessor: (r) => String(r.monthly_limits?.stories ?? '-'),
+            },
+            {
+              key: 'actions',
+              title: 'Actions',
+              render: (r) => (
+                <EditDeleteActions onEdit={() => edit(r as Plan)} onDelete={() => remove(r.id)} />
+              ),
+            },
+          ];
+          return (
+            <DataTable
+              columns={columns}
+              rows={data}
+              rowKey={(r) => r.id}
+              emptyText="Нет тарифов"
+            />
+          );
+        })()}
       </ListSection>
     </div>
   );

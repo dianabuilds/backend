@@ -17,5 +17,3 @@ export function PageLayout({ title, actions, children }: PageLayoutProps) {
     </div>
   );
 }
-
-export default PageLayout;

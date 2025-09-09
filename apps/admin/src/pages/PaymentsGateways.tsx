@@ -2,11 +2,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { api } from '../api/client';
-import { confirmWithEnv } from '../utils/env';
 import EditDeleteActions from '../components/common/EditDeleteActions';
-import ListSection from '../components/common/ListSection';
 import FormActions from '../components/common/FormActions';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
+import ListSection from '../components/common/ListSection';
+import DataTable from '../components/DataTable';
+import type { Column } from '../components/DataTable.helpers';
+import { confirmWithEnv } from '../utils/env';
 
 type Gateway = {
   id: string;
@@ -241,49 +242,40 @@ export default function PaymentsGateways() {
       </div>
 
       <ListSection title="Список шлюзов" loading={isLoading} error={error}>
-        <div className="overflow-x-auto">
-          <Table className="min-w-full text-sm">
-            <TableHeader>
-              <TableRow className="text-left text-gray-500">
-                <TableHead className="px-2 py-1">Slug</TableHead>
-                <TableHead className="px-2 py-1">Type</TableHead>
-                <TableHead className="px-2 py-1">Priority</TableHead>
-                <TableHead className="px-2 py-1">Enabled</TableHead>
-                <TableHead className="px-2 py-1">Fee</TableHead>
-                <TableHead className="px-2 py-1">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((g) => (
-                <TableRow key={g.id} className="border-t">
-                  <TableCell className="px-2 py-1">{g.slug}</TableCell>
-                  <TableCell className="px-2 py-1">{g.type}</TableCell>
-                  <TableCell className="px-2 py-1">{g.priority}</TableCell>
-                  <TableCell className="px-2 py-1">{g.enabled ? 'yes' : 'no'}</TableCell>
-                  <TableCell className="px-2 py-1">
-                    {(() => {
-                      const c = (g.config || {}) as Record<string, unknown>;
-                      const mode = (c['fee_mode'] as string) || 'none';
-                      const pct = Number((c['fee_percent'] as number) || 0);
-                      const fx = Number((c['fee_fixed_cents'] as number) || 0);
-                      return `${mode}${pct ? ` ${pct}%` : ''}${fx ? ` + ${fx}c` : ''}`;
-                    })()}
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    <EditDeleteActions onEdit={() => edit(g)} onDelete={() => remove(g.id)} />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {data.length === 0 ? (
-                <TableRow>
-                  <TableCell className="px-2 py-3 text-gray-500" colSpan={6}>
-                    Нет шлюзов
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-        </div>
+        {(() => {
+          const columns: Column<Gateway>[] = [
+            { key: 'slug', title: 'Slug', accessor: (r) => r.slug },
+            { key: 'type', title: 'Type', accessor: (r) => r.type },
+            { key: 'priority', title: 'Priority', accessor: (r) => String(r.priority) },
+            { key: 'enabled', title: 'Enabled', accessor: (r) => (r.enabled ? 'yes' : 'no') },
+            {
+              key: 'fee',
+              title: 'Fee',
+              accessor: (r) => {
+                const c = (r.config || {}) as Record<string, unknown>;
+                const mode = (c['fee_mode'] as string) || 'none';
+                const pct = Number((c['fee_percent'] as number) || 0);
+                const fx = Number((c['fee_fixed_cents'] as number) || 0);
+                return `${mode}${pct ? ` ${pct}%` : ''}${fx ? ` + ${fx}c` : ''}`;
+              },
+            },
+            {
+              key: 'actions',
+              title: 'Actions',
+              render: (r) => (
+                <EditDeleteActions onEdit={() => edit(r as Gateway)} onDelete={() => remove(r.id)} />
+              ),
+            },
+          ];
+          return (
+            <DataTable
+              columns={columns}
+              rows={data}
+              rowKey={(r) => r.id}
+              emptyText="Нет шлюзов"
+            />
+          );
+        })()}
       </ListSection>
 
       <div className="rounded border p-3">

@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 
 import { sendNotification } from '../../api/notifications';
 import { useAuth } from '../../auth/AuthContext';
-import Modal from '../../shared/ui/Modal';
+import { Modal } from '../../shared/ui/Modal';
 import { useToast } from '../ToastProvider';
 import {
-  NotificationFormFields,
-  validateNotification,
-  type NotificationFormValues,
   type NotificationErrors,
+  NotificationFormFields,
+  type NotificationFormValues,
+  validateNotification,
 } from './NotificationFormCore';
 
 interface Props {

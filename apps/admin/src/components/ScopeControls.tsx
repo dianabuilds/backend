@@ -1,4 +1,7 @@
-﻿import type { ChangeEvent } from 'react';
+﻿/**
+ * @deprecated Not used in runtime pages; preserved for tests only.
+ */
+import type { ChangeEvent } from 'react';
 
 import { setOverrideState, useOverrideStore } from '../shared/hooks';
 

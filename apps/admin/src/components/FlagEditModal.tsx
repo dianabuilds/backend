@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import type { FeatureFlag } from '../api/flags';
-import Modal from '../shared/ui/Modal';
+import { Modal } from '../shared/ui/Modal';
 
 interface Props {
   flag: FeatureFlag | null;

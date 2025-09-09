@@ -30,5 +30,3 @@ export const TabsContent = forwardRef<
   <TabsPrimitive.Content ref={ref} className={`mt-2 ${className ?? ''}`} {...props} />
 ));
 TabsContent.displayName = 'TabsContent';
-
-export default Tabs;

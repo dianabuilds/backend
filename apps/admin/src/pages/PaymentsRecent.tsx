@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
 import { api } from '../api/client';
+import ListSection from '../components/common/ListSection';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable.helpers';
-import ListSection from '../components/common/ListSection';
 
 type RecentTx = {
   id: string;

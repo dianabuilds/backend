@@ -15,7 +15,7 @@ vi.mock('../../../account/AccountContext', () => ({
 }));
 
 vi.mock('../hooks/useNodeEditor', () => ({
-  default: () => ({
+  useNodeEditor: () => ({
     node: {
       id: 1,
       title: 'Test',

@@ -1,27 +1,9 @@
 import { useEffect, useState } from 'react';
 
 import { api } from '../api/client';
-import Pill from '../components/Pill';
+import { type JobRow,JobsTable } from '../features/monitoring/JobsTable';
 
-interface Job {
-  id: string;
-  name: string;
-  status: string;
-  log_url?: string | null;
-  started_at: string;
-  finished_at?: string | null;
-}
-
-function statusVariant(status: string): 'ok' | 'warn' | 'danger' {
-  switch (status) {
-    case 'success':
-      return 'ok';
-    case 'failed':
-      return 'danger';
-    default:
-      return 'warn';
-  }
-}
+type Job = JobRow;
 
 export default function Jobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -51,52 +33,14 @@ export default function Jobs() {
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">{error}</p>}
       {!loading && !error && (
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="p-2 text-left">Name</th>
-              <th className="p-2 text-left">Status</th>
-              <th className="p-2 text-left">Started</th>
-              <th className="p-2 text-left">Finished</th>
-              <th className="p-2 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {jobs.map((job) => (
-              <tr key={job.id} className="border-b">
-                <td className="p-2">{job.name}</td>
-                <td className="p-2 align-middle">
-                  <Pill variant={statusVariant(job.status)}>{job.status}</Pill>
-                </td>
-                <td className="p-2">{new Date(job.started_at).toLocaleString()}</td>
-                <td className="p-2">
-                  {job.finished_at ? new Date(job.finished_at).toLocaleString() : '-'}
-                </td>
-                <td className="p-2 space-x-2">
-                  <button
-                    className="px-2 py-1 bg-amber-600 text-white rounded"
-                    onClick={async () => {
-                      await api.post(`/admin/ops/jobs/${job.id}/retry`);
-                      await load();
-                    }}
-                  >
-                    Перезапустить
-                  </button>
-                  {job.log_url && (
-                    <a
-                      href={job.log_url}
-                      target="_blank"
-                      rel="noopener"
-                      className="px-2 py-1 bg-sky-600 text-white rounded"
-                    >
-                      Открыть лог
-                    </a>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <JobsTable
+          jobs={jobs}
+          variant="ops"
+          onRetry={async (id) => {
+            await api.post(`/admin/ops/jobs/${id}/retry`);
+            await load();
+          }}
+        />
       )}
     </div>
   );

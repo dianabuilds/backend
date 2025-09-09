@@ -8,7 +8,7 @@ import FieldTags from '../../../components/fields/FieldTags';
 import { Button } from '../../../shared/ui';
 import { nodesApi } from '../api/nodes.api';
 import NodeSidebar from '../components/NodeSidebar';
-import useNodeEditor from '../hooks/useNodeEditor';
+import { useNodeEditor } from '../hooks/useNodeEditor';
 
 export default function NodeEditorPage() {
   const { type = 'article', id = 'new' } = useParams<{ type?: string; id?: string }>();

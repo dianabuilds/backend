@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../api/client';
+import ListSection from '../components/common/ListSection';
 import CursorPager from '../components/CursorPager';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable.helpers';
 import JsonCard from '../components/JsonCard';
-import ListSection from '../components/common/ListSection';
 import { useToast } from '../components/ToastProvider';
 
 type Tx = {

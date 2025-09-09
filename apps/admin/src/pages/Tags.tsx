@@ -10,15 +10,9 @@ import {
   listAdminTags,
   removeFromBlacklist,
 } from '../api/tags';
+import DataTable from '../components/DataTable';
+import type { Column } from '../components/DataTable.helpers';
 import { Card, CardContent } from '../components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../components/ui/table';
 import { useModal, usePaginatedList } from '../shared/hooks';
 import { Button, Modal, SearchBar, TextInput } from '../shared/ui';
 import { confirmWithEnv } from '../utils/env';
@@ -114,62 +108,63 @@ export default function Tags() {
         <>
           <Card className="mb-6">
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Aliases</TableHead>
-                    <TableHead>Usage</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((t) => (
-                    <TableRow key={t.id || t.slug}>
-                      <TableCell className="font-mono">{t.id || '—'}</TableCell>
-                      <TableCell>{t.name || t.slug || '—'}</TableCell>
-                      <TableCell>
-                        {typeof t.aliases_count === 'number' ? t.aliases_count : '—'}
-                      </TableCell>
-                      <TableCell>
-                        {typeof t.usage_count === 'number' ? t.usage_count : '—'}
-                      </TableCell>
-                      <TableCell>
-                        {t.created_at ? new Date(t.created_at).toLocaleString() : '—'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          className="text-red-600 border-red-300"
-                          onClick={async () => {
-                            if (!t.id) return;
-                            const ok = await confirmWithEnv(
-                              `Delete tag "${t.name || t.slug}"? This cannot be undone.`,
-                            );
-                            if (!ok) return;
-                            try {
-                              await deleteAdminTag(t.id);
-                              await reload();
-                            } catch {
-                              // ignore error reporting here; page error state will show
-                            }
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {items.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="p-4 text-center text-gray-500">
-                        No tags found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              {(() => {
+                const columns: Column<TagItem>[] = [
+                  { key: 'id', title: 'ID', accessor: (r) => r.id || '—', className: 'font-mono' },
+                  { key: 'name', title: 'Name', accessor: (r) => r.name || r.slug || '—' },
+                  {
+                    key: 'aliases',
+                    title: 'Aliases',
+                    accessor: (r) =>
+                      typeof r.aliases_count === 'number' ? String(r.aliases_count) : '—',
+                  },
+                  {
+                    key: 'usage',
+                    title: 'Usage',
+                    accessor: (r) =>
+                      typeof r.usage_count === 'number' ? String(r.usage_count) : '—',
+                  },
+                  {
+                    key: 'created',
+                    title: 'Created',
+                    accessor: (r) => (r.created_at ? new Date(r.created_at).toLocaleString() : '—'),
+                  },
+                  {
+                    key: 'actions',
+                    title: 'Actions',
+                    className: 'text-right',
+                    render: (row) => (
+                      <Button
+                        className="text-red-600 border-red-300"
+                        onClick={async () => {
+                          const t = row as TagItem;
+                          if (!t.id) return;
+                          const ok = await confirmWithEnv(
+                            `Delete tag "${t.name || t.slug}"? This cannot be undone.`,
+                          );
+                          if (!ok) return;
+                          try {
+                            await deleteAdminTag(t.id);
+                            await reload();
+                          } catch {
+                            // ignore
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    ),
+                  },
+                ];
+                return (
+                  <DataTable
+                    columns={columns}
+                    rows={items}
+                    rowKey={(r) => String(r.id || r.slug || Math.random())}
+                    emptyText="No tags found"
+                  />
+                );
+              })()}
               <div className="flex justify-end gap-2 border-t p-4">
                 <Button disabled={!hasPrev} onClick={prevPage} title="Previous page">
                   ‹ Prev
@@ -209,43 +204,40 @@ export default function Tags() {
                   Add
                 </Button>
               </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Slug</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {blItems.map((b) => (
-                    <TableRow key={b.slug}>
-                      <TableCell className="font-mono">{b.slug}</TableCell>
-                      <TableCell>{b.reason || '—'}</TableCell>
-                      <TableCell>{new Date(b.created_at).toLocaleString()}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          className="text-red-600 border-red-300"
-                          onClick={async () => {
-                            await removeFromBlacklist(b.slug);
-                            await loadBlacklist();
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {blItems.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="p-4 text-center text-gray-500">
-                        No blacklist entries
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              {(() => {
+                const columns: Column<BlacklistItem>[] = [
+                  { key: 'slug', title: 'Slug', accessor: (r) => r.slug, className: 'font-mono' },
+                  { key: 'reason', title: 'Reason', accessor: (r) => r.reason || '—' },
+                  {
+                    key: 'created',
+                    title: 'Created',
+                    accessor: (r) => new Date(r.created_at).toLocaleString(),
+                  },
+                  {
+                    key: 'actions',
+                    title: '',
+                    render: (r) => (
+                      <Button
+                        className="text-red-600 border-red-300"
+                        onClick={async () => {
+                          await removeFromBlacklist(r.slug);
+                          await loadBlacklist();
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    ),
+                  },
+                ];
+                return (
+                  <DataTable
+                    columns={columns}
+                    rows={blItems}
+                    rowKey={(r) => r.slug}
+                    emptyText="No blacklist entries"
+                  />
+                );
+              })()}
             </CardContent>
           </Card>
         </>

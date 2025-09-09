@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client';
 import PeriodStepSelector from '../components/PeriodStepSelector';
+import { TraceFilters } from './_shared/TraceFilters';
 
 interface TraceItem {
   id: string;
@@ -140,58 +141,20 @@ export default function Traces() {
         Поиск и просмотр трасс переходов. Используйте фильтры для уточнения результатов.
       </p>
 
-      <div className="mb-3 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
-        <input
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          placeholder="Откуда (slug)"
-          className="border rounded px-2 py-1"
-        />
-        <input
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          placeholder="Куда (slug)"
-          className="border rounded px-2 py-1"
-        />
-        <input
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-          placeholder="Пользователь ID"
-          className="border rounded px-2 py-1"
-        />
-        <input
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
-          placeholder="Источник"
-          className="border rounded px-2 py-1"
-        />
-        <input
-          value={channel}
-          onChange={(e) => setChannel(e.target.value)}
-          placeholder="Канал"
-          className="border rounded px-2 py-1"
-        />
-        <input
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          placeholder="Тип"
-          className="border rounded px-2 py-1"
-        />
-        <input
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          type="datetime-local"
-          placeholder="С даты"
-          className="border rounded px-2 py-1"
-        />
-        <input
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          type="datetime-local"
-          placeholder="По дату"
-          className="border rounded px-2 py-1"
-        />
-      </div>
+      <TraceFilters
+        values={{ from, to, userId, source, channel, type, dateFrom, dateTo }}
+        onChange={(patch) => {
+          if (patch.from !== undefined) setFrom(patch.from);
+          if (patch.to !== undefined) setTo(patch.to);
+          if (patch.userId !== undefined) setUserId(patch.userId);
+          if (patch.source !== undefined) setSource(patch.source);
+          if (patch.channel !== undefined) setChannel(patch.channel);
+          if (patch.type !== undefined) setType(patch.type);
+          if (patch.dateFrom !== undefined) setDateFrom(patch.dateFrom);
+          if (patch.dateTo !== undefined) setDateTo(patch.dateTo);
+        }}
+        showType
+      />
 
       <div className="mb-3 flex items-center gap-2">
         <button onClick={handleBulkAnon} className="px-3 py-1 rounded border">

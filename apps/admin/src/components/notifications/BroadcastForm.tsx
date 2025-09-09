@@ -3,14 +3,14 @@ import { useMemo, useState } from 'react';
 
 import { createCampaign, estimateCampaign } from '../../api/notifications';
 import type { CampaignCreate, CampaignFilters } from '../../openapi';
-import Modal from '../../shared/ui/Modal';
+import { Modal } from '../../shared/ui/Modal';
 import { useToast } from '../ToastProvider';
 import NotificationFilters from './NotificationFilters';
 import {
-  NotificationFormFields,
-  validateNotification,
-  type NotificationFormValues,
   type NotificationErrors,
+  NotificationFormFields,
+  type NotificationFormValues,
+  validateNotification,
 } from './NotificationFormCore';
 
 interface Props {

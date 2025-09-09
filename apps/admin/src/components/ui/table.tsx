@@ -55,5 +55,3 @@ export const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
   ),
 );
 TableCell.displayName = 'TableCell';
-
-export default Table;

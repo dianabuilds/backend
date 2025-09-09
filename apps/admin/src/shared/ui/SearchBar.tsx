@@ -39,5 +39,3 @@ export function SearchBar({ value, onChange, onSearch, placeholder }: SearchBarP
     </form>
   );
 }
-
-export default SearchBar;

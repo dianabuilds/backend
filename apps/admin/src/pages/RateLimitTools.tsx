@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import Pill from '../components/Pill';
 import Tooltip from '../components/Tooltip';
-import Recent429Table from '../features/monitoring/Recent429Table';
 import RateLimitRulesEditor from '../features/monitoring/RateLimitRulesEditor';
+import Recent429Table from '../features/monitoring/Recent429Table';
 
 interface RateRules {
   enabled: boolean;
