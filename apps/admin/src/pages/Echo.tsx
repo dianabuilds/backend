@@ -1,7 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 
-import { api } from "../api/client";
+import { api } from '../api/client';
 
 interface EchoTrace {
   id: string;
@@ -25,15 +25,15 @@ type Filters = {
 
 async function fetchEcho(page: number, filters: Filters): Promise<EchoTrace[]> {
   const params = new URLSearchParams();
-  params.set("page", String(page));
-  if (filters.from) params.set("from", filters.from);
-  if (filters.to) params.set("to", filters.to);
-  if (filters.user_id) params.set("user_id", filters.user_id);
-  if (filters.source) params.set("source", filters.source);
-  if (filters.channel) params.set("channel", filters.channel);
-  if (filters.date_from) params.set("date_from", filters.date_from);
-  if (filters.date_to) params.set("date_to", filters.date_to);
-  const qs = params.toString() ? `?${params.toString()}` : "";
+  params.set('page', String(page));
+  if (filters.from) params.set('from', filters.from);
+  if (filters.to) params.set('to', filters.to);
+  if (filters.user_id) params.set('user_id', filters.user_id);
+  if (filters.source) params.set('source', filters.source);
+  if (filters.channel) params.set('channel', filters.channel);
+  if (filters.date_from) params.set('date_from', filters.date_from);
+  if (filters.date_to) params.set('date_to', filters.date_to);
+  const qs = params.toString() ? `?${params.toString()}` : '';
   const res = await api.get<EchoTrace[]>(`/admin/echo${qs}`);
   return (res.data || []) as EchoTrace[];
 }
@@ -62,14 +62,14 @@ async function recomputePopularity(slugs: string[]) {
 
 export default function Echo() {
   const [page, setPage] = useState(1);
-  const [recomputeInput, setRecomputeInput] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [userId, setUserId] = useState("");
-  const [source, setSource] = useState("");
-  const [channel, setChannel] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [recomputeInput, setRecomputeInput] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [userId, setUserId] = useState('');
+  const [source, setSource] = useState('');
+  const [channel, setChannel] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
   const filters = useMemo<Filters>(
@@ -87,11 +87,11 @@ export default function Echo() {
 
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
-    queryKey: ["echo", page, filters],
+    queryKey: ['echo', page, filters],
     queryFn: () => fetchEcho(page, filters),
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["echo"] });
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['echo'] });
 
   const handleDelete = async (id: string) => {
     await deleteEcho(id);
@@ -105,17 +105,14 @@ export default function Echo() {
 
   const handleRecompute = async () => {
     const slugs = recomputeInput
-      .split(",")
+      .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
     await recomputePopularity(slugs);
-    setRecomputeInput("");
+    setRecomputeInput('');
   };
 
-  const idsSelected = useMemo(
-    () => Object.keys(selected).filter((k) => selected[k]),
-    [selected],
-  );
+  const idsSelected = useMemo(() => Object.keys(selected).filter((k) => selected[k]), [selected]);
   const allChecked = useMemo(() => {
     const items = data || [];
     return items.length > 0 && items.every((t) => selected[t.id]);
@@ -204,20 +201,14 @@ export default function Echo() {
           onChange={(e) => setRecomputeInput(e.target.value)}
           className="border rounded px-2 py-1"
         />
-        <button
-          onClick={handleRecompute}
-          className="px-3 py-1 bg-blue-600 text-white rounded"
-        >
+        <button onClick={handleRecompute} className="px-3 py-1 bg-blue-600 text-white rounded">
           Пересчитать популярность
         </button>
         <div className="ml-auto flex gap-2">
           <button onClick={handleBulkAnon} className="px-3 py-1 rounded border">
             Массовая анонимизация
           </button>
-          <button
-            onClick={handleBulkDelete}
-            className="px-3 py-1 rounded border text-red-600"
-          >
+          <button onClick={handleBulkDelete} className="px-3 py-1 rounded border text-red-600">
             Массовое удаление
           </button>
         </div>
@@ -230,11 +221,7 @@ export default function Echo() {
           <thead>
             <tr className="border-b">
               <th className="p-2">
-                <input
-                  type="checkbox"
-                  checked={allChecked}
-                  onChange={toggleAll}
-                />
+                <input type="checkbox" checked={allChecked} onChange={toggleAll} />
               </th>
               <th className="p-2">Откуда</th>
               <th className="p-2">Куда</th>
@@ -247,38 +234,25 @@ export default function Echo() {
           </thead>
           <tbody>
             {data?.map((t) => (
-              <tr
-                key={t.id}
-                className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
+              <tr key={t.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                 <td className="p-2">
                   <input
                     type="checkbox"
                     checked={!!selected[t.id]}
-                    onChange={(e) =>
-                      setSelected((s) => ({ ...s, [t.id]: e.target.checked }))
-                    }
+                    onChange={(e) => setSelected((s) => ({ ...s, [t.id]: e.target.checked }))}
                   />
                 </td>
                 <td className="p-2">{t.from_slug}</td>
                 <td className="p-2">{t.to_slug}</td>
-                <td className="p-2">{t.user_id ?? "анон"}</td>
-                <td className="p-2">{t.source ?? ""}</td>
-                <td className="p-2">{t.channel ?? ""}</td>
-                <td className="p-2">
-                  {new Date(t.created_at).toLocaleString()}
-                </td>
+                <td className="p-2">{t.user_id ?? 'анон'}</td>
+                <td className="p-2">{t.source ?? ''}</td>
+                <td className="p-2">{t.channel ?? ''}</td>
+                <td className="p-2">{new Date(t.created_at).toLocaleString()}</td>
                 <td className="p-2 space-x-2">
-                  <button
-                    onClick={() => handleAnon(t.id)}
-                    className="text-blue-600"
-                  >
+                  <button onClick={() => handleAnon(t.id)} className="text-blue-600">
                     Анонимизировать
                   </button>
-                  <button
-                    onClick={() => handleDelete(t.id)}
-                    className="text-red-600"
-                  >
+                  <button onClick={() => handleDelete(t.id)} className="text-red-600">
                     Удалить
                   </button>
                 </td>
@@ -302,16 +276,10 @@ export default function Echo() {
           Назад
         </button>
         <span>Страница {page}</span>
-        <button
-          onClick={() => setPage((p) => p + 1)}
-          className="px-3 py-1 border rounded"
-        >
+        <button onClick={() => setPage((p) => p + 1)} className="px-3 py-1 border rounded">
           Вперед
         </button>
-        <button
-          onClick={clearSelection}
-          className="ml-auto px-3 py-1 border rounded"
-        >
+        <button onClick={clearSelection} className="ml-auto px-3 py-1 border rounded">
           Сбросить выбор
         </button>
       </div>

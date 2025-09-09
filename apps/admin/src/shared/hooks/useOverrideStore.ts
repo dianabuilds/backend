@@ -1,11 +1,11 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore } from 'react';
 
 interface OverrideState {
   enabled: boolean;
   reason: string;
 }
 
-let state: OverrideState = { enabled: false, reason: "" };
+let state: OverrideState = { enabled: false, reason: '' };
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void) {
@@ -29,4 +29,3 @@ export function getOverrideState(): OverrideState {
 export function useOverrideStore(): OverrideState {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
-

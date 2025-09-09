@@ -11,6 +11,9 @@ class FeatureFlags(BaseSettings):
     profile_enabled: bool = True
     referrals_program: bool = False
     routing_accounts_v2: bool = False
+    # Allow legacy admin routes under /admin/accounts/{account_id}/nodes/types/*
+    # When false, only ID-based routes are registered.
+    nodes_legacy_type_routes: bool = True
 
 
 feature_flags = FeatureFlags()

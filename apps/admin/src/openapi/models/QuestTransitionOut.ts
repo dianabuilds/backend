@@ -3,11 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QuestTransitionOut = {
-    toStepId: string;
-    label?: (string | null);
-    condition?: (Record<string, any> | null);
-    id: string;
-    questId: string;
-    fromStepId: string;
+  toStepId: string;
+  label?: string | null;
+  condition?: Record<string, any> | null;
+  id: string;
+  questId: string;
+  fromStepId: string;
 };
-

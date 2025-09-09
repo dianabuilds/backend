@@ -5,7 +5,6 @@
 import type { QuestStepOut } from './QuestStepOut';
 import type { QuestTransitionOut } from './QuestTransitionOut';
 export type app__api__admin__quests__steps__QuestGraphOut = {
-    steps?: Array<QuestStepOut>;
-    transitions?: Array<QuestTransitionOut>;
+  steps?: Array<QuestStepOut>;
+  transitions?: Array<QuestTransitionOut>;
 };
-

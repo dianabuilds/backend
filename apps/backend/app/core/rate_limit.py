@@ -177,7 +177,7 @@ return {allowed, retry}
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Token-bucket rate limiting using Redis.
 
-    The key has the format ``rl:{account_id}:{user_id}:{operation}``.
+    The key has the format ``rl:{user_id}:{operation}`` (profile-only).
     When the limit is exceeded the middleware sets the ``Retry-After`` header
     and returns ``429``.
     """
@@ -208,13 +208,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
-        if policy.rate_limit_mode != "enforce":
+        if not settings.rate_limit.enabled or policy.rate_limit_mode != "enforce":
             return await call_next(request)
-        # Prefer X-Account-ID; keep X-Workspace-ID for backward compatibility
-        workspace_id = request.headers.get("X-Account-ID") or request.headers.get("X-Workspace-ID", "0")
+        # User-scoped limits
         user_id = request.headers.get("X-User-ID", "0")
         operation = request.headers.get("X-Operation", request.url.path)
-        allowed, retry_after = await self._acquire(workspace_id, user_id, operation)
+        allowed, retry_after = await self._acquire(user_id, operation)
         if allowed:
             return await call_next(request)
         response = Response(status_code=429)
@@ -222,8 +221,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             response.headers["Retry-After"] = str(int(retry_after))
         return response
 
-    async def _acquire(self, workspace_id: str, user_id: str, operation: str) -> tuple[bool, float]:
-        key = f"rl:{workspace_id}:{user_id}:{operation}"
+    async def _acquire(self, user_id: str, operation: str) -> tuple[bool, float]:
+        key = f"rl:{user_id}:{operation}"
         now = time.time()
         try:
             allowed, retry = await self._redis.eval(

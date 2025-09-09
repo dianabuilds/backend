@@ -1,4 +1,4 @@
-import { api, type RequestOptions as ApiRequestOptions } from "./client";
+import { api, type RequestOptions as ApiRequestOptions } from './client';
 
 export interface ProfileRequestOptions<P extends Record<string, unknown> = Record<string, never>>
   extends ApiRequestOptions {
@@ -11,26 +11,32 @@ export interface ProfileRequestOptions<P extends Record<string, unknown> = Recor
    * `profile_id` query parameter. Set to `false` to skip automatic
    * handling.
    */
-  profile?: "query" | false;
+  profile?: 'query' | false;
 }
 
-async function request<
-  T = unknown,
-  P extends Record<string, unknown> = Record<string, never>,
->(url: string, opts: ProfileRequestOptions<P>): Promise<T> {
-  const { params, headers: optHeaders, raw, profileId, profile = "query", ...rest } =
-    opts as ProfileRequestOptions<P> & { raw?: boolean };
+async function request<T = unknown, P extends Record<string, unknown> = Record<string, never>>(
+  url: string,
+  opts: ProfileRequestOptions<P>,
+): Promise<T> {
+  const {
+    params,
+    headers: optHeaders,
+    raw,
+    profileId,
+    profile = 'query',
+    ...rest
+  } = opts as ProfileRequestOptions<P> & { raw?: boolean };
 
   const headers: Record<string, string> = {
     ...(optHeaders as Record<string, string> | undefined),
   };
-  if (!Object.keys(headers).some((k) => k.toLowerCase() === "accept")) {
-    headers["Accept"] = "application/json";
+  if (!Object.keys(headers).some((k) => k.toLowerCase() === 'accept')) {
+    headers['Accept'] = 'application/json';
   }
 
   let finalUrl = url;
   const finalParams: Record<string, unknown> = { ...(params || {}) };
-  if (profileId && profile === "query") {
+  if (profileId && profile === 'query') {
     if (finalParams.profile_id === undefined) {
       finalParams.profile_id = profileId;
     }
@@ -48,7 +54,7 @@ async function request<
     }
     const qsStr = qs.toString();
     if (qsStr) {
-      finalUrl += (finalUrl.includes("?") ? "&" : "?") + qsStr;
+      finalUrl += (finalUrl.includes('?') ? '&' : '?') + qsStr;
     }
   }
 
@@ -58,26 +64,20 @@ async function request<
 
 export const profileApi = {
   request,
-  get: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts: ProfileRequestOptions<P>) =>
-    request<T, P>(url, { ...opts, method: "GET" }),
-  post: <
-    TReq = unknown,
-    TRes = unknown,
-    P extends Record<string, unknown> = Record<string, never>,
-  >(
+  get: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(
+    url: string,
+    opts: ProfileRequestOptions<P>,
+  ) => request<T, P>(url, { ...opts, method: 'GET' }),
+  post: <TReq = unknown, TRes = unknown, P extends Record<string, unknown> = Record<string, never>>(
     url: string,
     json?: TReq,
     opts: ProfileRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...opts, method: "POST", json }),
-  put: <
-    TReq = unknown,
-    TRes = unknown,
-    P extends Record<string, unknown> = Record<string, never>,
-  >(
+  ) => request<TRes, P>(url, { ...opts, method: 'POST', json }),
+  put: <TReq = unknown, TRes = unknown, P extends Record<string, unknown> = Record<string, never>>(
     url: string,
     json?: TReq,
     opts: ProfileRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...opts, method: "PUT", json }),
+  ) => request<TRes, P>(url, { ...opts, method: 'PUT', json }),
   patch: <
     TReq = unknown,
     TRes = unknown,
@@ -86,12 +86,13 @@ export const profileApi = {
     url: string,
     json?: TReq,
     opts: ProfileRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...opts, method: "PATCH", json }),
-  delete: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts: ProfileRequestOptions<P>) =>
-    request<T, P>(url, { ...opts, method: "DELETE" }),
+  ) => request<TRes, P>(url, { ...opts, method: 'PATCH', json }),
+  delete: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(
+    url: string,
+    opts: ProfileRequestOptions<P>,
+  ) => request<T, P>(url, { ...opts, method: 'DELETE' }),
 };
 
 export const del = profileApi.delete;
 
 export type { ProfileRequestOptions };
-

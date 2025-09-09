@@ -1,52 +1,52 @@
 import {
   Activity,
-  CreditCard,
   Ban,
   Bell,
   Box,
-  Database,
   Compass,
-  Shuffle,
-  Flag,
+  CreditCard,
+  Database,
   ExternalLink,
   FileText,
+  Flag,
   Home,
-  Menu as MenuIcon,
   Lock,
+  Menu as MenuIcon,
+  Plug,
   Search,
   Settings,
   Shield,
+  Shuffle,
   Tag,
   Trophy,
-  Plug,
   Users as UsersIcon,
-} from "lucide-react";
-import type React from "react";
+} from 'lucide-react';
+import type React from 'react';
 
 export type IconName =
-  | "home"
-  | "users"
-  | "activity"
-  | "file"
-  | "ban"
-  | "settings"
-  | "shield"
-  | "tag"
-  | "search"
-  | "external"
-  | "menu"
-  | "database"
-  | "box"
-  | "bell"
-  | "notifications"
-  | "lock"
-  | "credit-card"
-  | "plug"
-  | "flag"
-  | "compass"
-  | "shuffle";
+  | 'home'
+  | 'users'
+  | 'activity'
+  | 'file'
+  | 'ban'
+  | 'settings'
+  | 'shield'
+  | 'tag'
+  | 'search'
+  | 'external'
+  | 'menu'
+  | 'database'
+  | 'box'
+  | 'bell'
+  | 'notifications'
+  | 'lock'
+  | 'credit-card'
+  | 'plug'
+  | 'flag'
+  | 'compass'
+  | 'shuffle';
 
-export const iconRegistry: Record<string, React.ComponentType<any>> = {
+export const iconRegistry: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
   home: Home,
   users: UsersIcon,
   activity: Activity,
@@ -64,7 +64,7 @@ export const iconRegistry: Record<string, React.ComponentType<any>> = {
   achievements: Trophy,
   notifications: Bell,
   lock: Lock,
-  "credit-card": CreditCard,
+  'credit-card': CreditCard,
   plug: Plug,
   flag: Flag,
   compass: Compass,
@@ -73,7 +73,7 @@ export const iconRegistry: Record<string, React.ComponentType<any>> = {
 
 export function getIconComponent(
   name?: string | null,
-): React.ComponentType<any> {
+): React.ComponentType<React.SVGProps<SVGSVGElement>> {
   if (!name) return MenuIcon;
   return iconRegistry[name] || MenuIcon;
 }

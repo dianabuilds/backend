@@ -1,7 +1,7 @@
 """Reconcile node and content item records.
 
 This script scans for ``Node`` records missing a related ``NodeItem``
-and backfills them using :class:`NodeService`. Workspace mismatches
+and backfills them using :class:`NodeService`. Tenant mismatches
 are logged as anomalies and trigger a non-zero exit code.
 """
 
@@ -42,16 +42,16 @@ async def _reconcile() -> int:
                 await service.create_item_for_node(node)
                 logger.info(
                     "backfilled_node_item",
-                    extra={"node_id": node.id, "workspace_id": str(node.account_id)},
+                    extra={"node_id": node.id, "tenant_id": str(node.account_id)},
                 )
             else:
                 anomaly_count += 1
                 logger.warning(
-                    "workspace_mismatch",
+                    "tenant_mismatch",
                     extra={
                         "node_id": node.id,
-                        "node_workspace": str(node.account_id),
-                        "item_workspace": str(item.workspace_id),
+                        "node_tenant": str(node.account_id),
+                        "item_tenant": str(item.workspace_id),
                     },
                 )
         await session.commit()

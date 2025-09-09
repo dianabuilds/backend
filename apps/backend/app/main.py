@@ -9,27 +9,25 @@ import sqlalchemy
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, ORJSONResponse
 from packaging import version
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.env_loader import load_dotenv
 from app.core.logging_configuration import configure_logging
-from app.core.policy import policy
 from app.core.rng import init_rng
 
-if policy.allow_write:
-    try:  # pragma: no cover - optional OTEL dependencies
-        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-        from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-        from opentelemetry.instrumentation.requests import RequestsInstrumentor
-        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+try:  # pragma: no cover - optional OTEL dependencies
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+    from opentelemetry.instrumentation.requests import RequestsInstrumentor
+    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
-        from config.opentelemetry import setup_otel
-    except ModuleNotFoundError:  # pragma: no cover
-        setup_otel = None  # type: ignore[assignment, misc]
-        FastAPIInstrumentor = HTTPXClientInstrumentor = None  # type: ignore[assignment, misc]
-        RequestsInstrumentor = SQLAlchemyInstrumentor = None  # type: ignore[assignment, misc]
+    from config.opentelemetry import setup_otel
+except ModuleNotFoundError:  # pragma: no cover
+    setup_otel = None  # type: ignore[assignment, misc]
+    FastAPIInstrumentor = HTTPXClientInstrumentor = None  # type: ignore[assignment, misc]
+    RequestsInstrumentor = SQLAlchemyInstrumentor = None  # type: ignore[assignment, misc]
 
 from app.api.admin_override import register_admin_override
 from app.api.health import router as health_router
@@ -49,7 +47,7 @@ from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.settings import EnvMode
 from app.domains.ai.embedding_config import configure_from_settings
 from app.domains.registry import register_domain_routers
-from app.domains.system.bootstrap import ensure_default_admin, ensure_global_workspace
+from app.domains.system.bootstrap import ensure_default_admin
 from app.domains.system.events import register_handlers
 from app.providers import register_providers
 from app.providers.db.session import (
@@ -85,22 +83,23 @@ if sqlalchemy_version.major != 2:
 container = punq.Container()
 register_providers(container, settings)
 
-app = FastAPI()
+app = FastAPI(default_response_class=ORJSONResponse)
 app.state.container = container
 enable_tracing = settings.env_mode in {
     EnvMode.staging,
     EnvMode.production,
 }
 enable_metrics = enable_tracing and settings.observability.metrics_enabled
-if policy.allow_write and enable_tracing:
-    setup_otel()
-    if FastAPIInstrumentor is not None:
+if enable_tracing:
+    if 'setup_otel' in globals() and setup_otel is not None:
+        setup_otel()
+    if 'FastAPIInstrumentor' in globals() and FastAPIInstrumentor is not None:
         FastAPIInstrumentor.instrument_app(app)
-    if SQLAlchemyInstrumentor is not None:
+    if 'SQLAlchemyInstrumentor' in globals() and SQLAlchemyInstrumentor is not None:
         SQLAlchemyInstrumentor().instrument(engine=get_engine().sync_engine)
-    if RequestsInstrumentor is not None:
+    if 'RequestsInstrumentor' in globals() and RequestsInstrumentor is not None:
         RequestsInstrumentor().instrument()
-    if HTTPXClientInstrumentor is not None:
+    if 'HTTPXClientInstrumentor' in globals() and HTTPXClientInstrumentor is not None:
         HTTPXClientInstrumentor().instrument()
 # Сжатие ответов
 app.add_middleware(GZipMiddleware, minimum_size=1024)
@@ -109,7 +108,8 @@ app.add_middleware(BodySizeLimitMiddleware)
 # Базовые middlewares
 # Корреляция по запросам
 app.add_middleware(RequestIDMiddleware)
-app.add_middleware(RequestLoggingMiddleware)
+if settings.logging.requests:
+    app.add_middleware(RequestLoggingMiddleware)
 if enable_metrics:
     app.add_middleware(MetricsMiddleware)
 # CORS configuration
@@ -123,6 +123,9 @@ _cors_kwargs = {
 }
 _effective = settings.effective_origins()
 _cors_kwargs.update(_effective)
+from app.core.settings import EnvMode as _EnvMode  # local import to avoid cycles
+if settings.env_mode in {_EnvMode.development, _EnvMode.test}:
+    _cors_kwargs["allow_headers"] = ["*"]
 app.add_middleware(CORSMiddleware, **_cors_kwargs)
 if settings.rate_limit.enabled:
     app.add_middleware(
@@ -170,7 +173,7 @@ async def admin_spa_fallback(request: Request, call_next):
 
 DIST_DIR = Path(__file__).resolve().parent.parent.parent / "admin" / "dist"
 DIST_ASSETS_DIR = DIST_DIR / "assets"
-if policy.allow_write and DIST_ASSETS_DIR.exists():
+if DIST_ASSETS_DIR.exists():
     # serve built frontend assets (js, css, etc.) with correct MIME types
     app.mount(
         "/admin/assets",
@@ -203,7 +206,7 @@ if settings.observability.health_enabled:
 app.include_router(ops_router)
 app.include_router(audit_router)
 
-if not policy.allow_write:
+if settings.env_mode == EnvMode.test:
     # Minimal routers needed for tests
     from app.domains.auth.api.routers import router as auth_router
 
@@ -234,6 +237,8 @@ else:
         register_domain_routers(app)
     except Exception as exc:  # pragma: no cover - optional domains
         logging.getLogger(__name__).warning("Domain router registration failed: %s", exc)
+
+    # Removed fallback /users/me: domain routers must provide it or app should fail earlier.
     register_admin_override(app)
 
     # SPA fallback should be last
@@ -270,11 +275,6 @@ async def startup_event():
             await ensure_default_admin()
         except Exception as e:
             logger.warning(f"Admin bootstrap failed: {e}")
-        # Глобальное рабочее пространство для доверенной группы
-        try:
-            await ensure_global_workspace()
-        except Exception as e:
-            logger.warning(f"Global workspace bootstrap failed: {e}")
     else:
         logger.error("Failed to connect to database during startup")
 

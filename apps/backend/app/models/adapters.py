@@ -1,5 +1,5 @@
-"""
-Адаптеры типов данных SQLAlchemy для совместимости между PostgreSQL и SQLite.
+﻿"""
+РђРґР°РїС‚РµСЂС‹ С‚РёРїРѕРІ РґР°РЅРЅС‹С… SQLAlchemy РґР»СЏ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё РјРµР¶РґСѓ PostgreSQL Рё SQLite.
 """
 
 from __future__ import annotations
@@ -12,11 +12,11 @@ from sqlalchemy.dialects.postgresql import TSVECTOR as pg_TSVECTOR
 from sqlalchemy.dialects.postgresql import UUID as pg_UUID
 from sqlalchemy.types import CHAR, TypeDecorator
 
-from app.core.policy import policy
+
 
 
 class UUID(TypeDecorator):
-    """Универсальный тип UUID для разных баз данных."""
+    """РЈРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Р№ С‚РёРї UUID РґР»СЏ СЂР°Р·РЅС‹С… Р±Р°Р· РґР°РЅРЅС‹С…."""
 
     impl = CHAR
     cache_ok = True
@@ -49,15 +49,15 @@ class UUID(TypeDecorator):
 
 class JSONB(TypeDecorator):
     """
-    Универсальный тип JSONB для разных баз данных.
-    Использует JSONB в PostgreSQL и Text в SQLite и тестах.
+    РЈРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Р№ С‚РёРї JSONB РґР»СЏ СЂР°Р·РЅС‹С… Р±Р°Р· РґР°РЅРЅС‹С….
+    РСЃРїРѕР»СЊР·СѓРµС‚ JSONB РІ PostgreSQL Рё Text РІ SQLite Рё С‚РµСЃС‚Р°С….
     """
 
     impl = types.Text
     cache_ok = True
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == "postgresql" and policy.allow_write:
+        if dialect.name == "postgresql":
             return dialect.type_descriptor(pg_JSONB())
         else:
             return dialect.type_descriptor(types.Text())
@@ -66,7 +66,7 @@ class JSONB(TypeDecorator):
         import json
 
         if value is not None:
-            # Преобразуем в JSON строку, если это не строка
+            # РџСЂРµРѕР±СЂР°Р·СѓРµРј РІ JSON СЃС‚СЂРѕРєСѓ, РµСЃР»Рё СЌС‚Рѕ РЅРµ СЃС‚СЂРѕРєР°
             if not isinstance(value, str):
                 return json.dumps(value)
         return value
@@ -75,7 +75,7 @@ class JSONB(TypeDecorator):
         import json
 
         if value is not None:
-            # Пытаемся преобразовать строку в объект JSON
+            # РџС‹С‚Р°РµРјСЃСЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°С‚СЊ СЃС‚СЂРѕРєСѓ РІ РѕР±СЉРµРєС‚ JSON
             try:
                 return json.loads(value)
             except (TypeError, json.JSONDecodeError):
@@ -84,9 +84,9 @@ class JSONB(TypeDecorator):
 
 
 class ARRAY(TypeDecorator):
-    """Универсальный тип ARRAY для разных баз данных.
+    """РЈРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Р№ С‚РёРї ARRAY РґР»СЏ СЂР°Р·РЅС‹С… Р±Р°Р· РґР°РЅРЅС‹С….
 
-    Использует PostgreSQL ARRAY, а в SQLite хранит данные как JSON-строку.
+    РСЃРїРѕР»СЊР·СѓРµС‚ PostgreSQL ARRAY, Р° РІ SQLite С…СЂР°РЅРёС‚ РґР°РЅРЅС‹Рµ РєР°Рє JSON-СЃС‚СЂРѕРєСѓ.
     """
 
     impl = types.Text
@@ -97,7 +97,7 @@ class ARRAY(TypeDecorator):
         self.item_type = item_type
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == "postgresql" and policy.allow_write:
+        if dialect.name == "postgresql":
             from sqlalchemy.dialects.postgresql import ARRAY as pg_ARRAY
 
             return dialect.type_descriptor(pg_ARRAY(self.item_type))
@@ -107,8 +107,8 @@ class ARRAY(TypeDecorator):
     def process_bind_param(self, value, dialect):
         import json
 
-        # Для SQLite/тестов храним как JSON-строку, для PostgreSQL — отдаём как есть
-        if dialect.name != "postgresql" or not policy.allow_write:
+        # Р”Р»СЏ SQLite/С‚РµСЃС‚РѕРІ С…СЂР°РЅРёРј РєР°Рє JSON-СЃС‚СЂРѕРєСѓ, РґР»СЏ PostgreSQL вЂ” РѕС‚РґР°С‘Рј РєР°Рє РµСЃС‚СЊ
+        if dialect.name != "postgresql" :
             if value is not None and not isinstance(value, str):
                 return json.dumps(value)
         return value
@@ -119,24 +119,24 @@ class ARRAY(TypeDecorator):
         if value is None:
             return None
 
-        # Определяем, нужно ли приводить элементы к числу
+        # РћРїСЂРµРґРµР»СЏРµРј, РЅСѓР¶РЅРѕ Р»Рё РїСЂРёРІРѕРґРёС‚СЊ СЌР»РµРјРµРЅС‚С‹ Рє С‡РёСЃР»Сѓ
         is_numeric = False
         try:
             is_numeric = issubclass(self.item_type, types.Integer | types.Float | types.Numeric)
         except Exception:
             is_numeric = False
 
-        if dialect.name == "postgresql" and policy.allow_write:
-            # В PostgreSQL драйвер обычно возвращает уже Python-список
+        if dialect.name == "postgresql":
+            # Р’ PostgreSQL РґСЂР°Р№РІРµСЂ РѕР±С‹С‡РЅРѕ РІРѕР·РІСЂР°С‰Р°РµС‚ СѓР¶Рµ Python-СЃРїРёСЃРѕРє
             if isinstance(value, list | tuple):
                 if is_numeric:
                     try:
                         return [float(x) for x in value]
                     except Exception:
                         return list(value)
-                # строковые и прочие типы возвращаем как есть
+                # СЃС‚СЂРѕРєРѕРІС‹Рµ Рё РїСЂРѕС‡РёРµ С‚РёРїС‹ РІРѕР·РІСЂР°С‰Р°РµРј РєР°Рє РµСЃС‚СЊ
                 return list(value)
-            # На всякий случай: если пришла строка — пытаемся распарсить JSON
+            # РќР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№: РµСЃР»Рё РїСЂРёС€Р»Р° СЃС‚СЂРѕРєР° вЂ” РїС‹С‚Р°РµРјСЃСЏ СЂР°СЃРїР°СЂСЃРёС‚СЊ JSON
             if isinstance(value, str):
                 try:
                     arr = json.loads(value)
@@ -152,7 +152,7 @@ class ARRAY(TypeDecorator):
                     return value
             return value
 
-        # В SQLite/тестах читаем JSON-текст
+        # Р’ SQLite/С‚РµСЃС‚Р°С… С‡РёС‚Р°РµРј JSON-С‚РµРєСЃС‚
         try:
             arr = json.loads(value)
             if isinstance(arr, list | tuple):
@@ -183,7 +183,7 @@ class VECTOR(TypeDecorator):
         self.dim = dim
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == "postgresql" and policy.allow_write:
+        if dialect.name == "postgresql":
             try:  # pragma: no cover - pgvector may not be installed in tests
                 from pgvector.sqlalchemy import Vector
 
@@ -198,19 +198,19 @@ class VECTOR(TypeDecorator):
         if value is None:
             return None
 
-        # Нормализуем numpy.ndarray -> list
+        # РќРѕСЂРјР°Р»РёР·СѓРµРј numpy.ndarray -> list
         try:
             if hasattr(value, "tolist"):
                 value = value.tolist()  # type: ignore[assignment]
         except Exception:
             pass
 
-        # В PostgreSQL pgvector ожидает список чисел, а не JSON-строку
-        if dialect.name == "postgresql" and policy.allow_write:
+        # Р’ PostgreSQL pgvector РѕР¶РёРґР°РµС‚ СЃРїРёСЃРѕРє С‡РёСЃРµР», Р° РЅРµ JSON-СЃС‚СЂРѕРєСѓ
+        if dialect.name == "postgresql":
             try:
                 return [float(x) for x in value]  # type: ignore[iterable]
             except Exception:
-                # если пришла строка с JSON, попробуем распарсить
+                # РµСЃР»Рё РїСЂРёС€Р»Р° СЃС‚СЂРѕРєР° СЃ JSON, РїРѕРїСЂРѕР±СѓРµРј СЂР°СЃРїР°СЂСЃРёС‚СЊ
                 if isinstance(value, str):
                     try:
                         arr = json.loads(value)
@@ -218,12 +218,12 @@ class VECTOR(TypeDecorator):
                     except Exception:
                         pass
                 return value
-        # В SQLite/тестах храним как JSON-текст
+        # Р’ SQLite/С‚РµСЃС‚Р°С… С…СЂР°РЅРёРј РєР°Рє JSON-С‚РµРєСЃС‚
         if not isinstance(value, str):
             try:
                 return json.dumps(value)
             except Exception:
-                # на крайний случай — конвертируем к списку строк
+                # РЅР° РєСЂР°Р№РЅРёР№ СЃР»СѓС‡Р°Р№ вЂ” РєРѕРЅРІРµСЂС‚РёСЂСѓРµРј Рє СЃРїРёСЃРєСѓ СЃС‚СЂРѕРє
                 try:
                     return json.dumps(list(value))  # type: ignore[arg-type]
                 except Exception:
@@ -236,15 +236,15 @@ class VECTOR(TypeDecorator):
         if value is None:
             return None
 
-        # Нормализуем возможный numpy.ndarray в список
+        # РќРѕСЂРјР°Р»РёР·СѓРµРј РІРѕР·РјРѕР¶РЅС‹Р№ numpy.ndarray РІ СЃРїРёСЃРѕРє
         try:
             if hasattr(value, "tolist"):
                 value = value.tolist()  # type: ignore[assignment]
         except Exception:
             pass
 
-        if dialect.name == "postgresql" and policy.allow_write:
-            # Драйвер может вернуть list/tuple (или np.ndarray, обработан выше)
+        if dialect.name == "postgresql":
+            # Р”СЂР°Р№РІРµСЂ РјРѕР¶РµС‚ РІРµСЂРЅСѓС‚СЊ list/tuple (РёР»Рё np.ndarray, РѕР±СЂР°Р±РѕС‚Р°РЅ РІС‹С€Рµ)
             if isinstance(value, list | tuple):
                 try:
                     return [float(x) for x in value]
@@ -263,7 +263,7 @@ class VECTOR(TypeDecorator):
                     return value
             return value
 
-        # SQLite/тесты: читаем JSON‑строку, приводим к списку
+        # SQLite/С‚РµСЃС‚С‹: С‡РёС‚Р°РµРј JSONвЂ‘СЃС‚СЂРѕРєСѓ, РїСЂРёРІРѕРґРёРј Рє СЃРїРёСЃРєСѓ
         if isinstance(value, str):
             try:
                 arr = json.loads(value)
@@ -276,7 +276,7 @@ class VECTOR(TypeDecorator):
             except (TypeError, json.JSONDecodeError):
                 return value
 
-        # На всякий случай — если пришёл уже список/кортеж
+        # РќР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№ вЂ” РµСЃР»Рё РїСЂРёС€С‘Р» СѓР¶Рµ СЃРїРёСЃРѕРє/РєРѕСЂС‚РµР¶
         if isinstance(value, list | tuple):
             return list(value)
 
@@ -295,6 +295,6 @@ class TSVector(TypeDecorator):
     cache_ok = True
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == "postgresql" and policy.allow_write:
+        if dialect.name == "postgresql":
             return dialect.type_descriptor(pg_TSVECTOR())
         return dialect.type_descriptor(types.Text())

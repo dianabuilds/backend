@@ -1,8 +1,8 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { confirmWithEnv } from "../utils/env";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
-import { api } from "../api/client";
+import { api } from '../api/client';
+import { confirmWithEnv } from '../utils/env';
 
 type Gateway = {
   id: string;
@@ -16,27 +16,26 @@ type Gateway = {
 };
 
 const TYPES = [
-  { value: "crypto_jwt", label: "Crypto (JWT token placeholder)" },
-  { value: "stripe_jwt", label: "Stripe (JWT token placeholder)" },
+  { value: 'crypto_jwt', label: 'Crypto (JWT token placeholder)' },
+  { value: 'stripe_jwt', label: 'Stripe (JWT token placeholder)' },
 ];
 
 export default function PaymentsGateways() {
   const qc = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["payments", "gateways"],
-    queryFn: async () =>
-      (await api.get<Gateway[]>("/admin/payments/gateways")).data || [],
+    queryKey: ['payments', 'gateways'],
+    queryFn: async () => (await api.get<Gateway[]>('/admin/payments/gateways')).data || [],
     staleTime: 10_000,
   });
 
   const [draft, setDraft] = useState<Partial<Gateway>>({
-    slug: "",
-    type: "crypto_jwt",
+    slug: '',
+    type: 'crypto_jwt',
     enabled: true,
     priority: 100,
     config: {
-      fee_mode: "percent",
+      fee_mode: 'percent',
       fee_percent: 0,
       fee_fixed_cents: 0,
       min_fee_cents: 0,
@@ -47,12 +46,12 @@ export default function PaymentsGateways() {
 
   const resetDraft = () =>
     setDraft({
-      slug: "",
-      type: "crypto_jwt",
+      slug: '',
+      type: 'crypto_jwt',
       enabled: true,
       priority: 100,
       config: {
-        fee_mode: "percent",
+        fee_mode: 'percent',
         fee_percent: 0,
         fee_fixed_cents: 0,
         min_fee_cents: 0,
@@ -60,7 +59,7 @@ export default function PaymentsGateways() {
     });
 
   const save = async () => {
-    if (!draft.slug || !draft.type) return alert("Slug и Type обязательны");
+    if (!draft.slug || !draft.type) return alert('Slug и Type обязательны');
     const payload = {
       slug: draft.slug,
       type: draft.type,
@@ -69,21 +68,18 @@ export default function PaymentsGateways() {
       config: draft.config ?? {},
     };
     if (isEdit) {
-      await api.put(
-        `/admin/payments/gateways/${encodeURIComponent(draft.id!)}`,
-        payload,
-      );
+      await api.put(`/admin/payments/gateways/${encodeURIComponent(draft.id!)}`, payload);
     } else {
       await api.post(`/admin/payments/gateways`, payload);
     }
     resetDraft();
-    await qc.invalidateQueries({ queryKey: ["payments", "gateways"] });
+    await qc.invalidateQueries({ queryKey: ['payments', 'gateways'] });
   };
 
   const remove = async (id: string) => {
-    if (!(await confirmWithEnv("Удалить шлюз?"))) return;
+    if (!(await confirmWithEnv('Удалить шлюз?'))) return;
     await api.del(`/admin/payments/gateways/${encodeURIComponent(id)}`);
-    await qc.invalidateQueries({ queryKey: ["payments", "gateways"] });
+    await qc.invalidateQueries({ queryKey: ['payments', 'gateways'] });
   };
 
   const edit = (g: Gateway) => {
@@ -95,12 +91,12 @@ export default function PaymentsGateways() {
       priority: g.priority,
       config: g.config || {},
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Fee helpers
   const setFee = (
-    key: "fee_mode" | "fee_percent" | "fee_fixed_cents" | "min_fee_cents",
+    key: 'fee_mode' | 'fee_percent' | 'fee_fixed_cents' | 'min_fee_cents',
     value: string | number,
   ) => {
     setDraft((d) => ({ ...d, config: { ...(d.config || {}), [key]: value } }));
@@ -113,28 +109,25 @@ export default function PaymentsGateways() {
     currency: string;
     preferred_slug?: string;
   }>({
-    token: "",
+    token: '',
     amount: 100,
-    currency: "USD",
-    preferred_slug: "",
+    currency: 'USD',
+    preferred_slug: '',
   });
-  const [verifyRes, setVerifyRes] = useState<string>("");
+  const [verifyRes, setVerifyRes] = useState<string>('');
 
   const doVerify = async () => {
-    setVerifyRes("");
+    setVerifyRes('');
     try {
-      const res = await api.post<{ ok: boolean; gateway?: string }>(
-        `/admin/payments/verify`,
-        {
-          token: verify.token,
-          amount: Number(verify.amount || 0),
-          currency: verify.currency || null,
-          preferred_slug: verify.preferred_slug || null,
-        },
-      );
-      setVerifyRes(
-        `ok=${(res.data as any)?.ok}, gateway=${(res.data as any)?.gateway || "-"}`,
-      );
+      const res = await api.post<{ ok: boolean; gateway?: string }>(`/admin/payments/verify`, {
+        token: verify.token,
+        amount: Number(verify.amount || 0),
+        currency: verify.currency || null,
+        preferred_slug: verify.preferred_slug || null,
+      });
+      const ok = (res.data as unknown as { ok?: boolean }).ok;
+      const gateway = (res.data as unknown as { gateway?: string }).gateway || '-';
+      setVerifyRes(`ok=${String(ok)}, gateway=${gateway}`);
     } catch (e: any) {
       setVerifyRes(`Ошибка: ${e?.message || String(e)}`);
     }
@@ -146,14 +139,14 @@ export default function PaymentsGateways() {
 
       <div className="rounded border p-3">
         <div className="text-sm text-gray-500 mb-2">
-          {isEdit ? "Редактирование шлюза" : "Создание шлюза"}
+          {isEdit ? 'Редактирование шлюза' : 'Создание шлюза'}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs text-gray-500">Slug</label>
             <input
               className="w-full rounded border px-2 py-1"
-              value={draft.slug || ""}
+              value={draft.slug || ''}
               onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
             />
           </div>
@@ -161,7 +154,7 @@ export default function PaymentsGateways() {
             <label className="block text-xs text-gray-500">Type</label>
             <select
               className="w-full rounded border px-2 py-1"
-              value={draft.type || ""}
+              value={draft.type || ''}
               onChange={(e) => setDraft({ ...draft, type: e.target.value })}
             >
               {TYPES.map((t) => (
@@ -180,7 +173,7 @@ export default function PaymentsGateways() {
               onChange={(e) =>
                 setDraft({
                   ...draft,
-                  priority: parseInt(e.target.value || "100", 10),
+                  priority: parseInt(e.target.value || '100', 10),
                 })
               }
             />
@@ -190,9 +183,7 @@ export default function PaymentsGateways() {
               id="gw-enabled"
               type="checkbox"
               checked={!!draft.enabled}
-              onChange={(e) =>
-                setDraft({ ...draft, enabled: e.target.checked })
-              }
+              onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
             />
             <label htmlFor="gw-enabled" className="text-sm">
               Enabled
@@ -204,8 +195,10 @@ export default function PaymentsGateways() {
               <label className="block text-xs text-gray-500">Fee mode</label>
               <select
                 className="w-full rounded border px-2 py-1"
-                value={(draft.config?.fee_mode as any) || "percent"}
-                onChange={(e) => setFee("fee_mode", e.target.value)}
+                value={
+                  typeof draft.config?.fee_mode === 'string' ? draft.config.fee_mode : 'percent'
+                }
+                onChange={(e) => setFee('fee_mode', e.target.value)}
               >
                 <option value="none">none</option>
                 <option value="percent">percent</option>
@@ -220,48 +213,36 @@ export default function PaymentsGateways() {
                 type="number"
                 step="0.1"
                 value={Number(draft.config?.fee_percent || 0)}
-                onChange={(e) =>
-                  setFee("fee_percent", parseFloat(e.target.value || "0"))
-                }
+                onChange={(e) => setFee('fee_percent', parseFloat(e.target.value || '0'))}
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500">
-                Fee fixed (cents)
-              </label>
+              <label className="block text-xs text-gray-500">Fee fixed (cents)</label>
               <input
                 className="w-full rounded border px-2 py-1"
                 type="number"
                 value={Number(draft.config?.fee_fixed_cents || 0)}
-                onChange={(e) =>
-                  setFee("fee_fixed_cents", parseInt(e.target.value || "0", 10))
-                }
+                onChange={(e) => setFee('fee_fixed_cents', parseInt(e.target.value || '0', 10))}
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500">
-                Min fee (cents)
-              </label>
+              <label className="block text-xs text-gray-500">Min fee (cents)</label>
               <input
                 className="w-full rounded border px-2 py-1"
                 type="number"
                 value={Number(draft.config?.min_fee_cents || 0)}
-                onChange={(e) =>
-                  setFee("min_fee_cents", parseInt(e.target.value || "0", 10))
-                }
+                onChange={(e) => setFee('min_fee_cents', parseInt(e.target.value || '0', 10))}
               />
             </div>
 
             <div className="md:col-span-4">
-              <label className="block text-xs text-gray-500">
-                Config (JSON)
-              </label>
+              <label className="block text-xs text-gray-500">Config (JSON)</label>
               <textarea
                 className="w-full rounded border px-2 py-1 font-mono text-xs min-h-[120px]"
                 value={JSON.stringify(draft.config || {}, null, 2)}
                 onChange={(e) => {
                   try {
-                    const v = JSON.parse(e.target.value || "{}");
+                    const v = JSON.parse(e.target.value || '{}');
                     setDraft((d) => ({ ...d, config: v }));
                   } catch {
                     // игнорируем при вводе; можно добавить подсветку ошибки
@@ -276,7 +257,7 @@ export default function PaymentsGateways() {
             onClick={save}
             className="text-sm px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
           >
-            {isEdit ? "Сохранить" : "Создать"}
+            {isEdit ? 'Сохранить' : 'Создать'}
           </button>
           <button
             onClick={resetDraft}
@@ -289,11 +270,11 @@ export default function PaymentsGateways() {
 
       <div className="rounded border p-3">
         <div className="text-sm text-gray-500 mb-2">Список шлюзов</div>
-        {isLoading ? (
-          <div className="text-sm text-gray-500">Загрузка…</div>
-        ) : null}
+        {isLoading ? <div className="text-sm text-gray-500">Загрузка…</div> : null}
         {error ? (
-          <div className="text-sm text-red-600">{(error as any)?.message}</div>
+          <div className="text-sm text-red-600">
+            {error instanceof Error ? error.message : String(error)}
+          </div>
         ) : null}
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -313,27 +294,21 @@ export default function PaymentsGateways() {
                   <td className="px-2 py-1">{g.slug}</td>
                   <td className="px-2 py-1">{g.type}</td>
                   <td className="px-2 py-1">{g.priority}</td>
-                  <td className="px-2 py-1">{g.enabled ? "yes" : "no"}</td>
+                  <td className="px-2 py-1">{g.enabled ? 'yes' : 'no'}</td>
                   <td className="px-2 py-1">
                     {(() => {
                       const c = g.config || {};
-                      const mode = c.fee_mode || "none";
+                      const mode = c.fee_mode || 'none';
                       const pct = Number(c.fee_percent || 0);
                       const fx = Number(c.fee_fixed_cents || 0);
-                      return `${mode}${pct ? ` ${pct}%` : ""}${fx ? ` + ${fx}c` : ""}`;
+                      return `${mode}${pct ? ` ${pct}%` : ''}${fx ? ` + ${fx}c` : ''}`;
                     })()}
                   </td>
                   <td className="px-2 py-1">
-                    <button
-                      onClick={() => edit(g)}
-                      className="text-blue-600 hover:underline mr-2"
-                    >
+                    <button onClick={() => edit(g)} className="text-blue-600 hover:underline mr-2">
                       Edit
                     </button>
-                    <button
-                      onClick={() => remove(g.id)}
-                      className="text-red-600 hover:underline"
-                    >
+                    <button onClick={() => remove(g.id)} className="text-red-600 hover:underline">
                       Delete
                     </button>
                   </td>
@@ -359,15 +334,11 @@ export default function PaymentsGateways() {
             <textarea
               className="w-full rounded border px-2 py-1 font-mono text-xs min-h-[80px]"
               value={verify.token}
-              onChange={(e) =>
-                setVerify((v) => ({ ...v, token: e.target.value }))
-              }
+              onChange={(e) => setVerify((v) => ({ ...v, token: e.target.value }))}
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500">
-              Amount (cents)
-            </label>
+            <label className="block text-xs text-gray-500">Amount (cents)</label>
             <input
               className="w-full rounded border px-2 py-1"
               type="number"
@@ -375,7 +346,7 @@ export default function PaymentsGateways() {
               onChange={(e) =>
                 setVerify((v) => ({
                   ...v,
-                  amount: parseInt(e.target.value || "0", 10),
+                  amount: parseInt(e.target.value || '0', 10),
                 }))
               }
             />
@@ -385,21 +356,15 @@ export default function PaymentsGateways() {
             <input
               className="w-full rounded border px-2 py-1"
               value={verify.currency}
-              onChange={(e) =>
-                setVerify((v) => ({ ...v, currency: e.target.value }))
-              }
+              onChange={(e) => setVerify((v) => ({ ...v, currency: e.target.value }))}
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500">
-              Preferred slug (optional)
-            </label>
+            <label className="block text-xs text-gray-500">Preferred slug (optional)</label>
             <input
               className="w-full rounded border px-2 py-1"
-              value={verify.preferred_slug || ""}
-              onChange={(e) =>
-                setVerify((v) => ({ ...v, preferred_slug: e.target.value }))
-              }
+              value={verify.preferred_slug || ''}
+              onChange={(e) => setVerify((v) => ({ ...v, preferred_slug: e.target.value }))}
             />
           </div>
         </div>

@@ -11,8 +11,7 @@ class JSONFormatter(logging.Formatter):
             "service": getattr(record, "service", "backend"),
             "request_id": getattr(record, "request_id", "-"),
             "user_id": getattr(record, "user_id", "-"),
-            "workspace_id": getattr(record, "workspace_id", "-"),
-            "account_id": getattr(record, "account_id", "-"),
+            # Do not include tenant/account identifiers in logs
             "profile_id": getattr(record, "profile_id", "-"),
             "msg": record.getMessage(),
         }

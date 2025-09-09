@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { api } from "../../api/client";
+import { api } from '../../api/client';
 
 interface CorsPolicy {
   allow_origins?: string[];
@@ -19,16 +19,16 @@ export default function CorsPanel() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get<CorsPolicy>("/admin/ops/cors-policy");
+        const res = await api.get<CorsPolicy>('/admin/ops/cors-policy');
         setPolicy(res.data || null);
       } catch (e) {
-        setError((e as Error)?.message || "Failed to load");
+        setError((e as Error)?.message || 'Failed to load');
       }
     };
     load();
   }, []);
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
   let mismatch = false;
   if (policy) {
@@ -66,4 +66,3 @@ export default function CorsPanel() {
     </div>
   );
 }
-

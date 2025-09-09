@@ -1,4 +1,4 @@
-import type { ReactNode, MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from 'react';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -15,10 +15,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={onClose}
     >
-      <div
-        onClick={stop}
-        className="bg-white dark:bg-gray-900 p-4 rounded shadow max-w-lg w-full"
-      >
+      <div onClick={stop} className="bg-white dark:bg-gray-900 p-4 rounded shadow max-w-lg w-full">
         {title && <h2 className="text-lg font-semibold mb-2">{title}</h2>}
         {children}
       </div>

@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState } from 'react';
 
 export interface TabPlugin {
   name: string;
@@ -21,9 +21,7 @@ export default function TabRouter({ plugins }: Props) {
           <button
             key={p.name}
             className={`py-2 text-sm ${
-              active === p.name
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-600"
+              active === p.name ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'
             }`}
             onClick={() => setActive(p.name)}
           >

@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api } from './client';
 
 export interface RelevanceWeights {
   title: number;
@@ -44,16 +44,30 @@ export interface RelevanceDryRunOut {
 }
 
 export async function getRelevance(): Promise<RelevanceGetOut> {
-  const res = await api.get<RelevanceGetOut>("/admin/search/relevance");
+  const res = await api.get<RelevanceGetOut>('/admin/search/relevance');
   return res.data!;
 }
 
-export async function dryRunRelevance(payload: RelevancePayload, sample: string[]): Promise<RelevanceDryRunOut> {
-  const res = await api.put<RelevanceDryRunOut>("/admin/search/relevance", { payload, dryRun: true, sample });
+export async function dryRunRelevance(
+  payload: RelevancePayload,
+  sample: string[],
+): Promise<RelevanceDryRunOut> {
+  const res = await api.put<RelevanceDryRunOut>('/admin/search/relevance', {
+    payload,
+    dryRun: true,
+    sample,
+  });
   return res.data!;
 }
 
-export async function applyRelevance(payload: RelevancePayload, comment?: string): Promise<RelevanceGetOut> {
-  const res = await api.put<RelevanceGetOut>("/admin/search/relevance", { payload, dryRun: false, comment });
+export async function applyRelevance(
+  payload: RelevancePayload,
+  comment?: string,
+): Promise<RelevanceGetOut> {
+  const res = await api.put<RelevanceGetOut>('/admin/search/relevance', {
+    payload,
+    dryRun: false,
+    comment,
+  });
   return res.data!;
 }

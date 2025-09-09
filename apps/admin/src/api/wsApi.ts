@@ -1,4 +1,4 @@
-import { api, type RequestOptions as ApiRequestOptions } from "./client";
+import { api, type RequestOptions as ApiRequestOptions } from './client';
 
 export interface WsRequestOptions<P extends Record<string, unknown> = Record<string, never>>
   extends ApiRequestOptions {
@@ -11,15 +11,21 @@ export interface WsRequestOptions<P extends Record<string, unknown> = Record<str
    * `account_id` query parameter. Set to `false` to skip automatic
    * handling.
    */
-  account?: "query" | false;
+  account?: 'query' | false;
 }
 
-async function request<
-  T = unknown,
-  P extends Record<string, unknown> = Record<string, never>,
->(url: string, opts: WsRequestOptions<P>): Promise<T> {
-  const { params, headers: optHeaders, raw, accountId, account = "query", ...rest } =
-    opts as WsRequestOptions<P> & {
+async function request<T = unknown, P extends Record<string, unknown> = Record<string, never>>(
+  url: string,
+  opts: WsRequestOptions<P>,
+): Promise<T> {
+  const {
+    params,
+    headers: optHeaders,
+    raw,
+    accountId,
+    account = 'query',
+    ...rest
+  } = opts as WsRequestOptions<P> & {
     raw?: boolean;
   };
 
@@ -27,13 +33,13 @@ async function request<
     ...(optHeaders as Record<string, string> | undefined),
   };
   // Явно выставляем Accept для стабильного проксирования/маршрутизации API‑запросов
-  if (!Object.keys(headers).some((k) => k.toLowerCase() === "accept")) {
-    headers["Accept"] = "application/json";
+  if (!Object.keys(headers).some((k) => k.toLowerCase() === 'accept')) {
+    headers['Accept'] = 'application/json';
   }
 
   let finalUrl = url;
   const finalParams: Record<string, unknown> = { ...(params || {}) };
-  if (accountId && account === "query") {
+  if (accountId && account === 'query') {
     if (finalParams.account_id === undefined) {
       finalParams.account_id = accountId;
     }
@@ -51,7 +57,7 @@ async function request<
     }
     const qsStr = qs.toString();
     if (qsStr) {
-      finalUrl += (finalUrl.includes("?") ? "&" : "?") + qsStr;
+      finalUrl += (finalUrl.includes('?') ? '&' : '?') + qsStr;
     }
   }
 
@@ -61,26 +67,20 @@ async function request<
 
 export const wsApi = {
   request,
-  get: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts: WsRequestOptions<P>) =>
-    request<T, P>(url, { ...opts, method: "GET" }),
-  post: <
-    TReq = unknown,
-    TRes = unknown,
-    P extends Record<string, unknown> = Record<string, never>,
-  >(
+  get: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(
+    url: string,
+    opts: WsRequestOptions<P>,
+  ) => request<T, P>(url, { ...opts, method: 'GET' }),
+  post: <TReq = unknown, TRes = unknown, P extends Record<string, unknown> = Record<string, never>>(
     url: string,
     json?: TReq,
     opts: WsRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...opts, method: "POST", json }),
-  put: <
-    TReq = unknown,
-    TRes = unknown,
-    P extends Record<string, unknown> = Record<string, never>,
-  >(
+  ) => request<TRes, P>(url, { ...opts, method: 'POST', json }),
+  put: <TReq = unknown, TRes = unknown, P extends Record<string, unknown> = Record<string, never>>(
     url: string,
     json?: TReq,
     opts: WsRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...opts, method: "PUT", json }),
+  ) => request<TRes, P>(url, { ...opts, method: 'PUT', json }),
   patch: <
     TReq = unknown,
     TRes = unknown,
@@ -89,9 +89,11 @@ export const wsApi = {
     url: string,
     json?: TReq,
     opts: WsRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...opts, method: "PATCH", json }),
-  delete: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(url: string, opts: WsRequestOptions<P>) =>
-    request<T, P>(url, { ...opts, method: "DELETE" }),
+  ) => request<TRes, P>(url, { ...opts, method: 'PATCH', json }),
+  delete: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(
+    url: string,
+    opts: WsRequestOptions<P>,
+  ) => request<T, P>(url, { ...opts, method: 'DELETE' }),
 };
 
 // Provide alias to reduce confusion, but prefer wsApi.delete across the codebase

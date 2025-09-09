@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type NavigationRunRequest = {
-    node_slug: string;
-    user_id?: (string | null);
+  node_slug: string;
+  user_id?: string | null;
 };
-

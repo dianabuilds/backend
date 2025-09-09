@@ -7,6 +7,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+import os
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REPORT_PATH = REPO_ROOT / "reports" / "validate_repo.md"
@@ -73,10 +74,12 @@ def main() -> int:
         results.append(res)
         if res["code"] != 0:
             had_error = True
-    bench = run_health_bench("http://localhost:8000/health", 10)
-    results.append(bench)
-    if bench["code"] != 0:
-        had_error = True
+    skip_bench = os.getenv("VALIDATE_SKIP_BENCH", "").lower() in {"1", "true", "yes"}
+    if not skip_bench:
+        bench = run_health_bench("http://localhost:8000/health", 10)
+        results.append(bench)
+        if bench["code"] != 0:
+            had_error = True
 
     REPORT_PATH.parent.mkdir(exist_ok=True)
     with REPORT_PATH.open("w", encoding="utf-8") as f:

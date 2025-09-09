@@ -1,13 +1,14 @@
-import React, { useState } from "react";
-import { sanitizeHtml } from "../../../utils/sanitizeHtml";
+import React, { useState } from 'react';
+
+import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 
 // -----------------------------
 // Types
 // -----------------------------
 export type Block = {
   id: string;
-  type: "header" | "paragraph" | "image" | "quote" | string;
-  data?: any;
+  type: 'header' | 'paragraph' | 'image' | 'quote' | string;
+  data?: unknown;
 };
 
 export type Doc = {
@@ -34,48 +35,50 @@ export type Doc = {
 // Renderer
 // -----------------------------
 function RenderBlocks({ blocks, invert }: { blocks: Block[]; invert?: boolean }) {
-  const proseClass = invert ? "prose prose-invert max-w-none" : "prose max-w-none";
+  const proseClass = invert ? 'prose prose-invert max-w-none' : 'prose max-w-none';
   return (
     <div className={proseClass}>
       {blocks.map((b) => {
-        if (b.type === "header") {
-          const level = Math.min(Math.max(Number(b.data?.level || 2), 1), 6);
-          const Tag: any = `h${level}`;
-          return <Tag key={b.id}>{b.data?.text}</Tag>;
+        if (b.type === 'header') {
+          const d = (b.data as { level?: number; text?: unknown }) || {};
+          const level = Math.min(Math.max(Number(d.level ?? 2), 1), 6) as 1 | 2 | 3 | 4 | 5 | 6;
+          const text = String(d.text ?? '');
+          const H = `h${level}` as unknown as keyof JSX.IntrinsicElements;
+          return <H key={b.id}>{text}</H>;
         }
-        if (b.type === "paragraph") {
+        if (b.type === 'paragraph') {
           return (
             <p
               key={b.id}
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(String(b.data?.text || "")) }}
+              dangerouslySetInnerHTML={{
+                __html: sanitizeHtml(
+                  String((b.data as { text?: unknown } | undefined)?.text ?? ''),
+                ),
+              }}
             />
           );
         }
-        if (b.type === "image") {
+        if (b.type === 'image') {
+          const d = (b.data as { file?: { url?: string }; caption?: string } | undefined) || {};
           return (
             <figure key={b.id} className="my-6">
-              <img
-                src={b.data?.file?.url}
-                alt={b.data?.caption || "image"}
-                className="rounded-xl w-full"
-              />
-              {b.data?.caption && (
-                <figcaption className="text-sm opacity-70 mt-2">{b.data.caption}</figcaption>
+              <img src={d.file?.url} alt={d.caption || 'image'} className="rounded-xl w-full" />
+              {d.caption && (
+                <figcaption className="text-sm opacity-70 mt-2">{d.caption}</figcaption>
               )}
             </figure>
           );
         }
-        if (b.type === "quote") {
+        if (b.type === 'quote') {
+          const d = (b.data as { text?: unknown; caption?: string } | undefined) || {};
           return (
             <blockquote key={b.id}>
               <p
                 dangerouslySetInnerHTML={{
-                  __html: sanitizeHtml(String(b.data?.text || "")),
+                  __html: sanitizeHtml(String(d.text ?? '')),
                 }}
               />
-              {b.data?.caption && (
-                <cite className="block text-sm opacity-70">{b.data.caption}</cite>
-              )}
+              {d.caption && <cite className="block text-sm opacity-70">{d.caption}</cite>}
             </blockquote>
           );
         }
@@ -93,33 +96,33 @@ function RenderBlocks({ blocks, invert }: { blocks: Block[]; invert?: boolean })
 // Main Component
 // -----------------------------
 export default function AdminNodePreview({ doc }: { doc: Doc }) {
-  const [vp, setVp] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [vp, setVp] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const widths: Record<typeof vp, number> = { desktop: 1200, tablet: 900, mobile: 480 } as const;
 
   return (
-    <div className={theme === "dark" ? "bg-[#0b0f1a] text-white" : "bg-white text-gray-900"}>
+    <div className={theme === 'dark' ? 'bg-[#0b0f1a] text-white' : 'bg-white text-gray-900'}>
       {/* Toolbar */}
       <div className="sticky top-0 z-20 border-b backdrop-blur bg-black/10">
         <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-2">
           <span className="text-sm opacity-80">Preview</span>
           <div className="ml-auto flex items-center gap-2">
             <div className="inline-flex rounded-lg overflow-hidden border">
-              {["desktop", "tablet", "mobile"].map((k) => (
+              {['desktop', 'tablet', 'mobile'].map((k) => (
                 <button
                   key={k}
-                  onClick={() => setVp(k as any)}
-                  className={`px-3 py-1 text-sm ${vp === k ? "bg-white/20" : "bg-transparent"}`}
+                  onClick={() => setVp(k as 'desktop' | 'tablet' | 'mobile')}
+                  className={`px-3 py-1 text-sm ${vp === k ? 'bg-white/20' : 'bg-transparent'}`}
                 >
                   {k}
                 </button>
               ))}
             </div>
             <button
-              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+              onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
               className="px-3 py-1 text-sm rounded border"
             >
-              {theme === "dark" ? "Light" : "Dark"}
+              {theme === 'dark' ? 'Light' : 'Dark'}
             </button>
           </div>
         </div>
@@ -127,13 +130,16 @@ export default function AdminNodePreview({ doc }: { doc: Doc }) {
 
       {/* Device frame */}
       <div className="w-full flex justify-center py-8">
-        <div className="rounded-3xl shadow-2xl border overflow-hidden" style={{ width: widths[vp] }}>
+        <div
+          className="rounded-3xl shadow-2xl border overflow-hidden"
+          style={{ width: widths[vp] }}
+        >
           {/* Page shell matching site theme */}
           <div
             className={
-              theme === "dark"
-                ? "bg-gradient-to-b from-[#0b0f1a] to-[#0f1726]"
-                : "bg-gradient-to-b from-white to-gray-50"
+              theme === 'dark'
+                ? 'bg-gradient-to-b from-[#0b0f1a] to-[#0f1726]'
+                : 'bg-gradient-to-b from-white to-gray-50'
             }
           >
             {/* Cover */}
@@ -146,7 +152,10 @@ export default function AdminNodePreview({ doc }: { doc: Doc }) {
                   {!!doc.tags?.length && (
                     <div className="flex gap-2 mt-2">
                       {doc.tags.map((t) => (
-                        <span key={t} className="px-3 py-1 rounded-full text-xs bg-black/60 text-white">
+                        <span
+                          key={t}
+                          className="px-3 py-1 rounded-full text-xs bg-black/60 text-white"
+                        >
                           {t}
                         </span>
                       ))}
@@ -167,7 +176,8 @@ export default function AdminNodePreview({ doc }: { doc: Doc }) {
               )}
               <div className="min-w-0">
                 <div className="font-semibold truncate">
-                  {doc.author?.name} <span className="opacity-60 font-normal">{doc.author?.handle}</span>
+                  {doc.author?.name}{' '}
+                  <span className="opacity-60 font-normal">{doc.author?.handle}</span>
                 </div>
                 <div className="text-xs opacity-60">{doc.author?.date}</div>
               </div>
@@ -193,7 +203,7 @@ export default function AdminNodePreview({ doc }: { doc: Doc }) {
 
             {/* Article body */}
             <div className="max-w-4xl mx-auto px-8 py-8">
-              <RenderBlocks blocks={doc.blocks || []} invert={theme === "dark"} />
+              <RenderBlocks blocks={doc.blocks || []} invert={theme === 'dark'} />
             </div>
 
             {/* Bottom navigation */}
@@ -214,8 +224,10 @@ export default function AdminNodePreview({ doc }: { doc: Doc }) {
                 </div>
               </div>
             ) : null}
-          </div>{/* END Page shell */}
-        </div>{/* END device frame */}
+          </div>
+          {/* END Page shell */}
+        </div>
+        {/* END device frame */}
       </div>
     </div>
   );

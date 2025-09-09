@@ -1,25 +1,25 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import {
   addAttachment,
   addNote,
+  type CaseFullResponse,
   closeCase,
   getCaseFull,
   patchLabels,
-  type CaseFullResponse,
-} from "../api/moderationCases";
-import PageLayout from "./_shared/PageLayout";
-import { promptDialog } from "../shared/ui";
+} from '../api/moderationCases';
+import { promptDialog } from '../shared/ui';
+import PageLayout from './_shared/PageLayout';
 
 export default function ModerationCase() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const [data, setData] = useState<CaseFullResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [note, setNote] = useState("");
-  const [newLabel, setNewLabel] = useState("");
-  const [attachmentUrl, setAttachmentUrl] = useState("");
+  const [note, setNote] = useState('');
+  const [newLabel, setNewLabel] = useState('');
+  const [attachmentUrl, setAttachmentUrl] = useState('');
 
   const load = async () => {
     if (!id) return;
@@ -40,14 +40,14 @@ export default function ModerationCase() {
   const onAddNote = async () => {
     if (!id || !note.trim()) return;
     await addNote(id, note, true);
-    setNote("");
+    setNote('');
     await load();
   };
 
   const onAddLabel = async () => {
     if (!id || !newLabel.trim()) return;
     await patchLabels(id, { add: [newLabel.trim()] });
-    setNewLabel("");
+    setNewLabel('');
     await load();
   };
 
@@ -60,32 +60,32 @@ export default function ModerationCase() {
   const onAddAttachment = async () => {
     if (!id || !attachmentUrl.trim()) return;
     await addAttachment(id, { url: attachmentUrl.trim() });
-    setAttachmentUrl("");
+    setAttachmentUrl('');
     await load();
   };
 
-  const onClose = async (resolution: "resolved" | "rejected") => {
+  const onClose = async (resolution: 'resolved' | 'rejected') => {
     if (!id) return;
-      const reason = (await promptDialog("Reason code or text (optional):")) || undefined;
+    const reason = (await promptDialog('Reason code or text (optional):')) || undefined;
     await closeCase(id, resolution, reason, reason);
-    nav("/moderation");
+    nav('/moderation');
   };
 
   return (
     <PageLayout
       title="Moderation — Case"
-      subtitle={id || ""}
+      subtitle={id || ''}
       actions={
         <div className="flex gap-2">
           <button
             className="px-3 py-1 rounded bg-green-600 text-white"
-            onClick={() => onClose("resolved")}
+            onClick={() => onClose('resolved')}
           >
             Resolve
           </button>
           <button
             className="px-3 py-1 rounded bg-red-600 text-white"
-            onClick={() => onClose("rejected")}
+            onClick={() => onClose('rejected')}
           >
             Reject
           </button>
@@ -112,8 +112,7 @@ export default function ModerationCase() {
                   <b>Summary:</b> {data.case.summary}
                 </div>
                 <div>
-                  <b>Target:</b> {data.case.target_type || "-"}{" "}
-                  {data.case.target_id || ""}
+                  <b>Target:</b> {data.case.target_type || '-'} {data.case.target_id || ''}
                 </div>
                 <div>
                   <b>Labels:</b>
@@ -160,10 +159,7 @@ export default function ModerationCase() {
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                 />
-                <button
-                  className="px-3 py-1 rounded bg-blue-600 text-white"
-                  onClick={onAddNote}
-                >
+                <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={onAddNote}>
                   Add
                 </button>
               </div>
@@ -171,8 +167,8 @@ export default function ModerationCase() {
                 {data.notes.map((n) => (
                   <div key={n.id} className="border rounded p-2">
                     <div className="text-xs text-gray-500">
-                      {new Date(n.created_at).toLocaleString()} —{" "}
-                      {n.internal ? "internal" : "public"}
+                      {new Date(n.created_at).toLocaleString()} —{' '}
+                      {n.internal ? 'internal' : 'public'}
                     </div>
                     <div className="whitespace-pre-wrap">{n.text}</div>
                   </div>
@@ -208,9 +204,7 @@ export default function ModerationCase() {
                     </a>
                   </li>
                 ))}
-                {data.attachments.length === 0 && (
-                  <li className="text-gray-500">No attachments</li>
-                )}
+                {data.attachments.length === 0 && <li className="text-gray-500">No attachments</li>}
               </ul>
             </div>
           </div>
@@ -224,8 +218,7 @@ export default function ModerationCase() {
                       {new Date(e.created_at).toLocaleString()}
                     </div>
                     <div>
-                      <b>{e.kind}</b>{" "}
-                      {e.payload ? JSON.stringify(e.payload) : ""}
+                      <b>{e.kind}</b> {e.payload ? JSON.stringify(e.payload) : ''}
                     </div>
                   </li>
                 ))}

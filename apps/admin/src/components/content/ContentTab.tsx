@@ -1,5 +1,5 @@
-import EditorJSEmbed from "../EditorJSEmbed";
-import type { OutputData } from "../../types/editorjs";
+import type { OutputData } from '../../types/editorjs';
+import EditorJSEmbed from '../EditorJSEmbed';
 
 interface Props {
   value: OutputData;

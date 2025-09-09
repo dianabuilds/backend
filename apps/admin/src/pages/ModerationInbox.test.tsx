@@ -1,18 +1,19 @@
-import "@testing-library/jest-dom";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import { vi } from "vitest";
+import '@testing-library/jest-dom';
 
-import { listCases } from "../api/moderationCases";
-import ModerationInbox from "./ModerationInbox";
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 
-vi.mock("../api/moderationCases", () => ({
+import { listCases } from '../api/moderationCases';
+import ModerationInbox from './ModerationInbox';
+
+vi.mock('../api/moderationCases', () => ({
   listCases: vi.fn(),
   createCase: vi.fn(),
 }));
 
-vi.mock("../account/AccountContext", () => ({
-  useAccount: () => ({ accountId: "" }),
+vi.mock('../account/AccountContext', () => ({
+  useAccount: () => ({ accountId: '' }),
 }));
 
 function renderPage() {
@@ -23,25 +24,25 @@ function renderPage() {
   );
 }
 
-describe("ModerationInbox", () => {
+describe('ModerationInbox', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("applies filters when loading", async () => {
+  it('applies filters when loading', async () => {
     vi.mocked(listCases).mockResolvedValue({ items: [], page: 1, size: 50, total: 0 });
     renderPage();
     await waitFor(() => expect(listCases).toHaveBeenCalled());
-    fireEvent.change(screen.getByPlaceholderText("Search..."), { target: { value: "foo" } });
-    const selects = screen.getAllByRole("combobox");
-    fireEvent.change(selects[0], { target: { value: "new" } });
-    fireEvent.change(selects[1], { target: { value: "support_request" } });
-    fireEvent.change(selects[2], { target: { value: "P1" } });
-    fireEvent.click(screen.getByRole("button", { name: /apply/i }));
+    fireEvent.change(screen.getByPlaceholderText('Search...'), { target: { value: 'foo' } });
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'new' } });
+    fireEvent.change(selects[1], { target: { value: 'support_request' } });
+    fireEvent.change(selects[2], { target: { value: 'P1' } });
+    fireEvent.click(screen.getByRole('button', { name: /apply/i }));
     await waitFor(() =>
       expect(listCases).toHaveBeenLastCalledWith({
-        q: "foo",
-        status: "new",
-        type: "support_request",
-        priority: "P1",
+        q: 'foo',
+        status: 'new',
+        type: 'support_request',
+        priority: 'P1',
         page: 1,
         size: 50,
       }),

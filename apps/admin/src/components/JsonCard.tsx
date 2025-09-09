@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 
 interface JsonCardProps {
-  data: any;
+  data: unknown;
   className?: string;
 }
 
@@ -24,7 +24,7 @@ export default function JsonCard({ data, className }: JsonCardProps) {
     );
   }
 
-  if (!data || typeof data !== "object") {
+  if (!data || typeof data !== 'object') {
     return <div className={className}>-</div>;
   }
 
@@ -32,11 +32,11 @@ export default function JsonCard({ data, className }: JsonCardProps) {
     <div className={className}>
       <table className="min-w-full text-xs">
         <tbody>
-          {Object.entries(data).map(([k, v]) => (
+          {Object.entries(data as Record<string, unknown>).map(([k, v]) => (
             <tr key={k} className="border-t">
               <td className="px-2 py-1 font-medium">{k}</td>
               <td className="px-2 py-1 break-all">
-                {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                {typeof v === 'object' ? JSON.stringify(v) : String(v)}
               </td>
             </tr>
           ))}

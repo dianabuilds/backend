@@ -1,8 +1,7 @@
-import type { NodeOut } from "../../../openapi";
-import { client } from "../../../shared/api/client";
+import type { NodeOut } from '../../../openapi';
+import { client } from '../../../shared/api/client';
 
-const base = (accountId: string) =>
-  accountId ? `/admin/accounts/${encodeURIComponent(accountId)}/nodes` : `/users/me/nodes`;
+const base = (accountId: string) => (accountId ? `/admin/nodes` : `/users/me/nodes`);
 
 function withQuery(baseUrl: string, params?: Record<string, unknown>) {
   if (!params) return baseUrl;

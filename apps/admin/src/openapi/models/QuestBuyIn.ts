@@ -3,6 +3,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QuestBuyIn = {
-    payment_token?: (string | null);
+  payment_token?: string | null;
 };
-

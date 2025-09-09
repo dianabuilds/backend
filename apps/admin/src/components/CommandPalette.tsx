@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import { useAccount } from "../account/AccountContext";
+import { useAccount } from '../account/AccountContext';
 
 interface Command {
   cmd: string;
@@ -10,44 +10,40 @@ interface Command {
 }
 
 const COMMANDS: Command[] = [
-  { cmd: "trace", name: "Traces", path: "/traces" },
-  { cmd: "node:new", name: "New node", path: "/nodes/quest/new" },
+  { cmd: 'trace', name: 'Traces', path: '/traces' },
+  { cmd: 'node:new', name: 'New node', path: '/nodes/quest/new' },
 ];
 
 export default function CommandPalette() {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const { accountId } = useAccount();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setOpen((o) => !o);
-        setQuery("");
+        setQuery('');
       }
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         setOpen(false);
       }
     };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
   const onSelect = (path: string) => {
     setOpen(false);
-    const to =
-      accountId && path.startsWith("/nodes")
-        ? `${path}?account_id=${accountId}`
-        : path;
+    const to = accountId && path.startsWith('/nodes') ? `${path}?account_id=${accountId}` : path;
     navigate(to);
   };
 
   const matches = COMMANDS.filter(
     (c) =>
-      c.cmd.startsWith(query.toLowerCase()) ||
-      c.name.toLowerCase().includes(query.toLowerCase()),
+      c.cmd.startsWith(query.toLowerCase()) || c.name.toLowerCase().includes(query.toLowerCase()),
   );
 
   const onSubmit = (e: React.FormEvent) => {
@@ -82,9 +78,7 @@ export default function CommandPalette() {
             {cmd.name}
           </button>
         ))}
-        {matches.length === 0 && (
-          <div className="px-2 py-1 text-sm text-gray-500">No commands</div>
-        )}
+        {matches.length === 0 && <div className="px-2 py-1 text-sm text-gray-500">No commands</div>}
       </div>
     </div>
   );

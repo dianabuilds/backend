@@ -1,4 +1,4 @@
-import { setPreviewToken } from "../api/client";
+import { setPreviewToken } from '../api/client';
 
 /**
  * Parse preview token from URL (?token=... or ?previewToken=...) or hash fragment
@@ -11,12 +11,12 @@ export function initPreviewTokenFromUrl(): void {
     const url = new URL(loc.href);
 
     const getToken = (): string | null => {
-      let t = url.searchParams.get("token") || url.searchParams.get("previewToken");
+      let t = url.searchParams.get('token') || url.searchParams.get('previewToken');
       if (t) return t;
       // Also try hash part like #token=...
-      if (url.hash && url.hash.includes("=")) {
-        const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
-        t = hashParams.get("token") || hashParams.get("previewToken");
+      if (url.hash && url.hash.includes('=')) {
+        const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+        t = hashParams.get('token') || hashParams.get('previewToken');
         if (t) return t;
       }
       return null;
@@ -29,17 +29,17 @@ export function initPreviewTokenFromUrl(): void {
     setPreviewToken(token);
 
     // Clean the URL by removing token params from both search and hash
-    url.searchParams.delete("token");
-    url.searchParams.delete("previewToken");
+    url.searchParams.delete('token');
+    url.searchParams.delete('previewToken');
     if (url.hash) {
-      const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
-      hashParams.delete("token");
-      hashParams.delete("previewToken");
+      const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+      hashParams.delete('token');
+      hashParams.delete('previewToken');
       const nextHash = hashParams.toString();
-      url.hash = nextHash ? "#" + nextHash : "";
+      url.hash = nextHash ? '#' + nextHash : '';
     }
 
-    const cleaned = url.pathname + (url.search ? url.search : "") + (url.hash ? url.hash : "");
+    const cleaned = url.pathname + (url.search ? url.search : '') + (url.hash ? url.hash : '');
     if (cleaned !== loc.pathname + loc.search + loc.hash) {
       window.history.replaceState(null, document.title, cleaned);
     }

@@ -1,12 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useQuery } from '@tanstack/react-query';
+import { AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-import { getAlerts } from "../api/alerts";
+import { getAlerts } from '../api/alerts';
 
 export default function AlertsBadge() {
   const { data } = useQuery({
-    queryKey: ["alerts"],
+    queryKey: ['alerts'],
     queryFn: getAlerts,
     refetchInterval: 15000,
   });
@@ -20,8 +20,8 @@ export default function AlertsBadge() {
         <span
           data-testid="alerts-badge"
           className={
-            "absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center " +
-            "justify-center"
+            'absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center ' +
+            'justify-center'
           }
         >
           {count}
@@ -30,4 +30,3 @@ export default function AlertsBadge() {
     </Link>
   );
 }
-

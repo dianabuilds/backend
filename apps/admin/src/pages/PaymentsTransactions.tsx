@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react';
 
-import { api } from "../api/client";
-import CursorPager from "../components/CursorPager";
-import DataTable from "../components/DataTable";
-import type { Column } from "../components/DataTable.helpers";
-import ErrorBanner from "../components/ErrorBanner";
-import { useToast } from "../components/ToastProvider";
-import JsonCard from "../components/JsonCard";
+import { api } from '../api/client';
+import CursorPager from '../components/CursorPager';
+import DataTable from '../components/DataTable';
+import type { Column } from '../components/DataTable.helpers';
+import ErrorBanner from '../components/ErrorBanner';
+import JsonCard from '../components/JsonCard';
+import { useToast } from '../components/ToastProvider';
 
 type Tx = {
   id: string;
@@ -29,9 +29,9 @@ type CursorResp = {
 };
 
 export default function PaymentsTransactions() {
-  const [gateway, setGateway] = useState<string>("");
-  const [ptype, setPtype] = useState<string>("");
-  const [user, setUser] = useState<string>("");
+  const [gateway, setGateway] = useState<string>('');
+  const [ptype, setPtype] = useState<string>('');
+  const [user, setUser] = useState<string>('');
   const [limit, setLimit] = useState<number>(50);
 
   const [rows, setRows] = useState<Tx[]>([]);
@@ -43,11 +43,11 @@ export default function PaymentsTransactions() {
   const buildQuery = useCallback(
     (cursor?: string | null) => {
       const qs = new URLSearchParams();
-      if (gateway) qs.set("f_gateway", gateway);
-      if (ptype) qs.set("f_product_type", ptype);
-      if (user) qs.set("f_user_id", user);
-      qs.set("limit", String(limit));
-      if (cursor) qs.set("cursor", cursor);
+      if (gateway) qs.set('f_gateway', gateway);
+      if (ptype) qs.set('f_product_type', ptype);
+      if (user) qs.set('f_user_id', user);
+      qs.set('limit', String(limit));
+      if (cursor) qs.set('cursor', cursor);
       return qs.toString();
     },
     [gateway, ptype, user, limit],
@@ -57,19 +57,18 @@ export default function PaymentsTransactions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>(
-        `/admin/payments/transactions_cursor?${buildQuery(null)}`,
-        { retry: 1 },
-      );
+      const res = await api.get<any>(`/admin/payments/transactions_cursor?${buildQuery(null)}`, {
+        retry: 1,
+      });
       const data: CursorResp = res.data || { items: [], next_cursor: null };
       setRows(Array.isArray(data.items) ? data.items : []);
-      setNext((data as any).next_cursor || null);
-    } catch (e: any) {
-      setError(e?.message || "Ошибка загрузки");
+      setNext((data as unknown as { next_cursor?: string | null }).next_cursor || null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка загрузки');
       addToast({
-        title: "Ошибка загрузки",
-        description: e?.message,
-        variant: "error",
+        title: 'Ошибка загрузки',
+        description: e instanceof Error ? e.message : String(e),
+        variant: 'error',
       });
     } finally {
       setLoading(false);
@@ -81,20 +80,19 @@ export default function PaymentsTransactions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>(
-        `/admin/payments/transactions_cursor?${buildQuery(next)}`,
-        { retry: 1 },
-      );
+      const res = await api.get<any>(`/admin/payments/transactions_cursor?${buildQuery(next)}`, {
+        retry: 1,
+      });
       const data: CursorResp = res.data || { items: [], next_cursor: null };
       const newItems = Array.isArray(data.items) ? data.items : [];
       setRows((prev) => [...prev, ...newItems]);
-      setNext((data as any).next_cursor || null);
-    } catch (e: any) {
-      setError(e?.message || "Ошибка загрузки");
+      setNext((data as unknown as { next_cursor?: string | null }).next_cursor || null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка загрузки');
       addToast({
-        title: "Ошибка загрузки",
-        description: e?.message,
-        variant: "error",
+        title: 'Ошибка загрузки',
+        description: e instanceof Error ? e.message : String(e),
+        variant: 'error',
       });
     } finally {
       setLoading(false);
@@ -135,7 +133,7 @@ export default function PaymentsTransactions() {
             min={1}
             max={100}
             value={limit}
-            onChange={(e) => setLimit(parseInt(e.target.value || "50"))}
+            onChange={(e) => setLimit(parseInt(e.target.value || '50'))}
           />
           <button
             onClick={loadFirst}
@@ -151,48 +149,48 @@ export default function PaymentsTransactions() {
         {(() => {
           const cols: Column<Tx>[] = [
             {
-              key: "created_at",
-              title: "Time",
-              accessor: (t) => t.created_at || "-",
+              key: 'created_at',
+              title: 'Time',
+              accessor: (t) => t.created_at || '-',
             },
-            { key: "user_id", title: "User" },
+            { key: 'user_id', title: 'User' },
             {
-              key: "gateway",
-              title: "Gateway",
-              accessor: (t) => t.gateway || "-",
+              key: 'gateway',
+              title: 'Gateway',
+              accessor: (t) => t.gateway || '-',
             },
             {
-              key: "product",
-              title: "Product",
+              key: 'product',
+              title: 'Product',
               render: (t) => (
                 <span>
                   {t.product_type}
-                  {t.product_id ? `:${t.product_id}` : ""}
+                  {t.product_id ? `:${t.product_id}` : ''}
                 </span>
               ),
             },
             {
-              key: "amount",
-              title: "Amount",
+              key: 'amount',
+              title: 'Amount',
               render: (t) => (
                 <span>
-                  {(t.gross_cents / 100).toFixed(2)} {t.currency || "USD"}
+                  {(t.gross_cents / 100).toFixed(2)} {t.currency || 'USD'}
                 </span>
               ),
             },
             {
-              key: "fee_cents",
-              title: "Fee",
+              key: 'fee_cents',
+              title: 'Fee',
               render: (t) => (t.fee_cents / 100).toFixed(2),
             },
             {
-              key: "net_cents",
-              title: "Net",
+              key: 'net_cents',
+              title: 'Net',
               render: (t) => (t.net_cents / 100).toFixed(2),
             },
             {
-              key: "meta",
-              title: "Meta",
+              key: 'meta',
+              title: 'Meta',
               render: (t) => <JsonCard data={t.meta ?? {}} />,
             },
           ];

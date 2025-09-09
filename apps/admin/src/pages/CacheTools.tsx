@@ -1,3 +1,3 @@
-import CacheTab from "../features/monitoring/CacheTab";
+import CacheTab from '../features/monitoring/CacheTab';
 
 export default CacheTab;

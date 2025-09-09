@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { Card, CardContent } from '../../components/ui/card';
 import { api } from '../../api/client';
+import { Card, CardContent } from '../../components/ui/card';
 
 interface JobItem {
   id: string;
@@ -32,10 +32,7 @@ export default function BackgroundJobsWidget({
             </li>
           ))}
         </ul>
-        <button
-          className="mt-2 rounded bg-gray-200 px-3 py-1 text-sm disabled:opacity-50"
-          disabled
-        >
+        <button className="mt-2 rounded bg-gray-200 px-3 py-1 text-sm disabled:opacity-50" disabled>
           View all jobs
         </button>
       </CardContent>

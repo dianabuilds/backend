@@ -4,6 +4,5 @@
 /* eslint-disable */
 import type { AdminNodeOut } from './AdminNodeOut';
 export type AdminNodeList = {
-    items: Array<AdminNodeOut>;
+  items: Array<AdminNodeOut>;
 };
-

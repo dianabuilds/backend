@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import load_only
 
-from app.core.log_filters import account_id_var, user_id_var, workspace_id_var
+from app.core.log_filters import user_id_var
 from app.core.preview import PreviewContext, get_preview_context
 from app.core.security import verify_access_token
 from app.domains.moderation.infrastructure.models.moderation_models import (
@@ -55,11 +55,10 @@ async def get_current_user(
                 User.password_hash,
                 User.wallet_address,
                 User.is_active,
+                User.default_workspace_id,
                 User.username,
                 User.bio,
                 User.avatar_url,
-                # Include to avoid async lazy-load during response serialization
-                User.default_workspace_id,
                 User.role,
                 User.deleted_at,
             )
@@ -121,11 +120,10 @@ async def get_current_user_optional(
                 User.password_hash,
                 User.wallet_address,
                 User.is_active,
+                User.default_workspace_id,
                 User.username,
                 User.bio,
                 User.avatar_url,
-                # Include to avoid async lazy-load during response serialization
-                User.default_workspace_id,
                 User.role,
                 User.deleted_at,
             )
@@ -219,17 +217,3 @@ async def ensure_can_post(
 
 # Admin-only dependency for admin routes
 admin_required = require_role("admin")
-
-
-async def current_workspace(
-    account_id: Annotated[int, Path(alias="workspace_id")],
-    user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-):
-    """Resolve workspace by id ensuring the user is a member.
-
-    Raises 404 if workspace is not found or the user lacks access.
-    """
-    workspace_id_var.set(str(account_id))
-    account_id_var.set(str(account_id))
-    return None

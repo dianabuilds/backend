@@ -6,35 +6,35 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class TransitionsService {
-    /**
-     * Delete transition
-     * Delete a specific manual transition between nodes.
-     * @param transitionId
-     * @param accountId
-     * @param xAccountId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deleteTransitionTransitionsTransitionIdDelete(
-        transitionId: string,
-        accountId: string,
-        xAccountId?: (string | null),
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/transitions/{transition_id}',
-            path: {
-                'transition_id': transitionId,
-            },
-            headers: {
-                'X-Account-Id': xAccountId,
-            },
-            query: {
-                'account_id': accountId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
+  /**
+   * Delete transition
+   * Delete a specific manual transition between nodes.
+   * @param transitionId
+   * @param accountId
+   * @param xAccountId
+   * @returns any Successful Response
+   * @throws ApiError
+   */
+  public static deleteTransitionTransitionsTransitionIdDelete(
+    transitionId: string,
+    accountId: string,
+    xAccountId?: string | null,
+  ): CancelablePromise<any> {
+    return __request(OpenAPI, {
+      method: 'DELETE',
+      url: '/transitions/{transition_id}',
+      path: {
+        transition_id: transitionId,
+      },
+      headers: {
+        'X-Account-Id': xAccountId,
+      },
+      query: {
+        account_id: accountId,
+      },
+      errors: {
+        422: `Validation Error`,
+      },
+    });
+  }
 }

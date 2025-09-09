@@ -1,4 +1,4 @@
-import type { ChangeEventHandler } from "react";
+import type { ChangeEventHandler } from 'react';
 
 interface Props {
   value: string;
@@ -10,11 +10,7 @@ export default function FieldSlug({ value, onChange }: Props) {
   return (
     <div>
       <label className="block text-sm font-medium">Slug</label>
-      <input
-        className="mt-1 border rounded px-2 py-1 w-full"
-        value={value}
-        onChange={handle}
-      />
+      <input className="mt-1 border rounded px-2 py-1 w-full" value={value} onChange={handle} />
     </div>
   );
 }

@@ -4,7 +4,6 @@
 /* eslint-disable */
 import type { QuestStepOut } from './QuestStepOut';
 export type QuestStepPage = {
-    total: number;
-    items: Array<QuestStepOut>;
+  total: number;
+  items: Array<QuestStepOut>;
 };
-

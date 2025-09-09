@@ -22,7 +22,7 @@ class NodeTransition(Base):
     __tablename__ = "node_transitions"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    account_id = Column(BigInteger, ForeignKey("accounts.id"), nullable=False, index=True)
+    account_id = Column(BigInteger, nullable=False, index=True)
     from_node_id = Column(
         BigInteger,
         ForeignKey("nodes.id", ondelete="CASCADE"),

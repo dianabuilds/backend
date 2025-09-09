@@ -1,12 +1,14 @@
-import widgets from './widgets.json';
 import { useAuth } from '../../auth/AuthContext';
 import { Card } from '../../components/ui/card';
-import ModerationQueueWidget from './ModerationQueueWidget';
-import DraftIssuesWidget from './DraftIssuesWidget';
 import BackgroundJobsWidget from './BackgroundJobsWidget';
+import DraftIssuesWidget from './DraftIssuesWidget';
+import ModerationQueueWidget from './ModerationQueueWidget';
 import ProblematicTransitionsWidget from './ProblematicTransitionsWidget';
+import widgets from './widgets.json';
 
-const componentMap: Record<string, any> = {
+type WidgetType = 'moderation' | 'drafts' | 'jobs' | 'problems';
+type WidgetProps = { query?: string; refreshInterval?: number };
+const componentMap: Record<WidgetType, React.ComponentType<WidgetProps>> = {
   moderation: ModerationQueueWidget,
   drafts: DraftIssuesWidget,
   jobs: BackgroundJobsWidget,
@@ -18,20 +20,15 @@ export default function Dashboard() {
   const role = user?.role ?? '';
   const allowed = widgets.filter((w) => {
     if (role === 'admin') return true;
-    if (role === 'moderator')
-      return w.type === 'moderation' || w.type === 'drafts';
+    if (role === 'moderator') return w.type === 'moderation' || w.type === 'drafts';
     if (role === 'support') return w.type === 'jobs';
     return false;
   });
   const widgetComponents = allowed
     .map((w) => {
-      const Comp = componentMap[w.type];
+      const Comp = componentMap[w.type as WidgetType];
       return Comp ? (
-        <Comp
-          key={w.type}
-          query={w.query}
-          refreshInterval={w.refreshInterval}
-        />
+        <Comp key={w.type} query={w.query} refreshInterval={w.refreshInterval} />
       ) : null;
     })
     .filter(Boolean);

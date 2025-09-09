@@ -3,10 +3,10 @@ import type {
   CampaignFilters,
   CampaignUpdate,
   SendNotificationPayload,
-} from "../openapi";
-import { api } from "./client";
-import { ensureArray } from "../shared/utils";
-import type { ListResponse } from "./types";
+} from '../openapi';
+import { ensureArray } from '../shared/utils';
+import { api } from './client';
+import type { ListResponse } from './types';
 
 export interface Campaign {
   id: string;
@@ -37,80 +37,50 @@ export interface DraftCampaign extends Campaign {
   message: string;
 }
 
-export async function estimateCampaign(
-  filters: CampaignFilters,
-): Promise<unknown> {
-  const res = await api.post<unknown>(
-    "/admin/notifications/campaigns/estimate",
-    filters,
-  );
+export async function estimateCampaign(filters: CampaignFilters): Promise<unknown> {
+  const res = await api.post<unknown>('/admin/notifications/campaigns/estimate', filters);
   return res.data;
 }
 
-export async function createCampaign(
-  payload: CampaignCreate,
-): Promise<unknown> {
-  const res = await api.post<unknown>(
-    "/admin/notifications/campaigns",
-    payload,
-  );
+export async function createCampaign(payload: CampaignCreate): Promise<unknown> {
+  const res = await api.post<unknown>('/admin/notifications/campaigns', payload);
   return res.data;
 }
 
 export async function listCampaigns(): Promise<Campaign[]> {
-  const res = await api.get<ListResponse<Campaign> | Campaign[]>(
-    "/admin/notifications/campaigns",
-  );
+  const res = await api.get<ListResponse<Campaign> | Campaign[]>('/admin/notifications/campaigns');
   const d = res.data;
   if (Array.isArray(d)) return d;
   return d?.items ?? [];
 }
 
 export async function getCampaign(id: string): Promise<Campaign> {
-  const res = await api.get<Campaign>(
-    `/admin/notifications/campaigns/${id}`,
-  );
+  const res = await api.get<Campaign>(`/admin/notifications/campaigns/${id}`);
   return res.data!;
 }
 
-export async function updateCampaign(
-  id: string,
-  payload: CampaignUpdate,
-): Promise<unknown> {
-  const res = await api.patch<unknown>(
-    `/admin/notifications/campaigns/${id}`,
-    payload,
-  );
+export async function updateCampaign(id: string, payload: CampaignUpdate): Promise<unknown> {
+  const res = await api.patch<unknown>(`/admin/notifications/campaigns/${id}`, payload);
   return res.data;
 }
 
 export async function deleteCampaign(id: string): Promise<unknown> {
-  const res = await api.delete<unknown>(
-    `/admin/notifications/campaigns/${id}`,
-  );
+  const res = await api.delete<unknown>(`/admin/notifications/campaigns/${id}`);
   return res.data;
 }
 
 export async function startCampaign(id: string): Promise<unknown> {
-  const res = await api.post<unknown>(
-    `/admin/notifications/campaigns/${id}/start`,
-    {},
-  );
+  const res = await api.post<unknown>(`/admin/notifications/campaigns/${id}/start`, {});
   return res.data;
 }
 
 export async function cancelCampaign(id: string): Promise<unknown> {
-  const res = await api.post<unknown>(
-    `/admin/notifications/campaigns/${id}/cancel`,
-    {},
-  );
+  const res = await api.post<unknown>(`/admin/notifications/campaigns/${id}/cancel`, {});
   return res.data;
 }
 
 export async function getDraftCampaign(id: string): Promise<DraftCampaign> {
-  const res = await api.get<DraftCampaign>(
-    `/admin/notifications/campaigns/${id}`,
-  );
+  const res = await api.get<DraftCampaign>(`/admin/notifications/campaigns/${id}`);
   return res.data!;
 }
 
@@ -118,18 +88,12 @@ export async function updateDraftCampaign(
   id: string,
   payload: { title: string; message: string },
 ): Promise<unknown> {
-  const res = await api.patch<unknown>(
-    `/admin/notifications/campaigns/${id}`,
-    payload,
-  );
+  const res = await api.patch<unknown>(`/admin/notifications/campaigns/${id}`, payload);
   return res.data;
 }
 
 export async function sendDraftCampaign(id: string): Promise<unknown> {
-  const res = await api.post<unknown>(
-    `/admin/notifications/campaigns/${id}/start`,
-    {},
-  );
+  const res = await api.post<unknown>(`/admin/notifications/campaigns/${id}/start`, {});
   return res.data;
 }
 
@@ -140,16 +104,13 @@ export async function listNotifications(
   const params: Record<string, string> = {};
   if (accountId) params.account_id = accountId;
   if (placement) params.placement = placement;
-  const res = await api.get<NotificationItem[]>("/notifications", {
+  const res = await api.get<NotificationItem[]>('/notifications', {
     params: Object.keys(params).length ? params : undefined,
   });
   return ensureArray<NotificationItem>(res.data);
 }
 
-export async function markNotificationRead(
-  id: string,
-  accountId?: string,
-): Promise<unknown> {
+export async function markNotificationRead(id: string, accountId?: string): Promise<unknown> {
   const res = await api.post<unknown>(
     `/notifications/${id}/read`,
     {},
@@ -158,12 +119,7 @@ export async function markNotificationRead(
   return res.data;
 }
 
-export async function sendNotification(
-  payload: SendNotificationPayload,
-): Promise<unknown> {
-  const res = await api.post<unknown>(
-    "/admin/notifications",
-    payload,
-  );
+export async function sendNotification(payload: SendNotificationPayload): Promise<unknown> {
+  const res = await api.post<unknown>('/admin/notifications', payload);
   return res.data;
 }

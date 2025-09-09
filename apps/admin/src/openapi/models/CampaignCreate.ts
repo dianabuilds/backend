@@ -4,9 +4,8 @@
 /* eslint-disable */
 import type { CampaignFilters } from './CampaignFilters';
 export type CampaignCreate = {
-    title: string;
-    message: string;
-    type?: string;
-    filters?: (CampaignFilters | null);
+  title: string;
+  message: string;
+  type?: string;
+  filters?: CampaignFilters | null;
 };
-

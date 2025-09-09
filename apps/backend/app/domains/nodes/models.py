@@ -15,7 +15,6 @@ class NodeItem(Base):
 
     id = sa.Column("id_bigint", sa.BigInteger, primary_key=True)
     node_id = sa.Column(sa.BigInteger, sa.ForeignKey("nodes.id"), nullable=True, index=True)
-    workspace_id = sa.Column(UUID(), sa.ForeignKey("workspaces.id"), nullable=False)
     type = sa.Column(sa.String, nullable=False)
     status = sa.Column(
         sa.Enum(Status, name="content_status"),
@@ -43,21 +42,12 @@ class NodeItem(Base):
         secondary="content_tags",
         back_populates="content_items",
         overlaps="tag",
-        lazy="selectin",
+        lazy="noload",
     )
 
     __table_args__ = (
-        sa.Index(
-            "ix_content_items_workspace_id_slug",
-            "workspace_id",
-            "slug",
-            unique=True,
-        ),
-        sa.Index(
-            "ix_content_items_workspace_id_created_at",
-            "workspace_id",
-            "created_at",
-        ),
+        sa.Index("ix_content_items_slug", "slug"),
+        sa.Index("ix_content_items_created_at", "created_at"),
     )
 
 
@@ -87,7 +77,6 @@ class NodePublishJob(Base):
     __tablename__ = "node_publish_jobs"
 
     id = sa.Column("id_bigint", sa.BigInteger, primary_key=True)
-    workspace_id = sa.Column(UUID(), sa.ForeignKey("workspaces.id"), nullable=False, index=True)
     node_id = sa.Column(sa.BigInteger, sa.ForeignKey("nodes.id"), nullable=False, index=True)
     content_id = sa.Column(
         sa.BigInteger,

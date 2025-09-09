@@ -1,1 +1,1 @@
-export { default } from "../features/monitoring/RumTab";
+export { default } from '../features/monitoring/RumTab';

@@ -5,7 +5,6 @@
 import type { QuestStep } from './QuestStep';
 import type { QuestTransition } from './QuestTransition';
 export type QuestGraphIn = {
-    steps?: Array<QuestStep>;
-    transitions?: Array<QuestTransition>;
+  steps?: Array<QuestStep>;
+  transitions?: Array<QuestTransition>;
 };
-

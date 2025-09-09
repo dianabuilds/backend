@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type EVMVerify = {
-    message: string;
-    signature: string;
-    wallet_address: string;
+  message: string;
+  signature: string;
+  wallet_address: string;
 };
-

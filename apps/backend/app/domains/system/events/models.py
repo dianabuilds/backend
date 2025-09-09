@@ -9,7 +9,6 @@ class NodeEventBase:
     node_id: int
     slug: str
     author_id: UUID
-    workspace_id: UUID | None = None
     id: str = field(default_factory=lambda: uuid4().hex)
 
 

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.session import get_db
+from app.providers.db.session import get_db
 from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.models import NodeItem
 from app.domains.navigation.application.navigation_cache_service import (
@@ -17,7 +17,7 @@ from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.nodes_common import NodeType
-from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_ws_editor
+from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 
 router = APIRouter(
@@ -49,34 +49,41 @@ def _serialize(item: NodeItem) -> dict:
 @router.get("", summary="List quest nodes")
 async def list_quest_nodes(
     quest_id: UUID,  # noqa: ARG001 - reserved for stricter checks later
-    workspace_id: UUID,
+    workspace_id: UUID | None = Query(default=None),
+    tenant_id: UUID | None = Query(default=None),
     page: int = 1,
     per_page: int = 10,
     q: str | None = None,
-    _: object = Depends(require_ws_editor),  # noqa: B008
+    current_user: User = Depends(require_admin_role()),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache, InAppNotificationPort(db))
     node_type = NodeType.quest
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=400, detail="tenant_id is required")
     if q:
         items = await svc.search(
-            workspace_id, node_type, q, page=page, per_page=per_page
+            ws, node_type, q, page=page, per_page=per_page
         )
     else:
-        items = await svc.list(workspace_id, node_type, page=page, per_page=per_page)
+        items = await svc.list(ws, node_type, page=page, per_page=per_page)
     return {"items": [_serialize(i) for i in items]}
 
 
 @router.post("", summary="Create quest node")
 async def create_quest_node(
     quest_id: UUID,  # noqa: ARG001 - reserved
-    workspace_id: UUID,
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    current_user: User = Depends(auth_user),  # noqa: B008
+    workspace_id: UUID | None = Query(default=None),
+    tenant_id: UUID | None = Query(default=None),
+    current_user: User = Depends(require_admin_role()),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache, InAppNotificationPort(db))
-    item = await svc.create(workspace_id, NodeType.quest, actor_id=current_user.id)
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=400, detail="tenant_id is required")
+    item = await svc.create(ws, NodeType.quest, actor_id=current_user.id)
     return _serialize(item)
 
 
@@ -84,12 +91,16 @@ async def create_quest_node(
 async def get_quest_node(
     quest_id: UUID,  # noqa: ARG001 - reserved
     node_id: UUID,
-    workspace_id: UUID,
-    _: object = Depends(require_ws_editor),  # noqa: B008
+    workspace_id: UUID | None = Query(default=None),
+    tenant_id: UUID | None = Query(default=None),
+    current_user: User = Depends(require_admin_role()),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache, InAppNotificationPort(db))
-    item = await svc.get(workspace_id, NodeType.quest, node_id)
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=400, detail="tenant_id is required")
+    item = await svc.get(ws, NodeType.quest, node_id)
     if not item:
         raise HTTPException(status_code=404, detail="Not found")
     return _serialize(item)
@@ -99,17 +110,20 @@ async def get_quest_node(
 async def update_quest_node(
     quest_id: UUID,  # noqa: ARG001 - reserved
     node_id: UUID,
-    workspace_id: UUID,
+    workspace_id: UUID | None = Query(default=None),
+    tenant_id: UUID | None = Query(default=None),
     request: Request,
     payload: dict,
     next: int = Query(0),
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    current_user: User = Depends(auth_user),  # noqa: B008
+    current_user: User = Depends(require_admin_role()),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache, InAppNotificationPort(db))
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=400, detail="tenant_id is required")
     item = await svc.update(
-        workspace_id,
+        ws,
         NodeType.quest,
         node_id,
         payload,
@@ -123,16 +137,19 @@ async def update_quest_node(
 async def publish_quest_node(
     quest_id: UUID,  # noqa: ARG001 - reserved
     node_id: UUID,
-    workspace_id: UUID,
+    workspace_id: UUID | None = Query(default=None),
+    tenant_id: UUID | None = Query(default=None),
     request: Request,
     payload: PublishIn | None = None,
-    _: object = Depends(require_ws_editor),  # noqa: B008
-    current_user: User = Depends(auth_user),  # noqa: B008
+    current_user: User = Depends(require_admin_role()),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache, InAppNotificationPort(db))
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=400, detail="tenant_id is required")
     item = await svc.publish(
-        workspace_id,
+        ws,
         NodeType.quest,
         node_id,
         actor_id=current_user.id,
@@ -147,12 +164,16 @@ async def publish_quest_node(
 async def validate_quest_node(
     quest_id: UUID,  # noqa: ARG001 - reserved
     node_id: UUID,
-    workspace_id: UUID,
-    _: object = Depends(require_ws_editor),  # noqa: B008
+    workspace_id: UUID | None = Query(default=None),
+    tenant_id: UUID | None = Query(default=None),
+    current_user: User = Depends(require_admin_role()),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache, InAppNotificationPort(db))
-    report = await svc.validate(workspace_id, NodeType.quest, node_id)
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=400, detail="tenant_id is required")
+    report = await svc.validate(ws, NodeType.quest, node_id)
     blocking = [item for item in report.items if item.level == "error"]
     warnings = [item for item in report.items if item.level == "warning"]
     return {"report": report, "blocking": blocking, "warnings": warnings}
@@ -162,16 +183,17 @@ async def validate_quest_node(
 async def simulate_quest_node(
     quest_id: UUID,  # noqa: ARG001 - reserved
     node_id: UUID,
-    workspace_id: UUID,
+    workspace_id: UUID | None = Query(default=None),
+    tenant_id: UUID | None = Query(default=None),
     payload: dict,
-    _: object = Depends(require_ws_editor),  # noqa: B008
+    current_user: User = Depends(require_admin_role()),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     svc = NodeService(db, navcache, InAppNotificationPort(db))
     from app.schemas.quest_editor import SimulateIn
 
-    report, result = await svc.simulate(
-        workspace_id, NodeType.quest, node_id, SimulateIn(**payload)
-    )
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=400, detail="tenant_id is required")
+    report, result = await svc.simulate(ws, NodeType.quest, node_id, SimulateIn(**payload))
     return {"report": report, "result": result}
-

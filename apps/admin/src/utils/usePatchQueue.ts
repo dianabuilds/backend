@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Queue of patches with debounce and sequential processing.
@@ -45,11 +45,14 @@ export function usePatchQueue(
     }, delay);
   }, [process, delay]);
 
-  const enqueue = useCallback((patch: Record<string, unknown>) => {
-    queueRef.current.push(patch);
-    setPending(queueRef.current.length);
-    schedule();
-  }, [schedule]);
+  const enqueue = useCallback(
+    (patch: Record<string, unknown>) => {
+      queueRef.current.push(patch);
+      setPending(queueRef.current.length);
+      schedule();
+    },
+    [schedule],
+  );
 
   const flush = useCallback(async () => {
     if (timerRef.current) {

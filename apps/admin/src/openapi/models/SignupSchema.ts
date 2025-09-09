@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type SignupSchema = {
-    email: string;
-    password: string;
-    username: string;
+  email: string;
+  password: string;
+  username: string;
 };
-

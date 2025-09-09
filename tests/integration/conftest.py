@@ -33,7 +33,7 @@ os.environ["CORS_ALLOW_ORIGINS"] = '["https://example.com", "http://client.examp
 os.environ["CORS_ALLOW_HEADERS"] = (
     '["X-Custom-Header", "Authorization", "Content-Type", "X-CSRF-Token", '
     '"X-CSRFToken", "X-Requested-With", '
-    '"X-Feature-Flags", "X-Preview-Token", "X-BlockSketch-Workspace-Id"]'
+    '"X-Feature-Flags", "X-Preview-Token"'
 )
 
 # Инициализируем тестовую базу данных и формируем URL

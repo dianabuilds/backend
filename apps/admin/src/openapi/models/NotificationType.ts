@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export enum NotificationType {
-    QUEST = 'quest',
-    SYSTEM = 'system',
-    MODERATION = 'moderation',
+  QUEST = 'quest',
+  SYSTEM = 'system',
+  MODERATION = 'moderation',
 }

@@ -25,7 +25,6 @@ from app.domains.nodes.models import NodeItem  # noqa: E402
 from app.domains.quests.infrastructure.models.navigation_cache_models import (  # noqa: E402
     NavigationCache,
 )
-from app.domains.workspaces.infrastructure.models import Workspace  # noqa: E402
 from app.providers.db.session import get_db  # noqa: E402
 from app.schemas.nodes_common import Status, Visibility  # noqa: E402
 

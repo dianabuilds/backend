@@ -14,24 +14,16 @@ from app.core.log_events import (
 )
 from app.domains.media.application.ports.storage_port import IStorageGateway
 from app.domains.media.application.storage_service import StorageService
-from app.security import require_ws_guest
 from app.providers.db.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def require_ws_guest_optional(
-    account_id: int | None = Query(default=None, alias="account_id"),
+async def require_profile_optional(
     user=Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    """Allow media upload in personal mode; require workspace membership when provided.
-
-    If ``account_id`` is present in query, enforce workspace guest check. Otherwise,
-    operate in personal mode and do not require workspace membership.
-    """
-    if account_id is None:
-        return None
-    return await require_ws_guest(account_id=account_id, user=user, db=db)
+    """Profile-centric mode: no extra membership checks."""
+    return None
 
 router = APIRouter(tags=["media"])
 
@@ -41,7 +33,7 @@ async def upload_media(
     file: Annotated[UploadFile, File(...)] = ...,  # noqa: B008
     user=Depends(get_current_user),  # noqa: B008
     storage: Annotated[IStorageGateway, Depends(get_storage)] = ...,  # noqa: B008
-    _member: Annotated[object, Depends(require_ws_guest_optional)] = ...,
+    _member: Annotated[object, Depends(require_profile_optional)] = ...,
 ):
     """Accept an uploaded image and return its public URL."""
     node_cover_upload_start(str(getattr(user, "id", None)))
@@ -67,6 +59,6 @@ async def upload_media_admin(
     file: Annotated[UploadFile, File(...)] = ...,  # noqa: B008
     user=Depends(get_current_user),  # noqa: B008
     storage: Annotated[IStorageGateway, Depends(get_storage)] = ...,  # noqa: B008
-    _member: Annotated[object, Depends(require_ws_guest_optional)] = ...,
+    _member: Annotated[object, Depends(require_profile_optional)] = ...,
 ):
     return await upload_media(file=file, user=user, storage=storage, _member=_member)

@@ -1,4 +1,4 @@
-import AuditLogTab from "../features/monitoring/AuditLogTab";
+import AuditLogTab from '../features/monitoring/AuditLogTab';
 
 export default function AuditLog() {
   return (

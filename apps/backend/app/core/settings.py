@@ -115,6 +115,7 @@ DEFAULT_CORS_METHODS = [
 ]
 
 DEFAULT_CORS_HEADERS = [
+    "*",
     "Authorization",
     "Content-Type",
     "X-CSRF-Token",
@@ -123,7 +124,6 @@ DEFAULT_CORS_HEADERS = [
     "X-Feature-Flags",
     "X-Preview-Token",
     "X-Request-ID",
-    "X-BlockSketch-Workspace-Id",
     "X-Client-Platform",
     "X-XSRF-Token",
     "X-Client-Language",

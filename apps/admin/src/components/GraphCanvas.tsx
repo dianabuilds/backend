@@ -1,10 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import type {
-  GraphCanvasProps,
-  GraphEdge,
-  GraphNode,
-} from "./GraphCanvas.helpers";
+import type { GraphCanvasProps, GraphEdge, GraphNode } from './GraphCanvas.helpers';
 
 // Простой layered-лейаут: уровни по расстоянию от стартового узла, fallback — топологическая раскладка
 function computeLayout(nodes: GraphNode[], edges: GraphEdge[]) {
@@ -15,7 +11,7 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[]) {
     if (adj.has(e.from_node_key)) adj.get(e.from_node_key)!.push(e.to_node_key);
   });
 
-  const start = nodes.find((n) => n.type === "start") || nodes[0];
+  const start = nodes.find((n) => n.type === 'start') || nodes[0];
   const level = new Map<string, number>();
   const queue: string[] = [];
   if (start) {
@@ -65,10 +61,8 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[]) {
     });
 
   // Габариты холста
-  const maxX =
-    Math.max(...Array.from(positions.values()).map((p) => p.x), 0) + 200;
-  const maxY =
-    Math.max(...Array.from(positions.values()).map((p) => p.y), 0) + 160;
+  const maxX = Math.max(...Array.from(positions.values()).map((p) => p.x), 0) + 200;
+  const maxY = Math.max(...Array.from(positions.values()).map((p) => p.y), 0) + 160;
 
   return { positions, width: Math.max(maxX, 800), height: Math.max(maxY, 600) };
 }
@@ -173,10 +167,7 @@ export default function GraphCanvas({
       onMouseLeave={onMouseUp}
     >
       <div className="absolute top-2 left-2 z-10 flex gap-2">
-        <button
-          className="px-2 py-1 rounded border bg-white/80"
-          onClick={fitToView}
-        >
+        <button className="px-2 py-1 rounded border bg-white/80" onClick={fitToView}>
           Fit
         </button>
         <button
@@ -190,20 +181,18 @@ export default function GraphCanvas({
           Reset
         </button>
         <button
-          className={`px-2 py-1 rounded border ${connectMode ? "bg-blue-600 text-white" : "bg-white/80"}`}
+          className={`px-2 py-1 rounded border ${connectMode ? 'bg-blue-600 text-white' : 'bg-white/80'}`}
           onClick={() => {
             setConnectMode((v) => !v);
             setConnectFrom(null);
           }}
           title="Create edge by clicking source and target nodes"
         >
-          {connectMode ? "Connecting…" : "Connect"}
+          {connectMode ? 'Connecting…' : 'Connect'}
         </button>
         {connectMode && (
           <span className="px-2 py-1 rounded bg-white/80 border">
-            {connectFrom
-              ? `from: ${connectFrom} → click target`
-              : "click source node"}
+            {connectFrom ? `from: ${connectFrom} → click target` : 'click source node'}
           </span>
         )}
       </div>
@@ -212,7 +201,7 @@ export default function GraphCanvas({
         className="absolute inset-0"
         width="100%"
         height="100%"
-        style={{ background: "transparent" }}
+        style={{ background: 'transparent' }}
       >
         <g transform={`translate(${tx}, ${ty}) scale(${scale})`}>
           {/* Ребра */}
@@ -256,19 +245,13 @@ export default function GraphCanvas({
             const w = 240;
             const h = 80;
             const rx = 8;
-            const color =
-              n.type === "start"
-                ? "#15a34a"
-                : n.type === "end"
-                  ? "#7c3aed"
-                  : "#2563eb";
-            const highlight =
-              connectMode && (connectFrom === null || connectFrom === n.key);
+            const color = n.type === 'start' ? '#15a34a' : n.type === 'end' ? '#7c3aed' : '#2563eb';
+            const highlight = connectMode && (connectFrom === null || connectFrom === n.key);
             return (
               <g
                 key={n.key}
                 transform={`translate(${pos.x}, ${pos.y})`}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: 'pointer' }}
                 onMouseDown={(e) => e.stopPropagation()}
                 onDoubleClick={() => onNodeDoubleClick?.(n.key)}
                 onClick={() => {
@@ -290,25 +273,19 @@ export default function GraphCanvas({
                   height={h}
                   rx={rx}
                   ry={rx}
-                  fill={highlight ? "#eef2ff" : "#fff"}
+                  fill={highlight ? '#eef2ff' : '#fff'}
                   stroke={color}
                   strokeWidth={2}
                 />
                 <rect x={0} y={0} width={6} height={h} fill={color} />
-                <text
-                  x={16}
-                  y={22}
-                  fontSize="12"
-                  fontWeight={700}
-                  fill="#0f172a"
-                >
+                <text x={16} y={22} fontSize="12" fontWeight={700} fill="#0f172a">
                   {n.key}
                 </text>
                 <text x={16} y={42} fontSize="13" fill="#334155">
                   {n.title}
                 </text>
                 <text x={16} y={62} fontSize="11" fill="#64748b">
-                  {n.type || "normal"}
+                  {n.type || 'normal'}
                 </text>
               </g>
             );
@@ -320,14 +297,7 @@ export default function GraphCanvas({
       <div className="absolute bottom-2 right-2 bg-white/90 rounded shadow p-2">
         <svg width={miniW} height={miniH}>
           {/* фон мини-карты */}
-          <rect
-            x={0}
-            y={0}
-            width={miniW}
-            height={miniH}
-            fill="#f8fafc"
-            stroke="#cbd5e1"
-          />
+          <rect x={0} y={0} width={miniW} height={miniH} fill="#f8fafc" stroke="#cbd5e1" />
           {/* узлы */}
           {nodes.map((n) => {
             const p = positions.get(n.key);
@@ -336,22 +306,9 @@ export default function GraphCanvas({
             const my = (p.y / contentH) * miniH;
             const mw = (240 / contentW) * miniW;
             const mh = (80 / contentH) * miniH;
-            const fill =
-              n.type === "start"
-                ? "#86efac"
-                : n.type === "end"
-                  ? "#ddd6fe"
-                  : "#bfdbfe";
+            const fill = n.type === 'start' ? '#86efac' : n.type === 'end' ? '#ddd6fe' : '#bfdbfe';
             return (
-              <rect
-                key={n.key}
-                x={mx}
-                y={my}
-                width={mw}
-                height={mh}
-                fill={fill}
-                stroke="#94a3b8"
-              />
+              <rect key={n.key} x={mx} y={my} width={mw} height={mh} fill={fill} stroke="#94a3b8" />
             );
           })}
           {/* видимая область */}

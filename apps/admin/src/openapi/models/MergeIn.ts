@@ -3,9 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type MergeIn = {
-    from_id: string;
-    to_id: string;
-    dryRun?: boolean;
-    reason?: (string | null);
+  from_id: string;
+  to_id: string;
+  dryRun?: boolean;
+  reason?: string | null;
 };
-

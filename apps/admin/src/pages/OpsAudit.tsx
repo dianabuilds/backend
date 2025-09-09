@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { api } from "../api/client";
+import { api } from '../api/client';
 
 interface AuditEntry {
   id: string;
@@ -15,7 +15,7 @@ export default function OpsAudit() {
 
   useEffect(() => {
     api
-      .get("/admin/audit")
+      .get('/admin/audit')
       .then((res) => setItems((res.data.items as AuditEntry[]) || []))
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, []);

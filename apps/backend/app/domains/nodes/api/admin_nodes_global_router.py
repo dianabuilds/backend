@@ -29,7 +29,7 @@ async def get_global_node_by_id(
         select(Node).where(Node.id == node_id).options(selectinload(Node.tags))
     )
     node = result.scalar_one_or_none()
-    if not node:
+    if not node or getattr(node, "account_id", None):
         raise HTTPException(status_code=404, detail="Node not found")
     return NodeOut.model_validate(node)
 
@@ -43,7 +43,7 @@ async def update_global_node_by_id(
 ) -> NodeOut:
     repo = NodeRepository(db)
     node = await repo.get_by_id_simple(node_id)
-    if not node:
+    if not node or getattr(node, "account_id", None):
         raise HTTPException(status_code=404, detail="Node not found")
     node = await repo.update(node, payload, current_user.id)
     return NodeOut.model_validate(node)

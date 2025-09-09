@@ -1,56 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { api } from "../api/client";
+import { ensureFetched, getLimitState, subscribe } from './LimitBadgeController';
 
 interface Props {
   limitKey: string;
 }
 
-// internal state shared across instances
-let limits: Record<string, number> = {};
-let messages: Record<string, string> = {};
-const listeners = new Set<() => void>();
-
-async function fetchLimits(clearMessages = true) {
-  try {
-    const res = await api.get<Record<string, number>>("/admin/ops/limits");
-    limits = res.data || {};
-    if (clearMessages) messages = {};
-  } catch {
-    // ignore
-  }
-  listeners.forEach((cb) => cb());
-}
-
-export async function refreshLimits() {
-  await fetchLimits(true);
-}
-
-export async function handleLimit429(limitKey: string, retryAfter?: number) {
-  const seconds = typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : undefined;
-  messages[limitKey] = seconds ? `try again in ${seconds}s` : "rate limited";
-  listeners.forEach((cb) => cb());
-  await fetchLimits(false);
-}
+// Helpers exported from controller: import directly where needed
 
 export default function LimitBadge({ limitKey }: Props) {
-  const [value, setValue] = useState<number | null>(limits[limitKey] ?? null);
-  const [msg, setMsg] = useState<string | undefined>(messages[limitKey]);
+  const initial = getLimitState(limitKey);
+  const [value, setValue] = useState<number | null>(initial.value);
+  const [msg, setMsg] = useState<string | undefined>(initial.message);
 
   useEffect(() => {
     const listener = () => {
-      setValue(limits[limitKey] ?? null);
-      setMsg(messages[limitKey]);
+      const s = getLimitState(limitKey);
+      setValue(s.value);
+      setMsg(s.message);
     };
-    listeners.add(listener);
-    if (typeof limits[limitKey] === "undefined") {
-      fetchLimits(true);
-    }
-    return () => listeners.delete(listener);
+    const unsubscribe = subscribe(listener);
+    void ensureFetched(limitKey);
+    return () => unsubscribe();
   }, [limitKey]);
 
   const title = msg || undefined;
-  const cls = msg ? "bg-red-200 text-red-800" : "bg-gray-200 text-gray-800";
+  const cls = msg ? 'bg-red-200 text-red-800' : 'bg-gray-200 text-gray-800';
 
   return (
     <span
@@ -58,8 +33,7 @@ export default function LimitBadge({ limitKey }: Props) {
       title={title}
       data-testid={`limit-${limitKey}`}
     >
-      {value ?? "-"}
+      {value ?? '-'}
     </span>
   );
 }
-

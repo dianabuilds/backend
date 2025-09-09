@@ -1,26 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 
-import { type AdminMenuItem, getAdminMenu } from "../api/client";
-import { useAuth } from "../auth/AuthContext";
-import { getIconComponent } from "../icons/registry";
-import { safeLocalStorage } from "../utils/safeStorage";
+import { type AdminMenuItem, getAdminMenu } from '../api/client';
+import { useAuth } from '../auth/AuthContext';
+import { getIconComponent } from '../icons/registry';
+import { safeLocalStorage } from '../utils/safeStorage';
 
 const defaultIcons: Record<string, string> = {
-  dashboard: "home",
-  "users-list": "users",
-  nodes: "database",
-  quests: "flag",
-  navigation: "compass",
-  "navigation-main": "compass",
-  monitoring: "activity",
-  traces: "search",
-  content: "file",
-  administration: "settings",
+  dashboard: 'home',
+  'users-list': 'users',
+  nodes: 'database',
+  quests: 'flag',
+  navigation: 'compass',
+  'navigation-main': 'compass',
+  monitoring: 'activity',
+  traces: 'search',
+  content: 'file',
+  administration: 'settings',
 };
 
 function useExpandedState() {
-  const KEY = "adminSidebarExpanded";
+  const KEY = 'adminSidebarExpanded';
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     try {
       const raw = safeLocalStorage.getItem(KEY);
@@ -42,10 +42,10 @@ function useExpandedState() {
 }
 
 function useCollapsedState() {
-  const KEY = "adminSidebarCollapsed";
+  const KEY = 'adminSidebarCollapsed';
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
-      return safeLocalStorage.getItem(KEY) === "true";
+      return safeLocalStorage.getItem(KEY) === 'true';
     } catch {
       return false;
     }
@@ -75,19 +75,16 @@ function normalizePath(p?: string | null): string | null {
   } catch {
     // p уже относительный путь — ок
   }
-  if (path === "/admin") return "/";
-  if (path.startsWith("/admin/")) return path.slice("/admin".length);
+  if (path === '/admin') return '/';
+  if (path.startsWith('/admin/')) return path.slice('/admin'.length);
   return path;
 }
 
-function longestPrefixMatch(
-  pathname: string,
-  itemPath?: string | null,
-): boolean {
+function longestPrefixMatch(pathname: string, itemPath?: string | null): boolean {
   if (!itemPath) return false;
   // Ensure trailing slash consistency for matching prefixes
-  const a = pathname.endsWith("/") ? pathname : pathname + "/";
-  const b = itemPath.endsWith("/") ? itemPath : itemPath + "/";
+  const a = pathname.endsWith('/') ? pathname : pathname + '/';
+  const b = itemPath.endsWith('/') ? itemPath : itemPath + '/';
   return a.startsWith(b);
 }
 
@@ -111,35 +108,44 @@ function MenuItem({
   const content = (
     <div className="flex items-center gap-2">
       <Icon className="w-4 h-4" aria-hidden />
-      <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
+      <span className={collapsed ? 'sr-only' : ''}>{item.label}</span>
     </div>
   );
 
-  if (item.divider) {
-    return (
-      <div role="separator" className="my-2 border-t border-gray-600" />
-    );
-  }
-
   const padding = collapsed ? 8 : 8 + level * 12;
 
-  if (item.children && item.children.length > 0) {
+  const hasChildren = !!(item.children && item.children.length > 0);
+  const open = expanded[item.id] ?? false;
+  const childActive = hasChildren
+    ? item.children.some((c: AdminMenuItem) =>
+        longestPrefixMatch(activePath, normalizePath(c.path) || undefined),
+      )
+    : false;
+  const isActive =
+    longestPrefixMatch(activePath, normalizePath(item.path) || undefined) || childActive;
+
+  // Auto-open groups when a child becomes active
+  useEffect(() => {
+    if (hasChildren && childActive && !open) {
+      toggle(item.id);
+    }
+  }, [hasChildren, childActive, open, toggle, item.id]);
+
+  if (hasChildren) {
     // Если только один дочерний элемент и у родителя нет собственного path —
     // делаем верхний пункт ссылкой на ребенка (компактный режим).
     if ((!item.path || item.path === null) && item.children.length === 1) {
       const only = item.children[0] as AdminMenuItem;
-      const to = normalizePath(only.path) || "/";
+      const to = normalizePath(only.path) || '/';
       const isActive = longestPrefixMatch(activePath, to);
       return (
         <NavLink
           to={to}
           className={({ isActive: exact }) =>
-            `block py-1 px-2 rounded hover:bg-gray-700 ${
-              isActive || exact ? "font-semibold" : ""
-            }`
+            `block py-1 px-2 rounded hover:bg-gray-700 ${isActive || exact ? 'font-semibold' : ''}`
           }
           style={{ paddingLeft: padding }}
-          aria-current={isActive ? "page" : undefined}
+          aria-current={isActive ? 'page' : undefined}
           title={collapsed ? only.label : undefined}
         >
           {content}
@@ -147,26 +153,11 @@ function MenuItem({
       );
     }
 
-    const open = expanded[item.id] ?? false;
-    // Auto-open if a child is active
-    const childActive = item.children.some((c: AdminMenuItem) =>
-      longestPrefixMatch(activePath, normalizePath(c.path) || undefined),
-    );
-    const isActive =
-      longestPrefixMatch(activePath, normalizePath(item.path) || undefined) ||
-      childActive;
-
-    useEffect(() => {
-      if (childActive && !open) {
-        toggle(item.id);
-      }
-    }, [childActive, open, toggle, item.id]);
-
     return (
       <div>
         <button
           className={`w-full flex items-center justify-between text-left py-1 px-2 rounded hover:bg-gray-700 ${
-            isActive ? "font-semibold" : ""
+            isActive ? 'font-semibold' : ''
           }`}
           style={{ paddingLeft: padding }}
           onClick={() => toggle(item.id)}
@@ -175,7 +166,7 @@ function MenuItem({
           title={collapsed ? item.label : undefined}
         >
           {content}
-          <span aria-hidden>{open ? "▾" : "▸"}</span>
+          <span aria-hidden>{open ? '▾' : '▸'}</span>
         </button>
         {open && (
           <div id={`group-${item.id}`} className="mt-1 space-y-1">
@@ -212,18 +203,16 @@ function MenuItem({
   }
 
   if (item.path) {
-    const to = normalizePath(item.path) || "/";
+    const to = normalizePath(item.path) || '/';
     const isActive = longestPrefixMatch(activePath, to);
     return (
       <NavLink
         to={to}
         className={({ isActive: exact }) =>
-          `block py-1 px-2 rounded hover:bg-gray-700 ${
-            isActive || exact ? "font-semibold" : ""
-          }`
+          `block py-1 px-2 rounded hover:bg-gray-700 ${isActive || exact ? 'font-semibold' : ''}`
         }
         style={{ paddingLeft: padding }}
-        aria-current={isActive ? "page" : undefined}
+        aria-current={isActive ? 'page' : undefined}
         title={collapsed ? item.label : undefined}
       >
         {content}
@@ -291,10 +280,7 @@ export default function Sidebar() {
       return (
         <div className="space-y-2" aria-busy>
           {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-4 bg-gray-700 rounded animate-pulse"
-            />
+            <div key={i} className="h-4 bg-gray-700 rounded animate-pulse" />
           ))}
         </div>
       );
@@ -307,10 +293,7 @@ export default function Sidebar() {
             {error}
           </div>
           <nav className="space-y-1">
-            <NavLink
-              to="/"
-              className="block py-1 px-2 rounded hover:bg-gray-700"
-            >
+            <NavLink to="/" className="block py-1 px-2 rounded hover:bg-gray-700">
               Dashboard
             </NavLink>
           </nav>
@@ -334,17 +317,17 @@ export default function Sidebar() {
     );
   }, [loading, error, items, location.pathname, expanded, toggle, collapsed]);
 
-  const MenuIcon = getIconComponent("menu");
+  const MenuIcon = getIconComponent('menu');
 
   return (
     <aside
-      className={`${collapsed ? "w-16" : "w-64"} bg-gray-800 text-gray-200 p-4 shadow-sm`}
+      className={`${collapsed ? 'w-16' : 'w-64'} bg-gray-800 text-gray-200 p-4 shadow-sm`}
       aria-label="Sidebar navigation"
     >
       <button
         className="mb-4 p-2 rounded hover:bg-gray-700"
         onClick={toggleCollapsed}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         aria-expanded={!collapsed}
       >
         <MenuIcon className="w-5 h-5" aria-hidden />
@@ -352,4 +335,7 @@ export default function Sidebar() {
       {content}
     </aside>
   );
+}
+if (item.divider) {
+  return <div role="separator" className="my-2 border-t border-gray-600" />;
 }

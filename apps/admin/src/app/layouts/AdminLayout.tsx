@@ -1,13 +1,13 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet } from 'react-router-dom';
 
-import { useAuth } from "../../auth/AuthContext";
-import HotfixBanner from "../../components/HotfixBanner";
-import EnvBanner from "../../components/EnvBanner";
-import AdminOverrideBanner from "../../components/AdminOverrideBanner";
-import Sidebar from "../../components/Sidebar";
-import SystemStatus from "../../components/SystemStatus";
-import Breadcrumbs from "../../components/Breadcrumbs";
-import AlertsBadge from "../../components/AlertsBadge";
+import { useAuth } from '../../auth/AuthContext';
+import AdminOverrideBanner from '../../components/AdminOverrideBanner';
+import AlertsBadge from '../../components/AlertsBadge';
+import Breadcrumbs from '../../components/Breadcrumbs';
+import EnvBanner from '../../components/EnvBanner';
+import HotfixBanner from '../../components/HotfixBanner';
+import Sidebar from '../../components/Sidebar';
+import SystemStatus from '../../components/SystemStatus';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -37,13 +37,13 @@ export default function AdminLayout() {
               </div>
             )}
           </div>
-          </div>
-          <EnvBanner />
-          <HotfixBanner />
-          <AdminOverrideBanner />
-          <Breadcrumbs />
-          <Outlet />
-        </main>
-      </div>
-    );
+        </div>
+        <EnvBanner />
+        <HotfixBanner />
+        <AdminOverrideBanner />
+        <Breadcrumbs />
+        <Outlet />
+      </main>
+    </div>
+  );
 }

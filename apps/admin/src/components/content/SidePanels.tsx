@@ -1,4 +1,4 @@
-import { useAuth } from "../../auth/AuthContext";
+import { useAuth } from '../../auth/AuthContext';
 
 interface SidePanelsProps {
   node: {
@@ -13,8 +13,7 @@ interface SidePanelsProps {
 export default function SidePanels({ node, onSlugChange }: SidePanelsProps) {
   const { user } = useAuth();
   const role = user?.role;
-  const canModerate = role === "admin" || role === "moderator";
-  const canEditSlug = role === "admin";
+  const canEditSlug = role === 'admin';
   return (
     <div className="w-64 border-l p-4 overflow-y-auto space-y-4">
       <details open>
@@ -22,17 +21,18 @@ export default function SidePanels({ node, onSlugChange }: SidePanelsProps) {
         <div className="mt-2 space-y-1 text-sm">
           <div>ID: {node.id}</div>
           <div>
-            Slug: {canEditSlug && onSlugChange ? (
+            Slug:{' '}
+            {canEditSlug && onSlugChange ? (
               <input
                 className="w-full border rounded px-1 py-0.5 text-xs"
                 value={node.slug}
                 onChange={(e) => onSlugChange(e.target.value)}
               />
             ) : (
-              node.slug || "-"
+              node.slug || '-'
             )}
           </div>
-          <div>Author: {node.author_id || "-"}</div>
+          <div>Author: {node.author_id || '-'}</div>
         </div>
       </details>
       <details open>
@@ -42,7 +42,7 @@ export default function SidePanels({ node, onSlugChange }: SidePanelsProps) {
       <details open>
         <summary className="cursor-pointer font-semibold">Publication</summary>
         <div className="mt-2 space-y-1 text-sm">
-          <div>Status: {node.is_public ? "Published" : "Draft"}</div>
+          <div>Status: {node.is_public ? 'Published' : 'Draft'}</div>
           <div>Scheduling: —</div>
         </div>
       </details>
@@ -53,4 +53,3 @@ export default function SidePanels({ node, onSlugChange }: SidePanelsProps) {
     </div>
   );
 }
-

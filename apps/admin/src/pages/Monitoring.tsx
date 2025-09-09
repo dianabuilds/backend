@@ -1,10 +1,10 @@
-import TabRouter from "../components/TabRouter";
-import AuditLogTab from "../features/monitoring/AuditLogTab";
-import CacheTab from "../features/monitoring/CacheTab";
-import JobsTab from "../features/monitoring/JobsTab";
-import RateLimitsTab from "../features/monitoring/RateLimitsTab";
-import RumTab from "../features/monitoring/RumTab";
-import { Card, CardContent } from "../components/ui/card";
+import TabRouter from '../components/TabRouter';
+import { Card, CardContent } from '../components/ui/card';
+import AuditLogTab from '../features/monitoring/AuditLogTab';
+import CacheTab from '../features/monitoring/CacheTab';
+import JobsTab from '../features/monitoring/JobsTab';
+import RateLimitsTab from '../features/monitoring/RateLimitsTab';
+import RumTab from '../features/monitoring/RumTab';
 
 export default function Monitoring() {
   return (
@@ -17,11 +17,11 @@ export default function Monitoring() {
           <CardContent className="p-0 h-full">
             <TabRouter
               plugins={[
-                { name: "Telemetry", render: () => <RumTab /> },
-                { name: "Rate limits", render: () => <RateLimitsTab /> },
-                { name: "Cache", render: () => <CacheTab /> },
-                { name: "Audit log", render: () => <AuditLogTab /> },
-                { name: "Jobs", render: () => <JobsTab /> },
+                { name: 'Telemetry', render: () => <RumTab /> },
+                { name: 'Rate limits', render: () => <RateLimitsTab /> },
+                { name: 'Cache', render: () => <CacheTab /> },
+                { name: 'Audit log', render: () => <AuditLogTab /> },
+                { name: 'Jobs', render: () => <JobsTab /> },
               ]}
             />
           </CardContent>
@@ -30,4 +30,3 @@ export default function Monitoring() {
     </div>
   );
 }
-

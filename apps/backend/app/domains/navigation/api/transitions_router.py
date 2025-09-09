@@ -19,7 +19,6 @@ from app.domains.nodes.infrastructure.repositories.node_repository import (
 )
 from app.domains.users.infrastructure.models.user import User
 from app.providers.db.session import get_db
-from app.security import require_ws_guest
 
 router = APIRouter(prefix="/transitions", tags=["transitions"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -28,10 +27,11 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 @router.delete("/{transition_id}", summary="Delete transition")
 async def delete_transition(
     transition_id: str,
-    workspace_id: int,
+    workspace_id: Annotated[int | None, Query()] = None,
+    tenant_id: Annotated[int | None, Query()] = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _member: Annotated[object, Depends(require_ws_guest)] = ...,
+    # Profile-centric: no membership dependency
 ):
     """Delete a specific manual transition between nodes."""
     repo = TransitionRepository(db)
@@ -40,10 +40,13 @@ async def delete_transition(
     if not transition:
         raise HTTPException(status_code=404, detail="Transition not found")
     TransitionPolicy.ensure_can_delete(transition, current_user)
-    from_node = await node_repo.get_by_id(transition.from_node_id, workspace_id)
+    account_scope = tenant_id or workspace_id
+    if account_scope is None:
+        raise HTTPException(status_code=422, detail="tenant_id is required")
+    from_node = await node_repo.get_by_id(transition.from_node_id, account_scope)
     await repo.delete(transition)
     if from_node:
         await navcache.invalidate_navigation_by_node(
-            account_id=workspace_id, node_slug=from_node.slug
+            account_id=account_scope, node_slug=from_node.slug
         )
     return {"message": "Transition deleted"}

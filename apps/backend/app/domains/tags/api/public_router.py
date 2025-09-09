@@ -1,112 +1,51 @@
 from __future__ import annotations
 
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.domains.tags.dao import TagDAO
 from app.domains.tags.models import ContentTag, Tag
 from app.providers.db.session import get_db
-from app.schemas.tag import TagCreate, TagOut, TagUpdate
-from app.security import require_ws_editor, require_ws_guest
+from app.schemas.tag import TagOut
+from app.api import deps as api_deps
+from app.domains.users.infrastructure.models.user import User
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
 
 @router.get("/", response_model=list[TagOut], summary="List tags")
 async def list_tags(
-    workspace_id: UUID,
+    workspace_id: Annotated[str | None, Query()] = None,  # legacy param ignored
+    tenant_id: Annotated[str | None, Query()] = None,  # preferred; ignored for now
     q: Annotated[str | None, Query()] = None,
     popular: Annotated[bool, Query()] = False,
     limit: Annotated[int, Query()] = 10,
     offset: Annotated[int, Query(ge=0)] = 0,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _: Annotated[object, Depends(require_ws_guest)] = ...,
+    current_user: Annotated[User, Depends(api_deps.get_current_user)] = ...,  # noqa: B008
 ):
-    """Retrieve available tags with optional search and popularity filter."""
+    """Retrieve available tags.
+    Returns tags used by current user's nodes (profile mode).
+    """
+    # Profile mode: tags used by current user's nodes
+    from app.domains.nodes.infrastructure.models.node import Node
+    from app.domains.nodes.models import NodeItem
+
     stmt = (
-        select(Tag, func.count(ContentTag.content_id).label("count"))
-        .join(ContentTag, Tag.id == ContentTag.tag_id, isouter=True)
-        .where(
-            Tag.is_hidden.is_(False),
-            Tag.workspace_id == workspace_id,
-            (ContentTag.workspace_id == workspace_id) | (ContentTag.tag_id.is_(None)),
-        )
+        select(Tag, func.count(Node.id).label("count"))
+        .join(ContentTag, Tag.id == ContentTag.tag_id)
+        .join(NodeItem, NodeItem.id == ContentTag.content_id)
+        .join(Node, Node.id == NodeItem.node_id)
+        .where(Tag.is_hidden.is_(False), Node.author_id == current_user.id)
     )
     if q:
         pattern = f"%{q}%"
         stmt = stmt.where((Tag.slug.ilike(pattern)) | (Tag.name.ilike(pattern)))
     stmt = stmt.group_by(Tag.id)
-    if popular:
-        stmt = stmt.order_by(desc("count"))
-    else:
-        stmt = stmt.order_by(Tag.name)
+    stmt = stmt.order_by(desc("count")) if popular else stmt.order_by(Tag.name)
     stmt = stmt.offset(offset).limit(limit)
-    result = await db.execute(stmt)
-    rows = result.all()
+    rows = (await db.execute(stmt)).all()
     return [TagOut(slug=t.slug, name=t.name, count=c) for t, c in rows]
-
-
-@router.post("/", response_model=TagOut, summary="Create tag")
-async def create_tag(
-    workspace_id: UUID,
-    body: TagCreate,
-    _: Annotated[object, Depends(require_ws_editor)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
-) -> TagOut:
-    tag = await TagDAO.create(db, workspace_id=workspace_id, slug=body.slug, name=body.name)
-    return TagOut(slug=tag.slug, name=tag.name, count=0)
-
-
-@router.get("/{slug}", response_model=TagOut, summary="Get tag")
-async def get_tag(
-    workspace_id: UUID,
-    slug: str,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _: Annotated[object, Depends(require_ws_guest)] = ...,
-) -> TagOut:
-    tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    count = await TagDAO.usage_count(db, tag.id, workspace_id)
-    return TagOut(slug=tag.slug, name=tag.name, count=count)
-
-
-@router.put("/{slug}", response_model=TagOut, summary="Update tag")
-async def update_tag(
-    workspace_id: UUID,
-    slug: str,
-    body: TagUpdate,
-    _: Annotated[object, Depends(require_ws_editor)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
-) -> TagOut:
-    tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    if body.name is not None:
-        tag.name = body.name
-    if body.hidden is not None:
-        tag.is_hidden = body.hidden
-    db.add(tag)
-    await db.flush()
-    count = await TagDAO.usage_count(db, tag.id, workspace_id)
-    return TagOut(slug=tag.slug, name=tag.name, count=count)
-
-
-@router.delete("/{slug}", summary="Delete tag")
-async def delete_tag(
-    workspace_id: UUID,
-    slug: str,
-    _: Annotated[object, Depends(require_ws_editor)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
-):
-    tag = await TagDAO.get_by_slug(db, workspace_id=workspace_id, slug=slug)
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    await TagDAO.detach_all(db, tag.id, workspace_id)
-    await TagDAO.delete(db, tag)
-    return {"ok": True}

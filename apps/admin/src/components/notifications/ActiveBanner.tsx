@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { listNotifications, type NotificationItem } from "../../api/notifications";
+import { useQuery } from '@tanstack/react-query';
+
+import { listNotifications, type NotificationItem } from '../../api/notifications';
 
 export default function ActiveBanner() {
   const { data } = useQuery({
-    queryKey: ["active-banner"],
-    queryFn: () => listNotifications(undefined, "banner"),
+    queryKey: ['active-banner'],
+    queryFn: () => listNotifications(undefined, 'banner'),
     refetchInterval: 30000,
   });
 

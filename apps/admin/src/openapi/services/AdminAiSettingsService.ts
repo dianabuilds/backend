@@ -6,40 +6,40 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AdminAiSettingsService {
-    /**
-     * Get Settings
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static getSettingsAdminAiSettingsGet(): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/admin/ai/settings',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-            },
-        });
-    }
-    /**
-     * Put Settings
-     * @param requestBody
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static putSettingsAdminAiSettingsPut(
-        requestBody: Record<string, any>,
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'PUT',
-            url: '/admin/ai/settings',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                401: `Unauthorized`,
-                403: `Forbidden`,
-                422: `Validation Error`,
-            },
-        });
-    }
+  /**
+   * Get Settings
+   * @returns any Successful Response
+   * @throws ApiError
+   */
+  public static getSettingsAdminAiSettingsGet(): CancelablePromise<Record<string, any>> {
+    return __request(OpenAPI, {
+      method: 'GET',
+      url: '/admin/ai/settings',
+      errors: {
+        401: `Unauthorized`,
+        403: `Forbidden`,
+      },
+    });
+  }
+  /**
+   * Put Settings
+   * @param requestBody
+   * @returns any Successful Response
+   * @throws ApiError
+   */
+  public static putSettingsAdminAiSettingsPut(
+    requestBody: Record<string, any>,
+  ): CancelablePromise<Record<string, any>> {
+    return __request(OpenAPI, {
+      method: 'PUT',
+      url: '/admin/ai/settings',
+      body: requestBody,
+      mediaType: 'application/json',
+      errors: {
+        401: `Unauthorized`,
+        403: `Forbidden`,
+        422: `Validation Error`,
+      },
+    });
+  }
 }

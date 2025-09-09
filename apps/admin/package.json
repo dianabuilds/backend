@@ -11,7 +11,7 @@
     "build:start": "npm run build && npm run start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prettier:check": "prettier --check .",
+    "prettier:check": "prettier --check . --write",
     "typecheck": "tsc --noEmit",
     "lint-staged": "lint-staged",
     "preview": "vite preview",

@@ -1,17 +1,15 @@
 // @ts-nocheck
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-
-import { api } from "../api/client";
-
-import NodeEditorModal from "../components/NodeEditorModal";
-import { useToast } from "../components/ToastProvider";
+import { api } from '../api/client';
+import NodeEditorModal from '../components/NodeEditorModal';
+import { useToast } from '../components/ToastProvider';
 
 type Id = string;
 
 interface LocalNode {
-  id: Id;            // локальный временный id
+  id: Id; // локальный временный id
   backendId?: string; // id ноды на сервере, если создана
   title: string;
   subtitle?: string;
@@ -19,7 +17,7 @@ interface LocalNode {
   tags?: string[];
   allow_comments?: boolean;
   is_premium_only?: boolean;
-  contentData: any;  // Editor.js data
+  contentData: any; // Editor.js data
   x: number;
   y: number;
   width: number;
@@ -29,7 +27,7 @@ interface LocalNode {
 interface Edge {
   id: Id;
   from: Id; // local node id
-  to: Id;   // local node id
+  to: Id; // local node id
 }
 
 function uuid() {
@@ -43,15 +41,14 @@ function clamp(n: number, min: number, max: number) {
 export default function QuestEditor() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-    // Account selection removed; editor works without accounts
-const [title, setTitle] = useState("");
-  const [subtitle, setSubtitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
-  const [price, setPrice] = useState<string>("");
+  const [title, setTitle] = useState('');
+  const [subtitle, setSubtitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [tags, setTags] = useState('');
+  const [price, setPrice] = useState<string>('');
   const [premiumOnly, setPremiumOnly] = useState(false);
   const [allowComments, setAllowComments] = useState(true);
-  const [entryNodeLocalId, setEntryNodeLocalId] = useState<Id | "">("");
+  const [entryNodeLocalId, setEntryNodeLocalId] = useState<Id | ''>('');
 
   // Граф
   const [nodes, setNodes] = useState<LocalNode[]>([]);
@@ -75,13 +72,17 @@ const [title, setTitle] = useState("");
       ...prev,
       {
         id,
-        title: "New node",
-        subtitle: "",
+        title: 'New node',
+        subtitle: '',
         coverUrl: null,
         tags: [],
         allow_comments: true,
         is_premium_only: false,
-        contentData: { time: Date.now(), blocks: [{ type: "paragraph", data: { text: "" } }], version: "2.30.7" },
+        contentData: {
+          time: Date.now(),
+          blocks: [{ type: 'paragraph', data: { text: '' } }],
+          version: '2.30.7',
+        },
         x: 80 + (prev.length % 5) * 140,
         y: 80 + Math.floor(prev.length / 5) * 140,
         width: 260,
@@ -93,8 +94,8 @@ const [title, setTitle] = useState("");
 
   const addNodeAndEdit = () => {
     const id = addNode();
-    setSelected(id);     // просто подсветить
-    setEditingId(id);    // открыть модалку редактирования
+    setSelected(id); // просто подсветить
+    setEditingId(id); // открыть модалку редактирования
     return id;
   };
 
@@ -117,7 +118,9 @@ const [title, setTitle] = useState("");
       return;
     }
     const id = `${pendingFrom}->${toId}`;
-    setEdges((prev) => (prev.some((e) => e.id === id) ? prev : [...prev, { id, from: pendingFrom, to: toId }]));
+    setEdges((prev) =>
+      prev.some((e) => e.id === id) ? prev : [...prev, { id, from: pendingFrom, to: toId }],
+    );
     setConnectMode(false);
     setPendingFrom(null);
   };
@@ -135,37 +138,34 @@ const [title, setTitle] = useState("");
     setSelected(nodeId);
   };
 
-  const onMouseMove = useCallback(
-    (e: MouseEvent) => {
-      const rect = canvasRef.current?.getBoundingClientRect();
-      const scrollLeft = canvasRef.current?.scrollLeft ?? 0;
-      const scrollTop = canvasRef.current?.scrollTop ?? 0;
-      // Координаты курсора в системе координат холста с учётом прокрутки
-      const cx = e.clientX - (rect?.left ?? 0) + scrollLeft;
-      const cy = e.clientY - (rect?.top ?? 0) + scrollTop;
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const scrollLeft = canvasRef.current?.scrollLeft ?? 0;
+    const scrollTop = canvasRef.current?.scrollTop ?? 0;
+    // Координаты курсора в системе координат холста с учётом прокрутки
+    const cx = e.clientX - (rect?.left ?? 0) + scrollLeft;
+    const cy = e.clientY - (rect?.top ?? 0) + scrollTop;
 
-      // Всегда сохраняем позицию курсора для превью линии
-      mousePos.current = { x: cx, y: cy };
+    // Всегда сохраняем позицию курсора для превью линии
+    mousePos.current = { x: cx, y: cy };
 
-      const st = dragState.current;
-      if (!st) return;
+    const st = dragState.current;
+    if (!st) return;
 
-      const maxX = (rect?.width ?? 0) - 40 + scrollLeft;
-      const maxY = (rect?.height ?? 0) - 40 + scrollTop;
-      setNodes((prev) =>
-        prev.map((n) =>
-          n.id === st.id
-            ? {
-                ...n,
-                x: clamp(cx - st.dx, 0, maxX),
-                y: clamp(cy - st.dy, 0, maxY),
-              }
-            : n,
-        ),
-      );
-    },
-    [],
-  );
+    const maxX = (rect?.width ?? 0) - 40 + scrollLeft;
+    const maxY = (rect?.height ?? 0) - 40 + scrollTop;
+    setNodes((prev) =>
+      prev.map((n) =>
+        n.id === st.id
+          ? {
+              ...n,
+              x: clamp(cx - st.dx, 0, maxX),
+              y: clamp(cy - st.dy, 0, maxY),
+            }
+          : n,
+      ),
+    );
+  }, []);
 
   const onMouseUp = useCallback(() => {
     dragState.current = null;
@@ -182,18 +182,20 @@ const [title, setTitle] = useState("");
       );
       if (target && target.id !== from) {
         const id = `${from}->${target.id}`;
-        setEdges((prev) => (prev.some((e) => e.id === id) ? prev : [...prev, { id, from, to: target.id }]));
+        setEdges((prev) =>
+          prev.some((e) => e.id === id) ? prev : [...prev, { id, from, to: target.id }],
+        );
       }
       linkingFrom.current = null;
     }
   }, [nodes]);
 
   useEffect(() => {
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
     return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
     };
   }, [onMouseMove, onMouseUp]);
 
@@ -213,30 +215,43 @@ const [title, setTitle] = useState("");
       const pending = nodes.filter((n) => !n.backendId);
       for (const n of pending) {
         // Старательно отправляем несколько возможных полей контента, чтобы согласоваться с бэком
-        const payload: Record<string, any> = {
+        const payload: Record<string, unknown> = {
           title: n.title,
           content: n.contentData,
-        } as Record<string, any>;
+        } as Record<string, unknown>;
         const blocks = Array.isArray(n.contentData?.blocks) ? n.contentData.blocks : [];
         const media = blocks
-          .filter((b: any) => b.type === "image" && b.data?.file?.url)
-          .map((b: any) => String(b.data.file.url));
+          .filter(
+            (b) =>
+              b &&
+              typeof b === 'object' &&
+              (b as { type?: string }).type === 'image' &&
+              (b as { data?: { file?: { url?: string } } }).data?.file?.url,
+          )
+          .map((b) => String((b as { data: { file: { url: string } } }).data.file.url));
         if (media.length) payload.media = media;
         if (n.coverUrl || media.length) payload.coverUrl = n.coverUrl || media[0];
-        const res = await api.post("/nodes", payload);
-        const created = (res.data || {}) as any;
-        const backendId = created.id || created.node_id || created.uuid || created.slug || created._id;
+        const res = await api.post('/nodes', payload);
+        const created = (res.data || {}) as Record<string, unknown>;
+        const backendId =
+          (created.id as string | undefined) ||
+          (created.node_id as string | undefined) ||
+          (created.uuid as string | undefined) ||
+          (created.slug as string | undefined) ||
+          (created._id as string | undefined);
         if (!backendId) {
-          throw new Error("Node creation failed: no id in response");
+          throw new Error('Node creation failed: no id in response');
         }
-        setNodes((prev) => prev.map((x) => (x.id === n.id ? { ...x, backendId: String(backendId) } : x)));
+        setNodes((prev) =>
+          prev.map((x) => (x.id === n.id ? { ...x, backendId: String(backendId) } : x)),
+        );
       }
-      addToast({ title: "Nodes created", variant: "success" });
+      addToast({ title: 'Nodes created', variant: 'success' });
     } catch (e) {
       addToast({
-        title: "Failed to create nodes",
+        title: 'Failed to create nodes',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     } finally {
       setBusy(false);
@@ -246,7 +261,7 @@ const [title, setTitle] = useState("");
   // Сохранение квеста: сначала убеждаемся, что все ноды имеют backendId
   const saveQuest = async () => {
     if (!title.trim()) {
-      addToast({ title: "Title is required", variant: "error" });
+      addToast({ title: 'Title is required', variant: 'error' });
       return;
     }
     // Если есть ноды без backendId — создадим их автоматически
@@ -261,7 +276,11 @@ const [title, setTitle] = useState("");
       // перепроверяем
       missing = nodes.filter((n) => !n.backendId);
       if (missing.length > 0) {
-        addToast({ title: "Failed to create nodes", description: "Some nodes were not created", variant: "error" });
+        addToast({
+          title: 'Failed to create nodes',
+          description: 'Some nodes were not created',
+          variant: 'error',
+        });
         return;
       }
     }
@@ -275,31 +294,38 @@ const [title, setTitle] = useState("");
         const to = nodes.find((n) => n.id === e.to)?.backendId!;
         if (!from || !to) return;
         if (!transitions[from]) transitions[from] = {};
-        transitions[from][to] = { type: "manual" };
+        transitions[from][to] = { type: 'manual' };
       });
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         title,
         subtitle: subtitle || null,
         description: description || null,
-        tags: tags ? tags.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        tags: tags
+          ? tags
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
         price: price ? Number(price) : null,
         is_premium_only: premiumOnly,
         allow_comments: allowComments,
-        entry_node_id: entryNodeLocalId ? nodes.find((n) => n.id === entryNodeLocalId)?.backendId || null : null,
+        entry_node_id: entryNodeLocalId
+          ? nodes.find((n) => n.id === entryNodeLocalId)?.backendId || null
+          : null,
         nodes: nodesIds,
         custom_transitions: transitions,
       };
 
-      const res = await api.post("/quests", payload);
-      const created = res.data as any;
-      addToast({ title: "Quest saved", description: created?.title || "", variant: "success" });
-      navigate("/quests");
+      const res = await api.post('/quests', payload);
+      const created = res.data as Record<string, unknown> | undefined;
+      addToast({ title: 'Quest saved', description: created?.title || '', variant: 'success' });
+      navigate('/quests');
     } catch (e) {
       addToast({
-        title: "Failed to save quest",
+        title: 'Failed to save quest',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     } finally {
       setBusy(false);
@@ -314,37 +340,71 @@ const [title, setTitle] = useState("");
         <div className="space-y-2">
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Title</label>
-            <input className="border rounded px-2 py-1" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <input
+              className="border rounded px-2 py-1"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </div>
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Subtitle</label>
-            <input className="border rounded px-2 py-1" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
+            <input
+              className="border rounded px-2 py-1"
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+            />
           </div>
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Description</label>
-            <textarea className="border rounded px-2 py-1" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+            <textarea
+              className="border rounded px-2 py-1"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Tags (comma)</label>
-            <input className="border rounded px-2 py-1" value={tags} onChange={(e) => setTags(e.target.value)} />
+            <input
+              className="border rounded px-2 py-1"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+            />
           </div>
           <div className="flex gap-2">
             <div className="flex-1 flex flex-col">
               <label className="text-sm text-gray-600">Price</label>
-              <input className="border rounded px-2 py-1" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0 for free" />
+              <input
+                className="border rounded px-2 py-1"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="0 for free"
+              />
             </div>
             <label className="flex items-center gap-2 mt-6">
-              <input type="checkbox" checked={premiumOnly} onChange={(e) => setPremiumOnly(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={premiumOnly}
+                onChange={(e) => setPremiumOnly(e.target.checked)}
+              />
               <span className="text-sm">Premium</span>
             </label>
           </div>
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={allowComments} onChange={(e) => setAllowComments(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={allowComments}
+              onChange={(e) => setAllowComments(e.target.checked)}
+            />
             <span className="text-sm">Allow comments</span>
           </label>
           <div className="flex flex-col">
             <label className="text-sm text-gray-600">Entry node</label>
-            <select className="border rounded px-2 py-1" value={entryNodeLocalId} onChange={(e) => setEntryNodeLocalId(e.target.value as Id)}>
+            <select
+              className="border rounded px-2 py-1"
+              value={entryNodeLocalId}
+              onChange={(e) => setEntryNodeLocalId(e.target.value as Id)}
+            >
               <option value="">—</option>
               {nodes.map((n) => (
                 <option key={n.id} value={n.id}>
@@ -355,18 +415,33 @@ const [title, setTitle] = useState("");
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2">
-            <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700" onClick={addNodeAndEdit}>Add node</button>
+            <button
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700"
+              onClick={addNodeAndEdit}
+            >
+              Add node
+            </button>
             {/* Кнопки создания узлов/переходов скрыты: всё произойдёт автоматически при сохранении */}
-            <button className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-60" onClick={saveQuest} disabled={busy}>
+            <button
+              className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-60"
+              onClick={saveQuest}
+              disabled={busy}
+            >
               Save quest
             </button>
-            <button className="px-3 py-1 rounded border" onClick={() => navigate("/quests")}>Back</button>
+            <button className="px-3 py-1 rounded border" onClick={() => navigate('/quests')}>
+              Back
+            </button>
           </div>
         </div>
       </div>
 
       {/* Холст */}
-      <div className="relative flex-1 overflow-auto border rounded" ref={canvasRef} style={{ minHeight: 600 }}>
+      <div
+        className="relative flex-1 overflow-auto border rounded"
+        ref={canvasRef}
+        style={{ minHeight: 600 }}
+      >
         {/* Рёбра */}
         <svg ref={svgRef} className="absolute inset-0 w-full h-full pointer-events-none">
           {edges.map((e) => {
@@ -376,11 +451,27 @@ const [title, setTitle] = useState("");
             return (
               <g key={e.id}>
                 <defs>
-                  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <marker
+                    id="arrow"
+                    viewBox="0 0 10 10"
+                    refX="8"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
+                  >
                     <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
                   </marker>
                 </defs>
-                <line x1={from.cx} y1={from.cy} x2={to.cx} y2={to.cy} stroke="#64748b" strokeWidth="2" markerEnd="url(#arrow)" />
+                <line
+                  x1={from.cx}
+                  y1={from.cy}
+                  x2={to.cx}
+                  y2={to.cy}
+                  stroke="#64748b"
+                  strokeWidth="2"
+                  markerEnd="url(#arrow)"
+                />
                 {/* Кнопка удаления ребра по центру */}
                 <circle
                   cx={(from.cx + to.cx) / 2}
@@ -396,28 +487,29 @@ const [title, setTitle] = useState("");
           })}
 
           {/* Превью линии во время перетаскивания связи */}
-          {linkingFrom.current && (() => {
-            const from = nodeCenters[linkingFrom.current!];
-            if (!from) return null;
-            return (
-              <line
-                x1={from.cx}
-                y1={from.cy}
-                x2={mousePos.current.x}
-                y2={mousePos.current.y}
-                stroke="#94a3b8"
-                strokeWidth="2"
-                strokeDasharray="4 4"
-              />
-            );
-          })()}
+          {linkingFrom.current &&
+            (() => {
+              const from = nodeCenters[linkingFrom.current!];
+              if (!from) return null;
+              return (
+                <line
+                  x1={from.cx}
+                  y1={from.cy}
+                  x2={mousePos.current.x}
+                  y2={mousePos.current.y}
+                  stroke="#94a3b8"
+                  strokeWidth="2"
+                  strokeDasharray="4 4"
+                />
+              );
+            })()}
         </svg>
 
         {/* Ноды */}
         {nodes.map((n) => (
           <div
             key={n.id}
-            className={`absolute rounded shadow border bg-white dark:bg-gray-900 ${selected === n.id ? "ring-2 ring-blue-500" : ""}`}
+            className={`absolute rounded shadow border bg-white dark:bg-gray-900 ${selected === n.id ? 'ring-2 ring-blue-500' : ''}`}
             style={{ left: n.x, top: n.y, width: n.width, height: n.height }}
             onClick={(e) => {
               e.stopPropagation();
@@ -436,9 +528,13 @@ const [title, setTitle] = useState("");
               <input
                 className="bg-transparent outline-none w-full"
                 value={n.title}
-                onChange={(e) => setNodes((prev) => prev.map((x) => (x.id === n.id ? { ...x, title: e.target.value } : x)))}
-                onCommit={(act: "save" | "next") => {
-                  if (act === "next") {
+                onChange={(e) =>
+                  setNodes((prev) =>
+                    prev.map((x) => (x.id === n.id ? { ...x, title: e.target.value } : x)),
+                  )
+                }
+                onCommit={(act: 'save' | 'next') => {
+                  if (act === 'next') {
                     addNodeAndEdit();
                   } else {
                     setSelected(null);
@@ -446,25 +542,25 @@ const [title, setTitle] = useState("");
                 }}
               />
               <div className="ml-2 flex items-center gap-1">
-                  {/* Хэндл для связывания: тянем из этой ноды на другую */}
-                  <button
-                    title="Drag to connect"
-                    className="w-4 h-4 rounded-full bg-blue-500 hover:bg-blue-600 cursor-crosshair"
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      linkingFrom.current = n.id;
-                      // стартовая точка — центр ноды
-                      const c = nodeCenters[n.id];
-                      if (c) mousePos.current = { x: c.cx, y: c.cy };
-                    }}
-                  />
+                {/* Хэндл для связывания: тянем из этой ноды на другую */}
                 <button
-                    type="button"
-                    className="text-xs px-2 py-0.5 rounded border"
-                    onMouseDown={(e) => {
-                      // не даём заголовку карточки поймать mousedown и начать drag
-                      e.stopPropagation();
-                    }}
+                  title="Drag to connect"
+                  className="w-4 h-4 rounded-full bg-blue-500 hover:bg-blue-600 cursor-crosshair"
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    linkingFrom.current = n.id;
+                    // стартовая точка — центр ноды
+                    const c = nodeCenters[n.id];
+                    if (c) mousePos.current = { x: c.cx, y: c.cy };
+                  }}
+                />
+                <button
+                  type="button"
+                  className="text-xs px-2 py-0.5 rounded border"
+                  onMouseDown={(e) => {
+                    // не даём заголовку карточки поймать mousedown и начать drag
+                    e.stopPropagation();
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelected(n.id); // Expand
@@ -485,29 +581,37 @@ const [title, setTitle] = useState("");
             </div>
             <div className="p-2 h-[calc(100%-32px)] text-sm text-gray-600 overflow-hidden">
               {n.coverUrl && (
-                <img src={n.coverUrl} alt="" className="w-full h-24 object-cover rounded mb-2 border" />
+                <img
+                  src={n.coverUrl}
+                  alt=""
+                  className="w-full h-24 object-cover rounded mb-2 border"
+                />
               )}
               <div
                 style={{
-                  display: "-webkit-box",
+                  display: '-webkit-box',
                   WebkitLineClamp: 3,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  wordBreak: "break-word",
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  wordBreak: 'break-word',
                 }}
               >
                 {(() => {
                   const blocks = Array.isArray(n.contentData?.blocks) ? n.contentData.blocks : [];
                   const text = blocks
-                    .map((b: any) => (b?.data?.text || ""))
+                    .map((b: any) => b?.data?.text || '')
                     .filter(Boolean)
-                    .join(" ")
-                    .replace(/<[^>]*>/g, "") // убрать HTML-теги
+                    .join(' ')
+                    .replace(/<[^>]*>/g, '') // убрать HTML-теги
                     .trim();
-                  return text || "No content yet. Click Expand to edit.";
+                  return text || 'No content yet. Click Expand to edit.';
                 })()}
               </div>
-              {n.backendId && <div className="absolute right-2 bottom-2 text-[10px] text-gray-500">id: {n.backendId}</div>}
+              {n.backendId && (
+                <div className="absolute right-2 bottom-2 text-[10px] text-gray-500">
+                  id: {n.backendId}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -522,7 +626,7 @@ const [title, setTitle] = useState("");
                   return {
                     id: n.id,
                     title: n.title,
-                    subtitle: n.subtitle || "",
+                    subtitle: n.subtitle || '',
                     coverUrl: n.coverUrl || null,
                     tags: n.tags || [],
                     allow_comments: n.allow_comments ?? true,
@@ -552,8 +656,8 @@ const [title, setTitle] = useState("");
             );
           }}
           onClose={() => setEditingId(null)}
-          onCommit={(act: "save" | "next") => {
-            if (act === "next") {
+          onCommit={(act: 'save' | 'next') => {
+            if (act === 'next') {
               addNodeAndEdit(); // открыть редактор следующей ноды
             } else {
               setEditingId(null);
@@ -564,4 +668,3 @@ const [title, setTitle] = useState("");
     </div>
   );
 }
-

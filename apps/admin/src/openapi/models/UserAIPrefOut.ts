@@ -3,6 +3,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export type UserAIPrefOut = {
-    model?: (string | null);
+  model?: string | null;
 };
-

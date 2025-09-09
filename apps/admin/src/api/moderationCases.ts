@@ -1,5 +1,5 @@
-import { api } from "./client";
-import type { Page } from "./types";
+import { api } from './client';
+import type { Page } from './types';
 
 export interface CaseListItem {
   id: string;
@@ -38,23 +38,19 @@ export interface CasePatchIn {
   due_at?: string;
 }
 
-export async function listCases(
-  params: Record<string, unknown> = {},
-): Promise<Page<CaseListItem>> {
+export async function listCases(params: Record<string, unknown> = {}): Promise<Page<CaseListItem>> {
   const qs = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
+    if (v === undefined || v === null || v === '') return;
     if (Array.isArray(v)) v.forEach((x) => qs.append(k, String(x)));
     else qs.set(k, String(v));
   });
-  const res = await api.get<Page<CaseListItem>>(
-    `/admin/moderation/cases?${qs.toString()}`,
-  );
+  const res = await api.get<Page<CaseListItem>>(`/admin/moderation/cases?${qs.toString()}`);
   return res.data!;
 }
 
 export async function createCase(data: CaseCreateIn): Promise<string> {
-  const res = await api.post<{ id: string }>("/admin/moderation/cases", data);
+  const res = await api.post<{ id: string }>('/admin/moderation/cases', data);
   return res.data!.id;
 }
 
@@ -69,15 +65,11 @@ export interface CaseNote {
   text: string;
   internal: boolean;
 }
-export async function addNote(
-  caseId: string,
-  text: string,
-  internal = true,
-): Promise<CaseNote> {
-  const res = await api.post<CaseNote>(
-    `/admin/moderation/cases/${caseId}/notes`,
-    { text, internal },
-  );
+export async function addNote(caseId: string, text: string, internal = true): Promise<CaseNote> {
+  const res = await api.post<CaseNote>(`/admin/moderation/cases/${caseId}/notes`, {
+    text,
+    internal,
+  });
   return res.data!;
 }
 
@@ -124,7 +116,7 @@ export async function getCaseFull(id: string): Promise<CaseFullResponse> {
 
 export async function closeCase(
   id: string,
-  resolution: "resolved" | "rejected",
+  resolution: 'resolved' | 'rejected',
   reason_code?: string,
   reason_text?: string,
 ): Promise<void> {
@@ -140,10 +132,7 @@ export interface CaseLabelsPatch {
   remove?: string[];
 }
 
-export async function patchLabels(
-  id: string,
-  patch: CaseLabelsPatch,
-): Promise<void> {
+export async function patchLabels(id: string, patch: CaseLabelsPatch): Promise<void> {
   await api.patch(`/admin/moderation/cases/${id}/labels`, patch);
 }
 
@@ -153,9 +142,6 @@ export interface CaseAttachmentCreate {
   media_type?: string;
 }
 
-export async function addAttachment(
-  id: string,
-  data: CaseAttachmentCreate,
-): Promise<void> {
+export async function addAttachment(id: string, data: CaseAttachmentCreate): Promise<void> {
   await api.post(`/admin/moderation/cases/${id}/attachments`, data);
 }

@@ -45,35 +45,6 @@ admin_required = require_admin_role()
 
 navcache = NavigationCacheService(CoreCacheAdapter())
 navsvc = NavigationService()
-
-
-def _resolve_workspace_id(user) -> UUID | None:
-    """Return user's workspace/account id when present, else None for personal mode.
-
-    Personal mode allows the admin editor to operate on profile-scoped content
-    without requiring any workspace/account. NodeService and DAO already
-    tolerate ``workspace_id=None``.
-    """
-    # Use profile default workspace when present; accounts are optional now
-    wid = getattr(user, "default_workspace_id", None)
-    if not wid:
-        return None
-
-
-def _require_workspace(account_id: UUID | None) -> UUID:
-    """Ensure a workspace/account is present for content-admin endpoints.
-
-    These alias endpoints operate on content items/jobs which are workspace-scoped.
-    Use personal nodes endpoints (/users/me/nodes) for profile mode.
-    """
-    if account_id is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Workspace/account is required for this admin endpoint",
-        )
-    return account_id
-
-
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin, alias)")
 async def list_nodes_admin_alias(
     if_none_match: Annotated[str | None, Header(alias="If-None-Match")] = None,
@@ -98,9 +69,9 @@ async def list_nodes_admin_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _resolve_workspace_id(current_user)
+    account_id = None
     if scope_mode is None:
-        scope_mode = "mine" if account_id is None else "member"
+        scope_mode = "mine"
     spec = NodeFilterSpec(
         author_id=author,
         is_visible=visible,
@@ -115,8 +86,8 @@ async def list_nodes_admin_alias(
     ctx = QueryContext(user=current_user, is_admin=True)
     svc = NodeQueryService(db)
     page = PageRequest(limit=limit, offset=offset)
-    etag = await svc.compute_nodes_etag(spec, ctx, page, scope_mode=scope_mode, account_id=account_id)
-    nodes = await svc.list_nodes(spec, page, ctx, scope_mode=scope_mode, account_id=account_id)
+    etag = await svc.compute_nodes_etag(spec, ctx, page, scope_mode=scope_mode)
+    nodes = await svc.list_nodes(spec, page, ctx, scope_mode=scope_mode)
     # We intentionally don't set the ETag header here since FastAPI response isn't passed in; the
     # generated OpenAPI types still work without it. Client-side cache can be layered later.
     return nodes
@@ -128,17 +99,15 @@ async def create_node_admin_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _require_workspace(_resolve_workspace_id(current_user))
     svc = NodeService(db)
-    item = await svc.create(account_id, actor_id=current_user.id)
+    item = await svc.create_personal(actor_id=current_user.id)
     if payload:
         try:
-            item = await svc.update(account_id, item.id, payload, actor_id=current_user.id)
+            item = await svc.update_personal(item.id, payload, actor_id=current_user.id)
         except Exception:
             pass
     return {
         "id": item.id,
-        "workspace_id": str(item.workspace_id),
         "slug": item.slug,
         "title": item.title,
         "summary": item.summary,
@@ -152,19 +121,7 @@ async def bulk_node_operation_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _resolve_workspace_id(current_user)
-    if account_id is None:
-        # personal mode: select nodes by author (current user)
-        result = await db.execute(select(Node).where(Node.id.in_(payload.ids), Node.author_id == current_user.id))
-    else:
-        # workspace mode: join via NodeItem to scope by workspace
-        from app.domains.nodes.models import NodeItem
-
-        result = await db.execute(
-            select(Node)
-            .join(NodeItem, NodeItem.node_id == Node.id)
-            .where(Node.id.in_(payload.ids), NodeItem.workspace_id == account_id)
-        )
+    result = await db.execute(select(Node).where(Node.id.in_(payload.ids), Node.author_id == current_user.id))
     nodes = list(result.scalars().all())
     updated_ids: list[int] = []
     deleted_ids: list[int] = []
@@ -200,21 +157,11 @@ async def bulk_node_operation_alias(
             await navsvc.invalidate_navigation_cache(db, node)
     await db.commit()
     for nid in updated_ids:
-        # We don't know slugs for all; best-effort cache invalidation:
         try:
-            node = await db.get(Node, nid)
-            if not node:
-                continue
-            if account_id is None:
-                await navcache.invalidate_navigation_by_user(current_user.id)
-                await navcache.invalidate_compass_by_user(current_user.id)
-            elif node.slug:
-                await navcache.invalidate_navigation_by_node(account_id=account_id, node_slug=node.slug)
-                await navcache.invalidate_modes_by_node(account_id=account_id, node_slug=node.slug)
+            await navcache.invalidate_navigation_by_user(current_user.id)
+            await navcache.invalidate_compass_by_user(current_user.id)
         except Exception:
             pass
-    if updated_ids and account_id is not None:
-        await navcache.invalidate_compass_all()
     return {"updated": updated_ids, "deleted": deleted_ids}
 
 
@@ -224,26 +171,17 @@ async def delete_node_admin_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _resolve_workspace_id(current_user)
     repo = NodeRepository(db)
-    if account_id is None:
-        node = await repo.get_by_id_simple(id)
-        if not node or node.author_id != current_user.id:
-            raise HTTPException(status_code=404, detail="Node not found")
-    else:
-        node = await repo.get_by_id(id, account_id)
+    node = await repo.get_by_id_simple(id)
+    if not node or node.author_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Node not found")
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     await db.delete(node)
     await db.commit()
     try:
-        if account_id is None:
-            await navcache.invalidate_navigation_by_user(current_user.id)
-            await navcache.invalidate_compass_by_user(current_user.id)
-        else:
-            await navcache.invalidate_navigation_by_node(account_id=account_id, node_slug=node.slug)
-            await navcache.invalidate_modes_by_node(account_id=account_id, node_slug=node.slug)
-            await navcache.invalidate_compass_all()
+        await navcache.invalidate_navigation_by_user(current_user.id)
+        await navcache.invalidate_compass_by_user(current_user.id)
     except Exception:
         pass
     return {"deleted": True}
@@ -262,10 +200,9 @@ async def get_node_item_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _require_workspace(_resolve_workspace_id(current_user))
-    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
+    node_item = await _resolve_content_item_id(db, node_or_item_id=node_id)
     svc = NodeService(db)
-    item = await svc.get(account_id, node_item.id)
+    item = await svc.get(node_item.id)
     node = await db.scalar(select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags)))
     return _serialize(item, node)
 
@@ -278,10 +215,9 @@ async def update_node_item_alias(
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _require_workspace(_resolve_workspace_id(current_user))
-    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
+    node_item = await _resolve_content_item_id(db, node_or_item_id=node_id)
     svc = NodeService(db)
-    item = await svc.update(account_id, node_item.id, payload, actor_id=current_user.id)
+    item = await svc.update_personal(node_item.id, payload, actor_id=current_user.id)
     if next:
         try:
             from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
@@ -300,11 +236,9 @@ async def publish_node_item_alias(
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _require_workspace(_resolve_workspace_id(current_user))
-    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
+    node_item = await _resolve_content_item_id(db, node_or_item_id=node_id)
     svc = NodeService(db)
-    item = await svc.publish(
-        account_id,
+    item = await svc.publish_personal(
         node_item.id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
@@ -312,12 +246,7 @@ async def publish_node_item_alias(
     )
     from app.domains.nodes.service import publish_content
 
-    await publish_content(
-        node_id=item.id,
-        slug=item.slug,
-        author_id=current_user.id,
-        workspace_id=account_id,
-    )
+    await publish_content(node_id=item.id, slug=item.slug, author_id=current_user.id)
     node = await db.scalar(select(Node).where(Node.id == item.node_id))
     return _serialize(item, node)
 
@@ -328,15 +257,8 @@ async def get_publish_info_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _require_workspace(_resolve_workspace_id(current_user))
-    item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=id)
-    res = await db.execute(
-        select(NodePublishJob).where(
-            NodePublishJob.workspace_id == account_id,
-            NodePublishJob.node_id == id,
-            NodePublishJob.status == "pending",
-        )
-    )
+    item = await _resolve_content_item_id(db, node_or_item_id=id)
+    res = await db.execute(select(NodePublishJob).where(NodePublishJob.node_id == id, NodePublishJob.status == "pending"))
     job = res.scalar_one_or_none()
     status = item.status.value if hasattr(item.status, "value") else str(item.status)
     payload: dict = {
@@ -365,20 +287,13 @@ async def schedule_publish_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _require_workspace(_resolve_workspace_id(current_user))
-    item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=id)
-    res = await db.execute(
-        select(NodePublishJob).where(
-            NodePublishJob.workspace_id == account_id,
-            NodePublishJob.node_id == id,
-            NodePublishJob.status == "pending",
-        )
-    )
+    item = await _resolve_content_item_id(db, node_or_item_id=id)
+    res = await db.execute(select(NodePublishJob).where(NodePublishJob.node_id == id, NodePublishJob.status == "pending"))
     existing = res.scalar_one_or_none()
     if existing:
         existing.status = "canceled"
     job = NodePublishJob(
-        workspace_id=account_id,
+        
         node_id=id,
         content_id=item.id,
         access=payload.access,
@@ -403,14 +318,7 @@ async def cancel_scheduled_publish_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _require_workspace(_resolve_workspace_id(current_user))
-    res = await db.execute(
-        select(NodePublishJob).where(
-            NodePublishJob.workspace_id == account_id,
-            NodePublishJob.node_id == id,
-            NodePublishJob.status == "pending",
-        )
-    )
+    res = await db.execute(select(NodePublishJob).where(NodePublishJob.node_id == id, NodePublishJob.status == "pending"))
     job = res.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Publish job not found")
@@ -426,10 +334,10 @@ async def rollback_version_alias(
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = _require_workspace(_resolve_workspace_id(current_user))
     repo = NodeRepository(db)
-    node = await repo.get_by_id(id, account_id)
-    if not node:
+    node = await repo.get_by_id_simple(id)
+    if not node or node.author_id != current_user.id:
         raise HTTPException(status_code=404, detail="Node not found")
     node = await repo.rollback(node, version, current_user.id)
     return NodeOut.model_validate(node)
+

@@ -7,14 +7,14 @@ from sqlalchemy import Select
 
 
 def apply_scope(
-    query: Select,
-    user: Any,
-    scope_mode: str | None,
-    account_id: int | None,  # kept for signature compatibility; ignored
+        query: Select,
+        user: Any,
+        scope_mode: str | None,
+        account_id: int | None,  # kept for signature compatibility; ignored
 ) -> tuple[Select, int | None]:
     """Apply profile-centric scoping to a SQLAlchemy query.
 
-    This replaces legacy workspace/account scoping. Supported modes:
+    Profile-centric scoping. Supported modes:
     - mine: filter by current user's authored content
     - global: no author filter; visibility is handled by caller
     Other modes are accepted for compatibility but behave like "mine".

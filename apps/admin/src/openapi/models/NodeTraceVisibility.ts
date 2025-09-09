@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export enum NodeTraceVisibility {
-    PUBLIC = 'public',
-    PRIVATE = 'private',
-    SYSTEM = 'system',
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+  SYSTEM = 'system',
 }

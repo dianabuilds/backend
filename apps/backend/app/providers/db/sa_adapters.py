@@ -181,10 +181,28 @@ class TSVector(TypeDecorator):
         return JSON()
 
 
+class STR_ID(TypeDecorator):
+    """String identifier that accepts int/UUID and stores as text.
+
+    Useful for test schemas that mix integer and UUID identifiers.
+    """
+
+    impl = types.Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        return value
+
 __all__ = [
     "UUID",
     "JSONB",
     "ARRAY",
     "VECTOR",
     "TSVector",
+    "STR_ID",
 ]

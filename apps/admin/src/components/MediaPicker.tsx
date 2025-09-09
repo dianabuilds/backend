@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { useAccount } from "../account/AccountContext";
-import { accountApi } from "../api/accountApi";
-import { addToCatalog } from "../utils/tagManager";
-import { resolveBackendUrl } from "../utils/url";
-import ImageDropzone from "./ImageDropzone";
-import TagInput from "./TagInput";
+import { useAccount } from '../account/AccountContext';
+import { accountApi } from '../api/accountApi';
+import { addToCatalog } from '../utils/tagManager';
+import { resolveBackendUrl } from '../utils/url';
+import ImageDropzone from './ImageDropzone';
+import TagInput from './TagInput';
 
 interface Props {
   value?: string | null;
@@ -31,15 +31,10 @@ interface ApiMediaAsset {
 
 let mediaCache: MediaAsset[] | null = null;
 
-export default function MediaPicker({
-  value,
-  onChange,
-  className = "",
-  height = 140,
-}: Props) {
+export default function MediaPicker({ value, onChange, className = '', height = 140 }: Props) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<MediaAsset[]>([]);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const { accountId } = useAccount();
 
@@ -51,14 +46,13 @@ export default function MediaPicker({
     }
     (async () => {
       try {
-        const data =
-          (await accountApi.get<ApiMediaAsset[]>("/admin/media", { accountId })) || [];
+        const data = (await accountApi.get<ApiMediaAsset[]>('/admin/media', { accountId })) || [];
         const mapped = data.map((d) => ({
           id: d.id,
           url: resolveBackendUrl(d.url) || d.url,
           type: d.type,
           tags: d.metadata_json?.tags ?? [],
-          name: d.metadata_json?.name ?? "",
+          name: d.metadata_json?.name ?? '',
         }));
         addToCatalog(mapped.flatMap((m: MediaAsset) => m.tags));
         mediaCache = mapped;
@@ -67,7 +61,7 @@ export default function MediaPicker({
         setItems([]);
       }
     })();
-  }, [open]);
+  }, [open, accountId]);
 
   const filteredItems = items.filter((m) => {
     const matchesQuery =
@@ -99,11 +93,7 @@ export default function MediaPicker({
                 placeholder="Search"
                 className="border px-2 py-1 rounded"
               />
-              <TagInput
-                value={filterTags}
-                onChange={setFilterTags}
-                placeholder="Filter tags"
-              />
+              <TagInput value={filterTags} onChange={setFilterTags} placeholder="Filter tags" />
             </div>
             <div className="grid grid-cols-3 gap-2">
               {filteredItems.map((m) => (

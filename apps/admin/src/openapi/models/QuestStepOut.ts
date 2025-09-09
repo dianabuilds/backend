@@ -3,13 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QuestStepOut = {
-    key: string;
-    title: string;
-    type?: string;
-    content?: (Record<string, any> | null);
-    rewards?: (Record<string, any> | null);
-    id: string;
-    questId: string;
-    order: number;
+  key: string;
+  title: string;
+  type?: string;
+  content?: Record<string, any> | null;
+  rewards?: Record<string, any> | null;
+  id: string;
+  questId: string;
+  order: number;
 };
-

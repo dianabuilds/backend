@@ -17,7 +17,6 @@ from app.domains.navigation.schemas.traces import NodeTraceCreate, NodeTraceOut
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
 from app.providers.db.session import get_db
-from app.security import require_ws_guest
 
 router = APIRouter(prefix="/traces", tags=["traces"])
 
@@ -31,9 +30,7 @@ async def create_trace(
     node = await db.get(Node, payload.node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    aid = getattr(node, "account_id", None)
-    if aid is not None:
-        await require_ws_guest(account_id=aid, user=current_user, db=db)
+    # Profile-centric: any authenticated user may create a trace
     trace = NodeTrace(
         node_id=node.id,
         user_id=current_user.id,
@@ -58,9 +55,7 @@ async def list_traces(
     node = await db.get(Node, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    aid = getattr(node, "account_id", None)
-    if aid is not None:
-        await require_ws_guest(account_id=aid, user=current_user, db=db)
+    # Profile-centric: no tenant membership check
     stmt = select(NodeTrace).where(NodeTrace.node_id == node_id)
     if visible_to == "me":
         stmt = stmt.where(

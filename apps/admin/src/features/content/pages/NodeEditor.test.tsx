@@ -42,7 +42,7 @@ describe('NodeEditorPage', () => {
         <Routes>
           <Route path="/nodes/:type/:id" element={<NodeEditorPage />} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     const sidebar = getByTestId('sidebar');
     expect(within(sidebar).getByTestId('publish-controls')).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('NodeEditorPage', () => {
         <Routes>
           <Route path="/nodes/:type/:id" element={<NodeEditorPage />} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     const sidebar = getByTestId('sidebar');
     expect(within(sidebar).getByTestId('space-selector')).toBeInTheDocument();

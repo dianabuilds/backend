@@ -15,10 +15,7 @@ describe('RumTab', () => {
   it('renders average login duration and chart uses dur_ms', async () => {
     const now = Date.now();
 
-    vi.spyOn(
-      AdminTelemetryService,
-      'rumSummaryAdminTelemetryRumSummaryGet',
-    ).mockResolvedValue({
+    vi.spyOn(AdminTelemetryService, 'rumSummaryAdminTelemetryRumSummaryGet').mockResolvedValue({
       window: 100,
       counts: {},
       login_attempt_avg_ms: 150,
@@ -44,17 +41,16 @@ describe('RumTab', () => {
   });
 
   it('requests summary with computed window', async () => {
-    vi.spyOn(
-      AdminTelemetryService,
-      'rumSummaryAdminTelemetryRumSummaryGet',
-    ).mockResolvedValue({
+    vi.spyOn(AdminTelemetryService, 'rumSummaryAdminTelemetryRumSummaryGet').mockResolvedValue({
       window: 60,
       counts: {},
       login_attempt_avg_ms: null,
       navigation_avg: { ttfb_ms: null, dom_content_loaded_ms: null, load_event_ms: null },
     } as unknown);
 
-    vi.spyOn(AdminTelemetryService, 'listRumEventsAdminTelemetryRumGet').mockResolvedValue([] as unknown as RumEvent[]);
+    vi.spyOn(AdminTelemetryService, 'listRumEventsAdminTelemetryRumGet').mockResolvedValue(
+      [] as unknown as RumEvent[],
+    );
 
     const qc = new QueryClient();
     render(
@@ -64,15 +60,14 @@ describe('RumTab', () => {
     );
 
     await waitFor(() => {
-      expect(AdminTelemetryService.rumSummaryAdminTelemetryRumSummaryGet).toHaveBeenCalledWith({ window: 60 });
+      expect(AdminTelemetryService.rumSummaryAdminTelemetryRumSummaryGet).toHaveBeenCalledWith({
+        window: 60,
+      });
     });
   });
 
   it('passes filters and pagination to API', async () => {
-    vi.spyOn(
-      AdminTelemetryService,
-      'rumSummaryAdminTelemetryRumSummaryGet',
-    ).mockResolvedValue({
+    vi.spyOn(AdminTelemetryService, 'rumSummaryAdminTelemetryRumSummaryGet').mockResolvedValue({
       window: 60,
       counts: {},
       login_attempt_avg_ms: null,
@@ -95,23 +90,16 @@ describe('RumTab', () => {
     fireEvent.change(screen.getByPlaceholderText('event'), {
       target: { value: 'login' },
     });
-    await waitFor(() =>
-      expect(spy).toHaveBeenLastCalledWith('login', undefined, 0, 50),
-    );
+    await waitFor(() => expect(spy).toHaveBeenLastCalledWith('login', undefined, 0, 50));
 
     fireEvent.click(screen.getByText('Next'));
-    await waitFor(() =>
-      expect(spy).toHaveBeenLastCalledWith('login', undefined, 50, 50),
-    );
+    await waitFor(() => expect(spy).toHaveBeenLastCalledWith('login', undefined, 50, 50));
   });
 
   it('filters events by chart click and scrolls table', async () => {
     const now = Date.now();
 
-    vi.spyOn(
-      AdminTelemetryService,
-      'rumSummaryAdminTelemetryRumSummaryGet',
-    ).mockResolvedValue({
+    vi.spyOn(AdminTelemetryService, 'rumSummaryAdminTelemetryRumSummaryGet').mockResolvedValue({
       window: 60,
       counts: {},
       login_attempt_avg_ms: null,

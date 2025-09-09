@@ -1,15 +1,15 @@
-import "@testing-library/jest-dom";
+import '@testing-library/jest-dom';
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
-import NodeSidebar from "./NodeSidebar";
+import NodeSidebar from './NodeSidebar';
 
-vi.mock("../api/flags", () => ({
+vi.mock('../api/flags', () => ({
   listFlags: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../api/nodes", () => ({
+vi.mock('../api/nodes', () => ({
   patchNode: vi.fn().mockResolvedValue({}),
   publishNode: vi.fn().mockResolvedValue({}),
   archiveNode: vi.fn().mockResolvedValue({}),
@@ -17,43 +17,42 @@ vi.mock("../api/nodes", () => ({
   previewNode: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock("../api/accountApi", () => ({
+vi.mock('../api/accountApi', () => ({
   accountApi: { request: vi.fn() },
 }));
 
-vi.mock("../auth/AuthContext", () => ({
-  useAuth: () => ({ user: { role: "admin" } }),
+vi.mock('../auth/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'admin' } }),
 }));
 
-vi.mock("../utils/compressImage", () => ({
+vi.mock('../utils/compressImage', () => ({
   compressImage: vi.fn(),
 }));
 
-describe("NodeSidebar", () => {
+describe('NodeSidebar', () => {
   const node = {
-    id: "1",
-    slug: "node-1",
-    authorId: "user",
+    id: '1',
+    slug: 'node-1',
+    authorId: 'user',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     isPublic: true,
     publishedAt: null,
-    nodeType: "text",
+    nodeType: 'text',
     coverUrl: null,
     coverAssetId: null,
-    coverAlt: "",
+    coverAlt: '',
     coverMeta: null,
     allowFeedback: true,
     premiumOnly: false,
   };
 
-  it("renders actions menu and calls publish", async () => {
-    const { publishNode } = await import("../api/nodes");
+  it('renders actions menu and calls publish', async () => {
+    const { publishNode } = await import('../api/nodes');
     render(<NodeSidebar node={node} accountId="ws" />);
-    await screen.findByText("Visibility");
-    const btn = screen.getByRole("button", { name: /Publish/i });
+    await screen.findByText('Visibility');
+    const btn = screen.getByRole('button', { name: /Publish/i });
     fireEvent.click(btn);
     expect(publishNode).toHaveBeenCalled();
   });
 });
-

@@ -11,7 +11,7 @@ def test_cors_allows_custom_headers():
             "Origin": "http://client.example",
             "Access-Control-Request-Method": "POST",
             "Access-Control-Request-Headers": (
-                "x-feature-flags, x-preview-token, " "x-workspace-id, x-blocksketch-workspace-id"
+                "x-feature-flags, x-preview-token, "
             ),
         },
     )
@@ -19,5 +19,3 @@ def test_cors_allows_custom_headers():
     allowed = resp.headers.get("access-control-allow-headers", "").lower()
     assert "x-feature-flags" in allowed
     assert "x-preview-token" in allowed
-    assert "x-workspace-id" in allowed
-    assert "x-blocksketch-workspace-id" in allowed

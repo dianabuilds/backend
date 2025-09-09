@@ -3,6 +3,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RateLimitDisablePayload = {
-    disabled?: boolean;
+  disabled?: boolean;
 };
-

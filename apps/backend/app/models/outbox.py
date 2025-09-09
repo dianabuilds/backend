@@ -36,5 +36,5 @@ class OutboxEvent(Base):
     attempts = Column(Integer, default=0, nullable=False)
     next_retry_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    workspace_id = Column(GUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    workspace_id = Column(GUID(), nullable=True, index=True)
     is_preview = Column(Boolean, nullable=False, default=False, server_default="false", index=True)

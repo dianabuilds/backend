@@ -13,5 +13,5 @@ export interface Account {
   name: string;
   slug: string;
   role?: string;
-  type: "personal" | "team" | "global";
+  type: 'personal' | 'team' | 'global';
 }

@@ -3,12 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 export type TagListItem = {
-    id: string;
-    slug: string;
-    name: string;
-    created_at: string;
-    usage_count?: number;
-    aliases_count?: number;
-    is_hidden?: boolean;
+  id: string;
+  slug: string;
+  name: string;
+  created_at: string;
+  usage_count?: number;
+  aliases_count?: number;
+  is_hidden?: boolean;
 };
-

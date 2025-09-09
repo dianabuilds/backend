@@ -3,11 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CaseAttachmentOut = {
-    id: string;
-    author_id?: (string | null);
-    created_at: string;
-    url: string;
-    title?: (string | null);
-    media_type?: (string | null);
+  id: string;
+  author_id?: string | null;
+  created_at: string;
+  url: string;
+  title?: string | null;
+  media_type?: string | null;
 };
-

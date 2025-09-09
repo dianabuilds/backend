@@ -5,10 +5,9 @@
 import type { NodeTraceKind } from './NodeTraceKind';
 import type { NodeTraceVisibility } from './NodeTraceVisibility';
 export type NodeTraceCreate = {
-    node_id: string;
-    kind: NodeTraceKind;
-    comment?: (string | null);
-    tags?: Array<string>;
-    visibility?: NodeTraceVisibility;
+  node_id: string;
+  kind: NodeTraceKind;
+  comment?: string | null;
+  tags?: Array<string>;
+  visibility?: NodeTraceVisibility;
 };
-

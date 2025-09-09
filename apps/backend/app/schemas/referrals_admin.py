@@ -9,7 +9,6 @@ from pydantic import BaseModel, ConfigDict
 
 class ReferralCodeAdminOut(BaseModel):
     id: UUID
-    workspace_id: int
     owner_user_id: Optional[UUID] = None
     code: str
     uses_count: int
@@ -21,7 +20,6 @@ class ReferralCodeAdminOut(BaseModel):
 
 class ReferralEventAdminOut(BaseModel):
     id: UUID
-    workspace_id: int
     code_id: Optional[UUID] = None
     code: Optional[str] = None
     referrer_user_id: Optional[UUID] = None
@@ -39,4 +37,3 @@ class ActivateCodeOut(BaseModel):
 
 class DeactivateCodeOut(BaseModel):
     ok: bool = True
-

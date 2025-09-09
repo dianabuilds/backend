@@ -1,13 +1,14 @@
-import { memo, useEffect, useMemo } from "react";
-import type { NodeCreate } from "../openapi";
-import EditorJSEmbed from "./EditorJSEmbed";
-import ImageDropzone from "./ImageDropzone";
-import TagInput from "./TagInput";
+import { memo, useEffect, useMemo } from 'react';
+
+import type { NodeCreate } from '../openapi';
+import EditorJSEmbed from './EditorJSEmbed';
+import ImageDropzone from './ImageDropzone';
+import TagInput from './TagInput';
 
 export interface NodeEditorData extends Partial<NodeCreate> {
   id?: number;
   subtitle?: string;
-  content: any;
+  content: unknown;
 }
 
 interface Props {
@@ -15,15 +16,17 @@ interface Props {
   node: NodeEditorData | null;
   onChange: (patch: Partial<NodeEditorData>) => void;
   onClose: () => void;
-  onCommit: (action: "save" | "next") => void;
+  onCommit: (action: 'save' | 'next') => void;
 }
 
 function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props) {
-  if (!open || !node) return null;
+  // Hooks must be called unconditionally; guard inside effects and render
+  const heading = useMemo(
+    () => (node?.title?.trim() ? 'Редактировать пещеру' : 'Создать пещеру'),
+    [node?.title],
+  );
 
-  const heading = useMemo(() => (node.title?.trim() ? "Редактировать пещеру" : "Создать пещеру"), [node.title]);
-
-  // Автосохранение черновика в localStorage
+  // Autosave draft to localStorage
   useEffect(() => {
     if (!open || !node) return;
     const key = `qe:nodeDraft:${node.id}`;
@@ -35,21 +38,23 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
     }
   }, [open, node]);
 
-  // Хоткеи: Ctrl+Enter — сохранить; Ctrl+Shift+Enter — сохранить и создать следующую
+  // Hotkeys: Ctrl+Enter save; Ctrl+Shift+Enter save+next
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!open) return;
-      if (e.key === "Enter" && e.ctrlKey && e.shiftKey) {
+      if (e.key === 'Enter' && e.ctrlKey && e.shiftKey) {
         e.preventDefault();
-        onCommit("next");
-      } else if (e.key === "Enter" && e.ctrlKey) {
+        onCommit('next');
+      } else if (e.key === 'Enter' && e.ctrlKey) {
         e.preventDefault();
-        onCommit("save");
+        onCommit('save');
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [open, onCommit]);
+
+  if (!open || !node) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -78,7 +83,7 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
                 <input
                   className="w-full text-base mb-2 outline-none border-b pb-2 bg-transparent"
                   placeholder="Подзаголовок (опционально)"
-                  value={node.subtitle || ""}
+                  value={node.subtitle || ''}
                   onChange={(e) => onChange({ subtitle: e.target.value })}
                 />
                 <TagInput
@@ -110,7 +115,7 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
                   checked={!!node.allowFeedback}
                   onChange={(e) => onChange({ allowFeedback: e.target.checked })}
                 />
-                <span>💬 Разрешить комментарии</span>
+                <span>Разрешить комментарии</span>
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -118,7 +123,7 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
                   checked={!!node.premiumOnly}
                   onChange={(e) => onChange({ premiumOnly: e.target.checked })}
                 />
-                <span>⭐ Только для премиум</span>
+                <span>Только для премиум</span>
               </label>
             </div>
           </section>
@@ -142,13 +147,16 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
           <button className="px-4 py-1.5 rounded border" onClick={onClose}>
             Отмена
           </button>
-          <button className="px-4 py-1.5 rounded bg-blue-600 text-white" onClick={() => onCommit("save")}>
+          <button
+            className="px-4 py-1.5 rounded bg-blue-600 text-white"
+            onClick={() => onCommit('save')}
+          >
             Сохранить
           </button>
           <button
             className="px-4 py-1.5 rounded bg-blue-700 text-white"
             title="Ctrl+Shift+Enter"
-            onClick={() => onCommit("next")}
+            onClick={() => onCommit('next')}
           >
             Сохранить и создать следующую
           </button>

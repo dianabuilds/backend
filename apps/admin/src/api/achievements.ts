@@ -1,5 +1,5 @@
-import { ensureArray, withQueryParams } from "../shared/utils";
-import { api } from "./client";
+import { ensureArray, withQueryParams } from '../shared/utils';
+import { api } from './client';
 
 export interface AchievementAdmin {
   id: string;
@@ -16,16 +16,14 @@ export async function listAdminAchievements(params: {
   limit?: number;
   offset?: number;
 }): Promise<AchievementAdmin[]> {
-  const res = await api.get<AchievementAdmin[]>(
-    withQueryParams("/admin/achievements", params),
-  );
+  const res = await api.get<AchievementAdmin[]>(withQueryParams('/admin/achievements', params));
   return ensureArray<AchievementAdmin>(res.data);
 }
 
 export async function createAdminAchievement(
   body: Partial<AchievementAdmin> & { code: string; title: string },
 ): Promise<AchievementAdmin> {
-  const res = await api.post<AchievementAdmin>("/admin/achievements", body);
+  const res = await api.post<AchievementAdmin>('/admin/achievements', body);
   return res.data as AchievementAdmin;
 }
 
@@ -59,4 +57,3 @@ export async function revokeAchievement(
 ): Promise<void> {
   await api.post(`/admin/achievements/${id}/revoke`, { user_id, reason });
 }
-

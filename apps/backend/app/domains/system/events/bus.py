@@ -27,7 +27,9 @@ async def _record_metric(event: Any) -> None:
     name = EVENT_METRIC_NAMES.get(type(event))
     if not name:
         return
-    ws = getattr(event, "workspace_id", None)
+    ws = getattr(event, "tenant_id", None)
+    if ws is None:
+        ws = getattr(event, "workspace_id", None)
     event_metrics.inc(name, str(ws) if ws is not None else None)
 
 

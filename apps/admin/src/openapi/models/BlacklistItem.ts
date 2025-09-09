@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type BlacklistItem = {
-    slug: string;
-    reason?: (string | null);
-    created_at: string;
+  slug: string;
+  reason?: string | null;
+  created_at: string;
 };
-

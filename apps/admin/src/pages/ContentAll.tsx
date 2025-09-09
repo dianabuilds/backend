@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 
-import { nodesApi } from "../features/content/api/nodes.api";
-import { queryKeys } from "../shared/api/queryKeys";
-import { useAccount } from "../account/AccountContext";
+import { useAccount } from '../account/AccountContext';
+import { nodesApi } from '../features/content/api/nodes.api';
+import { queryKeys } from '../shared/api/queryKeys';
 
 interface NodeItem {
   id: string;
@@ -12,11 +12,11 @@ interface NodeItem {
 
 export default function ContentAll() {
   const { accountId } = useAccount();
-  const [status, setStatus] = useState("");
-  const [tag, setTag] = useState("");
+  const [status, setStatus] = useState('');
+  const [tag, setTag] = useState('');
 
   const { data } = useQuery({
-    queryKey: queryKeys.nodes(accountId || "", {
+    queryKey: queryKeys.nodes(accountId || '', {
       status: status || undefined,
       tags: tag || undefined,
     }),

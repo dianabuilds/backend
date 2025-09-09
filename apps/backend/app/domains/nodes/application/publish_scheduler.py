@@ -29,19 +29,13 @@ async def process_due_jobs(db: AsyncSession, *, limit: int = 50) -> dict:
     for job in jobs:
         try:
             item: NodeItem | None = await db.get(NodeItem, job.content_id)
-            if not item or item.workspace_id != job.workspace_id:
+            if not item:
                 job.status = "failed"
                 job.error = "Content not found"
                 failed.append(str(job.id))
                 continue
             # Публикация согласно access
-            await svc.publish(
-                workspace_id=item.workspace_id,
-                node_type=item.type,
-                node_id=item.id,
-                actor_id=job.created_by_user_id or item.created_by_user_id,
-                access=job.access,  # type: ignore[arg-type]
-            )
+            await svc.publish(item.id, actor_id=job.created_by_user_id or item.created_by_user_id, access=job.access)
             job.status = "done"
             job.executed_at = datetime.utcnow()
             executed.append(str(job.id))

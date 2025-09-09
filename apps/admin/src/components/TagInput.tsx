@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState, type InputHTMLAttributes } from "react";
+import { type InputHTMLAttributes, useEffect, useRef, useState } from 'react';
 
-import { getSuggestions, mergeTags } from "../utils/tagManager";
+import { getSuggestions, mergeTags } from '../utils/tagManager';
 
-interface TagInputProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> {
+interface TagInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   value?: string[];
   onChange?: (tags: string[]) => void;
 }
@@ -11,13 +10,13 @@ interface TagInputProps
 export default function TagInput({
   value = [],
   onChange,
-  placeholder = "Добавьте теги и нажмите Enter",
+  placeholder = 'Добавьте теги и нажмите Enter',
   id,
   className,
   ...rest
 }: TagInputProps) {
   const [tags, setTags] = useState<string[]>(mergeTags(value));
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   // Sync internal state when value prop changes (e.g. after async load)
@@ -27,7 +26,7 @@ export default function TagInput({
     const same = next.length === tags.length && next.every((t, i) => t === tags[i]);
     if (!same) setTags(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [Array.isArray(value) ? value.join("\u0001") : String(value || "")]);
+  }, [Array.isArray(value) ? value.join('\u0001') : String(value || '')]);
 
   const commit = (raw: string) => {
     const items = raw
@@ -38,7 +37,7 @@ export default function TagInput({
     const next = mergeTags([...tags, ...items]);
     setTags(next);
     onChange?.(next);
-    setInput("");
+    setInput('');
   };
 
   const removeAt = (idx: number) => {
@@ -49,7 +48,7 @@ export default function TagInput({
 
   return (
     <div
-      className={`border rounded px-2 py-1 flex items-center flex-wrap gap-1 ${className || ""}`}
+      className={`border rounded px-2 py-1 flex items-center flex-wrap gap-1 ${className || ''}`}
     >
       {tags.map((t, i) => (
         <span
@@ -57,11 +56,7 @@ export default function TagInput({
           className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded"
         >
           {t}
-          <button
-            className="text-xs leading-none"
-            onClick={() => removeAt(i)}
-            title="Удалить тег"
-          >
+          <button className="text-xs leading-none" onClick={() => removeAt(i)} title="Удалить тег">
             ×
           </button>
         </span>
@@ -75,20 +70,16 @@ export default function TagInput({
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") {
+          if (e.key === 'Enter') {
             e.preventDefault();
             commit(input);
-          } else if (e.key === "," && !e.shiftKey) {
+          } else if (e.key === ',' && !e.shiftKey) {
             e.preventDefault();
             commit(input);
-          } else if (e.key === " " && !e.shiftKey) {
+          } else if (e.key === ' ' && !e.shiftKey) {
             e.preventDefault();
             commit(input);
-          } else if (
-            e.key === "Backspace" &&
-            input.length === 0 &&
-            tags.length > 0
-          ) {
+          } else if (e.key === 'Backspace' && input.length === 0 && tags.length > 0) {
             removeAt(tags.length - 1);
           }
         }}

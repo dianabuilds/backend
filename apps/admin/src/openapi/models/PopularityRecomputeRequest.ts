@@ -3,6 +3,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export type PopularityRecomputeRequest = {
-    node_slugs?: (Array<string> | null);
+  node_slugs?: Array<string> | null;
 };
-

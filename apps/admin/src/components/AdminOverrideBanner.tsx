@@ -1,4 +1,4 @@
-import { useWarningBannerStore } from "../shared/hooks";
+import { useWarningBannerStore } from '../shared/hooks';
 
 export default function AdminOverrideBanner() {
   const banner = useWarningBannerStore();

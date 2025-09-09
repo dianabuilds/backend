@@ -204,7 +204,7 @@ async def _call_with_fallback(
 
 async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str, Any]:
     params = job.params or {}
-    workspace_id_raw = params.get("workspace_id")
+    workspace_id_raw = params.get("tenant_id") or params.get("workspace_id")
     try:
         workspace_uuid = UUID(str(workspace_id_raw)) if workspace_id_raw else None
     except Exception:

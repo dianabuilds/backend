@@ -3,11 +3,10 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.accounts.application.shared_objects_service import has_access
 from app.domains.ai.infrastructure.models.world_models import WorldTemplate
 from app.domains.users.infrastructure.models.user import User
 from app.domains.worlds.application.worlds_service import WorldsService
@@ -33,30 +32,39 @@ def _svc(db: AsyncSession) -> WorldsService:
 
 @router.get("", response_model=list[WorldTemplateOut], summary="List world templates")
 async def list_worlds(
-    workspace_id: UUID,
+    workspace_id: Annotated[UUID | None, Query()] = None,
+    tenant_id: Annotated[UUID | None, Query()] = None,
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    return await _svc(db).list_worlds(workspace_id)
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=422, detail="tenant_id is required")
+    return await _svc(db).list_worlds(ws)
 
 
 @router.post("", response_model=WorldTemplateOut, summary="Create world template")
 async def create_world(
-    workspace_id: UUID,
     payload: WorldTemplateIn,
+    workspace_id: Annotated[UUID | None, Query()] = None,
+    tenant_id: Annotated[UUID | None, Query()] = None,
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=422, detail="tenant_id is required")
     return await _svc(db).create_world(
-        db, workspace_id, payload.model_dump(exclude_none=True), current_user.id
+        db, ws, payload.model_dump(exclude_none=True), current_user.id
     )
 
 
 @router.patch("/{world_id}", response_model=WorldTemplateOut, summary="Update world template")
 async def update_world(
     world_id: UUID,
-    workspace_id: UUID,
     payload: WorldTemplateIn,
+    workspace_id: Annotated[UUID | None, Query()] = None,
+    tenant_id: Annotated[UUID | None, Query()] = None,
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -64,16 +72,10 @@ async def update_world(
     world = res.scalars().first()
     if not world:
         raise HTTPException(status_code=404, detail="World not found")
-    if world.workspace_id != workspace_id:
-        allowed = await has_access(
-            db,
-            object_type="world",
-            object_id=world_id,
-            account_id=workspace_id,
-            permission="edit",
-        )
-        if not allowed:
-            raise HTTPException(status_code=403, detail="No access")
+    ws = tenant_id or workspace_id
+    if world.workspace_id != ws:
+        # Cross-tenant access via shared objects is not allowed.
+        raise HTTPException(status_code=403, detail="No access")
     out = await _svc(db).update_world(
         db,
         world.workspace_id,
@@ -89,7 +91,8 @@ async def update_world(
 @router.delete("/{world_id}", summary="Delete world template")
 async def delete_world(
     world_id: UUID,
-    workspace_id: UUID,
+    workspace_id: Annotated[UUID | None, Query()] = None,
+    tenant_id: Annotated[UUID | None, Query()] = None,
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -97,16 +100,10 @@ async def delete_world(
     world = res.scalars().first()
     if not world:
         raise HTTPException(status_code=404, detail="World not found")
-    if world.workspace_id != workspace_id:
-        allowed = await has_access(
-            db,
-            object_type="world",
-            object_id=world_id,
-            account_id=workspace_id,
-            permission="edit",
-        )
-        if not allowed:
-            raise HTTPException(status_code=403, detail="No access")
+    ws = tenant_id or workspace_id
+    if world.workspace_id != ws:
+        # Cross-tenant access via shared objects is not allowed.
+        raise HTTPException(status_code=403, detail="No access")
     ok = await _svc(db).delete_world(db, world.workspace_id, world_id)
     if not ok:
         raise HTTPException(status_code=404, detail="World not found")
@@ -120,25 +117,30 @@ async def delete_world(
 )
 async def list_characters(
     world_id: UUID,
-    workspace_id: UUID,
+    workspace_id: Annotated[UUID | None, Query()] = None,
+    tenant_id: Annotated[UUID | None, Query()] = None,
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    return await _svc(db).list_characters(world_id, workspace_id)
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=422, detail="tenant_id is required")
+    return await _svc(db).list_characters(world_id, ws)
 
 
 @router.post("/{world_id}/characters", response_model=CharacterOut, summary="Create character")
 async def create_character(
     world_id: UUID,
-    workspace_id: UUID,
     payload: CharacterIn,
+    workspace_id: Annotated[UUID | None, Query()] = None,
+    tenant_id: Annotated[UUID | None, Query()] = None,
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ch = await _svc(db).create_character(
         db,
         world_id,
-        workspace_id,
+        (tenant_id or workspace_id),
         payload.model_dump(exclude_none=True),
         current_user.id,
     )
@@ -150,15 +152,16 @@ async def create_character(
 @router.patch("/characters/{char_id}", response_model=CharacterOut, summary="Update character")
 async def update_character(
     char_id: UUID,
-    workspace_id: UUID,
     payload: CharacterIn,
+    workspace_id: Annotated[UUID | None, Query()] = None,
+    tenant_id: Annotated[UUID | None, Query()] = None,
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ch = await _svc(db).update_character(
         db,
         char_id,
-        workspace_id,
+        (tenant_id or workspace_id),
         payload.model_dump(exclude_none=True),
         current_user.id,
     )
@@ -170,11 +173,15 @@ async def update_character(
 @router.delete("/characters/{char_id}", summary="Delete character")
 async def delete_character(
     char_id: UUID,
-    workspace_id: UUID,
+    workspace_id: Annotated[UUID | None, Query()] = None,
+    tenant_id: Annotated[UUID | None, Query()] = None,
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    ok = await _svc(db).delete_character(db, char_id, workspace_id)
+    ws = tenant_id or workspace_id
+    if ws is None:
+        raise HTTPException(status_code=422, detail="tenant_id is required")
+    ok = await _svc(db).delete_character(db, char_id, ws)
     if not ok:
         raise HTTPException(status_code=404, detail="Character not found")
     return {"status": "ok"}

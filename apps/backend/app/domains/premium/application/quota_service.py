@@ -20,7 +20,7 @@ class QuotaService:
     """Simple quota service backed by :class:`Cache`.
 
     The service keeps counters in the cache with keys of the form
-    ``q:{quota_key}:{period}:{user_id}:{workspace_id}`` where ``period`` is
+    ``q:{quota_key}:{period}:{user_id}:{tenant_id}`` where ``period`` is
     ``YYYYMMDD`` for day scope and ``YYYYMM`` for month scope.
     """
 

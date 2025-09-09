@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { api } from "../../api/client";
-import Tooltip from "../../components/Tooltip";
+import { api } from '../../api/client';
+import Tooltip from '../../components/Tooltip';
 
 interface CacheStats {
   counters: Record<string, Record<string, number>>;
@@ -9,13 +9,13 @@ interface CacheStats {
 }
 
 function normalizeCacheStats(raw: unknown): CacheStats {
-  const obj = raw && typeof raw === "object" ? (raw as any) : {};
+  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const counters =
-    obj && typeof obj.counters === "object"
+    obj && typeof obj.counters === 'object'
       ? (obj.counters as Record<string, Record<string, number>>)
       : {};
-  const hot_keys = Array.isArray(obj?.hot_keys)
-    ? (obj.hot_keys as CacheStats["hot_keys"])
+  const hot_keys = Array.isArray(obj?.hot_keys as unknown[])
+    ? (obj.hot_keys as CacheStats['hot_keys'])
     : [];
   return { counters, hot_keys };
 }
@@ -23,7 +23,7 @@ function normalizeCacheStats(raw: unknown): CacheStats {
 export default function CacheTab() {
   const [stats, setStats] = useState<CacheStats | null>(null);
   const [loading, setLoading] = useState(false);
-  const [pattern, setPattern] = useState("");
+  const [pattern, setPattern] = useState('');
   const [invLoading, setInvLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +31,7 @@ export default function CacheTab() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/admin/cache/stats");
+      const res = await api.get('/admin/cache/stats');
       setStats(normalizeCacheStats(res.data));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -44,10 +44,10 @@ export default function CacheTab() {
   const invalidate = async () => {
     setInvLoading(true);
     try {
-      await api.post("/admin/cache/invalidate_by_pattern", { pattern });
-      setPattern("");
+      await api.post('/admin/cache/invalidate_by_pattern', { pattern });
+      setPattern('');
       await load();
-      alert("Cache invalidated");
+      alert('Cache invalidated');
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     } finally {
@@ -78,7 +78,7 @@ export default function CacheTab() {
           disabled={!pattern || invLoading}
           className="px-3 py-1 rounded bg-rose-600 text-white disabled:opacity-50"
         >
-          {invLoading ? "Invalidating..." : "Invalidate"}
+          {invLoading ? 'Invalidating...' : 'Invalidate'}
         </button>
       </div>
 
@@ -102,7 +102,7 @@ export default function CacheTab() {
                   <tr key={k.key} className="border-b">
                     <td className="p-2 font-mono">{k.key}</td>
                     <td className="p-2">{k.count}</td>
-                    <td className="p-2">{k.ttl ?? "-"}</td>
+                    <td className="p-2">{k.ttl ?? '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -132,4 +132,3 @@ export default function CacheTab() {
     </div>
   );
 }
-

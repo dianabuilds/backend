@@ -26,24 +26,22 @@ from app.domains.ai.infrastructure.models.generation_models import (
 
 
 async def _merge_generation_settings(
-    db: AsyncSession,
-    *,
-    params: dict[str, Any],
-    provider: str | None,
-    model: str | None,
-    workspace_id: int | None,
-    user_id: UUID | None = None,
+        db: AsyncSession,
+        *,
+        params: dict[str, Any],
+        provider: str | None,
+        model: str | None,
+        user_id: UUID | None = None,
 ) -> tuple[dict[str, Any], str | None, str | None, dict[str, dict[str, Any]], list[str]]:
-    """Merge explicit params, user/workspace overrides and global AI settings.
+    """Merge explicit params, user overrides and global AI settings.
 
-    Returns updated ``(params, provider, model, trace, allowed_models)`` where
-    ``allowed_models`` is a workspace allow-list (may be empty).
+    Returns updated ``(params, provider, model, trace, allowed_models)``. In
+    profile-centric mode ``allowed_models``.
     """
 
     from app.domains.ai.infrastructure.models.ai_settings import AISettings
     from app.domains.ai.infrastructure.models.user_pref_models import UserAIPref
-    from app.domains.workspaces.infrastructure.dao import WorkspaceDAO
-    from app.schemas.workspaces import WorkspaceSettings
+
 
     trace: dict[str, dict[str, Any]] = {}
     orig_provider, orig_model = provider, model
@@ -82,30 +80,7 @@ async def _merge_generation_settings(
         except Exception:
             pass
 
-    # 3) Workspace overrides / allow-list
-    if workspace_id is not None:
-        try:
-            ws = await WorkspaceDAO.get(db, workspace_id)
-            if ws:
-                settings = WorkspaceSettings.model_validate(ws.settings_json)
-                presets = settings.ai_presets or {}
-                params.setdefault("workspace_id", str(workspace_id))
-                allowed_models = [str(m) for m in presets.get("allowed_models", []) if m]
-                for key in (
-                    "provider",
-                    "model",
-                    "temperature",
-                    "system_prompt",
-                    "forbidden",
-                ):
-                    if key in presets and presets[key] is not None and key not in params:
-                        _set(key, presets[key], "workspace")
-        except Exception:
-            pass
-
-    # ensure requested/derived model is within workspace allow-list
-    if allowed_models and model not in allowed_models:
-        _set("model", allowed_models[0], "workspace_allow")
+    # No per-tenant overrides / allow-list in profile-centric mode
 
     # 4) Explicit request values override
     if orig_provider is not None:
@@ -123,15 +98,15 @@ logger = logging.getLogger(__name__)
 
 
 async def enqueue_generation_job(
-    db: AsyncSession,
-    *,
-    created_by: UUID | None,
-    params: dict[str, Any],
-    provider: str | None = None,
-    model: str | None = None,
-    workspace_id: int | None = None,
-    reuse: bool = True,
-    preview: PreviewContext | None = None,
+        db: AsyncSession,
+        *,
+        created_by: UUID | None,
+        params: dict[str, Any],
+        provider: str | None = None,
+        model: str | None = None,
+        workspace_id: int | None = None,
+        reuse: bool = True,
+        preview: PreviewContext | None = None,
 ) -> GenerationJob:
     """Создать задание на генерацию ИИ‑квеста и поставить в очередь.
     Если reuse=True и уже есть завершённая задача с идентичными параметрами — создаём
@@ -143,7 +118,6 @@ async def enqueue_generation_job(
         params=params,
         provider=provider,
         model=model,
-        workspace_id=workspace_id,
         user_id=created_by,
     )
     if allowed_models:
@@ -250,46 +224,14 @@ async def process_next_generation_job(db: AsyncSession) -> UUID | None:
         from app.domains.ai.pipeline import run_full_generation
 
         result = await run_full_generation(db, job)
-        # Ожидаем, что result содержит: result_quest_id, result_version_id,
-        # cost, token_usage, logs, last_provider, last_model
-        # Финализируем completed
+
         job.status = JobStatus.completed
         job.finished_at = datetime.utcnow()
         job.result_quest_id = result.get("result_quest_id")
         job.result_version_id = result.get("result_version_id")
         job.cost = float(result.get("cost", 0.0))
         job.token_usage = result.get("token_usage") or {}
-        try:
-            workspace_id = (job.params or {}).get("workspace_id")
-            usage = job.token_usage.get("total", {}) if isinstance(job.token_usage, dict) else {}
-            tokens = int(usage.get("prompt", 0)) + int(usage.get("completion", 0))
-            if workspace_id and job.created_by and tokens > 0:
-                from app.domains.workspaces.limits import consume_workspace_limit
 
-                limit_log: dict[str, Any] = {}
-                allowed = await consume_workspace_limit(
-                    db,
-                    job.created_by,
-                    workspace_id,
-                    "ai_tokens",
-                    amount=tokens,
-                    scope="month",
-                    degrade=True,
-                    log=limit_log,
-                )
-                if limit_log:
-                    try:
-                        job.logs.append({"limits": limit_log})
-                    except Exception:
-                        pass
-                if not allowed:
-                    job.status = JobStatus.failed
-                    job.error = "AI tokens limit exceeded"
-                    await db.flush()
-                    await db.commit()
-                    return job.id
-        except Exception:
-            pass
         # сохраняем логи и факт использованного провайдера/модели
         if hasattr(job, "logs"):
             existing = list(getattr(job, "logs", []) or [])

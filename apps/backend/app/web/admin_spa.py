@@ -3,7 +3,6 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, HTMLResponse, Response
 
-from app.core.policy import policy
 
 router = APIRouter(tags=["admin-spa"])
 
@@ -13,10 +12,6 @@ DIST_DIR = Path(__file__).resolve().parent.parent.parent.parent / "admin" / "dis
 @router.get("/admin", include_in_schema=False)
 @router.get("/admin/{_:path}", include_in_schema=False)
 async def serve_admin_app(request: Request, _: str = "") -> Response:
-    # In test environment, always return placeholder to keep tests deterministic
-    if not policy.allow_write:
-        return HTMLResponse("<h1>Admin SPA build not found</h1>")
-
     # Отдаём SPA только для HTML-запросов (браузерная навигация).
     # API-запросы (Accept: application/json) не должны попадать сюда.
     accept = ""

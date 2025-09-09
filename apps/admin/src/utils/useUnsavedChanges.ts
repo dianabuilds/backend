@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
 /**
  * Registers a beforeunload listener to warn the user about unsaved changes.
@@ -10,9 +10,9 @@ export function useUnsavedChanges(unsaved: boolean): void {
       if (!unsaved) return;
       e.preventDefault();
       // Chrome requires returnValue to be set
-      e.returnValue = "";
+      e.returnValue = '';
     };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
   }, [unsaved]);
 }

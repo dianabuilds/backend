@@ -29,15 +29,37 @@ from app.providers.db.base import Base  # noqa: E402
 target_metadata = Base.metadata
 
 
-def run_migrations_offline():
+def _sync_sqlalchemy_url() -> str:
+    """Build a synchronous SQLAlchemy URL suitable for Alembic.
+
+    The app uses asyncpg (postgresql+asyncpg). Alembic runs with a sync engine,
+    so we drop the "+asyncpg" suffix. If SSL is required (e.g. managed
+    Postgres), ensure we pass sslmode=require for psycopg2.
+    """
     url = settings.database_url.replace("+asyncpg", "")
+    if url.startswith("postgresql://") and "sslmode=" not in url:
+        try:
+            from app.core.app_settings.database import DatabaseSettings  # type: ignore
+
+            # If configuration requires SSL, append sslmode=require for psycopg2
+            if settings.database.sslmode == "require":
+                sep = "&" if "?" in url else "?"
+                url = f"{url}{sep}sslmode=require"
+        except Exception:
+            # Best effort; if anything goes wrong, keep the original URL
+            pass
+    return url
+
+
+def run_migrations_offline():
+    url = _sync_sqlalchemy_url()
     context.configure(url=url, target_metadata=target_metadata, literal_binds=True)
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online():
-    url = settings.database_url.replace("+asyncpg", "")
+    url = _sync_sqlalchemy_url()
     # Не читаем секцию из alembic.ini, чтобы избежать configparser interpolation errors.
     connectable = create_engine(url, poolclass=pool.NullPool)
     with connectable.connect() as connection:

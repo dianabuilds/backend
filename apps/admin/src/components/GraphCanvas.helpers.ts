@@ -1,7 +1,7 @@
 export type GraphNode = {
   key: string;
   title: string;
-  type?: "start" | "normal" | "end";
+  type?: 'start' | 'normal' | 'end';
 };
 
 export type GraphEdge = {

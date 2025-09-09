@@ -1,25 +1,22 @@
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
-import EditorJSEmbed from "../../../components/EditorJSEmbed";
-import FieldCover from "../../../components/fields/FieldCover";
-import FieldTags from "../../../components/fields/FieldTags";
-import { Button } from "../../../shared/ui";
-import { useAccount } from "../../../account/AccountContext";
-import { nodesApi } from "../api/nodes.api";
-import NodeSidebar from "../components/NodeSidebar";
-import useNodeEditor from "../hooks/useNodeEditor";
+import { useAccount } from '../../../account/AccountContext';
+import EditorJSEmbed from '../../../components/EditorJSEmbed';
+import FieldCover from '../../../components/fields/FieldCover';
+import FieldTags from '../../../components/fields/FieldTags';
+import { Button } from '../../../shared/ui';
+import { nodesApi } from '../api/nodes.api';
+import NodeSidebar from '../components/NodeSidebar';
+import useNodeEditor from '../hooks/useNodeEditor';
 
 export default function NodeEditorPage() {
-  const { type = "article", id = "new" } = useParams<{ type?: string; id?: string }>();
+  const { type = 'article', id = 'new' } = useParams<{ type?: string; id?: string }>();
   const { accountId } = useAccount();
   const navigate = useNavigate();
-  const [context, setContext] = useState("default");
-  const idParam: number | "new" = id === "new" ? "new" : Number(id);
-  const { node, update, save, loading, error, isSaving } = useNodeEditor(
-    accountId || "",
-    idParam,
-  );
+  const [context, setContext] = useState('default');
+  const idParam: number | 'new' = id === 'new' ? 'new' : Number(id);
+  const { node, update, save, loading, error, isSaving } = useNodeEditor(accountId || '', idParam);
 
   const refreshPublishInfo = async () => {
     if (!node.id) return;
@@ -38,7 +35,7 @@ export default function NodeEditorPage() {
 
   const handleSave = async () => {
     const res = (await save()) as { id?: string } | undefined;
-    if (id === "new" && res?.id) {
+    if (id === 'new' && res?.id) {
       const qs = accountId ? `?account_id=${accountId}` : '';
       navigate(`/nodes/${type}/${res.id}${qs}`);
     }
@@ -57,10 +54,10 @@ export default function NodeEditorPage() {
             />
             <span
               className={`px-2 py-1 text-xs rounded ${
-                node.isPublic ? "bg-green-200 text-green-800" : "bg-yellow-200 text-yellow-800"
+                node.isPublic ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'
               }`}
             >
-              {node.isPublic ? "Published" : "Draft"}
+              {node.isPublic ? 'Published' : 'Draft'}
             </span>
           </div>
           <div className="flex items-center space-x-2">
@@ -74,23 +71,23 @@ export default function NodeEditorPage() {
               <option value="alt">Alt</option>
             </select>
             <div className="space-x-2">
-            <Button onClick={() => navigate(-1)}>Close</Button>
-            <Button
-              onClick={() => {
-                const base = `/nodes/${type}/${id}`;
-                const qs = accountId ? `?account_id=${accountId}` : '';
-                navigate(`${base}/preview${qs}`);
-              }}
-            >
-              Preview
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-green-500 text-white border-green-500"
-            >
-              Save
-            </Button>
+              <Button onClick={() => navigate(-1)}>Close</Button>
+              <Button
+                onClick={() => {
+                  const base = `/nodes/${type}/${id}`;
+                  const qs = accountId ? `?account_id=${accountId}` : '';
+                  navigate(`${base}/preview${qs}`);
+                }}
+              >
+                Preview
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-green-500 text-white border-green-500"
+              >
+                Save
+              </Button>
             </div>
           </div>
         </header>

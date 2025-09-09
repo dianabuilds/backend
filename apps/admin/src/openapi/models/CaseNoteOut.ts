@@ -3,10 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CaseNoteOut = {
-    id: string;
-    author_id?: (string | null);
-    created_at: string;
-    text: string;
-    internal: boolean;
+  id: string;
+  author_id?: string | null;
+  created_at: string;
+  text: string;
+  internal: boolean;
 };
-

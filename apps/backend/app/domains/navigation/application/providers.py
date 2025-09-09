@@ -136,7 +136,7 @@ class RandomProvider(TransitionProvider):
             Node.is_recommendable,
             Node.id != node.id,
         )
-        # accounts/workspaces removed: no workspace scoping here
+        # Single-tenant check only: no additional scoping here
         result = await db.execute(query)
         nodes: list[Node] = result.scalars().all()
         nodes = [n for n in nodes if await has_access_async(n, user, preview)]

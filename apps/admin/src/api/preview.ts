@@ -1,4 +1,4 @@
-import { accountApi } from "./accountApi";
+import { accountApi } from './accountApi';
 
 export interface SimulatePreviewRequest {
   account_id: string;
@@ -30,13 +30,14 @@ export interface SimulatePreviewResponse {
 export async function simulatePreview(
   body: SimulatePreviewRequest,
 ): Promise<SimulatePreviewResponse> {
-  const res = await accountApi.post<
-    SimulatePreviewRequest,
-    SimulatePreviewResponse
-  >(`/admin/preview/transitions/simulate`, body, {
-    accountId: body.account_id,
-    account: false,
-  });
+  const res = await accountApi.post<SimulatePreviewRequest, SimulatePreviewResponse>(
+    `/admin/preview/transitions/simulate`,
+    body,
+    {
+      accountId: body.account_id,
+      account: false,
+    },
+  );
   return res ?? {};
 }
 
@@ -44,17 +45,16 @@ export interface PreviewLinkResponse {
   url: string;
 }
 
-export async function createPreviewLink(
-  account_id: string,
-): Promise<PreviewLinkResponse> {
+export async function createPreviewLink(account_id: string): Promise<PreviewLinkResponse> {
   // Корректный эндпоинт — без account в пути. account_id передаём в теле.
-  const res = await accountApi.post<
-    { account_id: string },
-    PreviewLinkResponse
-  >(`/admin/preview/link`, { account_id }, {
-    accountId: account_id,
-    account: false,
-  });
+  const res = await accountApi.post<{ account_id: string }, PreviewLinkResponse>(
+    `/admin/preview/link`,
+    { account_id },
+    {
+      accountId: account_id,
+      account: false,
+    },
+  );
   return res;
 }
 
@@ -98,10 +98,8 @@ export async function openNodePreview(
 
   // 4) Иначе — считаем, что это slug: используем токен‑превью со start
   const { url } = await createPreviewLink(account_id);
-  const withStart =
-    raw
-      ? `${url}${url.includes('?') ? '&' : '?'}start=${encodeURIComponent(raw)}`
-      : url;
+  const withStart = raw
+    ? `${url}${url.includes('?') ? '&' : '?'}start=${encodeURIComponent(raw)}`
+    : url;
   window.open(withStart, '_blank', 'noopener');
 }
-

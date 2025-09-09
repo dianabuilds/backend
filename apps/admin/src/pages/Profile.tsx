@@ -1,12 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 
-import { api } from "../api/client";
-import { useAccount } from "../account/AccountContext";
-import { listNodes } from "../api/nodes";
-import { getMyReferralCode, getMyReferralStats } from "../api/referrals";
-import { useToast } from "../components/ToastProvider";
-import PageLayout from "./_shared/PageLayout";
+import { useAccount } from '../account/AccountContext';
+import { api } from '../api/client';
+import { listNodes } from '../api/nodes';
+import { getMyReferralCode, getMyReferralStats } from '../api/referrals';
+import { useToast } from '../components/ToastProvider';
+import PageLayout from './_shared/PageLayout';
 
 type MeResponse = {
   username: string | null;
@@ -35,41 +35,37 @@ type AchievementItem = {
 
 export default function Profile() {
   const { addToast } = useToast();
-  const [tab, setTab] = useState<"profile" | "settings" | "achievements" | "my_nodes">("profile");
-  const [username, setUsername] = useState("");
-  const [bio, setBio] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [timezone, setTimezone] = useState("");
-  const [locale, setLocale] = useState("");
+  const [tab, setTab] = useState<'profile' | 'settings' | 'achievements' | 'my_nodes'>('profile');
+  const [username, setUsername] = useState('');
+  const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [timezone, setTimezone] = useState('');
+  const [locale, setLocale] = useState('');
 
   const { data: me } = useQuery({
-    queryKey: ["me"],
-    queryFn: async () => (await api.get<MeResponse>("/users/me")).data,
+    queryKey: ['me'],
+    queryFn: async () => (await api.get<MeResponse>('/users/me')).data,
   });
 
   const { data: profileData } = useQuery({
-    queryKey: ["profile"],
+    queryKey: ['profile'],
     queryFn: async () =>
-      (await api.get<{ timezone: string | null; locale: string | null }>(
-        "/users/me/profile",
-      )).data,
+      (await api.get<{ timezone: string | null; locale: string | null }>('/users/me/profile')).data,
   });
 
   const { accountId } = useAccount();
   const { data: myCode } = useQuery({
-    queryKey: ["my-referral-code", accountId],
-    enabled: Boolean(accountId),
+    queryKey: ['my-referral-code'],
     queryFn: async () => {
       try {
-        if (!accountId) return null;
-        return await getMyReferralCode(Number(accountId));
+        return await getMyReferralCode();
       } catch {
         return null;
       }
     },
   });
   const { data: myStats } = useQuery({
-    queryKey: ["my-referral-stats"],
+    queryKey: ['my-referral-stats'],
     queryFn: async () => {
       try {
         return await getMyReferralStats();
@@ -80,41 +76,40 @@ export default function Profile() {
   });
 
   const { data: achievements } = useQuery({
-    queryKey: ["achievements"],
-    queryFn: async () => (await api.get<AchievementItem[]>("/achievements")).data,
+    queryKey: ['achievements'],
+    queryFn: async () => (await api.get<AchievementItem[]>('/achievements')).data,
   });
 
   // My Nodes (compact list)
-  const [myQ, setMyQ] = useState("");
-  const [myVis, setMyVis] = useState<"all" | "visible" | "hidden">("all");
-  const [myStatus, setMyStatus] = useState<string | "all">("all");
+  const [myQ, setMyQ] = useState('');
+  const [myVis, setMyVis] = useState<'all' | 'visible' | 'hidden'>('all');
+  const [myStatus, setMyStatus] = useState<string | 'all'>('all');
   const { data: myNodes } = useQuery({
-    queryKey: ["my-nodes", accountId, myQ, myVis, myStatus],
-    enabled: tab === "my_nodes" && Boolean(accountId),
+    queryKey: ['my-nodes', accountId, myQ, myVis, myStatus],
+    enabled: tab === 'my_nodes' && Boolean(accountId),
     queryFn: async () => {
-      if (!accountId)
-        return [] as { id: number; title?: string; slug?: string; status?: string }[];
-      const params: Record<string, unknown> = { scope_mode: "mine", limit: 50 };
+      if (!accountId) return [] as { id: number; title?: string; slug?: string; status?: string }[];
+      const params: Record<string, unknown> = { scope_mode: 'mine', limit: 50 };
       if (myQ) params.q = myQ;
-      if (myVis !== "all") params.visible = myVis === "visible" ? true : false;
-      if (myStatus !== "all") params.status = myStatus;
-      const items = await listNodes(accountId, params as any);
+      if (myVis !== 'all') params.visible = myVis === 'visible' ? true : false;
+      if (myStatus !== 'all') params.status = myStatus;
+      const items = await listNodes(accountId, params);
       return items as { id: number; title?: string; slug?: string; status?: string }[];
     },
   });
 
   useEffect(() => {
     if (me) {
-      setUsername(me.username ?? "");
-      setBio(me.bio ?? "");
-      setAvatarUrl(me.avatar_url ?? "");
+      setUsername(me.username ?? '');
+      setBio(me.bio ?? '');
+      setAvatarUrl(me.avatar_url ?? '');
     }
   }, [me]);
 
   useEffect(() => {
     if (profileData) {
-      setTimezone(profileData.timezone ?? "");
-      setLocale(profileData.locale ?? "");
+      setTimezone(profileData.timezone ?? '');
+      setLocale(profileData.locale ?? '');
     }
   }, [profileData]);
 
@@ -123,67 +118,64 @@ export default function Profile() {
     const b = bio.trim();
     const a = avatarUrl.trim();
     if (!u) {
-      addToast({ title: "Username is required", variant: "error" });
+      addToast({ title: 'Username is required', variant: 'error' });
       return;
     }
     if (a && !isValidUrl(a)) {
-      addToast({ title: "Invalid avatar URL", variant: "error" });
+      addToast({ title: 'Invalid avatar URL', variant: 'error' });
       return;
     }
     try {
-      await api.patch("/users/me", {
+      await api.patch('/users/me', {
         username: u,
         bio: b || null,
         avatar_url: a || null,
       });
-      addToast({ title: "Profile saved", variant: "success" });
+      addToast({ title: 'Profile saved', variant: 'success' });
     } catch (e) {
       addToast({
-        title: "Save failed",
+        title: 'Save failed',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     }
   };
 
   const saveSettings = async () => {
-    await api.patch("/users/me/profile", {
+    await api.patch('/users/me/profile', {
       timezone: timezone || null,
       locale: locale || null,
     });
-    addToast({ title: "Settings saved", variant: "success" });
+    addToast({ title: 'Settings saved', variant: 'success' });
   };
 
   return (
     <PageLayout title="Profile">
       <div className="flex gap-4 mb-4">
-        <button
-          onClick={() => setTab("profile")}
-          className={tab === "profile" ? "font-bold" : ""}
-        >
+        <button onClick={() => setTab('profile')} className={tab === 'profile' ? 'font-bold' : ''}>
           Profile
         </button>
         <button
-          onClick={() => setTab("settings")}
-          className={tab === "settings" ? "font-bold" : ""}
+          onClick={() => setTab('settings')}
+          className={tab === 'settings' ? 'font-bold' : ''}
         >
           Settings
         </button>
         <button
-          onClick={() => setTab("achievements")}
-          className={tab === "achievements" ? "font-bold" : ""}
+          onClick={() => setTab('achievements')}
+          className={tab === 'achievements' ? 'font-bold' : ''}
         >
           Achievements
         </button>
         <button
-          onClick={() => setTab("my_nodes")}
-          className={tab === "my_nodes" ? "font-bold ml-auto" : "ml-auto"}
+          onClick={() => setTab('my_nodes')}
+          className={tab === 'my_nodes' ? 'font-bold ml-auto' : 'ml-auto'}
           title="Мои ноды"
         >
           Мои ноды
         </button>
       </div>
-      {tab === "profile" && (
+      {tab === 'profile' && (
         <div className="max-w-sm flex flex-col gap-2">
           <label className="text-sm" htmlFor="username">
             Username
@@ -220,12 +212,8 @@ export default function Profile() {
           </button>
           <div className="mt-6 p-3 border rounded bg-gray-50">
             <h3 className="font-semibold mb-1">My referral code</h3>
-            {!accountId && (
-              <p className="text-sm text-gray-600">Select account to get code</p>
-            )}
-            {accountId && !myCode && (
-              <p className="text-sm text-gray-600">Not available</p>
-            )}
+            {!accountId && <p className="text-sm text-gray-600">Select account to get code</p>}
+            {accountId && !myCode && <p className="text-sm text-gray-600">Not available</p>}
             {accountId && myCode && (
               <div className="flex items-center gap-2">
                 <span className="font-mono">{myCode.code}</span>
@@ -245,7 +233,7 @@ export default function Profile() {
           </div>
         </div>
       )}
-      {tab === "my_nodes" && (
+      {tab === 'my_nodes' && (
         <div className="mt-2">
           {!accountId && (
             <p className="text-sm text-gray-600">Выберите аккаунт, чтобы увидеть свои ноды.</p>
@@ -262,7 +250,7 @@ export default function Profile() {
                 <select
                   className="border rounded px-2 py-1 text-sm"
                   value={myVis}
-                  onChange={(e) => setMyVis(e.target.value as any)}
+                  onChange={(e) => setMyVis(e.target.value as 'all' | 'visible' | 'hidden')}
                 >
                   <option value="all">Видимость: все</option>
                   <option value="visible">Только видимые</option>
@@ -287,9 +275,7 @@ export default function Profile() {
                   <li key={n.id} className="py-2 flex items-center justify-between">
                     <div>
                       <div className="font-medium">{n.title || n.slug || `#${n.id}`}</div>
-                      {n.status && (
-                        <div className="text-xs text-gray-500">{n.status}</div>
-                      )}
+                      {n.status && <div className="text-xs text-gray-500">{n.status}</div>}
                     </div>
                     <a
                       className="text-blue-600 hover:underline text-sm"
@@ -304,7 +290,7 @@ export default function Profile() {
           )}
         </div>
       )}
-      {tab === "achievements" && (
+      {tab === 'achievements' && (
         <div className="max-w-2xl">
           {!achievements && <p>Loading…</p>}
           {achievements && achievements.length === 0 && <p>No achievements yet</p>}
@@ -312,22 +298,18 @@ export default function Profile() {
             <ul className="divide-y">
               {achievements.map((a) => (
                 <li key={a.id} className="py-2 flex items-center gap-3">
-                  {a.icon && (
-                    <img src={a.icon} alt="" className="w-6 h-6" />
-                  )}
+                  {a.icon && <img src={a.icon} alt="" className="w-6 h-6" />}
                   <div className="flex-1">
                     <div className="font-medium">{a.title}</div>
-                    {a.description && (
-                      <div className="text-xs text-gray-600">{a.description}</div>
-                    )}
+                    {a.description && <div className="text-xs text-gray-600">{a.description}</div>}
                   </div>
                   <span
                     className={
-                      "text-xs px-2 py-0.5 rounded " +
-                      (a.unlocked ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600")
+                      'text-xs px-2 py-0.5 rounded ' +
+                      (a.unlocked ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600')
                     }
                   >
-                    {a.unlocked ? "Unlocked" : "Locked"}
+                    {a.unlocked ? 'Unlocked' : 'Locked'}
                   </span>
                 </li>
               ))}
@@ -335,7 +317,7 @@ export default function Profile() {
           )}
         </div>
       )}
-      {tab === "settings" && (
+      {tab === 'settings' && (
         <div className="max-w-sm flex flex-col gap-2">
           <label className="text-sm" htmlFor="tz">
             Timezone

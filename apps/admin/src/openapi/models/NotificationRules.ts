@@ -7,7 +7,6 @@ import type { NotificationChannel } from './NotificationChannel';
  * Account notification rules mapped by trigger.
  */
 export type NotificationRules = {
-    achievement?: Array<NotificationChannel>;
-    publish?: Array<NotificationChannel>;
+  achievement?: Array<NotificationChannel>;
+  publish?: Array<NotificationChannel>;
 };
-

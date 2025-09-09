@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState } from 'react';
 
-import { applyMerge, dryRunMerge } from "../api/tags";
-import PageLayout from "./_shared/PageLayout";
-import { promptDialog } from "../shared/ui";
+import { applyMerge, dryRunMerge } from '../api/tags';
+import { promptDialog } from '../shared/ui';
+import PageLayout from './_shared/PageLayout';
 
 export default function TagMerge() {
-  const [fromId, setFromId] = useState("");
-  const [toId, setToId] = useState("");
+  const [fromId, setFromId] = useState('');
+  const [toId, setToId] = useState('');
   const [report, setReport] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,13 +25,13 @@ export default function TagMerge() {
     }
   };
 
-    const onApply = async () => {
-      const reason = (await promptDialog("Reason (optional):")) || undefined;
+  const onApply = async () => {
+    const reason = (await promptDialog('Reason (optional):')) || undefined;
     setLoading(true);
     try {
       const r = await applyMerge(fromId.trim(), toId.trim(), reason);
       setReport(r);
-      alert("Merge applied");
+      alert('Merge applied');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -40,10 +40,7 @@ export default function TagMerge() {
   };
 
   return (
-    <PageLayout
-      title="Merge tags"
-      subtitle="Объединение источника в целевой тег"
-    >
+    <PageLayout title="Merge tags" subtitle="Объединение источника в целевой тег">
       <div className="rounded border p-3 max-w-2xl">
         <div className="flex gap-2 items-center mb-3">
           <label className="w-24">From (UUID)</label>
@@ -96,14 +93,10 @@ export default function TagMerge() {
               <b>Aliases moved:</b> {report.aliases_moved}
             </div>
             {Array.isArray(report.errors) && report.errors.length > 0 && (
-              <div className="text-red-600">
-                Errors: {report.errors.join("; ")}
-              </div>
+              <div className="text-red-600">Errors: {report.errors.join('; ')}</div>
             )}
             {Array.isArray(report.warnings) && report.warnings.length > 0 && (
-              <div className="text-yellow-600">
-                Warnings: {report.warnings.join("; ")}
-              </div>
+              <div className="text-yellow-600">Warnings: {report.warnings.join('; ')}</div>
             )}
           </div>
         )}

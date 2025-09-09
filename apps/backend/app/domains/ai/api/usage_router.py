@@ -31,4 +31,4 @@ async def get_system_usage(
     return await repo.system_totals()
 
 
-# Accounts endpoints removed with accounts cleanup. Keep system-wide totals only.
+# Only system-wide totals are exposed in this build.

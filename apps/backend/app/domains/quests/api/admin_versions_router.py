@@ -70,15 +70,8 @@ async def create_quest(
     )
     db.add(q)
     await db.flush()
-    await audit_log(
-        db,
-        actor_id=str(current_user.id),
-        action="quest_create",
-        resource_type="quest",
-        resource_id=str(q.id),
-        after={"title": q.title},
-        request=request,
-    )
+    await audit_log(db, actor_id=str(current_user.id), action="quest_create", resource_type="quest",
+                    resource_id=str(q.id), after={"title": q.title}, request=request)
     await db.commit()
     return {"id": str(q.id)}
 
@@ -125,15 +118,8 @@ async def create_draft(
         raise HTTPException(status_code=404, detail="Quest not found")
     svc = EditorService()
     v = await svc.create_version(db, quest_id, current_user.id)
-    await audit_log(
-        db,
-        actor_id=str(current_user.id),
-        action="quest_draft_create",
-        resource_type="quest_version",
-        resource_id=str(v.id),
-        after={"quest_id": str(quest_id), "number": v.number},
-        request=request,
-    )
+    await audit_log(db, actor_id=str(current_user.id), action="quest_draft_create", resource_type="quest_version",
+                    resource_id=str(v.id), after={"quest_id": str(quest_id), "number": v.number}, request=request)
     await db.commit()
     return {"versionId": str(v.id)}
 
@@ -178,15 +164,9 @@ async def put_graph(
     svc = QuestGraphService()
     await svc.save_graph(db, version_id, payload.steps, payload.transitions)
 
-    await audit_log(
-        db,
-        actor_id=str(current_user.id),
-        action="quest_graph_put",
-        resource_type="quest_version",
-        resource_id=str(version_id),
-        after={"steps": len(payload.steps), "transitions": len(payload.transitions)},
-        request=request,
-    )
+    await audit_log(db, actor_id=str(current_user.id), action="quest_graph_put", resource_type="quest_version",
+                    resource_id=str(version_id),
+                    after={"steps": len(payload.steps), "transitions": len(payload.transitions)}, request=request)
     await db.commit()
     return {"ok": True}
 
@@ -298,15 +278,9 @@ async def autofix_version(
         applied.append({"type": "mark_dead_ends", "affected": changed})
 
     if applied:
-        await audit_log(
-            db,
-            actor_id=str(current_user.id),
-            action="quest_version_autofix",
-            resource_type="quest_version",
-            resource_id=str(version_id),
-            after={"applied": applied},
-            request=request,
-        )
+        await audit_log(db, actor_id=str(current_user.id), action="quest_version_autofix",
+                        resource_type="quest_version", resource_id=str(version_id), after={"applied": applied},
+                        request=request)
         await db.commit()
 
     return {"applied": applied}
@@ -375,15 +349,8 @@ async def publish_version(
         q.status = Status.published
         q.published_at = datetime.utcnow()
 
-    await audit_log(
-        db,
-        actor_id=str(current_user.id),
-        action="quest_version_publish",
-        resource_type="quest_version",
-        resource_id=str(version_id),
-        after={"released_at": v.released_at.isoformat()},
-        request=request,
-    )
+    await audit_log(db, actor_id=str(current_user.id), action="quest_version_publish", resource_type="quest_version",
+                    resource_id=str(version_id), after={"released_at": v.released_at.isoformat()}, request=request)
     await db.commit()
     if q:
         await node_service.publish_content(q.id, q.slug, current_user.id)
@@ -401,15 +368,8 @@ async def rollback_version(
     if not v:
         raise HTTPException(status_code=404, detail="Version not found")
 
-    await audit_log(
-        db,
-        actor_id=str(current_user.id),
-        action="quest_version_rollback",
-        resource_type="quest_version",
-        resource_id=str(version_id),
-        after={"to_version": str(version_id)},
-        request=request,
-    )
+    await audit_log(db, actor_id=str(current_user.id), action="quest_version_rollback", resource_type="quest_version",
+                    resource_id=str(version_id), after={"to_version": str(version_id)}, request=request)
     return {"ok": True}
 
 
@@ -453,14 +413,8 @@ async def delete_draft(
     if v.status != "draft":
         raise HTTPException(status_code=400, detail="Only draft can be deleted")
     svc = EditorService()
-    await audit_log(
-        db,
-        actor_id=str(current_user.id),
-        action="quest_version_delete",
-        resource_type="quest_version",
-        resource_id=str(version_id),
-        request=request,
-    )
+    await audit_log(db, actor_id=str(current_user.id), action="quest_version_delete", resource_type="quest_version",
+                    resource_id=str(version_id), request=request)
     await svc.delete_version(db, version_id)
     await db.commit()
     return {"ok": True}

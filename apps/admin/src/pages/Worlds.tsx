@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { confirmWithEnv } from "../utils/env";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
-import { client } from "../shared/api/client";
-import { queryKeys } from "../shared/api/queryKeys";
+import { client } from '../shared/api/client';
+import { queryKeys } from '../shared/api/queryKeys';
+import { confirmWithEnv } from '../utils/env';
 
 type WorldTemplate = {
   id: string;
@@ -21,41 +21,34 @@ type Character = {
 
 export default function WorldsPage() {
   const qc = useQueryClient();
-  const [selectedWorld, setSelectedWorld] = useState<string>("");
+  const [selectedWorld, setSelectedWorld] = useState<string>('');
 
   const [newWorld, setNewWorld] = useState<{
     title: string;
     locale: string;
     description: string;
-  }>({ title: "", locale: "", description: "" });
+  }>({ title: '', locale: '', description: '' });
   const [newChar, setNewChar] = useState<{
     name: string;
     role: string;
     description: string;
-  }>({ name: "", role: "", description: "" });
+  }>({ name: '', role: '', description: '' });
 
   const { data: worlds = [] } = useQuery({
     queryKey: queryKeys.worlds,
-    queryFn: () =>
-      client.get<WorldTemplate[]>("/admin/ai/quests/worlds").then((d) => d || []),
+    queryFn: () => client.get<WorldTemplate[]>('/admin/ai/quests/worlds').then((d) => d || []),
   });
   const { data: characters = [] } = useQuery({
     queryKey: queryKeys.worldCharacters(selectedWorld),
     queryFn: () =>
       client
-        .get<Character[]>(
-          `/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`,
-        )
+        .get<Character[]>(`/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`)
         .then((d) => d || []),
     enabled: !!selectedWorld,
   });
 
   const createWorldMutation = useMutation({
-    mutationFn: (payload: {
-      title: string;
-      locale: string;
-      description: string;
-    }) =>
+    mutationFn: (payload: { title: string; locale: string; description: string }) =>
       client.post(`/admin/ai/quests/worlds`, {
         title: payload.title,
         locale: payload.locale || null,
@@ -68,8 +61,7 @@ export default function WorldsPage() {
   });
 
   const removeWorldMutation = useMutation({
-    mutationFn: (id: string) =>
-      client.del(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`),
+    mutationFn: (id: string) => client.del(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`),
     onSuccess: (_data, id) => {
       qc.invalidateQueries({ queryKey: queryKeys.worlds });
       qc.removeQueries({ queryKey: queryKeys.worldCharacters(id) });
@@ -77,20 +69,13 @@ export default function WorldsPage() {
   });
 
   const addCharacterMutation = useMutation({
-    mutationFn: (payload: {
-      name: string;
-      role: string;
-      description: string;
-    }) =>
-      client.post(
-        `/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`,
-        {
-          name: payload.name,
-          role: payload.role || null,
-          description: payload.description || null,
-          traits: null,
-        },
-      ),
+    mutationFn: (payload: { name: string; role: string; description: string }) =>
+      client.post(`/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`, {
+        name: payload.name,
+        role: payload.role || null,
+        description: payload.description || null,
+        traits: null,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({
         queryKey: queryKeys.worldCharacters(selectedWorld),
@@ -99,8 +84,7 @@ export default function WorldsPage() {
   });
 
   const removeCharacterMutation = useMutation({
-    mutationFn: (id: string) =>
-      client.del(`/admin/ai/quests/characters/${encodeURIComponent(id)}`),
+    mutationFn: (id: string) => client.del(`/admin/ai/quests/characters/${encodeURIComponent(id)}`),
     onSuccess: () => {
       qc.invalidateQueries({
         queryKey: queryKeys.worldCharacters(selectedWorld),
@@ -109,38 +93,38 @@ export default function WorldsPage() {
   });
 
   const createWorld = async () => {
-    if (!newWorld.title.trim()) return alert("Введите название мира");
+    if (!newWorld.title.trim()) return alert('Введите название мира');
     try {
       await createWorldMutation.mutateAsync(newWorld);
-      setNewWorld({ title: "", locale: "", description: "" });
+      setNewWorld({ title: '', locale: '', description: '' });
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }
   };
 
   const removeWorld = async (id: string) => {
-    if (!(await confirmWithEnv("Удалить мир со всеми персонажами?"))) return;
+    if (!(await confirmWithEnv('Удалить мир со всеми персонажами?'))) return;
     try {
       await removeWorldMutation.mutateAsync(id);
-      if (id === selectedWorld) setSelectedWorld("");
+      if (id === selectedWorld) setSelectedWorld('');
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }
   };
 
   const addCharacter = async () => {
-    if (!selectedWorld) return alert("Сначала выберите мир");
-    if (!newChar.name.trim()) return alert("Имя персонажа обязательно");
+    if (!selectedWorld) return alert('Сначала выберите мир');
+    if (!newChar.name.trim()) return alert('Имя персонажа обязательно');
     try {
       await addCharacterMutation.mutateAsync(newChar);
-      setNewChar({ name: "", role: "", description: "" });
+      setNewChar({ name: '', role: '', description: '' });
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }
   };
 
   const removeCharacter = async (id: string) => {
-    if (!(await confirmWithEnv("Удалить персонажа?"))) return;
+    if (!(await confirmWithEnv('Удалить персонажа?'))) return;
     try {
       await removeCharacterMutation.mutateAsync(id);
     } catch (e) {
@@ -160,25 +144,19 @@ export default function WorldsPage() {
               className="border rounded px-2 py-1"
               placeholder="Название"
               value={newWorld.title}
-              onChange={(e) =>
-                setNewWorld((s) => ({ ...s, title: e.target.value }))
-              }
+              onChange={(e) => setNewWorld((s) => ({ ...s, title: e.target.value }))}
             />
             <input
               className="border rounded px-2 py-1"
               placeholder="Локаль (ru-RU / en-US)"
               value={newWorld.locale}
-              onChange={(e) =>
-                setNewWorld((s) => ({ ...s, locale: e.target.value }))
-              }
+              onChange={(e) => setNewWorld((s) => ({ ...s, locale: e.target.value }))}
             />
             <textarea
               className="border rounded px-2 py-1"
               placeholder="Описание"
               value={newWorld.description}
-              onChange={(e) =>
-                setNewWorld((s) => ({ ...s, description: e.target.value }))
-              }
+              onChange={(e) => setNewWorld((s) => ({ ...s, description: e.target.value }))}
             />
             <button
               className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
@@ -189,35 +167,25 @@ export default function WorldsPage() {
           </div>
           <div className="max-h-80 overflow-auto divide-y">
             {worlds.map((w) => (
-              <div
-                key={w.id}
-                className="py-2 flex items-center justify-between gap-2"
-              >
+              <div key={w.id} className="py-2 flex items-center justify-between gap-2">
                 <button
-                  className={`text-left flex-1 ${selectedWorld === w.id ? "font-semibold" : ""}`}
+                  className={`text-left flex-1 ${selectedWorld === w.id ? 'font-semibold' : ''}`}
                   onClick={() => setSelectedWorld(w.id)}
                 >
                   {w.title}
-                  {w.locale ? ` · ${w.locale}` : ""}
+                  {w.locale ? ` · ${w.locale}` : ''}
                 </button>
-                <button
-                  className="px-2 py-1 rounded border"
-                  onClick={() => removeWorld(w.id)}
-                >
+                <button className="px-2 py-1 rounded border" onClick={() => removeWorld(w.id)}>
                   Удалить
                 </button>
               </div>
             ))}
-            {worlds.length === 0 && (
-              <div className="text-sm text-gray-500">Пока нет миров</div>
-            )}
+            {worlds.length === 0 && <div className="text-sm text-gray-500">Пока нет миров</div>}
           </div>
         </div>
 
         <div className="rounded border p-3 lg:col-span-2">
-          <h3 className="font-semibold mb-2">
-            Персонажи {selectedWorld ? "" : "(выберите мир)"}
-          </h3>
+          <h3 className="font-semibold mb-2">Персонажи {selectedWorld ? '' : '(выберите мир)'}</h3>
           {selectedWorld && (
             <>
               <div className="flex flex-col gap-2 mb-3">
@@ -225,25 +193,19 @@ export default function WorldsPage() {
                   className="border rounded px-2 py-1"
                   placeholder="Имя"
                   value={newChar.name}
-                  onChange={(e) =>
-                    setNewChar((s) => ({ ...s, name: e.target.value }))
-                  }
+                  onChange={(e) => setNewChar((s) => ({ ...s, name: e.target.value }))}
                 />
                 <input
                   className="border rounded px-2 py-1"
                   placeholder="Роль"
                   value={newChar.role}
-                  onChange={(e) =>
-                    setNewChar((s) => ({ ...s, role: e.target.value }))
-                  }
+                  onChange={(e) => setNewChar((s) => ({ ...s, role: e.target.value }))}
                 />
                 <textarea
                   className="border rounded px-2 py-1"
                   placeholder="Описание"
                   value={newChar.description}
-                  onChange={(e) =>
-                    setNewChar((s) => ({ ...s, description: e.target.value }))
-                  }
+                  onChange={(e) => setNewChar((s) => ({ ...s, description: e.target.value }))}
                 />
                 <button
                   className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
@@ -254,19 +216,14 @@ export default function WorldsPage() {
               </div>
               <div className="max-h-96 overflow-auto divide-y">
                 {characters.map((c) => (
-                  <div
-                    key={c.id}
-                    className="py-2 flex items-center justify-between gap-2"
-                  >
+                  <div key={c.id} className="py-2 flex items-center justify-between gap-2">
                     <div className="flex-1">
                       <div className="font-medium">
                         {c.name}
-                        {c.role ? ` · ${c.role}` : ""}
+                        {c.role ? ` · ${c.role}` : ''}
                       </div>
                       {c.description && (
-                        <div className="text-xs text-gray-600">
-                          {c.description}
-                        </div>
+                        <div className="text-xs text-gray-600">{c.description}</div>
                       )}
                     </div>
                     <button
@@ -278,9 +235,7 @@ export default function WorldsPage() {
                   </div>
                 ))}
                 {characters.length === 0 && (
-                  <div className="text-sm text-gray-500">
-                    Пока нет персонажей
-                  </div>
+                  <div className="text-sm text-gray-500">Пока нет персонажей</div>
                 )}
               </div>
             </>

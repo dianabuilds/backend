@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.application.settings_service import SettingsService
@@ -18,7 +18,8 @@ router = APIRouter(
     responses=ADMIN_AUTH_RESPONSES,
 )
 
-AdminRequired = Annotated[None, Depends(require_admin_role)]
+# Require admin explicitly; call the factory to get dependency
+AdminRequired = Annotated[None, Depends(require_admin_role())]
 
 
 @router.get("/providers")
@@ -43,8 +44,8 @@ async def list_providers(
 
 @router.post("/providers")
 async def add_provider(
-    payload: dict[str, Any],
     _: AdminRequired,
+    payload: dict[str, Any] = Body(...),
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict[str, Any]:
     code = payload.get("code") or payload.get("provider")

@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api } from './client';
 
 export interface AlertItem {
   id?: string;
@@ -7,28 +7,47 @@ export interface AlertItem {
   url?: string | null;
   type?: string;
   severity?: string;
-  status?: "active" | "resolved";
+  status?: 'active' | 'resolved';
 }
 
 export interface ResolveAlertResponse {
   status: string;
 }
 
+type AlertLike = {
+  id?: string;
+  fingerprint?: string;
+  labels?: Record<string, string>;
+  startsAt?: string;
+  starts_at?: string;
+  activeAt?: string;
+  active_at?: string;
+  description?: string;
+  message?: string;
+  annotations?: Record<string, string>;
+  url?: string;
+  generatorURL?: string;
+  severity?: string;
+  level?: string;
+  type?: string;
+  status?: string;
+  endsAt?: string;
+  ends_at?: string;
+};
+
 export async function getAlerts(): Promise<AlertItem[]> {
-  const res = await api.get<any>("/admin/ops/alerts");
-  const raw = res.data;
-  const list: any[] = Array.isArray(raw)
-    ? raw
-    : raw?.alerts || raw?.data || [];
-  return list.map((a, i) => ({
+  const res = await api.get<unknown>('/admin/ops/alerts');
+  const raw = res.data as unknown;
+  const list: unknown[] = Array.isArray(raw)
+    ? (raw as unknown[])
+    : (raw && (raw as Record<string, unknown>)?.alerts) ||
+      (raw && (raw as Record<string, unknown>)?.data) ||
+      [];
+  return (list as AlertLike[]).map((a, i) => ({
     id: a.id || a.fingerprint || a.labels?.alertname || String(i),
     startsAt: a.startsAt || a.starts_at || a.activeAt || a.active_at,
     description:
-      a.description ||
-      a.message ||
-      a.annotations?.description ||
-      a.annotations?.summary ||
-      "",
+      a.description || a.message || a.annotations?.description || a.annotations?.summary || '',
     url:
       a.url ||
       a.annotations?.dashboard ||
@@ -38,9 +57,7 @@ export async function getAlerts(): Promise<AlertItem[]> {
       null,
     type: a.type || a.labels?.type || a.labels?.alertname,
     severity: a.severity || a.labels?.severity || a.labels?.level,
-    status:
-      a.status ||
-      (a.endsAt || a.ends_at ? "resolved" : "active"),
+    status: a.status || (a.endsAt || a.ends_at ? 'resolved' : 'active'),
   }));
 }
 

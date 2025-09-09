@@ -1,6 +1,6 @@
-import { forwardRef, useId, type ChangeEventHandler, type InputHTMLAttributes } from "react";
+import { type ChangeEventHandler, forwardRef, type InputHTMLAttributes, useId } from 'react';
 
-interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> {
+interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   value?: string;
   onChange?: (value: string) => void;
   error?: string | null;
@@ -8,14 +8,13 @@ interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> 
 }
 
 const FieldTitle = forwardRef<HTMLInputElement, Props>(function FieldTitle(
-  { value = "", onChange, error, description, id, ...rest },
+  { value = '', onChange, error, description, id, ...rest },
   ref,
 ) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const descId = `${inputId}-desc`;
-  const handle: ChangeEventHandler<HTMLInputElement> = (e) =>
-    onChange?.(e.target.value);
+  const handle: ChangeEventHandler<HTMLInputElement> = (e) => onChange?.(e.target.value);
   return (
     <div>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-900">
@@ -26,7 +25,7 @@ const FieldTitle = forwardRef<HTMLInputElement, Props>(function FieldTitle(
         ref={ref}
         aria-describedby={description || error ? descId : undefined}
         className={`mt-1 w-full rounded border px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-          error ? "border-red-500" : ""
+          error ? 'border-red-500' : ''
         }`}
         value={value}
         onChange={handle}

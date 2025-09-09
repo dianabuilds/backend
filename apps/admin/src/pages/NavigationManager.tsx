@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import * as Tabs from "@radix-ui/react-tabs";
+import * as Tabs from '@radix-ui/react-tabs';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
-import { api, ApiError } from "../api/client";
+import { api, ApiError } from '../api/client';
 import {
   bulkUpdate,
   createTransition,
   listTransitions,
-  updateTransition,
   type Transition,
-} from "../api/transitions";
-import LimitBadge, { handleLimit429, refreshLimits } from "../components/LimitBadge";
-import Tooltip from "../components/Tooltip";
-import Simulation from "./Simulation";
+  updateTransition,
+} from '../api/transitions';
+import LimitBadge, { handleLimit429, refreshLimits } from '../components/LimitBadge';
+import Tooltip from '../components/Tooltip';
+import Simulation from './Simulation';
 
 interface RunResponse {
   transitions?: unknown[];
@@ -20,15 +20,15 @@ interface RunResponse {
 
 export default function NavigationManager() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [tab, setTab] = useState(searchParams.get("tab") || "manual");
+  const [tab, setTab] = useState(searchParams.get('tab') || 'manual');
 
   // Manual transitions state
-  const [from, setFrom] = useState(() => searchParams.get("from_slug") || "");
-  const [to, setTo] = useState(() => searchParams.get("to_slug") || "");
-  const [label, setLabel] = useState("");
-  const [weight, setWeight] = useState("");
-  const [enableId, setEnableId] = useState("");
-  const [disableId, setDisableId] = useState("");
+  const [from, setFrom] = useState(() => searchParams.get('from_slug') || '');
+  const [to, setTo] = useState(() => searchParams.get('to_slug') || '');
+  const [label, setLabel] = useState('');
+  const [weight, setWeight] = useState('');
+  const [enableId, setEnableId] = useState('');
+  const [disableId, setDisableId] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,14 +36,12 @@ export default function NavigationManager() {
   const [transitions, setTransitions] = useState<Transition[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
-  const [filterFrom, setFilterFrom] = useState("");
-  const [filterTo, setFilterTo] = useState("");
-  const [filterStatus, setFilterStatus] = useState<
-    "any" | "enabled" | "disabled"
-  >("any");
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'any' | 'enabled' | 'disabled'>('any');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [bulkLabel, setBulkLabel] = useState("");
-  const [bulkWeight, setBulkWeight] = useState("");
+  const [bulkLabel, setBulkLabel] = useState('');
+  const [bulkWeight, setBulkWeight] = useState('');
 
   const loadTransitions = async () => {
     setLoadingList(true);
@@ -67,10 +65,10 @@ export default function NavigationManager() {
   }, []);
 
   // Autogeneration state
-  const [nodeSlug, setNodeSlug] = useState("");
-  const [userId, setUserId] = useState("");
+  const [nodeSlug, setNodeSlug] = useState('');
+  const [userId, setUserId] = useState('');
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState('');
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,11 +81,11 @@ export default function NavigationManager() {
         priority: weight.trim() ? Number(weight.trim()) : undefined,
         disabled: false,
       });
-      setMessage("Transition created");
-      setFrom("");
-      setTo("");
-      setLabel("");
-      setWeight("");
+      setMessage('Transition created');
+      setFrom('');
+      setTo('');
+      setLabel('');
+      setWeight('');
       await loadTransitions();
     } catch (e: any) {
       setError(e instanceof Error ? e.message : String(e));
@@ -98,8 +96,8 @@ export default function NavigationManager() {
     e.preventDefault();
     try {
       await updateTransition(enableId.trim(), { disabled: false });
-      setMessage("Transition enabled");
-      setEnableId("");
+      setMessage('Transition enabled');
+      setEnableId('');
       await loadTransitions();
     } catch (e: any) {
       setError(e instanceof Error ? e.message : String(e));
@@ -110,8 +108,8 @@ export default function NavigationManager() {
     e.preventDefault();
     try {
       await updateTransition(disableId.trim(), { disabled: true });
-      setMessage("Transition disabled");
-      setDisableId("");
+      setMessage('Transition disabled');
+      setDisableId('');
       await loadTransitions();
     } catch (e: any) {
       setError(e instanceof Error ? e.message : String(e));
@@ -120,11 +118,11 @@ export default function NavigationManager() {
 
   const run = async () => {
     setRunning(true);
-    setResult("");
+    setResult('');
     try {
       const payload: Record<string, unknown> = { node_slug: nodeSlug.trim() };
       if (userId.trim()) payload.user_id = userId.trim();
-      const res = await api.post<RunResponse>("/admin/navigation/run", payload);
+      const res = await api.post<RunResponse>('/admin/navigation/run', payload);
       const count = Array.isArray(res.data?.transitions)
         ? (res.data?.transitions as unknown[]).length
         : 0;
@@ -132,9 +130,9 @@ export default function NavigationManager() {
       await refreshLimits();
     } catch (e: any) {
       if (e instanceof ApiError && e.status === 429) {
-        const retry = Number(e.headers?.get("Retry-After") || 0);
-        await handleLimit429("compass_calls", retry);
-        setResult("Rate limit exceeded");
+        const retry = Number(e.headers?.get('Retry-After') || 0);
+        await handleLimit429('compass_calls', retry);
+        setResult('Rate limit exceeded');
       } else {
         setResult(e instanceof Error ? e.message : String(e));
       }
@@ -144,22 +142,15 @@ export default function NavigationManager() {
   };
 
   const handleLabelChange = (id: string, value: string) => {
-    setTransitions((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, label: value } : t)),
-    );
+    setTransitions((prev) => prev.map((t) => (t.id === id ? { ...t, label: value } : t)));
   };
 
   const handleWeightChange = (id: string, value: string) => {
     const num = Number(value);
-    setTransitions((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, weight: num } : t)),
-    );
+    setTransitions((prev) => prev.map((t) => (t.id === id ? { ...t, weight: num } : t)));
   };
 
-  const commitUpdate = async (
-    id: string,
-    patch: { label?: string | null; weight?: number },
-  ) => {
+  const commitUpdate = async (id: string, patch: { label?: string | null; weight?: number }) => {
     try {
       await updateTransition(id, patch);
     } catch (e: any) {
@@ -168,9 +159,7 @@ export default function NavigationManager() {
   };
 
   const toggleSelect = (id: string, checked: boolean) => {
-    setSelectedIds((prev) =>
-      checked ? [...prev, id] : prev.filter((x) => x !== id),
-    );
+    setSelectedIds((prev) => (checked ? [...prev, id] : prev.filter((x) => x !== id)));
   };
 
   const applyBulk = async () => {
@@ -181,13 +170,11 @@ export default function NavigationManager() {
     try {
       await bulkUpdate(selectedIds, patch);
       setTransitions((prev) =>
-        prev.map((t) =>
-          selectedIds.includes(t.id) ? { ...t, ...patch } : t,
-        ),
+        prev.map((t) => (selectedIds.includes(t.id) ? { ...t, ...patch } : t)),
       );
       setSelectedIds([]);
-      setBulkLabel("");
-      setBulkWeight("");
+      setBulkLabel('');
+      setBulkWeight('');
     } catch (e: any) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -197,7 +184,7 @@ export default function NavigationManager() {
     setTab(value);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      next.set("tab", value);
+      next.set('tab', value);
       return next;
     });
   };
@@ -248,19 +235,14 @@ export default function NavigationManager() {
               />
               <select
                 value={filterStatus}
-                onChange={(e) =>
-                  setFilterStatus(e.target.value as "any" | "enabled" | "disabled")
-                }
+                onChange={(e) => setFilterStatus(e.target.value as 'any' | 'enabled' | 'disabled')}
                 className="border rounded px-2 py-1"
               >
                 <option value="any">any</option>
                 <option value="enabled">enabled</option>
                 <option value="disabled">disabled</option>
               </select>
-              <button
-                onClick={loadTransitions}
-                className="px-3 py-1 rounded border"
-              >
+              <button onClick={loadTransitions} className="px-3 py-1 rounded border">
                 Filter
               </button>
             </div>
@@ -272,7 +254,7 @@ export default function NavigationManager() {
                 <table className="min-w-full text-sm">
                   <thead className="text-left text-gray-500">
                     <tr>
-                      <th className="w-4"></th>
+                      <th className="w-4" />
                       <th>ID</th>
                       <th>From</th>
                       <th>To</th>
@@ -283,18 +265,13 @@ export default function NavigationManager() {
                   </thead>
                   <tbody>
                     {transitions.map((t) => (
-                      <tr
-                        key={t.id}
-                        className="border-t border-gray-200"
-                      >
+                      <tr key={t.id} className="border-t border-gray-200">
                         <td>
                           <input
                             type="checkbox"
                             aria-label={`select ${t.id}`}
                             checked={selectedIds.includes(t.id)}
-                            onChange={(e) =>
-                              toggleSelect(t.id, e.target.checked)
-                            }
+                            onChange={(e) => toggleSelect(t.id, e.target.checked)}
                           />
                         </td>
                         <td className="font-mono">{t.id}</td>
@@ -302,10 +279,8 @@ export default function NavigationManager() {
                         <td>{t.to_slug}</td>
                         <td>
                           <input
-                            value={t.label || ""}
-                            onChange={(e) =>
-                              handleLabelChange(t.id, e.target.value)
-                            }
+                            value={t.label || ''}
+                            onChange={(e) => handleLabelChange(t.id, e.target.value)}
                             onBlur={(e) =>
                               commitUpdate(t.id, {
                                 label: e.target.value || null,
@@ -319,9 +294,7 @@ export default function NavigationManager() {
                           <input
                             type="number"
                             value={t.weight ?? 0}
-                            onChange={(e) =>
-                              handleWeightChange(t.id, e.target.value)
-                            }
+                            onChange={(e) => handleWeightChange(t.id, e.target.value)}
                             onBlur={(e) =>
                               commitUpdate(t.id, {
                                 weight: Number(e.target.value),
@@ -331,15 +304,12 @@ export default function NavigationManager() {
                             placeholder="weight"
                           />
                         </td>
-                        <td>{t.disabled ? "disabled" : "enabled"}</td>
+                        <td>{t.disabled ? 'disabled' : 'enabled'}</td>
                       </tr>
                     ))}
                     {transitions.length === 0 && (
                       <tr>
-                        <td
-                          colSpan={7}
-                          className="p-2 text-center text-gray-500"
-                        >
+                        <td colSpan={7} className="p-2 text-center text-gray-500">
                           No transitions
                         </td>
                       </tr>
@@ -376,10 +346,7 @@ export default function NavigationManager() {
 
           <section className="space-y-2">
             <h2 className="font-semibold">Add transition</h2>
-            <form
-              onSubmit={handleAdd}
-              className="flex flex-wrap items-center gap-2"
-            >
+            <form onSubmit={handleAdd} className="flex flex-wrap items-center gap-2">
               <input
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
@@ -471,7 +438,7 @@ export default function NavigationManager() {
                 onClick={run}
                 className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50"
               >
-                {running ? "Running..." : "Run generation"}
+                {running ? 'Running...' : 'Run generation'}
               </button>
               <LimitBadge limitKey="compass_calls" />
             </div>
@@ -486,4 +453,3 @@ export default function NavigationManager() {
     </div>
   );
 }
-

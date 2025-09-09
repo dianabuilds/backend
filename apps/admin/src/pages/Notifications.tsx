@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import SendToUserModal from "../components/notifications/SendToUserModal";
-import BroadcastForm from "../components/notifications/BroadcastForm";
-import CampaignTable from "../components/notifications/CampaignTable";
-import UserNotifications from "../components/notifications/UserNotifications";
-import ActiveBanner from "../components/notifications/ActiveBanner";
+import { useState } from 'react';
+
+import ActiveBanner from '../components/notifications/ActiveBanner';
+import BroadcastForm from '../components/notifications/BroadcastForm';
+import CampaignTable from '../components/notifications/CampaignTable';
+import SendToUserModal from '../components/notifications/SendToUserModal';
+import UserNotifications from '../components/notifications/UserNotifications';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 export default function Notifications() {
   const [sendOpen, setSendOpen] = useState(false);

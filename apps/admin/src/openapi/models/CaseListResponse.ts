@@ -4,9 +4,8 @@
 /* eslint-disable */
 import type { CaseListItem } from './CaseListItem';
 export type CaseListResponse = {
-    items: Array<CaseListItem>;
-    page: number;
-    size: number;
-    total: number;
+  items: Array<CaseListItem>;
+  page: number;
+  size: number;
+  total: number;
 };
-

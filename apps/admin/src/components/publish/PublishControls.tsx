@@ -10,8 +10,8 @@ import {
   publishNow,
   schedulePublish,
 } from '../../api/publish';
-import { useToast } from '../ToastProvider';
 import { Button, TextInput } from '../../shared/ui';
+import { useToast } from '../ToastProvider';
 
 type Props = {
   accountId: string;
@@ -39,9 +39,7 @@ function toUTCISOFromLocal(localValue: string): string {
   return new Date(local.getTime() - local.getTimezoneOffset() * 60000).toISOString();
 }
 
-function Spinner(
-  props: HTMLAttributes<HTMLSpanElement>,
-) {
+function Spinner(props: HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
       {...props}
@@ -52,7 +50,13 @@ function Spinner(
   );
 }
 
-export default function PublishControls({ accountId, nodeId, disabled, onChanged, className }: Props) {
+export default function PublishControls({
+  accountId,
+  nodeId,
+  disabled,
+  onChanged,
+  className,
+}: Props) {
   const { addToast } = useToast();
   const qc = useQueryClient();
 
@@ -136,10 +140,7 @@ export default function PublishControls({ accountId, nodeId, disabled, onChanged
 
   const scheduled = data?.scheduled?.status === 'pending';
   const isMutating =
-    mPublish.isPending ||
-    mSchedule.isPending ||
-    mCancel.isPending ||
-    mUnpublish.isPending;
+    mPublish.isPending || mSchedule.isPending || mCancel.isPending || mUnpublish.isPending;
 
   return (
     <div className={`space-y-4 ${className ?? ''}`.trim()}>
@@ -178,11 +179,7 @@ export default function PublishControls({ accountId, nodeId, disabled, onChanged
           <label className="font-medium">Режим</label>
           <div className="flex flex-col gap-1">
             <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                checked={mode === 'now'}
-                onChange={() => setMode('now')}
-              />
+              <input type="radio" checked={mode === 'now'} onChange={() => setMode('now')} />
               Опубликовать сейчас
             </label>
             <label className="flex items-center gap-2">
@@ -225,10 +222,7 @@ export default function PublishControls({ accountId, nodeId, disabled, onChanged
               disabled={disabled || mCancel.isPending}
             >
               {mCancel.isPending ? (
-                <Spinner
-                  data-testid="cancel-spinner"
-                  className="text-gray-600"
-                />
+                <Spinner data-testid="cancel-spinner" className="text-gray-600" />
               ) : (
                 'Отменить расписание'
               )}
@@ -241,10 +235,7 @@ export default function PublishControls({ accountId, nodeId, disabled, onChanged
               disabled={disabled || mUnpublish.isPending}
             >
               {mUnpublish.isPending ? (
-                <Spinner
-                  data-testid="unpublish-spinner"
-                  className="text-white"
-                />
+                <Spinner data-testid="unpublish-spinner" className="text-white" />
               ) : (
                 'Снять с публикации'
               )}

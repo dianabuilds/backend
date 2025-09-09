@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { api } from "../api/client";
-import Pill from "../components/Pill";
+import { api } from '../api/client';
+import Pill from '../components/Pill';
 
 interface Job {
   id: string;
@@ -12,14 +12,14 @@ interface Job {
   finished_at?: string | null;
 }
 
-function statusVariant(status: string): "ok" | "warn" | "danger" {
+function statusVariant(status: string): 'ok' | 'warn' | 'danger' {
   switch (status) {
-    case "success":
-      return "ok";
-    case "failed":
-      return "danger";
+    case 'success':
+      return 'ok';
+    case 'failed':
+      return 'danger';
     default:
-      return "warn";
+      return 'warn';
   }
 }
 
@@ -32,7 +32,7 @@ export default function Jobs() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/admin/ops/jobs");
+      const res = await api.get('/admin/ops/jobs');
       setJobs((res.data.jobs as Job[]) || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -68,13 +68,9 @@ export default function Jobs() {
                 <td className="p-2 align-middle">
                   <Pill variant={statusVariant(job.status)}>{job.status}</Pill>
                 </td>
+                <td className="p-2">{new Date(job.started_at).toLocaleString()}</td>
                 <td className="p-2">
-                  {new Date(job.started_at).toLocaleString()}
-                </td>
-                <td className="p-2">
-                  {job.finished_at
-                    ? new Date(job.finished_at).toLocaleString()
-                    : "-"}
+                  {job.finished_at ? new Date(job.finished_at).toLocaleString() : '-'}
                 </td>
                 <td className="p-2 space-x-2">
                   <button

@@ -44,8 +44,7 @@ export function useEditorNode(accountId: string, id: string, autoSaveDelay = 100
       const c = current[key];
       const b = base[key];
       if (JSON.stringify(c) !== JSON.stringify(b)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (patch as any)[key] = c as any;
+        (patch as Record<string, unknown>)[key as string] = c as unknown;
       }
     }
     return patch;

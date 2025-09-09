@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type UserPremiumUpdate = {
-    is_premium: boolean;
-    premium_until?: (string | null);
+  is_premium: boolean;
+  premium_until?: string | null;
 };
-

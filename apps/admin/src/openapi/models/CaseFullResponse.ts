@@ -7,9 +7,8 @@ import type { CaseEventOut } from './CaseEventOut';
 import type { CaseNoteOut } from './CaseNoteOut';
 import type { CaseOut } from './CaseOut';
 export type CaseFullResponse = {
-    case: CaseOut;
-    notes: Array<CaseNoteOut>;
-    attachments: Array<CaseAttachmentOut>;
-    events: Array<CaseEventOut>;
+  case: CaseOut;
+  notes: Array<CaseNoteOut>;
+  attachments: Array<CaseAttachmentOut>;
+  events: Array<CaseEventOut>;
 };
-

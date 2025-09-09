@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { AdminService } from '../openapi';
 import { accountApi } from './accountApi';
 import { listNodes, patchNode } from './nodes';
 
@@ -9,10 +8,8 @@ afterEach(() => {
 });
 
 describe('patchNode', () => {
-  it('sends payload without legacy aliases', async () => {
-    const spy = vi
-      .spyOn(AdminService, 'updateNodeByIdAdminAccountsAccountIdNodesNodeIdPatch')
-      .mockResolvedValue({} as never);
+  it('sends payload to /admin/nodes with next=1', async () => {
+    const spy = vi.spyOn(accountApi, 'patch').mockResolvedValue({} as never);
     await patchNode('ws1', 1, {
       coverUrl: 'x',
       media: ['m1'],
@@ -20,16 +17,15 @@ describe('patchNode', () => {
       content: { foo: 'bar' },
     });
     expect(spy).toHaveBeenCalledWith(
-      1,
-      'ws1',
+      '/admin/nodes/1',
       { coverUrl: 'x', media: ['m1'], tags: ['t1'], content: { foo: 'bar' } },
-      1,
+      expect.objectContaining({ accountId: '', account: false, params: { next: 1 } }),
     );
   });
 });
 
 describe('listNodes', () => {
-  it('requests admin account route only', async () => {
+  it('requests unified admin route', async () => {
     const spy = vi.spyOn(accountApi, 'get').mockResolvedValue({
       status: 200,
       data: [
@@ -43,7 +39,7 @@ describe('listNodes', () => {
     const res = await listNodes('ws1');
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(
-      '/admin/accounts/ws1/nodes',
+      '/admin/nodes',
       expect.objectContaining({
         accountId: 'ws1',
         account: false,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import Column, DateTime, Float, Index, Integer, String, ForeignKey
 
 from app.providers.db.adapters import UUID
 from app.providers.db.base import Base
@@ -12,13 +12,13 @@ from app.providers.db.base import Base
 class AIUsage(Base):
     __tablename__ = "ai_usage"
     __table_args__ = (
-        Index("ix_ai_usage_workspace_id", "workspace_id"),
+        Index("ix_ai_usage_profile_id", "profile_id"),
         Index("ix_ai_usage_user_id", "user_id"),
         Index("ix_ai_usage_ts", "ts"),
     )
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False)
+    profile_id = Column(UUID(), nullable=True)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
     ts = Column(DateTime, default=datetime.utcnow, nullable=False)
 

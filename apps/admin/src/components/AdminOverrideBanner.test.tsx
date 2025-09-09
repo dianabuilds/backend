@@ -1,27 +1,27 @@
-import "@testing-library/jest-dom";
+import '@testing-library/jest-dom';
 
-import { render, screen, act } from "@testing-library/react";
+import { act, render, screen } from '@testing-library/react';
 
-import { setWarningBanner } from "../shared/hooks";
-import AdminOverrideBanner from "./AdminOverrideBanner";
+import { setWarningBanner } from '../shared/hooks';
+import AdminOverrideBanner from './AdminOverrideBanner';
 
-describe("AdminOverrideBanner", () => {
+describe('AdminOverrideBanner', () => {
   afterEach(() => {
     act(() => {
       setWarningBanner(null);
     });
   });
 
-  it("renders nothing when banner not set", () => {
+  it('renders nothing when banner not set', () => {
     render(<AdminOverrideBanner />);
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it("shows banner when set", () => {
+  it('shows banner when set', () => {
     act(() => {
-      setWarningBanner("Override active");
+      setWarningBanner('Override active');
     });
     render(<AdminOverrideBanner />);
-    expect(screen.getByText("Override active")).toBeInTheDocument();
+    expect(screen.getByText('Override active')).toBeInTheDocument();
   });
 });

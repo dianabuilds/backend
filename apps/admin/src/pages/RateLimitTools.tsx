@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 
-import { api } from "../api/client";
-import Tooltip from "../components/Tooltip";
-import Pill from "../components/Pill";
+import { api } from '../api/client';
+import Pill from '../components/Pill';
+import Tooltip from '../components/Tooltip';
 
 interface RateRules {
   enabled: boolean;
@@ -28,10 +28,15 @@ export default function RateLimitTools() {
     setLoading(true);
     setError(null);
     try {
-      const r = await api.get<RateRules>("/admin/ratelimit/rules");
-      const hits = await api.get<Recent429>("/admin/ratelimit/recent429");
+      const r = await api.get<RateRules>('/admin/ratelimit/rules');
+      const hits = await api.get<Recent429>('/admin/ratelimit/recent429');
       setRules(r.data || null);
-      setDraft(((r.data as any)?.rules || {}) as Record<string, string>);
+      setDraft(
+        ((r.data as unknown as { rules?: Record<string, string> })?.rules || {}) as Record<
+          string,
+          string
+        >,
+      );
       setRecent(hits.data || null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -44,7 +49,7 @@ export default function RateLimitTools() {
     if (!rules) return;
     setToggling(true);
     try {
-      await api.post("/admin/ratelimit/disable", { disabled: rules.enabled });
+      await api.post('/admin/ratelimit/disable', { disabled: rules.enabled });
       await load();
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
@@ -57,11 +62,14 @@ export default function RateLimitTools() {
 
   const counts = useMemo(() => {
     if (!recent) return {} as Record<string, number>;
-    return recent.reduce((acc, r) => {
-      const p = r.path || "unknown";
-      acc[p] = (acc[p] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    return recent.reduce(
+      (acc, r) => {
+        const p = r.path || 'unknown';
+        acc[p] = (acc[p] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
   }, [recent]);
 
   const max = useMemo(() => {
@@ -70,7 +78,7 @@ export default function RateLimitTools() {
 
   const saveRule = async (key: string) => {
     try {
-      await api.patch("/admin/ratelimit/rules", { key, rule: draft[key] });
+      await api.patch('/admin/ratelimit/rules', { key, rule: draft[key] });
       await load();
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
@@ -91,19 +99,11 @@ export default function RateLimitTools() {
       {error && <p className="text-red-600">{error}</p>}
       {rules && (
         <div className="mb-4 flex items-center gap-2">
-          <Pill variant={rules.enabled ? "ok" : "warn"} className="text-sm">
-            {rules.enabled ? "Enabled" : "Disabled"}
+          <Pill variant={rules.enabled ? 'ok' : 'warn'} className="text-sm">
+            {rules.enabled ? 'Enabled' : 'Disabled'}
           </Pill>
-          <button
-            onClick={toggle}
-            disabled={toggling}
-            className="px-3 py-1 rounded border"
-          >
-            {toggling
-              ? "Applying..."
-              : rules.enabled
-                ? "Disable (non-prod only)"
-                : "Enable"}
+          <button onClick={toggle} disabled={toggling} className="px-3 py-1 rounded border">
+            {toggling ? 'Applying...' : rules.enabled ? 'Disable (non-prod only)' : 'Enable'}
           </button>
         </div>
       )}
@@ -120,15 +120,10 @@ export default function RateLimitTools() {
                 <input
                   className="border rounded px-2 py-1 w-40"
                   value={value}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, [key]: e.target.value }))
-                  }
+                  onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
                   placeholder="5/min, 10/sec, 3/hour"
                 />
-                <button
-                  className="px-3 py-1 rounded border"
-                  onClick={() => saveRule(key)}
-                >
+                <button className="px-3 py-1 rounded border" onClick={() => saveRule(key)}>
                   Save
                 </button>
               </div>

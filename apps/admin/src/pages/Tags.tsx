@@ -1,18 +1,6 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button, Modal, TextInput, SearchBar } from "../shared/ui";
-import PageLayout from "./_shared/PageLayout";
-import { useModal, usePaginatedList } from "../shared/hooks";
-import { Card, CardContent } from "../components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "../components/ui/table";
-import { confirmWithEnv } from "../utils/env";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import {
   addToBlacklist,
   type BlacklistItem,
@@ -21,7 +9,20 @@ import {
   getBlacklist,
   listAdminTags,
   removeFromBlacklist,
-} from "../api/tags";
+} from '../api/tags';
+import { Card, CardContent } from '../components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
+import { useModal, usePaginatedList } from '../shared/hooks';
+import { Button, Modal, SearchBar, TextInput } from '../shared/ui';
+import { confirmWithEnv } from '../utils/env';
+import PageLayout from './_shared/PageLayout';
 
 type TagItem = {
   id?: string;
@@ -33,7 +34,7 @@ type TagItem = {
 };
 
 export default function Tags() {
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState('');
 
   const {
     items,
@@ -52,8 +53,8 @@ export default function Tags() {
   const navigate = useNavigate();
 
   const createModal = useModal();
-  const [newSlug, setNewSlug] = useState("");
-  const [newName, setNewName] = useState("");
+  const [newSlug, setNewSlug] = useState('');
+  const [newName, setNewName] = useState('');
 
   const handleSearch = async () => {
     reset();
@@ -61,8 +62,8 @@ export default function Tags() {
   };
 
   const [blItems, setBlItems] = useState<BlacklistItem[]>([]);
-  const [blSlug, setBlSlug] = useState("");
-  const [blReason, setBlReason] = useState("");
+  const [blSlug, setBlSlug] = useState('');
+  const [blReason, setBlReason] = useState('');
 
   const loadBlacklist = async () => {
     try {
@@ -82,7 +83,7 @@ export default function Tags() {
       title="Tags"
       actions={
         <div className="flex gap-2">
-          <Button onClick={() => navigate("/tags/merge")}>Merge…</Button>
+          <Button onClick={() => navigate('/tags/merge')}>Merge…</Button>
           <Button onClick={createModal.open}>New tag</Button>
         </div>
       }
@@ -101,11 +102,7 @@ export default function Tags() {
             min={1}
             max={1000}
             value={limit}
-            onChange={(e) =>
-              setLimit(
-                Math.max(1, Math.min(1000, Number(e.target.value) || 1)),
-              )
-            }
+            onChange={(e) => setLimit(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))}
             className="w-20"
           />
         </div>
@@ -131,31 +128,25 @@ export default function Tags() {
                 <TableBody>
                   {items.map((t) => (
                     <TableRow key={t.id || t.slug}>
-                      <TableCell className="font-mono">{t.id || "—"}</TableCell>
-                      <TableCell>{t.name || t.slug || "—"}</TableCell>
+                      <TableCell className="font-mono">{t.id || '—'}</TableCell>
+                      <TableCell>{t.name || t.slug || '—'}</TableCell>
                       <TableCell>
-                        {typeof t.aliases_count === "number"
-                          ? t.aliases_count
-                          : "—"}
+                        {typeof t.aliases_count === 'number' ? t.aliases_count : '—'}
                       </TableCell>
                       <TableCell>
-                        {typeof t.usage_count === "number"
-                          ? t.usage_count
-                          : "—"}
+                        {typeof t.usage_count === 'number' ? t.usage_count : '—'}
                       </TableCell>
                       <TableCell>
-                        {t.created_at
-                          ? new Date(t.created_at).toLocaleString()
-                          : "—"}
+                        {t.created_at ? new Date(t.created_at).toLocaleString() : '—'}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
                           className="text-red-600 border-red-300"
                           onClick={async () => {
                             if (!t.id) return;
-                              const ok = await confirmWithEnv(
-                                `Delete tag "${t.name || t.slug}"? This cannot be undone.`,
-                              );
+                            const ok = await confirmWithEnv(
+                              `Delete tag "${t.name || t.slug}"? This cannot be undone.`,
+                            );
                             if (!ok) return;
                             try {
                               await deleteAdminTag(t.id);
@@ -172,10 +163,7 @@ export default function Tags() {
                   ))}
                   {items.length === 0 && (
                     <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="p-4 text-center text-gray-500"
-                      >
+                      <TableCell colSpan={6} className="p-4 text-center text-gray-500">
                         No tags found
                       </TableCell>
                     </TableRow>
@@ -212,12 +200,9 @@ export default function Tags() {
                   className="bg-gray-200 dark:bg-gray-800"
                   onClick={async () => {
                     if (!blSlug.trim()) return;
-                    await addToBlacklist(
-                      blSlug.trim(),
-                      blReason.trim() || undefined,
-                    );
-                    setBlSlug("");
-                    setBlReason("");
+                    await addToBlacklist(blSlug.trim(), blReason.trim() || undefined);
+                    setBlSlug('');
+                    setBlReason('');
                     await loadBlacklist();
                   }}
                 >
@@ -237,10 +222,8 @@ export default function Tags() {
                   {blItems.map((b) => (
                     <TableRow key={b.slug}>
                       <TableCell className="font-mono">{b.slug}</TableCell>
-                      <TableCell>{b.reason || "—"}</TableCell>
-                      <TableCell>
-                        {new Date(b.created_at).toLocaleString()}
-                      </TableCell>
+                      <TableCell>{b.reason || '—'}</TableCell>
+                      <TableCell>{new Date(b.created_at).toLocaleString()}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           className="text-red-600 border-red-300"
@@ -256,10 +239,7 @@ export default function Tags() {
                   ))}
                   {blItems.length === 0 && (
                     <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="p-4 text-center text-gray-500"
-                      >
+                      <TableCell colSpan={4} className="p-4 text-center text-gray-500">
                         No blacklist entries
                       </TableCell>
                     </TableRow>
@@ -271,11 +251,7 @@ export default function Tags() {
         </>
       )}
 
-      <Modal
-        isOpen={createModal.isOpen}
-        onClose={createModal.close}
-        title="Create tag"
-      >
+      <Modal isOpen={createModal.isOpen} onClose={createModal.close} title="Create tag">
         <div className="flex flex-wrap items-center gap-2">
           <TextInput
             placeholder="slug"
@@ -296,8 +272,8 @@ export default function Tags() {
               if (!slug || !name) return;
               try {
                 await createAdminTag(slug, name);
-                setNewSlug("");
-                setNewName("");
+                setNewSlug('');
+                setNewName('');
                 createModal.close();
                 reset();
                 await reload();

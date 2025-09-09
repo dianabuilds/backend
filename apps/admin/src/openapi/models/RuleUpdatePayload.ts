@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RuleUpdatePayload = {
-    key: string;
-    rule: string;
+  key: string;
+  rule: string;
 };
-

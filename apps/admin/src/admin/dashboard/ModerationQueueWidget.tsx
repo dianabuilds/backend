@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
-import { Card, CardContent } from '../../components/ui/card';
 import { api } from '../../api/client';
+import { Card, CardContent } from '../../components/ui/card';
 
 interface CaseItem {
   id: string;
@@ -38,10 +38,7 @@ export default function ModerationQueueWidget({
           <ul className="text-sm space-y-1">
             {items.map((item) => (
               <li key={item.id}>
-                <Link
-                  to={`/moderation?status=${item.status}`}
-                  className="hover:underline"
-                >
+                <Link to={`/moderation?status=${item.status}`} className="hover:underline">
                   [{item.type}] {item.summary} - {item.status}
                 </Link>
               </li>

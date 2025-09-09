@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
-import { api } from "../api/client";
-import { ensureArray } from "../shared/utils";
+import { api } from '../api/client';
+import { ensureArray } from '../shared/utils';
 
 interface Restriction {
   id: string;
@@ -15,25 +15,25 @@ interface Restriction {
 }
 
 async function fetchRestrictions(): Promise<Restriction[]> {
-  const res = await api.get("/admin/restrictions");
+  const res = await api.get('/admin/restrictions');
   return ensureArray<Restriction>(res.data);
 }
 
 export default function Restrictions() {
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
-    queryKey: ["restrictions"],
+    queryKey: ['restrictions'],
     queryFn: fetchRestrictions,
   });
 
-  const [userId, setUserId] = useState("");
-  const [type, setType] = useState("ban");
-  const [reason, setReason] = useState("");
-  const [expires, setExpires] = useState("");
+  const [userId, setUserId] = useState('');
+  const [type, setType] = useState('ban');
+  const [reason, setReason] = useState('');
+  const [expires, setExpires] = useState('');
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      await api.post("/admin/restrictions", {
+      await api.post('/admin/restrictions', {
         user_id: userId,
         type,
         reason: reason || undefined,
@@ -41,26 +41,22 @@ export default function Restrictions() {
       });
     },
     onSuccess: () => {
-      setUserId("");
-      setReason("");
-      setExpires("");
-      queryClient.invalidateQueries({ queryKey: ["restrictions"] });
+      setUserId('');
+      setReason('');
+      setExpires('');
+      queryClient.invalidateQueries({ queryKey: ['restrictions'] });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (payload: {
-      id: string;
-      reason: string;
-      expires_at: string | null;
-    }) => {
+    mutationFn: async (payload: { id: string; reason: string; expires_at: string | null }) => {
       await api.patch(`/admin/restrictions/${payload.id}`, {
         reason: payload.reason || null,
         expires_at: payload.expires_at,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["restrictions"] });
+      queryClient.invalidateQueries({ queryKey: ['restrictions'] });
     },
   });
 
@@ -69,20 +65,18 @@ export default function Restrictions() {
       await api.del(`/admin/restrictions/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["restrictions"] });
+      queryClient.invalidateQueries({ queryKey: ['restrictions'] });
     },
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editReason, setEditReason] = useState("");
-  const [editExpires, setEditExpires] = useState("");
+  const [editReason, setEditReason] = useState('');
+  const [editExpires, setEditExpires] = useState('');
 
   const startEdit = (r: Restriction) => {
     setEditingId(r.id);
-    setEditReason(r.reason ?? "");
-    setEditExpires(
-      r.expires_at ? new Date(r.expires_at).toISOString().slice(0, 16) : "",
-    );
+    setEditReason(r.reason ?? '');
+    setEditExpires(r.expires_at ? new Date(r.expires_at).toISOString().slice(0, 16) : '');
   };
 
   const saveEdit = () => {
@@ -134,9 +128,7 @@ export default function Restrictions() {
       </div>
       {isLoading && <p>Loading...</p>}
       {error && (
-        <p className="text-red-500">
-          {error instanceof Error ? error.message : String(error)}
-        </p>
+        <p className="text-red-500">{error instanceof Error ? error.message : String(error)}</p>
       )}
       {!isLoading && !error && (
         <table className="min-w-full text-sm text-left">
@@ -153,14 +145,11 @@ export default function Restrictions() {
           </thead>
           <tbody>
             {data?.map((r) => (
-              <tr
-                key={r.id}
-                className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
+              <tr key={r.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                 <td className="p-2 font-mono">{r.user_id}</td>
                 <td className="p-2">{r.type}</td>
                 <td className="p-2">
-                  {r.expires_at ? new Date(r.expires_at).toLocaleString() : "-"}
+                  {r.expires_at ? new Date(r.expires_at).toLocaleString() : '-'}
                 </td>
                 <td className="p-2">
                   {editingId === r.id ? (
@@ -170,13 +159,11 @@ export default function Restrictions() {
                       onChange={(e) => setEditReason(e.target.value)}
                     />
                   ) : (
-                    (r.reason ?? "")
+                    (r.reason ?? '')
                   )}
                 </td>
-                <td className="p-2 font-mono">{r.issued_by ?? ""}</td>
-                <td className="p-2">
-                  {new Date(r.created_at).toLocaleString()}
-                </td>
+                <td className="p-2 font-mono">{r.issued_by ?? ''}</td>
+                <td className="p-2">{new Date(r.created_at).toLocaleString()}</td>
                 <td className="p-2 space-x-2">
                   {editingId === r.id ? (
                     <>

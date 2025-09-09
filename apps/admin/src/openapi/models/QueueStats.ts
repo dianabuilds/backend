@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QueueStats = {
-    pending: number;
-    active: number;
+  pending: number;
+  active: number;
 };
-

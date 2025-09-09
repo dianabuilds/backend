@@ -21,7 +21,6 @@ from app.domains.nodes.infrastructure.repositories.node_repository import (
 from app.domains.nodes.policies.node_policy import NodePolicy
 from app.domains.users.infrastructure.models.user import User
 from app.schemas.transition import NodeTransitionCreate
-from app.security import require_ws_guest
 
 router = APIRouter(prefix="/nodes", tags=["nodes-navigation-manage"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -35,18 +34,22 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 async def record_visit(
     slug: str,
     to_slug: str,
-    workspace_id: int,
+    workspace_id: Annotated[int | None, Query()] = None,
+    tenant_id: Annotated[int | None, Query()] = None,
     source: str | None = None,
     channel: str | None = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _member: Annotated[object, Depends(require_ws_guest)] = ...,
+    # Profile-centric: membership checks removed; authenticated user is enough
 ):
     repo = NodeRepository(db)
-    from_node = await repo.get_by_slug(slug, workspace_id)
+    account_scope = tenant_id or workspace_id
+    if account_scope is None:
+        raise HTTPException(status_code=422, detail="tenant_id is required")
+    from_node = await repo.get_by_slug(slug, account_scope)
     if not from_node:
         raise HTTPException(status_code=404, detail="Node not found")
-    to_node = await repo.get_by_slug(to_slug, workspace_id)
+    to_node = await repo.get_by_slug(to_slug, account_scope)
     if not to_node:
         raise HTTPException(status_code=404, detail="Target node not found")
     await EchoService().record_echo_trace(
@@ -63,23 +66,27 @@ async def record_visit(
 async def create_transition(
     slug: str,
     payload: NodeTransitionCreate,
-    workspace_id: int,
+    workspace_id: Annotated[int | None, Query()] = None,
+    tenant_id: Annotated[int | None, Query()] = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-    _member: Annotated[object, Depends(require_ws_guest)] = ...,
+    # Profile-centric: membership checks removed; NodePolicy enforces author rights
 ):
     repo = NodeRepository(db)
-    from_node = await repo.get_by_slug(slug, workspace_id)
+    account_scope = tenant_id or workspace_id
+    if account_scope is None:
+        raise HTTPException(status_code=422, detail="tenant_id is required")
+    from_node = await repo.get_by_slug(slug, account_scope)
     if not from_node:
         raise HTTPException(status_code=404, detail="Node not found")
     NodePolicy.ensure_can_edit(from_node, current_user)
-    to_node = await repo.get_by_slug(payload.to_slug, workspace_id)
+    to_node = await repo.get_by_slug(payload.to_slug, account_scope)
     if not to_node:
         raise HTTPException(status_code=404, detail="Target node not found")
     t_repo = TransitionRepository(db)
     transition = await t_repo.create(
-        from_node.id, workspace_id, to_node.id, payload, current_user.id
+        from_node.id, account_scope, to_node.id, payload, current_user.id
     )
-    await navcache.invalidate_navigation_by_node(workspace_id, slug)
+    await navcache.invalidate_navigation_by_node(account_scope, slug)
     cache_invalidate("nav", reason="transition_create", key=slug)
     return {"id": str(transition.id)}

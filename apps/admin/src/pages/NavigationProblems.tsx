@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import { listNavigationProblems, type NavigationProblem } from '../api/navigationProblems';
 import { listTransitions } from '../api/transitions';
 import GraphCanvas from '../components/GraphCanvas';
@@ -10,10 +11,11 @@ export default function NavigationProblems() {
   const [edges, setEdges] = useState<GraphEdge[]>([]);
 
   useEffect(() => {
-    listNavigationProblems().then(setItems).catch((e) => {
-      // eslint-disable-next-line no-console
-      console.error(e);
-    });
+    listNavigationProblems()
+      .then(setItems)
+      .catch((e) => {
+        console.error(e);
+      });
   }, []);
 
   const openGraph = async (slug: string) => {
@@ -43,7 +45,7 @@ export default function NavigationProblems() {
             <th className="p-2 text-left">CTR</th>
             <th className="p-2 text-left">Dead end</th>
             <th className="p-2 text-left">Cycle</th>
-            <th className="p-2"></th>
+            <th className="p-2" />
           </tr>
         </thead>
         <tbody>
@@ -65,9 +67,7 @@ export default function NavigationProblems() {
           ))}
         </tbody>
       </table>
-      {nodes.length > 0 && (
-        <GraphCanvas nodes={nodes} edges={edges} height={400} />
-      )}
+      {nodes.length > 0 && <GraphCanvas nodes={nodes} edges={edges} height={400} />}
     </div>
   );
 }

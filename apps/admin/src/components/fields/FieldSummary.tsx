@@ -1,7 +1,6 @@
-import { useId, type ChangeEventHandler, type TextareaHTMLAttributes } from "react";
+import { type ChangeEventHandler, type TextareaHTMLAttributes, useId } from 'react';
 
-interface Props
-  extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange"> {
+interface Props extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
   value: string;
   onChange: (value: string) => void;
   error?: string | null;
@@ -11,8 +10,7 @@ export default function FieldSummary({ value, onChange, error, id, ...rest }: Pr
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const descId = `${inputId}-desc`;
-  const handle: ChangeEventHandler<HTMLTextAreaElement> = (e) =>
-    onChange(e.target.value);
+  const handle: ChangeEventHandler<HTMLTextAreaElement> = (e) => onChange(e.target.value);
   return (
     <div>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-900">
@@ -22,7 +20,7 @@ export default function FieldSummary({ value, onChange, error, id, ...rest }: Pr
         id={inputId}
         aria-describedby={descId}
         className={`mt-1 w-full rounded border px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-          error ? "border-red-500" : ""
+          error ? 'border-red-500' : ''
         }`}
         rows={3}
         value={value}
@@ -42,4 +40,3 @@ export default function FieldSummary({ value, onChange, error, id, ...rest }: Pr
     </div>
   );
 }
-

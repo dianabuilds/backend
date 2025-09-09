@@ -1,20 +1,20 @@
-import "@testing-library/jest-dom";
+import '@testing-library/jest-dom';
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { vi } from "vitest";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 
-import { listFlags, updateFlag } from "../api/flags";
-import FeatureFlagsPage from "./FeatureFlags";
+import { listFlags, updateFlag } from '../api/flags';
+import FeatureFlagsPage from './FeatureFlags';
 
-vi.mock("../api/flags", () => ({
+vi.mock('../api/flags', () => ({
   listFlags: vi.fn(),
   updateFlag: vi.fn(),
 }));
 
-vi.mock("../account/AccountContext", () => ({
-  useAccount: () => ({ accountId: "" }),
+vi.mock('../account/AccountContext', () => ({
+  useAccount: () => ({ accountId: '' }),
 }));
 
 function renderPage() {
@@ -28,35 +28,35 @@ function renderPage() {
   );
 }
 
-describe("FeatureFlagsPage", () => {
+describe('FeatureFlagsPage', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("filters flags by key via API", async () => {
+  it('filters flags by key via API', async () => {
     vi.mocked(listFlags)
       .mockResolvedValueOnce([
         {
-          key: "a",
+          key: 'a',
           value: false,
-          description: "A",
-          audience: "all",
+          description: 'A',
+          audience: 'all',
           updated_at: null,
           updated_by: null,
         },
         {
-          key: "b",
+          key: 'b',
           value: false,
-          description: "B",
-          audience: "all",
+          description: 'B',
+          audience: 'all',
           updated_at: null,
           updated_by: null,
         },
       ])
       .mockResolvedValueOnce([
         {
-          key: "a",
+          key: 'a',
           value: false,
-          description: "A",
-          audience: "all",
+          description: 'A',
+          audience: 'all',
           updated_at: null,
           updated_by: null,
         },
@@ -64,69 +64,69 @@ describe("FeatureFlagsPage", () => {
     renderPage();
     await waitFor(() => expect(listFlags).toHaveBeenCalled());
     fireEvent.change(screen.getByLabelText(/filter by key/i), {
-      target: { value: "a" },
+      target: { value: 'a' },
     });
     await waitFor(() =>
       expect(listFlags).toHaveBeenLastCalledWith({
-        q: "a",
+        q: 'a',
         limit: 50,
         offset: 0,
       }),
     );
   });
 
-  it("allows editing flag in modal", async () => {
+  it('allows editing flag in modal', async () => {
     vi.mocked(listFlags).mockResolvedValue([
       {
-        key: "test",
+        key: 'test',
         value: false,
-        description: "",
-        audience: "all",
+        description: '',
+        audience: 'all',
         updated_at: null,
         updated_by: null,
       },
     ]);
     const updateSpy = vi.mocked(updateFlag).mockResolvedValue({
-      key: "test",
+      key: 'test',
       value: true,
-      description: "new",
-      audience: "beta",
-      updated_at: "2024-01-01T00:00:00Z",
-      updated_by: "me",
+      description: 'new',
+      audience: 'beta',
+      updated_at: '2024-01-01T00:00:00Z',
+      updated_by: 'me',
     });
     renderPage();
-    await waitFor(() => screen.getByText("test"));
-    fireEvent.click(screen.getByText("test"));
+    await waitFor(() => screen.getByText('test'));
+    fireEvent.click(screen.getByText('test'));
     fireEvent.change(screen.getByLabelText(/description/i), {
-      target: { value: "new" },
+      target: { value: 'new' },
     });
     fireEvent.click(screen.getByLabelText(/enabled/i));
     fireEvent.change(screen.getByLabelText(/audience/i), {
-      target: { value: "beta" },
+      target: { value: 'beta' },
     });
-    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
     await waitFor(() =>
-      expect(updateSpy).toHaveBeenCalledWith("test", {
-        description: "new",
+      expect(updateSpy).toHaveBeenCalledWith('test', {
+        description: 'new',
         value: true,
-        audience: "beta",
+        audience: 'beta',
       }),
     );
   });
 
-  it("renders referrals program flag", async () => {
+  it('renders referrals program flag', async () => {
     vi.mocked(listFlags).mockResolvedValue([
       {
-        key: "referrals.program",
+        key: 'referrals.program',
         value: false,
-        description: "",
-        audience: "all",
+        description: '',
+        audience: 'all',
         updated_at: null,
         updated_by: null,
       },
     ]);
     renderPage();
-    await waitFor(() => screen.getByText("referrals.program"));
-    expect(screen.getByText("referrals.program")).toBeInTheDocument();
+    await waitFor(() => screen.getByText('referrals.program'));
+    expect(screen.getByText('referrals.program')).toBeInTheDocument();
   });
 });

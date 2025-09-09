@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type TraceUser = {
-    id: string;
-    username?: (string | null);
+  id: string;
+  username?: string | null;
 };
-

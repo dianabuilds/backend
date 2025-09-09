@@ -26,7 +26,7 @@ class Achievement(Base):
     __tablename__ = "achievements"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    account_id = Column(sa.BigInteger, ForeignKey("accounts.id"), nullable=True, index=True)
+    # account_id column was removed from the DB. Keep a transient attribute for legacy reads.
     code = Column(String, unique=True, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
@@ -49,6 +49,19 @@ class Achievement(Base):
 
     users = relationship("UserAchievement", back_populates="achievement")
 
+    def __init__(self, **kwargs):  # type: ignore[override]
+        acc = kwargs.pop("account_id", None)
+        if acc is not None:
+            try:
+                object.__setattr__(self, "_legacy_account_id", acc)
+            except Exception:
+                pass
+        super().__init__(**kwargs)
+
+    @property
+    def account_id(self) -> int | None:  # type: ignore[override]
+        return getattr(self, "_legacy_account_id", None)
+
 
 class UserAchievement(Base):
     __tablename__ = "user_achievements"
@@ -57,7 +70,20 @@ class UserAchievement(Base):
     achievement_id = Column(
         UUID(), ForeignKey("achievements.id", ondelete="CASCADE"), primary_key=True
     )
-    account_id = Column(sa.BigInteger, ForeignKey("accounts.id"), nullable=True, index=True)
+    # account_id column was removed; keep transient attribute only
     unlocked_at = Column(DateTime, default=datetime.utcnow)
 
     achievement = relationship("Achievement", back_populates="users")
+
+    def __init__(self, **kwargs):  # type: ignore[override]
+        acc = kwargs.pop("account_id", None)
+        if acc is not None:
+            try:
+                object.__setattr__(self, "_legacy_account_id", acc)
+            except Exception:
+                pass
+        super().__init__(**kwargs)
+
+    @property
+    def account_id(self) -> int | None:  # type: ignore[override]
+        return getattr(self, "_legacy_account_id", None)

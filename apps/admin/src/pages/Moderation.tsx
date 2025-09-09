@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
-import { api } from "../api/client";
-import { ensureArray } from "../shared/utils";
+import { api } from '../api/client';
+import { ensureArray } from '../shared/utils';
 
 interface HiddenNode {
   slug: string;
@@ -13,19 +13,19 @@ interface HiddenNode {
 }
 
 async function fetchHiddenNodes(): Promise<HiddenNode[]> {
-  const res = await api.get("/admin/moderation/hidden-nodes");
+  const res = await api.get('/admin/moderation/hidden-nodes');
   return ensureArray<HiddenNode>(res.data);
 }
 
 export default function Moderation() {
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
-    queryKey: ["hidden-nodes"],
+    queryKey: ['hidden-nodes'],
     queryFn: fetchHiddenNodes,
   });
 
-  const [slug, setSlug] = useState("");
-  const [reason, setReason] = useState("");
+  const [slug, setSlug] = useState('');
+  const [reason, setReason] = useState('');
 
   const hideMutation = useMutation({
     mutationFn: async () => {
@@ -33,9 +33,9 @@ export default function Moderation() {
       await api.post(`/admin/moderation/nodes/${slug}/hide`, { reason });
     },
     onSuccess: () => {
-      setSlug("");
-      setReason("");
-      queryClient.invalidateQueries({ queryKey: ["hidden-nodes"] });
+      setSlug('');
+      setReason('');
+      queryClient.invalidateQueries({ queryKey: ['hidden-nodes'] });
     },
   });
 
@@ -44,7 +44,7 @@ export default function Moderation() {
       await api.post(`/admin/moderation/nodes/${s}/restore`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["hidden-nodes"] });
+      queryClient.invalidateQueries({ queryKey: ['hidden-nodes'] });
     },
   });
 
@@ -73,9 +73,7 @@ export default function Moderation() {
       </div>
       {isLoading && <p>Loading...</p>}
       {error && (
-        <p className="text-red-500">
-          {error instanceof Error ? error.message : String(error)}
-        </p>
+        <p className="text-red-500">{error instanceof Error ? error.message : String(error)}</p>
       )}
       {!isLoading && !error && (
         <table className="min-w-full text-sm text-left">
@@ -91,17 +89,12 @@ export default function Moderation() {
           </thead>
           <tbody>
             {data?.map((n) => (
-              <tr
-                key={n.slug}
-                className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
+              <tr key={n.slug} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                 <td className="p-2 font-mono">{n.slug}</td>
-                <td className="p-2">{n.title ?? ""}</td>
-                <td className="p-2">{n.reason ?? ""}</td>
-                <td className="p-2 font-mono">{n.hidden_by ?? ""}</td>
-                <td className="p-2">
-                  {new Date(n.hidden_at).toLocaleString()}
-                </td>
+                <td className="p-2">{n.title ?? ''}</td>
+                <td className="p-2">{n.reason ?? ''}</td>
+                <td className="p-2 font-mono">{n.hidden_by ?? ''}</td>
+                <td className="p-2">{new Date(n.hidden_at).toLocaleString()}</td>
                 <td className="p-2">
                   <button
                     className="bg-green-500 text-white px-2 py-1 rounded"

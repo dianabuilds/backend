@@ -16,7 +16,7 @@ from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
-    prefix="/admin/accounts/{account_id}/articles",
+    prefix="/admin/articles",
     tags=["admin"],
     responses=ADMIN_AUTH_RESPONSES,
 )
@@ -39,7 +39,6 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
     node_data = node or Node(
         id=item.id,
-        account_id=item.workspace_id,
         slug=item.slug,
         title=item.title,
         content={},
@@ -62,7 +61,6 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
     return {
         "id": item.id,
-        "workspace_id": str(item.workspace_id),
         "nodeType": item.type,
         "type": item.type,  # legacy
         "slug": item.slug,
@@ -103,13 +101,13 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
 @router.post("", summary="Create article (admin)")
 async def create_article(
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: dict | None = None,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.create(account_id, actor_id=current_user.id)
+    # Profile-centric: ignore account_id, create personal node
+    item = await svc.create_personal(actor_id=current_user.id)
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
@@ -117,12 +115,12 @@ async def create_article(
 @router.get("/{node_id}", summary="Get article (admin)")
 async def get_article(
     node_id: int,
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.get(account_id, node_id)
+    # Profile-centric read
+    item = await svc.get(node_id)
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
 
@@ -131,18 +129,12 @@ async def get_article(
 async def update_article(
     node_id: int,
     payload: dict,
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.update(
-        account_id,
-        node_id,
-        payload,
-        actor_id=current_user.id,
-    )
+    item = await svc.update_personal(node_id, payload, actor_id=current_user.id)
     if next:
         from app.domains.telemetry.application.ux_metrics_facade import ux_metrics
 
@@ -154,23 +146,16 @@ async def update_article(
 @router.post("/{node_id}/publish", summary="Publish article (admin)")
 async def publish_article(
     node_id: int,
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
-    item = await svc.publish(
-        account_id,
+    item = await svc.publish_personal(
         node_id,
         actor_id=current_user.id,
         access=(payload.access if payload else "everyone"),
     )
-    await publish_content(
-        node_id=item.id,
-        slug=item.slug,
-        author_id=current_user.id,
-        workspace_id=account_id,
-    )
+    await publish_content(node_id=item.id, slug=item.slug, author_id=current_user.id)
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)

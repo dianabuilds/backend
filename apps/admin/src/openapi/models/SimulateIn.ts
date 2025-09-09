@@ -3,6 +3,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export type SimulateIn = {
-    inputs?: Record<string, any>;
+  inputs?: Record<string, any>;
 };
-

@@ -24,7 +24,7 @@ from app.domains.notifications.infrastructure.transports.websocket import (
     manager as ws_manager,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.pagination import scope_by_workspace
+from app.providers.db.pagination import scope_by_profile
 from app.providers.db.session import get_db
 from app.schemas.notification import NotificationFilter, NotificationOut
 
@@ -44,8 +44,7 @@ async def list_notifications(
         .where(Notification.is_preview.is_(False))
         .order_by(Notification.created_at.desc())
     )
-    if filters.workspace_id:
-        stmt = scope_by_workspace(stmt, filters.workspace_id)
+    # Profile-centric mode: user filter is sufficient
     if filters.placement:
         stmt = stmt.where(Notification.placement == filters.placement)
     result = await db.execute(stmt)
@@ -68,8 +67,7 @@ async def mark_read(
         Notification.user_id == current_user.id,
         Notification.is_preview.is_(False),
     )
-    if filters.workspace_id:
-        stmt = scope_by_workspace(stmt, filters.workspace_id)
+    # Profile-centric mode: user filter is sufficient
     result = await db.execute(stmt)
     notif = result.scalars().first()
     if not notif:

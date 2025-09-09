@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
 
-import { type Campaign, listCampaigns } from "../../api/notifications";
+import { type Campaign, listCampaigns } from '../../api/notifications';
 
 export default function CampaignTable() {
   const { data, isLoading } = useQuery({
-    queryKey: ["campaigns"],
+    queryKey: ['campaigns'],
     queryFn: () => listCampaigns(),
     refetchInterval: 10000,
   });
@@ -35,14 +35,10 @@ export default function CampaignTable() {
             <td className="p-2">
               {c.sent} / {c.total}
             </td>
+            <td className="p-2">{c.created_at ? new Date(c.created_at).toLocaleString() : '-'}</td>
+            <td className="p-2">{c.started_at ? new Date(c.started_at).toLocaleString() : '-'}</td>
             <td className="p-2">
-              {c.created_at ? new Date(c.created_at).toLocaleString() : "-"}
-            </td>
-            <td className="p-2">
-              {c.started_at ? new Date(c.started_at).toLocaleString() : "-"}
-            </td>
-            <td className="p-2">
-              {c.finished_at ? new Date(c.finished_at).toLocaleString() : "-"}
+              {c.finished_at ? new Date(c.finished_at).toLocaleString() : '-'}
             </td>
           </tr>
         ))}

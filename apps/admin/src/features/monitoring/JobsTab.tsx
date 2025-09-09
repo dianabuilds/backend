@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
-import { api } from "../../api/client";
-import Pill from "../../components/Pill";
+import { api } from '../../api/client';
+import Pill from '../../components/Pill';
 
 interface Job {
   id: string;
@@ -21,14 +21,14 @@ interface Queues {
   [name: string]: QueueStats;
 }
 
-function statusVariant(status: string): "ok" | "warn" | "danger" {
+function statusVariant(status: string): 'ok' | 'warn' | 'danger' {
   switch (status) {
-    case "success":
-      return "ok";
-    case "failed":
-      return "danger";
+    case 'success':
+      return 'ok';
+    case 'failed':
+      return 'danger';
     default:
-      return "warn";
+      return 'warn';
   }
 }
 
@@ -50,8 +50,8 @@ export default function JobsTab() {
     setError(null);
     try {
       const [recentRes, queuesRes] = await Promise.all([
-        api.get<Job[]>("/admin/jobs/recent"),
-        api.get<Queues>("/admin/jobs/queues"),
+        api.get<Job[]>('/admin/jobs/recent'),
+        api.get<Queues>('/admin/jobs/queues'),
       ]);
       setJobs(recentRes.data || []);
       setQueues(queuesRes.data || {});
@@ -64,7 +64,7 @@ export default function JobsTab() {
 
   const restartFailed = async () => {
     try {
-      await api.post("/admin/jobs/restart_failed", {});
+      await api.post('/admin/jobs/restart_failed', {});
       await load();
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
@@ -80,16 +80,10 @@ export default function JobsTab() {
       <div className="flex items-center gap-2">
         <h2 className="text-lg font-semibold">Jobs</h2>
         <div className="ml-auto flex gap-2">
-          <button
-            onClick={restartFailed}
-            className="px-3 py-1 rounded border"
-          >
+          <button onClick={restartFailed} className="px-3 py-1 rounded border">
             Restart failed
           </button>
-          <Link
-            to="/ops/jobs"
-            className="px-3 py-1 rounded border bg-blue-600 text-white"
-          >
+          <Link to="/ops/jobs" className="px-3 py-1 rounded border bg-blue-600 text-white">
             Open Ops
           </Link>
         </div>
@@ -122,9 +116,7 @@ export default function JobsTab() {
                   <td className="p-2 align-middle">
                     <Pill variant={statusVariant(job.status)}>{job.status}</Pill>
                   </td>
-                  <td className="p-2">
-                    {formatDuration(job.started_at, job.finished_at)}
-                  </td>
+                  <td className="p-2">{formatDuration(job.started_at, job.finished_at)}</td>
                 </tr>
               ))}
             </tbody>
@@ -134,4 +126,3 @@ export default function JobsTab() {
     </div>
   );
 }
-

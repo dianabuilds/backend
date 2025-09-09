@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type PreviewLinkRequest = {
-    account_id: string;
-    ttl?: (number | null);
+  account_id: string;
+  ttl?: number | null;
 };
-

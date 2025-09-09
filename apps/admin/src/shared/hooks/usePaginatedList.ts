@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { ensureArray } from "../utils";
+import { ensureArray } from '../utils';
 
 export function usePaginatedList<T>(
   loader: (params: { limit: number; offset: number }) => Promise<unknown>,

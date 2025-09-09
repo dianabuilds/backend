@@ -3,6 +3,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export type GenerationEnqueued = {
-    job_id: string;
+  job_id: string;
 };
-

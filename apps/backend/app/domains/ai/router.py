@@ -27,7 +27,7 @@ def resolve(bundle: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
             ``name``, ``weight``, ``cost`` and ``health`` fields.
     context: dict
         Optional hints where a model name may come from. Supported keys are
-        ``explicit``, ``user``, ``workspace`` and ``global`` in order of
+        ``explicit``, ``user`` and ``global`` in order of
         priority.  If a model from context is healthy, it will be selected
         immediately.
 
@@ -47,7 +47,7 @@ def resolve(bundle: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     def healthy(m: dict[str, Any]) -> bool:
         return m.get("health", True)
 
-    for src in ("explicit", "user", "workspace", "global"):
+    for src in ("explicit", "user", "global"):
         name = context.get(src)
         if not name:
             continue

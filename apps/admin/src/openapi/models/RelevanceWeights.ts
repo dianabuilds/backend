@@ -3,9 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RelevanceWeights = {
-    title?: number;
-    body?: number;
-    tags?: number;
-    author?: number;
+  title?: number;
+  body?: number;
+  tags?: number;
+  author?: number;
 };
-

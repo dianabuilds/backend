@@ -1,14 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 
 import type {
   GraphEdgeOutput as GraphEdge,
   GraphNodeOutput as GraphNode,
   VersionGraphOutput as VersionGraph,
-} from "../openapi";
+} from '../openapi';
 
-function buildAdj(
-  edges: GraphEdge[],
-): Record<string, { to: string; label?: string | null }[]> {
+function buildAdj(edges: GraphEdge[]): Record<string, { to: string; label?: string | null }[]> {
   const m: Record<string, { to: string; label?: string | null }[]> = {};
   for (const e of edges) {
     if (!m[e.from_node_key]) m[e.from_node_key] = [];
@@ -19,7 +17,7 @@ function buildAdj(
 
 function findStart(nodes: GraphNode[]): GraphNode | null {
   if (!nodes || nodes.length === 0) return null;
-  const start = nodes.find((n) => n.type === "start");
+  const start = nodes.find((n) => n.type === 'start');
   return start || nodes[0];
 }
 
@@ -39,9 +37,7 @@ export default function PlaythroughPanel({
 
   const start = useMemo(() => findStart(graph.nodes || []), [graph.nodes]);
 
-  const [current, setCurrent] = useState<string | null>(
-    start ? start.key : null,
-  );
+  const [current, setCurrent] = useState<string | null>(start ? start.key : null);
   const [path, setPath] = useState<string[]>(current ? [current] : []);
 
   useEffect(() => {
@@ -51,13 +47,10 @@ export default function PlaythroughPanel({
     setPath(key ? [key] : []);
   }, [graph]);
 
-  const outgoing = useMemo(
-    () => (current ? adj[current] || [] : []),
-    [adj, current],
-  );
+  const outgoing = useMemo(() => (current ? adj[current] || [] : []), [adj, current]);
   const node = current ? nodesByKey[current] : null;
   const isEnd = node
-    ? node.type === "end" || (outgoing.length === 0 && node.type !== "start")
+    ? node.type === 'end' || (outgoing.length === 0 && node.type !== 'start')
     : false;
 
   const moveTo = (nextKey: string) => {
@@ -91,11 +84,7 @@ export default function PlaythroughPanel({
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Playthrough</h3>
         <div className="flex items-center gap-2">
-          <button
-            className="px-2 py-1 rounded border"
-            onClick={reset}
-            disabled={!start}
-          >
+          <button className="px-2 py-1 rounded border" onClick={reset} disabled={!start}>
             Reset
           </button>
           <button
@@ -117,14 +106,14 @@ export default function PlaythroughPanel({
 
       <div className="mt-3 text-sm">
         <div className="mb-2">
-          <span className="text-gray-600">Path:</span>{" "}
+          <span className="text-gray-600">Path:</span>{' '}
           {path.length === 0 ? (
             <i className="text-gray-500">—</i>
           ) : (
             <span className="font-mono">
               {path.map((k, i) => (
                 <span key={`${k}-${i}`}>
-                  {i > 0 ? " › " : ""}
+                  {i > 0 ? ' › ' : ''}
                   <button className="underline" onClick={() => setCurrent(k)}>
                     {k}
                   </button>
@@ -138,18 +127,13 @@ export default function PlaythroughPanel({
             <div className="flex items-center gap-2">
               <div className="font-semibold">{node.title || node.key}</div>
               <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800">
-                {node.type || "normal"}
+                {node.type || 'normal'}
               </span>
               {isEnd && (
-                <span className="text-xs px-2 py-0.5 rounded bg-green-200 text-green-800">
-                  END
-                </span>
+                <span className="text-xs px-2 py-0.5 rounded bg-green-200 text-green-800">END</span>
               )}
               {onOpenNode && (
-                <button
-                  className="text-xs underline"
-                  onClick={() => onOpenNode(node.key)}
-                >
+                <button className="text-xs underline" onClick={() => onOpenNode(node.key)}>
                   open
                 </button>
               )}

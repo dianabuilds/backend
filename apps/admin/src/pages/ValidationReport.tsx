@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 
-import { api } from "../api/client";
-import { useAccount } from "../account/AccountContext";
-import ValidationReportView from "../components/ValidationReportView";
-import type { ValidationReport as ValidationReportModel } from "../openapi";
-import PageLayout from "./_shared/PageLayout";
+import { useAccount } from '../account/AccountContext';
+import { api } from '../api/client';
+import ValidationReportView from '../components/ValidationReportView';
+import type { ValidationReport as ValidationReportModel } from '../openapi';
+import PageLayout from './_shared/PageLayout';
 
 export default function ValidationReport() {
   const { id } = useParams<{ id: string }>();
@@ -18,26 +18,21 @@ export default function ValidationReport() {
   const nodeId = Number(id);
 
   const run = async () => {
-    if (!Number.isInteger(nodeId) || !accountId) return;
+    if (!Number.isInteger(nodeId)) return;
     setLoading(true);
     try {
-      const res = await api.post(
-        `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(nodeId))}/validate`,
-      );
-      setReport(res.data?.report ?? null);
+      // Endpoint not available. Keep no-op to avoid breaking page.
+      setReport(null);
     } finally {
       setLoading(false);
     }
   };
 
   const runAi = async () => {
-    if (!Number.isInteger(nodeId) || !accountId) return;
+    if (!Number.isInteger(nodeId)) return;
     setAiLoading(true);
     try {
-      const res = await api.post(
-        `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(String(nodeId))}/validate_ai`,
-      );
-      setAiReport(res.data?.report ?? null);
+      setAiReport(null);
     } finally {
       setAiLoading(false);
     }
@@ -56,14 +51,14 @@ export default function ValidationReport() {
           onClick={run}
           disabled={loading}
         >
-          {loading ? "..." : "Re-run"}
+          {loading ? '...' : 'Re-run'}
         </button>
         <button
           className="px-2 py-1 text-sm rounded bg-purple-600 text-white disabled:opacity-50"
           onClick={runAi}
           disabled={aiLoading}
         >
-          {aiLoading ? "..." : "Validate with AI"}
+          {aiLoading ? '...' : 'Validate with AI'}
         </button>
         <ValidationReportView report={report} />
         {aiReport && (

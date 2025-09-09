@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { api, ApiError } from './client';
 
 afterEach(() => {
@@ -10,7 +11,11 @@ afterEach(() => {
 describe('request', () => {
   it('returns friendly message for 405', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response('{}', { status: 405, statusText: 'Method Not Allowed', headers: { 'Content-Type': 'application/json' } }),
+      new Response('{}', {
+        status: 405,
+        statusText: 'Method Not Allowed',
+        headers: { 'Content-Type': 'application/json' },
+      }),
     );
 
     try {
@@ -25,7 +30,11 @@ describe('request', () => {
 
   it('returns friendly message for 422', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response('{}', { status: 422, statusText: 'Unprocessable Entity', headers: { 'Content-Type': 'application/json' } }),
+      new Response('{}', {
+        status: 422,
+        statusText: 'Unprocessable Entity',
+        headers: { 'Content-Type': 'application/json' },
+      }),
     );
 
     try {
@@ -40,7 +49,11 @@ describe('request', () => {
 
   it('returns friendly message for 500', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response('{}', { status: 500, statusText: 'Internal Server Error', headers: { 'Content-Type': 'application/json' } }),
+      new Response('{}', {
+        status: 500,
+        statusText: 'Internal Server Error',
+        headers: { 'Content-Type': 'application/json' },
+      }),
     );
 
     try {
@@ -56,7 +69,9 @@ describe('request', () => {
   it('does not expose tokens or add auth header', async () => {
     const fetchSpy = vi
       .spyOn(global, 'fetch')
-      .mockResolvedValue(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      .mockResolvedValue(
+        new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }),
+      );
     await api.request('/test');
     const call = fetchSpy.mock.calls[0] as [RequestInfo, RequestInit];
     expect(call[1].credentials).toBe('include');

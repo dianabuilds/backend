@@ -7,8 +7,7 @@ describe('usePaginatedList', () => {
   it('does not auto-reload when loader identity changes', async () => {
     const loader = vi.fn().mockResolvedValue([]);
     const { rerender, result } = renderHook(
-      ({ q }: { q: string }) =>
-        usePaginatedList(({ limit, offset }) => loader(q, limit, offset)),
+      ({ q }: { q: string }) => usePaginatedList(({ limit, offset }) => loader(q, limit, offset)),
       { initialProps: { q: '' } },
     );
 

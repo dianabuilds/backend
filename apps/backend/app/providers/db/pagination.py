@@ -181,9 +181,13 @@ def apply_filters(
     return stmt, applied
 
 
-def scope_by_workspace(query: Select, workspace_id: UUID) -> Select:
-    """Filter a SQLAlchemy query by workspace identifier if possible."""
+def scope_by_profile(query: Select, profile_id: UUID) -> Select:
+    """Filter a query by author/profile when supported.
+
+    If the entity has an ``author_id`` column, apply that filter; otherwise
+    return the query unchanged.
+    """
     entity = query.column_descriptions[0]["entity"]
-    if hasattr(entity, "workspace_id"):
-        query = query.where(entity.workspace_id == workspace_id)
+    if hasattr(entity, "author_id"):
+        query = query.where(entity.author_id == profile_id)
     return query

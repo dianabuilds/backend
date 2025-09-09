@@ -1,12 +1,6 @@
 import { Card, CardContent } from '../../components/ui/card';
 
-export default function ProblematicTransitionsWidget({
-  query,
-  refreshInterval,
-}: {
-  query?: string;
-  refreshInterval?: number;
-}) {
+export default function ProblematicTransitionsWidget() {
   return (
     <Card>
       <CardContent className="p-4 sm:p-6 space-y-2">
@@ -15,9 +9,7 @@ export default function ProblematicTransitionsWidget({
           <li>Node #450 — CTR 0.2%</li>
           <li>Node #451 — cycle detected</li>
         </ul>
-        <button className="mt-2 rounded bg-gray-200 px-3 py-1 text-sm">
-          Open graph
-        </button>
+        <button className="mt-2 rounded bg-gray-200 px-3 py-1 text-sm">Open graph</button>
       </CardContent>
     </Card>
   );

@@ -1,25 +1,27 @@
 // Lightweight RUM helpers: send navigation timings and custom events to backend
-import { apiFetch } from "../lib/http";
+import { apiFetch } from '../lib/http';
 
 type RUMPayload = Record<string, unknown>;
 
-const RUM_ENDPOINT = "/metrics/rum";
+const RUM_ENDPOINT = '/metrics/rum';
 
 export function sendRUM(event: string, data: RUMPayload = {}): void {
   try {
     const payload = JSON.stringify({
       event,
       ts: Date.now(),
-      url: typeof location !== "undefined" ? location.pathname + location.search : "",
+      url: typeof location !== 'undefined' ? location.pathname + location.search : '',
       data,
     });
-    if (typeof navigator !== "undefined" && "sendBeacon" in navigator) {
-      const blob = new Blob([payload], { type: "application/json" });
-      (navigator as Navigator & { sendBeacon?: (url: string, data: BodyInit) => void }).sendBeacon?.(RUM_ENDPOINT, blob);
+    if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
+      const blob = new Blob([payload], { type: 'application/json' });
+      (
+        navigator as Navigator & { sendBeacon?: (url: string, data: BodyInit) => void }
+      ).sendBeacon?.(RUM_ENDPOINT, blob);
     } else {
       void apiFetch(RUM_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: payload,
         keepalive: true,
       })
@@ -28,31 +30,33 @@ export function sendRUM(event: string, data: RUMPayload = {}): void {
             console.error(`RUM request failed with status ${response.status}`);
             switch (response.status) {
               case 405:
-                console.error("RUM endpoint method not allowed");
+                console.error('RUM endpoint method not allowed');
                 break;
               case 422:
-                console.error("RUM payload validation failed");
+                console.error('RUM payload validation failed');
                 break;
               case 500:
-                console.error("RUM internal server error");
+                console.error('RUM internal server error');
                 break;
             }
           }
         })
         .catch((error) => {
-          console.error("RUM request error", error);
+          console.error('RUM request error', error);
         });
     }
   } catch (error) {
-    console.error("Unexpected error sending RUM", error);
+    console.error('Unexpected error sending RUM', error);
   }
 }
 
 function sendNavigation() {
   try {
-    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    const nav = performance.getEntriesByType('navigation')[0] as
+      | PerformanceNavigationTiming
+      | undefined;
     if (!nav) return;
-    sendRUM("navigation", {
+    sendRUM('navigation', {
       type: nav.type,
       startTime: nav.startTime,
       duration: nav.duration,
@@ -74,24 +78,24 @@ function sendNavigation() {
 
 function sendFirstInteraction() {
   try {
-    sendRUM("first-interaction", { tti: performance.now() });
+    sendRUM('first-interaction', { tti: performance.now() });
   } catch {
     // ignore
   }
 }
 
 // Auto-send navigation timings after full load and measure first interaction
-if (typeof window !== "undefined") {
-  if (document.readyState === "complete") {
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'complete') {
     setTimeout(sendNavigation, 0);
   } else {
-    window.addEventListener("load", () => setTimeout(sendNavigation, 0), { once: true });
+    window.addEventListener('load', () => setTimeout(sendNavigation, 0), { once: true });
   }
   const onFirstInput = () => {
-    window.removeEventListener("pointerdown", onFirstInput);
-    window.removeEventListener("keydown", onFirstInput);
+    window.removeEventListener('pointerdown', onFirstInput);
+    window.removeEventListener('keydown', onFirstInput);
     sendFirstInteraction();
   };
-  window.addEventListener("pointerdown", onFirstInput, { once: true });
-  window.addEventListener("keydown", onFirstInput, { once: true });
+  window.addEventListener('pointerdown', onFirstInput, { once: true });
+  window.addEventListener('keydown', onFirstInput, { once: true });
 }

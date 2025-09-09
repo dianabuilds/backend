@@ -1,6 +1,6 @@
-import { useId, type InputHTMLAttributes } from "react";
+import { type InputHTMLAttributes, useId } from 'react';
 
-import TagInput from "../TagInput";
+import TagInput from '../TagInput';
 
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
   value: string[];
@@ -9,14 +9,7 @@ interface Props extends InputHTMLAttributes<HTMLInputElement> {
   description?: string;
 }
 
-export default function FieldMedia({
-  value,
-  onChange,
-  id,
-  error,
-  description,
-  ...rest
-}: Props) {
+export default function FieldMedia({ value, onChange, id, error, description, ...rest }: Props) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const descId = error || description ? `${inputId}-desc` : undefined;
@@ -30,7 +23,7 @@ export default function FieldMedia({
         aria-describedby={descId}
         value={value}
         onChange={onChange}
-        className={`mt-1 w-full ${error ? "border-red-500" : ""}`}
+        className={`mt-1 w-full ${error ? 'border-red-500' : ''}`}
         {...rest}
       />
       {error ? (

@@ -1,9 +1,9 @@
-import React from "react";
+import React from 'react';
 
 export interface PeriodStepSelectorProps {
-  range: "1h" | "24h";
+  range: '1h' | '24h';
   step: 60 | 300;
-  onRangeChange: (r: "1h" | "24h") => void;
+  onRangeChange: (r: '1h' | '24h') => void;
   onStepChange: (s: 60 | 300) => void;
   className?: string;
 }
@@ -16,11 +16,11 @@ export default function PeriodStepSelector({
   className,
 }: PeriodStepSelectorProps) {
   return (
-    <div className={className ? className : "flex items-center gap-2"}>
+    <div className={className ? className : 'flex items-center gap-2'}>
       <label className="text-sm">Range:</label>
       <select
         value={range}
-        onChange={(e) => onRangeChange(e.target.value as "1h" | "24h")}
+        onChange={(e) => onRangeChange(e.target.value as '1h' | '24h')}
         className="border rounded px-2 py-1 text-sm"
       >
         <option value="1h">1h</option>

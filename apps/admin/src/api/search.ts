@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api } from './client';
 
 export interface SearchTopItem {
   query: string;
@@ -7,6 +7,6 @@ export interface SearchTopItem {
 }
 
 export async function getSearchTop(): Promise<SearchTopItem[]> {
-  const res = await api.get<SearchTopItem[]>("/admin/search/top");
+  const res = await api.get<SearchTopItem[]>('/admin/search/top');
   return res.data ?? [];
 }

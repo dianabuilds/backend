@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore } from 'react';
 
 let banner: string | null = null;
 const listeners = new Set<() => void>();

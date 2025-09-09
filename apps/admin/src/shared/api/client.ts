@@ -1,11 +1,11 @@
-import { apiFetch } from "../../api/client";
+import { apiFetch } from '../../api/client';
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const resp = await apiFetch(path, init);
-  const ct = resp.headers.get("content-type") || "";
+  const ct = resp.headers.get('content-type') || '';
   if (!resp.ok) {
     let message = resp.statusText || `Request failed with ${resp.status}`;
-    if (ct.includes("application/json")) {
+    if (ct.includes('application/json')) {
       try {
         const data = (await resp.json()) as { detail?: string };
         if (data.detail) message = data.detail;
@@ -15,7 +15,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     throw new Error(message);
   }
-  if (resp.status === 204 || !ct.includes("application/json")) {
+  if (resp.status === 204 || !ct.includes('application/json')) {
     return undefined as T;
   }
   return (await resp.json()) as T;
@@ -23,34 +23,34 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const client = {
   get<T>(path: string, init?: RequestInit) {
-    return request<T>(path, { ...init, method: "GET" });
+    return request<T>(path, { ...init, method: 'GET' });
   },
   post<TBody, T>(path: string, body: TBody, init?: RequestInit) {
     return request<T>(path, {
       ...init,
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(body),
-      headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     });
   },
   patch<TBody, T>(path: string, body: TBody, init?: RequestInit) {
     return request<T>(path, {
       ...init,
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify(body),
-      headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     });
   },
   put<TBody, T>(path: string, body: TBody, init?: RequestInit) {
     return request<T>(path, {
       ...init,
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(body),
-      headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     });
   },
   del<T>(path: string, init?: RequestInit) {
-    return request<T>(path, { ...init, method: "DELETE" });
+    return request<T>(path, { ...init, method: 'DELETE' });
   },
 };
 

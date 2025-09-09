@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RelevanceBoosts = {
-    freshness?: Record<string, any>;
-    popularity?: Record<string, any>;
+  freshness?: Record<string, any>;
+  popularity?: Record<string, any>;
 };
-

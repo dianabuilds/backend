@@ -1,10 +1,10 @@
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 
-import { ApiError } from "../api/client";
-import { type FeatureFlag, listFlags, updateFlag } from "../api/flags";
-import FlagEditModal from "../components/FlagEditModal";
-import PageLayout from "./_shared/PageLayout";
+import { ApiError } from '../api/client';
+import { type FeatureFlag, listFlags, updateFlag } from '../api/flags';
+import FlagEditModal from '../components/FlagEditModal';
+import PageLayout from './_shared/PageLayout';
 
 function ToggleView({ checked }: { checked: boolean }) {
   return (
@@ -20,29 +20,23 @@ function ToggleView({ checked }: { checked: boolean }) {
 const PAGE_SIZE = 50;
 
 export default function FeatureFlagsPage() {
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState('');
   const [editing, setEditing] = useState<FeatureFlag | null>(null);
   const queryClient = useQueryClient();
 
-  const {
-    data,
-    isLoading,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ["feature-flags", filter],
-    queryFn: ({ pageParam = 0 }) =>
-      listFlags({
-        q: filter || undefined,
-        limit: PAGE_SIZE,
-        offset: pageParam * PAGE_SIZE,
-      }),
-    getNextPageParam: (lastPage, pages) =>
-      lastPage.length === PAGE_SIZE ? pages.length : undefined,
-    initialPageParam: 0,
-  });
+  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ['feature-flags', filter],
+      queryFn: ({ pageParam = 0 }) =>
+        listFlags({
+          q: filter || undefined,
+          limit: PAGE_SIZE,
+          offset: pageParam * PAGE_SIZE,
+        }),
+      getNextPageParam: (lastPage, pages) =>
+        lastPage.length === PAGE_SIZE ? pages.length : undefined,
+      initialPageParam: 0,
+    });
 
   const flags = useMemo(() => data?.pages.flat() ?? [], [data]);
 
@@ -51,17 +45,17 @@ export default function FeatureFlagsPage() {
     patch: {
       description: string;
       value: boolean;
-      audience: FeatureFlag["audience"];
+      audience: FeatureFlag['audience'];
     },
   ) => {
     try {
       await updateFlag(key, patch);
       setEditing(null);
-      queryClient.invalidateQueries({ queryKey: ["feature-flags"] });
+      queryClient.invalidateQueries({ queryKey: ['feature-flags'] });
     } catch (e) {
       const msg =
         e instanceof ApiError
-          ? typeof e.detail === "string"
+          ? typeof e.detail === 'string'
             ? e.detail
             : e.message
           : e instanceof Error
@@ -73,9 +67,7 @@ export default function FeatureFlagsPage() {
 
   return (
     <PageLayout title="Feature Flags" subtitle="Включение/выключение функционала админки">
-      {isLoading && (
-        <div className="animate-pulse text-sm text-gray-500">Loading...</div>
-      )}
+      {isLoading && <div className="animate-pulse text-sm text-gray-500">Loading...</div>}
       {error && (
         <div className="text-sm text-red-600">
           {error instanceof Error ? error.message : String(error)}
@@ -132,7 +124,7 @@ export default function FeatureFlagsPage() {
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
           >
-            {isFetchingNextPage ? "Loading..." : "Load more"}
+            {isFetchingNextPage ? 'Loading...' : 'Load more'}
           </button>
         </div>
       )}
@@ -140,4 +132,3 @@ export default function FeatureFlagsPage() {
     </PageLayout>
   );
 }
-

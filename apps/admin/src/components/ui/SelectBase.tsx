@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 export type SelectBaseProps<T> = {
   items: T[];
@@ -17,7 +17,7 @@ export default function SelectBase<T>({
   getLabel,
   renderItem,
 }: SelectBaseProps<T>) {
-  const selectedKey = value ? getKey(value) : "";
+  const selectedKey = value ? getKey(value) : '';
 
   return (
     <select

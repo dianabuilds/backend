@@ -15,15 +15,3 @@ async def ensure_default_admin() -> None:
         logger.warning("ensure_default_admin implementation missing")
         return
     await _impl()
-
-
-async def ensure_global_workspace() -> None:
-    """Create global system workspace if necessary (no-op stub)."""
-    try:
-        from app.domains.workspaces.application.bootstrap import (
-            ensure_global_workspace as _impl,
-        )
-    except Exception:
-        logger.warning("ensure_global_workspace implementation missing")
-        return
-    await _impl()

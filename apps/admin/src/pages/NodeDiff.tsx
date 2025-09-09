@@ -1,18 +1,17 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
+import { useAccount } from '../account/AccountContext';
 import { getNode } from '../api/nodes';
 import type { OutputData } from '../types/editorjs';
-import { useAccount } from '../account/AccountContext';
 
-function diffObjects(a: any, b: any, prefix = ''): string[] {
+function diffObjects(a: unknown, b: unknown, prefix = ''): string[] {
   let out: string[] = [];
-  const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+  const keys = new Set([...Object.keys((a as object) || {}), ...Object.keys((b as object) || {})]);
   for (const k of keys) {
     const path = prefix ? `${prefix}.${k}` : k;
-    const av = a ? a[k] : undefined;
-    const bv = b ? b[k] : undefined;
+    const av = a && typeof a === 'object' ? (a as Record<string, unknown>)[k] : undefined;
+    const bv = b && typeof b === 'object' ? (b as Record<string, unknown>)[k] : undefined;
     if (av && bv && typeof av === 'object' && typeof bv === 'object') {
       out = out.concat(diffObjects(av, bv, path));
     } else if (JSON.stringify(av) !== JSON.stringify(bv)) {
@@ -22,11 +21,19 @@ function diffObjects(a: any, b: any, prefix = ''): string[] {
   return out;
 }
 
+function getString(obj: unknown, key: string, fallback = ''): string {
+  if (obj && typeof obj === 'object' && key in (obj as Record<string, unknown>)) {
+    const v = (obj as Record<string, unknown>)[key];
+    return typeof v === 'string' ? v : fallback;
+  }
+  return fallback;
+}
+
 export default function NodeDiff() {
   const { id } = useParams<{ id: string }>();
   const { accountId } = useAccount();
-  const [remote, setRemote] = useState<any | null>(null);
-  const [local, setLocal] = useState<any | null>(null);
+  const [remote, setRemote] = useState<Record<string, unknown> | null>(null);
+  const [local, setLocal] = useState<Record<string, unknown> | null>(null);
 
   const nodeId = Number(id);
 
@@ -36,11 +43,11 @@ export default function NodeDiff() {
       const node = await getNode(accountId || '', nodeId);
       const localRaw = localStorage.getItem(`node-draft-${nodeId}`);
       const localData = localRaw ? JSON.parse(localRaw) : null;
-      const remoteData = {
+      const remoteData: Record<string, unknown> = {
         title: node.title ?? '',
-        summary: (node as any).summary ?? '',
+        summary: getString(node, 'summary', ''),
         tags: node.tags ?? [],
-        contentData: (node.content as OutputData) || {},
+        contentData: (node as unknown as Record<string, unknown>).content ?? ({} as OutputData),
       };
       setLocal(localData);
       setRemote(remoteData);
@@ -69,9 +76,13 @@ export default function NodeDiff() {
           ))}
         </ul>
       )}
-      <Link to={-1 as any} className="inline-block mt-4 px-2 py-1 border rounded">
+      <button
+        type="button"
+        className="inline-block mt-4 px-2 py-1 border rounded"
+        onClick={() => window.history.back()}
+      >
         Back
-      </Link>
+      </button>
     </div>
   );
 }

@@ -4,7 +4,7 @@ from app.schemas.notification_rules import NotificationRules
 
 
 def validate_notification_rules(data: dict[str, object]) -> NotificationRules:
-    """Validate workspace notification rules structure."""
+    """Validate notification rules structure."""
     return NotificationRules.model_validate(data)
 
 

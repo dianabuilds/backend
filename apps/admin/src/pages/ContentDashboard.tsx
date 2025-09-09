@@ -1,12 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import { useAccount } from "../account/AccountContext";
-
-import { api } from "../api/client";
-import { createNode, listNodes } from "../api/nodes";
-import KpiCard from "../components/KpiCard";
+import { useAccount } from '../account/AccountContext';
+import { api } from '../api/client';
+import { createNode, listNodes } from '../api/nodes';
+import KpiCard from '../components/KpiCard';
 
 interface NodeItem {
   id: string;
@@ -37,7 +36,7 @@ function Progress({ label, value, limit }: { label: string; value: number; limit
 export default function ContentDashboard() {
   const navigate = useNavigate();
   const { accountId } = useAccount();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [recomputeLimit, setRecomputeLimit] = useState(10);
   const [recomputeMessage, setRecomputeMessage] = useState<string | null>(null);
   const [rebuildMessage, setRebuildMessage] = useState<string | null>(null);
@@ -47,14 +46,14 @@ export default function ContentDashboard() {
     refetch,
     isLoading,
   } = useQuery<NodeItem[]>({
-    queryKey: ["content", "dashboard", "nodes", accountId || 'default'],
+    queryKey: ['content', 'dashboard', 'nodes', accountId || 'default'],
     queryFn: async () => await listNodes(accountId || ''),
   });
 
   const { data: tags = [] } = useQuery<{ id: string }[]>({
-    queryKey: ["content", "dashboard", "tags"],
+    queryKey: ['content', 'dashboard', 'tags'],
     queryFn: async () => {
-      const res = await api.get<{ id: string }[]>("/admin/tags/list");
+      const res = await api.get<{ id: string }[]>('/admin/tags/list');
       return res.data ?? [];
     },
   });
@@ -71,7 +70,7 @@ export default function ContentDashboard() {
     .slice(0, 5);
 
   const lastPublished = nodes
-    .filter((n) => n.status === "published")
+    .filter((n) => n.status === 'published')
     .sort(
       (a, b) =>
         new Date(b.updated_at || b.updatedAt || b.created_at || b.createdAt || 0).getTime() -
@@ -105,8 +104,8 @@ export default function ContentDashboard() {
     e.preventDefault();
     setRecomputeMessage(null);
     try {
-      await api.post("/admin/embeddings/recompute", { limit: recomputeLimit });
-      setRecomputeMessage("Started");
+      await api.post('/admin/embeddings/recompute', { limit: recomputeLimit });
+      setRecomputeMessage('Started');
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setRecomputeMessage(msg);
@@ -116,15 +115,15 @@ export default function ContentDashboard() {
   const handleRebuild = async () => {
     setRebuildMessage(null);
     try {
-      await api.post("/admin/search/rebuild");
-      setRebuildMessage("Started");
+      await api.post('/admin/search/rebuild');
+      setRebuildMessage('Started');
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setRebuildMessage(msg);
     }
   };
 
-  const features = ["beta", "premium"];
+  const features = ['beta', 'premium'];
   const limit = 100;
 
   return (
@@ -149,7 +148,7 @@ export default function ContentDashboard() {
               </ul>
               {lastPublished && (
                 <div>
-                  Last published: {" "}
+                  Last published:{' '}
                   {new Date(
                     lastPublished.updated_at ||
                       lastPublished.updatedAt ||
@@ -174,7 +173,7 @@ export default function ContentDashboard() {
               </button>
               <button
                 className="rounded border px-2 py-1 text-sm"
-                onClick={() => navigate("/content/all")}
+                onClick={() => navigate('/content/all')}
               >
                 Import/Export
               </button>
@@ -225,9 +224,7 @@ export default function ContentDashboard() {
                 Recompute embeddings
               </button>
               {recomputeMessage && (
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {recomputeMessage}
-                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{recomputeMessage}</span>
               )}
             </form>
             <div className="flex items-center gap-2">
@@ -238,9 +235,7 @@ export default function ContentDashboard() {
                 Rebuild index
               </button>
               {rebuildMessage && (
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {rebuildMessage}
-                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{rebuildMessage}</span>
               )}
             </div>
           </div>

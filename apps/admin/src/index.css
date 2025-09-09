@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
+html,
+body {
   @apply bg-gray-50 text-gray-900 dark:bg-gray-800 dark:text-gray-200;
 }
 
@@ -34,9 +35,9 @@ html, body {
 .edjs-wrap .ce-code,
 .edjs-wrap .ce-quote,
 .edjs-wrap .cdx-input {
-  word-break: break-word;       /* для длинных слов */
-  overflow-wrap: anywhere;      /* переносить где угодно при необходимости */
-  white-space: pre-wrap;        /* сохранять \n и переносить строки */
+  word-break: break-word; /* для длинных слов */
+  overflow-wrap: anywhere; /* переносить где угодно при необходимости */
+  white-space: pre-wrap; /* сохранять \n и переносить строки */
 }
 
 /* Медиа и изображения не выходят за пределы области */

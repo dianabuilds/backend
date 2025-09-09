@@ -1,26 +1,26 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 
 import {
   type DraftCampaign,
   getDraftCampaign,
   sendDraftCampaign,
   updateDraftCampaign,
-} from "../api/notifications";
-import { useToast } from "../components/ToastProvider";
+} from '../api/notifications';
+import { useToast } from '../components/ToastProvider';
 
 export default function NotificationCampaignEditor() {
   const { id } = useParams();
   const { addToast } = useToast();
   const qc = useQueryClient();
   const { data: campaign } = useQuery<DraftCampaign>({
-    queryKey: ["draftCampaign", id],
+    queryKey: ['draftCampaign', id],
     queryFn: () => getDraftCampaign(id!),
     enabled: !!id,
   });
-  const [title, setTitle] = useState("");
-  const [message, setMessage] = useState("");
+  const [title, setTitle] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (campaign) {
@@ -35,13 +35,13 @@ export default function NotificationCampaignEditor() {
   const save = async () => {
     try {
       await updateDraftCampaign(id, { title, message });
-      addToast({ title: "Saved", variant: "success" });
-      qc.invalidateQueries({ queryKey: ["draftCampaign", id] });
+      addToast({ title: 'Saved', variant: 'success' });
+      qc.invalidateQueries({ queryKey: ['draftCampaign', id] });
     } catch (e) {
       addToast({
-        title: "Failed to save",
+        title: 'Failed to save',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     }
   };
@@ -49,13 +49,13 @@ export default function NotificationCampaignEditor() {
   const send = async () => {
     try {
       await sendDraftCampaign(id);
-      addToast({ title: "Dispatched", variant: "success" });
-      qc.invalidateQueries({ queryKey: ["draftCampaign", id] });
+      addToast({ title: 'Dispatched', variant: 'success' });
+      qc.invalidateQueries({ queryKey: ['draftCampaign', id] });
     } catch (e) {
       addToast({
-        title: "Failed to dispatch",
+        title: 'Failed to dispatch',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     }
   };

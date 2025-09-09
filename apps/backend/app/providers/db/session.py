@@ -131,7 +131,16 @@ async def init_db() -> None:
     try:
         await run_migrations()
     except Exception as e:
-        logger.warning(f"Migrations not applied ({e}). Falling back to create_all().")
+        # In non-production environments, fall back to create_all() for convenience.
+        # In production, fail fast to avoid running with a drifted schema.
+        if getattr(settings, "is_production", False):
+            logger.error("Migrations failed in production: %s", e)
+            raise
+        logger.warning(
+            "Migrations not applied (%s). Falling back to create_all() in %s mode.",
+            e,
+            getattr(settings, "env_mode", "unknown"),
+        )
         await create_tables()
     await ensure_min_schema()
 

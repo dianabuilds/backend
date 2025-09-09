@@ -1,12 +1,6 @@
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
 
-import { api, apiFetch, setCsrfToken, syncCsrfFromResponse } from "../api/client";
+import { api, apiFetch, setCsrfToken, syncCsrfFromResponse } from '../api/client';
 
 interface User {
   id: string;
@@ -32,7 +26,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 function isAllowed(role: string): boolean {
-  return role === "admin" || role === "moderator" || role === "support";
+  return role === 'admin' || role === 'moderator' || role === 'support';
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -41,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await apiFetch("/auth/logout", { method: "POST" });
+      await apiFetch('/auth/logout', { method: 'POST' });
     } catch {
       // игнорируем — цель только локально очистить состояние
     }
@@ -54,45 +48,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 1) Логин: увеличенный таймаут (60с), чтобы исключить обрыв на медленных стендах
       // Отправляем данные как form-data, чтобы избежать preflight-запроса CORS
       const form = new URLSearchParams();
-      form.set("username", username);
-      form.set("password", password);
-      const resp = await apiFetch(
-        "/auth/login",
-        {
-          method: "POST",
-          body: form,
-          timeoutMs: 60000,
-        },
-      );
+      form.set('username', username);
+      form.set('password', password);
+      const resp = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: form,
+        timeoutMs: 60000,
+      });
 
       const data = (await resp.json()) as {
         ok: boolean;
         csrf_token?: string;
       };
       if (!resp.ok || !data.ok) {
-        throw new Error("Неверный логин или пароль");
+        throw new Error('Неверный логин или пароль');
       }
 
       // Сохраняем CSRF
       if (data.csrf_token) setCsrfToken(data.csrf_token);
 
       // 2) Профиль после успешного логина
-      const meRes = await api.get<User>("/users/me", { timeoutMs: 60000 });
+      const meRes = await api.get<User>('/users/me', { timeoutMs: 60000 });
       const me = meRes.data as User;
-      if (!me) throw new Error("Не удалось получить профиль");
+      if (!me) throw new Error('Не удалось получить профиль');
 
       if (!isAllowed(me.role)) {
-        throw new Error("Недостаточно прав");
+        throw new Error('Недостаточно прав');
       }
       setUser(me);
     } catch (e) {
       const err = e as Error;
       // Нормализуем таймаут
-      const raw = String(err?.message || "");
+      const raw = String(err?.message || '');
       const msg =
-        raw === "RequestTimeout"
-          ? "Превышено время ожидания ответа сервера. Проверьте соединение и попробуйте ещё раз."
-          : raw || "Ошибка авторизации";
+        raw === 'RequestTimeout'
+          ? 'Превышено время ожидания ответа сервера. Проверьте соединение и попробуйте ещё раз.'
+          : raw || 'Ошибка авторизации';
       throw new Error(msg);
     }
   };
@@ -100,15 +91,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const init = async () => {
       try {
-        let resp = await apiFetch("/users/me");
+        let resp = await apiFetch('/users/me');
 
         // Если не авторизованы по access — пробуем обновить сессию и повторить запрос
         if (resp.status === 401) {
           try {
-            const refresh = await apiFetch("/auth/refresh", { method: "POST" });
+            const refresh = await apiFetch('/auth/refresh', { method: 'POST' });
             if (refresh.ok) {
               await syncCsrfFromResponse(refresh);
-              resp = await apiFetch("/users/me");
+              resp = await apiFetch('/users/me');
             }
           } catch {
             // игнорируем — просто оставим пользователя неавторизованным
@@ -136,7 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, logout, ready, hasRole: (...roles) => (user ? roles.includes(user.role) : false) }}
+      value={{
+        user,
+        login,
+        logout,
+        ready,
+        hasRole: (...roles) => (user ? roles.includes(user.role) : false),
+      }}
     >
       {children}
     </AuthContext.Provider>

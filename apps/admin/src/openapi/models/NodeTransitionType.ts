@@ -3,6 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export enum NodeTransitionType {
-    MANUAL = 'manual',
-    LOCKED = 'locked',
+  MANUAL = 'manual',
+  LOCKED = 'locked',
 }

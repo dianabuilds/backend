@@ -52,7 +52,6 @@ async def get_status(
 
     result = {
         "build": _build_version(),
-        "workspace": None,
         "ready": ready_data,
     }
     await shared_cache.set(cache_key, json.dumps(result), CACHE_TTL)

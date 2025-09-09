@@ -1,5 +1,5 @@
 type Item = {
-  level: "error" | "warning";
+  level: 'error' | 'warning';
   code: string;
   message: string;
   node?: string | null;
@@ -19,8 +19,10 @@ export default function ValidationReportView({ report }: Props) {
       </div>
       <ul className="space-y-1">
         {(report.items || []).map((it, idx) => (
-          <li key={idx} className={it.level === "error" ? "text-red-700" : "text-yellow-700"}>
-            <span className="inline-block min-w-[80px] px-2 py-0.5 rounded text-xs mr-2 bg-gray-100">{it.level}</span>
+          <li key={idx} className={it.level === 'error' ? 'text-red-700' : 'text-yellow-700'}>
+            <span className="inline-block min-w-[80px] px-2 py-0.5 rounded text-xs mr-2 bg-gray-100">
+              {it.level}
+            </span>
             <span className="font-mono text-xs mr-2">{it.code}</span>
             <span>{it.message}</span>
             {it.node ? <span className="ml-2 text-gray-500">node: {it.node}</span> : null}

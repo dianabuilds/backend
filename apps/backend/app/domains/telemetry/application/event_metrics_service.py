@@ -6,7 +6,7 @@ import threading
 class EventMetrics:
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        # event -> workspace -> count
+        # event -> tenant -> count
         self._counters: dict[str, dict[str, int]] = {}
         # event -> handler -> {"success": int, "failure": int}
         self._handler_counts: dict[str, dict[str, dict[str, int]]] = {}
@@ -15,8 +15,8 @@ class EventMetrics:
         # event -> handler -> count
         self._handler_time_count: dict[str, dict[str, int]] = {}
 
-    def inc(self, event: str, workspace_id: str | None) -> None:
-        ws = workspace_id or "unknown"
+    def inc(self, event: str, tenant_id: str | None) -> None:
+        ws = tenant_id or "unknown"
         with self._lock:
             ev_map = self._counters.setdefault(event, {})
             ev_map[ws] = ev_map.get(ws, 0) + 1
@@ -39,7 +39,7 @@ class EventMetrics:
             self._handler_time_count.clear()
 
     def snapshot(self) -> dict[str, dict[str, int]]:
-        # return workspace -> events
+        # return tenant -> events
         with self._lock:
             out: dict[str, dict[str, int]] = {}
             for ev, ws_map in self._counters.items():
@@ -54,7 +54,7 @@ class EventMetrics:
         with self._lock:
             for ev, ws_map in self._counters.items():
                 for ws, cnt in ws_map.items():
-                    lines.append(f'app_events_total{{event="{ev}",workspace="{ws}"}} {cnt}')
+                    lines.append(f'app_events_total{{event="{ev}",tenant="{ws}"}} {cnt}')
             lines.append("# HELP app_event_handler_calls_total Event handler calls")
             lines.append("# TYPE app_event_handler_calls_total counter")
             for ev, hmap in self._handler_counts.items():

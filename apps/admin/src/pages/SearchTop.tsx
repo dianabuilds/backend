@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import PageLayout from "./_shared/PageLayout";
-import { getSearchTop, type SearchTopItem } from "../api/search";
+import { getSearchTop, type SearchTopItem } from '../api/search';
+import PageLayout from './_shared/PageLayout';
 
 export default function SearchTop() {
   const [items, setItems] = useState<SearchTopItem[]>([]);
@@ -29,10 +29,7 @@ export default function SearchTop() {
         </thead>
         <tbody>
           {items.map((item) => (
-            <tr
-              key={item.query}
-              className={item.results === 0 ? "bg-red-50 dark:bg-red-900" : ""}
-            >
+            <tr key={item.query} className={item.results === 0 ? 'bg-red-50 dark:bg-red-900' : ''}>
               <td className="border px-2 py-1">{item.query}</td>
               <td className="border px-2 py-1 text-center">{item.count}</td>
               <td className="border px-2 py-1 text-center">{item.results}</td>

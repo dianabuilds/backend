@@ -16,9 +16,8 @@ class WorldTemplate(Base):
     __tablename__ = "world_templates"
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    workspace_id = Column(
-        PGUUID(as_uuid=True), ForeignKey("workspaces.id"), nullable=False, index=True
-    )
+    # Profile-centric scope only
+    profile_id = Column(PGUUID(as_uuid=True), nullable=True, index=True)
     title = Column(String, nullable=False)
     locale = Column(String, nullable=True)
     description = Column(Text, nullable=True)
@@ -48,9 +47,7 @@ class Character(Base):
     __tablename__ = "characters"
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    workspace_id = Column(
-        PGUUID(as_uuid=True), ForeignKey("workspaces.id"), nullable=False, index=True
-    )
+    profile_id = Column(PGUUID(as_uuid=True), nullable=True, index=True)
     world_id = Column(
         PGUUID(as_uuid=True),
         ForeignKey("world_templates.id", ondelete="CASCADE"),

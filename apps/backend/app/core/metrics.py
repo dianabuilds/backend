@@ -17,7 +17,7 @@ class RequestRecord:
     status_code: int
     method: str
     route: str  # шаблон маршрута, либо фактический путь, если шаблон недоступен
-    account_id: str | None
+    scope_id: str | None
 
 
 def _status_class(code: int) -> str:
@@ -53,12 +53,12 @@ class MetricsStorage:
         status_code: int,
         method: str,
         route: str,
-        account_id: str | None = None,
+        scope_id: str | None = None,
     ) -> None:
         now = time.time()
         with self._lock:
             self._records.append(
-                RequestRecord(now, duration_ms, status_code, method, route, account_id)
+                RequestRecord(now, duration_ms, status_code, method, route, scope_id)
             )
             # Храним не более 24 часов
             cutoff = now - 24 * 3600
@@ -70,7 +70,7 @@ class MetricsStorage:
             self._records.clear()
 
     def _select_recent(
-        self, range_seconds: int, account_id: str | None = None
+        self, range_seconds: int, scope_id: str | None = None
     ) -> list[RequestRecord]:
         now = time.time()
         cutoff = now - range_seconds
@@ -78,11 +78,11 @@ class MetricsStorage:
             return [
                 r
                 for r in self._records
-                if r.ts >= cutoff and (account_id is None or r.account_id == account_id)
+                if r.ts >= cutoff and (scope_id is None or r.scope_id == scope_id)
             ]
 
-    def summary(self, range_seconds: int, account_id: str | None = None) -> dict:
-        recent = self._select_recent(range_seconds, account_id)
+    def summary(self, range_seconds: int, scope_id: str | None = None) -> dict:
+        recent = self._select_recent(range_seconds, scope_id)
         total = len(recent)
         if total == 0:
             return {
@@ -109,9 +109,9 @@ class MetricsStorage:
             "count_429": count_429,
         }
 
-    def reliability(self, range_seconds: int, account_id: str | None = None) -> dict:
+    def reliability(self, range_seconds: int, scope_id: str | None = None) -> dict:
         """Return p95 latency and error counters for the given period."""
-        recent = self._select_recent(range_seconds, account_id)
+        recent = self._select_recent(range_seconds, scope_id)
         durations = [r.duration_ms for r in recent]
         total = len(durations)
         p95 = _percentile(durations, 0.95) if durations else 0.0
@@ -125,12 +125,12 @@ class MetricsStorage:
         }
 
     def timeseries(
-        self, range_seconds: int, step_seconds: int, account_id: str | None = None
+        self, range_seconds: int, step_seconds: int, scope_id: str | None = None
     ) -> dict:
         """Вернуть таймсерии: counts per status class и p95 latency по бакетам."""
         if step_seconds <= 0:
             step_seconds = 60
-        recent = self._select_recent(range_seconds, account_id)
+        recent = self._select_recent(range_seconds, scope_id)
         if not recent:
             return {
                 "step": step_seconds,
@@ -174,10 +174,10 @@ class MetricsStorage:
         range_seconds: int,
         limit: int,
         sort_by: str,
-        account_id: str | None = None,
+        scope_id: str | None = None,
     ) -> list[dict]:
         """Топ маршрутов по p95 | error_rate | rps."""
-        recent = self._select_recent(range_seconds, account_id)
+        recent = self._select_recent(range_seconds, scope_id)
         if not recent:
             return []
 
@@ -214,14 +214,14 @@ class MetricsStorage:
             )
         return out
 
-    def recent_errors(self, limit: int = 100, account_id: str | None = None) -> list[dict]:
+    def recent_errors(self, limit: int = 100, scope_id: str | None = None) -> list[dict]:
         """Последние ошибки (4xx/5xx)."""
         with self._lock:
             # идем с конца дека
             it: Iterable[RequestRecord] = reversed(self._records)
             out: list[dict] = []
             for r in it:
-                if r.status_code >= 400 and (account_id is None or r.account_id == account_id):
+                if r.status_code >= 400 and (scope_id is None or r.scope_id == scope_id):
                     out.append(
                         {
                             "ts": int(r.ts),
@@ -245,15 +245,15 @@ class MetricsStorage:
         count_map: dict[tuple[str, str, str, int], int] = defaultdict(int)
         duration_map: dict[tuple[str, str, str], list[int]] = defaultdict(list)
         for r in records:
-            acc = r.account_id or "unknown"
+            acc = r.scope_id or "unknown"
             count_map[(acc, r.method, r.route, r.status_code)] += 1
             duration_map[(acc, r.method, r.route)].append(r.duration_ms)
         for (acc, method, route, status), cnt in count_map.items():
             lines.append(
-                f'http_requests_total{{account="{acc}",method="{method}",path="{route}",status="{status}"}} {cnt}'
+                f'http_requests_total{{scope="{acc}",method="{method}",path="{route}",status="{status}"}} {cnt}'
             )
 
-        # Legacy /admin/accounts metrics removed after accounts deprecation
+        # Legacy /admin/nodes metrics removed after nodes deprecation
 
         lines.append(
             "# HELP domain_request_errors_total Total request errors by domain and status class"
@@ -261,7 +261,7 @@ class MetricsStorage:
         lines.append("# TYPE domain_request_errors_total counter")
         domain_error_map: dict[tuple[str, str], int] = defaultdict(int)
         for r in records:
-            for domain in ("users", "accounts", "nodes"):
+            for domain in ("users", "nodes", "nodes"):
                 if r.route.startswith(f"/{domain}"):
                     if 400 <= r.status_code < 500:
                         domain_error_map[(domain, "4xx")] += 1
@@ -278,16 +278,16 @@ class MetricsStorage:
             for b in buckets:
                 count = sum(1 for v in values_sorted if v <= b)
                 lines.append(
-                    f'http_request_duration_ms_bucket{{le="{b}",account="{acc}",method="{method}",path="{route}"}} {count}'
+                    f'http_request_duration_ms_bucket{{le="{b}",scope="{acc}",method="{method}",path="{route}"}} {count}'
                 )
             lines.append(
-                f'http_request_duration_ms_bucket{{le="+Inf",account="{acc}",method="{method}",path="{route}"}} {len(values_sorted)}'
+                f'http_request_duration_ms_bucket{{le="+Inf",scope="{acc}",method="{method}",path="{route}"}} {len(values_sorted)}'
             )
             lines.append(
-                f'http_request_duration_ms_count{{account="{acc}",method="{method}",path="{route}"}} {len(values_sorted)}'
+                f'http_request_duration_ms_count{{scope="{acc}",method="{method}",path="{route}"}} {len(values_sorted)}'
             )
         lines.append(
-            f'http_request_duration_ms_sum{{account="{acc}",method="{method}",path="{route}"}} {sum(values_sorted)}'
+            f'http_request_duration_ms_sum{{scope="{acc}",method="{method}",path="{route}"}} {sum(values_sorted)}'
         )
         return "\n".join(lines) + "\n"
 

@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export enum Status {
-    DRAFT = 'draft',
-    IN_REVIEW = 'in_review',
-    PUBLISHED = 'published',
-    ARCHIVED = 'archived',
+  DRAFT = 'draft',
+  IN_REVIEW = 'in_review',
+  PUBLISHED = 'published',
+  ARCHIVED = 'archived',
 }

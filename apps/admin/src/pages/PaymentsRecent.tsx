@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { api } from "../api/client";
-import DataTable from "../components/DataTable";
-import type { Column } from "../components/DataTable.helpers";
-import ErrorBanner from "../components/ErrorBanner";
-
+import { api } from '../api/client';
+import DataTable from '../components/DataTable';
+import type { Column } from '../components/DataTable.helpers';
+import ErrorBanner from '../components/ErrorBanner';
 
 type RecentTx = {
   id: string;
@@ -24,12 +23,12 @@ export default function PaymentsRecent() {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.get<RecentTx[]>("/admin/payments/recent", {
+        const res = await api.get<RecentTx[]>('/admin/payments/recent', {
           retry: 1,
         });
         setRows(Array.isArray(res.data) ? res.data : []);
       } catch (e: any) {
-        setError(e?.message || "Ошибка загрузки");
+        setError(e?.message || 'Ошибка загрузки');
       } finally {
         setLoading(false);
       }
@@ -38,18 +37,18 @@ export default function PaymentsRecent() {
   }, []);
 
   const cols: Column<RecentTx>[] = [
-    { key: "user_id", title: "User" },
-    { key: "tariff", title: "Tariff", accessor: (r) => r.tariff || "-" },
+    { key: 'user_id', title: 'User' },
+    { key: 'tariff', title: 'Tariff', accessor: (r) => r.tariff || '-' },
     {
-      key: "amount",
-      title: "Amount",
+      key: 'amount',
+      title: 'Amount',
       render: (r) => (r.amount / 100).toFixed(2),
     },
     {
-      key: "status",
-      title: "Status",
+      key: 'status',
+      title: 'Status',
       render: (r) => (
-        <span className={/error|fail|refund/i.test(r.status) ? "text-red-600" : ""}>
+        <span className={/error|fail|refund/i.test(r.status) ? 'text-red-600' : ''}>
           {r.status}
         </span>
       ),
@@ -67,9 +66,7 @@ export default function PaymentsRecent() {
           rowKey={(r) => r.id}
           loading={loading}
           emptyText="Нет транзакций"
-          rowClassName={(r) =>
-            /error|fail|refund/i.test(r.status) ? "bg-red-50" : ""
-          }
+          rowClassName={(r) => (/error|fail|refund/i.test(r.status) ? 'bg-red-50' : '')}
         />
       </div>
     </div>

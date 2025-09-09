@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CaseNoteCreate = {
-    text: string;
-    internal?: (boolean | null);
+  text: string;
+  internal?: boolean | null;
 };
-

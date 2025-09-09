@@ -1,16 +1,17 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 import {
   listNotifications,
   markNotificationRead,
   type NotificationItem,
-} from "../../api/notifications";
-import { useToast } from "../ToastProvider";
+} from '../../api/notifications';
+import { useToast } from '../ToastProvider';
 
 export default function UserNotifications() {
   const { addToast } = useToast();
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({
-    queryKey: ["notifications"],
+    queryKey: ['notifications'],
     queryFn: () => listNotifications(),
     refetchInterval: 30000,
   });
@@ -18,12 +19,12 @@ export default function UserNotifications() {
   const handleRead = async (id: string) => {
     try {
       await markNotificationRead(id);
-      qc.invalidateQueries({ queryKey: ["notifications"] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
     } catch (e) {
       addToast({
-        title: "Failed to mark as read",
+        title: 'Failed to mark as read',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     }
   };
@@ -50,17 +51,12 @@ export default function UserNotifications() {
           <tr key={n.id} className="border-b">
             <td className="p-2">{n.title}</td>
             <td className="p-2">{n.message}</td>
-            <td className="p-2">{n.type ?? "system"}</td>
+            <td className="p-2">{n.type ?? 'system'}</td>
             <td className="p-2">{new Date(n.created_at).toLocaleString()}</td>
-            <td className="p-2">
-              {n.read_at ? new Date(n.read_at).toLocaleString() : "-"}
-            </td>
+            <td className="p-2">{n.read_at ? new Date(n.read_at).toLocaleString() : '-'}</td>
             <td className="p-2">
               {!n.read_at && (
-                <button
-                  className="px-2 py-1 rounded border"
-                  onClick={() => handleRead(n.id)}
-                >
+                <button className="px-2 py-1 rounded border" onClick={() => handleRead(n.id)}>
                   Mark read
                 </button>
               )}

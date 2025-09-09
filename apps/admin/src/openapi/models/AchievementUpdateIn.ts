@@ -3,11 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type AchievementUpdateIn = {
-    code?: (string | null);
-    title?: (string | null);
-    description?: (string | null);
-    icon?: (string | null);
-    visible?: (boolean | null);
-    condition?: (Record<string, any> | null);
+  code?: string | null;
+  title?: string | null;
+  description?: string | null;
+  icon?: string | null;
+  visible?: boolean | null;
+  condition?: Record<string, any> | null;
 };
-

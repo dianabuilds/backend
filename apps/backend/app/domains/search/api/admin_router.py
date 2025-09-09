@@ -56,17 +56,9 @@ async def put_relevance(
     applied: RelevanceApplyOut = await svc.apply_relevance(
         body.payload, str(getattr(current, "id", ""))
     )
-    await audit_log(
-        db,
-        actor_id=str(getattr(current, "id", "")),
-        action="search_relevance_update",
-        resource_type="search_config",
-        resource_id=f"relevance:v{applied.version}",
-        before=None,
-        after=body.payload.model_dump(),
-        request=request,
-        extra={"comment": body.comment or ""},
-    )
+    await audit_log(db, actor_id=str(getattr(current, "id", "")), action="search_relevance_update",
+                    resource_type="search_config", resource_id=f"relevance:v{applied.version}", before=None,
+                    after=body.payload.model_dump(), request=request, extra={"comment": body.comment or ""})
     return applied
 
 
@@ -86,14 +78,8 @@ async def post_rollback(
         applied = await svc.rollback_relevance(int(toVersion), str(getattr(current, "id", "")))
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Version not found") from err
-    await audit_log(
-        db,
-        actor_id=str(getattr(current, "id", "")),
-        action="search_relevance_rollback",
-        resource_type="search_config",
-        resource_id=f"relevance:v{applied.version}",
-        request=request,
-    )
+    await audit_log(db, actor_id=str(getattr(current, "id", "")), action="search_relevance_rollback",
+                    resource_type="search_config", resource_id=f"relevance:v{applied.version}", request=request)
     return applied
 
 

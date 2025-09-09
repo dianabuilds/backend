@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { api } from "../../api/client";
-import Pill from "../../components/Pill";
-import { Card, CardContent } from "../../components/ui/card";
+import { api } from '../../api/client';
+import Pill from '../../components/Pill';
+import { Card, CardContent } from '../../components/ui/card';
 
 interface RateRules {
   enabled: boolean;
@@ -30,11 +30,16 @@ export default function RateLimitsTab() {
     setError(null);
     try {
       const [r, h] = await Promise.all([
-        api.get<RateRules>("/admin/ratelimit/rules"),
-        api.get<Recent429>("/admin/ratelimit/recent429"),
+        api.get<RateRules>('/admin/ratelimit/rules'),
+        api.get<Recent429>('/admin/ratelimit/recent429'),
       ]);
       setRules(r.data || null);
-      setDraft(((r.data as any)?.rules || {}) as Record<string, string>);
+      setDraft(
+        ((r.data as { rules?: Record<string, string> } | null)?.rules || {}) as Record<
+          string,
+          string
+        >,
+      );
       setRecent(h.data || null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -46,7 +51,7 @@ export default function RateLimitsTab() {
   const saveRule = async (key: string) => {
     setSaving((s) => ({ ...s, [key]: true }));
     try {
-      await api.patch("/admin/ratelimit/rules", { key, rule: draft[key] });
+      await api.patch('/admin/ratelimit/rules', { key, rule: draft[key] });
       await load();
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
@@ -68,8 +73,8 @@ export default function RateLimitsTab() {
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">Rate limits</h2>
             {rules && (
-              <Pill variant={rules.enabled ? "ok" : "warn"} className="text-sm">
-                {rules.enabled ? "Enabled" : "Disabled"}
+              <Pill variant={rules.enabled ? 'ok' : 'warn'} className="text-sm">
+                {rules.enabled ? 'Enabled' : 'Disabled'}
               </Pill>
             )}
           </div>
@@ -83,9 +88,7 @@ export default function RateLimitsTab() {
                   <input
                     className="border rounded px-2 py-1 w-40"
                     value={value}
-                    onChange={(e) =>
-                      setDraft((d) => ({ ...d, [key]: e.target.value }))
-                    }
+                    onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
                     placeholder="5/min, 10/sec"
                   />
                   <button
@@ -93,7 +96,7 @@ export default function RateLimitsTab() {
                     onClick={() => saveRule(key)}
                     disabled={saving[key]}
                   >
-                    {saving[key] ? "Saving..." : "Save"}
+                    {saving[key] ? 'Saving...' : 'Save'}
                   </button>
                 </div>
               ))}
@@ -135,4 +138,3 @@ export default function RateLimitsTab() {
     </div>
   );
 }
-

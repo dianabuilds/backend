@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState } from 'react';
 
-import { api } from "../api/client";
+import { api } from '../api/client';
 
 type LimitStatus = {
   plan: string;
@@ -11,7 +11,7 @@ type LimitStatus = {
 };
 
 export default function PremiumLimits() {
-  const [userId, setUserId] = useState("");
+  const [userId, setUserId] = useState('');
   const [data, setData] = useState<LimitStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -20,12 +20,10 @@ export default function PremiumLimits() {
     setErr(null);
     setLoading(true);
     try {
-      const res = await api.get<LimitStatus>(
-        `/premium/users/${encodeURIComponent(userId)}/limits`,
-      );
+      const res = await api.get<LimitStatus>(`/premium/users/${encodeURIComponent(userId)}/limits`);
       setData(res.data!);
     } catch (e: any) {
-      setErr(e?.message || "Ошибка");
+      setErr(e?.message || 'Ошибка');
     } finally {
       setLoading(false);
     }
@@ -35,9 +33,7 @@ export default function PremiumLimits() {
     <div className="p-4 space-y-4">
       <h1 className="text-lg font-semibold">Premium — Limits</h1>
       <div className="rounded border p-3">
-        <div className="text-sm text-gray-500 mb-2">
-          Проверка лимитов пользователя
-        </div>
+        <div className="text-sm text-gray-500 mb-2">Проверка лимитов пользователя</div>
         <div className="flex items-center gap-2">
           <input
             className="rounded border px-2 py-1 w-[420px]"
@@ -54,9 +50,7 @@ export default function PremiumLimits() {
           </button>
         </div>
         {err ? <div className="text-sm text-red-600 mt-2">{err}</div> : null}
-        {loading ? (
-          <div className="text-sm text-gray-500 mt-2">Загрузка…</div>
-        ) : null}
+        {loading ? <div className="text-sm text-gray-500 mt-2">Загрузка…</div> : null}
         {data ? (
           <div className="mt-3 text-sm">
             <div>

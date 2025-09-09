@@ -3,10 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type MediaAssetOut = {
-    id: string;
-    account_id: string;
-    url: string;
-    type: string;
-    metadata_json?: (Record<string, any> | null);
+  id: string;
+  account_id: string;
+  url: string;
+  type: string;
+  metadata_json?: Record<string, any> | null;
 };
-

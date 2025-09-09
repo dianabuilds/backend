@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import type { FeatureFlag } from "../api/flags";
-import Modal from "../shared/ui/Modal";
+import type { FeatureFlag } from '../api/flags';
+import Modal from '../shared/ui/Modal';
 
 interface Props {
   flag: FeatureFlag | null;
@@ -17,13 +17,13 @@ interface Props {
 }
 
 export default function FlagEditModal({ flag, onClose, onSave }: Props) {
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState('');
   const [value, setValue] = useState(false);
   const [audience, setAudience] = useState<FeatureFlag['audience']>('all');
 
   useEffect(() => {
     if (flag) {
-      setDescription(flag.description || "");
+      setDescription(flag.description || '');
       setValue(!!flag.value);
       setAudience(flag.audience);
     }
@@ -43,11 +43,7 @@ export default function FlagEditModal({ flag, onClose, onSave }: Props) {
           />
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={value}
-            onChange={(e) => setValue(e.target.checked)}
-          />
+          <input type="checkbox" checked={value} onChange={(e) => setValue(e.target.checked)} />
           <span>Enabled</span>
         </label>
         <label className="block text-sm">

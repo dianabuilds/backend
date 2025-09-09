@@ -1,33 +1,22 @@
-import type { ChangeEvent } from "react";
+﻿import type { ChangeEvent } from 'react';
 
-import { useAccount } from "../account/AccountContext";
-import { setOverrideState,useOverrideStore } from "../shared/hooks";
+import { setOverrideState, useOverrideStore } from '../shared/hooks';
 
 interface ScopeControlsProps {
+  // Deprecated props kept for compatibility with tests; not used inside
   scopeMode: string;
   onScopeModeChange: (value: string) => void;
   roles: string[];
   onRolesChange: (roles: string[]) => void;
 }
 
-const ROLE_OPTIONS = ["reader", "editor", "admin"];
-
-export default function ScopeControls({
-  scopeMode,
-  onScopeModeChange,
-  roles,
-  onRolesChange,
-}: ScopeControlsProps) {
-  const { accountId, setAccount } = useAccount();
-  // Accounts domain is optional in this build.
-  // We deliberately avoid fetching /admin/accounts to prevent 404 noise.
+export default function ScopeControls(_props: ScopeControlsProps) {
+  void _props;
   const override = useOverrideStore();
-
-  const onRoleToggle = (_r: string) => (_e: ChangeEvent<HTMLInputElement>) => {};
 
   const onOverrideToggle = (e: ChangeEvent<HTMLInputElement>) => {
     const enabled = e.target.checked;
-    setOverrideState({ enabled, reason: enabled ? override.reason : "" });
+    setOverrideState({ enabled, reason: enabled ? override.reason : '' });
   };
 
   return (

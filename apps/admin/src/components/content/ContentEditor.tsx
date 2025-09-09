@@ -1,11 +1,11 @@
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect } from 'react';
 
-import type { OutputData } from "../../types/editorjs";
-import StatusBadge from "../StatusBadge";
-import VersionBadge from "../VersionBadge";
-import ContentTab from "./ContentTab";
-import GeneralTab from "./GeneralTab";
-import type { GeneralTabProps } from "./GeneralTab.helpers";
+import type { OutputData } from '../../types/editorjs';
+import StatusBadge from '../StatusBadge';
+import VersionBadge from '../VersionBadge';
+import ContentTab from './ContentTab';
+import GeneralTab from './GeneralTab';
+import type { GeneralTabProps } from './GeneralTab.helpers';
 
 interface ContentTabProps {
   initial?: OutputData;
@@ -40,47 +40,42 @@ export default function ContentEditor({
   onSave,
   onClose,
 }: ContentEditorProps) {
-
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.preventDefault();
         onClose?.();
         return;
       }
       if (!(e.ctrlKey || e.metaKey)) return;
 
-      if (e.key === "s") {
+      if (e.key === 's') {
         e.preventDefault();
         onSave?.();
         return;
       }
 
-      if (e.key === "Enter") {
+      if (e.key === 'Enter') {
         e.preventDefault();
-        const btn = Array.from(
-          document.querySelectorAll<HTMLButtonElement>("button"),
-        ).find((b) => b.textContent?.trim() === "Save & Next");
+        const btn = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
+          (b) => b.textContent?.trim() === 'Save & Next',
+        );
         btn?.click();
         return;
       }
 
-      if (e.shiftKey && (e.key === "I" || e.key === "i")) {
+      if (e.shiftKey && (e.key === 'I' || e.key === 'i')) {
         e.preventDefault();
-        const plus = document.querySelector<HTMLButtonElement>(
-          ".ce-toolbar__plus",
-        );
+        const plus = document.querySelector<HTMLButtonElement>('.ce-toolbar__plus');
         plus?.click();
         window.setTimeout(() => {
-          const image = document.querySelector<HTMLElement>(
-            '.ce-popover-item[data-tool="image"]',
-          );
+          const image = document.querySelector<HTMLElement>('.ce-popover-item[data-tool="image"]');
           image?.click();
         }, 0);
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, [onSave, onClose]);
 
   return (

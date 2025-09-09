@@ -1,6 +1,6 @@
 // Minimal type shims for Editor.js tools without TypeScript definitions.
 // This allows dynamic imports like `import("@editorjs/checklist")` to type-check.
-import type { ToolConstructable } from "@editorjs/editorjs";
+import type { ToolConstructable } from '@editorjs/editorjs';
 
 // Editor.js output structures used across the admin app
 export interface OutputData {
@@ -25,20 +25,17 @@ interface BaseBlock<T extends string, D> {
   data: D;
 }
 
-export type ParagraphBlock = BaseBlock<"paragraph", { text: string }>;
+export type ParagraphBlock = BaseBlock<'paragraph', { text: string }>;
 
-export type HeaderBlock = BaseBlock<
-  "header",
-  { text: string; level?: number }
->;
+export type HeaderBlock = BaseBlock<'header', { text: string; level?: number }>;
 
 export type ListBlock = BaseBlock<
-  "list",
-  { style?: "ordered" | "unordered"; items: Array<string | { content?: string; text?: string }> }
+  'list',
+  { style?: 'ordered' | 'unordered'; items: Array<string | { content?: string; text?: string }> }
 >;
 
 export type ImageBlock = BaseBlock<
-  "image",
+  'image',
   {
     file?: { url: string };
     url?: string;
@@ -50,83 +47,77 @@ export type ImageBlock = BaseBlock<
 >;
 
 export type ChecklistBlock = BaseBlock<
-  "checklist",
+  'checklist',
   { items: Array<{ text?: string; checked?: boolean }> }
 >;
 
-export type QuoteBlock = BaseBlock<
-  "quote",
-  { text: string; caption?: string }
->;
+export type QuoteBlock = BaseBlock<'quote', { text: string; caption?: string }>;
 
-export type TableBlock = BaseBlock<
-  "table",
-  { content: unknown[][] }
->;
+export type TableBlock = BaseBlock<'table', { content: unknown[][] }>;
 
-export type DelimiterBlock = BaseBlock<"delimiter", Record<string, never>>;
+export type DelimiterBlock = BaseBlock<'delimiter', Record<string, never>>;
 
-declare module "@editorjs/checklist" {
+declare module '@editorjs/checklist' {
   const Checklist: ToolConstructable;
   export default Checklist;
 }
 // Некоторые сборки Vite/TS в режиме bundler резолвят типы до конкретных .mjs
 // Добавляем алиасы для подмодулей, чтобы подавить TS7016
-declare module "@editorjs/checklist/dist/checklist.mjs" {
+declare module '@editorjs/checklist/dist/checklist.mjs' {
   const Checklist: ToolConstructable;
   export default Checklist;
 }
 
-declare module "@editorjs/image" {
+declare module '@editorjs/image' {
   const ImageTool: ToolConstructable;
   export default ImageTool;
 }
-declare module "@editorjs/image/dist/image.mjs" {
+declare module '@editorjs/image/dist/image.mjs' {
   const ImageTool: ToolConstructable;
   export default ImageTool;
 }
 
-declare module "@editorjs/table" {
+declare module '@editorjs/table' {
   const Table: ToolConstructable;
   export default Table;
 }
-declare module "@editorjs/table/dist/table.mjs" {
+declare module '@editorjs/table/dist/table.mjs' {
   const Table: ToolConstructable;
   export default Table;
 }
 
-declare module "@editorjs/quote" {
+declare module '@editorjs/quote' {
   const Quote: ToolConstructable;
   export default Quote;
 }
-declare module "@editorjs/quote/dist/quote.mjs" {
+declare module '@editorjs/quote/dist/quote.mjs' {
   const Quote: ToolConstructable;
   export default Quote;
 }
 
-declare module "@editorjs/delimiter" {
+declare module '@editorjs/delimiter' {
   const Delimiter: ToolConstructable;
   export default Delimiter;
 }
-declare module "@editorjs/delimiter/dist/delimiter.mjs" {
+declare module '@editorjs/delimiter/dist/delimiter.mjs' {
   const Delimiter: ToolConstructable;
   export default Delimiter;
 }
 
-declare module "@editorjs/list" {
+declare module '@editorjs/list' {
   const List: ToolConstructable;
   export default List;
 }
-declare module "@editorjs/list/dist/list.mjs" {
+declare module '@editorjs/list/dist/list.mjs' {
   const List: ToolConstructable;
   export default List;
 }
 
-declare module "@editorjs/header" {
+declare module '@editorjs/header' {
   const Header: ToolConstructable;
   export default Header;
 }
-declare module "@editorjs/header/dist/header.mjs" {
+declare module '@editorjs/header/dist/header.mjs' {
   const Header: ToolConstructable;
   export default Header;
 }

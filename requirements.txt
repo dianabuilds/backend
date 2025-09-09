@@ -31,6 +31,7 @@ httptools>=0.6,<0.7; sys_platform != "win32"
 watchfiles>=0.24,<0.25; sys_platform != "win32"
 colorama>=0.4,<0.5; sys_platform == "win32"
 gunicorn>=21.2.0,<22.0
+orjson>=3.9.10,<4.0.0
 
 ## Environment variables
 python-dotenv>=1.0.0
@@ -59,6 +60,5 @@ opentelemetry-instrumentation-sqlalchemy~=0.57b0
 opentelemetry-instrumentation-httpx~=0.57b0
 opentelemetry-instrumentation-requests~=0.57b0
 prometheus-client~=0.20.0
-
 
 

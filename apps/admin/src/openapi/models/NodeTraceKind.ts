@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export enum NodeTraceKind {
-    AUTO = 'auto',
-    MANUAL = 'manual',
-    QUEST_HINT = 'quest_hint',
+  AUTO = 'auto',
+  MANUAL = 'manual',
+  QUEST_HINT = 'quest_hint',
 }

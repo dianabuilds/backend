@@ -35,6 +35,10 @@ class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
+    # Legacy compatibility note:
+    # ``account_id`` is no longer a physical column in the DB. Some legacy
+    # code paths may still read ``node.account_id``; expose it as a transient
+    # attribute via a property backed by ``_legacy_account_id``.
     slug = Column(String, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=True)
     embedding_vector = Column(MutableList.as_mutable(VECTOR(settings.embedding.dim)), nullable=True)
@@ -84,8 +88,8 @@ class Node(Base):
         Index("ix_nodes_author_id_created_at", "author_id", "created_at"),
     )
 
-    # ``workspace_id`` previously mirrored ``account_id`` for backwards
-    # compatibility.  Callers should now pass ``account_id`` directly.
+    # Legacy note: historical callers used ``workspace_id`` as an alias for
+    # ``account_id``.  New code should pass tenant/account context separately.
 
     # ------------------------------------------------------------------
     # Compatibility properties for legacy fields removed from the schema.
@@ -187,3 +191,22 @@ class Node(Base):
     @property
     def tag_slugs(self) -> list[str]:
         return [t.slug for t in self.tags] if self.tags else []
+    def __init__(self, **kwargs):  # type: ignore[override]
+        # Tolerate legacy constructors that pass account_id/workspace_id
+        acc = kwargs.pop("account_id", None)
+        ws = kwargs.pop("workspace_id", None)
+        if acc is not None:
+            try:
+                object.__setattr__(self, "_legacy_account_id", str(acc))
+            except Exception:
+                pass
+        elif ws is not None:
+            try:
+                object.__setattr__(self, "_legacy_account_id", str(ws))
+            except Exception:
+                pass
+        super().__init__(**kwargs)
+
+    @property
+    def account_id(self) -> str | None:  # type: ignore[override]
+        return getattr(self, "_legacy_account_id", None)

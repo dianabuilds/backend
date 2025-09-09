@@ -3,11 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type BackgroundJobHistoryOut = {
-    id: string;
-    name: string;
-    status: string;
-    log_url?: (string | null);
-    started_at: string;
-    finished_at?: (string | null);
+  id: string;
+  name: string;
+  status: string;
+  log_url?: string | null;
+  started_at: string;
+  finished_at?: string | null;
 };
-

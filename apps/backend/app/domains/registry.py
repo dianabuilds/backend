@@ -433,7 +433,7 @@ def register_domain_routers(app: FastAPI) -> None:
         logger.exception("Failed to load admin search router. Startup aborted")
         raise RuntimeError("Failed to load admin search router") from exc
 
-    # Workspaces removed: routes no longer included
+    # Workspace-scoped routes are not included in this build
 
     # Worlds
     try:

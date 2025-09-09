@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { createRoot } from "react-dom/client";
+import { useState } from 'react';
+import { createRoot } from 'react-dom/client';
 
-import Modal from "./Modal";
-import Button from "./Button";
-import TextInput from "./TextInput";
+import Button from './Button';
+import Modal from './Modal';
+import TextInput from './TextInput';
 
 export function alertDialog(message: string): void {
-  const div = document.createElement("div");
+  const div = document.createElement('div');
   document.body.appendChild(div);
   const root = createRoot(div);
   const close = () => {
@@ -25,7 +25,7 @@ export function alertDialog(message: string): void {
 
 export function confirmDialog(message: string): Promise<boolean> {
   return new Promise((resolve) => {
-    const div = document.createElement("div");
+    const div = document.createElement('div');
     document.body.appendChild(div);
     const root = createRoot(div);
     const close = (result: boolean) => {
@@ -45,12 +45,9 @@ export function confirmDialog(message: string): Promise<boolean> {
   });
 }
 
-export function promptDialog(
-  message: string,
-  defaultValue = "",
-): Promise<string | undefined> {
+export function promptDialog(message: string, defaultValue = ''): Promise<string | undefined> {
   return new Promise((resolve) => {
-    const div = document.createElement("div");
+    const div = document.createElement('div');
     document.body.appendChild(div);
     const root = createRoot(div);
     function Prompt() {
@@ -69,7 +66,7 @@ export function promptDialog(
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") close(value);
+              if (e.key === 'Enter') close(value);
             }}
           />
           <div className="mt-4 flex justify-end gap-2">
@@ -82,4 +79,3 @@ export function promptDialog(
     root.render(<Prompt />);
   });
 }
-

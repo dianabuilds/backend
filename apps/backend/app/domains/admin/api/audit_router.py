@@ -31,6 +31,7 @@ async def list_audit_logs(
     action: str | None = None,
     resource: str | None = None,
     workspace_id: UUID | None = None,
+    tenant_id: UUID | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     page: int = 1,
@@ -45,8 +46,9 @@ async def list_audit_logs(
         stmt = stmt.where(AuditLog.action == action)
     if resource:
         stmt = stmt.where(or_(AuditLog.resource_type == resource, AuditLog.resource_id == resource))
-    if workspace_id:
-        stmt = stmt.where(AuditLog.workspace_id == workspace_id)
+    scope = tenant_id or workspace_id
+    if scope:
+        stmt = stmt.where(AuditLog.workspace_id == scope)
     if date_from:
         stmt = stmt.where(AuditLog.created_at >= date_from)
     if date_to:

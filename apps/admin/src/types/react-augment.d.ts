@@ -2,11 +2,11 @@
 // Важно: React не будет автоматически пробрасывать этот атрибут в реальный DOM.
 // Это только для типовой поддержки, чтобы можно было временно использовать onCommit в JSX.
 
-import "react";
+import 'react';
 
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes } from 'react';
 
-declare module "react" {
+declare module 'react' {
   interface DOMAttributes<T> {
     onCommit?: (action: any) => void;
   }

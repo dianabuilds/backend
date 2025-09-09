@@ -1,10 +1,10 @@
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter } from 'react-router-dom';
 
-import { AuthProvider } from "./auth/AuthContext";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { ToastProvider } from "./components/ToastProvider";
-import { AppRoutes } from "./app/routes";
-import { AccountBranchProvider } from "./account/AccountContext";
+import { AccountBranchProvider } from './account/AccountContext';
+import { AppRoutes } from './app/routes';
+import { AuthProvider } from './auth/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import { ToastProvider } from './components/ToastProvider';
 
 export default function App() {
   return (

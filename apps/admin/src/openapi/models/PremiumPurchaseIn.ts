@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type PremiumPurchaseIn = {
-    payment_token: string;
-    days?: number;
+  payment_token: string;
+  days?: number;
 };
-

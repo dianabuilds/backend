@@ -30,7 +30,6 @@ from app.security import (
 
 
 class SimulateRequest(BaseModel):
-    workspace_id: UUID
     start: str
     mode: str | None = None
     params: dict[str, Any] | None = None
@@ -42,7 +41,6 @@ class SimulateRequest(BaseModel):
 
 
 class PreviewLinkRequest(BaseModel):
-    workspace_id: UUID
     ttl: int | None = None
 
 
@@ -56,13 +54,13 @@ router = APIRouter(
 @router.post("/link", dependencies=[Depends(require_admin_role)])
 async def create_preview_link(payload: PreviewLinkRequest) -> dict[str, str]:
     preview_session_id = uuid4().hex
-    token = create_preview_token(preview_session_id, str(payload.workspace_id), ttl=payload.ttl)
+    token = create_preview_token(preview_session_id, ttl=payload.ttl)
     return {"url": f"/preview?token={token}"}
 
 
 @router.get("/link", dependencies=[Depends(require_admin_role)])
-async def create_preview_link_get(workspace_id: UUID, ttl: int | None = None) -> dict[str, str]:
-    payload = PreviewLinkRequest(workspace_id=workspace_id, ttl=ttl)
+async def create_preview_link_get(ttl: int | None = None) -> dict[str, str]:
+    payload = PreviewLinkRequest(ttl=ttl)
     return await create_preview_link(payload)
 
 
@@ -76,20 +74,12 @@ async def simulate_transitions(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
     request: Request = None,
 ):
-    result = await db.execute(
-        select(Node).where(
-            Node.workspace_id == payload.workspace_id,
-            Node.slug == payload.start,
-        )
-    )
+    result = await db.execute(select(Node).where(Node.slug == payload.start))
     node = result.scalars().first()
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
 
-    if request and hasattr(request.state, "preview_token"):
-        token_ws = request.state.preview_token.get("workspace_id")
-        if str(payload.workspace_id) != str(token_ws):
-            raise HTTPException(status_code=403, detail="Invalid workspace")
+    # Token only validates session id; no space scoping in profile mode
 
     svc = NavigationService()
     if payload.history:
@@ -108,9 +98,9 @@ async def simulate_transitions(
         total = sum(counts.values())
         source_diversity = -sum((c / total) * math.log(c / total) for c in counts.values())
     if res.reason == NoRouteReason.NO_ROUTE:
-        record_no_route(str(payload.workspace_id), preview=True)
+        record_no_route(str(getattr(node, "author_id", "0")), preview=True)
     else:
-        record_route_length(len(svc._router.history), str(payload.workspace_id), preview=True)
+        record_route_length(len(svc._router.history), str(getattr(node, "author_id", "0")), preview=True)
     return {
         "next": res.next.slug if res.next else None,
         "reason": res.reason.value if res.reason else None,

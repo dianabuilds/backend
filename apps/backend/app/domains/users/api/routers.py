@@ -15,12 +15,6 @@ from app.domains.users.infrastructure.repositories.user_profile_repository impor
     UserProfileRepository,
 )
 from app.domains.users.infrastructure.repositories.user_repository import UserRepository
-# Workspaces module is optional in this build; import lazily where needed
-try:  # pragma: no cover - optional dependency
-    from app.domains.workspaces.infrastructure.dao import WorkspaceDAO, WorkspaceMemberDAO  # type: ignore
-except Exception:  # pragma: no cover
-    WorkspaceDAO = None  # type: ignore
-    WorkspaceMemberDAO = None  # type: ignore
 from app.providers.db.session import get_db
 from app.schemas.user import (
     UserDefaultWorkspaceUpdate,
@@ -40,7 +34,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me", response_model=UserOut, summary="Current user")
 async def read_me(
-    current_user: Annotated[User, Depends(get_current_user)] = ...,
+        current_user: Annotated[User, Depends(get_current_user)] = ...,
 ) -> User:
     service = UserProfileService(UserRepository(None))  # repo не нужен для read
     return await service.read_me(current_user)
@@ -48,9 +42,9 @@ async def read_me(
 
 @router.patch("/me", response_model=UserOut, summary="Update profile")
 async def update_me(
-    payload: UserUpdate,
-    current_user: Annotated[User, Depends(get_current_user)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+        payload: UserUpdate,
+        current_user: Annotated[User, Depends(get_current_user)] = ...,
+        db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> User:
     service = UserProfileService(UserRepository(db))
     data = payload.model_dump(exclude_unset=True)
@@ -59,8 +53,8 @@ async def update_me(
 
 @router.get("/me/profile", response_model=UserProfileOut, summary="My profile")
 async def read_my_profile(
-    current_user: Annotated[User, Depends(get_current_user)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+        current_user: Annotated[User, Depends(get_current_user)] = ...,
+        db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> UserProfile:
     if not feature_flags.profile_enabled:
         raise HTTPException(status_code=404, detail="Not found")
@@ -74,9 +68,9 @@ async def read_my_profile(
     summary="Update my profile",
 )
 async def update_my_profile(
-    payload: UserProfileUpdate,
-    current_user: Annotated[User, Depends(get_current_user)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+        payload: UserProfileUpdate,
+        current_user: Annotated[User, Depends(get_current_user)] = ...,
+        db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> UserProfile:
     if not feature_flags.profile_enabled:
         raise HTTPException(status_code=404, detail="Not found")
@@ -91,8 +85,8 @@ async def update_my_profile(
     summary="My settings",
 )
 async def read_my_settings(
-    current_user: Annotated[User, Depends(get_current_user)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+        current_user: Annotated[User, Depends(get_current_user)] = ...,
+        db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict:
     if not feature_flags.profile_enabled:
         raise HTTPException(status_code=404, detail="Not found")
@@ -106,9 +100,9 @@ async def read_my_settings(
     summary="Update my settings",
 )
 async def update_my_settings(
-    payload: UserSettingsUpdate,
-    current_user: Annotated[User, Depends(get_current_user)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+        payload: UserSettingsUpdate,
+        current_user: Annotated[User, Depends(get_current_user)] = ...,
+        db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict:
     if not feature_flags.profile_enabled:
         raise HTTPException(status_code=404, detail="Not found")
@@ -118,43 +112,17 @@ async def update_my_settings(
 
 @router.delete("/me", summary="Delete account")
 async def delete_me(
-    current_user: Annotated[User, Depends(get_current_user)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+        current_user: Annotated[User, Depends(get_current_user)] = ...,
+        db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> dict:
     service = UserProfileService(UserRepository(db))
     return await service.delete_me(current_user)
 
 
-@router.patch(
-    "/me/default-workspace",
-    response_model=UserOut,
-    summary="Set default workspace",
-)
-async def set_default_workspace(
-    payload: UserDefaultWorkspaceUpdate,
-    current_user: Annotated[User, Depends(get_current_user)] = ...,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
-) -> User:
-    workspace_id = payload.default_workspace_id
-    # If workspaces module present, perform validation; otherwise accept value as-is
-    if workspace_id is not None and WorkspaceDAO is not None and WorkspaceMemberDAO is not None:
-        workspace = await WorkspaceDAO.get(db, workspace_id)
-        if not workspace:
-            raise HTTPException(status_code=404, detail="Workspace not found")
-        if current_user.role != "admin":
-            member = await WorkspaceMemberDAO.get(
-                db, account_id=workspace_id, user_id=current_user.id
-            )
-            if not member:
-                raise HTTPException(status_code=403, detail="Forbidden")
-    service = UserProfileService(UserRepository(db))
-    return await service.update_default_workspace(current_user, workspace_id)
-
-
 @router.get("/{user_id}/profile", response_model=UserProfileOut, summary="User profile")
 async def read_user_profile(
-    user_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)] = ...,
+        user_id: UUID,
+        db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ) -> UserProfile:
     if not feature_flags.profile_enabled:
         raise HTTPException(status_code=404, detail="Not found")

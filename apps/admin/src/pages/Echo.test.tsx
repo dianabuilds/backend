@@ -1,12 +1,13 @@
-import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { vi } from "vitest";
+import '@testing-library/jest-dom';
 
-import Echo from "./Echo";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 
-vi.mock("../api/client", () => ({
+import Echo from './Echo';
+
+vi.mock('../api/client', () => ({
   api: {
     get: vi.fn().mockResolvedValue({ data: [] }),
     post: vi.fn().mockResolvedValue({}),
@@ -25,10 +26,10 @@ function renderPage() {
   );
 }
 
-describe("Echo page", () => {
-  it("renders heading", async () => {
+describe('Echo page', () => {
+  it('renders heading', async () => {
     renderPage();
-    const heading = await screen.findByRole("heading", { name: /Эхо/i });
+    const heading = await screen.findByRole('heading', { name: /Эхо/i });
     expect(heading).toBeInTheDocument();
   });
 });

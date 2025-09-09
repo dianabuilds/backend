@@ -1,11 +1,12 @@
-import type EditorJS from "@editorjs/editorjs";
-import { useCallback,useEffect, useRef, useState } from "react";
+import type EditorJS from '@editorjs/editorjs';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useAccount } from "../account/AccountContext";
-import { accountApi } from "../api/accountApi";
-import type { OutputData } from "../types/editorjs";
-import { compressImage } from "../utils/compressImage";
-import { resolveUrl } from "../utils/resolveUrl";
+import { useAccount } from '../account/AccountContext';
+import { accountApi } from '../api/accountApi';
+import type { ApiResponse } from '../api/client';
+import type { OutputData } from '../types/editorjs';
+import { compressImage } from '../utils/compressImage';
+import { resolveUrl } from '../utils/resolveUrl';
 
 interface Props {
   value?: OutputData;
@@ -18,6 +19,14 @@ interface Props {
 
 type ImageUploadResult = { success: 1; file: { url: string } } | { success: 0 };
 
+type EditorInstance = {
+  isReady?: Promise<void>;
+  render?: (data: OutputData) => Promise<void>;
+  save?: () => Promise<OutputData>;
+  destroy?: () => void;
+  blocks?: { render?: (blocks: OutputData['blocks']) => Promise<void> };
+};
+
 export default function EditorJSEmbed({
   value,
   onChange,
@@ -29,7 +38,7 @@ export default function EditorJSEmbed({
   const holderId = useRef(`edjs-${Math.random().toString(36).slice(2)}`);
   const editorRef = useRef<EditorJS | null>(null);
   const changeTimer = useRef<number | null>(null);
-  const lastRendered = useRef<string>("");
+  const lastRendered = useRef<string>('');
   const applyingExternal = useRef(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -37,40 +46,41 @@ export default function EditorJSEmbed({
   const { accountId } = useAccount();
 
   const extractUrl = (data: unknown): string => {
-    if (typeof data === "string") return data;
-    if (data && typeof data === "object") {
+    if (typeof data === 'string') return data;
+    if (data && typeof data === 'object') {
       const obj = data as Record<string, unknown>;
       const file = obj.file as Record<string, unknown> | undefined;
-      if (typeof file?.url === "string") return file.url;
-      if (typeof obj.url === "string") return obj.url;
+      if (typeof file?.url === 'string') return file.url;
+      if (typeof obj.url === 'string') return obj.url;
       const inner = obj.data as Record<string, unknown> | undefined;
       const innerFile = inner?.file as Record<string, unknown> | undefined;
-      if (typeof innerFile?.url === "string") return innerFile.url;
+      if (typeof innerFile?.url === 'string') return innerFile.url;
       const innerUrl = inner?.url;
-      if (typeof innerUrl === "string") return innerUrl;
+      if (typeof innerUrl === 'string') return innerUrl;
     }
-    return "";
+    return '';
   };
 
   // removed waitForImage helper (unused)
 
   // Унифицированный помощник отрисовки данных в EditorJS
-  const renderEditor = useCallback(async (inst: any, data: OutputData) => {
+  const renderEditor = useCallback(async (inst: EditorInstance, data: OutputData) => {
     try {
-      if (inst?.isReady && typeof inst.isReady.then === "function") {
+      if (inst?.isReady && typeof inst.isReady.then === 'function') {
         await inst.isReady;
       }
       if (inst?.render) {
-        await inst.render(data as any);
+        await inst.render(data);
       } else {
-        const blocks = (data as any)?.blocks || (data as any)?.data?.blocks;
+        const blocks =
+          (data as OutputData)?.blocks || (data as unknown as { data?: OutputData })?.data?.blocks;
         if (Array.isArray(blocks) && inst?.blocks?.render) {
           await inst.blocks.render(blocks);
         }
       }
     } catch (e) {
       // логируем, но не прерываем поток — важнее не ломать ввод пользователя
-      console.error("EditorJS render failed", e);
+      console.error('EditorJS render failed', e);
     }
   }, []);
 
@@ -79,121 +89,121 @@ export default function EditorJSEmbed({
 
     async function init() {
       try {
-        const EditorJS = (await import("@editorjs/editorjs")).default;
-        const Header = (await import("@editorjs/header")).default;
-        const List = (await import("@editorjs/list")).default;
-        const Checklist = (await import("@editorjs/checklist")).default;
-        const ImageTool = (await import("@editorjs/image")).default;
-        const Table = (await import("@editorjs/table")).default;
-        const Quote = (await import("@editorjs/quote")).default;
-        const Delimiter = (await import("@editorjs/delimiter")).default;
+        const EditorJS = (await import('@editorjs/editorjs')).default;
+        const Header = (await import('@editorjs/header')).default;
+        const List = (await import('@editorjs/list')).default;
+        const Checklist = (await import('@editorjs/checklist')).default;
+        const ImageTool = (await import('@editorjs/image')).default;
+        const Table = (await import('@editorjs/table')).default;
+        const Quote = (await import('@editorjs/quote')).default;
+        const Delimiter = (await import('@editorjs/delimiter')).default;
 
         if (destroyed) return;
 
         const initialData: OutputData = (value as OutputData) || {
           time: Date.now(),
-          blocks: [{ type: "paragraph", data: { text: "" } }],
-          version: "2.30.7",
+          blocks: [{ type: 'paragraph', data: { text: '' } }],
+          version: '2.30.7',
         };
 
         const instance = new EditorJS({
-        holder: holderId.current,
-        minHeight,
-        placeholder: placeholder || "Напишите описание, легенду или сценарий…",
-        data: initialData,
-        tools: {
-          header: Header,
-          list: List,
-          checklist: Checklist,
-          table: Table,
-          quote: Quote,
-          delimiter: Delimiter,
-          image: {
-            class: ImageTool,
-            config: {
-              uploader: {
-                async uploadByFile(file: File): Promise<ImageUploadResult> {
-                  try {
-                    const compressed = await compressImage(file);
-                    const form = new FormData();
-                    form.append("file", compressed);
-                    const res = await accountApi.request<any>("/admin/media", {
-                      method: "POST",
-                      body: form,
-                      raw: true,
-                      accountId,
-                    });
-                    const rawUrl = extractUrl((res as any)?.data ?? res);
-                    const url = resolveUrl(rawUrl);
-                    if (!url) throw new Error("Empty URL from /media");
-                    const normalized: ImageUploadResult = {
-                      success: 1,
-                      file: { url },
-                    };
-                    return normalized;
-                  } catch (e) {
-                    console.error("Image upload failed:", e);
-                    return { success: 0 };
-                  }
-                },
-                async uploadByUrl(url: string): Promise<ImageUploadResult> {
-                  try {
-                    if (typeof url === "string" && url) {
-                      const final = resolveUrl(url);
+          holder: holderId.current,
+          minHeight,
+          placeholder: placeholder || 'Напишите описание, легенду или сценарий…',
+          data: initialData,
+          tools: {
+            header: Header,
+            list: List,
+            checklist: Checklist,
+            table: Table,
+            quote: Quote,
+            delimiter: Delimiter,
+            image: {
+              class: ImageTool,
+              config: {
+                uploader: {
+                  async uploadByFile(file: File): Promise<ImageUploadResult> {
+                    try {
+                      const compressed = await compressImage(file);
+                      const form = new FormData();
+                      form.append('file', compressed);
+                      const res = await accountApi.request<ApiResponse<unknown>>('/admin/media', {
+                        method: 'POST',
+                        body: form,
+                        raw: true,
+                        accountId,
+                      });
+                      const rawUrl = extractUrl(res?.data);
+                      const url = resolveUrl(rawUrl);
+                      if (!url) throw new Error('Empty URL from /media');
                       const normalized: ImageUploadResult = {
                         success: 1,
-                        file: { url: final },
+                        file: { url },
                       };
                       return normalized;
+                    } catch (e) {
+                      console.error('Image upload failed:', e);
+                      return { success: 0 };
                     }
-                  } catch (e) {
-                    console.error("Image uploadByUrl failed:", e);
-                  }
-                  return { success: 0 };
+                  },
+                  async uploadByUrl(url: string): Promise<ImageUploadResult> {
+                    try {
+                      if (typeof url === 'string' && url) {
+                        const final = resolveUrl(url);
+                        const normalized: ImageUploadResult = {
+                          success: 1,
+                          file: { url: final },
+                        };
+                        return normalized;
+                      }
+                    } catch (e) {
+                      console.error('Image uploadByUrl failed:', e);
+                    }
+                    return { success: 0 };
+                  },
                 },
               },
             },
           },
-        },
-        onChange: async () => {
-          if (!onChange) return;
-          if (applyingExternal.current) return; // skip feedback when we render externally
-          if (changeTimer.current) window.clearTimeout(changeTimer.current);
-          changeTimer.current = window.setTimeout(async () => {
-            try {
-              const data = (await instance.save()) as unknown as OutputData;
-              onChange(data);
+          onChange: async () => {
+            if (!onChange) return;
+            if (applyingExternal.current) return; // skip feedback when we render externally
+            if (changeTimer.current) window.clearTimeout(changeTimer.current);
+            changeTimer.current = window.setTimeout(async () => {
               try {
-                lastRendered.current = JSON.stringify(data);
+                const data = (await instance.save()) as unknown as OutputData;
+                onChange(data);
+                try {
+                  lastRendered.current = JSON.stringify(data);
+                } catch {
+                  // ignore
+                }
               } catch {
                 // ignore
               }
-            } catch {
-              // ignore
-            }
-          }, 400);
-        },
-      });
+            }, 400);
+          },
+        });
 
-      editorRef.current = instance;
-      // Зафиксируем исходные данные, чтобы избежать немедленного повторного render(value)
-      try {
-        lastRendered.current = JSON.stringify(initialData);
-      } catch {
-        // ignore
-      }
-      try {
+        editorRef.current = instance as unknown as EditorJS;
+        // Зафиксируем исходные данные, чтобы избежать немедленного повторного render(value)
+        try {
+          lastRendered.current = JSON.stringify(initialData);
+        } catch {
+          // ignore
+        }
+        try {
           onReady?.({
             save: async () => (await instance.save()) as unknown as OutputData,
           });
-      } catch {
-        // ignore
-      }
-      // Помечаем, что инстанс готов к синхронизации с актуальным value
-      setInitialized(true);
+        } catch {
+          // ignore
+        }
+        // Помечаем, что инстанс готов к синхронизации с актуальным value
+        setInitialized(true);
       } catch (e) {
         if (destroyed) return;
-        console.error("EditorJS failed to load", e);
+        console.error('EditorJS failed to load', e);
         setLoadError(e instanceof Error ? e.message : String(e));
       }
     }
@@ -217,7 +227,7 @@ export default function EditorJSEmbed({
     if (!initialized) return;
     const inst = editorRef.current;
     if (!inst || !value) return;
-    let incoming = "";
+    let incoming = '';
     try {
       incoming = JSON.stringify(value);
     } catch {
@@ -238,7 +248,7 @@ export default function EditorJSEmbed({
   useEffect(() => {
     const inst = editorRef.current;
     if (!inst || !value) return;
-    let incoming = "";
+    let incoming = '';
     try {
       incoming = JSON.stringify(value);
     } catch {
@@ -255,11 +265,7 @@ export default function EditorJSEmbed({
   }, [value, renderEditor]);
 
   if (loadError) {
-    return (
-      <div className={className || ""}>
-        Не удалось загрузить редактор: {loadError}
-      </div>
-    );
+    return <div className={className || ''}>Не удалось загрузить редактор: {loadError}</div>;
   }
 
   return (
@@ -277,12 +283,12 @@ export default function EditorJSEmbed({
       `}</style>
       <div
         id={holderId.current}
-        className={`edjs-wrap w-full box-border ${className || ""}`}
+        className={`edjs-wrap w-full box-border ${className || ''}`}
         style={{
-          maxWidth: "100%",
-          overflow: "visible",
-          position: "relative",
-          paddingLeft: "24px", // небольшой отступ, чтобы «плюсик» не упирался в левую границу
+          maxWidth: '100%',
+          overflow: 'visible',
+          position: 'relative',
+          paddingLeft: '24px', // небольшой отступ, чтобы «плюсик» не упирался в левую границу
         }}
       />
     </>

@@ -7,16 +7,7 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
-export type { AccountIn } from './models/AccountIn';
-export type { AccountMemberIn } from './models/AccountMemberIn';
-export type { AccountMemberOut } from './models/AccountMemberOut';
-export type { AccountOut } from './models/AccountOut';
-export { AccountRole } from './models/AccountRole';
-export type { AccountSettings_Input } from './models/AccountSettings_Input';
-export type { AccountSettings_Output } from './models/AccountSettings_Output';
-export { AccountType } from './models/AccountType';
-export type { AccountUpdate } from './models/AccountUpdate';
-export type { AccountWithRoleOut } from './models/AccountWithRoleOut';
+// Accounts models removed from exports after accounts cleanup
 export type { AchievementAdminOut } from './models/AchievementAdminOut';
 export type { AchievementCreateIn } from './models/AchievementCreateIn';
 export type { AchievementOut } from './models/AchievementOut';
@@ -38,10 +29,8 @@ export type { BackgroundJobHistoryOut } from './models/BackgroundJobHistoryOut';
 export type { BlacklistAdd } from './models/BlacklistAdd';
 export type { BlacklistItem } from './models/BlacklistItem';
 export type { Body_embedding_test_admin_embedding_test_post } from './models/Body_embedding_test_admin_embedding_test_post';
-export type { Body_upload_media_accounts__account_id__media_post } from './models/Body_upload_media_accounts__account_id__media_post';
-export type { Body_upload_media_admin_accounts__account_id__admin_media_post } from './models/Body_upload_media_admin_accounts__account_id__admin_media_post';
+// Legacy accounts media payloads removed from exports
 export type { Body_upload_media_admin_admin_media_post } from './models/Body_upload_media_admin_admin_media_post';
-export type { Body_upload_media_asset_accounts__account_id__admin_media_post } from './models/Body_upload_media_asset_accounts__account_id__admin_media_post';
 export type { Body_upload_media_asset_admin_media_post } from './models/Body_upload_media_asset_admin_media_post';
 export type { Body_upload_media_media_post } from './models/Body_upload_media_media_post';
 export type { BulkIds } from './models/BulkIds';
@@ -173,7 +162,6 @@ export type { WorldTemplateIn } from './models/WorldTemplateIn';
 export type { WorldTemplateOut } from './models/WorldTemplateOut';
 
 export { AchievementsService } from './services/AchievementsService';
-export { AdminService } from './services/AdminService';
 export { AdminAiQuestsService } from './services/AdminAiQuestsService';
 export { AdminAiSettingsService } from './services/AdminAiSettingsService';
 export { AdminAiUsageService } from './services/AdminAiUsageService';
@@ -189,9 +177,9 @@ export { MediaService } from './services/MediaService';
 export { MetricsService } from './services/MetricsService';
 export { ModerationService } from './services/ModerationService';
 export { NavigationService } from './services/NavigationService';
-export { NodesService } from './services/NodesService';
+// NodesService removed from exports (legacy account_id routes)
 export { NodesNavigationService } from './services/NodesNavigationService';
-export { NodesNavigationManageService } from './services/NodesNavigationManageService';
+// NodesNavigationManageService removed from exports (legacy account_id param)
 export { NotificationsService } from './services/NotificationsService';
 export { PaymentsService } from './services/PaymentsService';
 export { PremiumService } from './services/PremiumService';

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState } from 'react';
 
 import {
   type AchievementAdmin,
@@ -8,23 +8,16 @@ import {
   listAdminAchievements,
   revokeAchievement,
   updateAdminAchievement,
-} from "../api/achievements";
-import { useToast } from "../components/ToastProvider";
-import { useModal,usePaginatedList } from "../shared/hooks";
-import {
-  Button,
-  Modal,
-  PageLayout,
-  SearchBar,
-  Table,
-  TextInput,
-} from "../shared/ui";
-import { confirmWithEnv } from "../utils/env";
-import ConditionEditor, { type Condition } from "./_shared/ConditionEditor";
+} from '../api/achievements';
+import { useToast } from '../components/ToastProvider';
+import { useModal, usePaginatedList } from '../shared/hooks';
+import { Button, Modal, PageLayout, SearchBar, Table, TextInput } from '../shared/ui';
+import { confirmWithEnv } from '../utils/env';
+import ConditionEditor, { type Condition } from './_shared/ConditionEditor';
 
 export default function Achievements() {
   const { addToast } = useToast();
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState('');
 
   const {
     items,
@@ -38,36 +31,32 @@ export default function Achievements() {
     hasPrev,
     reset,
     reload,
-  } = usePaginatedList<AchievementAdmin>((params) =>
-    listAdminAchievements({ ...params, q }),
-  );
+  } = usePaginatedList<AchievementAdmin>((params) => listAdminAchievements({ ...params, q }));
 
   const createModal = useModal();
   const assignModal = useModal();
 
   // create modal state
-  const [cCode, setCCode] = useState("");
-  const [cTitle, setCTitle] = useState("");
-  const [cDesc, setCDesc] = useState("");
-  const [cIcon, setCIcon] = useState("");
+  const [cCode, setCCode] = useState('');
+  const [cTitle, setCTitle] = useState('');
+  const [cDesc, setCDesc] = useState('');
+  const [cIcon, setCIcon] = useState('');
   const [cVisible, setCVisible] = useState(true);
   const [cCond, setCCond] = useState<Condition>({
-    type: "event_count",
-    event: "some_event",
+    type: 'event_count',
+    event: 'some_event',
     count: 1,
   });
 
   // edit state
   const [editId, setEditId] = useState<string | null>(null);
-  const [editConditions, setEditConditions] = useState<Record<string, Condition>>(
-    {},
-  );
+  const [editConditions, setEditConditions] = useState<Record<string, Condition>>({});
 
   // assign modal state
-  const [aUser, setAUser] = useState("");
-  const [aCode, setACode] = useState("");
-  const [aAction, setAAction] = useState<"grant" | "revoke">("grant");
-  const [aReason, setAReason] = useState("");
+  const [aUser, setAUser] = useState('');
+  const [aCode, setACode] = useState('');
+  const [aAction, setAAction] = useState<'grant' | 'revoke'>('grant');
+  const [aReason, setAReason] = useState('');
 
   const achievementMap = useMemo(
     () => Object.fromEntries(items.map((a) => [a.code, a.id])),
@@ -88,41 +77,38 @@ export default function Achievements() {
         description: cDesc.trim() || undefined,
         icon: cIcon.trim() || undefined,
         visible: cVisible,
-        condition: cCond as unknown as AchievementAdmin["condition"],
+        condition: cCond as unknown as AchievementAdmin['condition'],
       });
-      setCCode("");
-      setCTitle("");
-      setCDesc("");
-      setCIcon("");
+      setCCode('');
+      setCTitle('');
+      setCDesc('');
+      setCIcon('');
       setCVisible(true);
-      setCCond({ type: "event_count", event: "some_event", count: 1 });
+      setCCond({ type: 'event_count', event: 'some_event', count: 1 });
       createModal.close();
       reset();
       await reload();
-      addToast({ title: "Achievement created", variant: "success" });
+      addToast({ title: 'Achievement created', variant: 'success' });
     } catch (e) {
       addToast({
-        title: "Create failed",
+        title: 'Create failed',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     }
   };
 
-  const onSave = async (
-    row: AchievementAdmin,
-    patch: Partial<AchievementAdmin>,
-  ) => {
+  const onSave = async (row: AchievementAdmin, patch: Partial<AchievementAdmin>) => {
     try {
       await updateAdminAchievement(row.id, patch);
       setEditId(null);
       await reload();
-      addToast({ title: "Saved", variant: "success" });
+      addToast({ title: 'Saved', variant: 'success' });
     } catch (e) {
       addToast({
-        title: "Save failed",
+        title: 'Save failed',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     }
   };
@@ -132,12 +118,12 @@ export default function Achievements() {
     try {
       await deleteAdminAchievement(row.id);
       await reload();
-      addToast({ title: "Deleted", variant: "success" });
+      addToast({ title: 'Deleted', variant: 'success' });
     } catch (e) {
       addToast({
-        title: "Delete failed",
+        title: 'Delete failed',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     }
   };
@@ -146,38 +132,38 @@ export default function Achievements() {
     const id = achievementMap[aCode.trim()];
     if (!id || !aUser.trim()) {
       addToast({
-        title: "Invalid input",
-        description: "Provide existing code and user",
-        variant: "error",
+        title: 'Invalid input',
+        description: 'Provide existing code and user',
+        variant: 'error',
       });
       return;
     }
     try {
-      if (aAction === "grant") {
+      if (aAction === 'grant') {
         await grantAchievement(id, aUser.trim(), aReason.trim() || undefined);
-        addToast({ title: "Achievement granted", variant: "success" });
+        addToast({ title: 'Achievement granted', variant: 'success' });
       } else {
         await revokeAchievement(id, aUser.trim(), aReason.trim() || undefined);
-        addToast({ title: "Achievement revoked", variant: "success" });
+        addToast({ title: 'Achievement revoked', variant: 'success' });
       }
       assignModal.close();
     } catch (e) {
       addToast({
-        title: "Failed to apply",
+        title: 'Failed to apply',
         description: e instanceof Error ? e.message : String(e),
-        variant: "error",
+        variant: 'error',
       });
     }
   };
 
   const exportLocal = () => {
     const blob = new Blob([JSON.stringify(items, null, 2)], {
-      type: "application/json",
+      type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = "achievements.json";
+    a.download = 'achievements.json';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -190,10 +176,10 @@ export default function Achievements() {
           <Button onClick={createModal.open}>Create achievement</Button>
           <Button
             onClick={() => {
-              setAAction("grant");
-              setACode("");
-              setAUser("");
-              setAReason("");
+              setAAction('grant');
+              setACode('');
+              setAUser('');
+              setAReason('');
               assignModal.open();
             }}
           >
@@ -217,9 +203,7 @@ export default function Achievements() {
             min={1}
             max={1000}
             value={limit}
-            onChange={(e) =>
-              setLimit(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))
-            }
+            onChange={(e) => setLimit(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))}
             className="w-20"
           />
           <Button disabled={!hasPrev} onClick={prevPage} title="Previous page">
@@ -252,12 +236,12 @@ export default function Achievements() {
                 ? [
                     a.code,
                     a.title,
-                    a.description || "",
-                    a.icon || "",
+                    a.description || '',
+                    a.icon || '',
                     a.visible,
                     JSON.stringify(a.condition ?? {}, null, 2),
                   ]
-                : [a.code, a.title, a.description || "", a.icon || "", a.visible, ""];
+                : [a.code, a.title, a.description || '', a.icon || '', a.visible, ''];
               return (
                 <tr key={a.id} className="border-b align-top">
                   <td className="p-2 font-mono">
@@ -287,9 +271,7 @@ export default function Achievements() {
                       <input
                         type="checkbox"
                         defaultChecked={eVisible}
-                        onChange={(ev) =>
-                          (a.visible = ev.currentTarget.checked)
-                        }
+                        onChange={(ev) => (a.visible = ev.currentTarget.checked)}
                       />
                     ) : (
                       String(a.visible)
@@ -300,9 +282,7 @@ export default function Achievements() {
                       <div className="space-y-2">
                         <input
                           defaultValue={eDesc}
-                          onBlur={(ev) =>
-                            (a.description = ev.currentTarget.value)
-                          }
+                          onBlur={(ev) => (a.description = ev.currentTarget.value)}
                           className="border rounded px-2 py-1 w-full"
                         />
                         <input
@@ -312,17 +292,12 @@ export default function Achievements() {
                           placeholder="icon"
                         />
                         <ConditionEditor
-                          value={
-                            editConditions[a.id] ??
-                            (a.condition as unknown as Condition)
-                          }
-                          onChange={(v) =>
-                            setEditConditions((m) => ({ ...m, [a.id]: v }))
-                          }
+                          value={editConditions[a.id] ?? (a.condition as unknown as Condition)}
+                          onChange={(v) => setEditConditions((m) => ({ ...m, [a.id]: v }))}
                         />
                       </div>
                     ) : (
-                      a.description ?? ""
+                      (a.description ?? '')
                     )}
                   </td>
                   <td className="p-2 space-x-2">
@@ -334,12 +309,11 @@ export default function Achievements() {
                             setEditId(a.id);
                             setEditConditions((m) => ({
                               ...m,
-                              [a.id]:
-                                (a.condition as unknown as Condition) || {
-                                  type: "event_count",
-                                  event: "some_event",
-                                  count: 1,
-                                },
+                              [a.id]: (a.condition as unknown as Condition) || {
+                                type: 'event_count',
+                                event: 'some_event',
+                                count: 1,
+                              },
                             }));
                           }}
                         >
@@ -354,10 +328,10 @@ export default function Achievements() {
                         <button
                           className="px-2 py-1 rounded border"
                           onClick={() => {
-                            setAAction("grant");
+                            setAAction('grant');
                             setACode(a.code);
-                            setAUser("");
-                            setAReason("");
+                            setAUser('');
+                            setAReason('');
                             assignModal.open();
                           }}
                         >
@@ -376,7 +350,9 @@ export default function Achievements() {
                               icon: a.icon || undefined,
                               visible: a.visible,
                               condition:
-                                (editConditions[a.id] as unknown as AchievementAdmin["condition"]) ??
+                                (editConditions[
+                                  a.id
+                                ] as unknown as AchievementAdmin['condition']) ??
                                 (a.condition || {}),
                             };
                             await onSave(a, patch);
@@ -407,17 +383,9 @@ export default function Achievements() {
         </Table>
       )}
 
-      <Modal
-        isOpen={createModal.isOpen}
-        onClose={createModal.close}
-        title="Create achievement"
-      >
+      <Modal isOpen={createModal.isOpen} onClose={createModal.close} title="Create achievement">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <TextInput
-            placeholder="code"
-            value={cCode}
-            onChange={(e) => setCCode(e.target.value)}
-          />
+          <TextInput placeholder="code" value={cCode} onChange={(e) => setCCode(e.target.value)} />
           <TextInput
             placeholder="title"
             value={cTitle}
@@ -470,7 +438,7 @@ export default function Achievements() {
           />
           <select
             value={aAction}
-            onChange={(e) => setAAction(e.target.value as "grant" | "revoke")}
+            onChange={(e) => setAAction(e.target.value as 'grant' | 'revoke')}
             className="border rounded px-2 py-1 w-full"
           >
             <option value="grant">grant</option>
@@ -490,4 +458,3 @@ export default function Achievements() {
     </PageLayout>
   );
 }
-

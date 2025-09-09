@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { safeLocalStorage } from "./safeStorage";
+import { safeLocalStorage } from './safeStorage';
 
 /**
  * Generic hook to manage editor state with auto-save capability.
@@ -44,7 +44,7 @@ export function useAutosave<T>(
         safeLocalStorage.removeItem(storageKey);
       }
     } catch (e: any) {
-      if (e?.name !== "AbortError") throw e;
+      if (e?.name !== 'AbortError') throw e;
     } finally {
       abortRef.current = null;
       setSaving(false);

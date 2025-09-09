@@ -1,6 +1,7 @@
-import type { FormEvent } from "react";
-import { Button } from "./Button";
-import { TextInput } from "./TextInput";
+import type { FormEvent } from 'react';
+
+import { Button } from './Button';
+import { TextInput } from './TextInput';
 
 interface SearchBarProps {
   value: string;
@@ -9,19 +10,14 @@ interface SearchBarProps {
   placeholder?: string;
 }
 
-export function SearchBar({
-  value,
-  onChange,
-  onSearch,
-  placeholder,
-}: SearchBarProps) {
+export function SearchBar({ value, onChange, onSearch, placeholder }: SearchBarProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     await onSearch();
   };
 
   const handleReset = () => {
-    onChange("");
+    onChange('');
     setTimeout(() => {
       void onSearch();
     }, 0);
@@ -35,7 +31,7 @@ export function SearchBar({
         placeholder={placeholder}
       />
       <Button type="submit">Search</Button>
-      {value !== "" && (
+      {value !== '' && (
         <Button type="button" onClick={handleReset}>
           Reset
         </Button>
@@ -45,4 +41,3 @@ export function SearchBar({
 }
 
 export default SearchBar;
-

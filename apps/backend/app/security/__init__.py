@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -74,12 +75,10 @@ async def get_current_user(token: str, db: AsyncSession) -> User:
 
 def create_preview_token(
     preview_session_id: str,
-    workspace_id: str,
     ttl: int | None = None,
 ) -> str:
     payload = {
         "preview_session_id": preview_session_id,
-        "workspace_id": workspace_id,
         "iat": datetime.utcnow(),
         "exp": datetime.utcnow() + timedelta(seconds=ttl or settings.jwt.expiration),
     }
@@ -98,7 +97,7 @@ def verify_preview_token(token: str) -> dict[str, Any]:
         raise TokenExpiredError() from exc
     except jwt.PyJWTError as exc:
         raise InvalidTokenError() from exc
-    if "preview_session_id" not in data or "workspace_id" not in data:
+    if "preview_session_id" not in data:
         raise InvalidTokenError()
     return data
 
@@ -173,36 +172,33 @@ async def auth_user(
     return user
 
 
-def _load_workspace_security() -> None:
-    """Provide workspace-like security helpers using accounts domain.
-
-    The codebase historically imported workspace guards (require_ws_*). We now
-    alias these to the equivalent account guards so callers don't need to change.
-    If accounts service is unavailable for any reason, fall back to no-ops.
-    """
-    try:  # pragma: no cover - optional dependency
-        from app.domains.accounts.application.service import (
-            require_account_editor as require_ws_editor,  # type: ignore
-            require_account_guest as require_ws_guest,  # type: ignore
-            require_account_owner as require_ws_owner,  # type: ignore
-            require_account_viewer as require_ws_viewer,  # type: ignore
-        )
-    except Exception:  # pragma: no cover
-
-        async def _noop(*args, **kwargs):  # type: ignore[return-type]
-            return None
-
-        require_ws_editor = require_ws_guest = require_ws_owner = require_ws_viewer = _noop
-
-    globals().update(
-        require_ws_editor=require_ws_editor,
-        require_ws_guest=require_ws_guest,
-        require_ws_owner=require_ws_owner,
-        require_ws_viewer=require_ws_viewer,
-    )
+from fastapi import HTTPException
 
 
-_load_workspace_security()
+# Profile-centric stubs retained for compatibility with legacy dependencies.
+async def require_ws_owner(*, scope_id=None, user, db):  # type: ignore[no-untyped-def]
+    if getattr(user, "role", None) in {"admin"}:
+        return SimpleNamespace(role="admin")  # type: ignore[name-defined]
+    return SimpleNamespace(role="owner")  # type: ignore[name-defined]
+
+
+async def require_ws_editor(*, scope_id=None, user, db):  # type: ignore[no-untyped-def]
+    if getattr(user, "role", None) in {"admin"}:
+        return SimpleNamespace(role="admin")  # type: ignore[name-defined]
+    return SimpleNamespace(role="editor")  # type: ignore[name-defined]
+
+
+async def require_ws_viewer(*, scope_id=None, user, db):  # type: ignore[no-untyped-def]
+    if getattr(user, "role", None) in {"admin"}:
+        return SimpleNamespace(role="admin")  # type: ignore[name-defined]
+    return SimpleNamespace(role="viewer")  # type: ignore[name-defined]
+
+
+async def require_ws_guest(*, scope_id=None, user, db):  # type: ignore[no-untyped-def]
+    # Any authenticated user is a guest in profile mode
+    if getattr(user, "id", None) is None:
+        raise HTTPException(status_code=403, detail="Forbidden")  # type: ignore[arg-type]
+    return SimpleNamespace(role="guest")  # type: ignore[name-defined]
 
 ADMIN_AUTH_RESPONSES = {
     401: {

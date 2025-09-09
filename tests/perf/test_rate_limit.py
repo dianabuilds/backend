@@ -33,7 +33,6 @@ def test_rate_limit_middleware_concurrent_requests():
         return {"ok": True}
 
     headers = {
-        "X-Workspace-ID": "ws",
         "X-User-ID": "user",
         "X-Operation": "ping",
     }

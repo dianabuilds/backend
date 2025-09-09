@@ -7,7 +7,6 @@ import type { NodeBulkPatchChanges } from './NodeBulkPatchChanges';
  * Payload for bulk node patch operations.
  */
 export type NodeBulkPatch = {
-    ids: Array<number>;
-    changes: NodeBulkPatchChanges;
+  ids: Array<number>;
+  changes: NodeBulkPatchChanges;
 };
-

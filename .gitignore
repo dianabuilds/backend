@@ -213,6 +213,8 @@ node_modules/
 apps/admin/node_modules/
 admin-frontend/dist/
 admin-frontend/.vite/
+apps/admin/dist/
+apps/admin/.vite/
 
 # Allow admin src lib directory
 !apps/admin/src/lib/

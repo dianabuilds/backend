@@ -3,6 +3,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export type NodeNotificationSettingsUpdate = {
-    enabled: boolean;
+  enabled: boolean;
 };
-

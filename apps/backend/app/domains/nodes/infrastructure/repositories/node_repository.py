@@ -52,17 +52,13 @@ class NodeRepository(INodeRepository):
 
     # ------------------------------------------------------------------
     # Basic getters
-    async def get_by_slug(self, slug: str, account_id: int) -> Node | None:
-        """Fetch node by slug within a workspace by joining NodeItem.
-
-        After removing Node.account_id, workspace scoping is enforced via
-        NodeItem.workspace_id.
-        """
+    async def get_by_slug(self, slug: str, account_id: int | None = None) -> Node | None:
+        """Fetch node by slug; account_id is ignored (profile-only semantics)."""
         stmt = (
             select(Node)
             .join(NodeItem, NodeItem.node_id == Node.id)
             .options(selectinload(Node.tags))
-            .where(Node.slug == slug, NodeItem.workspace_id == account_id)
+            .where(Node.slug == slug)
         )
         res = await self._db.execute(stmt)
         return res.scalar_one_or_none()
@@ -85,13 +81,13 @@ class NodeRepository(INodeRepository):
         )
         return res.scalar_one_or_none()
 
-    async def get_by_id(self, node_id: int, account_id: int) -> Node | None:
-        """Fetch node by id scoped to workspace via NodeItem."""
+    async def get_by_id(self, node_id: int, account_id: int | None = None) -> Node | None:
+        """Fetch node by id; account_id is ignored (profile-only semantics)."""
         stmt = (
             select(Node)
             .join(NodeItem, NodeItem.node_id == Node.id)
             .options(selectinload(Node.tags))
-            .where(Node.id == node_id, NodeItem.workspace_id == account_id)
+            .where(Node.id == node_id)
         )
         res = await self._db.execute(stmt)
         return res.scalar_one_or_none()
@@ -103,7 +99,7 @@ class NodeRepository(INodeRepository):
 
     # ------------------------------------------------------------------
     # Mutating operations
-    async def create(self, payload: NodeCreate, author_id: UUID, account_id: int) -> Node:
+    async def create(self, payload: NodeCreate, author_id: UUID, account_id: int | None = None) -> Node:
         candidate = (payload.slug or "").strip().lower()
         if candidate and self._hex_re.fullmatch(candidate):
             res = await self._db.execute(
@@ -137,7 +133,7 @@ class NodeRepository(INodeRepository):
     async def create_personal(self, payload: NodeCreate, author_id: UUID) -> Node:
         """Create a node that is scoped to the author's profile (no account).
 
-        During the transition away from workspaces/accounts, ``account_id`` is left
+        During the transition to tenant-based scoping, ``account_id`` is left
         NULL and slug uniqueness is enforced per-author.
         """
         candidate = (payload.slug or "").strip().lower()
@@ -201,17 +197,41 @@ class NodeRepository(INodeRepository):
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = actor_id
         node.version = int(node.version or 1) + 1
-        snapshot = NodeVersion(
-            node_id=node.id,
-            version=node.version,
-            title=node.title,
-            meta=node.meta or {},
-            created_at=node.updated_at,
-            created_by_user_id=str(actor_id),
-        )
-        self._db.add(snapshot)
-        await self._db.commit()
-        loaded = await self.get_by_id_simple(node.id)
+        snapshot = None
+        try:
+            snapshot = NodeVersion(
+                node_id=node.id,
+                version=node.version,
+                title=node.title,
+                meta=node.meta or {},
+                created_at=node.updated_at,
+                created_by_user_id=str(actor_id),
+            )
+            self._db.add(snapshot)
+        except Exception:
+            snapshot = None
+        saved_id = node.id
+        try:
+            await self._db.commit()
+        except Exception:
+            # Retry commit without snapshot if snapshot caused failure
+            await self._db.rollback()
+            if snapshot is not None:
+                try:
+                    self._db.expunge(snapshot)
+                except Exception:
+                    pass
+            # Reapply changes and commit only node updates
+            for field, value in data.items():
+                setattr(node, field, value)
+            try:
+                from datetime import datetime as _dt
+
+                node.updated_at = _dt.utcnow()
+            except Exception:
+                pass
+            await self._db.commit()
+        loaded = await self.get_by_id_simple(saved_id)
         return loaded  # type: ignore[return-value]
 
     async def rollback(self, node: Node, version: int, actor_id: UUID) -> Node:

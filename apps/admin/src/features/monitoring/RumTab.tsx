@@ -47,7 +47,9 @@ export default function RumTab() {
   } = useQuery({
     queryKey: ['telemetry', 'summary', range, step],
     queryFn: async () =>
-      (await AdminTelemetryService.rumSummaryAdminTelemetryRumSummaryGet({ window: windowSize })) as RumSummary,
+      (await AdminTelemetryService.rumSummaryAdminTelemetryRumSummaryGet({
+        window: windowSize,
+      })) as RumSummary,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
     staleTime: 2000,
@@ -231,18 +233,10 @@ export default function RumTab() {
       <section id="charts" className="space-y-2">
         <h2 className="text-lg font-semibold">Графики</h2>
         <div className="flex items-end gap-4">
-          <StackedBars
-            series={barSeries}
-            highlight={barHighlight}
-            onSelect={handleSelect}
-          />
+          <StackedBars series={barSeries} highlight={barHighlight} onSelect={handleSelect} />
           <div>
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Login avg (ms)</div>
-            <LineChart
-              points={linePoints}
-              highlight={lineHighlight}
-              onSelect={handleSelect}
-            />
+            <LineChart points={linePoints} highlight={lineHighlight} onSelect={handleSelect} />
           </div>
         </div>
       </section>
@@ -254,9 +248,7 @@ export default function RumTab() {
       >
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-500 dark:text-gray-400">Лента событий</div>
-          {eFetching || sFetching ? (
-            <div className="text-xs text-gray-500">Обновление…</div>
-          ) : null}
+          {eFetching || sFetching ? <div className="text-xs text-gray-500">Обновление…</div> : null}
         </div>
         {eError ? (
           <div className="mt-1 text-xs text-red-600">

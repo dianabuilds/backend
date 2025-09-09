@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type SearchTopQuery = {
-    query: string;
-    count: number;
-    results: number;
+  query: string;
+  count: number;
+  results: number;
 };
-

@@ -16,7 +16,7 @@ async def emit(
     db: AsyncSession,
     topic: str,
     payload: dict[str, Any],
-    workspace_id: UUID,
+    workspace_id: UUID | None,
     dedup_key: str | None = None,
     preview: PreviewContext | None = None,
 ) -> OutboxEvent:

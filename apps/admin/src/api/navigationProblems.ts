@@ -12,6 +12,6 @@ export interface NavigationProblem {
 }
 
 export async function listNavigationProblems(): Promise<NavigationProblem[]> {
-  const res = await api.get<NavigationProblem[]>("/admin/navigation/problems");
+  const res = await api.get<NavigationProblem[]>('/admin/navigation/problems');
   return res.data ?? [];
 }

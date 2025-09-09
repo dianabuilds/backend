@@ -1,6 +1,6 @@
-import type { MetricsSummary } from "../openapi";
-import { api } from "./client";
-import type { ListResponse } from "./types";
+import type { MetricsSummary } from '../openapi';
+import { api } from './client';
+import type { ListResponse } from './types';
 
 export interface TimeseriesPoint {
   ts: number;
@@ -26,9 +26,7 @@ export interface TopEndpointItem {
   count: number;
 }
 
-export async function getMetricsSummary(
-  range: "1h" | "24h" = "1h",
-): Promise<MetricsSummary> {
+export async function getMetricsSummary(range: '1h' | '24h' = '1h'): Promise<MetricsSummary> {
   const res = await api.get<MetricsSummary>(
     `/admin/metrics/summary?range=${encodeURIComponent(range)}`,
   );
@@ -36,7 +34,7 @@ export async function getMetricsSummary(
 }
 
 export async function getTimeseries(
-  range: "1h" | "24h" = "1h",
+  range: '1h' | '24h' = '1h',
   step: 60 | 300 = 60,
 ): Promise<TimeseriesResponse> {
   const res = await api.get<TimeseriesResponse>(
@@ -46,8 +44,8 @@ export async function getTimeseries(
 }
 
 export async function getTopEndpoints(
-  range: "1h" | "24h" = "1h",
-  by: "p95" | "error_rate" | "rps" = "p95",
+  range: '1h' | '24h' = '1h',
+  by: 'p95' | 'error_rate' | 'rps' = 'p95',
   limit = 20,
 ): Promise<TopEndpointItem[]> {
   const res = await api.get<ListResponse<TopEndpointItem>>(
@@ -67,9 +65,7 @@ export interface TransitionMetrics {
 export type TransitionStats = Record<string, TransitionMetrics>;
 
 export async function getTransitionStats(): Promise<TransitionStats> {
-  const res = await api.get<{ stats: TransitionStats }>(
-    "/admin/metrics/transitions"
-  );
+  const res = await api.get<{ stats: TransitionStats }>('/admin/metrics/transitions');
   return res.data?.stats || {};
 }
 
@@ -78,9 +74,7 @@ export interface EventCounters {
 }
 
 export async function getEventCounters(): Promise<EventCounters> {
-  const res = await api.get<{ counters: EventCounters }>(
-    "/admin/metrics/events",
-  );
+  const res = await api.get<{ counters: EventCounters }>('/admin/metrics/events');
   return res.data?.counters || {};
 }
 
@@ -93,15 +87,11 @@ export interface ReliabilityMetrics {
   fallback_percent: number;
 }
 
-export async function getReliabilityMetrics(
-  account?: string,
-): Promise<ReliabilityMetrics> {
+export async function getReliabilityMetrics(account?: string): Promise<ReliabilityMetrics> {
   const params = new URLSearchParams();
-  if (account) params.append("account", account);
+  if (account) params.append('account', account);
   const qs = params.toString();
-  const res = await api.get<ReliabilityMetrics>(
-    `/admin/metrics/reliability${qs ? `?${qs}` : ""}`,
-  );
+  const res = await api.get<ReliabilityMetrics>(`/admin/metrics/reliability${qs ? `?${qs}` : ''}`);
   return (
     res.data || {
       rps: 0,

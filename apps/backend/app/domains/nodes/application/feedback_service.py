@@ -22,14 +22,10 @@ class FeedbackService:
         db: AsyncSession,
         slug: str,
         current_user,
-        workspace_id: int | None,
         *,
         author_id: UUID | None = None,
     ) -> list[Feedback]:
-        if workspace_id is None:
-            node = await self._repo.get_by_slug_for_author(slug, author_id or current_user.id)
-        else:
-            node = await self._repo.get_by_slug(slug, workspace_id)
+        node = await self._repo.get_by_slug_for_author(slug, author_id or current_user.id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         if not node.allow_feedback and node.author_id != current_user.id:
@@ -46,7 +42,6 @@ class FeedbackService:
         content: dict,
         is_anonymous: bool,
         current_user,
-        workspace_id: int | None,
         *,
         author_id: UUID | None = None,
     ) -> Feedback:
@@ -56,10 +51,7 @@ class FeedbackService:
             or not str(content["text"]).strip()
         ):
             raise HTTPException(status_code=400, detail="Empty feedback")
-        if workspace_id is None:
-            node = await self._repo.get_by_slug_for_author(slug, author_id or current_user.id)
-        else:
-            node = await self._repo.get_by_slug(slug, workspace_id)
+        node = await self._repo.get_by_slug_for_author(slug, author_id or current_user.id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         if not node.allow_feedback:
@@ -81,7 +73,7 @@ class FeedbackService:
             if self._notifier and node.author_id != current_user.id:
                 await self._notifier.create_notification(
                     user_id=node.author_id,
-                    account_id=workspace_id,
+                    account_id=None,
                     title="New feedback",
                     message=str(content.get("text") or "New feedback"),
                     type=None,
@@ -91,14 +83,8 @@ class FeedbackService:
 
         # Аудит
         try:
-            await audit_log(
-                db,
-                actor_id=str(current_user.id),
-                action="node_feedback_create",
-                resource_type="node",
-                resource_id=str(node.id),
-                after={"feedback_id": str(feedback.id)},
-            )
+            await audit_log(db, actor_id=str(current_user.id), action="node_feedback_create", resource_type="node",
+                            resource_id=str(node.id), after={"feedback_id": str(feedback.id)})
         except Exception:
             pass
 
@@ -110,14 +96,10 @@ class FeedbackService:
         slug: str,
         feedback_id: UUID,
         current_user,
-        workspace_id: int | None,
         *,
         author_id: UUID | None = None,
     ) -> dict:
-        if workspace_id is None:
-            node = await self._repo.get_by_slug_for_author(slug, author_id or current_user.id)
-        else:
-            node = await self._repo.get_by_slug(slug, workspace_id)
+        node = await self._repo.get_by_slug_for_author(slug, author_id or current_user.id)
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         result = await db.execute(
@@ -132,14 +114,8 @@ class FeedbackService:
         await db.commit()
 
         try:
-            await audit_log(
-                db,
-                actor_id=str(current_user.id),
-                action="node_feedback_delete",
-                resource_type="node",
-                resource_id=str(node.id),
-                before={"feedback_id": str(feedback_id)},
-            )
+            await audit_log(db, actor_id=str(current_user.id), action="node_feedback_delete", resource_type="node",
+                            resource_id=str(node.id), before={"feedback_id": str(feedback_id)})
         except Exception:
             pass
 

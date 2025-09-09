@@ -11,3 +11,4 @@ be toggled via the admin interface or API to gradually roll out features.
 | premium.gifting | Allow gifting premium subscriptions |
 | nodes.navigation_v2 | Enable experimental node navigation v2 |
 | navigation.weighted_manual_transitions | Enable weighted sorting for manual transitions |
+| nodes.legacy_type_routes (env: FF_NODES_LEGACY_TYPE_ROUTES) | Register legacy admin type routes under `/admin/accounts/{account_id}/nodes/types/*` |

@@ -1,12 +1,12 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { confirmWithEnv } from "../utils/env";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import { api } from "../api/client";
-import { createDraft } from "../api/questEditor";
-import CursorPager from "../components/CursorPager";
-import { useAccount } from "../account/AccountContext";
+import { useAccount } from '../account/AccountContext';
+import { api } from '../api/client';
+import { createDraft } from '../api/questEditor';
+import CursorPager from '../components/CursorPager';
+import { confirmWithEnv } from '../utils/env';
 
 type WorldTemplate = {
   id: string;
@@ -30,15 +30,24 @@ type Job = {
   created_by?: string | null;
   provider?: string | null;
   model?: string | null;
-  params: any;
+  params?: JobParams | null;
   result_quest_id?: string | null;
   result_version_id?: string | null;
   cost?: number | null;
-  token_usage?: any;
+  token_usage?: unknown;
   reused?: boolean;
   progress?: number;
   logs?: string[] | null;
   error?: string | null;
+};
+type JobParams = {
+  structure?: 'linear' | 'vn_branching' | 'epic';
+  length?: 'short' | 'long';
+  tone?: 'light' | 'dark' | 'ironic';
+  genre?: string;
+  locale?: string | null;
+  // allow extra fields from server
+  [key: string]: unknown;
 };
 type AISettings = {
   provider?: string | null;
@@ -54,19 +63,17 @@ export default function AIQuests() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reuse, setReuse] = useState<boolean>(true);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [reusedOnly, setReusedOnly] = useState<boolean>(false);
 
   // form fields
-  const [worldId, setWorldId] = useState<string>("");
-  const [structure, setStructure] = useState<
-    "linear" | "vn_branching" | "epic"
-  >("vn_branching");
-  const [length, setLength] = useState<"short" | "long">("short");
-  const [tone, setTone] = useState<"light" | "dark" | "ironic">("light");
-  const [genre, setGenre] = useState<string>("fantasy");
-  const [locale, setLocale] = useState<string>("");
-  const [model, setModel] = useState<string>("");
+  const [worldId, setWorldId] = useState<string>('');
+  const [structure, setStructure] = useState<'linear' | 'vn_branching' | 'epic'>('vn_branching');
+  const [length, setLength] = useState<'short' | 'long'>('short');
+  const [tone, setTone] = useState<'light' | 'dark' | 'ironic'>('light');
+  const [genre, setGenre] = useState<string>('fantasy');
+  const [locale, setLocale] = useState<string>('');
+  const [model, setModel] = useState<string>('');
   const [remember, setRemember] = useState<boolean>(false);
   const [allowedModels, setAllowedModels] = useState<string[]>([]);
 
@@ -77,18 +84,18 @@ export default function AIQuests() {
     title: string;
     locale: string;
     description: string;
-  }>({ title: "", locale: "", description: "" });
-  const [selectedWorld, setSelectedWorld] = useState<string>("");
+  }>({ title: '', locale: '', description: '' });
+  const [selectedWorld, setSelectedWorld] = useState<string>('');
   const [characters, setCharacters] = useState<Character[]>([]);
   const [newChar, setNewChar] = useState<{
     name: string;
     role: string;
     description: string;
-  }>({ name: "", role: "", description: "" });
+  }>({ name: '', role: '', description: '' });
   const [aiSettings, setAISettings] = useState<AISettings>({
     has_api_key: false,
   });
-  const [aiSecret, setAISecret] = useState<string>("");
+  const [aiSecret, setAISecret] = useState<string>('');
 
   const { accountId } = useAccount();
 
@@ -101,9 +108,9 @@ export default function AIQuests() {
     isFetching: tFetching,
     error: tError,
   } = useQuery({
-    queryKey: ["ai-quests", "templates"],
+    queryKey: ['ai-quests', 'templates'],
     queryFn: async () => {
-      const res = await api.get<WorldTemplate[]>("/admin/ai/quests/templates");
+      const res = await api.get<WorldTemplate[]>('/admin/ai/quests/templates');
       return Array.isArray(res.data) ? res.data : [];
     },
     staleTime: 30_000,
@@ -123,28 +130,25 @@ export default function AIQuests() {
 
   const loadUserPref = async () => {
     try {
-      const res = await api.get<{ model?: string }>("/admin/ai/user-pref");
+      const res = await api.get<{ model?: string }>('/admin/ai/user-pref');
       if (res.data?.model) setModel(res.data.model);
     } catch {
       /* ignore */
     }
   };
 
-  const loadAllowedModels = async () => {
-    if (!accountId) return;
+  type ModelRow = { code: string; active?: boolean | null };
+  const loadAllowedModels = useCallback(async () => {
+    // Global allowed models
     try {
-      const res = await api.get<any>(
-        `/admin/accounts/${accountId}/settings/ai-presets`
-      );
-      const arr = Array.isArray(res.data?.allowed_models)
-        ? (res.data.allowed_models as string[])
-        : [];
+      const res = await api.get<ModelRow[]>(`/admin/ai/system/models`);
+      const rows: ModelRow[] = Array.isArray(res.data) ? res.data : [];
+      const arr = rows.filter((m) => m?.active).map((m) => String(m.code));
       setAllowedModels(arr);
-      if (!model && arr.length) setModel(arr[0]);
     } catch {
       /* ignore */
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadUserPref().catch(() => void 0);
@@ -152,21 +156,25 @@ export default function AIQuests() {
 
   useEffect(() => {
     loadAllowedModels().catch(() => void 0);
-  }, [accountId]);
+  }, [accountId, loadAllowedModels]);
+
+  // set default model after allowed models load
+  useEffect(() => {
+    if (!model && allowedModels.length) setModel(allowedModels[0]);
+  }, [model, allowedModels]);
 
   // загрузка первой страницы jobs
+  type JobsCursorResponse = { items?: Job[]; next_cursor?: string | null };
   const loadJobsFirst = useCallback(async () => {
     setJobsLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>("/admin/ai/quests/jobs_cursor?limit=50");
-      const items = Array.isArray(res.data?.items)
-        ? (res.data.items as Job[])
-        : [];
+      const res = await api.get<JobsCursorResponse>('/admin/ai/quests/jobs_cursor?limit=50');
+      const items = Array.isArray(res.data?.items) ? res.data.items! : [];
       setJobs(items);
       setJobsCursor(res.data?.next_cursor || null);
-    } catch (e: any) {
-      setError(e?.message || "Ошибка загрузки задач");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка загрузки задач');
     } finally {
       setJobsLoading(false);
     }
@@ -177,16 +185,14 @@ export default function AIQuests() {
     setJobsLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>(
+      const res = await api.get<JobsCursorResponse>(
         `/admin/ai/quests/jobs_cursor?limit=50&cursor=${encodeURIComponent(jobsCursor)}`,
       );
-      const items = Array.isArray(res.data?.items)
-        ? (res.data.items as Job[])
-        : [];
+      const items = Array.isArray(res.data?.items) ? res.data.items! : [];
       setJobs((prev) => [...prev, ...items]);
       setJobsCursor(res.data?.next_cursor || null);
-    } catch (e: any) {
-      setError(e?.message || "Ошибка загрузки задач");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка загрузки задач');
     } finally {
       setJobsLoading(false);
     }
@@ -205,7 +211,7 @@ export default function AIQuests() {
   // автообновление (простое): периодически обновлять первую страницу, если мы в фокусе и нет ручной догрузки
   useEffect(() => {
     const id = setInterval(() => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === 'visible') {
         loadJobsFirst().catch(() => void 0);
       }
     }, 5000);
@@ -214,21 +220,21 @@ export default function AIQuests() {
 
   // ошибки
   useEffect(() => {
-    const msg = (tError as any)?.message || null;
+    const msg = tError instanceof Error ? tError.message : null;
     setError(msg);
   }, [tError]);
 
   // Совместимость: load() теперь просто инвалидирует кэш и триггерит перезагрузку
   const load = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["ai-quests", "templates"] }),
-      queryClient.invalidateQueries({ queryKey: ["ai-quests", "jobs"] }),
+      queryClient.invalidateQueries({ queryKey: ['ai-quests', 'templates'] }),
+      queryClient.invalidateQueries({ queryKey: ['ai-quests', 'jobs'] }),
     ]);
   };
 
   const loadWorlds = async () => {
     try {
-      const res = await api.get<WorldTemplate[]>("/admin/ai/quests/worlds");
+      const res = await api.get<WorldTemplate[]>('/admin/ai/quests/worlds');
       setWorlds(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error(e);
@@ -252,9 +258,9 @@ export default function AIQuests() {
 
   const loadAISettings = async () => {
     try {
-      const res = await api.get<AISettings>("/admin/ai/quests/settings");
+      const res = await api.get<AISettings>('/admin/ai/quests/settings');
       setAISettings(res.data ?? { has_api_key: false });
-      setAISecret("");
+      setAISecret('');
     } catch (e) {
       console.error(e);
     }
@@ -280,7 +286,7 @@ export default function AIQuests() {
 
   const submit = async () => {
     try {
-      const qs = reuse ? "?reuse=true" : "?reuse=false";
+      const qs = reuse ? '?reuse=true' : '?reuse=false';
       await api.post(`/admin/ai/quests/generate${qs}`, {
         world_template_id: worldId || null,
         structure,
@@ -302,9 +308,7 @@ export default function AIQuests() {
   const simulate = useCallback(
     async (jobId: string) => {
       try {
-        await api.post(
-          `/admin/ai/quests/jobs/${encodeURIComponent(jobId)}/simulate_complete`,
-        );
+        await api.post(`/admin/ai/quests/jobs/${encodeURIComponent(jobId)}/simulate_complete`);
         await load();
       } catch (e) {
         alert(e instanceof Error ? e.message : String(e));
@@ -316,10 +320,7 @@ export default function AIQuests() {
   const tick = useCallback(
     async (jobId: string, delta = 10) => {
       try {
-        await api.post(
-          `/admin/ai/quests/jobs/${encodeURIComponent(jobId)}/tick`,
-          { delta },
-        );
+        await api.post(`/admin/ai/quests/jobs/${encodeURIComponent(jobId)}/tick`, { delta });
         await load();
       } catch (e) {
         alert(e instanceof Error ? e.message : String(e));
@@ -341,15 +342,15 @@ export default function AIQuests() {
   );
 
   const createWorld = async () => {
-    if (!newWorld.title.trim()) return alert("Введите название мира");
+    if (!newWorld.title.trim()) return alert('Введите название мира');
     try {
-      await api.post("/admin/ai/quests/worlds", {
+      await api.post('/admin/ai/quests/worlds', {
         title: newWorld.title,
         locale: newWorld.locale || null,
         description: newWorld.description || null,
         meta: null,
       });
-      setNewWorld({ title: "", locale: "", description: "" });
+      setNewWorld({ title: '', locale: '', description: '' });
       await Promise.all([loadWorlds(), load()]);
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
@@ -357,13 +358,13 @@ export default function AIQuests() {
   };
 
   const removeWorld = async (id: string) => {
-    if (!(await confirmWithEnv("Удалить мир со всеми персонажами?"))) return;
+    if (!(await confirmWithEnv('Удалить мир со всеми персонажами?'))) return;
     try {
       await api.request(`/admin/ai/quests/worlds/${encodeURIComponent(id)}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
       if (id === selectedWorld) {
-        setSelectedWorld("");
+        setSelectedWorld('');
         setCharacters([]);
       }
       await Promise.all([loadWorlds(), load()]);
@@ -373,19 +374,16 @@ export default function AIQuests() {
   };
 
   const addCharacter = async () => {
-    if (!selectedWorld) return alert("Выберите мир");
-    if (!newChar.name.trim()) return alert("Имя персонажа обязательно");
+    if (!selectedWorld) return alert('Выберите мир');
+    if (!newChar.name.trim()) return alert('Имя персонажа обязательно');
     try {
-      await api.post(
-        `/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`,
-        {
-          name: newChar.name,
-          role: newChar.role || null,
-          description: newChar.description || null,
-          traits: null,
-        },
-      );
-      setNewChar({ name: "", role: "", description: "" });
+      await api.post(`/admin/ai/quests/worlds/${encodeURIComponent(selectedWorld)}/characters`, {
+        name: newChar.name,
+        role: newChar.role || null,
+        description: newChar.description || null,
+        traits: null,
+      });
+      setNewChar({ name: '', role: '', description: '' });
       await loadCharacters(selectedWorld);
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
@@ -393,12 +391,11 @@ export default function AIQuests() {
   };
 
   const removeCharacter = async (id: string) => {
-    if (!(await confirmWithEnv("Удалить персонажа?"))) return;
+    if (!(await confirmWithEnv('Удалить персонажа?'))) return;
     try {
-      await api.request(
-        `/admin/ai/quests/characters/${encodeURIComponent(id)}`,
-        { method: "DELETE" },
-      );
+      await api.request(`/admin/ai/quests/characters/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
       await loadCharacters(selectedWorld);
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
@@ -407,14 +404,14 @@ export default function AIQuests() {
 
   const saveAI = async () => {
     try {
-      await api.put("/admin/ai/quests/settings", {
+      await api.put('/admin/ai/quests/settings', {
         provider: aiSettings.provider ?? null,
         base_url: aiSettings.base_url ?? null,
         model: aiSettings.model ?? null,
-        api_key: aiSecret === "" ? null : aiSecret, // null — не менять; строка — сохранить/очистить, если ""
+        api_key: aiSecret === '' ? null : aiSecret, // null — не менять; строка — сохранить/очистить, если ""
       });
       await loadAISettings();
-      alert("Настройки сохранены");
+      alert('Настройки сохранены');
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));
     }
@@ -422,23 +419,17 @@ export default function AIQuests() {
 
   const statusBadge = (s: string, reused?: boolean) => {
     const map: Record<string, string> = {
-      queued: "bg-gray-200 text-gray-800",
-      running: "bg-blue-200 text-blue-800",
-      completed: "bg-green-200 text-green-800",
-      failed: "bg-red-200 text-red-800",
-      canceled: "bg-yellow-200 text-yellow-800",
+      queued: 'bg-gray-200 text-gray-800',
+      running: 'bg-blue-200 text-blue-800',
+      completed: 'bg-green-200 text-green-800',
+      failed: 'bg-red-200 text-red-800',
+      canceled: 'bg-yellow-200 text-yellow-800',
     };
     return (
       <span className="inline-flex items-center gap-2">
-        <span
-          className={`px-2 py-0.5 rounded text-xs ${map[s] || "bg-gray-200"}`}
-        >
-          {s}
-        </span>
+        <span className={`px-2 py-0.5 rounded text-xs ${map[s] || 'bg-gray-200'}`}>{s}</span>
         {reused ? (
-          <span className="px-2 py-0.5 rounded text-xs bg-purple-200 text-purple-800">
-            cache
-          </span>
+          <span className="px-2 py-0.5 rounded text-xs bg-purple-200 text-purple-800">cache</span>
         ) : null}
       </span>
     );
@@ -447,11 +438,8 @@ export default function AIQuests() {
   // Оптимизированный список: мемоизированная фильтрация
   const filteredJobs = useMemo(() => {
     const arr = Array.isArray(jobs) ? jobs : [];
-    const byStatus =
-      statusFilter === "all"
-        ? arr
-        : arr.filter((j: any) => j.status === statusFilter);
-    return reusedOnly ? byStatus.filter((j: any) => j.reused) : byStatus;
+    const byStatus = statusFilter === 'all' ? arr : arr.filter((j) => j.status === statusFilter);
+    return reusedOnly ? byStatus.filter((j) => j.reused) : byStatus;
   }, [jobs, statusFilter, reusedOnly]);
 
   // Мемо-компонент строки таблицы, принимает только примитивы и стабильные колбэки
@@ -461,7 +449,7 @@ export default function AIQuests() {
     reused?: boolean;
     progress: number;
     created_at: string;
-    params?: any;
+    params?: JobParams | null;
     result_quest_id?: string | null;
     cost?: number | null;
     onTick: (id: string, delta?: number) => void;
@@ -481,13 +469,12 @@ export default function AIQuests() {
       onSimulate,
       onCreateDraft,
     } = props;
-    const createdText = useMemo(
-      () => new Date(created_at).toLocaleString(),
-      [created_at],
-    );
+    const createdText = useMemo(() => new Date(created_at).toLocaleString(), [created_at]);
     const paramsText = useMemo(() => {
-      if (!params) return "-";
-      const base = `${params.structure}/${params.length}/${params.tone}/${params.genre}`;
+      if (!params) return '-';
+      const base = `${String(params.structure ?? '')}/${String(params.length ?? '')}/${String(
+        params.tone ?? '',
+      )}/${String(params.genre ?? '')}`;
       return params.locale ? `${base} · ${params.locale}` : base;
     }, [params]);
     return (
@@ -506,23 +493,15 @@ export default function AIQuests() {
         </td>
         <td className="p-2">{createdText}</td>
         <td className="p-2">{paramsText}</td>
-        <td className="p-2">
-          {result_quest_id ? `quest:${result_quest_id}` : "-"}
-        </td>
-        <td className="p-2">{cost != null ? Number(cost).toFixed(4) : "-"}</td>
+        <td className="p-2">{result_quest_id ? `quest:${result_quest_id}` : '-'}</td>
+        <td className="p-2">{cost != null ? Number(cost).toFixed(4) : '-'}</td>
         <td className="p-2 text-right space-x-2">
-          {(status === "queued" || status === "running") && (
+          {(status === 'queued' || status === 'running') && (
             <>
-              <button
-                className="px-2 py-1 rounded border"
-                onClick={() => onTick(id, 10)}
-              >
+              <button className="px-2 py-1 rounded border" onClick={() => onTick(id, 10)}>
                 Tick +10%
               </button>
-              <button
-                className="px-2 py-1 rounded border"
-                onClick={() => onSimulate(id)}
-              >
+              <button className="px-2 py-1 rounded border" onClick={() => onSimulate(id)}>
                 Simulate
               </button>
             </>
@@ -555,10 +534,10 @@ export default function AIQuests() {
               onChange={(e) => setWorldId(e.target.value)}
             >
               <option value="">— не выбрано —</option>
-              {templates.map((t: any) => (
+              {templates.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.title}
-                  {t.locale ? ` · ${t.locale}` : ""}
+                  {t.locale ? ` · ${t.locale}` : ''}
                 </option>
               ))}
             </select>
@@ -568,7 +547,7 @@ export default function AIQuests() {
             <select
               className="border rounded px-2 py-1 flex-1"
               value={structure}
-              onChange={(e) => setStructure(e.target.value as any)}
+              onChange={(e) => setStructure(e.target.value as 'linear' | 'vn_branching' | 'epic')}
             >
               <option value="linear">linear</option>
               <option value="vn_branching">vn_branching</option>
@@ -580,7 +559,7 @@ export default function AIQuests() {
             <select
               className="border rounded px-2 py-1 flex-1"
               value={length}
-              onChange={(e) => setLength(e.target.value as any)}
+              onChange={(e) => setLength(e.target.value as 'short' | 'long')}
             >
               <option value="short">short (10–15)</option>
               <option value="long">long (40–100)</option>
@@ -591,7 +570,7 @@ export default function AIQuests() {
             <select
               className="border rounded px-2 py-1 flex-1"
               value={tone}
-              onChange={(e) => setTone(e.target.value as any)}
+              onChange={(e) => setTone(e.target.value as 'light' | 'dark' | 'ironic')}
             >
               <option value="light">light</option>
               <option value="dark">dark</option>
@@ -628,9 +607,7 @@ export default function AIQuests() {
                   {m}
                 </option>
               ))}
-              {!allowedModels.includes(model) && model && (
-                <option value={model}>{model}</option>
-              )}
+              {!allowedModels.includes(model) && model && <option value={model}>{model}</option>}
             </select>
             <label className="text-sm flex items-center gap-2">
               <input
@@ -644,30 +621,18 @@ export default function AIQuests() {
         </div>
         <div className="mt-3 flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={reuse}
-              onChange={(e) => setReuse(e.target.checked)}
-            />
+            <input type="checkbox" checked={reuse} onChange={(e) => setReuse(e.target.checked)} />
             Reuse result (cache)
           </label>
-          <button
-            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
-            onClick={submit}
-          >
+          <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={submit}>
             Сгенерировать
           </button>
         </div>
       </div>
 
       <div className="mb-6">
-        <button
-          className="px-3 py-1 rounded border"
-          onClick={() => setMgmtOpen((v) => !v)}
-        >
-          {mgmtOpen
-            ? "Скрыть управление"
-            : "Показать управление (Миры/Персонажи/AI Settings)"}
+        <button className="px-3 py-1 rounded border" onClick={() => setMgmtOpen((v) => !v)}>
+          {mgmtOpen ? 'Скрыть управление' : 'Показать управление (Миры/Персонажи/AI Settings)'}
         </button>
       </div>
 
@@ -680,25 +645,19 @@ export default function AIQuests() {
                 className="border rounded px-2 py-1"
                 placeholder="Название"
                 value={newWorld.title}
-                onChange={(e) =>
-                  setNewWorld((s) => ({ ...s, title: e.target.value }))
-                }
+                onChange={(e) => setNewWorld((s) => ({ ...s, title: e.target.value }))}
               />
               <input
                 className="border rounded px-2 py-1"
                 placeholder="Локаль (ru-RU / en-US)"
                 value={newWorld.locale}
-                onChange={(e) =>
-                  setNewWorld((s) => ({ ...s, locale: e.target.value }))
-                }
+                onChange={(e) => setNewWorld((s) => ({ ...s, locale: e.target.value }))}
               />
               <textarea
                 className="border rounded px-2 py-1"
                 placeholder="Описание"
                 value={newWorld.description}
-                onChange={(e) =>
-                  setNewWorld((s) => ({ ...s, description: e.target.value }))
-                }
+                onChange={(e) => setNewWorld((s) => ({ ...s, description: e.target.value }))}
               />
               <button
                 className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
@@ -709,34 +668,26 @@ export default function AIQuests() {
             </div>
             <div className="max-h-80 overflow-auto divide-y">
               {worlds.map((w) => (
-                <div
-                  key={w.id}
-                  className="py-2 flex items-center justify-between gap-2"
-                >
+                <div key={w.id} className="py-2 flex items-center justify-between gap-2">
                   <button
-                    className={`text-left flex-1 ${selectedWorld === w.id ? "font-semibold" : ""}`}
+                    className={`text-left flex-1 ${selectedWorld === w.id ? 'font-semibold' : ''}`}
                     onClick={() => setSelectedWorld(w.id)}
                   >
                     {w.title}
-                    {w.locale ? ` · ${w.locale}` : ""}
+                    {w.locale ? ` · ${w.locale}` : ''}
                   </button>
-                  <button
-                    className="px-2 py-1 rounded border"
-                    onClick={() => removeWorld(w.id)}
-                  >
+                  <button className="px-2 py-1 rounded border" onClick={() => removeWorld(w.id)}>
                     Удалить
                   </button>
                 </div>
               ))}
-              {worlds.length === 0 && (
-                <div className="text-sm text-gray-500">Пока нет миров</div>
-              )}
+              {worlds.length === 0 && <div className="text-sm text-gray-500">Пока нет миров</div>}
             </div>
           </div>
 
           <div className="rounded border p-3">
             <h3 className="font-semibold mb-2">
-              Персонажи {selectedWorld ? "" : "(выберите мир)"}
+              Персонажи {selectedWorld ? '' : '(выберите мир)'}
             </h3>
             {selectedWorld && (
               <>
@@ -745,25 +696,19 @@ export default function AIQuests() {
                     className="border rounded px-2 py-1"
                     placeholder="Имя"
                     value={newChar.name}
-                    onChange={(e) =>
-                      setNewChar((s) => ({ ...s, name: e.target.value }))
-                    }
+                    onChange={(e) => setNewChar((s) => ({ ...s, name: e.target.value }))}
                   />
                   <input
                     className="border rounded px-2 py-1"
                     placeholder="Роль"
                     value={newChar.role}
-                    onChange={(e) =>
-                      setNewChar((s) => ({ ...s, role: e.target.value }))
-                    }
+                    onChange={(e) => setNewChar((s) => ({ ...s, role: e.target.value }))}
                   />
                   <textarea
                     className="border rounded px-2 py-1"
                     placeholder="Описание"
                     value={newChar.description}
-                    onChange={(e) =>
-                      setNewChar((s) => ({ ...s, description: e.target.value }))
-                    }
+                    onChange={(e) => setNewChar((s) => ({ ...s, description: e.target.value }))}
                   />
                   <button
                     className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
@@ -774,19 +719,14 @@ export default function AIQuests() {
                 </div>
                 <div className="max-h-80 overflow-auto divide-y">
                   {characters.map((c) => (
-                    <div
-                      key={c.id}
-                      className="py-2 flex items-center justify-between gap-2"
-                    >
+                    <div key={c.id} className="py-2 flex items-center justify-between gap-2">
                       <div className="flex-1">
                         <div className="font-medium">
                           {c.name}
-                          {c.role ? ` · ${c.role}` : ""}
+                          {c.role ? ` · ${c.role}` : ''}
                         </div>
                         {c.description && (
-                          <div className="text-xs text-gray-600">
-                            {c.description}
-                          </div>
+                          <div className="text-xs text-gray-600">{c.description}</div>
                         )}
                       </div>
                       <button
@@ -798,9 +738,7 @@ export default function AIQuests() {
                     </div>
                   ))}
                   {characters.length === 0 && (
-                    <div className="text-sm text-gray-500">
-                      Пока нет персонажей
-                    </div>
+                    <div className="text-sm text-gray-500">Пока нет персонажей</div>
                   )}
                 </div>
               </>
@@ -813,45 +751,34 @@ export default function AIQuests() {
               <input
                 className="border rounded px-2 py-1"
                 placeholder="Provider (например: openai, anthropic…)"
-                value={aiSettings.provider ?? ""}
-                onChange={(e) =>
-                  setAISettings((s) => ({ ...s, provider: e.target.value }))
-                }
+                value={aiSettings.provider ?? ''}
+                onChange={(e) => setAISettings((s) => ({ ...s, provider: e.target.value }))}
               />
               <input
                 className="border rounded px-2 py-1"
                 placeholder="Base URL (необязательно)"
-                value={aiSettings.base_url ?? ""}
-                onChange={(e) =>
-                  setAISettings((s) => ({ ...s, base_url: e.target.value }))
-                }
+                value={aiSettings.base_url ?? ''}
+                onChange={(e) => setAISettings((s) => ({ ...s, base_url: e.target.value }))}
               />
               <input
                 className="border rounded px-2 py-1"
                 placeholder="Model (например: gpt-4o-mini)"
-                value={aiSettings.model ?? ""}
-                onChange={(e) =>
-                  setAISettings((s) => ({ ...s, model: e.target.value }))
-                }
+                value={aiSettings.model ?? ''}
+                onChange={(e) => setAISettings((s) => ({ ...s, model: e.target.value }))}
               />
               <input
                 className="border rounded px-2 py-1"
                 placeholder={
-                  aiSettings.has_api_key
-                    ? "API Key (оставьте пустым — не менять)"
-                    : "API Key"
+                  aiSettings.has_api_key ? 'API Key (оставьте пустым — не менять)' : 'API Key'
                 }
                 type="password"
                 value={aiSecret}
                 onChange={(e) => setAISecret(e.target.value)}
               />
               <div className="text-xs text-gray-600">
-                {aiSettings.has_api_key ? "Ключ сохранён" : "Ключ не задан"}
+                {aiSettings.has_api_key ? 'Ключ сохранён' : 'Ключ не задан'}
               </div>
-              <button
-                className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
-                onClick={saveAI}
-              >
+              <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={saveAI}>
                 Сохранить
               </button>
             </div>
@@ -919,7 +846,7 @@ export default function AIQuests() {
                     key={j.id}
                     id={j.id}
                     status={j.status}
-                    reused={(j as any).reused}
+                    reused={j.reused}
                     progress={j.progress ?? 0}
                     created_at={j.created_at}
                     params={j.params}

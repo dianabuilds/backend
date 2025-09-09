@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { api } from "../api/client";
-import ErrorBanner from "../components/ErrorBanner";
+import { api } from '../api/client';
+import ErrorBanner from '../components/ErrorBanner';
 
 type Limits = {
   providers: Record<string, number>;
@@ -26,12 +26,12 @@ export default function AIRateLimits() {
     setErr(null);
     setLoading(true);
     try {
-      const lr = await api.get<Limits>("/admin/ai/quests/rate_limits");
+      const lr = await api.get<Limits>('/admin/ai/quests/rate_limits');
       setLimits(lr.data || { providers: {}, models: {} });
-      const sr = await api.get<Stats>("/admin/ai/quests/stats");
+      const sr = await api.get<Stats>('/admin/ai/quests/stats');
       setStats(sr.data || null);
-    } catch (e: any) {
-      setErr(e?.message || "Ошибка загрузки");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Ошибка загрузки');
     } finally {
       setLoading(false);
     }
@@ -72,17 +72,17 @@ export default function AIRateLimits() {
     setErr(null);
     setLoading(true);
     try {
-      await api.post("/admin/ai/quests/rate_limits", limits);
-      alert("Лимиты сохранены (оверрайды применены)");
-    } catch (e: any) {
-      setErr(e?.message || "Ошибка сохранения");
+      await api.post('/admin/ai/quests/rate_limits', limits);
+      alert('Лимиты сохранены (оверрайды применены)');
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Ошибка сохранения');
     } finally {
       setLoading(false);
     }
   };
 
-  const addProv = () => setProv("", "60");
-  const addModel = () => setModel("", "60");
+  const addProv = () => setProv('', '60');
+  const addModel = () => setModel('', '60');
 
   return (
     <div className="p-4 space-y-4">
@@ -112,13 +112,10 @@ export default function AIRateLimits() {
                 className="rounded border px-2 py-1 w-32"
                 type="number"
                 min={1}
-                value={v as any}
+                value={v}
                 onChange={(e) => setProv(k, e.target.value)}
               />
-              <button
-                className="text-red-600 hover:underline text-sm"
-                onClick={() => rmProv(k)}
-              >
+              <button className="text-red-600 hover:underline text-sm" onClick={() => rmProv(k)}>
                 удалить
               </button>
             </div>
@@ -156,13 +153,10 @@ export default function AIRateLimits() {
                 className="rounded border px-2 py-1 w-32"
                 type="number"
                 min={1}
-                value={v as any}
+                value={v}
                 onChange={(e) => setModel(k, e.target.value)}
               />
-              <button
-                className="text-red-600 hover:underline text-sm"
-                onClick={() => rmModel(k)}
-              >
+              <button className="text-red-600 hover:underline text-sm" onClick={() => rmModel(k)}>
                 удалить
               </button>
             </div>
@@ -182,7 +176,7 @@ export default function AIRateLimits() {
           disabled={loading}
           className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? "Сохранение…" : "Сохранить лимиты"}
+          {loading ? 'Сохранение…' : 'Сохранить лимиты'}
         </button>
         <button
           onClick={load}
@@ -219,10 +213,8 @@ export default function AIRateLimits() {
                   {Object.entries(stats.stages || {}).map(([name, s]) => (
                     <tr key={name} className="border-t">
                       <td className="px-2 py-1">{name}</td>
-                      <td className="px-2 py-1">{(s as any).count}</td>
-                      <td className="px-2 py-1">
-                        {((s as any).avg_ms || 0).toFixed(0)}
-                      </td>
+                      <td className="px-2 py-1">{s.count}</td>
+                      <td className="px-2 py-1">{(s.avg_ms || 0).toFixed(0)}</td>
                     </tr>
                   ))}
                   {Object.keys(stats.stages || {}).length === 0 ? (

@@ -3,12 +3,15 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.infrastructure.models.world_models import Character, WorldTemplate
 from app.domains.worlds.application.ports.worlds_repo import IWorldsRepository
-from app.models.shared_objects import SharedObject
+try:
+    from app.models.shared_objects import SharedObject  # type: ignore
+except Exception:  # pragma: no cover
+    SharedObject = None  # type: ignore
 
 
 class WorldsRepository(IWorldsRepository):
@@ -16,18 +19,9 @@ class WorldsRepository(IWorldsRepository):
         self._db = db
 
     async def list_worlds(self, workspace_id: UUID) -> list[WorldTemplate]:
-        shared_ids = select(SharedObject.object_id).where(
-            SharedObject.object_type == "world",
-            SharedObject.account_id == workspace_id,
-        )
         res = await self._db.execute(
             select(WorldTemplate)
-            .where(
-                or_(
-                    WorldTemplate.workspace_id == workspace_id,
-                    WorldTemplate.id.in_(shared_ids),
-                )
-            )
+            .where(WorldTemplate.workspace_id == workspace_id)
             .order_by(WorldTemplate.created_at.desc())
         )
         return list(res.scalars().all())
@@ -38,15 +32,7 @@ class WorldsRepository(IWorldsRepository):
         if not world:
             return None
         if world.workspace_id != workspace_id:
-            shared = await self._db.execute(
-                select(SharedObject).where(
-                    SharedObject.object_type == "world",
-                    SharedObject.object_id == world_id,
-                    SharedObject.account_id == workspace_id,
-                )
-            )
-            if shared.scalars().first() is None:
-                return None
+            return None
         return world
 
     async def create_world(

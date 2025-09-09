@@ -27,15 +27,9 @@ class NodeItemDAO:
 
     @staticmethod
     async def list_by_type(
-        db: AsyncSession, *, workspace_id: UUID | None, node_type: str
+        db: AsyncSession, *, node_type: str
     ) -> list[NodeItem]:
-        stmt = (
-            select(NodeItem).options(selectinload(NodeItem.tags)).where(NodeItem.type == node_type)
-        )
-        if workspace_id is None:
-            stmt = stmt.where(NodeItem.workspace_id.is_(None))
-        else:
-            stmt = stmt.where(NodeItem.workspace_id == workspace_id)
+        stmt = select(NodeItem).options(selectinload(NodeItem.tags)).where(NodeItem.type == node_type)
         stmt = stmt.order_by(func.coalesce(NodeItem.published_at, func.now()).desc())
         result = await db.execute(stmt)
         items = list(result.scalars().all())
@@ -44,25 +38,21 @@ class NodeItemDAO:
 
     @staticmethod
     async def attach_tag(
-        db: AsyncSession, *, node_id: int, tag_id: UUID, workspace_id: UUID | None
+        db: AsyncSession, *, node_id: int, tag_id: UUID
     ) -> ContentTag:
-        item = ContentTag(content_id=node_id, tag_id=tag_id, workspace_id=workspace_id)
+        item = ContentTag(content_id=node_id, tag_id=tag_id)
         db.add(item)
         await db.flush()
         return item
 
     @staticmethod
     async def detach_tag(
-        db: AsyncSession, *, node_id: int, tag_id: UUID, workspace_id: UUID | None
+        db: AsyncSession, *, node_id: int, tag_id: UUID
     ) -> None:
         stmt = delete(ContentTag).where(
             ContentTag.content_id == node_id,
             ContentTag.tag_id == tag_id,
         )
-        if workspace_id is None:
-            stmt = stmt.where(ContentTag.workspace_id.is_(None))
-        else:
-            stmt = stmt.where(ContentTag.workspace_id == workspace_id)
         await db.execute(stmt)
         await db.flush()
 
@@ -70,19 +60,12 @@ class NodeItemDAO:
     async def search(
         db: AsyncSession,
         *,
-        workspace_id: UUID | None,
         node_type: str,
         q: str | None = None,
         page: int = 1,
         per_page: int = 10,
     ) -> list[NodeItem]:
-        stmt = (
-            select(NodeItem).options(selectinload(NodeItem.tags)).where(NodeItem.type == node_type)
-        )
-        if workspace_id is None:
-            stmt = stmt.where(NodeItem.workspace_id.is_(None))
-        else:
-            stmt = stmt.where(NodeItem.workspace_id == workspace_id)
+        stmt = select(NodeItem).options(selectinload(NodeItem.tags)).where(NodeItem.type == node_type)
         if q:
             pattern = f"%{q}%"
             stmt = stmt.where(or_(NodeItem.title.ilike(pattern), NodeItem.summary.ilike(pattern)))

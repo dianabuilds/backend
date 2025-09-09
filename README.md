@@ -149,13 +149,11 @@ cd apps/admin && npm audit
 
 ## Миграции
 
-Подробное руководство по созданию и проверке миграций находится в [docs/migrations.md](docs/migrations.md).
-После обновления репозитория выполните последнюю миграцию для
-добавления отсутствующих записей `content_items`:
+Миграции свернуты в единый базовый ревиз (squash).
+Актуальное руководство — в [docs/migrations.md](docs/migrations.md).
 
-```bash
-alembic upgrade head
-```
+- Для новых баз: `alembic upgrade head` создаст схему с нуля.
+- Для существующих баз на старом head: `alembic stamp 20250913_squashed_initial`.
 
 ## Структура проекта
 - `apps/backend/app` – код приложения и доменные модули

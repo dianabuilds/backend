@@ -1,4 +1,4 @@
-import MediaPicker from "../MediaPicker";
+import MediaPicker from '../MediaPicker';
 
 interface Props {
   value?: string | null;

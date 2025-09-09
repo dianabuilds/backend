@@ -1,21 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import {
-  type CaseListItem,
-  createCase,
-  listCases,
-} from "../api/moderationCases";
-import PageLayout from "./_shared/PageLayout";
-import { promptDialog } from "../shared/ui";
+import { type CaseListItem, createCase, listCases } from '../api/moderationCases';
+import { promptDialog } from '../shared/ui';
+import PageLayout from './_shared/PageLayout';
 
 export default function ModerationInbox() {
   const navigate = useNavigate();
   const [items, setItems] = useState<CaseListItem[]>([]);
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [priority, setPriority] = useState("");
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [priority, setPriority] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,9 +42,9 @@ export default function ModerationInbox() {
   }, []);
 
   const onCreate = async () => {
-      const summary = await promptDialog("Summary of case:");
+    const summary = await promptDialog('Summary of case:');
     if (!summary) return;
-    const id = await createCase({ type: "support_request", summary });
+    const id = await createCase({ type: 'support_request', summary });
     navigate(`/moderation/cases/${id}`);
   };
 
@@ -79,13 +75,9 @@ export default function ModerationInbox() {
               <td className="py-2 pr-4">{it.type}</td>
               <td className="py-2 pr-4">{it.status}</td>
               <td className="py-2 pr-4">{it.priority}</td>
-              <td className="py-2 pr-4 font-mono">
-                {it.assignee_id?.slice(0, 8) ?? "-"}
-              </td>
-              <td className="py-2 pr-4">{it.labels.join(", ")}</td>
-              <td className="py-2 pr-4">
-                {new Date(it.created_at).toLocaleString()}
-              </td>
+              <td className="py-2 pr-4 font-mono">{it.assignee_id?.slice(0, 8) ?? '-'}</td>
+              <td className="py-2 pr-4">{it.labels.join(', ')}</td>
+              <td className="py-2 pr-4">{new Date(it.created_at).toLocaleString()}</td>
             </tr>
           ))}
           {items.length === 0 && (
@@ -105,10 +97,7 @@ export default function ModerationInbox() {
       title="Moderation — Inbox"
       subtitle="Список обращений и жалоб"
       actions={
-        <button
-          className="px-3 py-1 rounded bg-blue-600 text-white"
-          onClick={onCreate}
-        >
+        <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={onCreate}>
           New case
         </button>
       }
@@ -152,10 +141,7 @@ export default function ModerationInbox() {
           <option value="P1">P1</option>
           <option value="P2">P2</option>
         </select>
-        <button
-          className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
-          onClick={load}
-        >
+        <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={load}>
           Apply
         </button>
       </div>

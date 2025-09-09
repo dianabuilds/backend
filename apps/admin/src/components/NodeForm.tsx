@@ -1,11 +1,12 @@
-import EditorJSEmbed from "./EditorJSEmbed";
-import FieldTitle from "./fields/FieldTitle";
-import FieldTags from "./fields/FieldTags";
-import FieldMedia from "./fields/FieldMedia";
-import FieldCover from "./fields/FieldCover";
-import type { OutputData } from "../types/editorjs";
-import { useEffect, useId, useState, type Ref } from "react";
-import { z } from "zod";
+import { type Ref, useEffect, useId, useState } from 'react';
+import { z } from 'zod';
+
+import type { OutputData } from '../types/editorjs';
+import EditorJSEmbed from './EditorJSEmbed';
+import FieldCover from './fields/FieldCover';
+import FieldMedia from './fields/FieldMedia';
+import FieldTags from './fields/FieldTags';
+import FieldTitle from './fields/FieldTitle';
 
 interface NodeFormProps {
   title: string;
@@ -23,21 +24,20 @@ interface NodeFormProps {
   titleRef?: Ref<HTMLInputElement>;
 }
 
-export default function NodeForm({
-  title,
-  content,
-  tags,
-  media,
-  summary: _summary,
-  coverUrl,
-  onTitleChange,
-  onContentChange,
-  onTagsChange,
-  onMediaChange,
-  onSummaryChange: _onSummaryChange,
-  onCoverChange,
-  titleRef,
-}: NodeFormProps) {
+export default function NodeForm(props: NodeFormProps) {
+  const {
+    title,
+    content,
+    tags,
+    media,
+    coverUrl,
+    onTitleChange,
+    onContentChange,
+    onTagsChange,
+    onMediaChange,
+    onCoverChange,
+    titleRef,
+  } = props;
   const contentId = useId();
   const contentDesc = `${contentId}-desc`;
   const [errors, setErrors] = useState<{
@@ -48,30 +48,30 @@ export default function NodeForm({
 
   const tagsSchema = z
     .array(z.string(), {
-      invalid_type_error: "tags must be an array of strings",
+      invalid_type_error: 'tags must be an array of strings',
     })
     .optional();
   const mediaSchema = z
     .array(z.string(), {
-      invalid_type_error: "media must be an array of strings",
+      invalid_type_error: 'media must be an array of strings',
     })
     .optional();
   const contentSchema = z.any().superRefine((val, ctx) => {
-    if (typeof val === "string") {
+    if (typeof val === 'string') {
       try {
         JSON.parse(val);
       } catch {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "nodes must be valid JSON for Editor.js",
+          message: 'nodes must be valid JSON for Editor.js',
         });
         return;
       }
     }
-    if (typeof val !== "object" || val === null) {
+    if (typeof val !== 'object' || val === null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "nodes must be an object or array for Editor.js",
+        message: 'nodes must be an object or array for Editor.js',
       });
     }
   });
@@ -93,12 +93,12 @@ export default function NodeForm({
 
   const validateTags = (t: string[]) => {
     const res = tagsSchema.safeParse(t);
-    setErrors((e) => ({ ...e, tags: res.success ? null : "tags must be an array of strings" }));
+    setErrors((e) => ({ ...e, tags: res.success ? null : 'tags must be an array of strings' }));
   };
 
   const validateMedia = (m: string[]) => {
     const res = mediaSchema.safeParse(m);
-    setErrors((e) => ({ ...e, media: res.success ? null : "media must be an array of strings" }));
+    setErrors((e) => ({ ...e, media: res.success ? null : 'media must be an array of strings' }));
   };
 
   const validateContent = (data: OutputData) => {
@@ -134,22 +134,11 @@ export default function NodeForm({
       ) : null}
 
       <div>
-        <label
-          htmlFor={contentId}
-          className="block text-sm font-medium text-gray-900"
-        >
+        <label htmlFor={contentId} className="block text-sm font-medium text-gray-900">
           Content
         </label>
-        <div
-          id={contentId}
-          aria-describedby={contentDesc}
-          className="mt-1"
-        >
-          <EditorJSEmbed
-            value={content}
-            onChange={handleContentChange}
-            minHeight={400}
-          />
+        <div id={contentId} aria-describedby={contentDesc} className="mt-1">
+          <EditorJSEmbed value={content} onChange={handleContentChange} minHeight={400} />
         </div>
         {errors.content ? (
           <p id={contentDesc} className="mt-1 text-xs text-red-600">
@@ -183,4 +172,3 @@ export default function NodeForm({
     </div>
   );
 }
-

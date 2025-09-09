@@ -1,24 +1,23 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 
 import { accountApi } from '../api/accountApi';
 import { listFlags } from '../api/flags';
-import {
-  archiveNode,
-  duplicateNode,
-  patchNode,
-  previewNode,
-  publishNode,
-} from '../api/nodes';
+import { patchNode, publishNode } from '../api/nodes';
 import { useAuth } from '../auth/AuthContext';
 import { compressImage } from '../utils/compressImage';
+
+type CoverMeta = {
+  focalX?: number;
+  focalY?: number;
+  crop?: { x: number; y: number; width: number; height: number };
+};
 
 interface CoverChange {
   assetId: string | null;
   url: string | null;
   alt: string;
-  meta: any | null;
+  meta: CoverMeta | null;
 }
 
 interface NodeSidebarProps {
@@ -34,7 +33,7 @@ interface NodeSidebarProps {
     coverUrl: string | null;
     coverAssetId: string | null;
     coverAlt: string;
-    coverMeta: any | null;
+    coverMeta: CoverMeta | null;
     allowFeedback: boolean;
     premiumOnly: boolean;
   };
@@ -140,15 +139,27 @@ export default function NodeSidebar({
           const compressed = await compressImage(file);
           const form = new FormData();
           form.append('file', compressed);
-          const res = await accountApi.request('/admin/media/assets', {
-            method: 'POST',
-            body: form,
-            raw: true,
-            accountId,
-          });
-          const data = res.data as any;
-          const id = data?.id ?? data?.asset_id ?? data?.assetId ?? null;
-          const url = data?.url ?? data?.file_url ?? data?.src ?? null;
+          type UploadRes = {
+            id?: string | number | null;
+            asset_id?: string | number | null;
+            assetId?: string | number | null;
+            url?: string | null;
+            file_url?: string | null;
+            src?: string | null;
+          };
+          const res = await accountApi.request<import('../api/client').ApiResponse<UploadRes>>(
+            '/admin/media/assets',
+            {
+              method: 'POST',
+              body: form,
+              raw: true,
+              accountId,
+            },
+          );
+          const data = res.data || {};
+          const rawId = data.id ?? data.asset_id ?? data.assetId ?? null;
+          const id = rawId != null ? String(rawId) : null;
+          const url = data.url ?? data.file_url ?? data.src ?? null;
           if (!id || !url) {
             setUploadError('Сервер не вернул ID или URL');
             return;
@@ -169,7 +180,7 @@ export default function NodeSidebar({
       };
       img.src = URL.createObjectURL(file);
     },
-    [node.coverAlt, onCoverChange],
+    [node.coverAlt, onCoverChange, accountId],
   );
 
   const applyMeta = () => {
@@ -213,7 +224,7 @@ export default function NodeSidebar({
         updatedAt: node.updatedAt,
       });
       const updated = res.updatedAt ?? node.updatedAt;
-      const allow = (res as any).allowFeedback ?? checked;
+      const allow = (res.allowFeedback ?? checked)!;
       onAllowFeedbackChange?.(allow, updated);
     } finally {
       setAllowSaving(false);
@@ -228,7 +239,7 @@ export default function NodeSidebar({
         updatedAt: node.updatedAt,
       });
       const updated = res.updatedAt ?? node.updatedAt;
-      const premium = (res as any).premiumOnly ?? checked;
+      const premium = (res.premiumOnly ?? checked)!;
       onPremiumOnlyChange?.(premium, updated);
     } finally {
       setPremiumSaving(false);
@@ -262,10 +273,6 @@ export default function NodeSidebar({
     onStatusChange?.(false);
   };
 
-  const handleArchive = async () => {
-    await archiveNode(accountId, Number(node.id));
-  };
-
   const handleMakePublic = async () => {
     await patchNode(accountId, node.id, { premiumOnly: false, updatedAt: node.updatedAt });
     onPremiumOnlyChange?.(false);
@@ -276,13 +283,7 @@ export default function NodeSidebar({
     onPremiumOnlyChange?.(true);
   };
 
-  const handleDuplicate = async () => {
-    await duplicateNode(accountId, Number(node.id));
-  };
-
-  const handlePreview = async () => {
-    await previewNode(accountId, Number(node.id));
-  };
+  // Legacy actions (archive/duplicate/preview) are not available
 
   const copy = (v: string) => {
     if (typeof navigator !== 'undefined') {
@@ -326,11 +327,7 @@ export default function NodeSidebar({
               <button type="button" className="underline text-left" onClick={handleHide}>
                 Hide
               </button>
-              {accountId ? (
-                <button type="button" className="underline text-left" onClick={handleArchive}>
-                  Archive
-                </button>
-              ) : null}
+              {/* Archive removed */}
             </div>
           </div>
           <div>
@@ -344,16 +341,7 @@ export default function NodeSidebar({
               </button>
             </div>
           </div>
-          {accountId ? (
-            <div className="flex flex-col gap-1">
-              <button type="button" className="underline text-left" onClick={handleDuplicate}>
-                Duplicate
-              </button>
-              <button type="button" className="underline text-left" onClick={handlePreview}>
-                Preview
-              </button>
-            </div>
-          ) : null}
+          {/* Duplicate/Preview removed */}
         </div>
       </details>
       {nodesCover ? (

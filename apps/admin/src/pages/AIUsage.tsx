@@ -1,41 +1,34 @@
-import { useQuery } from "@tanstack/react-query";
-import PageLayout from "./_shared/PageLayout";
-import { api } from "../api/client";
+import { useQuery } from '@tanstack/react-query';
 
-interface UsageRow {
-  account_id: string;
+import { api } from '../api/client';
+import PageLayout from './_shared/PageLayout';
+
+interface SystemUsage {
   tokens: number;
-  limit: number;
-  progress: number;
+  cost: number;
 }
 
 export default function AIUsage() {
   const { data } = useQuery({
-    queryKey: ["ai-usage"],
+    queryKey: ['ai-usage-system'],
     queryFn: async () => {
-      const res = await api.get<UsageRow[]>("/admin/ai/usage/accounts");
-      return res.data ?? [];
+      const res = await api.get<SystemUsage>('/admin/ai/usage/system');
+      return res.data ?? { tokens: 0, cost: 0 };
     },
   });
   return (
     <PageLayout title="AI Usage">
-      <div className="space-y-4">
-        {data?.map((row) => (
-          <div key={row.account_id} className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span>{row.account_id}</span>
-              <span>
-                {row.tokens}/{row.limit || 0}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded h-3" role="progressbar" aria-valuenow={row.progress * 100}>
-              <div
-                className="bg-blue-500 h-3 rounded"
-                style={{ width: `${Math.min(row.progress * 100, 100)}%` }}
-              />
-            </div>
-          </div>
-        ))}
+      <div className="space-y-2 text-sm">
+        <div className="flex justify-between">
+          <span>Total tokens</span>
+          <span>{data?.tokens ?? 0}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Estimated cost</span>
+          <span>
+            ${'{'}(data?.cost ?? 0).toFixed(4){'}'}
+          </span>
+        </div>
       </div>
     </PageLayout>
   );

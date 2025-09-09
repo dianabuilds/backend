@@ -9,8 +9,8 @@ import jsonschema
 from app.domains.quests.validation import validate_version_graph  # noqa: F401
 
 # JSON schema describing allowed fields for AI presets that can be configured
-# per workspace. Only the listed keys are permitted and they must have the
-# specified types.
+# globally or per user/profile. Only the listed keys are permitted and they
+# must have the specified types.
 AI_PRESETS_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -32,7 +32,7 @@ AI_PRESETS_SCHEMA: dict[str, Any] = {
 
 
 def validate_ai_presets(presets: dict[str, Any]) -> None:
-    """Validate workspace AI presets against :data:`AI_PRESETS_SCHEMA`.
+    """Validate AI presets against :data:`AI_PRESETS_SCHEMA`.
 
     Raises :class:`jsonschema.ValidationError` if presets don't conform to the
     schema.

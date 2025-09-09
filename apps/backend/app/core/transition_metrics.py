@@ -34,8 +34,8 @@ def record_novelty_rate(rate: float) -> None:
         _novelty_rates.append(rate)
 
 
-def record_route_length(length: int, workspace_id: str | None, preview: bool = False) -> None:
-    ws = workspace_id or "unknown"
+def record_route_length(length: int, profile_id: str | None, preview: bool = False) -> None:
+    ws = profile_id or "unknown"
     with _transition_lock:
         if preview:
             _preview_route_lengths[ws].append(length)
@@ -45,14 +45,14 @@ def record_route_length(length: int, workspace_id: str | None, preview: bool = F
             _transition_counts[ws] += 1
 
 
-def record_tag_entropy(entropy: float, workspace_id: str | None) -> None:
-    ws = workspace_id or "unknown"
+def record_tag_entropy(entropy: float, profile_id: str | None) -> None:
+    ws = profile_id or "unknown"
     with _transition_lock:
         _tag_entropies[ws].append(entropy)
 
 
-def record_no_route(workspace_id: str | None, preview: bool = False) -> None:
-    ws = workspace_id or "unknown"
+def record_no_route(profile_id: str | None, preview: bool = False) -> None:
+    ws = profile_id or "unknown"
     with _transition_lock:
         if preview:
             _preview_no_route_counts[ws] += 1
@@ -62,8 +62,8 @@ def record_no_route(workspace_id: str | None, preview: bool = False) -> None:
             _transition_counts[ws] += 1
 
 
-def record_fallback_used(workspace_id: str | None) -> None:
-    ws = workspace_id or "unknown"
+def record_fallback_used(profile_id: str | None) -> None:
+    ws = profile_id or "unknown"
     with _transition_lock:
         _fallback_used_counts[ws] += 1
 
@@ -119,7 +119,7 @@ def prometheus() -> str:
     for ws, cnt in no_routes.items():
         total = totals.get(ws, 0)
         pct = (cnt / total * 100) if total else 0.0
-        lines.append(f'transition_no_route_percent{{workspace="{ws}"}} {pct}')
+        lines.append(f'transition_no_route_percent{{profile="{ws}"}} {pct}')
     lines.append(
         "# HELP transition_preview_no_route_percent Percentage of preview transitions without route",
     )
@@ -127,7 +127,7 @@ def prometheus() -> str:
     for ws, cnt in prev_no_routes.items():
         total = prev_totals.get(ws, 0)
         pct = (cnt / total * 100) if total else 0.0
-        lines.append(f'transition_preview_no_route_percent{{workspace="{ws}"}} {pct}')
+        lines.append(f'transition_preview_no_route_percent{{profile="{ws}"}} {pct}')
     lines.append(
         "# HELP transition_fallback_used_percent Percentage of transitions using fallback",
     )
@@ -135,26 +135,26 @@ def prometheus() -> str:
     for ws, cnt in fallbacks.items():
         total = totals.get(ws, 0)
         pct = (cnt / total * 100) if total else 0.0
-        lines.append(f'transition_fallback_used_percent{{workspace="{ws}"}} {pct}')
-    lines.append("# HELP tag_entropy_avg Average tag entropy per workspace")
+        lines.append(f'transition_fallback_used_percent{{profile="{ws}"}} {pct}')
+    lines.append("# HELP tag_entropy_avg Average tag entropy per profile")
     lines.append("# TYPE tag_entropy_avg gauge")
     for ws, vals in entropies.items():
         avg = sum(vals) / len(vals) if vals else 0.0
-        lines.append(f'tag_entropy_avg{{workspace="{ws}"}} {avg}')
+        lines.append(f'tag_entropy_avg{{profile="{ws}"}} {avg}')
     lines.append("# HELP route_length Route length")
     lines.append("# TYPE route_length summary")
     for ws, lens in lengths.items():
         avg = sum(lens) / len(lens) if lens else 0.0
         p95 = _percentile(lens, 0.95) if lens else 0.0
-        lines.append(f'route_length_avg{{workspace="{ws}"}} {avg}')
-        lines.append(f'route_length_p95{{workspace="{ws}"}} {p95}')
+        lines.append(f'route_length_avg{{profile="{ws}"}} {avg}')
+        lines.append(f'route_length_p95{{profile="{ws}"}} {p95}')
     lines.append("# HELP preview_route_length Route length in preview")
     lines.append("# TYPE preview_route_length summary")
     for ws, lens in prev_lengths.items():
         avg = sum(lens) / len(lens) if lens else 0.0
         p95 = _percentile(lens, 0.95) if lens else 0.0
-        lines.append(f'preview_route_length_avg{{workspace="{ws}"}} {avg}')
-        lines.append(f'preview_route_length_p95{{workspace="{ws}"}} {p95}')
+        lines.append(f'preview_route_length_avg{{profile="{ws}"}} {avg}')
+        lines.append(f'preview_route_length_p95{{profile="{ws}"}} {p95}')
     return "\n".join(lines) + "\n"
 
 

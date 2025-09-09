@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CaseAttachmentCreate = {
-    url: string;
-    title?: (string | null);
-    media_type?: (string | null);
+  url: string;
+  title?: string | null;
+  media_type?: string | null;
 };
-

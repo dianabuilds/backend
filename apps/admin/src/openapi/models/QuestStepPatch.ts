@@ -3,10 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QuestStepPatch = {
-    key?: (string | null);
-    title?: (string | null);
-    type?: (string | null);
-    content?: (Record<string, any> | null);
-    rewards?: (Record<string, any> | null);
+  key?: string | null;
+  title?: string | null;
+  type?: string | null;
+  content?: Record<string, any> | null;
+  rewards?: Record<string, any> | null;
 };
-

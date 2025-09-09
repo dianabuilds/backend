@@ -1,6 +1,6 @@
-import PublishControls from "../../../components/publish/PublishControls";
-import { TextInput } from "../../../shared/ui";
-import type { NodeEditorData } from "../model/node";
+import PublishControls from '../../../components/publish/PublishControls';
+import { TextInput } from '../../../shared/ui';
+import type { NodeEditorData } from '../model/node';
 
 interface NodeSidebarProps {
   node: NodeEditorData;
@@ -18,11 +18,7 @@ export default function NodeSidebar({
   return (
     <div className="space-y-6">
       {node.id && accountId ? (
-        <PublishControls
-          accountId={accountId}
-          nodeId={node.id}
-          onChanged={onPublishChange}
-        />
+        <PublishControls accountId={accountId} nodeId={node.id} onChanged={onPublishChange} />
       ) : null}
       <section>
         <h3 className="font-semibold text-gray-700">Metadata</h3>
@@ -33,7 +29,7 @@ export default function NodeSidebar({
             <div>
               <label className="block text-xs mb-1">Slug</label>
               <TextInput
-                value={node.slug || ""}
+                value={node.slug || ''}
                 onChange={(e) => onChange({ slug: e.target.value })}
                 className="w-full"
                 placeholder="slug"
@@ -48,7 +44,7 @@ export default function NodeSidebar({
           <div>
             <label className="block text-xs mb-1">Space</label>
             <select
-              value={node.space || ""}
+              value={node.space || ''}
               onChange={(e) => onChange({ space: e.target.value })}
               className="w-full border rounded px-2 py-1"
               data-testid="space-selector"

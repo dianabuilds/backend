@@ -6,7 +6,7 @@
  * Supported notification delivery channels.
  */
 export enum NotificationChannel {
-    IN_APP = 'in-app',
-    EMAIL = 'email',
-    WEBHOOK = 'webhook',
+  IN_APP = 'in-app',
+  EMAIL = 'email',
+  WEBHOOK = 'webhook',
 }

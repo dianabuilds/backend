@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -29,7 +29,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   handleReload = () => {
     this.setState({ hasError: false, error: null });
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       window.location.reload();
     }
   };
@@ -41,9 +41,12 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="p-6">
           <h1 className="text-2xl font-bold mb-2">Что-то пошло не так</h1>
           <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
-            {this.state.error?.message || "Непредвиденная ошибка интерфейса."}
+            {this.state.error?.message || 'Непредвиденная ошибка интерфейса.'}
           </p>
-          <button onClick={this.handleReload} className="px-3 py-1 rounded bg-gray-800 text-white dark:bg-gray-700">
+          <button
+            onClick={this.handleReload}
+            className="px-3 py-1 rounded bg-gray-800 text-white dark:bg-gray-700"
+          >
             Перезагрузить
           </button>
         </div>

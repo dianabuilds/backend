@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
-import { useAccount } from "../../account/AccountContext";
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+
+import { useAccount } from '../../account/AccountContext';
 
 export default function PageLayout({
   title,
@@ -19,16 +20,11 @@ export default function PageLayout({
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
-          {subtitle && (
-            <div className="text-sm text-gray-500 mt-1">{subtitle}</div>
-          )}
+          {subtitle && <div className="text-sm text-gray-500 mt-1">{subtitle}</div>}
           {accountId && (
             <div className="text-xs text-gray-500 mt-1">
               Account: {accountId} (
-              <Link
-                to={`/tools/audit?resource=account:${accountId}`}
-                className="underline"
-              >
+              <Link to={`/tools/audit?resource=account:${accountId}`} className="underline">
                 audit
               </Link>
               )

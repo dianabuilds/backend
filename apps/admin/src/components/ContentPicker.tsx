@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 
-import { listNodes, type AdminNodeItem } from "../api/nodes";
-import { useAccount } from "../account/AccountContext";
+import { useAccount } from '../account/AccountContext';
+import { type AdminNodeItem, listNodes } from '../api/nodes';
 
 interface ContentPickerProps {
   onSelect: (item: AdminNodeItem) => void;
@@ -11,11 +11,11 @@ interface ContentPickerProps {
 
 export default function ContentPicker({ onSelect, onClose }: ContentPickerProps) {
   const { accountId } = useAccount();
-  const [search, setSearch] = useState("");
-  const [tag, setTag] = useState("");
+  const [search, setSearch] = useState('');
+  const [tag, setTag] = useState('');
 
   const { data: items = [] } = useQuery({
-    queryKey: ["content-picker", accountId, search, tag],
+    queryKey: ['content-picker', accountId, search, tag],
     queryFn: async () =>
       accountId
         ? listNodes(accountId, {
@@ -56,9 +56,7 @@ export default function ContentPicker({ onSelect, onClose }: ContentPickerProps)
             {n.title || n.slug}
           </li>
         ))}
-        {items.length === 0 && (
-          <li className="p-2 text-sm text-gray-500">No results</li>
-        )}
+        {items.length === 0 && <li className="p-2 text-sm text-gray-500">No results</li>}
       </ul>
     </div>
   );

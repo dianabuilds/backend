@@ -93,7 +93,6 @@ async def generate_ai_quest(
         params=params,
         provider=provider,
         model=model,
-        workspace_id=body.workspace_id,
         reuse=reuse,
         preview=preview,
     )

@@ -1,26 +1,26 @@
-import "@testing-library/jest-dom";
+import '@testing-library/jest-dom';
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import { vi } from "vitest";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 
-import { listNodes } from "../api/nodes";
-import Nodes from "./Nodes";
+import { listNodes } from '../api/nodes';
+import Nodes from './Nodes';
 
-vi.mock("../api/nodes", () => ({
+vi.mock('../api/nodes', () => ({
   listNodes: vi.fn(),
 }));
 
-vi.mock("../account/AccountContext", () => ({
-  useAccount: () => ({ accountId: "ws1" }),
+vi.mock('../account/AccountContext', () => ({
+  useAccount: () => ({ accountId: 'ws1' }),
 }));
 
-vi.mock("../components/ToastProvider", () => ({
+vi.mock('../components/ToastProvider', () => ({
   useToast: () => ({ addToast: vi.fn() }),
 }));
 
-vi.mock("../components/ScopeControls", () => ({
+vi.mock('../components/ScopeControls', () => ({
   default: () => <div />,
 }));
 
@@ -35,29 +35,26 @@ function renderPage() {
   );
 }
 
-describe("Nodes page", () => {
+describe('Nodes page', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("renders space badge for node", async () => {
+  it('renders space badge for node', async () => {
     vi.mocked(listNodes).mockResolvedValue([
       {
         id: 1,
-        title: "One",
-        slug: "one",
-        status: "draft",
+        title: 'One',
+        slug: 'one',
+        status: 'draft',
         is_visible: true,
         is_public: true,
         premium_only: false,
         is_recommendable: false,
-        space: "alpha",
+        space: 'alpha',
       },
     ]);
 
     renderPage();
     await waitFor(() => expect(listNodes).toHaveBeenCalled());
-    expect(await screen.findByTestId("space-badge")).toHaveTextContent(
-      "space:alpha",
-    );
+    expect(await screen.findByTestId('space-badge')).toHaveTextContent('space:alpha');
   });
 });
-

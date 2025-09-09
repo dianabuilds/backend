@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/rules-of-hooks, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -25,21 +25,21 @@ import { Button } from '../shared/ui';
 import { ensureArray } from '../shared/utils';
 import { notify } from '../utils/notify';
 
-  type NodeItem = {
-    id: number;
-    title?: string;
-    slug?: string;
-    status?: NodeStatus;
-    is_visible: boolean;
-    is_public: boolean;
-    premium_only: boolean;
-    is_recommendable: boolean;
-    createdAt?: string;
-    updatedAt?: string;
-    type?: string;
-    space?: string;
-    [k: string]: any;
-  };
+type NodeItem = {
+  id: number;
+  title?: string;
+  slug?: string;
+  status?: NodeStatus;
+  is_visible: boolean;
+  is_public: boolean;
+  premium_only: boolean;
+  is_recommendable: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  type?: string;
+  space?: string;
+  [k: string]: any;
+};
 
 const EMPTY_NODES: NodeItem[] = [];
 
@@ -51,7 +51,14 @@ export default function Nodes() {
   const { accountId } = useAccount();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [scopeMode, setScopeMode] = useState(() => searchParams.get('scope') || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('account_id') ? 'member' : 'mine'));
+  const [scopeMode, setScopeMode] = useState(
+    () =>
+      searchParams.get('scope') ||
+      (typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('account_id')
+        ? 'member'
+        : 'mine'),
+  );
   const [authorTab, setAuthorTab] = useState(false);
   const [authorId, setAuthorId] = useState('');
   const [roles, setRoles] = useState<string[]>([]);
@@ -151,7 +158,7 @@ export default function Nodes() {
   // Превью ноды
 
   const openModerationFor = (node: NodeItem) => {
-    if (!accountId) return; // moderation only in workspace mode
+    if (!accountId) return;
     // Если нода сейчас видима — запрашиваем причину и скрываем
     if (node.is_visible) {
       setModTarget(node);
@@ -271,10 +278,10 @@ export default function Nodes() {
       if (recommendable !== 'all') params.recommendable = recommendable === 'true';
       if (!accountId && params.scope_mode === 'global') {
         const res = await listNodesGlobal(params);
-        return ensureArray<NodeItem>(res as any);
+        return ensureArray<NodeItem>(res as unknown);
       }
       const res = await listNodes(accountId, params);
-      return ensureArray<NodeItem>(res as any);
+      return ensureArray<NodeItem>(res as unknown);
     },
     enabled: true,
     placeholderData: (prev) => prev,
@@ -323,7 +330,7 @@ export default function Nodes() {
       const next = new Map(prev);
       const cs = { ...(next.get(id) || {}) } as ChangeSet;
       const base = baseline.get(id);
-      const baseVal = base ? (base as any)[field] : undefined;
+      const baseVal = base ? (base as Record<string, unknown>)[field] : undefined;
       if (baseVal === nextVal) {
         delete cs[field];
       } else {
@@ -349,7 +356,7 @@ export default function Nodes() {
       const diff: ChangeSet = {};
       for (const key of Object.keys(cs) as ChangeKey[]) {
         const nextVal = cs[key];
-        const baseVal = (base as any)[key];
+        const baseVal = (base as Record<string, unknown>)[key];
         if (nextVal !== undefined && nextVal !== baseVal) {
           diff[key] = nextVal;
         }
@@ -367,13 +374,11 @@ export default function Nodes() {
     const results: string[] = [];
     try {
       for (const { ids, changes } of groups.values()) {
-        const bulkUrl = accountId
-          ? `/admin/accounts/${encodeURIComponent(accountId)}/nodes/bulk`
-          : `/admin/nodes/bulk`;
+        const bulkUrl = accountId ? `/admin/nodes/bulk` : `/admin/nodes/bulk`;
         await accountApi.patch(
           bulkUrl,
           { ids, changes },
-          { accountId: accountId || "", account: false },
+          { accountId: accountId || '', account: false },
         );
         results.push(`${Object.keys(changes).join(',')}: ${ids.length}`);
       }
@@ -439,16 +444,12 @@ export default function Nodes() {
   const deleteSelected = async () => {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    if (!(await confirmWithEnv(`Удалить ${ids.length} нод${ids.length === 1 ? 'у' : 'ы'}?`))) return;
+    if (!(await confirmWithEnv(`Удалить ${ids.length} нод${ids.length === 1 ? 'у' : 'ы'}?`)))
+      return;
     try {
       for (const id of ids) {
-        const delUrl = accountId
-          ? `/admin/accounts/${encodeURIComponent(accountId)}/nodes/${encodeURIComponent(id)}`
-          : `/admin/nodes/${encodeURIComponent(id)}`;
-        await accountApi.delete(
-          delUrl,
-          { accountId: accountId || "", account: false },
-        );
+        const delUrl = `/admin/nodes/${encodeURIComponent(id)}`;
+        await accountApi.delete(delUrl, { accountId: accountId || '', account: false });
       }
       setItems((prev) => prev.filter((n) => !selected.has(n.id)));
       setSelected(new Set());
@@ -593,7 +594,7 @@ export default function Nodes() {
                 className="border rounded px-2 py-1"
                 value={status}
                 onChange={(e) => {
-                  setStatus(e.target.value as any);
+                  setStatus(e.target.value as import('../openapi').Status | 'all');
                   setPage(0);
                 }}
               >
@@ -607,7 +608,7 @@ export default function Nodes() {
                 className="border rounded px-2 py-1"
                 value={visibility}
                 onChange={(e) => {
-                  setVisibility(e.target.value as any);
+                  setVisibility(e.target.value as 'all' | 'visible' | 'hidden');
                   setPage(0);
                 }}
               >
@@ -619,7 +620,7 @@ export default function Nodes() {
                 className="border rounded px-2 py-1"
                 value={isPublic}
                 onChange={(e) => {
-                  setIsPublic(e.target.value as any);
+                  setIsPublic(e.target.value as 'all' | 'true' | 'false');
                   setPage(0);
                 }}
               >
@@ -631,7 +632,7 @@ export default function Nodes() {
                 className="border rounded px-2 py-1"
                 value={premium}
                 onChange={(e) => {
-                  setPremium(e.target.value as any);
+                  setPremium(e.target.value as 'all' | 'true' | 'false');
                   setPage(0);
                 }}
               >
@@ -643,7 +644,7 @@ export default function Nodes() {
                 className="border rounded px-2 py-1"
                 value={recommendable}
                 onChange={(e) => {
-                  setRecommendable(e.target.value as any);
+                  setRecommendable(e.target.value as 'all' | 'true' | 'false');
                   setPage(0);
                 }}
               >
@@ -696,9 +697,7 @@ export default function Nodes() {
                   type="button"
                   className="bg-blue-600 text-white"
                   onClick={() => {
-                    const qs = accountId
-                      ? `?account_id=${encodeURIComponent(accountId)}`
-                      : '';
+                    const qs = accountId ? `?account_id=${encodeURIComponent(accountId)}` : '';
                     navigate(`/nodes/article/new${qs}`);
                   }}
                 >
@@ -808,9 +807,7 @@ export default function Nodes() {
                   type="button"
                   onClick={() => {
                     setItems(
-                      items.map((n) =>
-                        selected.has(n.id) ? { ...n, premium_only: false } : n,
-                      ),
+                      items.map((n) => (selected.has(n.id) ? { ...n, premium_only: false } : n)),
                     );
                     setPending((p) => {
                       const m = new Map(p);
@@ -830,9 +827,7 @@ export default function Nodes() {
                   onClick={() => {
                     setItems(
                       items.map((n) =>
-                        selected.has(n.id)
-                          ? { ...n, is_recommendable: !n.is_recommendable }
-                          : n,
+                        selected.has(n.id) ? { ...n, is_recommendable: !n.is_recommendable } : n,
                       ),
                     );
                     setPending((p) => {
@@ -887,7 +882,9 @@ export default function Nodes() {
                         type="checkbox"
                         checked={items.length > 0 && selected.size === items.length}
                         onChange={(e) =>
-                          setSelected(e.target.checked ? new Set(items.map((i) => i.id)) : new Set())
+                          setSelected(
+                            e.target.checked ? new Set(items.map((i) => i.id)) : new Set(),
+                          )
                         }
                       />
                     </TableHead>
@@ -911,7 +908,10 @@ export default function Nodes() {
                         base.is_recommendable !== n.is_recommendable);
 
                     return (
-                      <TableRow key={n.id ?? i} className={changed ? 'bg-amber-50 dark:bg-amber-900/20' : ''}>
+                      <TableRow
+                        key={n.id ?? i}
+                        className={changed ? 'bg-amber-50 dark:bg-amber-900/20' : ''}
+                      >
                         <TableCell>
                           <input
                             type="checkbox"
@@ -944,7 +944,11 @@ export default function Nodes() {
                           </div>
                         </TableCell>
                         <TableCell className="w-32 text-center">
-                          <StatusCell status={n.status as any} />
+                          <StatusCell
+                            status={
+                              (n.status as import('../openapi').Status | undefined) ?? 'draft'
+                            }
+                          />
                         </TableCell>
                         <TableCell className="w-32 text-center">
                           <FlagsCell
@@ -984,11 +988,11 @@ export default function Nodes() {
                                 const t = n.type || 'article';
                                 window.open(`${url}/nodes/${t}/${n.id}`, '_blank');
                               } catch (e) {
-                                  addToast({
-                                    title: 'Предпросмотр не удалось',
-                                    description: e instanceof Error ? e.message : String(e),
-                                    variant: 'error',
-                                  });
+                                addToast({
+                                  title: 'Предпросмотр не удалось',
+                                  description: e instanceof Error ? e.message : String(e),
+                                  variant: 'error',
+                                });
                               }
                             }}
                           >
@@ -1017,11 +1021,7 @@ export default function Nodes() {
                 Назад
               </Button>
               <span className="text-sm">Страница {page + 1}</span>
-              <Button
-                type="button"
-                disabled={!hasMore}
-                onClick={() => setPage((p) => p + 1)}
-              >
+              <Button type="button" disabled={!hasMore} onClick={() => setPage((p) => p + 1)}>
                 Вперед
               </Button>
             </div>
@@ -1060,7 +1060,6 @@ export default function Nodes() {
           </div>
         )}
       </div>
-
     </div>
   );
 }

@@ -1,7 +1,7 @@
-import React from "react";
+import React from 'react';
 
-import type { Column } from "./DataTable.helpers";
-import Skeleton from "./Skeleton";
+import type { Column } from './DataTable.helpers';
+import Skeleton from './Skeleton';
 
 type Props<T> = {
   columns: Column<T>[];
@@ -27,7 +27,7 @@ export default function DataTable<T>({
   rowClassName,
 }: Props<T>) {
   return (
-    <div className={className || ""}>
+    <div className={className || ''}>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm" role="table">
           <thead>
@@ -35,7 +35,7 @@ export default function DataTable<T>({
               {columns.map((c) => (
                 <th
                   key={c.key}
-                  className={`px-2 py-1 ${c.className || ""}`}
+                  className={`px-2 py-1 ${c.className || ''}`}
                   style={c.width ? { width: c.width } : undefined}
                   scope="col"
                 >
@@ -49,9 +49,7 @@ export default function DataTable<T>({
               ? Array.from({ length: skeletonRows }).map((_, i) => (
                   <tr
                     key={`skeleton-${i}`}
-                    className={`border-t ${
-                      typeof rowClassName === "string" ? rowClassName : ""
-                    }`}
+                    className={`border-t ${typeof rowClassName === 'string' ? rowClassName : ''}`}
                     role="row"
                   >
                     {columns.map((c) => (
@@ -65,34 +63,31 @@ export default function DataTable<T>({
                   <tr
                     key={rowKey(row)}
                     className={`border-t ${
-                      typeof rowClassName === "function"
-                        ? rowClassName(row) || ""
-                        : rowClassName || ""
+                      typeof rowClassName === 'function'
+                        ? rowClassName(row) || ''
+                        : rowClassName || ''
                     }`}
                     role="row"
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                   >
                     {columns.map((c) => (
-                      <td
-                        key={c.key}
-                        className={`px-2 py-1 ${c.className || ""}`}
-                      >
+                      <td key={c.key} className={`px-2 py-1 ${c.className || ''}`}>
                         {c.render
                           ? c.render(row)
                           : c.accessor
                             ? c.accessor(row)
-                            : (row as any)[c.key]}
+                            : (() => {
+                                const v = (row as unknown as Record<string, unknown>)[c.key];
+                                return typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
+                              })()}
                       </td>
                     ))}
                   </tr>
                 ))}
             {!loading && (rows || []).length === 0 ? (
               <tr>
-                <td
-                  className="px-2 py-3 text-gray-500"
-                  colSpan={columns.length}
-                >
-                  {emptyText || "Нет данных"}
+                <td className="px-2 py-3 text-gray-500" colSpan={columns.length}>
+                  {emptyText || 'Нет данных'}
                 </td>
               </tr>
             ) : null}

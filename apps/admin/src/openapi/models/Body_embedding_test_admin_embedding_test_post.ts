@@ -3,9 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type Body_embedding_test_admin_embedding_test_post = {
-    /**
-     * Текст для эмбеддинга
-     */
-    text?: string;
+  /**
+   * Текст для эмбеддинга
+   */
+  text?: string;
 };
-

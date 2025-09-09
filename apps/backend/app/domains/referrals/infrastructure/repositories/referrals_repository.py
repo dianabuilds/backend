@@ -16,17 +16,16 @@ class ReferralsRepository(IReferralsRepository):
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def get_personal_code(self, workspace_id: int, owner_user_id: UUID) -> ReferralCode | None:
+    async def get_personal_code(self, owner_user_id: UUID) -> ReferralCode | None:
         res = await self._db.execute(
             select(ReferralCode).where(
-                ReferralCode.workspace_id == workspace_id,
                 ReferralCode.owner_user_id == owner_user_id,
             )
         )
         return res.scalars().first()
 
-    async def create_personal_code(self, workspace_id: int, owner_user_id: UUID, code: str) -> ReferralCode:
-        item = ReferralCode(workspace_id=workspace_id, owner_user_id=owner_user_id, code=code, active=True)
+    async def create_personal_code(self, owner_user_id: UUID, code: str) -> ReferralCode:
+        item = ReferralCode(owner_user_id=owner_user_id, code=code, active=True)
         self._db.add(item)
         await self._db.flush()
         await self._db.refresh(item)
@@ -40,11 +39,10 @@ class ReferralsRepository(IReferralsRepository):
         res = await self._db.execute(select(ReferralCode).where(ReferralCode.code == code, ReferralCode.active.is_(True)))
         return res.scalars().first()
 
-    async def record_signup(self, *, workspace_id: int, code: ReferralCode, referee_user_id: UUID, meta: dict | None = None) -> ReferralEvent | None:
-        # One signup per referee per workspace
+    async def record_signup(self, *, code: ReferralCode, referee_user_id: UUID, meta: dict | None = None) -> ReferralEvent | None:
+        # One signup per referee globally
         exists = await self._db.execute(
             select(ReferralEvent.id).where(
-                ReferralEvent.workspace_id == workspace_id,
                 ReferralEvent.referee_user_id == referee_user_id,
                 ReferralEvent.event_type == "signup",
             )
@@ -52,7 +50,6 @@ class ReferralsRepository(IReferralsRepository):
         if exists.scalar() is not None:
             return None
         evt = ReferralEvent(
-            workspace_id=workspace_id,
             code_id=code.id,
             code=code.code,
             referrer_user_id=code.owner_user_id,
@@ -77,8 +74,8 @@ class ReferralsRepository(IReferralsRepository):
         )
         return int(res.scalar() or 0)
 
-    async def list_codes(self, workspace_id: int, owner_user_id: UUID | None = None, active: bool | None = None, limit: int = 50, offset: int = 0) -> list[ReferralCode]:
-        stmt = select(ReferralCode).where(ReferralCode.workspace_id == workspace_id)
+    async def list_codes(self, owner_user_id: UUID | None = None, active: bool | None = None, limit: int = 50, offset: int = 0) -> list[ReferralCode]:
+        stmt = select(ReferralCode)
         if owner_user_id is not None:
             stmt = stmt.where(ReferralCode.owner_user_id == owner_user_id)
         if active is not None:
@@ -87,8 +84,8 @@ class ReferralsRepository(IReferralsRepository):
         res = await self._db.execute(stmt)
         return list(res.scalars().all())
 
-    async def list_events(self, workspace_id: int, referrer_user_id: UUID | None = None, limit: int = 50, offset: int = 0) -> list[ReferralEvent]:
-        stmt = select(ReferralEvent).where(ReferralEvent.workspace_id == workspace_id)
+    async def list_events(self, referrer_user_id: UUID | None = None, limit: int = 50, offset: int = 0) -> list[ReferralEvent]:
+        stmt = select(ReferralEvent)
         if referrer_user_id is not None:
             stmt = stmt.where(ReferralEvent.referrer_user_id == referrer_user_id)
         stmt = stmt.order_by(ReferralEvent.occurred_at.desc()).limit(limit).offset(offset)
@@ -104,12 +101,12 @@ class ReferralsRepository(IReferralsRepository):
         # Fallback – add timestamp fragment
         return (prefix + token_urlsafe(10)).replace("_", "").replace("-", "").lower()
 
-    async def set_active(self, workspace_id: int, owner_user_id: UUID, active: bool) -> ReferralCode | None:
-        code = await self.get_personal_code(workspace_id, owner_user_id)
+    async def set_active(self, owner_user_id: UUID, active: bool) -> ReferralCode | None:
+        code = await self.get_personal_code(owner_user_id)
         if code is None and active:
             # create a personal code if enabling
             gen = await self.generate_unique_code()
-            code = await self.create_personal_code(workspace_id, owner_user_id, gen)
+            code = await self.create_personal_code(owner_user_id, gen)
         if code is None:
             return None
         code.active = bool(active)

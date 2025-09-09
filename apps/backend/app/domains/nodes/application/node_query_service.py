@@ -29,22 +29,15 @@ class NodeQueryService:
         page: PageRequest,
         *,
         scope_mode: str | None = None,
-        account_id: int | None = None,
-        space_id: int | None = None,
     ) -> str:
-        if account_id is None:
-            account_id = space_id
         join_cond = and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published)
-        if account_id is not None:
-            # In workspace mode, scope by workspace via content items
-            join_cond = and_(join_cond, NodeItem.workspace_id == account_id)
         base = select(func.coalesce(func.count(Node.id), 0), func.max(Node.updated_at)).join(
             NodeItem,
             join_cond,
             isouter=True,
         )
-        if scope_mode is not None or account_id is not None:
-            base, _ = apply_scope(base, getattr(ctx, "user", None), scope_mode, account_id)
+        if scope_mode is not None:
+            base, _ = apply_scope(base, getattr(ctx, "user", None), scope_mode, None)
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
@@ -96,21 +89,15 @@ class NodeQueryService:
         ctx: QueryContext,
         *,
         scope_mode: str | None = None,
-        account_id: int | None = None,
-        space_id: int | None = None,
     ) -> list[Node]:
-        if account_id is None:
-            account_id = space_id
         join_cond = and_(NodeItem.node_id == Node.id, NodeItem.status == Status.published)
-        if account_id is not None:
-            join_cond = and_(join_cond, NodeItem.workspace_id == account_id)
         stmt = select(Node).join(
             NodeItem,
             join_cond,
             isouter=True,
         )
-        if scope_mode is not None or account_id is not None:
-            stmt, _ = apply_scope(stmt, getattr(ctx, "user", None), scope_mode, account_id)
+        if scope_mode is not None:
+            stmt, _ = apply_scope(stmt, getattr(ctx, "user", None), scope_mode, None)
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))

@@ -1,12 +1,13 @@
-import "@testing-library/jest-dom";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { vi } from "vitest";
+import '@testing-library/jest-dom';
 
-import { addAttachment, getCaseFull, patchLabels } from "../api/moderationCases";
-import ModerationCase from "./ModerationCase";
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { vi } from 'vitest';
 
-vi.mock("../api/moderationCases", () => ({
+import { addAttachment, getCaseFull, patchLabels } from '../api/moderationCases';
+import ModerationCase from './ModerationCase';
+
+vi.mock('../api/moderationCases', () => ({
   getCaseFull: vi.fn(),
   addNote: vi.fn(),
   patchLabels: vi.fn(),
@@ -14,14 +15,14 @@ vi.mock("../api/moderationCases", () => ({
   closeCase: vi.fn(),
 }));
 
-vi.mock("../account/AccountContext", () => ({
-  useAccount: () => ({ accountId: "" }),
+vi.mock('../account/AccountContext', () => ({
+  useAccount: () => ({ accountId: '' }),
 }));
 
 function renderPage() {
   render(
     <MemoryRouter
-      initialEntries={["/moderation/cases/1"]}
+      initialEntries={['/moderation/cases/1']}
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <Routes>
@@ -31,17 +32,17 @@ function renderPage() {
   );
 }
 
-describe("ModerationCase", () => {
+describe('ModerationCase', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("allows adding labels and attachments", async () => {
+  it('allows adding labels and attachments', async () => {
     vi.mocked(getCaseFull).mockResolvedValue({
       case: {
-        id: "1",
-        type: "support_request",
-        status: "new",
-        priority: "P1",
-        summary: "s",
+        id: '1',
+        type: 'support_request',
+        status: 'new',
+        priority: 'P1',
+        summary: 's',
         labels: [],
         target_type: null,
         target_id: null,
@@ -53,19 +54,15 @@ describe("ModerationCase", () => {
     });
     renderPage();
     await waitFor(() => screen.getByText(/Details/i));
-    fireEvent.change(screen.getByPlaceholderText("Add label"), {
-      target: { value: "bug" },
+    fireEvent.change(screen.getByPlaceholderText('Add label'), {
+      target: { value: 'bug' },
     });
-    fireEvent.click(screen.getByRole("button", { name: /add label/i }));
-    await waitFor(() =>
-      expect(patchLabels).toHaveBeenCalledWith("1", { add: ["bug"] }),
-    );
-    fireEvent.change(screen.getByPlaceholderText("Attachment URL"), {
-      target: { value: "http://x" },
+    fireEvent.click(screen.getByRole('button', { name: /add label/i }));
+    await waitFor(() => expect(patchLabels).toHaveBeenCalledWith('1', { add: ['bug'] }));
+    fireEvent.change(screen.getByPlaceholderText('Attachment URL'), {
+      target: { value: 'http://x' },
     });
-    fireEvent.click(screen.getByRole("button", { name: /upload/i }));
-    await waitFor(() =>
-      expect(addAttachment).toHaveBeenCalledWith("1", { url: "http://x" }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /upload/i }));
+    await waitFor(() => expect(addAttachment).toHaveBeenCalledWith('1', { url: 'http://x' }));
   });
 });

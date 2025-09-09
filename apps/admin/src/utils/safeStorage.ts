@@ -39,7 +39,7 @@ function createSafeStorage(getStorage: () => Storage | null): SafeStorage {
 }
 
 export const safeLocalStorage = createSafeStorage(() => {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   try {
     return window.localStorage;
   } catch {
@@ -48,7 +48,7 @@ export const safeLocalStorage = createSafeStorage(() => {
 });
 
 export const safeSessionStorage = createSafeStorage(() => {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   try {
     return window.sessionStorage;
   } catch {

@@ -7,7 +7,6 @@ from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.domains.accounts.application.shared_objects_service import has_access
 from app.domains.nodes.models import NodeItem
 from app.domains.quests.access import can_view
 from app.domains.quests.infrastructure.models.quest_models import Quest
@@ -103,15 +102,9 @@ async def get_for_view(db: AsyncSession, *, slug: str, user: User, workspace_id:
     if not quest or (quest.is_draft and quest.author_id != user.id):
         raise ValueError("Quest not found")
     if quest.workspace_id != workspace_id:
-        allowed = await has_access(
-            db,
-            object_type="quest",
-            object_id=quest.id,
-            account_id=workspace_id,
-            permission="view",
-        )
-        if not allowed:
-            raise PermissionError("No access")
+        # Cross-tenant access via shared objects is not allowed.
+        # Treat as not found to avoid leaking existence across tenants.
+        raise ValueError("Quest not found")
     if not await can_view(db, quest=quest, user=user):
         raise PermissionError("No access")
     return quest

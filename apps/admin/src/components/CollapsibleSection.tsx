@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState } from 'react';
 
 export default function CollapsibleSection({
   title,
@@ -18,7 +18,7 @@ export default function CollapsibleSection({
         onClick={() => setOpen((v) => !v)}
       >
         <span className="font-semibold">{title}</span>
-        <span className="text-sm text-gray-500">{open ? "Hide" : "Show"}</span>
+        <span className="text-sm text-gray-500">{open ? 'Hide' : 'Show'}</span>
       </button>
       {open && <div className="px-3 pb-3">{children}</div>}
     </div>

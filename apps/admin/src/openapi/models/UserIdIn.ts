@@ -3,6 +3,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export type UserIdIn = {
-    user_id: string;
+  user_id: string;
 };
-

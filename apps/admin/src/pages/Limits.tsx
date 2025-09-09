@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { useAccount } from "../account/AccountContext";
+import { useEffect, useState } from 'react';
 
-import { api } from "../api/client";
-import ErrorBanner from "../components/ErrorBanner";
+import { useAccount } from '../account/AccountContext';
+import { api } from '../api/client';
+import ErrorBanner from '../components/ErrorBanner';
 
 interface LimitMap {
   [key: string]: number;
@@ -17,8 +17,8 @@ interface BlockItem {
 
 export default function Limits() {
   const { accountId } = useAccount();
-  const [tab, setTab] = useState<"Account" | "User">("Account");
-  const [userId, setUserId] = useState("");
+  const [tab, setTab] = useState<'Account' | 'User'>('Account');
+  const [userId, setUserId] = useState('');
   const [limits, setLimits] = useState<LimitMap>({});
   const [blocks, setBlocks] = useState<BlockItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,11 +28,11 @@ export default function Limits() {
     setError(null);
     setLoading(true);
     try {
-      const q = tab === "User" && userId ? `?user_id=${encodeURIComponent(userId)}` : "";
+      const q = tab === 'User' && userId ? `?user_id=${encodeURIComponent(userId)}` : '';
       const res = await api.get<LimitMap>(`/admin/ops/limits${q}`);
       setLimits(res.data || {});
     } catch (e: any) {
-      setError(e?.message || "Failed to load limits");
+      setError(e?.message || 'Failed to load limits');
       setLimits({});
     } finally {
       setLoading(false);
@@ -41,7 +41,7 @@ export default function Limits() {
 
   const loadBlocks = async () => {
     try {
-      const res = await api.get<BlockItem[]>("/admin/ops/limit-blocks");
+      const res = await api.get<BlockItem[]>('/admin/ops/limit-blocks');
       setBlocks(res.data || []);
     } catch {
       setBlocks([]);
@@ -72,20 +72,20 @@ export default function Limits() {
       <div>
         <div className="border-b flex gap-4">
           <button
-            className={`py-2 text-sm ${tab === "Account" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-600"}`}
-            onClick={() => setTab("Account")}
+            className={`py-2 text-sm ${tab === 'Account' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}
+            onClick={() => setTab('Account')}
           >
             Account
           </button>
           <button
-            className={`py-2 text-sm ${tab === "User" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-600"}`}
-            onClick={() => setTab("User")}
+            className={`py-2 text-sm ${tab === 'User' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}
+            onClick={() => setTab('User')}
           >
             User
           </button>
         </div>
         <div className="p-4 space-y-2">
-          {tab === "User" && (
+          {tab === 'User' && (
             <div className="flex items-center gap-2">
               <input
                 className="rounded border px-2 py-1 w-64"
@@ -141,9 +141,7 @@ export default function Limits() {
             <tbody>
               {blocks.map((b) => (
                 <tr key={b.id} className="border-t">
-                  <td className="px-2 py-1">
-                    {new Date(b.created_at).toLocaleString()}
-                  </td>
+                  <td className="px-2 py-1">{new Date(b.created_at).toLocaleString()}</td>
                   <td className="px-2 py-1">{b.user_id}</td>
                   <td className="px-2 py-1">{b.key}</td>
                 </tr>
@@ -162,4 +160,3 @@ export default function Limits() {
     </div>
   );
 }
-

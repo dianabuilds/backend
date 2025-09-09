@@ -3,6 +3,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export type Body_upload_media_media_post = {
-    file?: Blob;
+  file?: Blob;
 };
-

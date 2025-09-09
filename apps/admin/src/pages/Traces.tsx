@@ -1,8 +1,8 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 
-import { api } from "../api/client";
-import PeriodStepSelector from "../components/PeriodStepSelector";
+import { api } from '../api/client';
+import PeriodStepSelector from '../components/PeriodStepSelector';
 
 interface TraceItem {
   id: string;
@@ -28,21 +28,18 @@ type Filters = {
   date_to?: string;
 };
 
-async function fetchTraces(
-  page: number,
-  filters: Filters,
-): Promise<TraceItem[]> {
+async function fetchTraces(page: number, filters: Filters): Promise<TraceItem[]> {
   const params = new URLSearchParams();
-  params.set("page", String(page));
-  if (filters.from) params.set("from", filters.from);
-  if (filters.to) params.set("to", filters.to);
-  if (filters.user_id) params.set("user_id", filters.user_id);
-  if (filters.source) params.set("source", filters.source);
-  if (filters.channel) params.set("channel", filters.channel);
-  if (filters.type) params.set("type", filters.type);
-  if (filters.date_from) params.set("date_from", filters.date_from);
-  if (filters.date_to) params.set("date_to", filters.date_to);
-  const qs = params.toString() ? `?${params.toString()}` : "";
+  params.set('page', String(page));
+  if (filters.from) params.set('from', filters.from);
+  if (filters.to) params.set('to', filters.to);
+  if (filters.user_id) params.set('user_id', filters.user_id);
+  if (filters.source) params.set('source', filters.source);
+  if (filters.channel) params.set('channel', filters.channel);
+  if (filters.type) params.set('type', filters.type);
+  if (filters.date_from) params.set('date_from', filters.date_from);
+  if (filters.date_to) params.set('date_to', filters.date_to);
+  const qs = params.toString() ? `?${params.toString()}` : '';
   const res = await api.get<TraceItem[]>(`/admin/traces${qs}`);
   return (res.data || []) as TraceItem[];
 }
@@ -62,16 +59,16 @@ async function bulkDelete(ids: string[]) {
 
 export default function Traces() {
   const [page, setPage] = useState(1);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [userId, setUserId] = useState("");
-  const [source, setSource] = useState("");
-  const [channel, setChannel] = useState("");
-  const [type, setType] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [userId, setUserId] = useState('');
+  const [source, setSource] = useState('');
+  const [channel, setChannel] = useState('');
+  const [type, setType] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [range, setRange] = useState<"1h" | "24h">("1h");
+  const [range, setRange] = useState<'1h' | '24h'>('1h');
   const [step, setStep] = useState<60 | 300>(60);
 
   const filters = useMemo<Filters>(
@@ -94,17 +91,14 @@ export default function Traces() {
 
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["traces", page, filters],
+    queryKey: ['traces', page, filters],
     queryFn: () => fetchTraces(page, filters),
     retry: false,
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["traces"] });
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['traces'] });
 
-  const idsSelected = useMemo(
-    () => Object.keys(selected).filter((k) => selected[k]),
-    [selected],
-  );
+  const idsSelected = useMemo(() => Object.keys(selected).filter((k) => selected[k]), [selected]);
   const allChecked = useMemo(() => {
     const items = data || [];
     return items.length > 0 && items.every((t) => selected[t.id]);
@@ -143,8 +137,7 @@ export default function Traces() {
         className="mb-2"
       />
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-        Поиск и просмотр трасс переходов. Используйте фильтры для уточнения
-        результатов.
+        Поиск и просмотр трасс переходов. Используйте фильтры для уточнения результатов.
       </p>
 
       <div className="mb-3 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -204,10 +197,7 @@ export default function Traces() {
         <button onClick={handleBulkAnon} className="px-3 py-1 rounded border">
           Массовая анонимизация
         </button>
-        <button
-          onClick={handleBulkDelete}
-          className="px-3 py-1 rounded border text-red-600"
-        >
+        <button onClick={handleBulkDelete} className="px-3 py-1 rounded border text-red-600">
           Массовое удаление
         </button>
       </div>
@@ -215,11 +205,14 @@ export default function Traces() {
       {isLoading && <p>Загрузка...</p>}
       {error && (
         <div className="text-red-500">
-          {(error as any)?.response?.data?.detail || (error as Error).message}
-          <button
-            onClick={() => refetch()}
-            className="ml-2 underline"
-          >
+          {(() => {
+            const err = error as unknown as { response?: { data?: { detail?: string } } };
+            return (
+              err?.response?.data?.detail ||
+              (error instanceof Error ? error.message : String(error))
+            );
+          })()}
+          <button onClick={() => refetch()} className="ml-2 underline">
             Повторить
           </button>
         </div>
@@ -229,11 +222,7 @@ export default function Traces() {
           <thead>
             <tr className="border-b">
               <th className="p-2">
-                <input
-                  type="checkbox"
-                  checked={allChecked}
-                  onChange={toggleAll}
-                />
+                <input type="checkbox" checked={allChecked} onChange={toggleAll} />
               </th>
               <th className="p-2">Откуда</th>
               <th className="p-2">Куда</th>
@@ -248,30 +237,23 @@ export default function Traces() {
           </thead>
           <tbody>
             {data?.map((t) => (
-              <tr
-                key={t.id}
-                className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
+              <tr key={t.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                 <td className="p-2">
                   <input
                     type="checkbox"
                     checked={!!selected[t.id]}
-                    onChange={(e) =>
-                      setSelected((s) => ({ ...s, [t.id]: e.target.checked }))
-                    }
+                    onChange={(e) => setSelected((s) => ({ ...s, [t.id]: e.target.checked }))}
                   />
                 </td>
-                <td className="p-2">{t.from_slug ?? "-"}</td>
-                <td className="p-2">{t.to_slug ?? "-"}</td>
-                <td className="p-2">{t.user_id ?? "анон"}</td>
-                <td className="p-2">{t.type ?? "-"}</td>
-                <td className="p-2">{t.source ?? "-"}</td>
-                <td className="p-2">{t.channel ?? "-"}</td>
+                <td className="p-2">{t.from_slug ?? '-'}</td>
+                <td className="p-2">{t.to_slug ?? '-'}</td>
+                <td className="p-2">{t.user_id ?? 'анон'}</td>
+                <td className="p-2">{t.type ?? '-'}</td>
+                <td className="p-2">{t.source ?? '-'}</td>
+                <td className="p-2">{t.channel ?? '-'}</td>
+                <td className="p-2">{t.latency_ms != null ? `${t.latency_ms} ms` : '-'}</td>
                 <td className="p-2">
-                  {t.latency_ms != null ? `${t.latency_ms} ms` : "-"}
-                </td>
-                <td className="p-2">
-                  {t.created_at ? new Date(t.created_at).toLocaleString() : "-"}
+                  {t.created_at ? new Date(t.created_at).toLocaleString() : '-'}
                 </td>
                 <td className="p-2 space-x-2">
                   <button
@@ -314,16 +296,10 @@ export default function Traces() {
           Назад
         </button>
         <span>Страница {page}</span>
-        <button
-          onClick={() => setPage((p) => p + 1)}
-          className="px-3 py-1 border rounded"
-        >
+        <button onClick={() => setPage((p) => p + 1)} className="px-3 py-1 border rounded">
           Вперед
         </button>
-        <button
-          onClick={clearSelection}
-          className="ml-auto px-3 py-1 border rounded"
-        >
+        <button onClick={clearSelection} className="ml-auto px-3 py-1 border rounded">
           Сбросить выбор
         </button>
       </div>

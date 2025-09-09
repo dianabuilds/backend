@@ -3,11 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type NodePatchDiffOut = {
-    id: number;
-    node_id: number;
-    data: Record<string, any>;
-    created_at: string;
-    reverted_at?: (string | null);
-    diff?: (string | null);
+  id: number;
+  node_id: number;
+  data: Record<string, any>;
+  created_at: string;
+  reverted_at?: string | null;
+  diff?: string | null;
 };
-

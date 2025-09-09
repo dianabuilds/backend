@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type QuestCreateIn = {
-    key?: (string | null);
-    title: string;
-    tags?: (Array<string> | null);
+  key?: string | null;
+  title: string;
+  tags?: Array<string> | null;
 };
-

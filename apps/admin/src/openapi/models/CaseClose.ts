@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CaseClose = {
-    resolution: string;
-    reason_code?: (string | null);
-    reason_text?: (string | null);
+  resolution: string;
+  reason_code?: string | null;
+  reason_text?: string | null;
 };
-

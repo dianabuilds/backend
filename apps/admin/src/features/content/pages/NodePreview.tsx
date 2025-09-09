@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { getNode } from '../../../api/nodes';
 import { useAccount } from '../../../account/AccountContext';
+import { getNode } from '../../../api/nodes';
 import type { Doc } from '../components/AdminNodePreview';
 import AdminNodePreview from '../components/AdminNodePreview';
 
@@ -19,7 +18,13 @@ export default function NodePreview() {
     (async () => {
       try {
         const n = await getNode(accountId || '', id);
-        const blocks = Array.isArray((n.content as any)?.blocks) ? (n.content as any).blocks : [];
+        const content = (n as unknown as { content?: unknown }).content;
+        const blocks =
+          content &&
+          typeof content === 'object' &&
+          Array.isArray((content as { blocks?: unknown }).blocks)
+            ? ((content as { blocks?: unknown }).blocks as Doc['blocks'])
+            : [];
         setDoc({
           title: n.title || '',
           cover: n.coverUrl || undefined,

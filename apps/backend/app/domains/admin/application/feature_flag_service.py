@@ -30,6 +30,8 @@ class FeatureFlagKey(StrEnum):
     NAV_CACHE_V2 = "navigation.cache_v2"
     PROFILE_ENABLED = "profile.enabled"
     ROUTING_ACCOUNTS_V2 = "routing.accounts_v2"
+    # Legacy alias handling for nodes routed under quests
+    QUESTS_NODES_REDIRECT = "quests.nodes_redirect"
 
 
 # Predefined feature flags available in the system with optional descriptions
@@ -60,6 +62,10 @@ KNOWN_FLAGS: dict[FeatureFlagKey, tuple[str, str]] = {
     FeatureFlagKey.PROFILE_ENABLED: ("Enable user profile feature", "all"),
     FeatureFlagKey.ROUTING_ACCOUNTS_V2: (
         "Enable accounts v2 routing",
+        "all",
+    ),
+    FeatureFlagKey.QUESTS_NODES_REDIRECT: (
+        "Redirect legacy /nodes/* routes to quests views",
         "all",
     ),
 }

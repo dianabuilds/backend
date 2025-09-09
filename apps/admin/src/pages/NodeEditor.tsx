@@ -31,7 +31,11 @@ type NodeEditorData = {
   nodeType: string;
   coverUrl?: string | null;
   coverAssetId: string | null;
-  coverMeta: any | null;
+  coverMeta: {
+    focalX?: number;
+    focalY?: number;
+    crop?: { x: number; y: number; width: number; height: number };
+  } | null;
   coverAlt: string;
   content: OutputData;
   tags: string[];
@@ -45,7 +49,7 @@ interface NodeDraft {
 }
 
 // Простой помощник для сравнения значений (примитивы/массивы/объекты)
-function shallowEqual(a: any, b: any): boolean {
+function shallowEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   const ta = typeof a;
   const tb = typeof b;
@@ -62,12 +66,12 @@ function shallowEqual(a: any, b: any): boolean {
       return true;
     }
     // Плоское сравнение ключей без глубокой рекурсии
-    const ka = Object.keys(a);
-    const kb = Object.keys(b);
+    const ka = Object.keys(a as object);
+    const kb = Object.keys(b as object);
     if (ka.length !== kb.length) return false;
     for (const k of ka) {
-      if (!Object.prototype.hasOwnProperty.call(b, k)) return false;
-      if (a[k] !== b[k]) return false;
+      if (!Object.prototype.hasOwnProperty.call(b as object, k)) return false;
+      if ((a as Record<string, unknown>)[k] !== (b as Record<string, unknown>)[k]) return false;
     }
     return true;
   } catch {
@@ -81,33 +85,50 @@ function shallowEqual(a: any, b: any): boolean {
 }
 
 // Нормализация полей, приходящих с бэкенда (snake_case/различные представления)
-function normalizeCoverUrl(src: any): string | null {
+function normalizeCoverUrl(src: unknown): string | null {
   if (!src) return null;
   if (typeof src === 'string') return src;
-  const obj = (src as any).cover ?? src;
-  return (obj as any).coverUrl ?? (obj as any).url ?? null;
+  const obj: unknown =
+    typeof src === 'object' && src !== null && 'cover' in (src as Record<string, unknown>)
+      ? (src as Record<string, unknown>).cover
+      : src;
+  if (obj && typeof obj === 'object') {
+    const maybeUrl =
+      (obj as Record<string, unknown>).coverUrl ?? (obj as Record<string, unknown>).url;
+    return typeof maybeUrl === 'string' ? maybeUrl : null;
+  }
+  return null;
 }
 
-function normalizeTags(input: any): string[] {
+function normalizeTags(input: unknown): string[] {
   if (!input) return [];
   if (Array.isArray(input)) {
-    // если уже массив строк
+    // уже массив строк
     if (input.every((t) => typeof t === 'string')) return input as string[];
-    // если массив объектов с полем slug/name
-    return (input as any[])
-      .map((t) => (typeof t === 'string' ? t : (t && (t.slug || t.name)) || null))
-      .filter(Boolean) as string[];
+    // массив объектов/смешанный
+    return input
+      .map((t) => {
+        if (typeof t === 'string') return t;
+        if (t && typeof t === 'object') {
+          const o = t as Record<string, unknown>;
+          const v = (o.slug ?? o.name) as unknown;
+          return typeof v === 'string' ? v : null;
+        }
+        return null;
+      })
+      .filter((v): v is string => typeof v === 'string');
   }
-  // возможен вариант { tags: [...] }
-  if (Array.isArray((input as any).tags)) {
-    return ((input as any).tags as any[]).map(String);
+  if (typeof input === 'object' && input !== null) {
+    const maybeTags = (input as Record<string, unknown>).tags;
+    if (Array.isArray(maybeTags)) return maybeTags.map(String);
   }
   return [];
 }
 
-function normalizeNodeType(src: any): string | undefined {
-  if (!src) return undefined;
-  return (src as any).nodeType ?? undefined;
+function normalizeNodeType(src: unknown): string | undefined {
+  if (!src || typeof src !== 'object') return undefined;
+  const v = (src as Record<string, unknown>).nodeType;
+  return typeof v === 'string' ? v : undefined;
 }
 
 // Преобразуем относительный URL в абсолютный к backend origin
@@ -153,9 +174,9 @@ export default function NodeEditor() {
         const n = await getNode(accountId || '', id);
 
         const normalizedCover = resolveAssetUrl(normalizeCoverUrl(n));
-        const normalizedTags = normalizeTags((n as any).tags);
+        const normalizedTags = normalizeTags(n as unknown);
         const normalizedType = normalizeNodeType(n) ?? 'article';
-        const rawContent: unknown = (n as any).content;
+        const rawContent: unknown = (n as unknown as Record<string, unknown>).content;
         let normalizedContent: OutputData;
         if (typeof rawContent === 'string') {
           try {
@@ -178,22 +199,46 @@ export default function NodeEditor() {
         }
 
         setNode({
-          id: String((n as any).id),
-          title: (n as any).title ?? '',
-          slug: (n as any).slug ?? undefined,
-          authorId: (n as any).authorId ?? (n as any).author_id ?? undefined,
-          createdAt: (n as any).createdAt ?? (n as any).created_at ?? undefined,
-          updatedAt: (n as any).updatedAt ?? (n as any).updated_at ?? undefined,
-          isPublic: (n as any).isPublic ?? (n as any).is_public ?? false,
-          isVisible: (n as any).isVisible ?? (n as any).is_visible ?? true,
-          allowFeedback: (n as any).allowFeedback ?? (n as any).allow_feedback ?? true,
-          premiumOnly: (n as any).premiumOnly ?? (n as any).premium_only ?? false,
-          publishedAt: (n as any).publishedAt ?? null,
+          id:
+            (n as unknown as { id?: number }).id ??
+            Number((n as unknown as Record<string, unknown>).id),
+          title: (n as unknown as { title?: string }).title ?? '',
+          slug: (n as unknown as { slug?: string }).slug ?? undefined,
+          authorId:
+            (n as unknown as { authorId?: string; author_id?: string }).authorId ??
+            (n as unknown as { author_id?: string }).author_id ??
+            undefined,
+          createdAt:
+            (n as unknown as { createdAt?: string; created_at?: string }).createdAt ??
+            (n as unknown as { created_at?: string }).created_at ??
+            undefined,
+          updatedAt:
+            (n as unknown as { updatedAt?: string; updated_at?: string }).updatedAt ??
+            (n as unknown as { updated_at?: string }).updated_at ??
+            undefined,
+          isPublic:
+            (n as unknown as { isPublic?: boolean; is_public?: boolean }).isPublic ??
+            (n as unknown as { is_public?: boolean }).is_public ??
+            false,
+          isVisible:
+            (n as unknown as { isVisible?: boolean; is_visible?: boolean }).isVisible ??
+            (n as unknown as { is_visible?: boolean }).is_visible ??
+            true,
+          allowFeedback:
+            (n as unknown as { allowFeedback?: boolean; allow_feedback?: boolean }).allowFeedback ??
+            (n as unknown as { allow_feedback?: boolean }).allow_feedback ??
+            true,
+          premiumOnly:
+            (n as unknown as { premiumOnly?: boolean; premium_only?: boolean }).premiumOnly ??
+            (n as unknown as { premium_only?: boolean }).premium_only ??
+            false,
+          publishedAt: (n as unknown as { publishedAt?: string | null }).publishedAt ?? null,
           nodeType: normalizedType || 'article',
           coverUrl: normalizedCover ?? null,
-          coverAssetId: (n as any).coverAssetId ?? null,
-          coverMeta: (n as any).coverMeta ?? null,
-          coverAlt: (n as any).coverAlt ?? '',
+          coverAssetId: (n as unknown as { coverAssetId?: string | null }).coverAssetId ?? null,
+          coverMeta:
+            (n as unknown as { coverMeta?: NodeEditorData['coverMeta'] }).coverMeta ?? null,
+          coverAlt: (n as unknown as { coverAlt?: string }).coverAlt ?? '',
           content: normalizedContent,
           tags: normalizedTags,
         });
@@ -259,9 +304,7 @@ function NodeCreate({ accountId, nodeType }: { accountId: string; nodeType: stri
 
   const handleClose = () => {
     navigate(
-      accountId
-        ? `/nodes?account_id=${accountId}&type=${nodeType}`
-        : `/nodes?type=${nodeType}`,
+      accountId ? `/nodes?account_id=${accountId}&type=${nodeType}` : `/nodes?type=${nodeType}`,
     );
   };
 
@@ -354,26 +397,25 @@ function NodeEditorInner({
       );
 
       const updatedCover = resolveAssetUrl(
-        (updated as any).coverUrl ??
-          (nodeRef.current as any).coverUrl ??
-          null,
+        normalizeCoverUrl(updated) ?? nodeRef.current.coverUrl ?? null,
       );
       const updatedTags = normalizeTags(
-        (updated as any).tags ?? nodeRef.current.tags,
+        (updated as unknown as { tags?: unknown }).tags ?? nodeRef.current.tags,
       );
 
       setNode((prev) => ({
         ...prev,
         ...patch,
-        slug: (updated as any).slug ?? prev.slug,
-        updatedAt: (updated as any).updatedAt ?? prev.updatedAt,
+        slug: (updated as { slug?: string }).slug ?? prev.slug,
+        updatedAt: (updated as { updatedAt?: string }).updatedAt ?? prev.updatedAt,
         coverUrl: updatedCover,
         tags: updatedTags,
       }));
       setSavedAt(new Date());
       setSaveError(null);
-    } catch (e: any) {
-      if (e?.response?.status === 409) {
+    } catch (e: unknown) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
         setSaveError('Conflict: node was updated elsewhere');
       } else {
         setSaveError(e instanceof Error ? e.message : String(e));
@@ -390,16 +432,17 @@ function NodeEditorInner({
       setNode((prev) => ({
         ...prev,
         isPublic:
-          (updated as any).isPublic ??
-          (updated as any).is_public ??
+          (updated as unknown as { isPublic?: boolean; is_public?: boolean }).isPublic ??
+          (updated as unknown as { is_public?: boolean }).is_public ??
           prev.isPublic,
         publishedAt:
-          (updated as any).publishedAt ??
-          (updated as any).published_at ??
+          (updated as unknown as { publishedAt?: string | null; published_at?: string | null })
+            .publishedAt ??
+          (updated as unknown as { published_at?: string | null }).published_at ??
           prev.publishedAt,
         updatedAt:
-          (updated as any).updatedAt ??
-          (updated as any).updated_at ??
+          (updated as { updatedAt?: string } & { updated_at?: string }).updatedAt ??
+          (updated as { updated_at?: string }).updated_at ??
           prev.updatedAt,
       }));
     } catch {
@@ -474,8 +517,7 @@ function NodeEditorInner({
     const prev = nodeRef.current;
     let changed = false;
     for (const [k, v] of Object.entries(localNext)) {
-      // @ts-expect-error индексный доступ по ключу
-      const current = (prev as any)[k];
+      const current = (prev as unknown as Record<string, unknown>)[k];
       if (!shallowEqual(current, v)) {
         changed = true;
         break;
@@ -542,9 +584,7 @@ function NodeEditorInner({
   const handleCreate = () => {
     if (!canEdit) return;
     const t = node.nodeType || 'article';
-    const path = accountId
-      ? `/nodes/${t}/new?account_id=${accountId}`
-      : `/nodes/${t}/new`;
+    const path = accountId ? `/nodes/${t}/new?account_id=${accountId}` : `/nodes/${t}/new`;
     navigate(path);
   };
 
@@ -553,11 +593,7 @@ function NodeEditorInner({
       return;
     }
     const t = node.nodeType || 'article';
-    navigate(
-      accountId
-        ? `/nodes?account_id=${accountId}&type=${t}`
-        : `/nodes?type=${t}`,
-    );
+    navigate(accountId ? `/nodes?account_id=${accountId}&type=${t}` : `/nodes?type=${t}`);
   };
 
   // изменения контента из EditorJS → в очередь PATCH

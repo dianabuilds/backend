@@ -25,46 +25,46 @@ class AIUsageRepository:
         row = (await self._db.execute(stmt)).one()
         return {"cost": float(row.cost or 0), "tokens": int(row.tokens or 0)}
 
-    async def by_account(self, since: datetime | None = None) -> list[dict[str, Any]]:
+    async def by_profile(self, since: datetime | None = None) -> list[dict[str, Any]]:
         stmt = select(
-            AIUsage.workspace_id,
+            AIUsage.profile_id,
             func.coalesce(func.sum(AIUsage.cost), 0.0).label("cost"),
             func.coalesce(func.sum(AIUsage.total_tokens), 0).label("tokens"),
-        ).group_by(AIUsage.workspace_id)
+        ).group_by(AIUsage.profile_id)
         if since is not None:
             stmt = stmt.where(AIUsage.ts >= since)
         rows = await self._db.execute(stmt)
         out: list[dict[str, Any]] = []
-        for account_id, cost, tokens in rows.all():
+        for profile_id, cost, tokens in rows.all():
             out.append(
                 {
-                    "account_id": account_id,
+                    "profile_id": profile_id,
                     "cost": float(cost or 0),
                     "tokens": int(tokens or 0),
                 }
             )
         return out
 
-    async def account_totals(
-        self, account_id: int, since: datetime | None = None
+    async def profile_totals(
+        self, profile_id: int, since: datetime | None = None
     ) -> dict[str, Any]:
         stmt = select(
             func.coalesce(func.sum(AIUsage.cost), 0.0).label("cost"),
             func.coalesce(func.sum(AIUsage.total_tokens), 0).label("tokens"),
-        ).where(AIUsage.workspace_id == account_id)
+        ).where(AIUsage.profile_id == profile_id)
         if since is not None:
             stmt = stmt.where(AIUsage.ts >= since)
         row = (await self._db.execute(stmt)).one()
         return {"cost": float(row.cost or 0), "tokens": int(row.tokens or 0)}
 
-    async def by_user(self, account_id: int, since: datetime | None = None) -> list[dict[str, Any]]:
+    async def by_user(self, profile_id: int, since: datetime | None = None) -> list[dict[str, Any]]:
         stmt = (
             select(
                 AIUsage.user_id,
                 func.coalesce(func.sum(AIUsage.cost), 0.0).label("cost"),
                 func.coalesce(func.sum(AIUsage.total_tokens), 0).label("tokens"),
             )
-            .where(AIUsage.workspace_id == account_id)
+            .where(AIUsage.profile_id == profile_id)
             .group_by(AIUsage.user_id)
         )
         if since is not None:
@@ -82,15 +82,15 @@ class AIUsageRepository:
         return out
 
     async def by_model(
-        self, account_id: int | None = None, since: datetime | None = None
+        self, profile_id: int | None = None, since: datetime | None = None
     ) -> list[dict[str, Any]]:
         stmt = select(
             AIUsage.model,
             func.coalesce(func.sum(AIUsage.cost), 0.0).label("cost"),
             func.coalesce(func.sum(AIUsage.total_tokens), 0).label("tokens"),
         )
-        if account_id is not None:
-            stmt = stmt.where(AIUsage.workspace_id == account_id)
+        if profile_id is not None:
+            stmt = stmt.where(AIUsage.profile_id == profile_id)
         if since is not None:
             stmt = stmt.where(AIUsage.ts >= since)
         stmt = stmt.group_by(AIUsage.model)

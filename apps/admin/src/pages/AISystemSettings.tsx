@@ -1,23 +1,13 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import {
-  Cloud,
-  Box,
-  Wallet,
-  Pencil,
-  Trash2,
-  RefreshCcw,
-  Plus,
-  Search,
-  Circle,
-} from "lucide-react";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Box, Circle, Cloud, Pencil, Plus, RefreshCcw, Search, Trash2, Wallet } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
-import { api } from "../api/client";
-import { confirmDialog } from "../shared/ui";
-import DataTable from "../components/DataTable";
-import type { Column } from "../components/DataTable.helpers";
-import TabRouter from "../components/TabRouter";
-import Slideover from "../components/Slideover";
+import { api } from '../api/client';
+import DataTable from '../components/DataTable';
+import type { Column } from '../components/DataTable.helpers';
+import Slideover from '../components/Slideover';
+import TabRouter from '../components/TabRouter';
+import { confirmDialog } from '../shared/ui';
 
 // Используем any, так как точные структуры могут меняться
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,14 +33,14 @@ export default function AISystemSettings() {
 }
 
 function StatusDot({ status }: { status?: string }) {
-  const s = (status || "").toLowerCase();
-  let color = "text-gray-400";
-  if (s.includes("ok") || s.includes("up") || s.includes("healthy")) {
-    color = "text-green-500";
-  } else if (s.includes("warn") || s.includes("degraded")) {
-    color = "text-yellow-500";
-  } else if (s.includes("down") || s.includes("error")) {
-    color = "text-red-500";
+  const s = (status || '').toLowerCase();
+  let color = 'text-gray-400';
+  if (s.includes('ok') || s.includes('up') || s.includes('healthy')) {
+    color = 'text-green-500';
+  } else if (s.includes('warn') || s.includes('degraded')) {
+    color = 'text-yellow-500';
+  } else if (s.includes('down') || s.includes('error')) {
+    color = 'text-red-500';
   }
   return <Circle className={`w-3 h-3 ${color}`} fill="currentColor" />;
 }
@@ -58,37 +48,32 @@ function StatusDot({ status }: { status?: string }) {
 function SettingsTabs() {
   const qc = useQueryClient();
   const providers = useQuery({
-    queryKey: ["ai", "providers"],
-    queryFn: async () =>
-      (await api.get<Provider[]>("/admin/ai/system/providers")).data || [],
+    queryKey: ['ai', 'providers'],
+    queryFn: async () => (await api.get<Provider[]>('/admin/ai/system/providers')).data || [],
   });
   const models = useQuery({
-    queryKey: ["ai", "models"],
-    queryFn: async () =>
-      (await api.get<Model[]>("/admin/ai/system/models")).data || [],
+    queryKey: ['ai', 'models'],
+    queryFn: async () => (await api.get<Model[]>('/admin/ai/system/models')).data || [],
   });
   const prices = useQuery({
-    queryKey: ["ai", "prices"],
-    queryFn: async () =>
-      (await api.get<Price[]>("/admin/ai/system/prices")).data || [],
+    queryKey: ['ai', 'prices'],
+    queryFn: async () => (await api.get<Price[]>('/admin/ai/system/prices')).data || [],
   });
   const defaults = useQuery({
-    queryKey: ["ai", "defaults"],
-    queryFn: async () =>
-      (await api.get<Defaults>("/admin/ai/system/defaults")).data || {},
+    queryKey: ['ai', 'defaults'],
+    queryFn: async () => (await api.get<Defaults>('/admin/ai/system/defaults')).data || {},
   });
 
   // Drafts for editor
-  const [providerDraft, setProviderDraft] =
-    useState<Partial<Provider> | null>(null);
+  const [providerDraft, setProviderDraft] = useState<Partial<Provider> | null>(null);
   const [modelDraft, setModelDraft] = useState<Partial<Model> | null>(null);
   const [priceDraft, setPriceDraft] = useState<Partial<Price> | null>(null);
 
   // Search / filters
-  const [providerSearch, setProviderSearch] = useState("");
-  const [modelSearch, setModelSearch] = useState("");
-  const [modelProviderFilter, setModelProviderFilter] = useState("");
-  const [priceSearch, setPriceSearch] = useState("");
+  const [providerSearch, setProviderSearch] = useState('');
+  const [modelSearch, setModelSearch] = useState('');
+  const [modelProviderFilter, setModelProviderFilter] = useState('');
+  const [priceSearch, setPriceSearch] = useState('');
 
   // Filtered rows
   const providerRows = useMemo(
@@ -127,18 +112,18 @@ function SettingsTabs() {
 
   // Default setters
   const setDefaultProvider = async (id: string) => {
-    await api.put("/admin/ai/system/defaults", {
+    await api.put('/admin/ai/system/defaults', {
       ...(defaults.data || {}),
       provider_id: id,
     });
-    await qc.invalidateQueries({ queryKey: ["ai", "defaults"] });
+    await qc.invalidateQueries({ queryKey: ['ai', 'defaults'] });
   };
   const setDefaultModel = async (id: string) => {
-    await api.put("/admin/ai/system/defaults", {
+    await api.put('/admin/ai/system/defaults', {
       ...(defaults.data || {}),
       model_id: id,
     });
-    await qc.invalidateQueries({ queryKey: ["ai", "defaults"] });
+    await qc.invalidateQueries({ queryKey: ['ai', 'defaults'] });
   };
 
   // Provider actions
@@ -150,108 +135,87 @@ function SettingsTabs() {
         providerDraft,
       );
     } else {
-      await api.post("/admin/ai/system/providers", providerDraft);
+      await api.post('/admin/ai/system/providers', providerDraft);
     }
     setProviderDraft(null);
-    await qc.invalidateQueries({ queryKey: ["ai", "providers"] });
+    await qc.invalidateQueries({ queryKey: ['ai', 'providers'] });
   };
   const removeProvider = async (id: string) => {
-    if (!(await confirmDialog("Delete provider?"))) return;
+    if (!(await confirmDialog('Delete provider?'))) return;
     await api.del(`/admin/ai/system/providers/${encodeURIComponent(id)}`);
-    await qc.invalidateQueries({ queryKey: ["ai", "providers"] });
+    await qc.invalidateQueries({ queryKey: ['ai', 'providers'] });
   };
   const refreshPrices = async (id: string) => {
-    await api.post(
-      `/admin/ai/system/providers/${encodeURIComponent(id)}/refresh_prices`,
-      {},
-    );
-    await qc.invalidateQueries({ queryKey: ["ai", "prices"] });
+    await api.post(`/admin/ai/system/providers/${encodeURIComponent(id)}/refresh_prices`, {});
+    await qc.invalidateQueries({ queryKey: ['ai', 'prices'] });
   };
 
   // Model actions
   const saveModel = async () => {
     if (!modelDraft) return;
     if (modelDraft.id) {
-      await api.put(
-        `/admin/ai/system/models/${encodeURIComponent(modelDraft.id)}`,
-        modelDraft,
-      );
+      await api.put(`/admin/ai/system/models/${encodeURIComponent(modelDraft.id)}`, modelDraft);
     } else {
-      await api.post("/admin/ai/system/models", modelDraft);
+      await api.post('/admin/ai/system/models', modelDraft);
     }
     setModelDraft(null);
-    await qc.invalidateQueries({ queryKey: ["ai", "models"] });
+    await qc.invalidateQueries({ queryKey: ['ai', 'models'] });
   };
   const removeModel = async (id: string) => {
-    if (!(await confirmDialog("Delete model?"))) return;
+    if (!(await confirmDialog('Delete model?'))) return;
     await api.del(`/admin/ai/system/models/${encodeURIComponent(id)}`);
-    await qc.invalidateQueries({ queryKey: ["ai", "models"] });
+    await qc.invalidateQueries({ queryKey: ['ai', 'models'] });
   };
 
   // Price actions
   const savePrice = async () => {
     if (!priceDraft) return;
     if (priceDraft.id) {
-      await api.put(
-        `/admin/ai/system/prices/${encodeURIComponent(priceDraft.id)}`,
-        priceDraft,
-      );
+      await api.put(`/admin/ai/system/prices/${encodeURIComponent(priceDraft.id)}`, priceDraft);
     } else {
-      await api.post("/admin/ai/system/prices", priceDraft);
+      await api.post('/admin/ai/system/prices', priceDraft);
     }
     setPriceDraft(null);
-    await qc.invalidateQueries({ queryKey: ["ai", "prices"] });
+    await qc.invalidateQueries({ queryKey: ['ai', 'prices'] });
   };
   const removePrice = async (id: string) => {
-    if (!(await confirmDialog("Delete price?"))) return;
+    if (!(await confirmDialog('Delete price?'))) return;
     await api.del(`/admin/ai/system/prices/${encodeURIComponent(id)}`);
-    await qc.invalidateQueries({ queryKey: ["ai", "prices"] });
+    await qc.invalidateQueries({ queryKey: ['ai', 'prices'] });
   };
 
   const providerColumns: Column<Provider>[] = [
-    { key: "id", title: "ID" },
-    { key: "code", title: "Code" },
+    { key: 'id', title: 'ID' },
+    { key: 'code', title: 'Code' },
     {
-      key: "health",
-      title: "Health",
+      key: 'health',
+      title: 'Health',
       render: (p) => <StatusDot status={p.health || p.health_status} />,
     },
     {
-      key: "default",
-      title: "Default",
+      key: 'default',
+      title: 'Default',
       render: (p) =>
         defaults.data?.provider_id === p.id ? (
           <span className="text-green-600">default</span>
         ) : (
-          <button
-            className="text-blue-600"
-            onClick={() => setDefaultProvider(p.id)}
-          >
+          <button className="text-blue-600" onClick={() => setDefaultProvider(p.id)}>
             make default
           </button>
         ),
     },
     {
-      key: "actions",
-      title: "Actions",
+      key: 'actions',
+      title: 'Actions',
       render: (p) => (
         <div className="flex gap-2">
-          <button
-            className="text-blue-600"
-            onClick={() => setProviderDraft(p)}
-          >
+          <button className="text-blue-600" onClick={() => setProviderDraft(p)}>
             <Pencil className="w-4 h-4" />
           </button>
-          <button
-            className="text-red-600"
-            onClick={() => removeProvider(p.id)}
-          >
+          <button className="text-red-600" onClick={() => removeProvider(p.id)}>
             <Trash2 className="w-4 h-4" />
           </button>
-          <button
-            className="text-green-600"
-            onClick={() => refreshPrices(p.id)}
-          >
+          <button className="text-green-600" onClick={() => refreshPrices(p.id)}>
             <RefreshCcw className="w-4 h-4" />
           </button>
         </div>
@@ -260,42 +224,35 @@ function SettingsTabs() {
   ];
 
   const modelColumns: Column<Model>[] = [
-    { key: "id", title: "ID" },
+    { key: 'id', title: 'ID' },
     {
-      key: "provider",
-      title: "Provider",
+      key: 'provider',
+      title: 'Provider',
       render: (m) =>
-        providers.data?.find((p: Provider) => p.id === m.provider_id)?.code ||
-        m.provider_id,
+        providers.data?.find((p: Provider) => p.id === m.provider_id)?.code || m.provider_id,
     },
-    { key: "name", title: "Name", accessor: (m) => m.name || m.code },
+    { key: 'name', title: 'Name', accessor: (m) => m.name || m.code },
     {
-      key: "default",
-      title: "Default",
+      key: 'default',
+      title: 'Default',
       render: (m) =>
         defaults.data?.model_id === m.id ? (
           <span className="text-green-600">default</span>
         ) : (
-          <button
-            className="text-blue-600"
-            onClick={() => setDefaultModel(m.id)}
-          >
+          <button className="text-blue-600" onClick={() => setDefaultModel(m.id)}>
             make default
           </button>
         ),
     },
     {
-      key: "actions",
-      title: "Actions",
+      key: 'actions',
+      title: 'Actions',
       render: (m) => (
         <div className="flex gap-2">
           <button className="text-blue-600" onClick={() => setModelDraft(m)}>
             <Pencil className="w-4 h-4" />
           </button>
-          <button
-            className="text-red-600"
-            onClick={() => removeModel(m.id)}
-          >
+          <button className="text-red-600" onClick={() => removeModel(m.id)}>
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
@@ -304,37 +261,32 @@ function SettingsTabs() {
   ];
 
   const priceColumns: Column<Price>[] = [
-    { key: "id", title: "ID" },
+    { key: 'id', title: 'ID' },
     {
-      key: "model",
-      title: "Model",
-      render: (pr) =>
-        models.data?.find((m: Model) => m.id === pr.model_id)?.name ||
-        pr.model_id,
+      key: 'model',
+      title: 'Model',
+      render: (pr) => models.data?.find((m: Model) => m.id === pr.model_id)?.name || pr.model_id,
     },
     {
-      key: "input",
-      title: "Input",
+      key: 'input',
+      title: 'Input',
       accessor: (pr) => pr.input_price ?? pr.input_tokens,
     },
     {
-      key: "output",
-      title: "Output",
+      key: 'output',
+      title: 'Output',
       accessor: (pr) => pr.output_price ?? pr.output_tokens,
     },
-    { key: "currency", title: "Currency" },
+    { key: 'currency', title: 'Currency' },
     {
-      key: "actions",
-      title: "Actions",
+      key: 'actions',
+      title: 'Actions',
       render: (pr) => (
         <div className="flex gap-2">
           <button className="text-blue-600" onClick={() => setPriceDraft(pr)}>
             <Pencil className="w-4 h-4" />
           </button>
-          <button
-            className="text-red-600"
-            onClick={() => removePrice(pr.id)}
-          >
+          <button className="text-red-600" onClick={() => removePrice(pr.id)}>
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
@@ -346,7 +298,7 @@ function SettingsTabs() {
     <TabRouter
       plugins={[
         {
-          name: "Providers",
+          name: 'Providers',
           render: () => (
             <div className="space-y-4">
               <div className="bg-white p-4 rounded shadow space-y-4">
@@ -382,27 +334,27 @@ function SettingsTabs() {
               </div>
               <Slideover
                 open={!!providerDraft}
-                title={providerDraft?.id ? "Edit provider" : "New provider"}
+                title={providerDraft?.id ? 'Edit provider' : 'New provider'}
                 onClose={() => setProviderDraft(null)}
               >
                 <div className="space-y-2">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm text-gray-600">code</label>
+                    <label className="text-sm text-gray-600">Base URL</label>
                     <input
                       className="border rounded px-2 py-1 w-full"
-                      value={providerDraft?.code || ""}
+                      value={providerDraft?.base_url || ''}
                       onChange={(e) =>
-                        setProviderDraft((s) => ({ ...(s || {}), code: e.target.value }))
+                        setProviderDraft((s) => ({ ...(s || {}), base_url: e.target.value }))
                       }
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm text-gray-600">base_url</label>
+                    <label className="text-sm text-gray-600">Secret key</label>
                     <input
                       className="border rounded px-2 py-1 w-full"
-                      value={providerDraft?.base_url || ""}
+                      value={providerDraft?.code || ''}
                       onChange={(e) =>
-                        setProviderDraft((s) => ({ ...(s || {}), base_url: e.target.value }))
+                        setProviderDraft((s) => ({ ...(s || {}), code: e.target.value }))
                       }
                     />
                   </div>
@@ -418,7 +370,7 @@ function SettingsTabs() {
           ),
         },
         {
-          name: "Models",
+          name: 'Models',
           render: () => (
             <div className="space-y-4">
               <div className="bg-white p-4 rounded shadow space-y-4">
@@ -466,7 +418,7 @@ function SettingsTabs() {
               </div>
               <Slideover
                 open={!!modelDraft}
-                title={modelDraft?.id ? "Edit model" : "New model"}
+                title={modelDraft?.id ? 'Edit model' : 'New model'}
                 onClose={() => setModelDraft(null)}
               >
                 <div className="space-y-2">
@@ -474,7 +426,7 @@ function SettingsTabs() {
                     <label className="text-sm text-gray-600">provider</label>
                     <select
                       className="border rounded px-2 py-1 w-full"
-                      value={modelDraft?.provider_id || ""}
+                      value={modelDraft?.provider_id || ''}
                       onChange={(e) =>
                         setModelDraft((s) => ({ ...(s || {}), provider_id: e.target.value }))
                       }
@@ -491,16 +443,13 @@ function SettingsTabs() {
                     <label className="text-sm text-gray-600">name</label>
                     <input
                       className="border rounded px-2 py-1 w-full"
-                      value={modelDraft?.name || ""}
+                      value={modelDraft?.name || ''}
                       onChange={(e) =>
                         setModelDraft((s) => ({ ...(s || {}), name: e.target.value }))
                       }
                     />
                   </div>
-                  <button
-                    className="px-3 py-1 rounded bg-blue-600 text-white"
-                    onClick={saveModel}
-                  >
+                  <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={saveModel}>
                     Save
                   </button>
                 </div>
@@ -509,7 +458,7 @@ function SettingsTabs() {
           ),
         },
         {
-          name: "Prices",
+          name: 'Prices',
           render: () => (
             <div className="space-y-4">
               <div className="bg-white p-4 rounded shadow space-y-4">
@@ -536,7 +485,7 @@ function SettingsTabs() {
                     </button>
                     <button
                       className="flex items-center gap-1 px-2 py-1 rounded bg-green-600 text-white"
-                      onClick={() => refreshPrices("all")}
+                      onClick={() => refreshPrices('all')}
                     >
                       <RefreshCcw className="w-4 h-4" /> Refresh
                     </button>
@@ -551,7 +500,7 @@ function SettingsTabs() {
               </div>
               <Slideover
                 open={!!priceDraft}
-                title={priceDraft?.id ? "Edit price" : "New price"}
+                title={priceDraft?.id ? 'Edit price' : 'New price'}
                 onClose={() => setPriceDraft(null)}
               >
                 <div className="space-y-2">
@@ -559,7 +508,7 @@ function SettingsTabs() {
                     <label className="text-sm text-gray-600">model</label>
                     <select
                       className="border rounded px-2 py-1 w-full"
-                      value={priceDraft?.model_id || ""}
+                      value={priceDraft?.model_id || ''}
                       onChange={(e) =>
                         setPriceDraft((s) => ({ ...(s || {}), model_id: e.target.value }))
                       }
@@ -576,9 +525,7 @@ function SettingsTabs() {
                     <label className="text-sm text-gray-600">input_price</label>
                     <input
                       className="border rounded px-2 py-1 w-full"
-                      value={
-                        priceDraft?.input_price ?? priceDraft?.input_tokens ?? ""
-                      }
+                      value={priceDraft?.input_price ?? priceDraft?.input_tokens ?? ''}
                       onChange={(e) =>
                         setPriceDraft((s) => ({ ...(s || {}), input_price: e.target.value }))
                       }
@@ -588,9 +535,7 @@ function SettingsTabs() {
                     <label className="text-sm text-gray-600">output_price</label>
                     <input
                       className="border rounded px-2 py-1 w-full"
-                      value={
-                        priceDraft?.output_price ?? priceDraft?.output_tokens ?? ""
-                      }
+                      value={priceDraft?.output_price ?? priceDraft?.output_tokens ?? ''}
                       onChange={(e) =>
                         setPriceDraft((s) => ({ ...(s || {}), output_price: e.target.value }))
                       }
@@ -600,16 +545,13 @@ function SettingsTabs() {
                     <label className="text-sm text-gray-600">currency</label>
                     <input
                       className="border rounded px-2 py-1 w-full"
-                      value={priceDraft?.currency || ""}
+                      value={priceDraft?.currency || ''}
                       onChange={(e) =>
                         setPriceDraft((s) => ({ ...(s || {}), currency: e.target.value }))
                       }
                     />
                   </div>
-                  <button
-                    className="px-3 py-1 rounded bg-blue-600 text-white"
-                    onClick={savePrice}
-                  >
+                  <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={savePrice}>
                     Save
                   </button>
                 </div>
@@ -621,4 +563,3 @@ function SettingsTabs() {
     />
   );
 }
-

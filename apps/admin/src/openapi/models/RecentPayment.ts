@@ -3,10 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RecentPayment = {
-    id: string;
-    user_id: string;
-    tariff: (string | null);
-    amount: number;
-    status: string;
+  id: string;
+  user_id: string;
+  tariff: string | null;
+  amount: number;
+  status: string;
 };
-
