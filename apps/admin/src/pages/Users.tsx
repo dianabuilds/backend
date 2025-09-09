@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { useDebounce } from '../utils/useDebounce';
+import { useDebounce } from '../shared/hooks/useDebounce';
 
 interface Restriction {
   id: string;
