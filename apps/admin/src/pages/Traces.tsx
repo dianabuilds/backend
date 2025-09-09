@@ -170,10 +170,7 @@ export default function Traces() {
         <div className="text-red-500">
           {(() => {
             const err = error as unknown as { response?: { data?: { detail?: string } } };
-            return (
-              err?.response?.data?.detail ||
-              (error instanceof Error ? error.message : String(error))
-            );
+            return err?.response?.data?.detail ?? (error as Error).message;
           })()}
           <button onClick={() => refetch()} className="ml-2 underline">
             Повторить

@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 
 import { createCampaign, estimateCampaign } from '../../api/notifications';
 import type { CampaignCreate, CampaignFilters } from '../../openapi';
-import { Modal } from '../../shared/ui/Modal';
+import { Modal } from '../../shared/ui';
 import { useToast } from '../ToastProvider';
 import NotificationFilters from './NotificationFilters';
 import { validateNotification } from './NotificationForm.validation';

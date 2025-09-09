@@ -315,7 +315,7 @@ async function request<T = unknown>(
   }
 
   const contentType = resp.headers.get('Content-Type') || '';
-  let data: any = undefined;
+  let data: any;
   if (contentType.includes('application/json')) {
     try {
       data = await resp.json();
@@ -427,8 +427,7 @@ export const api = {
   del,
   delete: del,
 };
-
-export { del as delete };
+// Avoid exporting a reserved word name at top-level
 
 // Типы и API для сервер‑драйв меню админки (с ETag кэшем)
 export interface AdminMenuItem {

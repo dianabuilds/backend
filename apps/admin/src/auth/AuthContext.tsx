@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         csrf_token?: string;
       };
       if (!resp.ok || !data.ok) {
-        throw new Error('Неверный логин или пароль');
+        return Promise.reject(new Error('Неверный логин или пароль'));
       }
 
       // Сохраняем CSRF
@@ -70,10 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 2) Профиль после успешного логина
       const meRes = await api.get<User>('/users/me', { timeoutMs: 60000 });
       const me = meRes.data as User;
-      if (!me) throw new Error('Не удалось получить профиль');
+      if (!me) return Promise.reject(new Error('Не удалось получить профиль'));
 
       if (!isAllowed(me.role)) {
-        throw new Error('Недостаточно прав');
+        return Promise.reject(new Error('Недостаточно прав'));
       }
       setUser(me);
     } catch (e) {

@@ -58,9 +58,7 @@ export default function ReliabilityDashboard() {
       </div>
       {isLoading && <div className="text-sm text-gray-500">Loading…</div>}
       {error && (
-        <div className="text-sm text-red-600">
-          {error instanceof Error ? error.message : String(error)}
-        </div>
+        <div className="text-sm text-red-600">{(error as Error).message}</div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <KpiCard title="RPS" value={metrics.rps.toFixed(2)} />

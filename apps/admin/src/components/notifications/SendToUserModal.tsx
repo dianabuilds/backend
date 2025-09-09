@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { sendNotification } from '../../api/notifications';
 import { useAuth } from '../../auth/AuthContext';
-import { Modal } from '../../shared/ui/Modal';
+import { Modal } from '../../shared/ui';
 import { useToast } from '../ToastProvider';
 import { validateNotification } from './NotificationForm.validation';
 import { type NotificationErrors, NotificationFormFields, type NotificationFormValues } from './NotificationFormCore';

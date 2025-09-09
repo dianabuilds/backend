@@ -209,7 +209,7 @@ export default function QuestEditor() {
   // Backend: создать недостающие ноды (черновики)
   const [busy, setBusy] = useState(false);
 
-  const createMissingNodes = async () => {
+  const createMissingNodes = async (): Promise<boolean> => {
     setBusy(true);
     try {
       const pending = nodes.filter((n) => !n.backendId);
@@ -240,19 +240,21 @@ export default function QuestEditor() {
           (created.slug as string | undefined) ||
           (created._id as string | undefined);
         if (!backendId) {
-          throw new Error('Node creation failed: no id in response');
+          return false;
         }
         setNodes((prev) =>
           prev.map((x) => (x.id === n.id ? { ...x, backendId: String(backendId) } : x)),
         );
       }
       addToast({ title: 'Nodes created', variant: 'success' });
+      return true;
     } catch (e) {
       addToast({
         title: 'Failed to create nodes',
         description: e instanceof Error ? e.message : String(e),
         variant: 'error',
       });
+      return false;
     } finally {
       setBusy(false);
     }
@@ -267,12 +269,8 @@ export default function QuestEditor() {
     // Если есть ноды без backendId — создадим их автоматически
     let missing = nodes.filter((n) => !n.backendId);
     if (missing.length > 0) {
-      try {
-        await createMissingNodes();
-      } catch {
-        // createMissingNodes уже показал тост с ошибкой
-        return;
-      }
+      const ok = await createMissingNodes();
+      if (!ok) return; // error toast already shown
       // перепроверяем
       missing = nodes.filter((n) => !n.backendId);
       if (missing.length > 0) {
