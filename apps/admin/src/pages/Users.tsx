@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { useDebounce } from '../shared/hooks/useDebounce';
+import { useDebounce } from '../shared/hooks';
 
 interface Restriction {
   id: string;
@@ -144,7 +144,7 @@ export default function Users() {
 
   const openPremium = (u: AdminUser) => {
     setPremiumUser(u);
-    setPremiumFlag(!!u.is_premium);
+    setPremiumFlag(u.is_premium);
     setPremiumUntil(u.premium_until ? new Date(u.premium_until).toISOString().slice(0, 16) : '');
   };
   const applyPremium = async () => {
@@ -231,9 +231,7 @@ export default function Users() {
         />
       </div>
       {isLoading && <p>Loading...</p>}
-      {error && (
-        <p className="text-red-500">{error instanceof Error ? error.message : String(error)}</p>
-      )}
+      {error && <p className="text-red-500">{error.message}</p>}
       {!isLoading && !error && (
         <div ref={parentRef} className="max-h-[600px] overflow-auto">
           <table className="min-w-full text-sm text-left">

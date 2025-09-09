@@ -140,7 +140,7 @@ function MenuItem({
   if (hasChildren) {
     // Если только один дочерний элемент и у родителя нет собственного path —
     // делаем верхний пункт ссылкой на ребенка (компактный режим).
-    if ((!item.path || item.path === null) && item.children.length === 1) {
+    if (!item.path && item.children.length === 1) {
       const only = item.children[0] as AdminMenuItem;
       const to = normalizePath(only.path) || '/';
       const isActive = longestPrefixMatch(activePath, to);

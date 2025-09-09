@@ -306,7 +306,7 @@ export default function Nodes() {
   }, [nodesData, limit]);
 
   const loading = isLoading || isFetching;
-  const errorMsg = error ? (error instanceof Error ? error.message : String(error)) : null;
+  const errorMsg = error ? error.message : null;
 
   // Локальные изменения без немедленного вызова API.
   // Для is_visible используем модерационные ручки (hide с причиной / restore) — без staging.

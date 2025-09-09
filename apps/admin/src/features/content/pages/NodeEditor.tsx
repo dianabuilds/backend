@@ -31,7 +31,7 @@ export default function NodeEditorPage() {
 
   // accountId optional: alias routes use default_account_id
   if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error instanceof Error ? error.message : String(error)}</div>;
+  if (error) return <div>{error.message}</div>;
 
   const handleSave = async () => {
     const res = (await save()) as { id?: string } | undefined;

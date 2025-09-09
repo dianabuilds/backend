@@ -135,7 +135,10 @@ export default function EditorJSEmbed({
                       });
                       const rawUrl = extractUrl(res?.data);
                       const url = resolveUrl(rawUrl);
-                      if (!url) throw new Error('Empty URL from /media');
+                      if (!url) {
+                        console.error('Empty URL from /media');
+                        return { success: 0 };
+                      }
                       const normalized: ImageUploadResult = {
                         success: 1,
                         file: { url },

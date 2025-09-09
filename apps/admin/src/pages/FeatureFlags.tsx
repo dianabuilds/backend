@@ -68,11 +68,7 @@ export default function FeatureFlagsPage() {
   return (
     <PageLayout title="Feature Flags" subtitle="Включение/выключение функционала админки">
       {isLoading && <div className="animate-pulse text-sm text-gray-500">Loading...</div>}
-      {error && (
-        <div className="text-sm text-red-600">
-          {error instanceof Error ? error.message : String(error)}
-        </div>
-      )}
+      {error && <div className="text-sm text-red-600">{error.message}</div>}
       <div className="mt-4 mb-2">
         <input
           type="text"

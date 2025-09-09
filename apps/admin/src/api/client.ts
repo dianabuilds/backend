@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getOverrideState } from '../shared/hooks/useOverrideStore';
-import { setWarningBanner } from '../shared/hooks/useWarningBannerStore';
+import { getOverrideState, setWarningBanner } from '../shared/hooks';
 import { ADMIN_DEV_TOOLS } from '../utils/env';
 import { safeLocalStorage, safeSessionStorage } from '../utils/safeStorage';
 
@@ -149,10 +148,10 @@ export async function apiFetch(
       ?.VITE_API_TIMEOUT_MS || 0,
   );
   const defaultTimeout = envTimeout > 0 ? envTimeout : isAuthCall ? 60000 : 15000;
-  const timeoutMs =
-    typeof (init as RequestOptions).timeoutMs === 'number'
-      ? Math.max(0, Number((init as RequestOptions).timeoutMs))
-      : defaultTimeout;
+  const optTimeout = (init as RequestOptions).timeoutMs;
+  const timeoutMs = Number.isFinite(optTimeout as number)
+    ? Math.max(0, Number(optTimeout))
+    : defaultTimeout;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

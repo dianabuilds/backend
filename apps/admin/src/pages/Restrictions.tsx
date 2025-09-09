@@ -127,9 +127,7 @@ export default function Restrictions() {
         </button>
       </div>
       {isLoading && <p>Loading...</p>}
-      {error && (
-        <p className="text-red-500">{error instanceof Error ? error.message : String(error)}</p>
-      )}
+      {error && <p className="text-red-500">{error.message}</p>}
       {!isLoading && !error && (
         <table className="min-w-full text-sm text-left">
           <thead>

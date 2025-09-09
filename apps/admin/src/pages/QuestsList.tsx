@@ -105,13 +105,13 @@ export default function QuestsList() {
     try {
       const defaultTitle = 'New quest';
       const id = await createQuest(defaultTitle);
-      if (!id || typeof id !== 'string') {
+      if (!id) {
         console.error('createQuest returned invalid id:', id);
         alert('Failed to create quest: invalid server response (id is empty).');
         return;
       }
       const ver = await createDraft(id);
-      if (!ver || typeof ver !== 'string') {
+      if (!ver) {
         console.error('createDraft returned invalid versionId:', ver);
         alert('Failed to create draft: invalid server response (versionId is empty).');
         return;
@@ -129,7 +129,7 @@ export default function QuestsList() {
   const onNewDraft = async (id: string) => {
     try {
       const ver = await createDraft(id);
-      if (!ver || typeof ver !== 'string') {
+      if (!ver) {
         console.error('createDraft returned invalid versionId:', ver);
         alert('Failed to create draft: invalid server response (versionId is empty).');
         return;
@@ -143,12 +143,7 @@ export default function QuestsList() {
 
   const content = (() => {
     if (isLoading) return <div className="text-sm text-gray-500">Loading...</div>;
-    if (error)
-      return (
-        <div className="text-sm text-red-600">
-          {error instanceof Error ? error.message : String(error)}
-        </div>
-      );
+    if (error) return <div className="text-sm text-red-600">{error.message}</div>;
     return (
       <>
         <table className="min-w-full text-sm">

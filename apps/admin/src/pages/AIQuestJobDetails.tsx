@@ -145,9 +145,7 @@ export default function AIQuestJobDetails() {
 
       {isLoading ? <div className="text-sm text-gray-500">Загрузка…</div> : null}
       {error ? (
-        <div className="text-sm text-red-600">
-          Ошибка: {error instanceof Error ? error.message : String(error)}
-        </div>
+        <div className="text-sm text-red-600">Ошибка: {error.message}</div>
       ) : null}
       {data ? (
         <>

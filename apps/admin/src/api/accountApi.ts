@@ -103,4 +103,4 @@ export const accountApi = {
 // Provide alias to reduce confusion, but prefer accountApi.delete across the codebase
 export const del = accountApi.delete;
 
-export type { AccountRequestOptions };
+// type is already exported above; avoid duplicate re-export that confuses TS
