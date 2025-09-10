@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, List
-from uuid import UUID
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,11 +14,11 @@ from app.schemas.node import NodeCreate, NodeOut, NodeUpdate
 router = APIRouter(prefix="/users/me/nodes", tags=["nodes"])
 
 
-@router.get("", response_model=List[NodeOut], summary="List my nodes")
+@router.get("", response_model=list[NodeOut], summary="List my nodes")
 async def list_my_nodes(
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
-) -> List[NodeOut]:
+) -> list[NodeOut]:
     repo = NodeRepository(db)
     nodes = await repo.list_by_author(current_user.id, limit=100, offset=0)
     return nodes

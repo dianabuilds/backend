@@ -13,7 +13,6 @@ from sqlalchemy import (
     String,
     Text,
 )
-import sqlalchemy as sa
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
 

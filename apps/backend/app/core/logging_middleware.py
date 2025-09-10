@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from time import perf_counter
 import random
+from time import perf_counter
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request

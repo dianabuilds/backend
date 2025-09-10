@@ -4,7 +4,6 @@ from datetime import datetime
 from uuid import uuid4
 
 import sqlalchemy as sa
-from sqlalchemy.orm import relationship
 
 from app.providers.db.adapters import JSONB, UUID
 from app.providers.db.base import Base
@@ -14,7 +13,7 @@ class ReferralCode(Base):
     __tablename__ = "referral_codes"
 
     id = sa.Column(UUID(), primary_key=True, default=uuid4)
-    
+
     owner_user_id = sa.Column(UUID(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     code = sa.Column(sa.String, nullable=False)
     uses_count = sa.Column(sa.Integer, nullable=False, server_default="0")
@@ -31,7 +30,7 @@ class ReferralEvent(Base):
     __tablename__ = "referral_events"
 
     id = sa.Column(UUID(), primary_key=True, default=uuid4)
-    
+
     code_id = sa.Column(UUID(), sa.ForeignKey("referral_codes.id", ondelete="SET NULL"), nullable=True, index=True)
     code = sa.Column(sa.String, nullable=True)
     referrer_user_id = sa.Column(UUID(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)

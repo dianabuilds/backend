@@ -19,8 +19,8 @@ from sqlalchemy.orm import selectinload
 from app.domains.nodes.application.ports.node_repo_port import INodeRepository
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.infrastructure.models.node_version import NodeVersion
-from app.schemas.node import NodeCreate, NodeUpdate
 from app.domains.nodes.models import NodeItem
+from app.schemas.node import NodeCreate, NodeUpdate
 
 
 class NodeRepository(INodeRepository):

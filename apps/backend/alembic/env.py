@@ -39,7 +39,6 @@ def _sync_sqlalchemy_url() -> str:
     url = settings.database_url.replace("+asyncpg", "")
     if url.startswith("postgresql://") and "sslmode=" not in url:
         try:
-            from app.core.app_settings.database import DatabaseSettings  # type: ignore
 
             # If configuration requires SSL, append sslmode=require for psycopg2
             if settings.database.sslmode == "require":

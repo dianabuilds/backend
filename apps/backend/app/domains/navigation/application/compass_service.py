@@ -4,6 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.preview import PreviewContext
+
+
 def user_limit(*_args, **_kwargs):
     def _decorator(func):
         return func

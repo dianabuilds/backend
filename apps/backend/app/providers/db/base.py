@@ -41,5 +41,21 @@ else:
     from app.domains.tags.infrastructure.models.tag_models import TagAlias  # noqa
     import app.domains.tags.models  # noqa: F401
     from app.domains.users.infrastructure.models.user import User  # noqa
+    # AI domain models (v1 minimal + v2 system tables)
+    from app.domains.ai.infrastructure.models.system_models import (  # noqa: F401
+        AISystemModel,
+        AIModelPrice,
+        AIDefaultModel,
+    )
+    from app.domains.ai.infrastructure.models.ai_settings import AISettings  # noqa: F401
+    from app.domains.ai.infrastructure.models.ai_system_v2 import (  # noqa: F401
+        AIProvider,
+        AIProviderSecret,
+        AIModel,
+        AIDefaults,
+        AIRoutingProfile,
+        AIPreset,
+        AIEvalRun,
+    )
 
 # Add all other models here

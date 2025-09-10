@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -9,20 +8,20 @@ from pydantic import BaseModel, ConfigDict
 
 class ReferralCodeAdminOut(BaseModel):
     id: UUID
-    owner_user_id: Optional[UUID] = None
+    owner_user_id: UUID | None = None
     code: str
     uses_count: int
     active: bool
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ReferralEventAdminOut(BaseModel):
     id: UUID
-    code_id: Optional[UUID] = None
-    code: Optional[str] = None
-    referrer_user_id: Optional[UUID] = None
+    code_id: UUID | None = None
+    code: str | None = None
+    referrer_user_id: UUID | None = None
     referee_user_id: UUID
     event_type: str
     occurred_at: datetime

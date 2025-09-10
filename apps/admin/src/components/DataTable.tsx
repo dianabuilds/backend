@@ -86,7 +86,7 @@ export default function DataTable<T>({
             {!loading && (rows || []).length === 0 ? (
               <tr>
                 <td className="px-2 py-3 text-gray-500" colSpan={columns.length}>
-                  {emptyText || 'Нет данных'}
+                  {emptyText || 'РќРµС‚ РґР°РЅРЅС‹С…'}
                 </td>
               </tr>
             ) : null}

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.referrals.application.ports.repository import IReferralsRepository
@@ -31,7 +30,7 @@ class ReferralsService:
                 return await self._repo.create_personal_code(owner_user_id, guess)
         # Fallback – generate unique random code
         # type: ignore[attr-defined]
-        gen_code = await getattr(self._repo, "generate_unique_code")()  # provided by concrete repo
+        gen_code = await self._repo.generate_unique_code()  # provided by concrete repo
         return await self._repo.create_personal_code(owner_user_id, gen_code)
 
     async def process_signup_referral(

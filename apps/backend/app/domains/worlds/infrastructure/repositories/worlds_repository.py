@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.infrastructure.models.world_models import Character, WorldTemplate
 from app.domains.worlds.application.ports.worlds_repo import IWorldsRepository
+
 try:
     from app.models.shared_objects import SharedObject  # type: ignore
 except Exception:  # pragma: no cover

@@ -7,9 +7,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepository,
-)
 from app.providers.db.session import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -34,6 +31,7 @@ async def hide_node(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict[str, str]:
     from sqlalchemy import select
+
     from app.domains.nodes.infrastructure.models.node import Node
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalar_one_or_none()
@@ -52,6 +50,7 @@ async def restore_node(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> dict[str, str]:
     from sqlalchemy import select
+
     from app.domains.nodes.infrastructure.models.node import Node
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalar_one_or_none()

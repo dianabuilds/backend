@@ -1,26 +1,28 @@
 # ruff: noqa: B008, E501
 from __future__ import annotations
 
+import csv
+from datetime import datetime
+from io import StringIO
 from typing import Annotated
 from uuid import UUID
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.domains.admin.application.feature_flag_service import (
+    FeatureFlagKey,
+    get_effective_flags,
+)
 from app.domains.referrals.application.referrals_service import ReferralsService
 from app.domains.referrals.infrastructure.repositories.referrals_repository import (
     ReferralsRepository,
 )
 from app.domains.users.infrastructure.models.user import User
 from app.providers.db.session import get_db
-from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_admin_role
-from app.domains.admin.application.feature_flag_service import (
-    FeatureFlagKey,
-    get_effective_flags,
-)
 from app.schemas.referrals_admin import (
     ActivateCodeOut,
     DeactivateCodeOut,
@@ -28,10 +30,7 @@ from app.schemas.referrals_admin import (
     ReferralEventAdminOut,
 )
 from app.schemas.referrals_user import MyReferralCodeOut, MyReferralStatsOut
-from fastapi.responses import StreamingResponse
-import csv
-from io import StringIO
-
+from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_admin_role
 
 router = APIRouter()
 

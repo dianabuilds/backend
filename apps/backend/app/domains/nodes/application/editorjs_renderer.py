@@ -11,7 +11,6 @@ and ignores unknown types.
 from html import escape
 from typing import Any
 
-
 SUPPORTED_BLOCKS = {"header", "paragraph", "list", "image", "quote"}
 
 

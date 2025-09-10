@@ -5,8 +5,10 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
-from sqlalchemy import and_, select
+from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
@@ -20,25 +22,20 @@ from app.domains.nodes.application.query_models import (
     PageRequest,
     QueryContext,
 )
-from app.domains.nodes.infrastructure.models.node import Node
-from app.domains.nodes.infrastructure.repositories.node_repository import (
-    NodeRepository,
-)
-from app.domains.nodes.models import NodeItem, NodePublishJob
-from app.domains.nodes.schemas.node import NodeBulkPatch, NodeOut
 from app.domains.nodes.content_admin_router import (
     _resolve_content_item_id,
     _serialize,
 )
+from app.domains.nodes.infrastructure.models.node import Node
+from app.domains.nodes.infrastructure.repositories.node_repository import (
+    NodeRepository,
+)
+from app.domains.nodes.models import NodePublishJob
+from app.domains.nodes.schemas.node import NodeBulkPatch, NodeOut
 from app.domains.users.infrastructure.models.user import User
-from app.security import auth_user
-from sqlalchemy.orm import selectinload
-from pydantic import BaseModel
-from typing import Literal
 from app.providers.db.session import get_db
 from app.schemas.nodes_common import Status
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-
+from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_admin_role
 
 router = APIRouter(prefix="/admin/nodes", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
 admin_required = require_admin_role()
@@ -69,7 +66,6 @@ async def list_nodes_admin_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    account_id = None
     if scope_mode is None:
         scope_mode = "mine"
     spec = NodeFilterSpec(
@@ -86,7 +82,7 @@ async def list_nodes_admin_alias(
     ctx = QueryContext(user=current_user, is_admin=True)
     svc = NodeQueryService(db)
     page = PageRequest(limit=limit, offset=offset)
-    etag = await svc.compute_nodes_etag(spec, ctx, page, scope_mode=scope_mode)
+    await svc.compute_nodes_etag(spec, ctx, page, scope_mode=scope_mode)
     nodes = await svc.list_nodes(spec, page, ctx, scope_mode=scope_mode)
     # We intentionally don't set the ETag header here since FastAPI response isn't passed in; the
     # generated OpenAPI types still work without it. Client-side cache can be layered later.
@@ -156,7 +152,7 @@ async def bulk_node_operation_alias(
             updated_ids.append(node.id)
             await navsvc.invalidate_navigation_cache(db, node)
     await db.commit()
-    for nid in updated_ids:
+    for _nid in updated_ids:
         try:
             await navcache.invalidate_navigation_by_user(current_user.id)
             await navcache.invalidate_compass_by_user(current_user.id)
@@ -293,7 +289,7 @@ async def schedule_publish_alias(
     if existing:
         existing.status = "canceled"
     job = NodePublishJob(
-        
+
         node_id=id,
         content_id=item.id,
         access=payload.access,

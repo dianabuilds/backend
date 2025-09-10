@@ -13,8 +13,6 @@ from sqlalchemy.dialects.postgresql import UUID as pg_UUID
 from sqlalchemy.types import CHAR, TypeDecorator
 
 
-
-
 class UUID(TypeDecorator):
     """РЈРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Р№ С‚РёРї UUID РґР»СЏ СЂР°Р·РЅС‹С… Р±Р°Р· РґР°РЅРЅС‹С…."""
 

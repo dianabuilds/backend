@@ -28,11 +28,9 @@ type AISettings = {
 type StageConfig = { stage: string } & StageMapEntry;
 
 export default function AISettingsPage() {
-  const [aiSettings, setAISettings] = useState<AISettings>({
-    has_api_key: false,
-  });
-  const [aiSecret, setAISecret] = useState<string>(''); // пустая строка — не менять
-  const [stageMap, setStageMap] = useState<StageConfig[]>([]); // карта стадий в удобном формате
+  const [aiSettings, setAISettings] = useState<AISettings>({ has_api_key: false });
+  const [aiSecret, setAISecret] = useState<string>(''); // empty string — keep current key
+  const [stageMap, setStageMap] = useState<StageConfig[]>([]);
   const [cb, setCb] = useState<CBConfig>({});
 
   const loadAISettings = async () => {
@@ -41,7 +39,6 @@ export default function AISettingsPage() {
       const data = res.data ?? { has_api_key: false };
       setAISettings(data);
       setAISecret('');
-      // Инициализация расширенных полей
       const map: Record<string, StageMapEntry> = data.model_map ?? {};
       setStageMap(
         Object.entries(map).map(([stage, conf]) => ({
@@ -78,11 +75,11 @@ export default function AISettingsPage() {
         model: aiSettings.model ?? null,
         model_map,
         cb,
-        api_key: aiSecret === '' ? null : aiSecret, // null — оставить без изменений, "" — очистить, строка — сохранить
+        api_key: aiSecret === '' ? null : aiSecret, // null — keep, string — save/overwrite, empty string clears
       });
       await loadAISettings();
       await refreshLimits();
-      alert('Настройки сохранены');
+      alert('Saved');
     } catch (e: unknown) {
       if (e instanceof ApiError && e.status === 429) {
         const retry = Number(e.headers?.get('Retry-After') || 0);
@@ -104,7 +101,7 @@ export default function AISettingsPage() {
       <div className="rounded border p-4 max-w-3xl space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-600">Provider (по умолчанию)</label>
+            <label className="text-sm text-gray-600">Provider (optional)</label>
             <input
               className="border rounded px-2 py-1"
               placeholder="openai, anthropic, ..."
@@ -113,7 +110,7 @@ export default function AISettingsPage() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-600">Base URL (по умолчанию)</label>
+            <label className="text-sm text-gray-600">Base URL (optional)</label>
             <input
               className="border rounded px-2 py-1"
               placeholder="https://api..."
@@ -122,7 +119,7 @@ export default function AISettingsPage() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-600">Model (по умолчанию)</label>
+            <label className="text-sm text-gray-600">Model (optional)</label>
             <input
               className="border rounded px-2 py-1"
               placeholder="gpt-4o-mini, ..."
@@ -135,27 +132,21 @@ export default function AISettingsPage() {
             <input
               className="border rounded px-2 py-1"
               type="password"
-              placeholder={
-                aiSettings.has_api_key
-                  ? 'Секрет сохранён (оставьте пустым — не менять)'
-                  : 'Введите ключ'
-              }
+              placeholder={aiSettings.has_api_key ? 'Already set — leave empty to keep' : 'Not set'}
               value={aiSecret}
               onChange={(e) => setAISecret(e.target.value)}
             />
-            <div className="text-xs text-gray-600">
-              {aiSettings.has_api_key ? 'Ключ сохранён' : 'Ключ не задан'}
-            </div>
+            <div className="text-xs text-gray-600">{aiSettings.has_api_key ? 'Key is set' : 'Key is not set'}</div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <div className="text-lg font-semibold">Карта моделей по стадиям</div>
+          <div className="text-lg font-semibold">Stages mapping (optional)</div>
           {stageMap.map((item, idx) => (
             <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
               <input
                 className="border rounded px-2 py-1"
-                placeholder="Стадия (например: outline)"
+                placeholder="Stage (e.g., outline)"
                 value={item.stage}
                 onChange={(e) =>
                   setStageMap((m) => {
@@ -205,15 +196,12 @@ export default function AISettingsPage() {
                 className="px-2 py-1 rounded bg-red-200 dark:bg-red-800"
                 onClick={() => setStageMap((m) => m.filter((_, i) => i !== idx))}
               >
-                Удалить
+                Remove
               </button>
             </div>
           ))}
-          <button
-            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
-            onClick={() => setStageMap((m) => [...m, { stage: '' }])}
-          >
-            Добавить стадию
+          <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={() => setStageMap((m) => [...m, { stage: '' }])}>
+            Add stage
           </button>
         </div>
 
@@ -229,12 +217,7 @@ export default function AISettingsPage() {
                 min={0}
                 max={1}
                 value={cb.fail_rate_threshold ?? 0.5}
-                onChange={(e) =>
-                  setCb((c) => ({
-                    ...c,
-                    fail_rate_threshold: Number(e.target.value),
-                  }))
-                }
+                onChange={(e) => setCb((c) => ({ ...c, fail_rate_threshold: Number(e.target.value) }))}
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -262,7 +245,7 @@ export default function AISettingsPage() {
 
         <div className="flex items-center gap-2">
           <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={saveAI}>
-            Сохранить
+            Save
           </button>
           <LimitBadge limitKey="ai_tokens" />
         </div>
@@ -270,3 +253,4 @@ export default function AISettingsPage() {
     </div>
   );
 }
+

@@ -62,6 +62,7 @@ from app.providers.db.session import (
     get_engine,
     init_db,
 )
+from app.security import auth_user
 from app.web.header_injector import HeaderInjector
 from app.web.immutable_static import ImmutableStaticFiles
 
@@ -130,6 +131,7 @@ _cors_kwargs = {
 _effective = settings.effective_origins()
 _cors_kwargs.update(_effective)
 from app.core.settings import EnvMode as _EnvMode  # local import to avoid cycles
+
 if settings.env_mode in {_EnvMode.development, _EnvMode.test}:
     _cors_kwargs["allow_headers"] = ["*"]
 app.add_middleware(CORSMiddleware, **_cors_kwargs)
@@ -258,7 +260,18 @@ async def read_root(request: Request):
     accept_header = request.headers.get("accept", "")
     if "text/html" in accept_header:
         return HTMLResponse("<meta http-equiv='refresh' content='0; url=/admin'>")
-    return {"message": "Hello, World!"}
+
+@app.get("/users/me")
+async def users_me(current=fastapi.Depends(auth_user)):
+    try:
+        return {
+            "id": str(getattr(current, "id", "")),
+            "username": getattr(current, "username", None),
+            "role": getattr(current, "role", None),
+            "email": getattr(current, "email", None),
+        }
+    except Exception:
+        return {"id": None}
 
 
 @app.on_event("startup")
@@ -290,3 +303,5 @@ async def shutdown_event():
     """Выполняется при остановке приложения"""
     logger.info("Shutting down application")
     await close_db_connection()
+
+

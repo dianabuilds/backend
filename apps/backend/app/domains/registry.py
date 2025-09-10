@@ -180,8 +180,8 @@ def register_domain_routers(app: FastAPI) -> None:
 
     # Nodes
     try:
-        from app.domains.nodes.api.nodes_router import router as nodes_router
         from app.domains.nodes.api.my_nodes_router import router as my_nodes_router
+        from app.domains.nodes.api.nodes_router import router as nodes_router
 
         app.include_router(nodes_router)
         # Profile-centric endpoints

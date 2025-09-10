@@ -3,7 +3,8 @@ from __future__ import annotations
 import io
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Query
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.deps import get_storage
@@ -15,7 +16,6 @@ from app.core.log_events import (
 from app.domains.media.application.ports.storage_port import IStorageGateway
 from app.domains.media.application.storage_service import StorageService
 from app.providers.db.session import get_db
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def require_profile_optional(

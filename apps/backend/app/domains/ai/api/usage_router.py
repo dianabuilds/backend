@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import csv
-import io
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query, Response
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.infrastructure.repositories.usage_repository import (

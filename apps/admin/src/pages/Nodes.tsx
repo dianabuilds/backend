@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAccount } from '../account/AccountContext';
 import { accountApi } from '../api/accountApi';
+import { api } from '../api/client';
 import { listNodes, listNodesGlobal, type NodeListParams } from '../api/nodes';
 import { createPreviewLink } from '../api/preview';
 import FlagsCell from '../components/FlagsCell';
@@ -23,6 +24,7 @@ import {
 import type { Status as NodeStatus } from '../openapi';
 import { Button } from '../shared/ui';
 import { ensureArray } from '../shared/utils';
+import { useDebounce } from '../shared/hooks/useDebounce';
 import { confirmWithEnv } from '../utils/env';
 import { notify } from '../utils/notify';
 
@@ -61,7 +63,14 @@ export default function Nodes() {
         : 'mine'),
   );
   const [authorTab, setAuthorTab] = useState(false);
+  // Selected author's UUID (sent to backend)
   const [authorId, setAuthorId] = useState('');
+  // Text in the author search input; used to search by username/email
+  const [authorQuery, setAuthorQuery] = useState('');
+  const debouncedAuthor = useDebounce(authorQuery, 300);
+  type AuthorOption = { id: string; username?: string | null; email?: string | null };
+  const [authorOptions, setAuthorOptions] = useState<AuthorOption[]>([]);
+  const [, setAuthorLoading] = useState(false);
 
   const copySlug = (slug: string) => {
     if (typeof navigator !== 'undefined' && slug) {
@@ -290,6 +299,35 @@ export default function Nodes() {
     setPending(new Map());
   }, [nodesData, limit]);
 
+  // Load author suggestions when searching by name/email (not a UUID)
+  useEffect(() => {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      debouncedAuthor.trim(),
+    );
+    if (!authorTab) {
+      setAuthorOptions([]);
+      return;
+    }
+    if (debouncedAuthor && !isUuid) {
+      (async () => {
+        try {
+          setAuthorLoading(true);
+          const params = new URLSearchParams();
+          params.set('q', debouncedAuthor);
+          params.set('limit', '10');
+          const res = await api.get(`/admin/users?${params.toString()}`);
+          setAuthorOptions(ensureArray<AuthorOption>(res.data));
+        } catch {
+          setAuthorOptions([]);
+        } finally {
+          setAuthorLoading(false);
+        }
+      })();
+    } else {
+      setAuthorOptions([]);
+    }
+  }, [debouncedAuthor, authorTab]);
+
   const loading = isLoading || isFetching;
   const errorMsg = error ? error.message : null;
 
@@ -494,7 +532,7 @@ export default function Nodes() {
             type="button"
             onClick={() => {
               setAuthorTab(false);
-              setScopeMode('member');
+              setScopeMode('global');
               setPage(0);
             }}
           >
@@ -510,22 +548,13 @@ export default function Nodes() {
           >
             Мои
           </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              setAuthorTab(false);
-              setScopeMode('global');
-              setPage(0);
-            }}
-          >
-            global
-          </Button>
+          
           <div className="flex items-center gap-2">
             <Button
               type="button"
               onClick={() => {
                 setAuthorTab(true);
-                setScopeMode('member');
+                setScopeMode('global');
                 setPage(0);
               }}
             >
@@ -533,12 +562,20 @@ export default function Nodes() {
             </Button>
             {authorTab && (
               <input
-                className="border rounded px-2 py-1 text-sm"
+                className="border rounded px-2 py-1 text-sm w-64"
                 placeholder="UUID автора"
-                value={authorId}
+                value={authorQuery}
                 onChange={(e) => {
-                  setAuthorId(e.target.value);
+                  setAuthorQuery(e.target.value);
+                  setAuthorId('');
                   setPage(0);
+                }}
+                onBlur={() => {
+                  if (!authorId && authorOptions.length > 0) {
+                    const u = authorOptions[0] as { id: string; username?: string | null; email?: string | null };
+                    setAuthorId(u.id);
+                    setAuthorQuery(u.username || u.email || u.id);
+                  }
                 }}
               />
             )}
@@ -1024,11 +1061,3 @@ export default function Nodes() {
     </div>
   );
 }
-
-
-
-
-
-
-
-

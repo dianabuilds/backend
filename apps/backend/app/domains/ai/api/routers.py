@@ -27,16 +27,25 @@ from app.domains.ai.api.settings_router import (
 from app.domains.ai.api.stats_router import (
     router as admin_ai_stats_router,
 )
-from app.domains.ai.api.system_defaults_router import (
-    router as admin_ai_system_defaults_router,
-)
-from app.domains.ai.api.system_models_router import (
-    router as admin_ai_system_models_router,
-)
 from app.domains.ai.api.system_prices_router import (
     router as admin_ai_system_prices_router,
 )
-from app.domains.ai.api.system_providers_router import (
+from app.domains.ai.api.system_v2_defaults_router import (
+    router as admin_ai_system_defaults_router,
+)
+from app.domains.ai.api.system_v2_evals_router import (
+    router as admin_ai_system_evals_router,
+)
+from app.domains.ai.api.system_v2_models_router import (
+    router as admin_ai_system_models_router,
+)
+from app.domains.ai.api.system_v2_presets_router import (
+    router as admin_ai_system_presets_router,
+)
+from app.domains.ai.api.system_v2_profiles_router import (
+    router as admin_ai_system_profiles_router,
+)
+from app.domains.ai.api.system_v2_providers_router import (
     router as admin_ai_system_providers_router,
 )
 from app.domains.ai.api.usage_router import router as admin_ai_usage_router
@@ -71,3 +80,6 @@ router.include_router(admin_ai_usage_router)
 router.include_router(admin_ai_system_models_router)
 router.include_router(admin_ai_system_prices_router)
 router.include_router(admin_ai_system_defaults_router)
+router.include_router(admin_ai_system_profiles_router)
+router.include_router(admin_ai_system_presets_router)
+router.include_router(admin_ai_system_evals_router)

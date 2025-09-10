@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from sqlalchemy import Column, ForeignKey, Integer, String
-import sqlalchemy as sa
 
 from app.providers.db.base import Base
 
