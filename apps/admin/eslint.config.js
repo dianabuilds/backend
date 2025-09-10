@@ -71,6 +71,20 @@ export default tseslint.config([
     },
   },
 
+  // Node/Tooling scripts (CJS)
+  {
+    files: ['scripts/**/*.{js,cjs}', '*.cjs', 'lint-staged.config.cjs'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.node,
+      sourceType: 'script',
+    },
+    rules: {
+      'no-undef': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+
   // Soften strictness for generated OpenAPI models
   {
     files: ['src/openapi/**'],

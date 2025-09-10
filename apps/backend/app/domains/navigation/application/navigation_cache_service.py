@@ -127,7 +127,7 @@ class NavigationCacheService:
             await self._cache.delete(*list(keys_modes))
         await self._del_set_key(_idx_node_navm(node_slug))
         if count:
-            cache_invalidate("nav", reason="by_node", key=f"{aid}:{node_slug}")
+            cache_invalidate("nav", reason="by_node", key=node_slug)
 
 
     async def invalidate_navigation_by_user(self, user_id: UUID | str) -> None:

@@ -1,20 +1,18 @@
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {
     Box,
+    CheckCircle2,
     Circle,
     Cloud,
+    Eye,
+    EyeOff,
+    Import,
+    KeyRound,
     Pencil,
     Plus,
     RefreshCcw,
     Search,
-    Trash2,
-    Wallet,
-    KeyRound,
-    CheckCircle2,
-    Import,
-    Eye,
-    EyeOff
-} from 'lucide-react';
+    Trash2} from 'lucide-react';
 import {useMemo, useState} from 'react';
 
 import {api} from '../api/client';
@@ -54,7 +52,7 @@ type Provider = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Model = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Price = any;
+// type Price = any; // removed with Costs & Limits
 
 interface Defaults {
     provider_id?: string | null;
@@ -94,10 +92,6 @@ function SettingsTabs() {
         queryKey: ['ai', 'models'],
         queryFn: async () => (await api.get<Model[]>('/admin/ai/system/models')).data || [],
     });
-    const prices = useQuery({
-        queryKey: ['ai', 'prices'],
-        queryFn: async () => (await api.get<Price[]>('/admin/ai/system/prices')).data || [],
-    });
     const defaults = useQuery({
         queryKey: ['ai', 'defaults'],
         queryFn: async () => (await api.get<Defaults>('/admin/ai/system/defaults')).data || {},
@@ -106,7 +100,7 @@ function SettingsTabs() {
     // Drafts for editor
     const [providerDraft, setProviderDraft] = useState<Partial<Provider> | null>(null);
     const [modelDraft, setModelDraft] = useState<Partial<Model> | null>(null);
-    const [priceDraft, setPriceDraft] = useState<Partial<Price> | null>(null);
+    // const [priceDraft, setPriceDraft] = useState<Partial<Price> | null>(null);
     const [manifestDraft, setManifestDraft] = useState<string>('');
     const [secretsDraft, setSecretsDraft] = useState<Record<string, string>>({});
     const [secretsProviderId, setSecretsProviderId] = useState<string>('');
@@ -121,7 +115,7 @@ function SettingsTabs() {
     const [providerSearch, setProviderSearch] = useState('');
     const [modelSearch, setModelSearch] = useState('');
     const [modelProviderFilter, setModelProviderFilter] = useState('');
-    const [priceSearch, setPriceSearch] = useState('');
+    // removed Costs & Limits table
 
     // Filtered rows
     const providerRows = useMemo(
@@ -147,16 +141,7 @@ function SettingsTabs() {
             }),
         [models.data, modelSearch, modelProviderFilter],
     );
-    const priceRows = useMemo(
-        () =>
-            (prices.data || []).filter((pr: Price) => {
-                const term = priceSearch.toLowerCase();
-                return [pr.id, pr.model_id, pr.currency]
-                    .filter(Boolean)
-                    .some((v) => String(v).toLowerCase().includes(term));
-            }),
-        [prices.data, priceSearch],
-    );
+    // no priceRows: moved to model columns
 
     // Default setters
     const setDefaultProvider = async (id: string) => {
@@ -209,18 +194,7 @@ function SettingsTabs() {
         }
     };
 
-    const refreshPrices = async (providerId: string | 'all') => {
-        if (providerId === 'all') {
-            await Promise.all(
-                (providers.data || []).map((p: Provider) =>
-                    api.post(`/admin/ai/system/providers/${encodeURIComponent(p.id)}/refresh_prices`, {}),
-                ),
-            );
-        } else {
-            await api.post(`/admin/ai/system/providers/${encodeURIComponent(providerId)}/refresh_prices`, {});
-        }
-        alert('Refresh queued');
-    };
+    // refreshPrices removed with Costs & Limits
 
     // Provider actions
     const saveProvider = async () => {
@@ -291,21 +265,7 @@ function SettingsTabs() {
     };
 
     // Price actions
-    const savePrice = async () => {
-        if (!priceDraft) return;
-        if (priceDraft.id) {
-            await api.put(`/admin/ai/system/prices/${encodeURIComponent(priceDraft.id)}`, priceDraft);
-        } else {
-            await api.post('/admin/ai/system/prices', priceDraft);
-        }
-        setPriceDraft(null);
-        await qc.invalidateQueries({queryKey: ['ai', 'prices']});
-    };
-    const removePrice = async (id: string) => {
-        if (!(await confirmDialog('Delete price?'))) return;
-        await api.del(`/admin/ai/system/prices/${encodeURIComponent(id)}`);
-        await qc.invalidateQueries({queryKey: ['ai', 'prices']});
-    };
+    // price editor removed with Costs & Limits
 
     const [showCodes, setShowCodes] = useState<Set<string>>(new Set());
     const providerColumns: Column<Provider>[] = [
@@ -386,7 +346,9 @@ function SettingsTabs() {
         try {
             setModelConn((s) => ({ ...s, [String(id)]: 'unknown' }));
             const res = await api.post(`/admin/ai/system/models/${encodeURIComponent(String(id))}/test`, { prompt: 'ping' });
-            const ok = !!(res.data && (res.data.ok || (res.data.status && res.data.status >= 200 && res.data.status < 300)));
+            type TestResp = { ok?: boolean; status?: number };
+            const d = (res.data || {}) as TestResp;
+            const ok = !!(d.ok || (typeof d.status === 'number' && d.status >= 200 && d.status < 300));
             setModelConn((s) => ({ ...s, [String(id)]: ok ? 'ok' : 'fail' }));
         } catch {
             setModelConn((s) => ({ ...s, [String(id)]: 'fail' }));
@@ -482,39 +444,7 @@ function SettingsTabs() {
         },
     ];
 
-    const priceColumns: Column<Price>[] = [
-        {key: 'id', title: 'ID'},
-        {
-            key: 'model',
-            title: 'Model',
-            render: (pr) => models.data?.find((m: Model) => m.id === pr.model_id)?.name || pr.model_id,
-        },
-        {
-            key: 'input',
-            title: 'Input',
-            accessor: (pr) => pr.input_price ?? pr.input_tokens,
-        },
-        {
-            key: 'output',
-            title: 'Output',
-            accessor: (pr) => pr.output_price ?? pr.output_tokens,
-        },
-        {key: 'currency', title: 'Currency'},
-        {
-            key: 'actions',
-            title: 'Actions',
-            render: (pr) => (
-                <div className="flex gap-2">
-                    <button className="text-blue-600" onClick={() => setPriceDraft(pr)}>
-                        <Pencil className="w-4 h-4"/>
-                    </button>
-                    <button className="text-red-600" onClick={() => removePrice(pr.id)}>
-                        <Trash2 className="w-4 h-4"/>
-                    </button>
-                </div>
-            ),
-        },
-    ];
+    // price columns removed with Costs & Limits
 
     return (
         <TabRouter

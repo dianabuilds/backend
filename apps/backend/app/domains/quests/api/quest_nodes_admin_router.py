@@ -7,18 +7,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.providers.db.session import get_db
-from app.domains.nodes.application.node_service import NodeService
-from app.domains.nodes.models import NodeItem
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.nodes.application.node_service import NodeService
+from app.domains.nodes.models import NodeItem
 from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.users.infrastructure.models.user import User
+from app.providers.db.session import get_db
 from app.schemas.nodes_common import NodeType
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
-
 
 router = APIRouter(
     prefix="/admin/quests/{quest_id}/nodes",
@@ -110,10 +109,10 @@ async def get_quest_node(
 async def update_quest_node(
     quest_id: UUID,  # noqa: ARG001 - reserved
     node_id: UUID,
-    workspace_id: UUID | None = Query(default=None),
-    tenant_id: UUID | None = Query(default=None),
     request: Request,
     payload: dict,
+    workspace_id: UUID | None = Query(default=None),
+    tenant_id: UUID | None = Query(default=None),
     next: int = Query(0),
     current_user: User = Depends(require_admin_role()),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
@@ -137,10 +136,10 @@ async def update_quest_node(
 async def publish_quest_node(
     quest_id: UUID,  # noqa: ARG001 - reserved
     node_id: UUID,
-    workspace_id: UUID | None = Query(default=None),
-    tenant_id: UUID | None = Query(default=None),
     request: Request,
     payload: PublishIn | None = None,
+    workspace_id: UUID | None = Query(default=None),
+    tenant_id: UUID | None = Query(default=None),
     current_user: User = Depends(require_admin_role()),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
@@ -183,9 +182,9 @@ async def validate_quest_node(
 async def simulate_quest_node(
     quest_id: UUID,  # noqa: ARG001 - reserved
     node_id: UUID,
+    payload: dict,
     workspace_id: UUID | None = Query(default=None),
     tenant_id: UUID | None = Query(default=None),
-    payload: dict,
     current_user: User = Depends(require_admin_role()),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
