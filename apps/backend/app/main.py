@@ -9,7 +9,13 @@ import sqlalchemy
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import HTMLResponse, ORJSONResponse
+from fastapi.responses import HTMLResponse
+
+# Prefer ultra-fast orjson if available; gracefully fall back to std JSONResponse
+try:  # pragma: no cover - optional dependency
+    from fastapi.responses import ORJSONResponse as DefaultJSONResponse
+except Exception:  # orjson not installed
+    from fastapi.responses import JSONResponse as DefaultJSONResponse
 from packaging import version
 from starlette.middleware.gzip import GZipMiddleware
 
@@ -83,7 +89,7 @@ if sqlalchemy_version.major != 2:
 container = punq.Container()
 register_providers(container, settings)
 
-app = FastAPI(default_response_class=ORJSONResponse)
+app = FastAPI(default_response_class=DefaultJSONResponse)
 app.state.container = container
 enable_tracing = settings.env_mode in {
     EnvMode.staging,
