@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { useAccount } from '../account/AccountContext';
@@ -11,17 +11,17 @@ interface NodeItem {
 }
 
 export default function ContentAll() {
-  const { accountId } = useAccount();
+  
   const [status, setStatus] = useState('');
   const [tag, setTag] = useState('');
 
   const { data } = useQuery<NodeItem[]>({
-    queryKey: queryKeys.nodes(accountId || '', {
+    queryKey: queryKeys.nodes({
       status: status || undefined,
       tags: tag || undefined,
     }),
     queryFn: async () => {
-      const rows = await nodesApi.list(accountId || '', {
+      const rows = await nodesApi.list({
         status: status || undefined,
         tags: tag || undefined,
       });
@@ -62,3 +62,4 @@ export default function ContentAll() {
     </div>
   );
 }
+

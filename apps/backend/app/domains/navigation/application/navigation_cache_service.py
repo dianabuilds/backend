@@ -9,29 +9,24 @@ from app.core.log_events import cache_hit, cache_invalidate, cache_miss
 from app.domains.navigation.application.ports.cache_port import IKeyValueCache
 
 
-def _k_nav(user_id: str, slug: str, mode: str, account_id: str | None = None) -> str:
-    # account_id is ignored after accounts deprecation; keep param for compatibility
+def _k_nav(user_id: str, slug: str, mode: str) -> str:
     m = mode or "auto"
     return cache_key("navigation", slug, user_id, m)
 
 
-def _k_navm(user_id: str, slug: str, account_id: str | None = None) -> str:
-    # account_id is ignored after accounts deprecation
+def _k_navm(user_id: str, slug: str) -> str:
     return cache_key("navigation", slug, "modes", user_id)
 
 
-def _k_comp(user_id: str, phash: str, account_id: str | None = None) -> str:
-    # account_id is ignored after accounts deprecation
+def _k_comp(user_id: str, phash: str) -> str:
     return cache_key("compass", user_id, phash)
 
 
-def _idx_node_nav(slug: str, account_id: str | None = None) -> str:
-    # account_id is ignored; indexing by node only
+def _idx_node_nav(slug: str) -> str:
     return cache_key("node", slug, "nav")
 
 
-def _idx_node_navm(slug: str, account_id: str | None = None) -> str:
-    # account_id is ignored; indexing by node only
+def _idx_node_navm(slug: str) -> str:
     return cache_key("node", slug, "navm")
 
 
@@ -43,8 +38,7 @@ def _idx_user_comp(uid: str) -> str:
     return cache_key("user", uid, "comp")
 
 
-def _idx_node_comp(slug: str, account_id: str | None = None) -> str:
-    # account_id is ignored; indexing by node only
+def _idx_node_comp(slug: str) -> str:
     return cache_key("node", slug, "comp")
 
 
@@ -84,11 +78,9 @@ class NavigationCacheService:
         user_id: UUID | str,
         node_slug: str,
         mode: str | None,
-        account_id: UUID | str | None = None,
     ) -> dict | None:
         uid = str(user_id)
-        aid = str(account_id) if account_id is not None else None
-        key = _k_nav(uid, node_slug, mode or "auto", aid)
+        key = _k_nav(uid, node_slug, mode or "auto")
         data = await self._cache.get(key)
         if data:
             cache_hit("nav", key, user=uid)
@@ -103,20 +95,15 @@ class NavigationCacheService:
         mode: str | None,
         payload: dict,
         ttl_sec: int | None = None,
-        account_id: UUID | str | None = None,
     ) -> None:
         uid = str(user_id)
-        aid = str(account_id) if account_id is not None else None
-        key = _k_nav(uid, node_slug, mode or "auto", aid)
+        key = _k_nav(uid, node_slug, mode or "auto")
         ttl = ttl_sec or settings.cache.nav_cache_ttl
         await self._cache.set(key, json.dumps(payload), ttl)
         await self._add_to_set(_idx_user_nav(uid), key)
-        await self._add_to_set(_idx_node_nav(node_slug, aid), key)
+        await self._add_to_set(_idx_node_nav(node_slug), key)
 
-    async def invalidate_navigation_by_node(
-        self, account_id: UUID | str | int, node_slug: str
-    ) -> None:
-        # account_id ignored; invalidate by node only
+    async def invalidate_navigation_by_node(self, node_slug: str) -> None:
         keys = await self._get_set(_idx_node_nav(node_slug))
         count = len(keys)
         if keys:
@@ -157,12 +144,9 @@ class NavigationCacheService:
             cache_invalidate("nav", reason="all")
 
     # Modes -------------------------------------------------------------
-    async def get_modes(
-        self, user_id: UUID | str, node_slug: str, account_id: UUID | str | None = None
-    ) -> dict | None:
+    async def get_modes(self, user_id: UUID | str, node_slug: str) -> dict | None:
         uid = str(user_id)
-        aid = str(account_id) if account_id is not None else None
-        key = _k_navm(uid, node_slug, aid)
+        key = _k_navm(uid, node_slug)
 
         data = await self._cache.get(key)
         if data:
@@ -177,18 +161,15 @@ class NavigationCacheService:
         node_slug: str,
         payload: dict,
         ttl_sec: int | None = None,
-        account_id: UUID | str | None = None,
     ) -> None:
         uid = str(user_id)
-        aid = str(account_id) if account_id is not None else None
-        key = _k_navm(uid, node_slug, aid)
+        key = _k_navm(uid, node_slug)
         ttl = ttl_sec or settings.cache.nav_cache_ttl
         await self._cache.set(key, json.dumps(payload), ttl)
         await self._add_to_set(_idx_user_nav(uid), key)
-        await self._add_to_set(_idx_node_navm(node_slug, aid), key)
+        await self._add_to_set(_idx_node_navm(node_slug), key)
 
-    async def invalidate_modes_by_node(self, account_id: UUID | str | int, node_slug: str) -> None:
-        # account_id ignored; invalidate by node only
+    async def invalidate_modes_by_node(self, node_slug: str) -> None:
         keys = await self._get_set(_idx_node_navm(node_slug))
         if keys:
             await self._cache.delete(*list(keys))
@@ -197,15 +178,9 @@ class NavigationCacheService:
             cache_invalidate("navm", reason="by_node", key=f"{node_slug}")
 
     # Compass -----------------------------------------------------------
-    async def get_compass(
-        self,
-        user_id: UUID | str,
-        params_hash: str,
-        account_id: UUID | str | None = None,
-    ) -> dict | None:
+    async def get_compass(self, user_id: UUID | str, params_hash: str) -> dict | None:
         uid = str(user_id)
-        aid = str(account_id) if account_id is not None else None
-        key = _k_comp(uid, params_hash, aid)
+        key = _k_comp(uid, params_hash)
         data = await self._cache.get(key)
         if data:
             cache_hit("comp", key, user=uid)
@@ -214,16 +189,10 @@ class NavigationCacheService:
         return None
 
     async def set_compass(
-        self,
-        user_id: UUID | str,
-        params_hash: str,
-        payload: dict,
-        ttl_sec: int | None = None,
-        account_id: UUID | str | None = None,
+        self, user_id: UUID | str, params_hash: str, payload: dict, ttl_sec: int | None = None
     ) -> None:
         uid = str(user_id)
-        aid = str(account_id) if account_id is not None else None
-        key = _k_comp(uid, params_hash, aid)
+        key = _k_comp(uid, params_hash)
 
         ttl = ttl_sec or settings.cache.compass_cache_ttl
         await self._cache.set(key, json.dumps(payload), ttl)
@@ -239,10 +208,7 @@ class NavigationCacheService:
         if keys:
             cache_invalidate("comp", reason="by_user", key=uid)
 
-    async def invalidate_compass_by_node(
-        self, account_id: UUID | str | int, node_slug: str
-    ) -> None:
-        # account_id ignored; invalidate by node only
+    async def invalidate_compass_by_node(self, node_slug: str) -> None:
         idx = _idx_node_comp(node_slug)
 
         keys = await self._get_set(idx)

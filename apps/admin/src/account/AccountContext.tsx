@@ -20,24 +20,14 @@ const AccountContext = createContext<AccountContextType>({
   setAccount: () => {},
 });
 
-function updateUrl(id: string) {
-  try {
-    const url = new URL(window.location.href);
-    if (id) url.searchParams.set('account_id', id);
-    else url.searchParams.delete('account_id');
-    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
-  } catch {
-    // ignore
-  }
-}
+// account_id removed: keep context for API shape, but do not touch the URL
+function updateUrl(_id: string) {}
 
 export function AccountBranchProvider({ children }: { children: ReactNode }) {
   const [accountId, setAccountIdState] = useState<string>(() => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      const fromUrl = params.get('account_id') || '';
       const stored = safeLocalStorage.getItem('accountId') || '';
-      return fromUrl || stored;
+      return stored;
     } catch {
       return '';
     }

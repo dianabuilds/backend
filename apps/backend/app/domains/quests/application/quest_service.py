@@ -42,7 +42,6 @@ class QuestService:
                     pass
                 await self._notifier.create_notification(
                     user.id,
-                    account_id=workspace_id,
                     title=f"Quest completed: {quest.title}",
                     message="You were among the first to finish the quest!",
                     type=notification_type,
@@ -50,7 +49,6 @@ class QuestService:
             else:
                 await self._notifier.create_notification(
                     user.id,
-                    account_id=workspace_id,
                     title=f"Quest completed: {quest.title}",
                     message="Quest completed, but rewards are exhausted.",
                     type=notification_type,

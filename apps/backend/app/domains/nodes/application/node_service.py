@@ -215,7 +215,6 @@ class NodeService:
         item = await NodeItemDAO.create(
             self._db,
             node_id=node.id,
-            workspace_id=None,
             type="quest",
             slug=slug,
             title=title,

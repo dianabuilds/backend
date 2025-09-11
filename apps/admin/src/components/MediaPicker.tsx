@@ -39,14 +39,14 @@ export default function MediaPicker({ value, onChange, className = '', height = 
   const { accountId } = useAccount();
 
   useEffect(() => {
-    if (!open || !accountId) return;
+    if (!open) return;
     if (mediaCache) {
       setItems(mediaCache);
       return;
     }
     (async () => {
       try {
-        const data = (await accountApi.get<ApiMediaAsset[]>('/admin/media', { accountId })) || [];
+        const data = (await accountApi.get<ApiMediaAsset[]>('/admin/media', { })) || [];
         const mapped = data.map((d) => ({
           id: d.id,
           url: resolveBackendUrl(d.url) || d.url,
@@ -61,7 +61,7 @@ export default function MediaPicker({ value, onChange, className = '', height = 
         setItems([]);
       }
     })();
-  }, [open, accountId]);
+  }, [open]);
 
   const filteredItems = items.filter((m) => {
     const matchesQuery =

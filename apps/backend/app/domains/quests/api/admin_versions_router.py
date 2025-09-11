@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_preview_context
+from app.api.deps import get_preview_context, get_tenant_id
 from app.core.preview import PreviewContext
 from app.domains.audit.application.audit_service import audit_log
 from app.domains.nodes import service as node_service
@@ -55,12 +55,12 @@ router = APIRouter(
 async def create_quest(
     body: QuestCreateIn,
     request: Request,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     q = Quest(
-        workspace_id=workspace_id,
+        workspace_id=tenant,
         title=body.title,
         subtitle=None,
         description=None,
@@ -86,14 +86,14 @@ async def create_quest(
 @router.get("/{quest_id}", response_model=QuestSummary, summary="Quest with versions")
 async def get_quest(
     quest_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     _: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     quest = await db.get(Quest, quest_id)
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
-    if quest.workspace_id != workspace_id:
+    if quest.workspace_id != tenant:
         raise HTTPException(status_code=404, detail="Quest not found")
     res = await db.execute(
         select(QuestVersion)
@@ -114,14 +114,14 @@ async def get_quest(
 async def create_draft(
     quest_id: UUID,
     request: Request,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     quest = await db.get(Quest, quest_id)
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
-    if quest.workspace_id != workspace_id:
+    if quest.workspace_id != tenant:
         raise HTTPException(status_code=404, detail="Quest not found")
     svc = EditorService()
     v = await svc.create_version(db, quest_id, current_user.id)
@@ -316,7 +316,7 @@ async def autofix_version(
 async def publish_version(
     version_id: UUID,
     request: Request,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -421,7 +421,7 @@ async def rollback_version(
 async def simulate_version(
     version_id: UUID,
     payload: SimulateIn,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     _: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
@@ -430,7 +430,7 @@ async def simulate_version(
     if not ver:
         raise HTTPException(status_code=404, detail="Version not found")
     q = await db.get(Quest, ver.quest_id)
-    if not q or q.workspace_id != workspace_id:
+    if not q or q.workspace_id != tenant:
         raise HTTPException(status_code=404, detail="Version not found")
     svc = EditorService()
     return await svc.simulate_version(db, version_id, payload, preview)
@@ -440,7 +440,7 @@ async def simulate_version(
 async def delete_draft(
     version_id: UUID,
     request: Request,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -448,7 +448,7 @@ async def delete_draft(
     if not v:
         raise HTTPException(status_code=404, detail="Version not found")
     q = await db.get(Quest, v.quest_id)
-    if not q or q.workspace_id != workspace_id:
+    if not q or q.workspace_id != tenant:
         raise HTTPException(status_code=404, detail="Version not found")
     if v.status != "draft":
         raise HTTPException(status_code=400, detail="Only draft can be deleted")

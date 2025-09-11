@@ -1,7 +1,6 @@
-import { accountApi } from './accountApi';
+import { api } from './client';
 
 export interface SimulatePreviewRequest {
-  account_id: string;
   start: string;
   history?: string[];
   preview_mode?: string;
@@ -31,30 +30,23 @@ export interface SimulatePreviewResponse {
 export async function simulatePreview(
   body: SimulatePreviewRequest,
 ): Promise<SimulatePreviewResponse> {
-  const res = await accountApi.post<SimulatePreviewRequest, SimulatePreviewResponse>(
+  const res = await api.post<SimulatePreviewRequest, SimulatePreviewResponse>(
     `/admin/preview/transitions/simulate`,
     body,
-    {
-      accountId: body.account_id,
-      account: false,
-    },
   );
-  return res ?? {};
+  return (res?.data as SimulatePreviewResponse) ?? {};
 }
 
 export interface PreviewLinkResponse {
   url: string;
 }
 
-export async function createPreviewLink(account_id: string): Promise<PreviewLinkResponse> {
-  return await accountApi.post<{ account_id: string }, PreviewLinkResponse>(
+export async function createPreviewLink(ttl?: number): Promise<PreviewLinkResponse> {
+  const res = await api.post<{ ttl?: number }, PreviewLinkResponse>(
     `/admin/preview/link`,
-    { account_id },
-    {
-      accountId: account_id,
-      account: false,
-    },
+    ttl ? { ttl } : undefined,
   );
+  return (res?.data as PreviewLinkResponse) ?? { url: '/preview' };
 }
 
 /**
@@ -65,6 +57,6 @@ export async function createPreviewLink(account_id: string): Promise<PreviewLink
  * - slug строки (в этом случае используем токен‑превью со start=<slug>)
  *
  * Для id всегда формируем admin‑маршрут:
- *   /admin/nodes/{type}/{id}/preview?account_id=...
+ *   /admin/nodes/{type}/{id}/preview
  * Тип по умолчанию: "article".
  */

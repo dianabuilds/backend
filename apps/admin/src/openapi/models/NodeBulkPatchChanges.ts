@@ -10,6 +10,5 @@ export type NodeBulkPatchChanges = {
   is_public?: boolean | null;
   premium_only?: boolean | null;
   isRecommendable?: boolean | null;
-  accountId?: string | null;
   delete?: boolean | null;
 };

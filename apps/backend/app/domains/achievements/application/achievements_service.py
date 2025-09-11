@@ -80,7 +80,7 @@ class AchievementsService:
         new_count = current_count + 1
         if not dry_run:
             if not counter:
-                counter = UserEventCounter(account_id=0, user_id=user_id, event=event, count=0)
+                counter = UserEventCounter(user_id=user_id, event=event, count=0)
                 db.add(counter)
                 await db.flush()
             counter.count = new_count

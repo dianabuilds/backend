@@ -7,7 +7,6 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
-from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -204,11 +203,6 @@ async def _call_with_fallback(
 
 async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str, Any]:
     params = job.params or {}
-    workspace_id_raw = params.get("tenant_id") or params.get("workspace_id")
-    try:
-        workspace_uuid = UUID(str(workspace_id_raw)) if workspace_id_raw else None
-    except Exception:
-        workspace_uuid = None
     world_template_id = params.get("world_template_id")
     structure = params.get("structure", "vn_branching")
     length = params.get("length", "short")
@@ -334,16 +328,14 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         providers=providers,
     )
     cost = estimate_cost_usd(res.model, res.usage.prompt_tokens, res.usage.completion_tokens)
-    if workspace_uuid:
-        await record_usage(
-            db,
-            workspace_id=workspace_uuid,
-            user_id=job.created_by,
-            provider=getattr(prov, "name", "?"),
-            model=res.model,
-            usage=res.usage,
-            cost=cost,
-        )
+    await record_usage(
+        db,
+        user_id=job.created_by,
+        provider=getattr(prov, "name", "?"),
+        model=res.model,
+        usage=res.usage,
+        cost=cost,
+    )
     if budget_usd > 0 and (total_cost + cost) > budget_usd:
         try:
             labels = LLMCallLabels(
@@ -429,16 +421,14 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         providers=providers,
     )
     cost = estimate_cost_usd(res.model, res.usage.prompt_tokens, res.usage.completion_tokens)
-    if workspace_uuid:
-        await record_usage(
-            db,
-            workspace_id=workspace_uuid,
-            user_id=job.created_by,
-            provider=getattr(prov, "name", "?"),
-            model=res.model,
-            usage=res.usage,
-            cost=cost,
-        )
+    await record_usage(
+        db,
+        user_id=job.created_by,
+        provider=getattr(prov, "name", "?"),
+        model=res.model,
+        usage=res.usage,
+        cost=cost,
+    )
     if budget_usd > 0 and (total_cost + cost) > budget_usd:
         try:
             labels = LLMCallLabels(

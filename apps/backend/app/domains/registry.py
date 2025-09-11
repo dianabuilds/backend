@@ -199,8 +199,6 @@ def register_domain_routers(app: FastAPI) -> None:
         logger.exception("Failed to load tags router. Startup aborted")
         raise RuntimeError("Failed to load tags router") from exc
 
-    # Profiles removed with accounts cleanup
-
     # Search
     try:
         from app.domains.search.api.routers import router as search_router
@@ -281,9 +279,6 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load admin users router. Startup aborted")
         raise RuntimeError("Failed to load admin users router") from exc
-    # Admin accounts removed: use profiles admin instead
-    # Admin nodes accounts/profiles routes removed
-    # Admin nodes alias (default_account_id)
     try:
         from app.domains.nodes.api.admin_nodes_alias_router import (
             router as admin_nodes_alias_router,
@@ -293,9 +288,6 @@ def register_domain_routers(app: FastAPI) -> None:
     except Exception as exc:
         logger.exception("Failed to load admin nodes alias router. Startup aborted")
         raise RuntimeError("Failed to load admin nodes alias router") from exc
-    # Admin articles routes removed (account-scoped)
-    # Admin nodes (workspace-scoped) removed from registry after accounts removal
-    # Admin global nodes
     try:
         from app.domains.nodes.api.admin_nodes_global_router import (
             router as admin_global_nodes_router,

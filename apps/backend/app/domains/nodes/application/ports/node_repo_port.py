@@ -8,19 +8,13 @@ from app.schemas.node import NodeCreate, NodeUpdate
 
 
 class INodeRepository(Protocol):
-    async def get_by_slug(
-        self, slug: str, account_id: int | None = None
-    ) -> Node | None:  # pragma: no cover
+    async def get_by_slug(self, slug: str) -> Node | None:  # pragma: no cover
         ...
 
-    async def get_by_id(
-        self, node_id: int, account_id: int | None = None
-    ) -> Node | None:  # pragma: no cover
+    async def get_by_id(self, node_id: int) -> Node | None:  # pragma: no cover
         ...
 
-    async def create(
-        self, payload: NodeCreate, author_id: UUID, account_id: int | None = None
-    ) -> Node:  # pragma: no cover
+    async def create(self, payload: NodeCreate, author_id: UUID) -> Node:  # pragma: no cover
         ...
 
     async def update(

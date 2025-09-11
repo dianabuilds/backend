@@ -4,7 +4,7 @@ import io
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_storage
@@ -35,35 +35,25 @@ async def _preflight() -> dict:
 
 @router.get("", response_model=list[MediaAssetOut], summary="List media assets")
 async def list_media_assets(
-    workspace_id: Annotated[UUID | None, Query()] = None,
-    tenant_id: Annotated[UUID | None, Query()] = None,
-    limit: Annotated[int, Query(ge=1, le=500)] = 100,
-    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: int = 100,
+    offset: int = 0,
     _: Annotated[object, Depends(require_admin_role())] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> list[MediaAssetOut]:
-    effective_ws: UUID | None = tenant_id or workspace_id
-    if effective_ws is None:
-        raise HTTPException(status_code=422, detail="tenant_id is required")
-    items = await MediaAssetDAO.list(
-        db,
-        workspace_id=effective_ws,
-        limit=limit,
-        offset=offset,
-    )
+    items = await MediaAssetDAO.list(db, limit=limit, offset=offset)
     return [MediaAssetOut.model_validate(i) for i in items]
 
 
 @router.post("", summary="Upload media asset")
 async def upload_media_asset(
-    workspace_id: Annotated[UUID | None, Query()] = None,
-    tenant_id: Annotated[UUID | None, Query()] = None,
     file: Annotated[UploadFile, File(...)] = ...,  # noqa: B008
-    _: Annotated[object, Depends(require_admin_role())] = ...,  # noqa: B008
+    current_user: Annotated["User", Depends(require_admin_role())] = ...,  # noqa: B008
     storage: Annotated[IStorageGateway, Depends(get_storage)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    node_cover_upload_start(str(getattr(_, "id", None)))
+    from app.domains.users.infrastructure.models.user import User  # local import
+
+    node_cover_upload_start(str(getattr(current_user, "id", None)))
     try:
         if file.content_type not in {"image/jpeg", "image/png", "image/webp"}:
             raise HTTPException(status_code=415, detail="Unsupported media type")
@@ -72,21 +62,18 @@ async def upload_media_asset(
             raise HTTPException(status_code=413, detail="File too large")
         service = StorageService(storage)
         url = service.save_file(io.BytesIO(data), file.filename, file.content_type)
-        effective_ws: UUID | None = tenant_id or workspace_id
-        if effective_ws is None:
-            raise HTTPException(status_code=422, detail="tenant_id is required")
         asset = await MediaAssetDAO.create(
             db,
-            workspace_id=effective_ws,
+            profile_id=getattr(current_user, "id", None),
             url=url,
             type=file.content_type,
             metadata_json=None,
         )
         await db.commit()
     except Exception as exc:
-        node_cover_upload_fail(str(getattr(_, "id", None)), str(exc))
+        node_cover_upload_fail(str(getattr(current_user, "id", None)), str(exc))
         raise
-    node_cover_upload_success(str(getattr(_, "id", None)))
+    node_cover_upload_success(str(getattr(current_user, "id", None)))
     return {
         "success": 1,
         "file": {"url": url},

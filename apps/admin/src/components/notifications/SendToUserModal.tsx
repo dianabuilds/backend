@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 
-import { useAccount } from '../../account/AccountContext';
 import { sendNotification } from '../../api/notifications';
 import { useAuth } from '../../auth/AuthContext';
 import { NotificationType } from '../../openapi';
@@ -20,7 +19,6 @@ interface Props {
 
 export default function SendToUserModal({ isOpen, onClose }: Props) {
   const { user } = useAuth();
-  const { accountId } = useAccount();
   const { addToast } = useToast();
   const [userId, setUserId] = useState('');
   const [values, setValues] = useState<NotificationFormValues>({
@@ -52,7 +50,6 @@ export default function SendToUserModal({ isOpen, onClose }: Props) {
     if (!validate()) return;
     try {
       await sendNotification({
-        account_id: accountId || '',
         user_id: userId,
         title: values.title,
         message: values.message,

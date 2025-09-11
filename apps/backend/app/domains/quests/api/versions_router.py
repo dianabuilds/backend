@@ -14,6 +14,7 @@ from app.api.deps import (
     get_current_user,
     get_db,
     get_preview_context,
+    get_tenant_id,
 )
 from app.core.preview import PreviewContext
 from app.domains.quests.application.editor_service import EditorService
@@ -59,11 +60,11 @@ async def _ensure_version_access(
 )
 async def list_versions(
     quest_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    await _ensure_quest_access(db, quest_id, workspace_id, current_user)
+    await _ensure_quest_access(db, quest_id, tenant, current_user)
     res = await db.execute(
         select(QuestVersion).where(QuestVersion.quest_id == quest_id).order_by(QuestVersion.number)
     )
@@ -78,11 +79,11 @@ async def list_versions(
 )
 async def create_version(
     quest_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    await _ensure_quest_access(db, quest_id, workspace_id, current_user)
+    await _ensure_quest_access(db, quest_id, tenant, current_user)
     svc = EditorService()
     version = await svc.create_version(db, quest_id, actor_id=current_user.id)
     await db.commit()
@@ -97,11 +98,11 @@ async def create_version(
 )
 async def get_current_version(
     quest_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    await _ensure_quest_access(db, quest_id, workspace_id, current_user)
+    await _ensure_quest_access(db, quest_id, tenant, current_user)
     res = await db.execute(
         select(QuestVersion)
         .where(
@@ -131,11 +132,11 @@ async def get_current_version(
 async def get_version(
     quest_id: UUID,
     version_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    version = await _ensure_version_access(db, version_id, workspace_id, current_user)
+    version = await _ensure_version_access(db, version_id, tenant, current_user)
     if version.quest_id != quest_id:
         raise HTTPException(status_code=404, detail="Version not found")
     return QuestVersionOut.model_validate(version, from_attributes=True)
@@ -145,11 +146,11 @@ async def get_version(
 async def delete_version(
     quest_id: UUID,
     version_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    version = await _ensure_version_access(db, version_id, workspace_id, current_user)
+    version = await _ensure_version_access(db, version_id, tenant, current_user)
     if version.quest_id != quest_id:
         raise HTTPException(status_code=404, detail="Version not found")
     if version.status != "draft":
@@ -167,11 +168,11 @@ async def delete_version(
 )
 async def get_graph(
     version_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    await _ensure_version_access(db, version_id, workspace_id, current_user)
+    await _ensure_version_access(db, version_id, tenant, current_user)
     svc = QuestGraphService()
     v, steps, transitions = await svc.load_graph(db, version_id)
     return QuestGraphOut(
@@ -188,11 +189,11 @@ async def get_graph(
 async def put_graph(
     version_id: UUID,
     payload: QuestGraphIn,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    await _ensure_version_access(db, version_id, workspace_id, current_user)
+    await _ensure_version_access(db, version_id, tenant, current_user)
     svc = QuestGraphService()
     await svc.save_graph(db, version_id, payload.steps, payload.transitions)
     await db.commit()
@@ -206,13 +207,13 @@ async def put_graph(
 )
 async def validate_version(
     version_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    await _ensure_version_access(db, version_id, workspace_id, current_user)
+    await _ensure_version_access(db, version_id, tenant, current_user)
     svc = EditorService()
-    event_metrics.inc("quest.validate", str(workspace_id))
+    event_metrics.inc("quest.validate", str(tenant))
     return await svc.validate_version(db, version_id)
 
 
@@ -224,12 +225,12 @@ async def validate_version(
 async def simulate_version(
     version_id: UUID,
     payload: SimulateIn,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ):
-    await _ensure_version_access(db, version_id, workspace_id, current_user)
+    await _ensure_version_access(db, version_id, tenant, current_user)
     svc = EditorService()
     return await svc.simulate_version(db, version_id, payload, preview)
 
@@ -241,11 +242,11 @@ async def simulate_version(
 )
 async def publish_version(
     version_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    version = await _ensure_version_access(db, version_id, workspace_id, current_user)
+    version = await _ensure_version_access(db, version_id, tenant, current_user)
     if version.status != "draft":
         raise HTTPException(status_code=400, detail="Only draft can be published")
     svc = EditorService()

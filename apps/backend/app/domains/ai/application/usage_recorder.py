@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 async def record_usage(
     db: AsyncSession,
     *,
-    account_id: int,
     user_id: UUID | None,
     provider: str,
     model: str,
@@ -27,8 +26,9 @@ async def record_usage(
         calc_cost = cost
         if calc_cost is None:
             calc_cost = estimate_cost_usd(model, usage.prompt_tokens, usage.completion_tokens)
+        # Store actor in user_id. profile_id is omitted in profile-only mode.
         row = AIUsage(
-            workspace_id=account_id,
+            profile_id=None,
             user_id=user_id,
             provider=provider,
             model=model,

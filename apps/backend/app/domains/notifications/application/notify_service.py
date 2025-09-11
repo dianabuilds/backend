@@ -12,10 +12,7 @@ from app.schemas.notification import NotificationPlacement
 
 
 def user_limit(*_args, **_kwargs):
-    """No-op rate limiter placeholder keyed by user profile.
-
-    Replaces account-scoped limiter during migration away from accounts.
-    """
+    """No-op rate limiter placeholder keyed by user profile."""
 
     def _decorator(func):  # type: ignore
         return func
@@ -30,19 +27,17 @@ class NotifyService:
 
     @user_limit("notif_per_day", scope="day", amount=1, degrade=True)
     async def create_notification(
-        self,
-        *,
-        account_id: UUID | None = None,
-        user_id: UUID,
-        title: str,
-        message: str,
-        type: Any,
-        placement: Any = NotificationPlacement.inbox,
-        preview: PreviewContext | None = None,
+            self,
+            *,
+            user_id: UUID,
+            title: str,
+            message: str,
+            type: Any,
+            placement: Any = NotificationPlacement.inbox,
+            preview: PreviewContext | None = None,
     ) -> dict[str, Any]:
         is_shadow = bool(preview and preview.mode == "shadow")
         dto = await self._repo.create_and_commit(
-            account_id=account_id,
             user_id=user_id,
             title=title,
             message=message,

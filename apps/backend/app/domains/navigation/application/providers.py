@@ -29,7 +29,6 @@ class TransitionProvider(ABC):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         """Return candidate nodes for transition."""
@@ -50,12 +49,9 @@ class ManualTransitionsProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
-        transitions = await self._service.get_transitions(
-            db, node, user, account_id, preview=preview
-        )
+        transitions = await self._service.get_transitions(db, node, user, preview=preview)
         nodes: list[Node] = []
         for t in transitions:
             n = t.to_node
@@ -80,12 +76,9 @@ class CompassProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
-        return await self._service.get_compass_nodes(
-            db, node, user, self._limit, preview=preview, account_id=account_id
-        )
+        return await self._service.get_compass_nodes(db, node, user, self._limit, preview)
 
 
 class EchoProvider(TransitionProvider):
@@ -102,11 +95,10 @@ class EchoProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         return await self._service.get_echo_transitions(
-            db, node, self._limit, user=user, preview=preview, account_id=account_id
+            db, node, self._limit, user=user, preview=preview
         )
 
 
@@ -124,7 +116,6 @@ class RandomProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         from app.domains.navigation.application.access_policy import has_access_async

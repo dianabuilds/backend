@@ -9,7 +9,6 @@ def apply_scope(
     query: Select,
     user: Any,
     scope_mode: str | None,
-    account_id: int | None,  # kept for signature compatibility; ignored
 ) -> tuple[Select, int | None]:
     """Apply profile-centric scoping to a SQLAlchemy query.
 

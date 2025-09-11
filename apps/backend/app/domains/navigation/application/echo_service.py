@@ -42,13 +42,8 @@ class EchoService:
         *,
         user: User | None = None,
         preview: PreviewContext | None = None,
-        account_id: int | None = None,
     ) -> list[Node]:
-        if account_id is None:
-            account_id = None
         stmt = select(NavigationCache.echo).where(NavigationCache.node_slug == node.slug)
-        if account_id is not None:
-            stmt = stmt.where(NavigationCache.account_id == account_id)
         result = await db.execute(stmt)
         slugs = result.scalar_one_or_none() or []
         ordered_nodes: list[Node] = []

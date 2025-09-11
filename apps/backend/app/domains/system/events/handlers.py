@@ -63,13 +63,8 @@ class _Handlers:
             await self.update_node_embedding(session, event.node_id)
         if event.tags_changed:
             try:
-                if event.workspace_id is not None:
-                    await navcache.invalidate_navigation_by_node(
-                        account_id=event.workspace_id, node_slug=event.slug
-                    )
-                else:
-                    await navcache.invalidate_navigation_by_user(event.author_id)
-                    await navcache.invalidate_compass_by_user(event.author_id)
+                await navcache.invalidate_navigation_by_user(event.author_id)
+                await navcache.invalidate_compass_by_user(event.author_id)
             except Exception:
                 logger.exception(
                     "navcache.invalidate_navigation_failed",
@@ -86,16 +81,8 @@ class _Handlers:
         except Exception:
             logger.exception("index_content_failed", extra={"event": event})
         try:
-            if event.workspace_id is not None:
-                await navcache.invalidate_navigation_by_node(
-                    account_id=event.workspace_id, node_slug=event.slug
-                )
-                await navcache.invalidate_modes_by_node(
-                    account_id=event.workspace_id, node_slug=event.slug
-                )
-            else:
-                await navcache.invalidate_navigation_by_user(event.author_id)
-                await navcache.invalidate_compass_by_user(event.author_id)
+            await navcache.invalidate_navigation_by_user(event.author_id)
+            await navcache.invalidate_compass_by_user(event.author_id)
             await navcache.invalidate_compass_all()
         except Exception:
             logger.exception("navcache.invalidate_post_publish_failed", extra={"event": event})
@@ -108,7 +95,6 @@ class _Handlers:
                     WebsocketPusher(ws_manager),
                 )
                 await svc.create_notification(
-                    account_id=event.workspace_id,
                     user_id=event.user_id,
                     title=event.title,
                     message=event.message,
@@ -125,7 +111,6 @@ class _Handlers:
                     WebsocketPusher(ws_manager),
                 )
                 await svc.create_notification(
-                    account_id=event.workspace_id,
                     user_id=event.user_id,
                     title=event.title,
                     message=event.message,

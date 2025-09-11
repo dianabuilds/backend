@@ -249,14 +249,6 @@ else:
     # Removed fallback /users/me: domain routers must provide it or app should fail earlier.
     register_admin_override(app)
 
-    # Public web pages (SSR)
-    try:
-        from app.web.public_profile_router import router as public_profile_router
-
-        app.include_router(public_profile_router)
-    except Exception as e:  # pragma: no cover - optional
-        logging.getLogger(__name__).warning(f"Public web routers failed to load: {e}")
-
     # SPA fallback should be last
     from app.web.admin_spa import router as admin_spa_router
 

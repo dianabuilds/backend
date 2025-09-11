@@ -44,7 +44,7 @@ export default function ContentDashboard() {
   const { data: nodes = [], isLoading } = useQuery<NodeItem[]>({
     queryKey: ['content', 'dashboard', 'nodes', accountId || 'default'],
     queryFn: async () => {
-      const res = await listNodes(accountId || '');
+      const res = await listNodes();
       type RawNode = Partial<NodeItem> & {
         id?: number;
         nodeId?: number;
@@ -94,19 +94,13 @@ export default function ContentDashboard() {
     )[0];
 
   const createQuest = async () => {
-    const n = await createNode(accountId);
-    const path = accountId
-      ? `/nodes/quest/${n.id}?account_id=${accountId}`
-      : `/nodes/quest/${n.id}`;
-    navigate(path);
+    const n = await createNode();
+    navigate(`/nodes/quest/${n.id}`);
   };
 
   const createGenericNode = async () => {
-    const n = await createNode(accountId);
-    const path = accountId
-      ? `/nodes/article/${n.id}?account_id=${accountId}`
-      : `/nodes/article/${n.id}`;
-    navigate(path);
+    const n = await createNode();
+    navigate(`/nodes/article/${n.id}`);
   };
 
   const handleSearch = (e: React.FormEvent) => {

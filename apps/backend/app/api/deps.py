@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi import Depends, HTTPException, Request, Security, status, Query
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -19,6 +19,87 @@ from app.domains.moderation.infrastructure.models.moderation_models import (
 from app.domains.users.infrastructure.models.user import User
 from app.providers.db.session import get_db
 from app.security import bearer_scheme
+import logging
+from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class TenantContext:
+    """Resolved tenant context for request handling.
+
+    Canonical identifier name is ``tenant_id``. For backward compatibility,
+    we also accept ``workspace_id`` (deprecated) via query/path params.
+    """
+
+    tenant_id: UUID
+
+
+def _parse_uuid_maybe(value: str | UUID | None) -> UUID | None:
+    if value is None:
+        return None
+    if isinstance(value, UUID):
+        return value
+    try:
+        return UUID(str(value))
+    except Exception:
+        return None
+
+
+async def get_tenant_id(
+    request: Request,
+    tenant_id: UUID | None = Query(default=None),
+    workspace_id: UUID | None = Query(default=None),
+) -> UUID:
+    """Resolve tenant id from query or path params.
+
+    Preference order:
+    1) ``tenant_id`` query param
+    2) ``workspace_id`` query param (deprecated; logs a warning)
+    3) ``tenant_id`` in path params
+    4) ``workspace_id``/``account_id`` in path params (deprecated)
+    Raises 422 if nothing found.
+    """
+
+    if tenant_id is not None:
+        return tenant_id
+    if workspace_id is not None:
+        logger.warning("Deprecated param workspace_id used; prefer tenant_id")
+        return workspace_id
+    # Path params fallback
+    p = request.path_params or {}
+    p_tenant = _parse_uuid_maybe(p.get("tenant_id"))
+    if p_tenant is not None:
+        return p_tenant
+    p_workspace = _parse_uuid_maybe(p.get("workspace_id") or p.get("account_id"))
+    if p_workspace is not None:
+        logger.warning("Deprecated path param workspace_id/account_id used; prefer tenant_id")
+        return p_workspace
+    raise HTTPException(status_code=422, detail="tenant_id is required")
+
+
+async def get_tenant_id_optional(
+    request: Request,
+    tenant_id: UUID | None = Query(default=None),
+    workspace_id: UUID | None = Query(default=None),
+) -> UUID | None:
+    """Optional tenant resolver. Returns None when not provided.
+
+    Accepts deprecated ``workspace_id`` for compatibility.
+    """
+
+    if tenant_id is not None:
+        return tenant_id
+    if workspace_id is not None:
+        logger.warning("Deprecated param workspace_id used; prefer tenant_id")
+        return workspace_id
+    p = request.path_params or {}
+    return _parse_uuid_maybe(
+        p.get("tenant_id")
+        or p.get("workspace_id")
+        or p.get("account_id")
+    )
 
 
 async def get_current_user(

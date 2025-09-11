@@ -9,7 +9,6 @@ import AdminNodePreview from '../components/AdminNodePreview';
 
 export default function NodePreview() {
   const { type = 'article', id = '' } = useParams<{ type?: string; id?: string }>();
-  const { accountId } = useAccount();
   const [doc, setDoc] = useState<Doc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +17,7 @@ export default function NodePreview() {
     if (!id) return;
     (async () => {
       try {
-        const n = await getNode(accountId || '', id);
+        const n = await getNode(Number(id));
         const content = (n as unknown as { content?: unknown }).content;
         const blocks =
           content &&
@@ -39,7 +38,7 @@ export default function NodePreview() {
         setLoading(false);
       }
     })();
-  }, [accountId, type, id]);
+  }, [type, id]);
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
   if (!doc) return <div>No data</div>;

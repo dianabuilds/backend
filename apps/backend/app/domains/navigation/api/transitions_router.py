@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -27,8 +27,6 @@ navcache = NavigationCacheService(CoreCacheAdapter())
 @router.delete("/{transition_id}", summary="Delete transition")
 async def delete_transition(
     transition_id: str,
-    workspace_id: Annotated[int | None, Query()] = None,
-    tenant_id: Annotated[int | None, Query()] = None,
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     # Profile-centric: no membership dependency
@@ -40,13 +38,8 @@ async def delete_transition(
     if not transition:
         raise HTTPException(status_code=404, detail="Transition not found")
     TransitionPolicy.ensure_can_delete(transition, current_user)
-    account_scope = tenant_id or workspace_id
-    if account_scope is None:
-        raise HTTPException(status_code=422, detail="tenant_id is required")
-    from_node = await node_repo.get_by_id(transition.from_node_id, account_scope)
+    from_node = await node_repo.get_by_id(transition.from_node_id)
     await repo.delete(transition)
     if from_node:
-        await navcache.invalidate_navigation_by_node(
-            account_id=account_scope, node_slug=from_node.slug
-        )
+        await navcache.invalidate_navigation_by_user(from_node.author_id)
     return {"message": "Transition deleted"}

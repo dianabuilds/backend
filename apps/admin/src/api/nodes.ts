@@ -1,18 +1,12 @@
-import type { NodeOut, Status } from '../openapi';
-import { accountApi } from './accountApi';
-import { api, type ApiResponse } from './client';
+﻿import type { NodeOut, Status } from '../openapi';
+import { api } from './client';
 
-// The admin nodes list endpoint returns additional metadata compared to the
-// public NodeOut model. In particular, it includes the `status` of each item.
-// We extend the generated `NodeOut` type to capture these fields for stronger
-// typing inside the admin UI.
+// Admin list item with a couple of extra fields used in the UI
 export interface AdminNodeItem extends NodeOut {
   status: string;
   nodeId?: number | null;
   space?: string;
 }
-
-const listCache = new Map<string, { etag: string | null; data: AdminNodeItem[] }>();
 
 type RawAdminNodeItem = Omit<AdminNodeItem, 'createdAt' | 'updatedAt'> & {
   createdAt?: string;
@@ -41,11 +35,9 @@ export interface NodeListParams {
 
 export interface NodePatchParams {
   title?: string | null;
-  /** Node content as EditorJS document. */
   content?: unknown;
   media?: string[] | null;
   coverUrl?: string | null;
-  /** List of tag slugs. */
   tags?: string[] | null;
   isPublic?: boolean | null;
   isVisible?: boolean | null;
@@ -64,30 +56,7 @@ export type NodePublishParams = {
   scheduled_at?: string | null;
 };
 
-export interface NodeSimulatePayload {
-  [key: string]: unknown;
-}
-
-export async function listNodes(
-  accountId: string,
-  params: NodeListParams = {},
-): Promise<AdminNodeItem[]> {
-  // Profile-centric path: no account → use personal nodes API
-  if (!accountId) {
-    const res = await api.get<NodeOut[]>(`/users/me/nodes`);
-    const data = (Array.isArray(res.data) ? res.data : []) as RawAdminNodeItem[];
-    return data.map(({ created_at, updated_at, createdAt, updatedAt, ...rest }) => {
-      const r = rest as Partial<AdminNodeItem> & { id?: number | null };
-      return {
-        ...rest,
-        status: r.status ?? 'draft',
-        nodeId: r.nodeId ?? r.id ?? null,
-        space: undefined,
-        createdAt: createdAt ?? created_at ?? '',
-        updatedAt: updatedAt ?? updated_at ?? '',
-      } as AdminNodeItem;
-    }) as AdminNodeItem[];
-  }
+export async function listNodes(params: NodeListParams = {}): Promise<AdminNodeItem[]> {
   try {
     const fromUrl = new URLSearchParams(window.location.search);
     if (!params.scope_mode) {
@@ -99,48 +68,20 @@ export async function listNodes(
       if (author) params.author = author;
     }
   } catch {
-    // ignore in non-browser contexts
+    // ignore on server/non-browser
   }
-  // Собираем query для cacheKey (те же параметры уйдут в accountApi через opts.params)
-  // Собираем QS один раз
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null) {
-      qs.set(key, String(value));
-    }
+    if (value !== undefined && value !== null) qs.set(key, String(value));
   }
-
-  // Helper: запрос с ETag-кэшем по явному URL (без account-переписываний)
-  const getWithCache = async (url: string) => {
-    const cached = listCache.get(url);
-    const res = (await accountApi.get(url, {
-      etag: cached?.etag ?? undefined,
-      acceptNotModified: true,
-      raw: true,
-      accountId, // kept only for telemetry headers; not used in URL
-      account: false, // критично: ничего не переписываем автоматически
-    })) as ApiResponse<AdminNodeItem[]>;
-    if (res.status === 304 && cached) return cached.data;
-    if (res.status === 404) {
-      const err = new Error('Not Found') as Error & {
-        response?: { status: number };
-      };
-      err.response = { status: 404 };
-      throw err;
-    }
-    const raw: RawAdminNodeItem[] = Array.isArray(res.data) ? (res.data as RawAdminNodeItem[]) : [];
-    const data = raw.map(({ created_at, updated_at, createdAt, updatedAt, ...rest }) => ({
-      ...rest,
-      createdAt: createdAt ?? created_at ?? '',
-      updatedAt: updatedAt ?? updated_at ?? '',
-    })) as AdminNodeItem[];
-    if (res.etag) listCache.set(url, { etag: res.etag, data });
-    return data;
-  };
-
-  // Accounts removed: use unified admin alias
   const url = `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
-  return await getWithCache(url);
+  const res = await api.get<RawAdminNodeItem[]>(url);
+  const raw = Array.isArray(res.data) ? (res.data as RawAdminNodeItem[]) : [];
+  return raw.map(({ created_at, updated_at, createdAt, updatedAt, ...rest }) => ({
+    ...rest,
+    createdAt: createdAt ?? created_at ?? '',
+    updatedAt: updatedAt ?? updated_at ?? '',
+  })) as AdminNodeItem[];
 }
 
 export interface CreateNodePayload {
@@ -151,19 +92,9 @@ export interface CreateNodePayload {
   allowFeedback?: boolean;
 }
 
-export async function createNode(
-  accountId: string,
-  payload: CreateNodePayload = {},
-): Promise<NodeOut> {
-  if (!accountId) {
-    const res = await api.post<CreateNodePayload, NodeOut>(`/users/me/nodes`, payload);
-    return res.data as NodeOut;
-  }
-  const url = `/admin/nodes`;
-  return await accountApi.post<CreateNodePayload, NodeOut>(url, payload, {
-    accountId: '',
-    account: false,
-  });
+export async function createNode(payload: CreateNodePayload = {}): Promise<NodeOut> {
+  const res = await api.post<CreateNodePayload, NodeOut>(`/admin/nodes`, payload);
+  return (res.data as NodeOut) ?? ({} as NodeOut);
 }
 
 export interface NodeResponse extends NodeOut {
@@ -172,73 +103,37 @@ export interface NodeResponse extends NodeOut {
   contentId?: number;
 }
 
-export async function getNode(accountId: string, id: number): Promise<NodeResponse> {
-  try {
-    if (accountId) {
-      const url = `/admin/nodes/${encodeURIComponent(String(id))}`;
-      return (await accountApi.get<NodeResponse>(url, {
-        accountId: '',
-        account: false,
-      })) as NodeResponse;
-    }
-    const res = await api.get<NodeResponse>(`/users/me/nodes/${encodeURIComponent(String(id))}`);
-    return res.data as NodeResponse;
-  } catch (e: unknown) {
-    const status =
-      (e as { status?: number; response?: { status?: number } }).status ??
-      (e as { response?: { status?: number } }).response?.status;
-    if (status !== 404) throw e;
-    // Try admin alias as a fallback for personal mode when not found
-    try {
-      return (await accountApi.get<NodeResponse>(`/admin/nodes/${encodeURIComponent(String(id))}`, {
-        accountId: '',
-        account: false,
-      })) as NodeResponse;
-    } catch {
-      const err = new Error('Not Found') as Error & { response?: { status: number } };
-      err.response = { status: 404 };
-      throw err;
-    }
-  }
+export async function getNode(id: number): Promise<NodeResponse> {
+  const res = await api.get<NodeResponse>(`/admin/nodes/${encodeURIComponent(String(id))}`);
+  return (res.data as NodeResponse) ?? ({} as NodeResponse);
 }
 
 export async function patchNode(
-  accountId: string,
   id: number,
   patch: NodePatchParams,
   opts: { signal?: AbortSignal; next?: boolean } = {},
 ): Promise<NodeResponse> {
   const body: Record<string, unknown> = { ...patch };
-  if (accountId) {
-    return (await accountApi.patch<typeof body, NodeResponse, { next: number }>(
-      `/admin/nodes/${encodeURIComponent(String(id))}`,
-      body,
-      { accountId: '', account: false, params: { next: opts.next === false ? 0 : 1 } },
-    )) as NodeResponse;
-  }
+  const suffix = opts.next === false ? '?next=0' : '?next=1';
   const res = await api.patch<typeof body, NodeResponse>(
-    `/users/me/nodes/${encodeURIComponent(String(id))}`,
+    `/admin/nodes/${encodeURIComponent(String(id))}${suffix}`,
     body,
     { signal: opts.signal },
   );
-  return res.data as NodeResponse;
+  return (res.data as NodeResponse) ?? ({} as NodeResponse);
 }
 
 export async function publishNode(
-  _accountId: string,
   id: number,
   body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
-  return await accountApi.post<typeof body, NodeOut>(
+  const res = await api.post<typeof body, NodeOut>(
     `/admin/nodes/${encodeURIComponent(String(id))}/publish`,
     body,
-    { accountId: '', account: false },
   );
+  return (res.data as NodeOut) ?? ({} as NodeOut);
 }
 
-// Removed unused legacy helpers (archive/duplicate/preview/simulate/recompute embedding)
-
-// Convenience helper for personal mode with global scope
 export async function listNodesGlobal(params: NodeListParams = {}): Promise<AdminNodeItem[]> {
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -246,17 +141,13 @@ export async function listNodesGlobal(params: NodeListParams = {}): Promise<Admi
   }
   if (!qs.has('scope_mode')) qs.set('scope_mode', 'global');
   const url = `/admin/nodes${qs.toString() ? `?${qs.toString()}` : ''}`;
-  const res = (await accountApi.get(url, {
-    etag: undefined,
-    acceptNotModified: false,
-    raw: true,
-    accountId: '',
-    account: false,
-  })) as ApiResponse<AdminNodeItem[]>;
-  const raw: RawAdminNodeItem[] = Array.isArray(res.data) ? (res.data as RawAdminNodeItem[]) : [];
+  const res = await api.get<RawAdminNodeItem[]>(url);
+  const raw = Array.isArray(res.data) ? (res.data as RawAdminNodeItem[]) : [];
   return raw.map(({ created_at, updated_at, createdAt, updatedAt, ...rest }) => ({
     ...rest,
     createdAt: createdAt ?? created_at ?? '',
     updatedAt: updatedAt ?? updated_at ?? '',
   })) as AdminNodeItem[];
 }
+
+

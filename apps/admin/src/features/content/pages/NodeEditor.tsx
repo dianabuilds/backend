@@ -17,13 +17,13 @@ export default function NodeEditorPage() {
   const navigate = useNavigate();
   const [context, setContext] = useState('default');
   const idParam: number | 'new' = id === 'new' ? 'new' : Number(id);
-  const { node, update, save, loading, error, isSaving } = useNodeEditor(accountId || '', idParam);
+  const { node, update, save, loading, error, isSaving } = useNodeEditor(idParam);
 
   const refreshPublishInfo = async () => {
     if (!node.id) return;
     try {
       type MaybePublic = { isPublic?: boolean; is_public?: boolean };
-      const updated = (await nodesApi.get(accountId || '', node.id)) as unknown as MaybePublic;
+      const updated = (await nodesApi.get(node.id)) as unknown as MaybePublic;
       update({ isPublic: updated.isPublic ?? updated.is_public ?? false });
     } catch {
       // ignore
@@ -37,8 +37,7 @@ export default function NodeEditorPage() {
   const handleSave = async () => {
     const res = (await save()) as { id?: string } | undefined;
     if (id === 'new' && res?.id) {
-      const qs = accountId ? `?account_id=${accountId}` : '';
-      navigate(`/nodes/${type}/${res.id}${qs}`);
+      navigate(`/nodes/${type}/${res.id}`);
     }
   };
 
@@ -73,15 +72,7 @@ export default function NodeEditorPage() {
             </select>
             <div className="space-x-2">
               <Button onClick={() => navigate(-1)}>Close</Button>
-              <Button
-                onClick={() => {
-                  const base = `/nodes/${type}/${id}`;
-                  const qs = accountId ? `?account_id=${accountId}` : '';
-                  navigate(`${base}/preview${qs}`);
-                }}
-              >
-                Preview
-              </Button>
+              <Button onClick={() => navigate(`/nodes/${type}/${id}/preview`)}>Preview</Button>
               <Button
                 onClick={handleSave}
                 disabled={isSaving}

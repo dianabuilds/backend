@@ -37,7 +37,7 @@ class NodeQueryService:
             isouter=True,
         )
         if scope_mode is not None:
-            base, _ = apply_scope(base, getattr(ctx, "user", None), scope_mode, None)
+            base, _ = apply_scope(base, getattr(ctx, "user", None), scope_mode)
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
@@ -50,7 +50,6 @@ class NodeQueryService:
             clauses.append(Node.is_recommendable == bool(spec.recommendable))
         if spec.author_id is not None:
             clauses.append(Node.author_id == spec.author_id)
-        # account_id filter is handled via the join condition above
         if spec.status is not None:
             clauses.append(Node.status == spec.status)
         if spec.created_from:
@@ -97,7 +96,7 @@ class NodeQueryService:
             isouter=True,
         )
         if scope_mode is not None:
-            stmt, _ = apply_scope(stmt, getattr(ctx, "user", None), scope_mode, None)
+            stmt, _ = apply_scope(stmt, getattr(ctx, "user", None), scope_mode)
         clauses = []
         if spec.is_visible is not None:
             clauses.append(Node.is_visible == bool(spec.is_visible))
@@ -110,7 +109,6 @@ class NodeQueryService:
             clauses.append(Node.is_recommendable == bool(spec.recommendable))
         if spec.author_id is not None:
             clauses.append(Node.author_id == spec.author_id)
-        # account_id filter is handled via the join condition above
         if spec.status is not None:
             clauses.append(Node.status == spec.status)
         if spec.created_from:

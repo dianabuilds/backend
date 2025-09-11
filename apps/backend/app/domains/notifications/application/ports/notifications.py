@@ -12,7 +12,6 @@ class INotificationPort(Protocol):
         trigger: str,
         user_id: UUID,
         *,
-        account_id: UUID | None = None,
         title: str,
         message: str,
         preview: PreviewContext | None = None,

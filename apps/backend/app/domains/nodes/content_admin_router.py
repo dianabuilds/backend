@@ -179,7 +179,7 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
 
 
 async def _resolve_content_item_id(
-    db: AsyncSession, *, account_id: UUID, node_or_item_id: int
+    db: AsyncSession, *, node_or_item_id: int
 ) -> NodeItem:
     # 1) Direct NodeItem by id (allow global items)
     item = await db.get(NodeItem, node_or_item_id)
@@ -192,7 +192,6 @@ async def _resolve_content_item_id(
         logger.warning(
             "content_item.node_missing",
             extra={
-                "account_id": str(account_id),
                 "node_or_item_id": node_or_item_id,
             },
         )
@@ -204,12 +203,6 @@ async def _resolve_content_item_id(
     )
     item = res.scalar_one_or_none()
     if item is None:
-        # Don't backfill for alias/global routes (indicated by UUID(int=0))
-        try:
-            if getattr(account_id, "int", None) == 0:
-                raise HTTPException(status_code=404, detail="Node not found")
-        except Exception:
-            pass
         # Backfill minimal NodeItem for legacy rows lacking content_items
         item = NodeItem(
             node_id=node.id,
@@ -230,6 +223,7 @@ async def _resolve_content_item_id(
 @id_router.get("/{node_id}", response_model=AdminNodeOut, summary="Get node item by id")
 async def get_node_by_id(
     node_id: Annotated[int, Path(...)],
+    profile_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_admin_role())] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
@@ -267,6 +261,7 @@ async def get_node_by_id(
 @id_router.patch("/{node_id}", response_model=AdminNodeOut, summary="Update node item by id")
 async def update_node_by_id(
     node_id: Annotated[int, Path(...)],
+    profile_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: dict,
     next: Annotated[int, Query()] = 0,
     _: Annotated[object, Depends(require_admin_role())] = ...,  # noqa: B008
@@ -293,6 +288,7 @@ async def update_node_by_id(
 @id_router.put("/{node_id}", response_model=AdminNodeOut, summary="Replace node item by id")
 async def replace_node_by_id(
     node_id: Annotated[int, Path(...)],
+    profile_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: dict,
     next: Annotated[int, Query()] = 0,
     _: Annotated[object, Depends(require_admin_role())] = ...,  # noqa: B008
@@ -323,6 +319,7 @@ async def replace_node_by_id(
 )
 async def publish_node_by_id(
     node_id: Annotated[int, Path(...)],
+    profile_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_admin_role())] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
@@ -344,7 +341,7 @@ async def publish_node_by_id(
 @type_router.get("/{node_type}", response_model=AdminNodeList, summary="List nodes by type")
 async def list_nodes(
     node_type: str,
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
+    profile_id: Annotated[UUID, Path(...)],  # noqa: B008
     page: int = 1,
     per_page: int = 10,
     q: str | None = None,
@@ -367,7 +364,7 @@ async def list_nodes(
 @type_router.post("/{node_type}", response_model=AdminNodeOut, summary="Create node item")
 async def create_node(
     node_type: str,
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
+    profile_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_admin_role())] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -391,7 +388,7 @@ async def create_node(
 async def get_node(
     node_type: str,
     node_id: Annotated[int, Path(...)],
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
+    profile_id: Annotated[UUID, Path(...)],  # noqa: B008
     _: Annotated[object, Depends(require_admin_role())] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
@@ -400,7 +397,7 @@ async def get_node(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
-    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
+    node_item = await _resolve_content_item_id(db, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.get(node_item.id)
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
@@ -416,7 +413,7 @@ async def update_node(
     node_type: str,
     node_id: Annotated[int, Path(...)],
     payload: dict,
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
+    profile_id: Annotated[UUID, Path(...)],  # noqa: B008
     next: Annotated[int, Query()] = 0,
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
@@ -427,7 +424,7 @@ async def update_node(
             detail="quest nodes are read-only; use /quests/*",
         )
 
-    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
+    node_item = await _resolve_content_item_id(db, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.update(
         node_item.id,
@@ -450,7 +447,7 @@ async def update_node(
 async def publish_node(
     node_type: str,
     node_id: Annotated[int, Path(...)],
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
+    profile_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_admin_role())] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
@@ -461,7 +458,7 @@ async def publish_node(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
-    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
+    node_item = await _resolve_content_item_id(db, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.publish(
         node_item.id,
@@ -483,7 +480,7 @@ async def publish_node(
 async def publish_node_patch(
     node_type: str,
     node_id: Annotated[int, Path(...)],
-    account_id: Annotated[UUID, Path(...)],  # noqa: B008
+    profile_id: Annotated[UUID, Path(...)],  # noqa: B008
     payload: PublishIn | None = None,
     _: Annotated[object, Depends(require_admin_role())] = ...,  # noqa: B008
     current_user: Annotated[User, Depends(auth_user)] = ...,  # noqa: B008
@@ -494,7 +491,7 @@ async def publish_node_patch(
             status_code=422,
             detail="quest nodes are read-only; use /quests/*",
         )
-    node_item = await _resolve_content_item_id(db, account_id=account_id, node_or_item_id=node_id)
+    node_item = await _resolve_content_item_id(db, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.publish(
         node_item.id,

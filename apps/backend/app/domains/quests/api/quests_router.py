@@ -12,6 +12,7 @@ from app.api.deps import (
     assert_owner_or_role,
     get_current_user,
     get_preview_context,
+    get_tenant_id,
 )
 from app.core.preview import PreviewContext
 
@@ -42,23 +43,18 @@ router = APIRouter(prefix="/quests", tags=["quests"])
 
 @router.get("", response_model=list[QuestOut], summary="List quests")
 async def list_quests(
-    workspace_id: UUID | None = Query(default=None),
-    tenant_id: UUID | None = Query(default=None),
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Return all published quests."""
     from app.domains.quests.queries import list_public
 
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=400, detail="tenant_id is required")
-    return await list_public(db, workspace_id=ws)
+    return await list_public(db, workspace_id=tenant)
 
 
 @router.get("/search", response_model=list[QuestOut], summary="Search quests")
 async def search_quests(
-    workspace_id: UUID | None = Query(default=None),
-    tenant_id: UUID | None = Query(default=None),
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     q: str | None = None,
     tags: Annotated[str | None, Query()] = None,
     author_id: UUID | None = None,
@@ -72,9 +68,6 @@ async def search_quests(
     from app.domains.quests.queries import search
 
     tag_list = [t for t in (tags.split(",") if tags else []) if t]
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=400, detail="tenant_id is required")
     return await search(
         db,
         q=q,
@@ -85,26 +78,22 @@ async def search_quests(
         sort_by=sort_by,
         page=page,
         per_page=per_page,
-        workspace_id=ws,
+        workspace_id=tenant,
     )
 
 
 @router.get("/{slug}", response_model=QuestOut, summary="Get quest")
 async def get_quest(
     slug: str,
-    workspace_id: UUID | None = Query(default=None),
-    tenant_id: UUID | None = Query(default=None),
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Fetch a quest by slug, ensuring access permissions."""
     from app.domains.quests.queries import get_for_view
 
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=400, detail="tenant_id is required")
     try:
-        quest = await get_for_view(db, slug=slug, user=current_user, workspace_id=ws)
+        quest = await get_for_view(db, slug=slug, user=current_user, workspace_id=tenant)
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Quest not found") from err
     except PermissionError as err:
@@ -116,16 +105,12 @@ async def get_quest(
 @router.post("", response_model=QuestOut, summary="Create quest")
 async def create_quest(
     payload: QuestCreate,
-    workspace_id: UUID | None = Query(default=None),
-    tenant_id: UUID | None = Query(default=None),
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
     preview: Annotated[PreviewContext, Depends(get_preview_context)] = ...,
 ):
     """Create a new quest owned by the current user."""
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=400, detail="tenant_id is required")
     # Квота на создание историй (stories/month) по тарифу
     from app.domains.premium.quotas import check_and_consume_quota
 
@@ -140,7 +125,9 @@ async def create_quest(
 
     from app.domains.quests.authoring import create_quest as create_quest_domain
 
-    quest = await create_quest_domain(db, payload=payload, author=current_user, workspace_id=ws)
+    quest = await create_quest_domain(
+        db, payload=payload, author=current_user, workspace_id=tenant
+    )
     await navcache.invalidate_compass_by_user(current_user.id)
     return quest
 
@@ -149,22 +136,18 @@ async def create_quest(
 async def update_quest(
     quest_id: UUID,
     payload: QuestUpdate,
-    workspace_id: UUID | None = Query(default=None),
-    tenant_id: UUID | None = Query(default=None),
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Modify quest fields if the user is the author."""
     from app.domains.quests.authoring import update_quest as update_quest_domain
 
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=400, detail="tenant_id is required")
     try:
         quest = await update_quest_domain(
             db,
             quest_id=quest_id,
-            workspace_id=ws,
+            workspace_id=tenant,
             payload=payload,
             actor=current_user,
         )
@@ -183,19 +166,15 @@ async def update_quest(
 )
 async def publish_quest(
     quest_id: UUID,
-    workspace_id: UUID | None = Query(default=None),
-    tenant_id: UUID | None = Query(default=None),
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Mark a draft quest as published."""
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=400, detail="tenant_id is required")
     result = await db.execute(
         select(Quest).where(
             Quest.id == quest_id,
-            Quest.workspace_id == ws,
+            Quest.workspace_id == tenant,
             Quest.is_deleted.is_(False),
         )
     )
@@ -208,7 +187,9 @@ async def publish_quest(
     from app.domains.quests.versions import ValidationFailed, release_latest
 
     try:
-        quest = await release_latest(db, quest_id=quest_id, workspace_id=ws, actor=current_user)
+        quest = await release_latest(
+            db, quest_id=quest_id, workspace_id=tenant, actor=current_user
+        )
     except ValidationFailed as err:
         raise HTTPException(
             status_code=400,
@@ -221,19 +202,17 @@ async def publish_quest(
 @router.delete("/{quest_id}", response_model=dict, summary="Delete quest")
 async def delete_quest(
     quest_id: UUID,
-    workspace_id: UUID | None = Query(default=None),
-    tenant_id: UUID | None = Query(default=None),
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     """Soft delete a quest owned by the current user."""
     from app.domains.quests.authoring import delete_quest_soft
 
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=400, detail="tenant_id is required")
     try:
-        await delete_quest_soft(db, quest_id=quest_id, workspace_id=ws, actor=current_user)
+        await delete_quest_soft(
+            db, quest_id=quest_id, workspace_id=tenant, actor=current_user
+        )
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Quest not found") from err
     except PermissionError as err:
@@ -249,7 +228,7 @@ async def delete_quest(
 )
 async def start_quest(
     quest_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -257,9 +236,7 @@ async def start_quest(
     from app.domains.quests.gameplay import start_quest as start_quest_domain
 
     try:
-        progress = await start_quest_domain(
-            db, quest_id=quest_id, workspace_id=workspace_id, user=current_user
-        )
+        progress = await start_quest_domain(db, quest_id=quest_id, workspace_id=tenant, user=current_user)
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Quest not found") from err
     except PermissionError as err:
@@ -274,7 +251,7 @@ async def start_quest(
 )
 async def get_progress(
     quest_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(get_current_user)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -282,9 +259,7 @@ async def get_progress(
     from app.domains.quests.gameplay import get_progress as get_progress_domain
 
     try:
-        progress = await get_progress_domain(
-            db, quest_id=quest_id, workspace_id=workspace_id, user=current_user
-        )
+        progress = await get_progress_domain(db, quest_id=quest_id, workspace_id=tenant, user=current_user)
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Progress not found") from err
     return progress

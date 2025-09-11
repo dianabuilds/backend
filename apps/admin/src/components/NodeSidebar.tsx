@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 
@@ -122,18 +122,18 @@ export default function NodeSidebar({
       if (!files || files.length === 0) return;
       const file = files[0];
       if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) {
-        setUploadError('Допустимы только изображения JPEG/PNG/WebP');
+        setUploadError('Р”РѕРїСѓСЃС‚РёРјС‹ С‚РѕР»СЊРєРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ JPEG/PNG/WebP');
         return;
       }
       if (file.size > 8 * 1024 * 1024) {
-        setUploadError('Размер файла не должен превышать 8 MB');
+        setUploadError('Р Р°Р·РјРµСЂ С„Р°Р№Р»Р° РЅРµ РґРѕР»Р¶РµРЅ РїСЂРµРІС‹С€Р°С‚СЊ 8 MB');
         return;
       }
       const img = new Image();
       img.onload = async () => {
         URL.revokeObjectURL(img.src);
         if (img.width < 960 || img.height < 540) {
-          setUploadError('Минимальное разрешение 960×540');
+          setUploadError('РњРёРЅРёРјР°Р»СЊРЅРѕРµ СЂР°Р·СЂРµС€РµРЅРёРµ 960Г—540');
           return;
         }
         setUploadError(null);
@@ -153,14 +153,13 @@ export default function NodeSidebar({
             method: 'POST',
             body: form,
             raw: true,
-            accountId,
           });
           const data = res.data || {};
           const rawId = data.id ?? data.asset_id ?? data.assetId ?? null;
           const id = rawId != null ? String(rawId) : null;
           const url = data.url ?? data.file_url ?? data.src ?? null;
           if (!id || !url) {
-            setUploadError('Сервер не вернул ID или URL');
+            setUploadError('РЎРµСЂРІРµСЂ РЅРµ РІРµСЂРЅСѓР» ID РёР»Рё URL');
             return;
           }
           onCoverChange?.({
@@ -170,16 +169,16 @@ export default function NodeSidebar({
             meta: { focalX: 0.5, focalY: 0.5, crop: { x: 0, y: 0, width: 1, height: 1 } },
           });
         } catch (e) {
-          setUploadError(e instanceof Error ? e.message : 'Не удалось загрузить изображение');
+          setUploadError(e instanceof Error ? e.message : 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ');
         }
       };
       img.onerror = () => {
         URL.revokeObjectURL(img.src);
-        setUploadError('Не удалось прочитать изображение');
+        setUploadError('РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕС‡РёС‚Р°С‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ');
       };
       img.src = URL.createObjectURL(file);
     },
-    [node.coverAlt, onCoverChange, accountId],
+    [node.coverAlt, onCoverChange],
   );
 
   const applyMeta = () => {
@@ -203,7 +202,7 @@ export default function NodeSidebar({
   const handleStatusChange = async (checked: boolean) => {
     setStatusSaving(true);
     try {
-      const res = await patchNode(accountId, node.id, {
+      const res = await patchNode(node.id, {
         isPublic: checked,
         updatedAt: node.updatedAt,
       });
@@ -218,7 +217,7 @@ export default function NodeSidebar({
   const handleAllowFeedbackChange = async (checked: boolean) => {
     setAllowSaving(true);
     try {
-      const res = await patchNode(accountId, node.id, {
+      const res = await patchNode(node.id, {
         allowFeedback: checked,
         updatedAt: node.updatedAt,
       });
@@ -233,7 +232,7 @@ export default function NodeSidebar({
   const handlePremiumOnlyChange = async (checked: boolean) => {
     setPremiumSaving(true);
     try {
-      const res = await patchNode(accountId, node.id, {
+      const res = await patchNode(node.id, {
         premiumOnly: checked,
         updatedAt: node.updatedAt,
       });
@@ -250,7 +249,7 @@ export default function NodeSidebar({
     setScheduleSaving(true);
     try {
       const iso = value ? new Date(value).toISOString() : null;
-      const res = await patchNode(accountId, node.id, {
+      const res = await patchNode(node.id, {
         publishedAt: iso,
         updatedAt: node.updatedAt,
       });
@@ -263,22 +262,22 @@ export default function NodeSidebar({
   };
 
   const handlePublish = async () => {
-    await publishNode(accountId, Number(node.id));
+    await publishNode(Number(node.id));
     onStatusChange?.(true);
   };
 
   const handleHide = async () => {
-    await patchNode(accountId, node.id, { isPublic: false, updatedAt: node.updatedAt });
+    await patchNode(node.id, { isPublic: false, updatedAt: node.updatedAt });
     onStatusChange?.(false);
   };
 
   const handleMakePublic = async () => {
-    await patchNode(accountId, node.id, { premiumOnly: false, updatedAt: node.updatedAt });
+    await patchNode(node.id, { premiumOnly: false, updatedAt: node.updatedAt });
     onPremiumOnlyChange?.(false);
   };
 
   const handleMakePremium = async () => {
-    await patchNode(accountId, node.id, { premiumOnly: true, updatedAt: node.updatedAt });
+    await patchNode(node.id, { premiumOnly: true, updatedAt: node.updatedAt });
     onPremiumOnlyChange?.(true);
   };
 
@@ -299,7 +298,7 @@ export default function NodeSidebar({
   const saveSlug = async () => {
     setSlugSaving(true);
     try {
-      const res = await patchNode(accountId, node.id, {
+      const res = await patchNode(node.id, {
         slug: slugDraft,
         updatedAt: node.updatedAt,
       });
@@ -604,3 +603,5 @@ export default function NodeSidebar({
     </div>
   );
 }
+
+

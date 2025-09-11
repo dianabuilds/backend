@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { useAccount } from '../account/AccountContext';
 import { getNode } from '../api/nodes';
 import type { OutputData } from '../types/editorjs';
 
@@ -31,7 +30,6 @@ function getString(obj: unknown, key: string, fallback = ''): string {
 
 export default function NodeDiff() {
   const { id } = useParams<{ id: string }>();
-  const { accountId } = useAccount();
   const [remote, setRemote] = useState<Record<string, unknown> | null>(null);
   const [local, setLocal] = useState<Record<string, unknown> | null>(null);
 
@@ -40,7 +38,7 @@ export default function NodeDiff() {
   useEffect(() => {
     if (!Number.isInteger(nodeId)) return;
     (async () => {
-      const node = await getNode(accountId || '', nodeId);
+      const node = await getNode(nodeId);
       const localRaw = localStorage.getItem(`node-draft-${nodeId}`);
       const localData = localRaw ? JSON.parse(localRaw) : null;
       const remoteData: Record<string, unknown> = {
@@ -52,7 +50,7 @@ export default function NodeDiff() {
       setLocal(localData);
       setRemote(remoteData);
     })();
-  }, [nodeId, accountId]);
+  }, [nodeId]);
 
   if (!Number.isInteger(nodeId)) {
     return <div className="p-4">Invalid id</div>;

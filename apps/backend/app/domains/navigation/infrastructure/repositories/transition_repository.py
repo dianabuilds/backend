@@ -27,7 +27,6 @@ class TransitionRepository:
     async def create(
         self,
         from_node_id: int,
-        account_id: int,
         to_node_id: int,
         payload: NodeTransitionCreate,
         user_id: UUID,
@@ -35,7 +34,6 @@ class TransitionRepository:
         transition = NodeTransition(
             from_node_id=from_node_id,
             to_node_id=to_node_id,
-            account_id=account_id,
             type=NodeTransitionType(payload.type),
             condition=(
                 payload.condition.model_dump(exclude_none=True) if payload.condition else {}

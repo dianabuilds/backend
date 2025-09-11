@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.domains.admin.infrastructure.models.audit_log import AuditLog
+from app.api.deps import get_tenant_id_optional
 from app.domains.users.infrastructure.models.user import User
 from app.providers.db.session import get_db
 from app.schemas.audit import AuditLogOut
@@ -30,8 +31,7 @@ async def list_audit_logs(
     actor_id: UUID | None = None,
     action: str | None = None,
     resource: str | None = None,
-    workspace_id: UUID | None = None,
-    tenant_id: UUID | None = None,
+    tenant: Annotated[UUID | None, Depends(get_tenant_id_optional)] = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     page: int = 1,
@@ -46,9 +46,8 @@ async def list_audit_logs(
         stmt = stmt.where(AuditLog.action == action)
     if resource:
         stmt = stmt.where(or_(AuditLog.resource_type == resource, AuditLog.resource_id == resource))
-    scope = tenant_id or workspace_id
-    if scope:
-        stmt = stmt.where(AuditLog.workspace_id == scope)
+    if tenant:
+        stmt = stmt.where(AuditLog.workspace_id == tenant)
     if date_from:
         stmt = stmt.where(AuditLog.created_at >= date_from)
     if date_to:

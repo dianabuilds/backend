@@ -4,14 +4,13 @@ export interface AccountRequestOptions<P extends Record<string, unknown> = Recor
   extends ApiRequestOptions {
   params?: P;
   raw?: boolean;
-  /** Account identifier to attach to the request. */
-  accountId: string;
   /**
-   * Configure account ID handling. By default, the ID is appended as
-   * `account_id` query parameter. Set to `false` to skip automatic
-   * handling.
+   * Deprecated: account scoping was removed. Kept optional for callsites that
+   * still pass it, but ignored.
    */
-  account?: 'query' | false;
+  accountId?: string;
+  /** Deprecated: ignored. */
+  account?: false;
 }
 
 // Overloads to support raw ApiResponse return when opts.raw === true
@@ -31,8 +30,6 @@ async function request<T = unknown, P extends Record<string, unknown> = Record<s
     params,
     headers: optHeaders,
     raw,
-    accountId,
-    account = 'query',
     ...rest
   } = opts as AccountRequestOptions<P> & {
     raw?: boolean;
@@ -48,15 +45,6 @@ async function request<T = unknown, P extends Record<string, unknown> = Record<s
 
   let finalUrl = url;
   const finalParams: Record<string, unknown> = { ...(params || {}) };
-  if (accountId && account === 'query') {
-    if (finalParams.account_id === undefined) {
-      finalParams.account_id = accountId;
-    }
-    // New param name; keep both for compatibility during transition
-    if (finalParams.tenant_id === undefined) {
-      finalParams.tenant_id = accountId;
-    }
-  }
 
   if (Object.keys(finalParams).length > 0) {
     const qs = new URLSearchParams();

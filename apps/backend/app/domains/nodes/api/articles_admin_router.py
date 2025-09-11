@@ -105,7 +105,7 @@ async def create_article(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     svc = NodeService(db)
-    # Profile-centric: ignore account_id, create personal node
+    # Profile-centric: create personal node (no accounts)
     item = await svc.create_personal(actor_id=current_user.id)
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)

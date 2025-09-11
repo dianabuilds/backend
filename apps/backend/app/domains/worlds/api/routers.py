@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.infrastructure.models.world_models import WorldTemplate
+from app.api.deps import get_tenant_id
 from app.domains.users.infrastructure.models.user import User
 from app.domains.worlds.application.worlds_service import WorldsService
 from app.domains.worlds.infrastructure.repositories.worlds_repository import (
@@ -32,30 +33,22 @@ def _svc(db: AsyncSession) -> WorldsService:
 
 @router.get("", response_model=list[WorldTemplateOut], summary="List world templates")
 async def list_worlds(
-    workspace_id: Annotated[UUID | None, Query()] = None,
-    tenant_id: Annotated[UUID | None, Query()] = None,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=422, detail="tenant_id is required")
-    return await _svc(db).list_worlds(ws)
+    return await _svc(db).list_worlds(tenant)
 
 
 @router.post("", response_model=WorldTemplateOut, summary="Create world template")
 async def create_world(
     payload: WorldTemplateIn,
-    workspace_id: Annotated[UUID | None, Query()] = None,
-    tenant_id: Annotated[UUID | None, Query()] = None,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=422, detail="tenant_id is required")
     return await _svc(db).create_world(
-        db, ws, payload.model_dump(exclude_none=True), current_user.id
+        db, tenant, payload.model_dump(exclude_none=True), current_user.id
     )
 
 
@@ -63,8 +56,7 @@ async def create_world(
 async def update_world(
     world_id: UUID,
     payload: WorldTemplateIn,
-    workspace_id: Annotated[UUID | None, Query()] = None,
-    tenant_id: Annotated[UUID | None, Query()] = None,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -72,8 +64,7 @@ async def update_world(
     world = res.scalars().first()
     if not world:
         raise HTTPException(status_code=404, detail="World not found")
-    ws = tenant_id or workspace_id
-    if world.workspace_id != ws:
+    if world.workspace_id != tenant:
         # Cross-tenant access via shared objects is not allowed.
         raise HTTPException(status_code=403, detail="No access")
     out = await _svc(db).update_world(
@@ -91,8 +82,7 @@ async def update_world(
 @router.delete("/{world_id}", summary="Delete world template")
 async def delete_world(
     world_id: UUID,
-    workspace_id: Annotated[UUID | None, Query()] = None,
-    tenant_id: Annotated[UUID | None, Query()] = None,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -100,8 +90,7 @@ async def delete_world(
     world = res.scalars().first()
     if not world:
         raise HTTPException(status_code=404, detail="World not found")
-    ws = tenant_id or workspace_id
-    if world.workspace_id != ws:
+    if world.workspace_id != tenant:
         # Cross-tenant access via shared objects is not allowed.
         raise HTTPException(status_code=403, detail="No access")
     ok = await _svc(db).delete_world(db, world.workspace_id, world_id)
@@ -117,30 +106,25 @@ async def delete_world(
 )
 async def list_characters(
     world_id: UUID,
-    workspace_id: Annotated[UUID | None, Query()] = None,
-    tenant_id: Annotated[UUID | None, Query()] = None,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=422, detail="tenant_id is required")
-    return await _svc(db).list_characters(world_id, ws)
+    return await _svc(db).list_characters(world_id, tenant)
 
 
 @router.post("/{world_id}/characters", response_model=CharacterOut, summary="Create character")
 async def create_character(
     world_id: UUID,
     payload: CharacterIn,
-    workspace_id: Annotated[UUID | None, Query()] = None,
-    tenant_id: Annotated[UUID | None, Query()] = None,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ch = await _svc(db).create_character(
         db,
         world_id,
-        (tenant_id or workspace_id),
+        tenant,
         payload.model_dump(exclude_none=True),
         current_user.id,
     )
@@ -153,15 +137,14 @@ async def create_character(
 async def update_character(
     char_id: UUID,
     payload: CharacterIn,
-    workspace_id: Annotated[UUID | None, Query()] = None,
-    tenant_id: Annotated[UUID | None, Query()] = None,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ch = await _svc(db).update_character(
         db,
         char_id,
-        (tenant_id or workspace_id),
+        tenant,
         payload.model_dump(exclude_none=True),
         current_user.id,
     )
@@ -173,15 +156,11 @@ async def update_character(
 @router.delete("/characters/{char_id}", summary="Delete character")
 async def delete_character(
     char_id: UUID,
-    workspace_id: Annotated[UUID | None, Query()] = None,
-    tenant_id: Annotated[UUID | None, Query()] = None,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    ws = tenant_id or workspace_id
-    if ws is None:
-        raise HTTPException(status_code=422, detail="tenant_id is required")
-    ok = await _svc(db).delete_character(db, char_id, ws)
+    ok = await _svc(db).delete_character(db, char_id, tenant)
     if not ok:
         raise HTTPException(status_code=404, detail="Character not found")
     return {"status": "ok"}

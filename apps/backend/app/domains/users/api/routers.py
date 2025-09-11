@@ -27,7 +27,13 @@ from app.schemas.user_profile import (
     UserSettingsOut,
     UserSettingsUpdate,
 )
-from config.feature_flags import feature_flags
+
+# Feature flags import: prefer local "config" if available, otherwise import via
+# fully-qualified package path when running from the repository root.
+try:  # pragma: no cover - environment-dependent import path
+    from config.feature_flags import feature_flags  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    from apps.backend.config.feature_flags import feature_flags  # type: ignore
 
 router = APIRouter(prefix="/users", tags=["users"])
 

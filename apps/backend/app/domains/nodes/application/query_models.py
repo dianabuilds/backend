@@ -11,7 +11,6 @@ from app.schemas.nodes_common import Status
 @dataclass
 class NodeFilterSpec:
     author_id: UUID | None = None
-    account_id: int | None = None
     status: Status | None = None
     is_visible: bool | None = True
     premium_only: bool | None = None

@@ -52,8 +52,8 @@ class NodeRepository(INodeRepository):
 
     # ------------------------------------------------------------------
     # Basic getters
-    async def get_by_slug(self, slug: str, account_id: int | None = None) -> Node | None:
-        """Fetch node by slug; account_id is ignored (profile-only semantics)."""
+    async def get_by_slug(self, slug: str) -> Node | None:
+        """Fetch node by slug (profile-centric semantics)."""
         stmt = (
             select(Node)
             .join(NodeItem, NodeItem.node_id == Node.id)
@@ -81,8 +81,8 @@ class NodeRepository(INodeRepository):
         )
         return res.scalar_one_or_none()
 
-    async def get_by_id(self, node_id: int, account_id: int | None = None) -> Node | None:
-        """Fetch node by id; account_id is ignored (profile-only semantics)."""
+    async def get_by_id(self, node_id: int) -> Node | None:
+        """Fetch node by id (profile-centric semantics)."""
         stmt = (
             select(Node)
             .join(NodeItem, NodeItem.node_id == Node.id)
@@ -99,9 +99,7 @@ class NodeRepository(INodeRepository):
 
     # ------------------------------------------------------------------
     # Mutating operations
-    async def create(
-        self, payload: NodeCreate, author_id: UUID, account_id: int | None = None
-    ) -> Node:
+    async def create(self, payload: NodeCreate, author_id: UUID) -> Node:
         candidate = (payload.slug or "").strip().lower()
         if candidate and self._hex_re.fullmatch(candidate):
             res = await self._db.execute(
@@ -133,11 +131,7 @@ class NodeRepository(INodeRepository):
         return loaded  # type: ignore[return-value]
 
     async def create_personal(self, payload: NodeCreate, author_id: UUID) -> Node:
-        """Create a node that is scoped to the author's profile (no account).
 
-        During the transition to tenant-based scoping, ``account_id`` is left
-        NULL and slug uniqueness is enforced per-author.
-        """
         candidate = (payload.slug or "").strip().lower()
         if candidate and self._hex_re.fullmatch(candidate):
             res = await self._db.execute(

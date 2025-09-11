@@ -32,3 +32,20 @@ We recommend adding workflow steps to verify migrations:
 - `alembic upgrade head` against a disposable database
 - `alembic downgrade -1` and back to `head`
 - Ensure a single head: `alembic heads` → 1 result
+
+## Tenant ID introduction (2025-09-11)
+
+To unify identifiers across domains, we introduce `tenant_id` alongside legacy
+`workspace_id` in several tables and backfill data. See ADR-001 for details.
+
+Affected tables:
+- `quests`, `quest_purchases`, `quest_progress`
+- `event_quests`, `event_quest_completions`
+- `audit_logs`, `outbox`
+
+Operational notes:
+- Apply revision `20250911_add_tenant_id_columns` on Postgres first.
+- Applications accept both `tenant_id` and `workspace_id` request params during
+  the transition; logs warn on legacy param usage.
+- Next release will switch code paths to read `tenant_id` exclusively and drop
+  `workspace_id` in a follow-up migration.

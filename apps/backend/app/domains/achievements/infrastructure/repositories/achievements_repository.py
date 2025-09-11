@@ -81,21 +81,19 @@ class AchievementsRepository(IAchievementsRepository):
             select(UserEventCounter).where(
                 UserEventCounter.user_id == user_id,
                 UserEventCounter.event == key,
-                UserEventCounter.account_id == 0,
             )
         )
         counter = res.scalars().first()
         if counter:
             counter.count += 1
         else:
-            self._db.add(UserEventCounter(account_id=0, user_id=user_id, event=key, count=1))
+            self._db.add(UserEventCounter(user_id=user_id, event=key, count=1))
 
     async def get_counter(self, user_id: UUID, key: str) -> int:
         res = await self._db.execute(
             select(UserEventCounter.count).where(
                 UserEventCounter.user_id == user_id,
                 UserEventCounter.event == key,
-                UserEventCounter.account_id == 0,
             )
         )
         return int(res.scalar() or 0)

@@ -126,7 +126,7 @@ export default function PublishControls({
   });
 
   const mUnpublish = useMutation({
-    mutationFn: () => patchNode(accountId || '', nodeId, { isPublic: false }),
+    mutationFn: () => patchNode(nodeId, { isPublic: false }),
     onSuccess: async () => {
       addToast({ title: 'Снято с публикации', variant: 'success' });
       await qc.invalidateQueries({ queryKey: ['publish-info', accountId, nodeId] });

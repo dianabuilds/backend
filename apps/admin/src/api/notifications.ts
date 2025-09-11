@@ -1,9 +1,4 @@
-import type {
-  CampaignCreate,
-  CampaignFilters,
-  CampaignUpdate,
-  SendNotificationPayload,
-} from '../openapi';
+import type { CampaignCreate, CampaignFilters, CampaignUpdate } from '../openapi';
 import { ensureArray, withQueryParams } from '../shared/utils';
 import { api } from './client';
 import type { ListResponse } from './types';
@@ -97,27 +92,29 @@ export async function sendDraftCampaign(id: string): Promise<unknown> {
   return res.data;
 }
 
-export async function listNotifications(
-  accountId?: string,
-  placement?: string,
-): Promise<NotificationItem[]> {
+export async function listNotifications(placement?: string): Promise<NotificationItem[]> {
   const url = withQueryParams('/notifications', {
-    account_id: accountId,
     placement,
   });
   const res = await api.get<NotificationItem[]>(url);
   return ensureArray<NotificationItem>(res.data);
 }
 
-export async function markNotificationRead(id: string, accountId?: string): Promise<unknown> {
-  const url = withQueryParams(`/notifications/${id}/read`, {
-    account_id: accountId,
-  });
+export async function markNotificationRead(id: string): Promise<unknown> {
+  const url = withQueryParams(`/notifications/${id}/read`, {});
   const res = await api.post<unknown>(url, {});
   return res.data;
 }
 
-export async function sendNotification(payload: SendNotificationPayload): Promise<unknown> {
+export type SendNotificationInput = {
+  user_id: string;
+  title: string;
+  message: string;
+  type?: string;
+  placement?: string;
+};
+
+export async function sendNotification(payload: SendNotificationInput): Promise<unknown> {
   const res = await api.post<unknown>('/admin/notifications', payload);
   return res.data;
 }

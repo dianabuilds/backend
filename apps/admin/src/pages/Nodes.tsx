@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
+﻿/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -54,14 +54,7 @@ export default function Nodes() {
   const { accountId } = useAccount();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [scopeMode, setScopeMode] = useState(
-    () =>
-      searchParams.get('scope') ||
-      (typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).get('account_id')
-        ? 'member'
-        : 'mine'),
-  );
+  const [scopeMode, setScopeMode] = useState(() => searchParams.get('scope') || 'mine');
   const [authorTab, setAuthorTab] = useState(false);
   // Selected author's UUID (sent to backend)
   const [authorId, setAuthorId] = useState('');
@@ -78,7 +71,7 @@ export default function Nodes() {
     }
   };
 
-  // Пагинация/поиск
+  // РџР°РіРёРЅР°С†РёСЏ/РїРѕРёСЃРє
   const [q, setQ] = useState(() => searchParams.get('q') || '');
   const [visibility, setVisibility] = useState<'all' | 'visible' | 'hidden'>(() => {
     const vis = searchParams.get('visible');
@@ -112,12 +105,12 @@ export default function Nodes() {
     }
   }, [accountId]);
 
-  // Данные
+  // Р”Р°РЅРЅС‹Рµ
   const [items, setItems] = useState<NodeItem[]>([]);
-  const [baseline, setBaseline] = useState<Map<number, NodeItem>>(new Map()); // снимок исходных значений
+  const [baseline, setBaseline] = useState<Map<number, NodeItem>>(new Map()); // СЃРЅРёРјРѕРє РёСЃС…РѕРґРЅС‹С… Р·РЅР°С‡РµРЅРёР№
   const [hasMore, setHasMore] = useState(false);
 
-  // Выделение и отложенные изменения
+  // Р’С‹РґРµР»РµРЅРёРµ Рё РѕС‚Р»РѕР¶РµРЅРЅС‹Рµ РёР·РјРµРЅРµРЅРёСЏ
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [pending, setPending] = useState<Map<number, ChangeSet>>(new Map());
   const changesCount = useMemo(
@@ -156,26 +149,26 @@ export default function Nodes() {
     setSearchParams,
   ]);
 
-  // Модерация: скрытие с причиной / восстановление
+  // РњРѕРґРµСЂР°С†РёСЏ: СЃРєСЂС‹С‚РёРµ СЃ РїСЂРёС‡РёРЅРѕР№ / РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ
   const [modOpen, setModOpen] = useState(false);
   const [modTarget, setModTarget] = useState<NodeItem | null>(null);
   const [modReason, setModReason] = useState('');
   const [modBusy, setModBusy] = useState(false);
 
-  // Превью ноды
+  // РџСЂРµРІСЊСЋ РЅРѕРґС‹
 
   const openModerationFor = (node: NodeItem) => {
     if (!accountId) return;
-    // Если нода сейчас видима — запрашиваем причину и скрываем
+    // Р•СЃР»Рё РЅРѕРґР° СЃРµР№С‡Р°СЃ РІРёРґРёРјР° вЂ” Р·Р°РїСЂР°С€РёРІР°РµРј РїСЂРёС‡РёРЅСѓ Рё СЃРєСЂС‹РІР°РµРј
     if (node.is_visible) {
       setModTarget(node);
       setModReason('');
       setModOpen(true);
     } else {
-      // Восстановление: confirm и прямой вызов
+      // Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ: confirm Рё РїСЂСЏРјРѕР№ РІС‹Р·РѕРІ
       if (!node.slug) {
-        const msg = 'Отсутствует slug';
-        notify(`Не удалось восстановить: ${msg}`);
+        const msg = 'РћС‚СЃСѓС‚СЃС‚РІСѓРµС‚ slug';
+        notify(`РќРµ СѓРґР°Р»РѕСЃСЊ РІРѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ: ${msg}`);
         addToast({ title: 'Error', description: 'Operation failed', variant: 'error' });
         return;
       }
@@ -187,7 +180,7 @@ export default function Nodes() {
             undefined,
             { accountId },
           );
-          // Оптимистично обновляем строку и baseline
+          // РћРїС‚РёРјРёСЃС‚РёС‡РЅРѕ РѕР±РЅРѕРІР»СЏРµРј СЃС‚СЂРѕРєСѓ Рё baseline
           setItems((prev) => prev.map((n) => (n.id === node.id ? { ...n, is_visible: true } : n)));
           setBaseline((prev) => {
             const m = new Map(prev);
@@ -195,13 +188,13 @@ export default function Nodes() {
             m.set(node.id, { ...base, is_visible: true });
             return m;
           });
-          notify('Нода восстановлена');
+          notify('РќРѕРґР° РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅР°');
           addToast({ title: 'OK', variant: 'success' });
-          // Фоновая верификация
+          // Р¤РѕРЅРѕРІР°СЏ РІРµСЂРёС„РёРєР°С†РёСЏ
           await refetch();
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
-          notify(`Не удалось восстановить: ${msg}`);
+          notify(`РќРµ СѓРґР°Р»РѕСЃСЊ РІРѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ: ${msg}`);
           addToast({ title: 'Error', description: 'Operation failed', variant: 'error' });
         } finally {
           setModBusy(false);
@@ -213,7 +206,7 @@ export default function Nodes() {
   const submitModerationHide = async () => {
     if (!modTarget || !accountId) return;
     if (!modTarget.slug) {
-      addToast({ title: 'Не удалось скрыть', description: 'Отсутствует slug', variant: 'error' });
+      addToast({ title: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєСЂС‹С‚СЊ', description: 'РћС‚СЃСѓС‚СЃС‚РІСѓРµС‚ slug', variant: 'error' });
       return;
     }
     try {
@@ -224,7 +217,7 @@ export default function Nodes() {
         { accountId },
       );
       setModOpen(false);
-      // Оптимистично: делаем ноду невидимой и фиксируем в baseline
+      // РћРїС‚РёРјРёСЃС‚РёС‡РЅРѕ: РґРµР»Р°РµРј РЅРѕРґСѓ РЅРµРІРёРґРёРјРѕР№ Рё С„РёРєСЃРёСЂСѓРµРј РІ baseline
       setItems((prev) =>
         prev.map((n) => (n.id === modTarget.id ? { ...n, is_visible: false } : n)),
       );
@@ -238,7 +231,7 @@ export default function Nodes() {
       await refetch();
     } catch (e) {
       addToast({
-        title: 'Не удалось скрыть',
+        title: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєСЂС‹С‚СЊ',
         description: e instanceof Error ? e.message : String(e),
         variant: 'error',
       });
@@ -283,7 +276,7 @@ export default function Nodes() {
         const res = await listNodesGlobal(params);
         return ensureArray<NodeItem>(res as unknown);
       }
-      const res = await listNodes(accountId, params);
+      const res = await listNodes(params);
       return ensureArray<NodeItem>(res as unknown);
     },
     enabled: true,
@@ -332,8 +325,8 @@ export default function Nodes() {
   const loading = isLoading || isFetching;
   const errorMsg = error ? error.message : null;
 
-  // Локальные изменения без немедленного вызова API.
-  // Для is_visible используем модерационные ручки (hide с причиной / restore) — без staging.
+  // Р›РѕРєР°Р»СЊРЅС‹Рµ РёР·РјРµРЅРµРЅРёСЏ Р±РµР· РЅРµРјРµРґР»РµРЅРЅРѕРіРѕ РІС‹Р·РѕРІР° API.
+  // Р”Р»СЏ is_visible РёСЃРїРѕР»СЊР·СѓРµРј РјРѕРґРµСЂР°С†РёРѕРЅРЅС‹Рµ СЂСѓС‡РєРё (hide СЃ РїСЂРёС‡РёРЅРѕР№ / restore) вЂ” Р±РµР· staging.
   const toggleField = (id: number, field: ChangeKey) => {
     if (field === 'is_visible') {
       const node = items.find((n) => n.id === id);
@@ -341,7 +334,7 @@ export default function Nodes() {
       return;
     }
 
-    // Остальные флаги работают в staged-режиме
+    // РћСЃС‚Р°Р»СЊРЅС‹Рµ С„Р»Р°РіРё СЂР°Р±РѕС‚Р°СЋС‚ РІ staged-СЂРµР¶РёРјРµ
     const current =
       (items.find((n) => n.id === id)?.[field] as boolean | undefined) ??
       (baseline.get(id)?.[field] as boolean | undefined) ??
@@ -408,22 +401,22 @@ export default function Nodes() {
       }
       if (results.length > 0) {
         addToast({
-          title: 'Изменения применены',
+          title: 'РР·РјРµРЅРµРЅРёСЏ РїСЂРёРјРµРЅРµРЅС‹',
           description: results.join(', '),
           variant: 'success',
         });
-        // Оптимистично фиксируем новые значения как базовые,
-        // чтобы статус в таблице не «откатывался» визуально.
+        // РћРїС‚РёРјРёСЃС‚РёС‡РЅРѕ С„РёРєСЃРёСЂСѓРµРј РЅРѕРІС‹Рµ Р·РЅР°С‡РµРЅРёСЏ РєР°Рє Р±Р°Р·РѕРІС‹Рµ,
+        // С‡С‚РѕР±С‹ СЃС‚Р°С‚СѓСЃ РІ С‚Р°Р±Р»РёС†Рµ РЅРµ В«РѕС‚РєР°С‚С‹РІР°Р»СЃСЏВ» РІРёР·СѓР°Р»СЊРЅРѕ.
         setBaseline(new Map(items.map((n) => [n.id, { ...n }])));
         setPending(new Map());
-        // Фоновая верификация серверного состояния
+        // Р¤РѕРЅРѕРІР°СЏ РІРµСЂРёС„РёРєР°С†РёСЏ СЃРµСЂРІРµСЂРЅРѕРіРѕ СЃРѕСЃС‚РѕСЏРЅРёСЏ
         await refetch();
       } else {
         addToast({ title: 'OK', variant: 'success' });
       }
     } catch (e) {
       addToast({
-        title: 'Не удалось применить изменения',
+        title: 'РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРёРјРµРЅРёС‚СЊ РёР·РјРµРЅРµРЅРёСЏ',
         description: e instanceof Error ? e.message : String(e),
         variant: 'error',
       });
@@ -433,12 +426,12 @@ export default function Nodes() {
   };
 
   const discardChanges = () => {
-    // Откатываем к baseline
+    // РћС‚РєР°С‚С‹РІР°РµРј Рє baseline
     setItems(Array.from(baseline.values()));
     setPending(new Map());
   };
 
-  // Выделение строк
+  // Р’С‹РґРµР»РµРЅРёРµ СЃС‚СЂРѕРє
   const toggleSelect = (id: number) => {
     setSelected((s) => {
       const next = new Set(s);
@@ -453,12 +446,12 @@ export default function Nodes() {
     const node = items.find((n) => n.id === id);
     if (!node) return;
     try {
-      const { url } = await createPreviewLink(accountId);
+      const { url } = await createPreviewLink();
       const t = node.type || 'article';
       window.open(`${url}/nodes/${t}/${id}`, '_blank');
     } catch (e) {
       addToast({
-        title: 'Предпросмотр не открылся',
+        title: 'РџСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ РЅРµ РѕС‚РєСЂС‹Р»СЃСЏ',
         description: e instanceof Error ? e.message : String(e),
         variant: 'error',
       });
@@ -468,7 +461,7 @@ export default function Nodes() {
   const deleteSelected = async () => {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    if (!(await confirmWithEnv(`Удалить ${ids.length} нод${ids.length === 1 ? 'у' : 'ы'}?`)))
+    if (!(await confirmWithEnv(`РЈРґР°Р»РёС‚СЊ ${ids.length} РЅРѕРґ${ids.length === 1 ? 'Сѓ' : 'С‹'}?`)))
       return;
     try {
       for (const id of ids) {
@@ -480,7 +473,7 @@ export default function Nodes() {
       addToast({ title: 'OK', variant: 'success' });
     } catch (e) {
       addToast({
-        title: 'Не удалось удалить',
+        title: 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ',
         description: e instanceof Error ? e.message : String(e),
         variant: 'error',
       });
@@ -504,7 +497,7 @@ export default function Nodes() {
           const item = baseline.get(first);
           if (item) {
             const t = item.type || 'article';
-            navigate(`/nodes/${t}/${first}?account_id=${accountId}`);
+            navigate(`/nodes/${t}/${first}`);
           }
         }
       } else if (e.key === 'p' || e.key === 'P') {
@@ -527,15 +520,14 @@ export default function Nodes() {
     <div className="flex gap-6">
       <div className="flex-1">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Ноды</h1>
+          <h1 className="text-2xl font-bold">РќРѕРґС‹</h1>
           <Button
             type="button"
             onClick={() => {
-              const qs = accountId ? `?account_id=${accountId}` : '';
-              navigate(`/nodes/article/new${qs}`);
+              navigate(`/nodes/article/new`);
             }}
           >
-            Создать
+            РЎРѕР·РґР°С‚СЊ
           </Button>
         </div>
 
@@ -549,7 +541,7 @@ export default function Nodes() {
               setPage(0);
             }}
           >
-            Все
+            Р’СЃРµ
           </Button>
           <Button
             type="button"
@@ -559,7 +551,7 @@ export default function Nodes() {
               setPage(0);
             }}
           >
-            Мои
+            РњРѕРё
           </Button>
 
           <div className="flex items-center gap-2">
@@ -571,12 +563,12 @@ export default function Nodes() {
                 setPage(0);
               }}
             >
-              Автор
+              РђРІС‚РѕСЂ
             </Button>
             {authorTab && (
               <input
                 className="border rounded px-2 py-1 text-sm w-64"
-                placeholder="UUID автора"
+                placeholder="UUID Р°РІС‚РѕСЂР°"
                 value={authorQuery}
                 onChange={(e) => {
                   setAuthorQuery(e.target.value);
@@ -610,7 +602,7 @@ export default function Nodes() {
                   setQ(e.target.value);
                   setPage(0);
                 }}
-                placeholder="Поиск по названию или slug..."
+                placeholder="РџРѕРёСЃРє РїРѕ РЅР°Р·РІР°РЅРёСЋ РёР»Рё slug..."
                 className="border rounded px-2 py-1 flex-1 min-w-[180px]"
               />
               <select
@@ -621,11 +613,11 @@ export default function Nodes() {
                   setPage(0);
                 }}
               >
-                <option value="all">Все статусы</option>
-                <option value="draft">черновик</option>
-                <option value="in_review">на проверке</option>
-                <option value="published">опубликовано</option>
-                <option value="archived">архив</option>
+                <option value="all">Р’СЃРµ СЃС‚Р°С‚СѓСЃС‹</option>
+                <option value="draft">С‡РµСЂРЅРѕРІРёРє</option>
+                <option value="in_review">РЅР° РїСЂРѕРІРµСЂРєРµ</option>
+                <option value="published">РѕРїСѓР±Р»РёРєРѕРІР°РЅРѕ</option>
+                <option value="archived">Р°СЂС…РёРІ</option>
               </select>
               <select
                 className="border rounded px-2 py-1"
@@ -635,9 +627,9 @@ export default function Nodes() {
                   setPage(0);
                 }}
               >
-                <option value="all">Все</option>
-                <option value="visible">видимые</option>
-                <option value="hidden">скрытые</option>
+                <option value="all">Р’СЃРµ</option>
+                <option value="visible">РІРёРґРёРјС‹Рµ</option>
+                <option value="hidden">СЃРєСЂС‹С‚С‹Рµ</option>
               </select>
               <select
                 className="border rounded px-2 py-1"
@@ -647,9 +639,9 @@ export default function Nodes() {
                   setPage(0);
                 }}
               >
-                <option value="all">Все</option>
-                <option value="true">публичные</option>
-                <option value="false">приватные</option>
+                <option value="all">Р’СЃРµ</option>
+                <option value="true">РїСѓР±Р»РёС‡РЅС‹Рµ</option>
+                <option value="false">РїСЂРёРІР°С‚РЅС‹Рµ</option>
               </select>
               <select
                 className="border rounded px-2 py-1"
@@ -659,9 +651,9 @@ export default function Nodes() {
                   setPage(0);
                 }}
               >
-                <option value="all">Все</option>
-                <option value="true">премиум</option>
-                <option value="false">бесплатно</option>
+                <option value="all">Р’СЃРµ</option>
+                <option value="true">РїСЂРµРјРёСѓРј</option>
+                <option value="false">Р±РµСЃРїР»Р°С‚РЅРѕ</option>
               </select>
               <select
                 className="border rounded px-2 py-1"
@@ -671,16 +663,16 @@ export default function Nodes() {
                   setPage(0);
                 }}
               >
-                <option value="all">Все</option>
-                <option value="true">рекомендуемые</option>
-                <option value="false">не рекомендуемые</option>
+                <option value="all">Р’СЃРµ</option>
+                <option value="true">СЂРµРєРѕРјРµРЅРґСѓРµРјС‹Рµ</option>
+                <option value="false">РЅРµ СЂРµРєРѕРјРµРЅРґСѓРµРјС‹Рµ</option>
               </select>
               <Button type="button" onClick={() => void refetch()}>
-                Поиск
+                РџРѕРёСЃРє
               </Button>
 
               <label className="ml-2 text-sm text-gray-600">
-                на странице:
+                РЅР° СЃС‚СЂР°РЅРёС†Рµ:
                 <select
                   className="ml-2 border rounded px-2 py-1"
                   value={limit}
@@ -705,8 +697,8 @@ export default function Nodes() {
                   onClick={applyChanges}
                 >
                   {applying
-                    ? 'Применение…'
-                    : `Применить изменения${changesCount > 0 ? ` (${changesCount})` : ''}`}
+                    ? 'РџСЂРёРјРµРЅРµРЅРёРµвЂ¦'
+                    : `РџСЂРёРјРµРЅРёС‚СЊ РёР·РјРµРЅРµРЅРёСЏ${changesCount > 0 ? ` (${changesCount})` : ''}`}
                 </Button>
                 <Button
                   type="button"
@@ -714,23 +706,22 @@ export default function Nodes() {
                   disabled={changesCount === 0 || loading || applying}
                   onClick={discardChanges}
                 >
-                  Отменить
+                  РћС‚РјРµРЅРёС‚СЊ
                 </Button>
                 <Button
                   type="button"
                   className="bg-blue-600 text-white"
                   onClick={() => {
-                    const qs = accountId ? `?account_id=${encodeURIComponent(accountId)}` : '';
-                    navigate(`/nodes/article/new${qs}`);
+                    navigate(`/nodes/article/new`);
                   }}
                 >
-                  Добавить ноду
+                  Р”РѕР±Р°РІРёС‚СЊ РЅРѕРґСѓ
                 </Button>
               </div>
             </div>
             {selected.size > 0 && (
               <div className="flex flex-wrap gap-2">
-                <span className="self-center text-sm">Выбрано {selected.size}</span>
+                <span className="self-center text-sm">Р’С‹Р±СЂР°РЅРѕ {selected.size}</span>
                 <Button
                   type="button"
                   onClick={() => {
@@ -748,7 +739,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Скрыть
+                  РЎРєСЂС‹С‚СЊ
                 </Button>
                 <Button
                   type="button"
@@ -767,7 +758,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Показать
+                  РџРѕРєР°Р·Р°С‚СЊ
                 </Button>
                 <Button
                   type="button"
@@ -786,7 +777,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Публично
+                  РџСѓР±Р»РёС‡РЅРѕ
                 </Button>
                 <Button
                   type="button"
@@ -805,7 +796,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Приватно
+                  РџСЂРёРІР°С‚РЅРѕ
                 </Button>
                 <Button
                   type="button"
@@ -824,7 +815,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Премиум
+                  РџСЂРµРјРёСѓРј
                 </Button>
                 <Button
                   type="button"
@@ -843,7 +834,7 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Бесплатно
+                  Р‘РµСЃРїР»Р°С‚РЅРѕ
                 </Button>
                 <Button
                   type="button"
@@ -864,24 +855,24 @@ export default function Nodes() {
                     });
                   }}
                 >
-                  Переключить рекомендование
+                  РџРµСЂРµРєР»СЋС‡РёС‚СЊ СЂРµРєРѕРјРµРЅРґРѕРІР°РЅРёРµ
                 </Button>
                 <Button type="button" className="ml-auto" onClick={() => setSelected(new Set())}>
-                  Очистить
+                  РћС‡РёСЃС‚РёС‚СЊ
                 </Button>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {loading && <p>Загрузка...</p>}
+        {loading && <p>Р—Р°РіСЂСѓР·РєР°...</p>}
         {errorMsg && <p className="text-red-600">{errorMsg}</p>}
 
         {!loading && !errorMsg && (
           <>
             {!accountId && scopeMode === 'mine' && items.length === 0 ? (
               <div className="my-4 p-3 border rounded bg-yellow-50 text-sm text-gray-700 dark:bg-yellow-900/20 dark:text-gray-200">
-                Раздел "Мои" пуст. Показать глобальные ноды?
+                Р Р°Р·РґРµР» "РњРѕРё" РїСѓСЃС‚. РџРѕРєР°Р·Р°С‚СЊ РіР»РѕР±Р°Р»СЊРЅС‹Рµ РЅРѕРґС‹?
                 <Button
                   type="button"
                   className="ml-2 px-2 py-1 border rounded"
@@ -892,7 +883,7 @@ export default function Nodes() {
                     setSearchParams(sp, { replace: true });
                   }}
                 >
-                  Переключить на Global
+                  РџРµСЂРµРєР»СЋС‡РёС‚СЊ РЅР° Global
                 </Button>
               </div>
             ) : null}
@@ -912,12 +903,12 @@ export default function Nodes() {
                       />
                     </TableHead>
                     <TableHead>ID</TableHead>
-                    <TableHead>Название</TableHead>
-                    <TableHead className="w-32 text-center">Статус</TableHead>
-                    <TableHead className="w-32 text-center">Флаги</TableHead>
-                    <TableHead className="hidden md:table-cell">Создано</TableHead>
-                    <TableHead className="hidden md:table-cell">Обновлено</TableHead>
-                    <TableHead>Действия</TableHead>
+                    <TableHead>РќР°Р·РІР°РЅРёРµ</TableHead>
+                    <TableHead className="w-32 text-center">РЎС‚Р°С‚СѓСЃ</TableHead>
+                    <TableHead className="w-32 text-center">Р¤Р»Р°РіРё</TableHead>
+                    <TableHead className="hidden md:table-cell">РЎРѕР·РґР°РЅРѕ</TableHead>
+                    <TableHead className="hidden md:table-cell">РћР±РЅРѕРІР»РµРЅРѕ</TableHead>
+                    <TableHead>Р”РµР№СЃС‚РІРёСЏ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -945,7 +936,7 @@ export default function Nodes() {
                         <TableCell className="font-mono">{n.id ?? '-'}</TableCell>
                         <TableCell>
                           <div className="relative group pr-16">
-                            <div className="font-bold">{n.title?.trim() || 'Без названия'}</div>
+                            <div className="font-bold">{n.title?.trim() || 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ'}</div>
                             <div className="text-gray-500 text-xs font-mono">{n.slug ?? '-'}</div>
                             {n.space && (
                               <span
@@ -961,7 +952,7 @@ export default function Nodes() {
                                 className="absolute top-0 right-0 text-xs text-blue-600 opacity-0 group-hover:opacity-100 border-none px-1 py-0"
                                 onClick={() => copySlug(n.slug ?? '')}
                               >
-                                Копировать slug
+                                РљРѕРїРёСЂРѕРІР°С‚СЊ slug
                               </Button>
                             )}
                           </div>
@@ -992,30 +983,29 @@ export default function Nodes() {
                             type="button"
                             onClick={() => {
                               const t = n.type || 'article';
-                              const qs = accountId ? `?account_id=${accountId}` : '';
-                              navigate(`/nodes/${t}/${n.id}${qs}`);
+                              navigate(`/nodes/${t}/${n.id}`);
                             }}
                           >
-                            Редактировать
+                            Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ
                           </Button>
                           <Button
                             type="button"
                             onClick={async () => {
                               if (!accountId) return;
                               try {
-                                const { url } = await createPreviewLink(accountId);
+                                const { url } = await createPreviewLink();
                                 const t = n.type || 'article';
                                 window.open(`${url}/nodes/${t}/${n.id}`, '_blank');
                               } catch (e) {
                                 addToast({
-                                  title: 'Предпросмотр не открылся',
+                                  title: 'РџСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ РЅРµ РѕС‚РєСЂС‹Р»СЃСЏ',
                                   description: e instanceof Error ? e.message : String(e),
                                   variant: 'error',
                                 });
                               }
                             }}
                           >
-                            Предпросмотр
+                            РџСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -1024,7 +1014,7 @@ export default function Nodes() {
                   {items.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} className="p-4 text-center text-gray-500">
-                        Ноды не найдены
+                        РќРѕРґС‹ РЅРµ РЅР°Р№РґРµРЅС‹
                       </TableCell>
                     </TableRow>
                   )}
@@ -1037,11 +1027,11 @@ export default function Nodes() {
                 disabled={page === 0}
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
               >
-                Назад
+                РќР°Р·Р°Рґ
               </Button>
-              <span className="text-sm">Страница {page + 1}</span>
+              <span className="text-sm">РЎС‚СЂР°РЅРёС†Р° {page + 1}</span>
               <Button type="button" disabled={!hasMore} onClick={() => setPage((p) => p + 1)}>
-                Вперед
+                Р’РїРµСЂРµРґ
               </Button>
             </div>
           </>
@@ -1051,20 +1041,20 @@ export default function Nodes() {
         {modOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-md rounded bg-white p-4 shadow dark:bg-gray-900">
-              <h3 className="mb-3 text-lg font-semibold">Скрыть ноду</h3>
+              <h3 className="mb-3 text-lg font-semibold">РЎРєСЂС‹С‚СЊ РЅРѕРґСѓ</h3>
               <p className="mb-2 text-sm text-gray-600">
-                Укажите причину скрытия этой ноды. Действие будет записано в аудит.
+                РЈРєР°Р¶РёС‚Рµ РїСЂРёС‡РёРЅСѓ СЃРєСЂС‹С‚РёСЏ СЌС‚РѕР№ РЅРѕРґС‹. Р”РµР№СЃС‚РІРёРµ Р±СѓРґРµС‚ Р·Р°РїРёСЃР°РЅРѕ РІ Р°СѓРґРёС‚.
               </p>
               <input
                 className="mb-3 w-full rounded border px-2 py-1"
-                placeholder="Причина (необязательно)"
+                placeholder="РџСЂРёС‡РёРЅР° (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)"
                 value={modReason}
                 onChange={(e) => setModReason(e.target.value)}
                 disabled={modBusy}
               />
               <div className="flex justify-end gap-2">
                 <Button type="button" onClick={() => setModOpen(false)} disabled={modBusy}>
-                  Отмена
+                  РћС‚РјРµРЅР°
                 </Button>
                 <Button
                   type="button"
@@ -1072,7 +1062,7 @@ export default function Nodes() {
                   onClick={submitModerationHide}
                   disabled={modBusy}
                 >
-                  {modBusy ? 'Скрытие…' : 'Скрыть'}
+                  {modBusy ? 'РЎРєСЂС‹С‚РёРµвЂ¦' : 'РЎРєСЂС‹С‚СЊ'}
                 </Button>
               </div>
             </div>
@@ -1082,3 +1072,4 @@ export default function Nodes() {
     </div>
   );
 }
+

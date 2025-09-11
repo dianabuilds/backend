@@ -22,7 +22,6 @@ class NodeTransition(Base):
     __tablename__ = "node_transitions"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    account_id = Column(BigInteger, nullable=False, index=True)
     from_node_id = Column(
         BigInteger,
         ForeignKey("nodes.id", ondelete="CASCADE"),
@@ -49,7 +48,7 @@ class NodeTransition(Base):
     to_node = relationship("Node", foreign_keys=[to_node_id])
 
     __table_args__ = (
-        Index("ix_node_transitions_account_id_created_at", "account_id", "created_at"),
+        Index("ix_node_transitions_created_at", "created_at"),
     )
 
 

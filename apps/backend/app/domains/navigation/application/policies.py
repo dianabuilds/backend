@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.scope import get_node_scope_id
+
 from app.core.preview import PreviewContext  # isort: skip
 
 from .access_policy import has_access_async
@@ -53,10 +55,7 @@ class ManualPolicy(Policy):
         repeat_filter: RepeatFilter,
         preview: PreviewContext | None = None,
     ) -> tuple[Node | None, TransitionTrace]:
-        try:
-            candidates = await self.provider.get_transitions(db, node, user, 0, preview=preview)
-        except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, 0)
+        candidates = await self.provider.get_transitions(db, node, user, preview=preview)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -83,10 +82,7 @@ class CompassPolicy(Policy):
         repeat_filter: RepeatFilter,
         preview: PreviewContext | None = None,
     ) -> tuple[Node | None, TransitionTrace]:
-        try:
-            candidates = await self.provider.get_transitions(db, node, user, 0, preview=preview)
-        except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, 0)
+        candidates = await self.provider.get_transitions(db, node, user, preview=preview)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -113,10 +109,7 @@ class EchoPolicy(Policy):
         repeat_filter: RepeatFilter,
         preview: PreviewContext | None = None,
     ) -> tuple[Node | None, TransitionTrace]:
-        try:
-            candidates = await self.provider.get_transitions(db, node, user, 0, preview=preview)
-        except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, 0)
+        candidates = await self.provider.get_transitions(db, node, user, preview=preview)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -152,12 +145,8 @@ class RandomPolicy(Policy):
         repeat_filter: RepeatFilter,
         preview: PreviewContext | None = None,
     ) -> tuple[Node | None, TransitionTrace]:
-        try:
-            candidates = await self.provider.get_transitions(
-                db, node, user, node.account_id, preview=preview
-            )
-        except TypeError:
-            candidates = await self.provider.get_transitions(db, node, user, node.account_id)
+        _ = get_node_scope_id
+        candidates = await self.provider.get_transitions(db, node, user, preview=preview)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
         candidate_slugs = [n.slug for n in candidates]
         filtered = [n.slug for n in candidates if n.slug in history]
@@ -179,7 +168,6 @@ class _NoOpProvider(TransitionProvider):
         db: AsyncSession,
         node: Node,
         user: User | None,
-        account_id: int,
         preview: PreviewContext | None = None,
     ) -> Sequence[Node]:
         return []

@@ -21,7 +21,6 @@ class NotificationRepository(INotificationRepository):
     async def create_and_commit(
         self,
         *,
-        account_id: UUID | None = None,
         user_id: UUID,
         title: str,
         message: str,
@@ -30,7 +29,6 @@ class NotificationRepository(INotificationRepository):
         is_preview: bool = False,
     ) -> dict[str, Any]:
         notif = Notification(
-            workspace_id=account_id,
             user_id=user_id,
             title=title,
             message=message,

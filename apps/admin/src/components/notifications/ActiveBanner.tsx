@@ -5,7 +5,7 @@ import { listNotifications, type NotificationItem } from '../../api/notification
 export default function ActiveBanner() {
   const { data } = useQuery({
     queryKey: ['active-banner'],
-    queryFn: () => listNotifications(undefined, 'banner'),
+    queryFn: () => listNotifications('banner'),
     refetchInterval: 30000,
   });
 

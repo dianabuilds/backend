@@ -28,7 +28,6 @@ class TransitionsService:
         db: AsyncSession,
         node: Node,
         user: User,
-        account_id: int,
         transition_type: NodeTransitionType | None = None,
         preview: PreviewContext | None = None,
     ) -> list[NodeTransition]:

@@ -5,7 +5,7 @@ import { setPreviewToken } from '../api/client';
 import { createPreviewLink, simulatePreview } from '../api/preview';
 
 export default function Simulation() {
-  const { accountId, setAccount } = useAccount();
+  const { accountId } = useAccount();
 
   const [start, setStart] = useState('');
   const [previewMode, setPreviewMode] = useState('off');
@@ -31,16 +31,8 @@ export default function Simulation() {
     if (token) {
       setPreviewToken(token);
       setSharedMode(true);
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1] || ''));
-        if (payload?.account_id) {
-          setAccount({ id: String(payload.account_id), name: '', slug: '', type: 'team' });
-        }
-      } catch {
-        // ignore
-      }
     }
-  }, [setAccount]);
+  }, []);
 
   useEffect(() => {
     if (history.length === 0) setCurrent(start);
@@ -57,11 +49,10 @@ export default function Simulation() {
   };
 
   const call = async (slug: string) => {
-    if (!accountId || !slug) return null;
+    if (!slug) return null;
     setError(null);
     try {
       const res = await simulatePreview({
-        account_id: accountId,
         start: slug,
         history,
         preview_mode: previewMode,
@@ -108,9 +99,9 @@ export default function Simulation() {
   };
 
   const share = async () => {
-    if (!accountId) return;
+    // account context no longer required for preview link
     try {
-      const { url } = await createPreviewLink(accountId);
+      const { url } = await createPreviewLink();
       window.open(url, '_blank');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

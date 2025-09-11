@@ -53,7 +53,6 @@ async def publish_content(
             await notifier.notify(
                 "publish",
                 author_id,
-                account_id=None,
                 title="Content published",
                 message=slug,
                 preview=preview,

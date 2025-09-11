@@ -1,7 +1,7 @@
 import type { NodeOut } from '../../../openapi';
 import { client } from '../../../shared/api/client';
 
-const base = (accountId: string) => (accountId ? `/admin/nodes` : `/users/me/nodes`);
+const base = `/admin/nodes`;
 
 function withQuery(baseUrl: string, params?: Record<string, unknown>) {
   if (!params) return baseUrl;
@@ -28,22 +28,22 @@ function enrichPayload(payload: NodeMutationPayload): Record<string, unknown> {
 }
 
 export const nodesApi = {
-  list(accountId: string, params?: Record<string, unknown>) {
-    return client.get<NodeOut[]>(withQuery(base(accountId), params));
+  list(params?: Record<string, unknown>) {
+    return client.get<NodeOut[]>(withQuery(base, params));
   },
-  get(accountId: string, id: number) {
-    return client.get<NodeOut>(`${base(accountId)}/${encodeURIComponent(String(id))}`);
+  get(id: number) {
+    return client.get<NodeOut>(`${base}/${encodeURIComponent(String(id))}`);
   },
-  create(accountId: string, payload: NodeMutationPayload) {
+  create(payload: NodeMutationPayload) {
     const body = enrichPayload(payload);
-    return client.post<NodeMutationPayload, NodeOut>(base(accountId), body);
+    return client.post<NodeMutationPayload, NodeOut>(base, body);
   },
-  update(accountId: string, id: number, payload: NodeMutationPayload) {
+  update(id: number, payload: NodeMutationPayload) {
     const body = enrichPayload(payload);
-    const url = withQuery(`${base(accountId)}/${encodeURIComponent(String(id))}`, { next: 1 });
+    const url = withQuery(`${base}/${encodeURIComponent(String(id))}`, { next: 1 });
     return client.patch<NodeMutationPayload, NodeOut>(url, body);
   },
-  delete(accountId: string, id: number) {
-    return client.del<void>(`${base(accountId)}/${encodeURIComponent(String(id))}`);
+  delete(id: number) {
+    return client.del<void>(`${base}/${encodeURIComponent(String(id))}`);
   },
 };

@@ -44,11 +44,14 @@ async def send_notification(
         WebsocketPusher(ws_manager),
     )
     notif = await svc.create_notification(
-        account_id=payload.workspace_id,
         user_id=payload.user_id,
         title=payload.title,
         message=payload.message,
         type=payload.type,
         placement=payload.placement,
     )
-    return {"id": str(notif.id), "status": "queued"}
+    try:
+        notif_id = str(notif.get("id"))  # repository returns dict
+    except Exception:
+        notif_id = ""
+    return {"id": notif_id, "status": "queued"}

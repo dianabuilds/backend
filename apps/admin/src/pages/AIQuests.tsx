@@ -295,7 +295,6 @@ export default function AIQuests() {
         extras: {},
         model: model || null,
         remember,
-        account_id: accountId || null,
       });
       await load();
     } catch (e) {

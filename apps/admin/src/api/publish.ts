@@ -11,7 +11,7 @@ export type PublishInfo = {
 export async function getPublishInfo(_accountId: string, nodeId: number): Promise<PublishInfo> {
   return await accountApi.get<PublishInfo>(
     `/admin/nodes/${encodeURIComponent(String(nodeId))}/publish_info`,
-    { accountId: '', account: false },
+    { },
   );
 }
 
@@ -23,7 +23,7 @@ export async function publishNow(
   return await accountApi.post<{ access: AccessMode }, { ok: true } | Record<string, unknown>>(
     `/admin/nodes/${encodeURIComponent(String(nodeId))}/publish`,
     { access },
-    { accountId: '', account: false },
+    { },
   );
 }
 
@@ -36,7 +36,7 @@ export async function schedulePublish(
   return await accountApi.post<{ run_at: string; access: AccessMode }, PublishInfo>(
     `/admin/nodes/${encodeURIComponent(String(nodeId))}/schedule_publish`,
     { run_at: runAtISO, access },
-    { accountId: '', account: false },
+    { },
   );
 }
 
@@ -46,6 +46,6 @@ export async function cancelScheduledPublish(
 ): Promise<{ canceled: boolean }> {
   return await accountApi.delete<{ canceled: boolean }>(
     `/admin/nodes/${encodeURIComponent(String(nodeId))}/schedule_publish`,
-    { accountId: '', account: false },
+    { },
   );
 }

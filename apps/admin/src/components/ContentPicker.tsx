@@ -17,12 +17,10 @@ export default function ContentPicker({ onSelect, onClose }: ContentPickerProps)
   const { data: items = [] } = useQuery({
     queryKey: ['content-picker', accountId, search, tag],
     queryFn: async () =>
-      accountId
-        ? listNodes(accountId, {
-            q: search || undefined,
-            tags: tag || undefined,
-          })
-        : [],
+      listNodes({
+        q: search || undefined,
+        tags: tag || undefined,
+      }),
   });
 
   return (

@@ -47,10 +47,10 @@ def _parse_range(range_str: str) -> int:
 @router.get("/summary", response_model=MetricsSummary)
 async def metrics_summary(
     range: Annotated[str, Query()] = "1h",
-    account_id: Annotated[str | None, Query()] = None,
+    profile_id: Annotated[str | None, Query()] = None,
 ) -> MetricsSummary:  # noqa: A002
     seconds = _parse_range(range)
-    summary = metrics_storage.summary(seconds, account_id)
+    summary = metrics_storage.summary(seconds, profile_id)
     return MetricsSummary(**summary)
 
 
@@ -58,7 +58,7 @@ async def metrics_summary(
 async def metrics_timeseries(
     range: Annotated[str, Query()] = "1h",  # noqa: A002
     step: Annotated[int, Query(ge=10, le=600)] = 60,
-    account_id: Annotated[str | None, Query()] = None,
+    profile_id: Annotated[str | None, Query()] = None,
 ):
     """
     Таймсерии: counts per status class (2xx/4xx/5xx) и p95 latency по бакетам.
@@ -69,16 +69,16 @@ async def metrics_timeseries(
         step = 60
     elif step > 300:
         step = 300
-    data = metrics_storage.timeseries(seconds, step, account_id)
+    data = metrics_storage.timeseries(seconds, step, profile_id)
     return data
 
 
 @router.get("/reliability", response_model=ReliabilityMetrics)
 async def metrics_reliability(
-    account_id: Annotated[str | None, Query()] = None,
+    profile_id: Annotated[str | None, Query()] = None,
 ) -> ReliabilityMetrics:
     seconds = 3600
-    data = metrics_storage.reliability(seconds, account_id)
+    data = metrics_storage.reliability(seconds, profile_id)
     total = data["total"]
     p95 = data["p95"]
     count_4xx = data["count_4xx"]
@@ -86,8 +86,8 @@ async def metrics_reliability(
     rps = total / seconds if seconds else 0.0
 
     stats = transition_stats()
-    if account_id:
-        ws_stats = stats.get(account_id, {})
+    if profile_id:
+        ws_stats = stats.get(profile_id, {})
         no_route_percent = ws_stats.get("no_route_percent", 0.0)
         fallback_percent = ws_stats.get("fallback_used_percent", 0.0)
     else:
@@ -116,25 +116,25 @@ async def metrics_top_endpoints(
     range: Annotated[str, Query()] = "1h",  # noqa: A002
     by: Annotated[str, Query(pattern="^(p95|error_rate|rps)$")] = "p95",
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
-    account_id: Annotated[str | None, Query()] = None,
+    profile_id: Annotated[str | None, Query()] = None,
 ):
     """
     Топ маршрутов по p95 | error_rate | rps.
     """
     seconds = _parse_range(range)
-    data = metrics_storage.top_endpoints(seconds, limit, by, account_id)
+    data = metrics_storage.top_endpoints(seconds, limit, by, profile_id)
     return {"items": data}
 
 
 @router.get("/errors/recent")
 async def metrics_errors_recent(
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
-    account_id: Annotated[str | None, Query()] = None,
+    profile_id: Annotated[str | None, Query()] = None,
 ):
     """
     Последние ошибки (4xx/5xx).
     """
-    return {"items": metrics_storage.recent_errors(limit, account_id)}
+    return {"items": metrics_storage.recent_errors(limit, profile_id)}
 
 
 @router.get("/transitions")

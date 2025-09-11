@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.preview import PreviewContext  # isort: skip
 from app.core.log_events import no_route, transition_finish, transition_start
+from app.core.scope import get_node_scope_id
 from app.core.transition_metrics import (
     record_fallback_used,
     record_no_route,
@@ -255,7 +256,7 @@ class TransitionRouter:
         record_route_latency_ms(elapsed_ms)
         record_repeat_rate(repeat_rate)
         record_novelty_rate(novelty_rate)
-        ws_id = str(start.account_id)
+        ws_id = str(get_node_scope_id(start))
         metrics_mode = mode or (preview.mode if preview else "normal")
         transition_metrics.observe_latency(ws_id, metrics_mode, elapsed_ms)
         transition_metrics.observe_repeat_rate(ws_id, metrics_mode, repeat_rate)

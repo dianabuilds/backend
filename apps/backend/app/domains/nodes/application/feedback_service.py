@@ -73,7 +73,6 @@ class FeedbackService:
             if self._notifier and node.author_id != current_user.id:
                 await self._notifier.create_notification(
                     user_id=node.author_id,
-                    account_id=None,
                     title="New feedback",
                     message=str(content.get("text") or "New feedback"),
                     type=None,

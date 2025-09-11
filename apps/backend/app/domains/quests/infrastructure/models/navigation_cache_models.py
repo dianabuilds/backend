@@ -15,13 +15,12 @@ class NavigationCache(Base):
 
     id = Column(UUID(), primary_key=True, default=uuid4)
     node_slug = Column(String, index=True, nullable=False)
-    account_id = Column(BigInteger, ForeignKey("accounts.id"), index=True, nullable=False)
     navigation = Column(MutableDict.as_mutable(JSONB), default=dict)
     compass = Column(MutableList.as_mutable(ARRAY(String)), default=list)
     echo = Column(MutableList.as_mutable(ARRAY(String)), default=list)
     generated_at = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
-        UniqueConstraint("account_id", "node_slug", name="uq_nav_cache_account_slug"),
-        Index("ix_navigation_cache_account_id_generated_at", "account_id", "generated_at"),
+        UniqueConstraint("node_slug", name="uq_nav_cache_slug"),
+        Index("ix_navigation_cache_generated_at", "generated_at"),
     )

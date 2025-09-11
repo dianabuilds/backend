@@ -45,7 +45,6 @@ export default function ImageDropzone({
           method: 'POST',
           body: form,
           raw: true,
-          accountId,
         });
         const url = extractUrlFromUploadResponse(res.data, res.response.headers);
         if (!url) {
@@ -59,7 +58,7 @@ export default function ImageDropzone({
         setError(e instanceof Error ? e.message : 'Не удалось загрузить изображение');
       }
     },
-    [onChange, accountId],
+    [onChange],
   );
 
   const onDrop = (e: React.DragEvent) => {

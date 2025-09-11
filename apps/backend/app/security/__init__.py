@@ -1,7 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime, timedelta
-from types import SimpleNamespace
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -112,7 +111,7 @@ def require_admin_role(allowed_roles: set[str] | None = None):
         ] = ...,
         db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
     ) -> User:
-        # Приоритет: Bearer из заголовка; если его нет — берём access_token из cookie.
+        # РџСЂРёРѕСЂРёС‚РµС‚: Bearer РёР· Р·Р°РіРѕР»РѕРІРєР°; РµСЃР»Рё РµРіРѕ РЅРµС‚ вЂ” Р±РµСЂС‘Рј access_token РёР· cookie.
         token: str | None = None
         if credentials is not None and credentials.credentials:
             token = credentials.credentials
@@ -172,35 +171,6 @@ async def auth_user(
     return user
 
 
-from fastapi import HTTPException
-
-
-# Profile-centric stubs retained for compatibility with legacy dependencies.
-async def require_ws_owner(*, scope_id=None, user, db):  # type: ignore[no-untyped-def]
-    if getattr(user, "role", None) in {"admin"}:
-        return SimpleNamespace(role="admin")  # type: ignore[name-defined]
-    return SimpleNamespace(role="owner")  # type: ignore[name-defined]
-
-
-async def require_ws_editor(*, scope_id=None, user, db):  # type: ignore[no-untyped-def]
-    if getattr(user, "role", None) in {"admin"}:
-        return SimpleNamespace(role="admin")  # type: ignore[name-defined]
-    return SimpleNamespace(role="editor")  # type: ignore[name-defined]
-
-
-async def require_ws_viewer(*, scope_id=None, user, db):  # type: ignore[no-untyped-def]
-    if getattr(user, "role", None) in {"admin"}:
-        return SimpleNamespace(role="admin")  # type: ignore[name-defined]
-    return SimpleNamespace(role="viewer")  # type: ignore[name-defined]
-
-
-async def require_ws_guest(*, scope_id=None, user, db):  # type: ignore[no-untyped-def]
-    # Any authenticated user is a guest in profile mode
-    if getattr(user, "id", None) is None:
-        raise HTTPException(status_code=403, detail="Forbidden")  # type: ignore[arg-type]
-    return SimpleNamespace(role="guest")  # type: ignore[name-defined]
-
-
 ADMIN_AUTH_RESPONSES = {
     401: {
         "description": "Unauthorized",
@@ -258,10 +228,6 @@ __all__ = [
     "auth_user",
     "hash_password",
     "verify_password",
-    "require_ws_editor",
-    "require_ws_owner",
-    "require_ws_viewer",
-    "require_ws_guest",
     "bearer_scheme",
     "ADMIN_AUTH_RESPONSES",
     "AuthRequiredError",
