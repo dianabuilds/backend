@@ -123,7 +123,9 @@ async def create_node(
 ):
     repo = NodeRepository(db)
     node = await repo.create_personal(payload, current_user.id)
-    await get_event_bus().publish(NodeCreated(node_id=node.id, slug=node.slug, author_id=current_user.id))
+    await get_event_bus().publish(
+        NodeCreated(node_id=node.id, slug=node.slug, author_id=current_user.id)
+    )
     return {"slug": node.slug}
 
 
@@ -181,9 +183,18 @@ async def update_node(
     node = await repo.update(node, payload, current_user.id)
     if override:
         after_snapshot = NodeOut.model_validate(node).model_dump()
-        await audit_log(db, actor_id=str(current_user.id), action="node_update", resource_type="node",
-                        resource_id=str(node.id), before=before_snapshot, after=after_snapshot, request=request,
-                        reason=getattr(request.state, "override_reason", None), override=True)
+        await audit_log(
+            db,
+            actor_id=str(current_user.id),
+            action="node_update",
+            resource_type="node",
+            resource_id=str(node.id),
+            before=before_snapshot,
+            after=after_snapshot,
+            request=request,
+            reason=getattr(request.state, "override_reason", None),
+            override=True,
+        )
     if was_visible != node.is_visible:
         await navsvc.invalidate_navigation_cache(db, node)
         await navcache.invalidate_navigation_by_user(current_user.id)
@@ -191,7 +202,9 @@ async def update_node(
         cache_invalidate("nav", reason="node_update", key=slug)
         cache_invalidate("navm", reason="node_update", key=slug)
         cache_invalidate("comp", reason="node_update")
-    await get_event_bus().publish(NodeUpdated(node_id=node.id, slug=node.slug, author_id=current_user.id))
+    await get_event_bus().publish(
+        NodeUpdated(node_id=node.id, slug=node.slug, author_id=current_user.id)
+    )
     return node
 
 
@@ -211,9 +224,18 @@ async def delete_node(
     before_snapshot = NodeOut.model_validate(node).model_dump()
     await repo.delete(node)
     if override:
-        await audit_log(db, actor_id=str(current_user.id), action="node_delete", resource_type="node",
-                        resource_id=str(node.id), before=before_snapshot, after=None, request=request,
-                        reason=getattr(request.state, "override_reason", None), override=True)
+        await audit_log(
+            db,
+            actor_id=str(current_user.id),
+            action="node_delete",
+            resource_type="node",
+            resource_id=str(node.id),
+            before=before_snapshot,
+            after=None,
+            request=request,
+            reason=getattr(request.state, "override_reason", None),
+            override=True,
+        )
     await navsvc.invalidate_navigation_cache(db, node)
     await navcache.invalidate_navigation_by_user(current_user.id)
     await navcache.invalidate_compass_by_user(current_user.id)
@@ -317,7 +339,9 @@ async def create_feedback(
 
     notifier = NotifyService(NotificationRepository(db), WebsocketPusher(ws_manager))
     service = FeedbackService(NodeRepository(db), notifier)
-    return await service.create_feedback(db, slug, payload.content, payload.is_anonymous, current_user, author_id=current_user.id)
+    return await service.create_feedback(
+        db, slug, payload.content, payload.is_anonymous, current_user, author_id=current_user.id
+    )
 
 
 @router.delete("/{slug}/feedback/{feedback_id}", response_model=dict, summary="Delete feedback")
@@ -334,5 +358,6 @@ async def delete_feedback(
     )
 
     service = FeedbackService(NodeRepository(db))
-    return await service.delete_feedback(db, slug, feedback_id, current_user, author_id=current_user.id)
-
+    return await service.delete_feedback(
+        db, slug, feedback_id, current_user, author_id=current_user.id
+    )

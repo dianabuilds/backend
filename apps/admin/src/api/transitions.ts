@@ -55,7 +55,6 @@ export async function updateTransition(id: string, body: UpdateTransitionBody): 
   await api.patch(`/admin/transitions/${encodeURIComponent(id)}`, body);
 }
 
-
 // Клиентские bulk-хелперы поверх одиночных запросов
 
 export async function bulkUpdate(ids: string[], patch: UpdateTransitionBody): Promise<void> {
@@ -63,7 +62,6 @@ export async function bulkUpdate(ids: string[], patch: UpdateTransitionBody): Pr
     await updateTransition(id, patch);
   }
 }
-
 
 export interface SimulateTransitionsBody {
   start: string;

@@ -144,9 +144,7 @@ export default function AIQuestJobDetails() {
       </div>
 
       {isLoading ? <div className="text-sm text-gray-500">Загрузка…</div> : null}
-      {error ? (
-        <div className="text-sm text-red-600">Ошибка: {error.message}</div>
-      ) : null}
+      {error ? <div className="text-sm text-red-600">Ошибка: {error.message}</div> : null}
       {data ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

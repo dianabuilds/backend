@@ -42,6 +42,8 @@ admin_required = require_admin_role()
 
 navcache = NavigationCacheService(CoreCacheAdapter())
 navsvc = NavigationService()
+
+
 @router.get("", response_model=list[NodeOut], summary="List nodes (admin, alias)")
 async def list_nodes_admin_alias(
     if_none_match: Annotated[str | None, Header(alias="If-None-Match")] = None,
@@ -117,7 +119,9 @@ async def bulk_node_operation_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    result = await db.execute(select(Node).where(Node.id.in_(payload.ids), Node.author_id == current_user.id))
+    result = await db.execute(
+        select(Node).where(Node.id.in_(payload.ids), Node.author_id == current_user.id)
+    )
     nodes = list(result.scalars().all())
     updated_ids: list[int] = []
     deleted_ids: list[int] = []
@@ -132,13 +136,25 @@ async def bulk_node_operation_alias(
         if cs.is_visible is not None and node.is_visible != bool(cs.is_visible):
             node.is_visible = bool(cs.is_visible)
             changed = True
-        if hasattr(node, "is_public") and cs.is_public is not None and node.is_public != bool(cs.is_public):
+        if (
+            hasattr(node, "is_public")
+            and cs.is_public is not None
+            and node.is_public != bool(cs.is_public)
+        ):
             node.is_public = bool(cs.is_public)
             changed = True
-        if hasattr(node, "premium_only") and cs.premium_only is not None and node.premium_only != bool(cs.premium_only):
+        if (
+            hasattr(node, "premium_only")
+            and cs.premium_only is not None
+            and node.premium_only != bool(cs.premium_only)
+        ):
             node.premium_only = bool(cs.premium_only)
             changed = True
-        if hasattr(node, "is_recommendable") and cs.is_recommendable is not None and node.is_recommendable != bool(cs.is_recommendable):
+        if (
+            hasattr(node, "is_recommendable")
+            and cs.is_recommendable is not None
+            and node.is_recommendable != bool(cs.is_recommendable)
+        ):
             node.is_recommendable = bool(cs.is_recommendable)
             changed = True
         if changed:
@@ -199,7 +215,9 @@ async def get_node_item_alias(
     node_item = await _resolve_content_item_id(db, node_or_item_id=node_id)
     svc = NodeService(db)
     item = await svc.get(node_item.id)
-    node = await db.scalar(select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags)))
+    node = await db.scalar(
+        select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags))
+    )
     return _serialize(item, node)
 
 
@@ -221,7 +239,9 @@ async def update_node_item_alias(
             ux_metrics.inc_save_next()
         except Exception:
             pass
-    node = await db.scalar(select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags)))
+    node = await db.scalar(
+        select(Node).where(Node.id == item.node_id).options(selectinload(Node.tags))
+    )
     return _serialize(item, node)
 
 
@@ -254,7 +274,11 @@ async def get_publish_info_alias(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     item = await _resolve_content_item_id(db, node_or_item_id=id)
-    res = await db.execute(select(NodePublishJob).where(NodePublishJob.node_id == id, NodePublishJob.status == "pending"))
+    res = await db.execute(
+        select(NodePublishJob).where(
+            NodePublishJob.node_id == id, NodePublishJob.status == "pending"
+        )
+    )
     job = res.scalar_one_or_none()
     status = item.status.value if hasattr(item.status, "value") else str(item.status)
     payload: dict = {
@@ -284,12 +308,15 @@ async def schedule_publish_alias(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
     item = await _resolve_content_item_id(db, node_or_item_id=id)
-    res = await db.execute(select(NodePublishJob).where(NodePublishJob.node_id == id, NodePublishJob.status == "pending"))
+    res = await db.execute(
+        select(NodePublishJob).where(
+            NodePublishJob.node_id == id, NodePublishJob.status == "pending"
+        )
+    )
     existing = res.scalar_one_or_none()
     if existing:
         existing.status = "canceled"
     job = NodePublishJob(
-
         node_id=id,
         content_id=item.id,
         access=payload.access,
@@ -314,7 +341,11 @@ async def cancel_scheduled_publish_alias(
     current_user=Depends(admin_required),  # noqa: B008
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ):
-    res = await db.execute(select(NodePublishJob).where(NodePublishJob.node_id == id, NodePublishJob.status == "pending"))
+    res = await db.execute(
+        select(NodePublishJob).where(
+            NodePublishJob.node_id == id, NodePublishJob.status == "pending"
+        )
+    )
     job = res.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Publish job not found")
@@ -336,4 +367,3 @@ async def rollback_version_alias(
         raise HTTPException(status_code=404, detail="Node not found")
     node = await repo.rollback(node, version, current_user.id)
     return NodeOut.model_validate(node)
-

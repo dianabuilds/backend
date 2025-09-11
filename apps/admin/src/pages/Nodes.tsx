@@ -301,9 +301,10 @@ export default function Nodes() {
 
   // Load author suggestions when searching by name/email (not a UUID)
   useEffect(() => {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      debouncedAuthor.trim(),
-    );
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        debouncedAuthor.trim(),
+      );
     if (!authorTab) {
       setAuthorOptions([]);
       return;
@@ -406,7 +407,11 @@ export default function Nodes() {
         results.push(`${Object.keys(changes).join(',')}: ${ids.length}`);
       }
       if (results.length > 0) {
-        addToast({ title: 'Изменения применены', description: results.join(', '), variant: 'success' });
+        addToast({
+          title: 'Изменения применены',
+          description: results.join(', '),
+          variant: 'success',
+        });
         // Оптимистично фиксируем новые значения как базовые,
         // чтобы статус в таблице не «откатывался» визуально.
         setBaseline(new Map(items.map((n) => [n.id, { ...n }])));
@@ -417,7 +422,11 @@ export default function Nodes() {
         addToast({ title: 'OK', variant: 'success' });
       }
     } catch (e) {
-      addToast({ title: 'Не удалось применить изменения', description: e instanceof Error ? e.message : String(e), variant: 'error' });
+      addToast({
+        title: 'Не удалось применить изменения',
+        description: e instanceof Error ? e.message : String(e),
+        variant: 'error',
+      });
     } finally {
       setApplying(false);
     }
@@ -448,7 +457,11 @@ export default function Nodes() {
       const t = node.type || 'article';
       window.open(`${url}/nodes/${t}/${id}`, '_blank');
     } catch (e) {
-      addToast({ title: 'Предпросмотр не открылся', description: e instanceof Error ? e.message : String(e), variant: 'error' });
+      addToast({
+        title: 'Предпросмотр не открылся',
+        description: e instanceof Error ? e.message : String(e),
+        variant: 'error',
+      });
     }
   };
 
@@ -548,7 +561,7 @@ export default function Nodes() {
           >
             Мои
           </Button>
-          
+
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -572,7 +585,11 @@ export default function Nodes() {
                 }}
                 onBlur={() => {
                   if (!authorId && authorOptions.length > 0) {
-                    const u = authorOptions[0] as { id: string; username?: string | null; email?: string | null };
+                    const u = authorOptions[0] as {
+                      id: string;
+                      username?: string | null;
+                      email?: string | null;
+                    };
                     setAuthorId(u.id);
                     setAuthorQuery(u.username || u.email || u.id);
                   }
@@ -990,7 +1007,11 @@ export default function Nodes() {
                                 const t = n.type || 'article';
                                 window.open(`${url}/nodes/${t}/${n.id}`, '_blank');
                               } catch (e) {
-                                addToast({ title: 'Предпросмотр не открылся', description: e instanceof Error ? e.message : String(e), variant: 'error' });
+                                addToast({
+                                  title: 'Предпросмотр не открылся',
+                                  description: e instanceof Error ? e.message : String(e),
+                                  variant: 'error',
+                                });
                               }
                             }}
                           >

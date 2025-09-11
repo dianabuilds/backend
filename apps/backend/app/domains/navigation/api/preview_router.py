@@ -100,7 +100,9 @@ async def simulate_transitions(
     if res.reason == NoRouteReason.NO_ROUTE:
         record_no_route(str(getattr(node, "author_id", "0")), preview=True)
     else:
-        record_route_length(len(svc._router.history), str(getattr(node, "author_id", "0")), preview=True)
+        record_route_length(
+            len(svc._router.history), str(getattr(node, "author_id", "0")), preview=True
+        )
     return {
         "next": res.next.slug if res.next else None,
         "reason": res.reason.value if res.reason else None,

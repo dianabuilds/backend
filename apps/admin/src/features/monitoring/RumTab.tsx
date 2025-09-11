@@ -188,9 +188,7 @@ export default function RumTab() {
       </p>
       <section id="summary">
         {sFetching && <div className="text-xs text-gray-500 mt-1">Загрузка…</div>}
-        {sError && (
-          <div className="mt-1 text-xs text-red-600">Ошибка: {sError.message}</div>
-        )}
+        {sError && <div className="mt-1 text-xs text-red-600">Ошибка: {sError.message}</div>}
         {summary && (
           <SummaryCard
             title="Сводка"
@@ -249,9 +247,7 @@ export default function RumTab() {
           <div className="text-sm text-gray-500 dark:text-gray-400">Лента событий</div>
           {eFetching || sFetching ? <div className="text-xs text-gray-500">Обновление…</div> : null}
         </div>
-        {eError ? (
-          <div className="mt-1 text-xs text-red-600">Ошибка: {eError.message}</div>
-        ) : null}
+        {eError ? <div className="mt-1 text-xs text-red-600">Ошибка: {eError.message}</div> : null}
         <div className="mt-2 overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -304,4 +300,3 @@ export default function RumTab() {
     </div>
   );
 }
-

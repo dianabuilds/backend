@@ -10,7 +10,13 @@ interface Props {
   renderLabel?: (key: string) => React.ReactNode;
 }
 
-export default function RateLimitRulesEditor({ entries, onChange, onSave, saving, renderLabel }: Props) {
+export default function RateLimitRulesEditor({
+  entries,
+  onChange,
+  onSave,
+  saving,
+  renderLabel,
+}: Props) {
   return (
     <section className="space-y-2">
       {entries.map(([key, value]) => (
@@ -36,4 +42,3 @@ export default function RateLimitRulesEditor({ entries, onChange, onSave, saving
     </section>
   );
 }
-

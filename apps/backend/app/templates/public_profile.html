@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ username }} — Profile{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+  <img src="{{ avatar_url }}" alt="avatar" style="width:96px;height:96px;border-radius:9999px;object-fit:cover;border:1px solid #e5e7eb;background:#f3f4f6" />
+  <div>
+    <div style="font-size:22px;font-weight:700;">{{ username }}</div>
+    {% if bio %}<div style="color:#374151; font-size:14px; margin-top:4px;">{{ bio }}</div>{% endif %}
+    <div style="margin-top:6px;">
+      <span style="display:inline-block;font-size:11px;padding:2px 8px;border-radius:9999px;border:1px solid {% if is_premium %}#f59e0b{% else %}#d1d5db{% endif %}; background:{% if is_premium %}#fef3c7{% else %}#f9fafb{% endif %}; color:{% if is_premium %}#92400e{% else %}#374151{% endif %}">
+        {% if is_premium %}Premium{% else %}Free{% endif %}
+      </span>
+    </div>
+  </div>
+  
+</div>
+
+<div style="margin:12px 0 16px;">
+  <div class="muted">Share: {{ public_url }}</div>
+  <hr style="border:none;border-top:1px solid #e5e7eb;margin-top:8px;" />
+</div>
+
+<div>
+  <div style="font-weight:600; font-size:14px; margin-bottom:8px;">Achievements</div>
+  {% if achievements and achievements|length > 0 %}
+    <ul style="display:flex; flex-wrap:wrap; gap:8px; padding:0; list-style:none;">
+      {% for a in achievements %}
+        <li style="display:inline-flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:8px; font-size:12px; background:#fff;">
+          {% if a.icon %}<img src="{{ a.icon }}" alt="" style="width:16px;height:16px;" />{% endif %}
+          <span>{{ a.title }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="muted">No achievements yet</div>
+  {% endif %}
+</div>
+{% endblock %}
+

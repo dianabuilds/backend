@@ -1,5 +1,4 @@
-﻿
-import type { Column } from './DataTable.helpers';
+﻿import type { Column } from './DataTable.helpers';
 import Skeleton from './Skeleton';
 
 type Props<T> = {
@@ -96,4 +95,3 @@ export default function DataTable<T>({
     </div>
   );
 }
-

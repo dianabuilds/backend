@@ -9,7 +9,16 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..', 'src');
 const TEXT_EXT = new Set([
-  '.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.md', '.txt', '.svg', '.html'
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.json',
+  '.css',
+  '.md',
+  '.txt',
+  '.svg',
+  '.html',
 ]);
 
 function isTextFile(p) {
@@ -81,4 +90,3 @@ else {
   console.error('Unknown command:', cmd);
   process.exit(2);
 }
-

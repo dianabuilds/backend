@@ -1,6 +1,6 @@
-import type {NodeOut, Status} from '../openapi';
-import {accountApi} from './accountApi';
-import {api, type ApiResponse} from './client';
+import type { NodeOut, Status } from '../openapi';
+import { accountApi } from './accountApi';
+import { api, type ApiResponse } from './client';
 
 // The admin nodes list endpoint returns additional metadata compared to the
 // public NodeOut model. In particular, it includes the `status` of each item.
@@ -176,7 +176,10 @@ export async function getNode(accountId: string, id: number): Promise<NodeRespon
   try {
     if (accountId) {
       const url = `/admin/nodes/${encodeURIComponent(String(id))}`;
-      return (await accountApi.get<NodeResponse>(url, { accountId: '', account: false })) as NodeResponse;
+      return (await accountApi.get<NodeResponse>(url, {
+        accountId: '',
+        account: false,
+      })) as NodeResponse;
     }
     const res = await api.get<NodeResponse>(`/users/me/nodes/${encodeURIComponent(String(id))}`);
     return res.data as NodeResponse;
@@ -187,10 +190,10 @@ export async function getNode(accountId: string, id: number): Promise<NodeRespon
     if (status !== 404) throw e;
     // Try admin alias as a fallback for personal mode when not found
     try {
-      return (await accountApi.get<NodeResponse>(
-        `/admin/nodes/${encodeURIComponent(String(id))}`,
-        { accountId: '', account: false },
-      )) as NodeResponse;
+      return (await accountApi.get<NodeResponse>(`/admin/nodes/${encodeURIComponent(String(id))}`, {
+        accountId: '',
+        account: false,
+      })) as NodeResponse;
     } catch {
       const err = new Error('Not Found') as Error & { response?: { status: number } };
       err.response = { status: 404 };
@@ -226,10 +229,10 @@ export async function publishNode(
   id: number,
   body: NodePublishParams | undefined = undefined,
 ): Promise<NodeOut> {
-    return await accountApi.post<typeof body, NodeOut>(
-      `/admin/nodes/${encodeURIComponent(String(id))}/publish`,
-      body,
-      {accountId: '', account: false},
+  return await accountApi.post<typeof body, NodeOut>(
+    `/admin/nodes/${encodeURIComponent(String(id))}/publish`,
+    body,
+    { accountId: '', account: false },
   );
 }
 

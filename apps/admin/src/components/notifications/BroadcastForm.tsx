@@ -7,7 +7,11 @@ import { Modal } from '../../shared/ui';
 import { useToast } from '../ToastProvider';
 import NotificationFilters from './NotificationFilters';
 import { validateNotification } from './NotificationForm.validation';
-import { type NotificationErrors, NotificationFormFields, type NotificationFormValues } from './NotificationFormCore';
+import {
+  type NotificationErrors,
+  NotificationFormFields,
+  type NotificationFormValues,
+} from './NotificationFormCore';
 
 interface Props {
   isOpen: boolean;

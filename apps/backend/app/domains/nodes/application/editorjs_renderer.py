@@ -112,4 +112,3 @@ def collect_unknown_blocks(content: Any) -> list[str]:
     except Exception:
         pass
     return sorted(seen)
-

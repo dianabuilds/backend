@@ -22,4 +22,3 @@ export default function ListSection({ title, loading, error, children, className
     </div>
   );
 }
-

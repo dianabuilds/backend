@@ -61,7 +61,9 @@ class AchievementsRepository(IAchievementsRepository):
         await self._db.delete(ua)
         return True
 
-    async def list_user_achievements(self, user_id: UUID) -> list[tuple[Achievement, UserAchievement | None]]:
+    async def list_user_achievements(
+        self, user_id: UUID
+    ) -> list[tuple[Achievement, UserAchievement | None]]:
         res = await self._db.execute(
             select(Achievement, UserAchievement)
             .outerjoin(
@@ -86,9 +88,7 @@ class AchievementsRepository(IAchievementsRepository):
         if counter:
             counter.count += 1
         else:
-            self._db.add(
-                UserEventCounter(account_id=0, user_id=user_id, event=key, count=1)
-            )
+            self._db.add(UserEventCounter(account_id=0, user_id=user_id, event=key, count=1))
 
     async def get_counter(self, user_id: UUID, key: str) -> int:
         res = await self._db.execute(
@@ -134,16 +134,11 @@ class AchievementsRepository(IAchievementsRepository):
 
     # CRUD (admin)
     async def list_achievements(self) -> list[Achievement]:
-        res = await self._db.execute(
-            select(Achievement)
-            .order_by(Achievement.title.asc())
-        )
+        res = await self._db.execute(select(Achievement).order_by(Achievement.title.asc()))
         return list(res.scalars().all())
 
     async def exists_code(self, code: str) -> bool:
-        res = await self._db.execute(
-            select(Achievement).where(Achievement.code == code)
-        )
+        res = await self._db.execute(select(Achievement).where(Achievement.code == code))
         return res.scalars().first() is not None
 
     async def create_achievement(self, data: dict[str, Any], actor_id: UUID) -> Achievement:
@@ -153,7 +148,9 @@ class AchievementsRepository(IAchievementsRepository):
         await self._db.refresh(item)
         return item
 
-    async def update_achievement_fields(self, item: Achievement, data: dict[str, Any], actor_id: UUID) -> Achievement:
+    async def update_achievement_fields(
+        self, item: Achievement, data: dict[str, Any], actor_id: UUID
+    ) -> Achievement:
         # Legacy scoping removed
         for k, v in (data or {}).items():
             setattr(item, k, v)

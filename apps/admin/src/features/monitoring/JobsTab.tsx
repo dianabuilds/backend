@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { api } from '../../api/client';
 import Pill from '../../components/Pill';
-import { type JobRow,JobsTable } from './JobsTable';
+import { type JobRow, JobsTable } from './JobsTable';
 
 type Job = JobRow;
 

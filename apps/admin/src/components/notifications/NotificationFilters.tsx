@@ -1,4 +1,3 @@
-
 interface Props {
   role: string;
   isActive: 'any' | 'true' | 'false';
@@ -28,7 +27,11 @@ export default function NotificationFilters({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
       <div className="flex flex-col">
         <label className="text-sm text-gray-600">Role</label>
-        <select className="border rounded px-2 py-1" value={role} onChange={(e) => onRoleChange(e.target.value)}>
+        <select
+          className="border rounded px-2 py-1"
+          value={role}
+          onChange={(e) => onRoleChange(e.target.value)}
+        >
           <option value="">any</option>
           <option value="user">user</option>
           <option value="moderator">moderator</option>

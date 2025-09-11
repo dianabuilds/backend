@@ -83,8 +83,14 @@ class FeedbackService:
 
         # Аудит
         try:
-            await audit_log(db, actor_id=str(current_user.id), action="node_feedback_create", resource_type="node",
-                            resource_id=str(node.id), after={"feedback_id": str(feedback.id)})
+            await audit_log(
+                db,
+                actor_id=str(current_user.id),
+                action="node_feedback_create",
+                resource_type="node",
+                resource_id=str(node.id),
+                after={"feedback_id": str(feedback.id)},
+            )
         except Exception:
             pass
 
@@ -114,8 +120,14 @@ class FeedbackService:
         await db.commit()
 
         try:
-            await audit_log(db, actor_id=str(current_user.id), action="node_feedback_delete", resource_type="node",
-                            resource_id=str(node.id), before={"feedback_id": str(feedback_id)})
+            await audit_log(
+                db,
+                actor_id=str(current_user.id),
+                action="node_feedback_delete",
+                resource_type="node",
+                resource_id=str(node.id),
+                before={"feedback_id": str(feedback_id)},
+            )
         except Exception:
             pass
 

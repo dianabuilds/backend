@@ -35,7 +35,11 @@ async def process_due_jobs(db: AsyncSession, *, limit: int = 50) -> dict:
                 failed.append(str(job.id))
                 continue
             # Публикация согласно access
-            await svc.publish(item.id, actor_id=job.created_by_user_id or item.created_by_user_id, access=job.access)
+            await svc.publish(
+                item.id,
+                actor_id=job.created_by_user_id or item.created_by_user_id,
+                access=job.access,
+            )
             job.status = "done"
             job.executed_at = datetime.utcnow()
             executed.append(str(job.id))

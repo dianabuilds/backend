@@ -98,15 +98,15 @@ enable_tracing = settings.env_mode in {
 }
 enable_metrics = enable_tracing and settings.observability.metrics_enabled
 if enable_tracing:
-    if 'setup_otel' in globals() and setup_otel is not None:
+    if "setup_otel" in globals() and setup_otel is not None:
         setup_otel()
-    if 'FastAPIInstrumentor' in globals() and FastAPIInstrumentor is not None:
+    if "FastAPIInstrumentor" in globals() and FastAPIInstrumentor is not None:
         FastAPIInstrumentor.instrument_app(app)
-    if 'SQLAlchemyInstrumentor' in globals() and SQLAlchemyInstrumentor is not None:
+    if "SQLAlchemyInstrumentor" in globals() and SQLAlchemyInstrumentor is not None:
         SQLAlchemyInstrumentor().instrument(engine=get_engine().sync_engine)
-    if 'RequestsInstrumentor' in globals() and RequestsInstrumentor is not None:
+    if "RequestsInstrumentor" in globals() and RequestsInstrumentor is not None:
         RequestsInstrumentor().instrument()
-    if 'HTTPXClientInstrumentor' in globals() and HTTPXClientInstrumentor is not None:
+    if "HTTPXClientInstrumentor" in globals() and HTTPXClientInstrumentor is not None:
         HTTPXClientInstrumentor().instrument()
 # Сжатие ответов
 app.add_middleware(GZipMiddleware, minimum_size=1024)
@@ -249,6 +249,14 @@ else:
     # Removed fallback /users/me: domain routers must provide it or app should fail earlier.
     register_admin_override(app)
 
+    # Public web pages (SSR)
+    try:
+        from app.web.public_profile_router import router as public_profile_router
+
+        app.include_router(public_profile_router)
+    except Exception as e:  # pragma: no cover - optional
+        logging.getLogger(__name__).warning(f"Public web routers failed to load: {e}")
+
     # SPA fallback should be last
     from app.web.admin_spa import router as admin_spa_router
 
@@ -260,6 +268,7 @@ async def read_root(request: Request):
     accept_header = request.headers.get("accept", "")
     if "text/html" in accept_header:
         return HTMLResponse("<meta http-equiv='refresh' content='0; url=/admin'>")
+
 
 @app.get("/users/me")
 async def users_me(current=fastapi.Depends(auth_user)):
@@ -303,5 +312,3 @@ async def shutdown_event():
     """Выполняется при остановке приложения"""
     logger.info("Shutting down application")
     await close_db_connection()
-
-

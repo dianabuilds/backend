@@ -35,7 +35,11 @@ const TYPES = [
 export default function PaymentsGateways() {
   const qc = useQueryClient();
 
-  const { data = [], isLoading, error } = useQuery({
+  const {
+    data = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['payments', 'gateways'],
     queryFn: async () => (await api.get<Gateway[]>('/admin/payments/gateways')).data || [],
     staleTime: 10_000,
@@ -280,17 +284,15 @@ export default function PaymentsGateways() {
               key: 'actions',
               title: 'Actions',
               render: (r) => (
-                <EditDeleteActions onEdit={() => edit(r as Gateway)} onDelete={() => remove(r.id)} />
+                <EditDeleteActions
+                  onEdit={() => edit(r as Gateway)}
+                  onDelete={() => remove(r.id)}
+                />
               ),
             },
           ];
           return (
-            <DataTable
-              columns={columns}
-              rows={data}
-              rowKey={(r) => r.id}
-              emptyText="Нет шлюзов"
-            />
+            <DataTable columns={columns} rows={data} rowKey={(r) => r.id} emptyText="Нет шлюзов" />
           );
         })()}
       </ListSection>

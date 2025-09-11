@@ -32,4 +32,3 @@ export default function StatusCell({ status }: StatusCellProps) {
     </div>
   );
 }
-

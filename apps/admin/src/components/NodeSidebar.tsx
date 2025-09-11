@@ -1,4 +1,3 @@
- 
 // @ts-nocheck
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
@@ -150,15 +149,12 @@ export default function NodeSidebar({
             file_url?: string | null;
             src?: string | null;
           };
-          const res = await accountApi.request<ApiResponse<UploadRes>>(
-            '/admin/media/assets',
-            {
-              method: 'POST',
-              body: form,
-              raw: true,
-              accountId,
-            },
-          );
+          const res = await accountApi.request<ApiResponse<UploadRes>>('/admin/media/assets', {
+            method: 'POST',
+            body: form,
+            raw: true,
+            accountId,
+          });
           const data = res.data || {};
           const rawId = data.id ?? data.asset_id ?? data.assetId ?? null;
           const id = rawId != null ? String(rawId) : null;
@@ -608,4 +604,3 @@ export default function NodeSidebar({
     </div>
   );
 }
-

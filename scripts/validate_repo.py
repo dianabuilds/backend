@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import statistics
 import subprocess
 import sys
@@ -7,7 +8,6 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-import os
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REPORT_PATH = REPO_ROOT / "reports" / "validate_repo.md"

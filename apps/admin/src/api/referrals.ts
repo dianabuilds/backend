@@ -10,4 +10,3 @@ export async function getMyReferralStats(): Promise<{ total_signups: number }> {
   const res = await api.get<{ total_signups: number }>('/referrals/me/stats');
   return res.data!;
 }
-

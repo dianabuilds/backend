@@ -198,6 +198,7 @@ class STR_ID(TypeDecorator):
     def process_result_value(self, value, dialect):
         return value
 
+
 __all__ = [
     "UUID",
     "JSONB",

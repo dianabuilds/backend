@@ -24,11 +24,6 @@ class MediaAssetDAO:
         offset: int = 0,
     ) -> builtins.list[MediaAsset]:
         """List media assets (profile-centric)."""
-        stmt = (
-            select(MediaAsset)
-            .order_by(MediaAsset.created_at.desc())
-            .offset(offset)
-            .limit(limit)
-        )
+        stmt = select(MediaAsset).order_by(MediaAsset.created_at.desc()).offset(offset).limit(limit)
         result = await db.execute(stmt)
         return list(result.scalars().all())

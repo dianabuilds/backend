@@ -10,9 +10,7 @@ def test_cors_allows_custom_headers():
         headers={
             "Origin": "http://client.example",
             "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers": (
-                "x-feature-flags, x-preview-token, "
-            ),
+            "Access-Control-Request-Headers": ("x-feature-flags, x-preview-token, "),
         },
     )
     assert resp.status_code == 200

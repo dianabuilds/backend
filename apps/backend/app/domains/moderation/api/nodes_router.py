@@ -33,6 +33,7 @@ async def hide_node(
     from sqlalchemy import select
 
     from app.domains.nodes.infrastructure.models.node import Node
+
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalar_one_or_none()
     if not node:
@@ -52,6 +53,7 @@ async def restore_node(
     from sqlalchemy import select
 
     from app.domains.nodes.infrastructure.models.node import Node
+
     result = await db.execute(select(Node).where(Node.slug == slug))
     node = result.scalar_one_or_none()
     if not node:

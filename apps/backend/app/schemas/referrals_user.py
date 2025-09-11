@@ -14,4 +14,3 @@ class MyReferralStatsOut(BaseModel):
     total_signups: int
 
     model_config = ConfigDict(from_attributes=True)
-

@@ -99,7 +99,9 @@ class NodeRepository(INodeRepository):
 
     # ------------------------------------------------------------------
     # Mutating operations
-    async def create(self, payload: NodeCreate, author_id: UUID, account_id: int | None = None) -> Node:
+    async def create(
+        self, payload: NodeCreate, author_id: UUID, account_id: int | None = None
+    ) -> Node:
         candidate = (payload.slug or "").strip().lower()
         if candidate and self._hex_re.fullmatch(candidate):
             res = await self._db.execute(
@@ -186,13 +188,19 @@ class NodeRepository(INodeRepository):
             candidate = (slug_candidate or "").strip().lower()
             if candidate and self._hex_re.fullmatch(candidate):
                 res = await self._db.execute(
-                    select(Node).where(Node.slug == candidate, Node.author_id == node.author_id, Node.id != node.id)
+                    select(Node).where(
+                        Node.slug == candidate, Node.author_id == node.author_id, Node.id != node.id
+                    )
                 )
                 if res.scalar_one_or_none():
-                    candidate = await self._unique_slug_for_author(candidate, node.author_id, skip_id=node.id)
+                    candidate = await self._unique_slug_for_author(
+                        candidate, node.author_id, skip_id=node.id
+                    )
             else:
                 base = candidate or data.get("title") or node.title or "node"
-                candidate = await self._unique_slug_for_author(base, node.author_id, skip_id=node.id)
+                candidate = await self._unique_slug_for_author(
+                    base, node.author_id, skip_id=node.id
+                )
             node.slug = candidate
         node.updated_at = datetime.utcnow()
         node.updated_by_user_id = actor_id
@@ -288,9 +296,7 @@ class NodeRepository(INodeRepository):
         res = await self._db.execute(query)
         return list(res.scalars().all())
 
-    async def bulk_set_visibility(
-        self, node_ids: list[int], is_visible: bool
-    ) -> int:
+    async def bulk_set_visibility(self, node_ids: list[int], is_visible: bool) -> int:
         if not node_ids:
             return 0
         count = 0

@@ -35,10 +35,14 @@ class ReferralsRepository(IReferralsRepository):
         return res.scalar() is not None
 
     async def find_code(self, code: str) -> ReferralCode | None:
-        res = await self._db.execute(select(ReferralCode).where(ReferralCode.code == code, ReferralCode.active.is_(True)))
+        res = await self._db.execute(
+            select(ReferralCode).where(ReferralCode.code == code, ReferralCode.active.is_(True))
+        )
         return res.scalars().first()
 
-    async def record_signup(self, *, code: ReferralCode, referee_user_id: UUID, meta: dict | None = None) -> ReferralEvent | None:
+    async def record_signup(
+        self, *, code: ReferralCode, referee_user_id: UUID, meta: dict | None = None
+    ) -> ReferralEvent | None:
         # One signup per referee globally
         exists = await self._db.execute(
             select(ReferralEvent.id).where(
@@ -73,7 +77,13 @@ class ReferralsRepository(IReferralsRepository):
         )
         return int(res.scalar() or 0)
 
-    async def list_codes(self, owner_user_id: UUID | None = None, active: bool | None = None, limit: int = 50, offset: int = 0) -> list[ReferralCode]:
+    async def list_codes(
+        self,
+        owner_user_id: UUID | None = None,
+        active: bool | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[ReferralCode]:
         stmt = select(ReferralCode)
         if owner_user_id is not None:
             stmt = stmt.where(ReferralCode.owner_user_id == owner_user_id)
@@ -83,7 +93,9 @@ class ReferralsRepository(IReferralsRepository):
         res = await self._db.execute(stmt)
         return list(res.scalars().all())
 
-    async def list_events(self, referrer_user_id: UUID | None = None, limit: int = 50, offset: int = 0) -> list[ReferralEvent]:
+    async def list_events(
+        self, referrer_user_id: UUID | None = None, limit: int = 50, offset: int = 0
+    ) -> list[ReferralEvent]:
         stmt = select(ReferralEvent)
         if referrer_user_id is not None:
             stmt = stmt.where(ReferralEvent.referrer_user_id == referrer_user_id)

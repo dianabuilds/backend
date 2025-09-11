@@ -75,7 +75,7 @@ async function request<T = unknown, P extends Record<string, unknown> = Record<s
   }
 
   const res = await api.request<T>(finalUrl, { ...rest, headers });
-  return raw ? res : ((res.data as T) satisfies T);
+  return raw ? res : (res.data as T satisfies T);
 }
 
 export const accountApi = {
@@ -88,12 +88,14 @@ export const accountApi = {
     url: string,
     json?: TReq,
     opts?: AccountRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...(opts || ({} as AccountRequestOptions<P>)), method: 'POST', json }),
+  ) =>
+    request<TRes, P>(url, { ...(opts || ({} as AccountRequestOptions<P>)), method: 'POST', json }),
   put: <TReq = unknown, TRes = unknown, P extends Record<string, unknown> = Record<string, never>>(
     url: string,
     json?: TReq,
     opts?: AccountRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...(opts || ({} as AccountRequestOptions<P>)), method: 'PUT', json }),
+  ) =>
+    request<TRes, P>(url, { ...(opts || ({} as AccountRequestOptions<P>)), method: 'PUT', json }),
   patch: <
     TReq = unknown,
     TRes = unknown,
@@ -102,7 +104,8 @@ export const accountApi = {
     url: string,
     json?: TReq,
     opts?: AccountRequestOptions<P>,
-  ) => request<TRes, P>(url, { ...(opts || ({} as AccountRequestOptions<P>)), method: 'PATCH', json }),
+  ) =>
+    request<TRes, P>(url, { ...(opts || ({} as AccountRequestOptions<P>)), method: 'PATCH', json }),
   delete: <T = unknown, P extends Record<string, unknown> = Record<string, never>>(
     url: string,
     opts: AccountRequestOptions<P>,

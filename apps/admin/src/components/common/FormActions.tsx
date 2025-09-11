@@ -1,4 +1,3 @@
-
 interface Props {
   primaryLabel?: string;
   onPrimary?: () => void;

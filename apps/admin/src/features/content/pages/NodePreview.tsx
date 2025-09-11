@@ -46,4 +46,3 @@ export default function NodePreview() {
 
   return <AdminNodePreview doc={doc} />;
 }
-

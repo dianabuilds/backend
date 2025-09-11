@@ -1,14 +1,11 @@
-import type { QuestGraphIn,QuestOut, ValidateResult } from '../openapi';
+import type { QuestGraphIn, QuestOut, ValidateResult } from '../openapi';
 // Local alias for the graph used by the editor. Keep it broad to avoid tight coupling
 // to generated types that may change naming between versions.
 export type VersionGraph = unknown;
 import { api } from './client';
 
 export async function createQuest(title: string): Promise<string> {
-  const res = await api.post<{ title: string }, { id: string }>(
-    '/admin/quests/create',
-    { title },
-  );
+  const res = await api.post<{ title: string }, { id: string }>('/admin/quests/create', { title });
   return res.data!.id;
 }
 
@@ -22,7 +19,10 @@ export async function getVersion(versionId: string): Promise<VersionGraph> {
   return res.data!;
 }
 
-export async function putGraph(versionId: string, graph: QuestGraphIn | VersionGraph): Promise<void> {
+export async function putGraph(
+  versionId: string,
+  graph: QuestGraphIn | VersionGraph,
+): Promise<void> {
   await api.put(`/admin/quests/versions/${versionId}/graph`, graph);
 }
 

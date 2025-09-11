@@ -1,7 +1,8 @@
 import { Card, CardContent } from '../../components/ui/card';
 
- 
-export default function ProblematicTransitionsWidget(_props: { query?: string; refreshInterval?: number } = {}) {
+export default function ProblematicTransitionsWidget(
+  _props: { query?: string; refreshInterval?: number } = {},
+) {
   return (
     <Card>
       <CardContent className="p-4 sm:p-6 space-y-2">

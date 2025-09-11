@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { api } from '../api/client';
-import { type JobRow,JobsTable } from '../features/monitoring/JobsTable';
+import { type JobRow, JobsTable } from '../features/monitoring/JobsTable';
 
 type Job = JobRow;
 

@@ -233,4 +233,3 @@ export default function AdminNodePreview({ doc }: { doc: Doc }) {
     </div>
   );
 }
-

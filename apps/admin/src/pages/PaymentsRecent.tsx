@@ -42,7 +42,9 @@ export default function PaymentsRecent() {
       key: 'status',
       title: 'Status',
       render: (r) => (
-        <span className={/error|fail|refund/i.test(r.status) ? 'text-red-600' : ''}>{r.status}</span>
+        <span className={/error|fail|refund/i.test(r.status) ? 'text-red-600' : ''}>
+          {r.status}
+        </span>
       ),
     },
   ];

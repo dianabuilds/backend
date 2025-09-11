@@ -136,7 +136,9 @@ export default function AISettingsPage() {
               value={aiSecret}
               onChange={(e) => setAISecret(e.target.value)}
             />
-            <div className="text-xs text-gray-600">{aiSettings.has_api_key ? 'Key is set' : 'Key is not set'}</div>
+            <div className="text-xs text-gray-600">
+              {aiSettings.has_api_key ? 'Key is set' : 'Key is not set'}
+            </div>
           </div>
         </div>
 
@@ -200,7 +202,10 @@ export default function AISettingsPage() {
               </button>
             </div>
           ))}
-          <button className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800" onClick={() => setStageMap((m) => [...m, { stage: '' }])}>
+          <button
+            className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-800"
+            onClick={() => setStageMap((m) => [...m, { stage: '' }])}
+          >
             Add stage
           </button>
         </div>
@@ -217,7 +222,9 @@ export default function AISettingsPage() {
                 min={0}
                 max={1}
                 value={cb.fail_rate_threshold ?? 0.5}
-                onChange={(e) => setCb((c) => ({ ...c, fail_rate_threshold: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setCb((c) => ({ ...c, fail_rate_threshold: Number(e.target.value) }))
+                }
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -253,4 +260,3 @@ export default function AISettingsPage() {
     </div>
   );
 }
-

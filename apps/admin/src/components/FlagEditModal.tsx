@@ -19,7 +19,9 @@ interface Props {
 export default function FlagEditModal({ flag, onClose, onSave }: Props) {
   const [description, setDescription] = useState('');
   const [value, setValue] = useState(false);
-  const [audience, setAudience] = useState<FeatureFlag['audience']>('all' as FeatureFlag['audience']);
+  const [audience, setAudience] = useState<FeatureFlag['audience']>(
+    'all' as FeatureFlag['audience'],
+  );
 
   useEffect(() => {
     if (flag) {

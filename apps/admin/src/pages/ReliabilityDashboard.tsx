@@ -17,16 +17,18 @@ export default function ReliabilityDashboard() {
     refetchInterval: 15000,
   });
 
-  const metrics = useMemo<ReliabilityMetrics>(() => (
-    data || {
-      rps: 0,
-      p95: 0,
-      errors_4xx: 0,
-      errors_5xx: 0,
-      no_route_percent: 0,
-      fallback_percent: 0,
-    }
-  ), [data]);
+  const metrics = useMemo<ReliabilityMetrics>(
+    () =>
+      data || {
+        rps: 0,
+        p95: 0,
+        errors_4xx: 0,
+        errors_5xx: 0,
+        no_route_percent: 0,
+        fallback_percent: 0,
+      },
+    [data],
+  );
 
   const { nodes, edges } = useMemo(() => {
     const nodes: GraphNode[] = [
@@ -57,9 +59,7 @@ export default function ReliabilityDashboard() {
         <span className="text-sm text-gray-600">Account: {accountId || '(none)'}</span>
       </div>
       {isLoading && <div className="text-sm text-gray-500">Loading…</div>}
-      {error && (
-        <div className="text-sm text-red-600">{(error as Error).message}</div>
-      )}
+      {error && <div className="text-sm text-red-600">{(error as Error).message}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <KpiCard title="RPS" value={metrics.rps.toFixed(2)} />
         <KpiCard title="p95 latency" value={`${metrics.p95.toFixed(2)} ms`} />

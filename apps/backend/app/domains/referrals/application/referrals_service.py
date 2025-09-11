@@ -14,7 +14,9 @@ class ReferralsService:
     def __init__(self, repo: IReferralsRepository) -> None:
         self._repo = repo
 
-    async def get_or_create_personal_code(self, db: AsyncSession, owner_user_id: UUID) -> ReferralCode:
+    async def get_or_create_personal_code(
+        self, db: AsyncSession, owner_user_id: UUID
+    ) -> ReferralCode:
         code = await self._repo.get_personal_code(owner_user_id)
         if code:
             return code
@@ -59,5 +61,3 @@ class ReferralsService:
         if not evt:
             return False
         return True
-
-

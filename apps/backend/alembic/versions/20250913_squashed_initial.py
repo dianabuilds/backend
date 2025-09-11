@@ -39,4 +39,3 @@ def upgrade() -> None:
 def downgrade() -> None:  # pragma: no cover
     # Destructive downgrade is not supported for the squashed baseline.
     raise NotImplementedError("downgrade not supported for squashed baseline")
-

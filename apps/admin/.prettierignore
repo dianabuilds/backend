@@ -1,0 +1,11 @@
+# Generated and report artifacts
+node_modules/
+dist/
+coverage/
+jscpd-report/
+jscpd-report-app/
+jscpd-report.json
+knip-report.json
+
+# Generated API clients
+src/openapi/

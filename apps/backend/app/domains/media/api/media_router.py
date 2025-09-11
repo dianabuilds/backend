@@ -25,6 +25,7 @@ async def require_profile_optional(
     """Profile-centric mode: no extra membership checks."""
     return None
 
+
 router = APIRouter(tags=["media"])
 
 

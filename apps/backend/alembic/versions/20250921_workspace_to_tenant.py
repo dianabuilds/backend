@@ -30,13 +30,13 @@ depends_on = None
 
 
 def _has_column(conn: sa.Connection, table: str, column: str, schema: str | None = None) -> bool:
-    '''Check column existence via information_schema to avoid reflection warnings.'''
-    schema = schema or conn.dialect.default_schema_name or 'public'
+    """Check column existence via information_schema to avoid reflection warnings."""
+    schema = schema or conn.dialect.default_schema_name or "public"
     sql = sa.text(
-        'select 1 from information_schema.columns '
-        'where table_schema = :schema and table_name = :table and column_name = :column limit 1'
+        "select 1 from information_schema.columns "
+        "where table_schema = :schema and table_name = :table and column_name = :column limit 1"
     )
-    res = conn.execute(sql, {'schema': schema, 'table': table, 'column': column}).first()
+    res = conn.execute(sql, {"schema": schema, "table": table, "column": column}).first()
     return res is not None
 
 
@@ -63,13 +63,13 @@ def upgrade() -> None:
         "audit_logs",
         "outbox",
     ):
-        _rename_column_if_exists(bind, table, 'workspace_id', 'tenant_id')
+        _rename_column_if_exists(bind, table, "workspace_id", "tenant_id")
 
     # 2) Rename default_workspace_id -> default_tenant_id on users
-    _rename_column_if_exists(bind, 'users', 'default_workspace_id', 'default_tenant_id')
+    _rename_column_if_exists(bind, "users", "default_workspace_id", "default_tenant_id")
 
     # 3) Drop legacy account_id on nodes if present (removed from schema)
-    _drop_column_if_exists(bind, 'nodes', 'account_id')
+    _drop_column_if_exists(bind, "nodes", "account_id")
 
 
 def downgrade() -> None:  # pragma: no cover
@@ -85,10 +85,10 @@ def downgrade() -> None:  # pragma: no cover
         "audit_logs",
         "outbox",
     ):
-        _rename_column_if_exists(bind, table, 'tenant_id', 'workspace_id')
+        _rename_column_if_exists(bind, table, "tenant_id", "workspace_id")
 
-    _rename_column_if_exists(bind, 'users', 'default_tenant_id', 'default_workspace_id')
+    _rename_column_if_exists(bind, "users", "default_tenant_id", "default_workspace_id")
 
     # Do NOT re-add nodes.account_id since original type/constraints may vary.
     # If a downgrade is required, add the column back manually as needed.
-    raise NotImplementedError('Automatic downgrade of account_id is not supported')
+    raise NotImplementedError("Automatic downgrade of account_id is not supported")

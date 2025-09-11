@@ -18,13 +18,20 @@ interface TraceFiltersProps {
   className?: string;
 }
 
-export function TraceFilters({ values, onChange, showType = false, className = '' }: TraceFiltersProps) {
+export function TraceFilters({
+  values,
+  onChange,
+  showType = false,
+  className = '',
+}: TraceFiltersProps) {
   const handle = (key: keyof TraceFilterValues) => (e: ChangeEvent<HTMLInputElement>) => {
     onChange({ [key]: e.target.value });
   };
 
   return (
-    <div className={`mb-3 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 ${className}`.trim()}>
+    <div
+      className={`mb-3 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 ${className}`.trim()}
+    >
       <input
         value={values.from}
         onChange={handle('from')}
@@ -80,4 +87,3 @@ export function TraceFilters({ values, onChange, showType = false, className = '
     </div>
   );
 }
-

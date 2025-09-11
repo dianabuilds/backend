@@ -191,6 +191,7 @@ class Node(Base):
     @property
     def tag_slugs(self) -> list[str]:
         return [t.slug for t in self.tags] if self.tags else []
+
     def __init__(self, **kwargs):  # type: ignore[override]
         # Tolerate legacy constructors that pass account_id/workspace_id
         acc = kwargs.pop("account_id", None)

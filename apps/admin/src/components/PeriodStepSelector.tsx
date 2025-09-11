@@ -1,4 +1,3 @@
-
 export interface PeriodStepSelectorProps {
   range: '1h' | '24h';
   step: 60 | 300;

@@ -1,4 +1,3 @@
-
 interface Props {
   onEdit?: () => void;
   onDelete?: () => void;
@@ -6,7 +5,12 @@ interface Props {
   deleteLabel?: string;
 }
 
-export default function EditDeleteActions({ onEdit, onDelete, editLabel = 'Edit', deleteLabel = 'Delete' }: Props) {
+export default function EditDeleteActions({
+  onEdit,
+  onDelete,
+  editLabel = 'Edit',
+  deleteLabel = 'Delete',
+}: Props) {
   return (
     <div className="inline-flex items-center">
       {onEdit ? (

@@ -48,4 +48,3 @@ export default function FlagsCell({ value, onToggle, disabledVisible }: FlagsCel
     </div>
   );
 }
-

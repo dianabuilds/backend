@@ -106,7 +106,7 @@ class ARRAY(TypeDecorator):
         import json
 
         # Р”Р»СЏ SQLite/С‚РµСЃС‚РѕРІ С…СЂР°РЅРёРј РєР°Рє JSON-СЃС‚СЂРѕРєСѓ, РґР»СЏ PostgreSQL вЂ” РѕС‚РґР°С‘Рј РєР°Рє РµСЃС‚СЊ
-        if dialect.name != "postgresql" :
+        if dialect.name != "postgresql":
             if value is not None and not isinstance(value, str):
                 return json.dumps(value)
         return value

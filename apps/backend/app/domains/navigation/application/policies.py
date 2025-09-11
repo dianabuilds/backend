@@ -54,9 +54,7 @@ class ManualPolicy(Policy):
         preview: PreviewContext | None = None,
     ) -> tuple[Node | None, TransitionTrace]:
         try:
-            candidates = await self.provider.get_transitions(
-                db, node, user, 0, preview=preview
-            )
+            candidates = await self.provider.get_transitions(db, node, user, 0, preview=preview)
         except TypeError:
             candidates = await self.provider.get_transitions(db, node, user, 0)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
@@ -86,9 +84,7 @@ class CompassPolicy(Policy):
         preview: PreviewContext | None = None,
     ) -> tuple[Node | None, TransitionTrace]:
         try:
-            candidates = await self.provider.get_transitions(
-                db, node, user, 0, preview=preview
-            )
+            candidates = await self.provider.get_transitions(db, node, user, 0, preview=preview)
         except TypeError:
             candidates = await self.provider.get_transitions(db, node, user, 0)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]
@@ -118,9 +114,7 @@ class EchoPolicy(Policy):
         preview: PreviewContext | None = None,
     ) -> tuple[Node | None, TransitionTrace]:
         try:
-            candidates = await self.provider.get_transitions(
-                db, node, user, 0, preview=preview
-            )
+            candidates = await self.provider.get_transitions(db, node, user, 0, preview=preview)
         except TypeError:
             candidates = await self.provider.get_transitions(db, node, user, 0)
         candidates = [n for n in candidates if await has_access_async(n, user, preview)]

@@ -86,7 +86,9 @@ class CodesQuery(BaseModel):
     offset: int = 0
 
 
-@admin_router.get("/codes", response_model=list[ReferralCodeAdminOut], summary="List referral codes")
+@admin_router.get(
+    "/codes", response_model=list[ReferralCodeAdminOut], summary="List referral codes"
+)
 async def list_codes_admin(
     owner_user_id: UUID | None = Query(default=None),
     active: bool | None = Query(default=None),
@@ -104,7 +106,11 @@ async def list_codes_admin(
     return [ReferralCodeAdminOut.model_validate(it) for it in items]
 
 
-@admin_router.post("/codes/{owner_user_id}/activate", response_model=ActivateCodeOut, summary="Activate personal code")
+@admin_router.post(
+    "/codes/{owner_user_id}/activate",
+    response_model=ActivateCodeOut,
+    summary="Activate personal code",
+)
 async def activate_code_admin(
     owner_user_id: UUID,
     body: ReasonIn | None = None,
@@ -119,16 +125,26 @@ async def activate_code_admin(
     # audit
     try:
         from app.domains.audit.application.audit_service import audit_log
-        await audit_log(db, actor_id=str(current.id), action="referral_code_activate", resource_type="referral_code",
-                        resource_id=str(code.id),
-                        after={"active": True, "code": code.code, "owner_user_id": str(owner_user_id)},
-                        reason=(body.reason if body else None))
+
+        await audit_log(
+            db,
+            actor_id=str(current.id),
+            action="referral_code_activate",
+            resource_type="referral_code",
+            resource_id=str(code.id),
+            after={"active": True, "code": code.code, "owner_user_id": str(owner_user_id)},
+            reason=(body.reason if body else None),
+        )
     except Exception:
         pass
     return ActivateCodeOut(code=code.code)
 
 
-@admin_router.post("/codes/{owner_user_id}/deactivate", response_model=DeactivateCodeOut, summary="Deactivate personal code")
+@admin_router.post(
+    "/codes/{owner_user_id}/deactivate",
+    response_model=DeactivateCodeOut,
+    summary="Deactivate personal code",
+)
 async def deactivate_code_admin(
     owner_user_id: UUID,
     body: ReasonIn | None = None,
@@ -143,16 +159,24 @@ async def deactivate_code_admin(
     # audit
     try:
         from app.domains.audit.application.audit_service import audit_log
-        await audit_log(db, actor_id=str(current.id), action="referral_code_deactivate", resource_type="referral_code",
-                        resource_id=str(code.id),
-                        after={"active": False, "code": code.code, "owner_user_id": str(owner_user_id)},
-                        reason=(body.reason if body else None))
+
+        await audit_log(
+            db,
+            actor_id=str(current.id),
+            action="referral_code_deactivate",
+            resource_type="referral_code",
+            resource_id=str(code.id),
+            after={"active": False, "code": code.code, "owner_user_id": str(owner_user_id)},
+            reason=(body.reason if body else None),
+        )
     except Exception:
         pass
     return DeactivateCodeOut()
 
 
-@admin_router.get("/events", response_model=list[ReferralEventAdminOut], summary="List referral events")
+@admin_router.get(
+    "/events", response_model=list[ReferralEventAdminOut], summary="List referral events"
+)
 async def list_events_admin(
     referrer_user_id: UUID | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
@@ -207,20 +231,28 @@ async def export_events_admin(
     def _stream() -> str:
         buf = StringIO()
         writer = csv.writer(buf)
-        writer.writerow(["id", "code", "referrer_user_id", "referee_user_id", "event_type", "occurred_at"])
+        writer.writerow(
+            ["id", "code", "referrer_user_id", "referee_user_id", "event_type", "occurred_at"]
+        )
         for it in items:
-            writer.writerow([
-                str(it.id),
-                it.code or "",
-                str(it.referrer_user_id) if it.referrer_user_id else "",
-                str(it.referee_user_id),
-                it.event_type,
-                it.occurred_at.isoformat(),
-            ])
+            writer.writerow(
+                [
+                    str(it.id),
+                    it.code or "",
+                    str(it.referrer_user_id) if it.referrer_user_id else "",
+                    str(it.referee_user_id),
+                    it.event_type,
+                    it.occurred_at.isoformat(),
+                ]
+            )
         buf.seek(0)
         return buf.getvalue()
 
-    return StreamingResponse(iter([_stream()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=referral_events.csv"})
+    return StreamingResponse(
+        iter([_stream()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=referral_events.csv"},
+    )
 
 
 router.include_router(user_router)

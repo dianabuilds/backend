@@ -69,7 +69,6 @@ export function extractUrlFromUploadResponse(data: unknown, headers?: Headers): 
     if ((u.startsWith('"') && u.endsWith('"')) || (u.startsWith("'") && u.endsWith("'"))) {
       u = u.slice(1, -1).trim();
     }
-
   } catch {
     // noop
   }

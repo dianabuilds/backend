@@ -14,7 +14,11 @@ interface Props {
   emptyText?: string;
 }
 
-export default function Recent429Table({ items, className = '', emptyText = 'No recent 429 errors.' }: Props) {
+export default function Recent429Table({
+  items,
+  className = '',
+  emptyText = 'No recent 429 errors.',
+}: Props) {
   if (!items?.length) {
     return <p className="text-sm text-gray-500">{emptyText}</p>;
   }
@@ -41,5 +45,3 @@ export default function Recent429Table({ items, className = '', emptyText = 'No 
     </table>
   );
 }
-
-

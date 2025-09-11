@@ -17,4 +17,3 @@ router = APIRouter(
 # Register the reused sub-routers under the new prefix.
 router.include_router(id_router)
 router.include_router(type_router)
-

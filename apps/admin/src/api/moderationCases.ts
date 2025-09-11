@@ -50,10 +50,7 @@ export async function listCases(params: Record<string, unknown> = {}): Promise<P
 }
 
 export async function createCase(data: CaseCreateIn): Promise<string> {
-  const res = await api.post<CaseCreateIn, { id: string }>(
-    '/admin/moderation/cases',
-    data,
-  );
+  const res = await api.post<CaseCreateIn, { id: string }>('/admin/moderation/cases', data);
   return res.data!.id;
 }
 

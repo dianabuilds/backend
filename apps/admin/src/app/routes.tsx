@@ -1,8 +1,9 @@
-import { lazy, Suspense, useEffect } from 'react';
+﻿import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, type RouteObject, useLocation, useRoutes } from 'react-router-dom';
 
 import ProtectedRoute from '../components/ProtectedRoute';
 import { sendRUM } from '../perf/rum';
+import { lazyWithRetry } from '../shared/utils/lazyWithRetry';
 import { ADMIN_DEV_TOOLS } from '../utils/env';
 import AdminLayout from './layouts/AdminLayout';
 import BlankLayout from './layouts/BlankLayout';
@@ -11,7 +12,7 @@ import BlankLayout from './layouts/BlankLayout';
 const Login = lazy(() => import('../pages/Login'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 const Dashboard = lazy(() => import('../pages/Dashboard'));
-const Users = lazy(() => import('../pages/Users'));
+const Users = lazyWithRetry(() => import('../pages/Users'));
 const Nodes = lazy(() => import('../pages/Nodes'));
 const Tags = lazy(() => import('../pages/Tags'));
 const TagMerge = lazy(() => import('../pages/TagMerge'));
@@ -22,7 +23,7 @@ const NavigationProblems = lazy(() => import('../pages/NavigationProblems'));
 const Simulation = lazy(() => import('../pages/Simulation'));
 const Echo = lazy(() => import('../pages/Echo'));
 const Traces = lazy(() => import('../pages/Traces'));
-const Notifications = lazy(() => import('../pages/Notifications'));
+const Notifications = lazyWithRetry(() => import('../pages/Notifications'));
 const NotificationCampaignEditor = lazy(() => import('../pages/NotificationCampaignEditor'));
 const ContentDashboard = lazy(() => import('../pages/ContentDashboard'));
 const ContentAll = lazy(() => import('../pages/ContentAll'));
@@ -38,7 +39,8 @@ const Worlds = lazy(() => import('../pages/Worlds'));
 const AISettings = lazy(() => import('../pages/AISettings'));
 const AISystemSettings = lazy(() => import('../pages/AISystemSettings'));
 const Achievements = lazy(() => import('../pages/Achievements'));
-const Profile = lazy(() => import('../pages/Profile'));
+
+const ProfileV2 = lazy(() => import('../pages/ProfileV2'));
 const Quests = lazy(() => import('../pages/Quests'));
 const QuestEditor = lazy(() => import('../pages/QuestEditor'));
 const QuestVersionEditor = lazy(() => import('../pages/QuestVersionEditor'));
@@ -134,7 +136,8 @@ const protectedChildren: RouteObject[] = [
   { path: 'ai/settings', element: <AISettings /> },
   { path: 'ai/system', element: <AISystemSettings /> },
   { path: 'achievements', element: <Achievements /> },
-  { path: 'profile', element: <Profile /> },
+  { path: 'profile', element: <ProfileV2 /> },
+
   { path: 'quests', element: <Quests /> },
   { path: 'quests/:id', element: <QuestEditor /> },
   { path: 'quests/:id/versions/:versionId', element: <QuestVersionEditor /> },
@@ -190,7 +193,7 @@ export function AppRoutes() {
   const element = useRoutes(routes);
   useRouteTelemetry();
   return (
-    <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading…</div>}>
+    <Suspense fallback={<div className="p-4 text-sm text-gray-500">LoadingвЂ¦</div>}>
       {element}
     </Suspense>
   );

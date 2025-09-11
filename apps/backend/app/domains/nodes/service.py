@@ -47,9 +47,7 @@ async def publish_content(
 ) -> None:
     """Publish node and emit domain event."""
     bus = get_event_bus()
-    await bus.publish(
-        NodePublished(node_id=node_id, slug=slug, author_id=author_id)
-    )
+    await bus.publish(NodePublished(node_id=node_id, slug=slug, author_id=author_id))
     if notifier:
         try:
             await notifier.notify(
@@ -71,9 +69,7 @@ async def update_content(
 ) -> None:
     """Update node and emit domain event."""
     bus = get_event_bus()
-    await bus.publish(
-        NodeUpdated(node_id=node_id, slug=slug, author_id=author_id)
-    )
+    await bus.publish(NodeUpdated(node_id=node_id, slug=slug, author_id=author_id))
 
 
 async def archive_content(
@@ -83,9 +79,7 @@ async def archive_content(
 ) -> None:
     """Archive node and emit domain event."""
     bus = get_event_bus()
-    await bus.publish(
-        NodeArchived(node_id=node_id, slug=slug, author_id=author_id)
-    )
+    await bus.publish(NodeArchived(node_id=node_id, slug=slug, author_id=author_id))
 
 
 class NodePatchService:

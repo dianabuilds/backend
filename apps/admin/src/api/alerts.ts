@@ -42,7 +42,9 @@ export async function getAlerts(): Promise<AlertItem[]> {
   if (Array.isArray(raw)) list = raw as unknown[];
   else if (raw && typeof raw === 'object') {
     const obj = raw as Record<string, unknown> & { alerts?: unknown[]; data?: unknown[] };
-    list = (Array.isArray(obj.alerts) ? obj.alerts : Array.isArray(obj.data) ? obj.data : []) as unknown[];
+    list = (
+      Array.isArray(obj.alerts) ? obj.alerts : Array.isArray(obj.data) ? obj.data : []
+    ) as unknown[];
   }
   return (list as AlertLike[]).map((a, i) => ({
     id: a.id || a.fingerprint || a.labels?.alertname || String(i),
@@ -58,9 +60,11 @@ export async function getAlerts(): Promise<AlertItem[]> {
       null,
     type: a.type || a.labels?.type || a.labels?.alertname,
     severity: a.severity || a.labels?.severity || a.labels?.level,
-    status: (a.status === 'resolved' ? 'resolved' : (a.endsAt || a.ends_at ? 'resolved' : 'active')) as
-      | 'active'
-      | 'resolved',
+    status: (a.status === 'resolved'
+      ? 'resolved'
+      : a.endsAt || a.ends_at
+        ? 'resolved'
+        : 'active') as 'active' | 'resolved',
   }));
 }
 

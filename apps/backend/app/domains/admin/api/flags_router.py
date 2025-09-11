@@ -82,9 +82,16 @@ async def update_flag(
         "audience": updated.audience,
     }
 
-    await audit_log(db, actor_id=str(getattr(current, "id", "")), action="feature_flag_update",
-                    resource_type="feature_flag", resource_id=key, before=before_dump, after=after_dump,
-                    request=request)
+    await audit_log(
+        db,
+        actor_id=str(getattr(current, "id", "")),
+        action="feature_flag_update",
+        resource_type="feature_flag",
+        resource_id=key,
+        before=before_dump,
+        after=after_dump,
+        request=request,
+    )
 
     invalidate_cache()
     invalidate_menu_cache()

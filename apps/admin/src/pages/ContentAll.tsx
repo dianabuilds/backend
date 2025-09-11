@@ -27,7 +27,10 @@ export default function ContentAll() {
       });
       type RawNode = Partial<NodeItem> & { id?: number; nodeId?: number; status?: string };
       const arr = Array.isArray(rows) ? (rows as unknown as RawNode[]) : [];
-      return arr.map((n) => ({ id: Number(n.nodeId ?? n.id ?? 0), status: String(n.status ?? '') }));
+      return arr.map((n) => ({
+        id: Number(n.nodeId ?? n.id ?? 0),
+        status: String(n.status ?? ''),
+      }));
     },
     enabled: true,
   });
@@ -52,7 +55,7 @@ export default function ContentAll() {
       <ul className="space-y-1">
         {data?.map((item) => (
           <li key={String(item.id)} className="text-sm">
-            {item.status}  {item.id}
+            {item.status} {item.id}
           </li>
         ))}
       </ul>

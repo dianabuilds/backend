@@ -18,7 +18,7 @@ extend-exclude = ["apps/admin"]
 select = ["E", "F", "W", "B", "UP", "I"]
 # Project style: allow FastAPI Body(...) defaults, long lines in docs/comments,
 # and postpone-import patterns where needed.
-ignore = ["D", "E501", "B008", "UP045", "E402"]
+ignore = ["D", "E501", "B008", "E402"]
 
 [tool.ruff.lint.per-file-ignores]
 "apps/backend/alembic/versions/*.py" = ["ALL"]

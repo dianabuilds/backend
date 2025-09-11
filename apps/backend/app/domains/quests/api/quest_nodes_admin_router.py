@@ -62,9 +62,7 @@ async def list_quest_nodes(
     if ws is None:
         raise HTTPException(status_code=400, detail="tenant_id is required")
     if q:
-        items = await svc.search(
-            ws, node_type, q, page=page, per_page=per_page
-        )
+        items = await svc.search(ws, node_type, q, page=page, per_page=per_page)
     else:
         items = await svc.list(ws, node_type, page=page, per_page=per_page)
     return {"items": [_serialize(i) for i in items]}

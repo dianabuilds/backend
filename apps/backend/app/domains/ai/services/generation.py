@@ -26,12 +26,12 @@ from app.domains.ai.infrastructure.models.generation_models import (
 
 
 async def _merge_generation_settings(
-        db: AsyncSession,
-        *,
-        params: dict[str, Any],
-        provider: str | None,
-        model: str | None,
-        user_id: UUID | None = None,
+    db: AsyncSession,
+    *,
+    params: dict[str, Any],
+    provider: str | None,
+    model: str | None,
+    user_id: UUID | None = None,
 ) -> tuple[dict[str, Any], str | None, str | None, dict[str, dict[str, Any]], list[str]]:
     """Merge explicit params, user overrides and global AI settings.
 
@@ -41,7 +41,6 @@ async def _merge_generation_settings(
 
     from app.domains.ai.infrastructure.models.ai_settings import AISettings
     from app.domains.ai.infrastructure.models.user_pref_models import UserAIPref
-
 
     trace: dict[str, dict[str, Any]] = {}
     orig_provider, orig_model = provider, model
@@ -98,15 +97,15 @@ logger = logging.getLogger(__name__)
 
 
 async def enqueue_generation_job(
-        db: AsyncSession,
-        *,
-        created_by: UUID | None,
-        params: dict[str, Any],
-        provider: str | None = None,
-        model: str | None = None,
-        workspace_id: int | None = None,
-        reuse: bool = True,
-        preview: PreviewContext | None = None,
+    db: AsyncSession,
+    *,
+    created_by: UUID | None,
+    params: dict[str, Any],
+    provider: str | None = None,
+    model: str | None = None,
+    workspace_id: int | None = None,
+    reuse: bool = True,
+    preview: PreviewContext | None = None,
 ) -> GenerationJob:
     """Создать задание на генерацию ИИ‑квеста и поставить в очередь.
     Если reuse=True и уже есть завершённая задача с идентичными параметрами — создаём

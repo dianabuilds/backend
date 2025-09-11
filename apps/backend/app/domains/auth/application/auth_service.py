@@ -86,7 +86,9 @@ class AuthService:
                 )
 
                 svc = ReferralsService(ReferralsRepository(db))
-                await svc.process_signup_referral(db, referral_code=payload.referral_code, referee_user_id=user.id)
+                await svc.process_signup_referral(
+                    db, referral_code=payload.referral_code, referee_user_id=user.id
+                )
         except Exception:
             # do not block signup on referral errors
             pass

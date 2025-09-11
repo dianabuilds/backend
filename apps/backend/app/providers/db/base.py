@@ -28,6 +28,7 @@ class Base(DeclarativeBase):
 _settings = get_settings()
 if _settings.env_mode == EnvMode.test:
     from app.domains.users.infrastructure.models.user import User  # noqa
+
     # Minimal set of models needed for unit tests that create metadata
     # including quests and content items.
     from app.domains.nodes.infrastructure.models.node import Node  # noqa
@@ -41,6 +42,7 @@ else:
     from app.domains.tags.infrastructure.models.tag_models import TagAlias  # noqa
     import app.domains.tags.models  # noqa: F401
     from app.domains.users.infrastructure.models.user import User  # noqa
+
     # AI domain models (v1 minimal + v2 system tables)
     from app.domains.ai.infrastructure.models.system_models import (  # noqa: F401
         AISystemModel,

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+﻿import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 
@@ -94,7 +94,7 @@ export default defineConfig(({ mode, command }) => {
     bypass: htmlBypass,
   };
 
-  // В dev base="/" (модули и /@vite/client отдаются с корня), в build — "/admin/"
+  // Р’ dev base="/" (РјРѕРґСѓР»Рё Рё /@vite/client РѕС‚РґР°СЋС‚СЃСЏ СЃ РєРѕСЂРЅСЏ), РІ build вЂ” "/admin/"
   const base = command === 'build' ? '/admin/' : '/';
 
   // Dev-only middleware: serve index.html for any HTML navigation (/, /admin, /admin/*, etc.)
@@ -139,6 +139,9 @@ export default defineConfig(({ mode, command }) => {
     base,
     // Ensure our SPA fallback middleware is registered first in dev
     plugins: [...(command === 'serve' ? [spaFallback()] : []), react()],
+    optimizeDeps: {
+      include: ['@tanstack/react-virtual', '@radix-ui/react-tabs'],
+    },
     server: {
       port: 5173,
       strictPort: false,

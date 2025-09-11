@@ -178,7 +178,9 @@ def _serialize(item: NodeItem, node: Node | None = None) -> dict:
     return payload
 
 
-async def _resolve_content_item_id(db: AsyncSession, *, account_id: UUID, node_or_item_id: int) -> NodeItem:
+async def _resolve_content_item_id(
+    db: AsyncSession, *, account_id: UUID, node_or_item_id: int
+) -> NodeItem:
     # 1) Direct NodeItem by id (allow global items)
     item = await db.get(NodeItem, node_or_item_id)
     if item is not None:
@@ -197,7 +199,9 @@ async def _resolve_content_item_id(db: AsyncSession, *, account_id: UUID, node_o
         raise HTTPException(status_code=404, detail="Node not found")
 
     # Resolve by Node.id and tenant match
-    res = await db.execute(select(NodeItem).where(NodeItem.node_id == node.id).order_by(NodeItem.updated_at.desc()))
+    res = await db.execute(
+        select(NodeItem).where(NodeItem.node_id == node.id).order_by(NodeItem.updated_at.desc())
+    )
     item = res.scalar_one_or_none()
     if item is None:
         # Don't backfill for alias/global routes (indicated by UUID(int=0))
@@ -504,5 +508,3 @@ async def publish_node_patch(
 
 # Register sub-routers in the desired order.
 router.include_router(id_router)
-
-

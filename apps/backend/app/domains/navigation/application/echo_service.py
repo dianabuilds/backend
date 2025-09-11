@@ -15,14 +15,14 @@ from app.domains.users.infrastructure.models.user import User
 
 class EchoService:
     async def record_echo_trace(
-            self,
-            db: AsyncSession,
-            from_node: Node,
-            to_node: Node,
-            user: User | None,
-            *,
-            source: str | None = None,
-            channel: str | None = None,
+        self,
+        db: AsyncSession,
+        from_node: Node,
+        to_node: Node,
+        user: User | None,
+        *,
+        source: str | None = None,
+        channel: str | None = None,
     ) -> None:
         trace = EchoTrace(
             from_node_id=from_node.id,

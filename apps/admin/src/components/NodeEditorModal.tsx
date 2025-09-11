@@ -1,4 +1,3 @@
- 
 // @ts-nocheck
 import { memo, useEffect, useMemo } from 'react';
 
@@ -170,4 +169,3 @@ function NodeEditorModalImpl({ open, node, onChange, onClose, onCommit }: Props)
 
 const NodeEditorModal = memo(NodeEditorModalImpl);
 export default NodeEditorModal;
-

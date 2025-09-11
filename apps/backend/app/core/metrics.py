@@ -300,4 +300,3 @@ class MetricsStorage:
 
 
 metrics_storage = MetricsStorage()
-

@@ -7,7 +7,11 @@ import { NotificationType } from '../../openapi';
 import { Modal } from '../../shared/ui';
 import { useToast } from '../ToastProvider';
 import { validateNotification } from './NotificationForm.validation';
-import { type NotificationErrors, NotificationFormFields, type NotificationFormValues } from './NotificationFormCore';
+import {
+  type NotificationErrors,
+  NotificationFormFields,
+  type NotificationFormValues,
+} from './NotificationFormCore';
 
 interface Props {
   isOpen: boolean;
@@ -19,7 +23,11 @@ export default function SendToUserModal({ isOpen, onClose }: Props) {
   const { accountId } = useAccount();
   const { addToast } = useToast();
   const [userId, setUserId] = useState('');
-  const [values, setValues] = useState<NotificationFormValues>({ title: '', message: '', type: 'system' });
+  const [values, setValues] = useState<NotificationFormValues>({
+    title: '',
+    message: '',
+    type: 'system',
+  });
   const [errors, setErrors] = useState<NotificationErrors>({ title: null, message: null });
 
   useEffect(() => {

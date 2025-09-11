@@ -18,15 +18,15 @@ export async function applyMerge(
   to_id: string,
   reason?: string,
 ): Promise<MergeReport> {
-  const res = await api.post<{ from_id: string; to_id: string; dryRun: boolean; reason?: string }, MergeReport>(
-    '/admin/tags/merge',
-    {
-      from_id,
-      to_id,
-      dryRun: false,
-      reason,
-    },
-  );
+  const res = await api.post<
+    { from_id: string; to_id: string; dryRun: boolean; reason?: string },
+    MergeReport
+  >('/admin/tags/merge', {
+    from_id,
+    to_id,
+    dryRun: false,
+    reason,
+  });
   return res.data!;
 }
 
@@ -67,7 +67,10 @@ export async function listAdminTags(params: {
 }
 
 export async function createAdminTag(slug: string, name: string): Promise<TagListItem> {
-  const res = await api.post<{ slug: string; name: string }, TagListItem>('/admin/tags', { slug, name });
+  const res = await api.post<{ slug: string; name: string }, TagListItem>('/admin/tags', {
+    slug,
+    name,
+  });
   return res.data!;
 }
 

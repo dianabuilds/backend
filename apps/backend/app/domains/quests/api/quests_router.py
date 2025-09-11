@@ -140,9 +140,7 @@ async def create_quest(
 
     from app.domains.quests.authoring import create_quest as create_quest_domain
 
-    quest = await create_quest_domain(
-        db, payload=payload, author=current_user, workspace_id=ws
-    )
+    quest = await create_quest_domain(db, payload=payload, author=current_user, workspace_id=ws)
     await navcache.invalidate_compass_by_user(current_user.id)
     return quest
 
@@ -210,9 +208,7 @@ async def publish_quest(
     from app.domains.quests.versions import ValidationFailed, release_latest
 
     try:
-        quest = await release_latest(
-            db, quest_id=quest_id, workspace_id=ws, actor=current_user
-        )
+        quest = await release_latest(db, quest_id=quest_id, workspace_id=ws, actor=current_user)
     except ValidationFailed as err:
         raise HTTPException(
             status_code=400,
@@ -237,9 +233,7 @@ async def delete_quest(
     if ws is None:
         raise HTTPException(status_code=400, detail="tenant_id is required")
     try:
-        await delete_quest_soft(
-            db, quest_id=quest_id, workspace_id=ws, actor=current_user
-        )
+        await delete_quest_soft(db, quest_id=quest_id, workspace_id=ws, actor=current_user)
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Quest not found") from err
     except PermissionError as err:

@@ -9,7 +9,10 @@ from app.core.preview import PreviewContext
 def user_limit(*_args, **_kwargs):
     def _decorator(func):
         return func
+
     return _decorator
+
+
 from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.quests.infrastructure.models.navigation_cache_models import (

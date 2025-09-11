@@ -21,7 +21,13 @@ type FieldsProps = {
   multilineMessage?: boolean;
 };
 
-export function NotificationFormFields({ values, onChange, errors, disabled, multilineMessage }: FieldsProps) {
+export function NotificationFormFields({
+  values,
+  onChange,
+  errors,
+  disabled,
+  multilineMessage,
+}: FieldsProps) {
   const baseId = useId();
   const titleId = `${baseId}-title`;
   const messageId = `${baseId}-message`;

@@ -45,12 +45,9 @@ async def test_cache_hit_miss_with_account_id() -> None:
     await svc.set_navigation(user, slug, "auto", payload, account_id=account_a)
 
     for _ in range(20):
-        assert (
-            await svc.get_navigation(user, slug, "auto", account_id=account_a) == payload
-        )
+        assert await svc.get_navigation(user, slug, "auto", account_id=account_a) == payload
 
     assert await svc.get_navigation(user, slug, "auto", account_id=account_b) is None
-
 
 
 @pytest.mark.asyncio

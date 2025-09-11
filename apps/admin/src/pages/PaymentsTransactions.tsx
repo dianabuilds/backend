@@ -57,9 +57,12 @@ export default function PaymentsTransactions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<CursorResp>(`/admin/payments/transactions_cursor?${buildQuery(null)}`, {
-        retry: 1,
-      });
+      const res = await api.get<CursorResp>(
+        `/admin/payments/transactions_cursor?${buildQuery(null)}`,
+        {
+          retry: 1,
+        },
+      );
       const data: CursorResp = res.data || { items: [], next_cursor: null };
       setRows(Array.isArray(data.items) ? data.items : []);
       setNext((data as unknown as { next_cursor?: string | null }).next_cursor || null);
@@ -77,9 +80,12 @@ export default function PaymentsTransactions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<CursorResp>(`/admin/payments/transactions_cursor?${buildQuery(next)}`, {
-        retry: 1,
-      });
+      const res = await api.get<CursorResp>(
+        `/admin/payments/transactions_cursor?${buildQuery(next)}`,
+        {
+          retry: 1,
+        },
+      );
       const data: CursorResp = res.data || { items: [], next_cursor: null };
       const newItems = Array.isArray(data.items) ? data.items : [];
       setRows((prev) => [...prev, ...newItems]);
@@ -154,7 +160,15 @@ export default function PaymentsTransactions() {
                 </span>
               ),
             },
-            { key: 'amount', title: 'Amount', render: (t) => (<span>{(t.gross_cents / 100).toFixed(2)} {t.currency || 'USD'}</span>) },
+            {
+              key: 'amount',
+              title: 'Amount',
+              render: (t) => (
+                <span>
+                  {(t.gross_cents / 100).toFixed(2)} {t.currency || 'USD'}
+                </span>
+              ),
+            },
             { key: 'fee_cents', title: 'Fee', render: (t) => (t.fee_cents / 100).toFixed(2) },
             { key: 'net_cents', title: 'Net', render: (t) => (t.net_cents / 100).toFixed(2) },
             { key: 'meta', title: 'Meta', render: (t) => <JsonCard data={t.meta ?? {}} /> },
@@ -180,4 +194,3 @@ export default function PaymentsTransactions() {
     </div>
   );
 }
-

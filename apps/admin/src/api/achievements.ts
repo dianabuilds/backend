@@ -47,10 +47,10 @@ export async function grantAchievement(
   user_id: string,
   reason?: string,
 ): Promise<void> {
-  await api.post<{ user_id: string; reason?: string }, unknown>(
-    `/admin/achievements/${id}/grant`,
-    { user_id, reason },
-  );
+  await api.post<{ user_id: string; reason?: string }, unknown>(`/admin/achievements/${id}/grant`, {
+    user_id,
+    reason,
+  });
 }
 
 export async function revokeAchievement(

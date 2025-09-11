@@ -190,7 +190,9 @@ class NodeService:
     async def create_item_for_node(self, node: Node) -> NodeItem:
         """Backfill a ``NodeItem`` for an existing ``Node`` record."""
 
-        raise ValueError("create_item_for_node is not supported without accounts; use explicit content creation flow")
+        raise ValueError(
+            "create_item_for_node is not supported without accounts; use explicit content creation flow"
+        )
 
     async def create(self, *, actor_id: UUID) -> NodeItem:
         # В некоторых установках колонка content_items.node_id имеет NOT NULL.
@@ -239,7 +241,9 @@ class NodeService:
     async def search_personal(self, q: str, *, page: int = 1, per_page: int = 10) -> list[NodeItem]:
         return await self.search(q, page=page, per_page=per_page)
 
-    async def update_personal(self, node_id: int, data: dict[str, Any], *, actor_id: UUID) -> NodeItem:
+    async def update_personal(
+        self, node_id: int, data: dict[str, Any], *, actor_id: UUID
+    ) -> NodeItem:
         return await self.update(node_id, data, actor_id=actor_id)
 
     async def publish_personal(
@@ -250,7 +254,9 @@ class NodeService:
         access: Literal["everyone", "premium_only", "early_access"] = "everyone",
         scheduled_at: datetime | None = None,
     ) -> NodeItem:
-        return await self.publish(node_id, actor_id=actor_id, access=access, scheduled_at=scheduled_at)
+        return await self.publish(
+            node_id, actor_id=actor_id, access=access, scheduled_at=scheduled_at
+        )
 
     async def update(
         self,
@@ -479,4 +485,3 @@ class NodeService:
 
         await self._db.commit()
         return item
-

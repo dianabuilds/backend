@@ -15,9 +15,8 @@ export function validateNotification(values: Pick<NotificationFormValues, 'title
   return {
     valid: res.success,
     errors: {
-      title: res.success ? null : res.error.formErrors.fieldErrors.title?.[0] ?? null,
-      message: res.success ? null : res.error.formErrors.fieldErrors.message?.[0] ?? null,
+      title: res.success ? null : (res.error.formErrors.fieldErrors.title?.[0] ?? null),
+      message: res.success ? null : (res.error.formErrors.fieldErrors.message?.[0] ?? null),
     },
   };
 }
-

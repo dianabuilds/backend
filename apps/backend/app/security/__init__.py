@@ -200,6 +200,7 @@ async def require_ws_guest(*, scope_id=None, user, db):  # type: ignore[no-untyp
         raise HTTPException(status_code=403, detail="Forbidden")  # type: ignore[arg-type]
     return SimpleNamespace(role="guest")  # type: ignore[name-defined]
 
+
 ADMIN_AUTH_RESPONSES = {
     401: {
         "description": "Unauthorized",

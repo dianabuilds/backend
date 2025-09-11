@@ -73,9 +73,8 @@ export async function publishQuest(
 }
 
 export async function autofixQuest(questId: string, actions: string[]) {
-  const res = await api.post<unknown>(
-    `/admin/quests/${encodeURIComponent(questId)}/autofix`,
-    { actions },
-  );
+  const res = await api.post<unknown>(`/admin/quests/${encodeURIComponent(questId)}/autofix`, {
+    actions,
+  });
   return res.data;
 }

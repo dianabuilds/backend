@@ -24,7 +24,11 @@ type Plan = {
 
 export default function PremiumPlans() {
   const qc = useQueryClient();
-  const { data = [], isLoading, error } = useQuery({
+  const {
+    data = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['premium', 'plans'],
     queryFn: async () => (await api.get<Plan[]>('/admin/premium/plans')).data || [],
     staleTime: 10_000,
@@ -241,12 +245,7 @@ export default function PremiumPlans() {
             },
           ];
           return (
-            <DataTable
-              columns={columns}
-              rows={data}
-              rowKey={(r) => r.id}
-              emptyText="Нет тарифов"
-            />
+            <DataTable columns={columns} rows={data} rowKey={(r) => r.id} emptyText="Нет тарифов" />
           );
         })()}
       </ListSection>

@@ -27,9 +27,7 @@ describe('RateLimitsTab', () => {
       }
       throw new Error('unexpected url ' + url);
     });
-    const patch = vi
-      .spyOn(api, 'patch')
-      .mockResolvedValue({} as unknown as ApiResponse<unknown>);
+    const patch = vi.spyOn(api, 'patch').mockResolvedValue({} as unknown as ApiResponse<unknown>);
 
     render(<RateLimitsTab />);
 

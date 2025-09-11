@@ -24,9 +24,7 @@ class TagDAO:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def list(
-        db: AsyncSession, *, q: str | None = None
-    ) -> builtins.list[Tag]:
+    async def list(db: AsyncSession, *, q: str | None = None) -> builtins.list[Tag]:
         stmt = select(Tag)
         if q:
             pattern = f"%{q}%"
@@ -55,18 +53,14 @@ class TagDAO:
 
 class ContentTagDAO:
     @staticmethod
-    async def attach(
-        db: AsyncSession, *, content_id: UUID, tag_id: UUID
-    ) -> ContentTag:
+    async def attach(db: AsyncSession, *, content_id: UUID, tag_id: UUID) -> ContentTag:
         item = ContentTag(content_id=content_id, tag_id=tag_id)
         db.add(item)
         await db.flush()
         return item
 
     @staticmethod
-    async def detach(
-        db: AsyncSession, *, content_id: UUID, tag_id: UUID
-    ) -> None:
+    async def detach(db: AsyncSession, *, content_id: UUID, tag_id: UUID) -> None:
         stmt = delete(ContentTag).where(
             ContentTag.content_id == content_id,
             ContentTag.tag_id == tag_id,

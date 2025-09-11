@@ -16,9 +16,7 @@ declare global {
   }
 }
 
-
 initPreviewTokenFromUrl();
-
 
 window.alert = alertDialog;
 

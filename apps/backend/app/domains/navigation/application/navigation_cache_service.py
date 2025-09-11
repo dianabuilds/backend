@@ -34,6 +34,7 @@ def _idx_node_navm(slug: str, account_id: str | None = None) -> str:
     # account_id is ignored; indexing by node only
     return cache_key("node", slug, "navm")
 
+
 def _idx_user_nav(uid: str) -> str:
     return cache_key("user", uid, "nav")
 
@@ -128,7 +129,6 @@ class NavigationCacheService:
         await self._del_set_key(_idx_node_navm(node_slug))
         if count:
             cache_invalidate("nav", reason="by_node", key=node_slug)
-
 
     async def invalidate_navigation_by_user(self, user_id: UUID | str) -> None:
         uid = str(user_id)
@@ -239,7 +239,9 @@ class NavigationCacheService:
         if keys:
             cache_invalidate("comp", reason="by_user", key=uid)
 
-    async def invalidate_compass_by_node(self, account_id: UUID | str | int, node_slug: str) -> None:
+    async def invalidate_compass_by_node(
+        self, account_id: UUID | str | int, node_slug: str
+    ) -> None:
         # account_id ignored; invalidate by node only
         idx = _idx_node_comp(node_slug)
 
@@ -249,7 +251,6 @@ class NavigationCacheService:
         await self._del_set_key(idx)
         if keys:
             cache_invalidate("comp", reason="by_node", key=f"{node_slug}")
-
 
     async def invalidate_compass_all(self) -> None:
         pattern = f"{settings.cache.key_version}:compass*"

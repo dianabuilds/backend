@@ -171,9 +171,15 @@ async def grant_achievement(
     try:
         from app.domains.audit.application.audit_service import audit_log
 
-        await audit_log(db, actor_id=str(current.id), action="achievement_grant", resource_type="achievement",
-                        resource_id=str(achievement_id), after={"user_id": str(body.user_id), "granted": granted},
-                        reason=body.reason)
+        await audit_log(
+            db,
+            actor_id=str(current.id),
+            action="achievement_grant",
+            resource_type="achievement",
+            resource_id=str(achievement_id),
+            after={"user_id": str(body.user_id), "granted": granted},
+            reason=body.reason,
+        )
     except Exception:
         pass
     return {"granted": granted}
@@ -195,9 +201,15 @@ async def revoke_achievement(
     try:
         from app.domains.audit.application.audit_service import audit_log
 
-        await audit_log(db, actor_id=str(current.id), action="achievement_revoke", resource_type="achievement",
-                        resource_id=str(achievement_id), after={"user_id": str(body.user_id), "revoked": revoked},
-                        reason=body.reason)
+        await audit_log(
+            db,
+            actor_id=str(current.id),
+            action="achievement_revoke",
+            resource_type="achievement",
+            resource_id=str(achievement_id),
+            after={"user_id": str(body.user_id), "revoked": revoked},
+            reason=body.reason,
+        )
     except Exception:
         pass
     return {"revoked": revoked}
@@ -205,4 +217,3 @@ async def revoke_achievement(
 
 router.include_router(user_router)
 router.include_router(admin_router)
-
