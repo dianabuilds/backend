@@ -1,0 +1,18 @@
+version: 1
+task: "Обновить профиль пользователя и опубликовать событие"
+stages:
+  - id: patch_profile
+    call: http.patch
+    input:
+      path: /profile/{user_id}
+      body: { username: test_user }
+    expect:
+      status: 200
+      body.username: test_user
+  - id: event_emitted
+    call: db.query
+    input:
+      sql: "select topic from outbox order by created_at desc limit 1"
+    expect:
+      row.0: event.profile.updated.v1
+

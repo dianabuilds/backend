@@ -1,0 +1,12 @@
+version: 1
+roles: [anonymous, user, moderator, admin]
+attributes:
+  - name: ownership
+rules:
+  - action: {{domain}}.read
+    allow: [anonymous, user, moderator, admin]
+  - action: {{domain}}.write
+    allow:
+      - moderator
+      - admin
+

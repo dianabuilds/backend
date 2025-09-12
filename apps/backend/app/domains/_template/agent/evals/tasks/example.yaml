@@ -1,0 +1,6 @@
+version: 1
+task: "Создать и провалидировать сущность {{domain}}"
+steps:
+  - run: node.validate
+  - run: node.simulate
+

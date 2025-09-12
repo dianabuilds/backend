@@ -1,0 +1,11 @@
+{
+  "$id": "event.profile.updated.v1",
+  "type": "object",
+  "required": ["eventId", "occurredAt", "profile"],
+  "properties": {
+    "eventId": {"type": "string", "format": "uuid"},
+    "occurredAt": {"type": "string", "format": "date-time"},
+    "profile": {"$ref": "../../schema/openapi.yaml#/components/schemas/Profile"}
+  }
+}
+

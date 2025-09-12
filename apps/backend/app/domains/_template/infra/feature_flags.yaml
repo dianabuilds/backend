@@ -1,0 +1,4 @@
+flags:
+  - key: enable_{{domain}}_v1
+    default: true
+

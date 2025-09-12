@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/event.notification.created.v1.json",
+  "title": "event.notification.created.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "format": "uuid"},
+    "user_id": {"type": "string", "format": "uuid"},
+    "title": {"type": "string"},
+    "message": {"type": "string"},
+    "created_at": {"type": "string"},
+    "type": {"type": "string"},
+    "placement": {"type": "string"},
+    "is_preview": {"type": "boolean"}
+  },
+  "required": [
+    "id",
+    "user_id",
+    "title",
+    "message",
+    "created_at",
+    "type",
+    "placement",
+    "is_preview"
+  ]
+}
+

@@ -1,0 +1,6 @@
+kind: Component
+name: {{domain}}
+spec:
+  replicas: 1
+  env: {}
+

@@ -1,0 +1,9 @@
+version: 1
+roles: [anonymous, user, moderator, admin]
+rules:
+  - action: profile.read
+    allow: [anonymous, user, moderator, admin]
+  - action: profile.update
+    allow: [user, moderator, admin]
+    constraints:
+      - subject.user_id == resource.user_id

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Уведомление{% endblock %}
+{% block content %}
+  <p>Привет{% if username %}, {{ username }}{% endif %}!</p>
+  <p>{{ message }}</p>
+{% endblock %}
+

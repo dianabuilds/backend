@@ -1,0 +1,37 @@
+from __future__ import annotations
+
+import time
+
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
+
+from app.kernel.config import settings
+from app.domains.telemetry.metrics import metrics_storage
+
+
+class MetricsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        metrics_path = settings.observability.metrics_path
+        if request.url.path.startswith("/admin/metrics") or request.url.path == metrics_path:
+            return await call_next(request)
+        start = time.perf_counter()
+        response: Response = await call_next(request)
+        duration_ms = int((time.perf_counter() - start) * 1000)
+
+        route = request.scope.get("route")
+        route_path = getattr(route, "path", None) or request.url.path
+        method = request.method.upper()
+        effective_id = (
+            request.query_params.get("tenant_id")
+            or getattr(request.state, "tenant_id", None)
+            or request.path_params.get("tenant_id")
+        )
+        if effective_id is not None:
+            effective_id = str(effective_id)
+
+        metrics_storage.record(duration_ms, response.status_code, method, route_path, effective_id)
+        return response
+
+
+__all__ = ["MetricsMiddleware"]

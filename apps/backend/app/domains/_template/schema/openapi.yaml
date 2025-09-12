@@ -1,0 +1,22 @@
+openapi: 3.0.3
+info:
+  title: {{DOMAIN}} API
+  version: 0.1.0
+paths:
+  /{{domain}}/health:
+    get:
+      operationId: get{{DOMAIN}}Health
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+components:
+  schemas: {}
+

@@ -1,0 +1,11 @@
+{
+  "$id": "event.{{domain}}.created.v1",
+  "type": "object",
+  "required": ["eventId", "occurredAt", "data"],
+  "properties": {
+    "eventId": {"type": "string", "format": "uuid"},
+    "occurredAt": {"type": "string", "format": "date-time"},
+    "data": {"type": "object"}
+  }
+}
+

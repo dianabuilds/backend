@@ -1,0 +1,11 @@
+version: 1
+goal: "Сменить email пользователя"
+stages:
+  - id: verify_token
+    tool: mcp.security.verify_token
+  - id: update_credentials
+    tool: mcp.security.update_credentials
+  - id: emit_event
+    tool: mcp.events.publish
+    input: { type: "security.email_changed.v1" }
+

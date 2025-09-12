@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: Profile API
+  version: 0.1.0
+paths:
+  /profile/me:
+    get:
+      operationId: getMyProfile
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+    patch:
+      operationId: updateMyProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileUpdate" }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+  /profile/me/settings:
+    get:
+      operationId: getMySettings
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProfileSettings" }
+    patch:
+      operationId: updateMySettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileSettingsUpdate" }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProfileSettings" }
+  /profile/{id}:
+    get:
+      operationId: getProfile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+  /profile/{id}:
+    patch:
+      operationId: updateProfile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileUpdate" }
+      responses:
+        "200": { description: ok }
+components:
+  schemas:
+    Profile:
+      type: object
+      required: [id, userId, username]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        username: { type: string, minLength: 1 }
+        avatar: { type: string, nullable: true }
+        bio: { type: string, nullable: true }
+        lang: { type: string, nullable: true }
+    ProfileUpdate:
+      type: object
+      properties:
+        username: { type: string }
+        avatar: { type: string }
+        bio: { type: string }
+        lang: { type: string }
+    ProfileSettings:
+      type: object
+      properties:
+        preferences:
+          type: object
+          additionalProperties: true
+      required: [preferences]
+    ProfileSettingsUpdate:
+      type: object
+      properties:
+        preferences:
+          type: object
+          additionalProperties: true
+      required: [preferences]

@@ -1,0 +1,15 @@
+version: 1
+goal: "Создать {{domain}} сущность"
+stages:
+  - id: draft
+    tool: mcp.{{domain}}.write
+  - id: validate
+    tool: mcp.{{domain}}.validate
+    on_fail: ["draft"]
+  - id: persist
+    tool: mcp.db.tx
+    input: { op: "insert", table: "{{domain}}" }
+  - id: emit_event
+    tool: mcp.events.publish
+    input: { type: "event.{{domain}}.created.v1" }
+
