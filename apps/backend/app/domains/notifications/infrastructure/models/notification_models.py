@@ -6,8 +6,7 @@ from uuid import uuid4
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 from app.schemas.nodes_common import Status, Visibility
 from app.schemas.notification import NotificationPlacement, NotificationType
 
@@ -42,3 +41,4 @@ class Notification(Base):
     created_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
     updated_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
     is_preview = Column(Boolean, nullable=False, default=False, server_default="false", index=True)
+

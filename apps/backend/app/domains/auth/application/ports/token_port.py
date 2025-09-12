@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from typing import Protocol
+import warnings
 
+# Backwards-compatibility shim: use ports.tokens.ITokenService instead
+from app.domains.auth.application.ports.tokens import (  # noqa: F401
+    ITokenService,
+)
 
-class ITokenService(Protocol):
-    def create_access_token(self, subject: str) -> str:  # pragma: no cover
-        ...
+warnings.warn(
+    "auth.application.ports.token_port is deprecated; use auth.application.ports.tokens",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-    def create_refresh_token(self, subject: str) -> str:  # pragma: no cover
-        ...
-
-    def verify_access_token(self, token: str) -> str | None:  # pragma: no cover
-        ...
+__all__ = ["ITokenService"]

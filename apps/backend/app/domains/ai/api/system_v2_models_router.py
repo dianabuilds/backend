@@ -12,7 +12,7 @@ from app.domains.ai.infrastructure.repositories.system_v2_repository import (
     ModelsRepository,
     ProvidersRepository,
 )
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -248,3 +248,4 @@ async def test_model(
         "auth": used_auth,
         "excerpt": excerpt,
     }
+

@@ -19,7 +19,7 @@ from app.domains.notifications.infrastructure.models.campaign_models import (
     NotificationCampaign,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_only = require_admin_role({"admin"})
@@ -185,3 +185,4 @@ async def cancel_campaign_endpoint(
     if not ok:
         raise HTTPException(status_code=404, detail="Not found")
     return {"ok": True}
+

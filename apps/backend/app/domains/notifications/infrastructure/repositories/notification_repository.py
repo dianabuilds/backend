@@ -12,6 +12,8 @@ from app.domains.notifications.infrastructure.models.notification_models import 
     Notification,
 )
 from app.schemas.notification import NotificationOut
+from app.domains.notifications.events.models import NotificationCreated
+from app.domains.notifications.events.publisher import publish_notification_created
 
 
 class NotificationRepository(INotificationRepository):
@@ -36,7 +38,23 @@ class NotificationRepository(INotificationRepository):
             placement=placement,
             is_preview=is_preview,
         )
+        # Ensure ID is generated before emitting to outbox (same transaction)
         self._db.add(notif)
+        await self._db.flush()
+        # Emit outbox event within the same transaction for reliability
+        await publish_notification_created(
+            self._db,
+            data=NotificationCreated(
+                id=notif.id,
+                user_id=notif.user_id,
+                title=notif.title,
+                message=notif.message,
+                created_at=notif.created_at,
+                type=notif.type,  # type: ignore[arg-type]
+                placement=notif.placement,  # type: ignore[arg-type]
+                is_preview=notif.is_preview,
+            ),
+        )
         await self._db.commit()
         await self._db.refresh(notif)
         data = NotificationOut.model_validate(notif).model_dump()

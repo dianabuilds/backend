@@ -10,7 +10,7 @@ from app.api.deps import get_current_user
 from app.domains.payments.api_admin import router as admin_payments_router
 from app.domains.payments.application.payments_service import PaymentService
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.payment import PremiumPurchaseIn
 
 public_router = APIRouter(prefix="/payments", tags=["payments"])
@@ -42,3 +42,4 @@ router.include_router(public_router)
 router.include_router(admin_payments_router)
 
 __all__ = ["router"]
+

@@ -16,7 +16,7 @@ from app.domains.notifications.infrastructure.transports.websocket import (
     manager as ws_manager,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.notification import NotificationCreate
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -55,3 +55,4 @@ async def send_notification(
     except Exception:
         notif_id = ""
     return {"id": notif_id, "status": "queued"}
+

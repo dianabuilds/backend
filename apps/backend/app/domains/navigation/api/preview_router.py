@@ -10,11 +10,11 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 
-from app.core.preview import PreviewContext, PreviewMode  # isort: skip
-from app.core.rng import next_seed
-from app.core.transition_metrics import record_no_route, record_route_length
+from app.kernel.preview import PreviewContext, PreviewMode  # isort: skip
+from app.kernel.rng import next_seed
+from app.domains.telemetry.transition_metrics import record_no_route, record_route_length
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.navigation.application.router import (
     NoRouteReason,
@@ -116,3 +116,5 @@ async def simulate_transitions(
         },
         "seed": seed,
     }
+
+

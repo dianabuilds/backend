@@ -1,0 +1,7 @@
+
+version: 1
+goal: "Обновить сущность и опубликовать событие"
+asserts:
+  - "unit tests pass"
+  - "http PUT /v1/sample/{id} returns 200"
+  - "outbox has domain.sample.updated.v1"

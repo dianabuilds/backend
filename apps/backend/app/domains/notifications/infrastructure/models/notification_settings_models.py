@@ -5,8 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Index
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 
 
 class NodeNotificationSetting(Base):
@@ -24,3 +23,4 @@ class NodeNotificationSetting(Base):
 
 # B-tree index on the new node_id column
 Index("ix_node_notification_settings_node_id", NodeNotificationSetting.node_id)
+

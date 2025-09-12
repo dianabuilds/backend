@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import assert_owner_or_role
 from app.domains.ai.application.embedding_service import update_node_embedding
 from app.domains.nodes.infrastructure.models.node import Node
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(prefix="/admin/ai", tags=["admin-ai"], responses=ADMIN_AUTH_RESPONSES)
@@ -28,3 +28,4 @@ async def recompute_node_embedding(
     assert_owner_or_role(node.author_id, "moderator", current_user)
     await update_node_embedding(db, node)
     return {"embedding_dim": len(node.embedding_vector or [])}
+

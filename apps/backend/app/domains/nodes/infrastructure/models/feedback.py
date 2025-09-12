@@ -5,8 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Text
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 
 
 class Feedback(Base):
@@ -24,3 +23,4 @@ class Feedback(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     is_hidden = Column(Boolean, default=False)
     is_anonymous = Column(Boolean, default=False)
+

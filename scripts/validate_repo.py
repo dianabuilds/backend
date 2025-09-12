@@ -13,11 +13,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 REPORT_PATH = REPO_ROOT / "reports" / "validate_repo.md"
 
 
-def run_command(name: str, cmd: list[str]) -> dict[str, object]:
+def run_command(name: str, cmd: list[str], *, cwd: Path | None = None) -> dict[str, object]:
     try:
         result = subprocess.run(
             cmd,
-            cwd=REPO_ROOT,
+            cwd=str(cwd or REPO_ROOT),
             capture_output=True,
             text=True,
         )
@@ -60,17 +60,26 @@ def run_health_bench(url: str, count: int) -> dict[str, object]:
 
 def main() -> int:
     steps = [
-        ("ruff", ["ruff", "check", "."]),
-        ("mypy", ["mypy", "apps/backend"]),
-        ("bandit", ["bandit", "-r", "apps/backend", "-ll"]),
-        ("vulture", ["vulture", "apps/backend"]),
-        ("pip-audit", ["pip-audit", "-r", "requirements.txt"]),
-        ("cyclonedx-bom", ["cyclonedx-bom", "-o", "sbom.json"]),
+        {"name": "ruff", "cmd": ["ruff", "check", "."]},
+        {"name": "mypy", "cmd": ["mypy", "apps/backend"]},
+        # Run import-linter from the package root so it can resolve 'app'.
+        {
+            "name": "import-linter",
+            "cmd": ["lint-imports", "--config", "../../importlinter.ini"],
+            "cwd": REPO_ROOT / "apps/backend",
+        },
+        {"name": "bandit", "cmd": ["bandit", "-r", "apps/backend", "-ll"]},
+        {"name": "vulture", "cmd": ["vulture", "apps/backend"]},
+        {"name": "pip-audit", "cmd": ["pip-audit", "-r", "requirements.txt"]},
+        {"name": "cyclonedx-bom", "cmd": ["cyclonedx-bom", "-o", "sbom.json"]},
     ]
     results = []
     had_error = False
-    for name, cmd in steps:
-        res = run_command(name, cmd)
+    for step in steps:
+        name = step["name"]
+        cmd = step["cmd"]
+        cwd = step.get("cwd")
+        res = run_command(name, cmd, cwd=cwd)
         results.append(res)
         if res["code"] != 0:
             had_error = True

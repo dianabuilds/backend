@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, status
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 
 if TYPE_CHECKING:  # pragma: no cover - used for type hints only
     from app.domains.nodes.infrastructure.models.node import Node

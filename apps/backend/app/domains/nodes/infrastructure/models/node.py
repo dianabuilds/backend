@@ -19,10 +19,9 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import relationship
 
-from app.core.config import settings
+from app.kernel.config import settings
 from app.domains.tags.infrastructure.models.tag_models import NodeTag
-from app.providers.db.adapters import JSONB, UUID, VECTOR
-from app.providers.db.base import Base
+from app.kernel.db import JSONB, UUID, VECTOR, Base
 from app.schemas.nodes_common import Status, Visibility
 
 
@@ -185,3 +184,4 @@ class Node(Base):
     @property
     def tag_slugs(self) -> list[str]:
         return [t.slug for t in self.tags] if self.tags else []
+

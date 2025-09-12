@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.premium.infrastructure.models.premium_models import (
     SubscriptionPlan,
     UserSubscription,
@@ -65,3 +65,4 @@ async def build_quota_plans_map(db: AsyncSession) -> dict[str, Any]:
         out[p.slug] = conf
     out.setdefault("free", {"__grace__": 0})
     return out
+

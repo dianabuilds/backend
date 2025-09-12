@@ -15,8 +15,7 @@ from sqlalchemy import (
     Text,
 )
 
-from app.providers.db.adapters import JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import JSONB, UUID, Base
 
 
 class JobStatus(str):
@@ -85,3 +84,4 @@ class GenerationJobLog(Base):
     status = Column(String, nullable=False, default="ok")
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+

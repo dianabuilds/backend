@@ -14,7 +14,7 @@ from app.api.deps import (
     get_preview_context,
     get_tenant_id,
 )
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 
 # правила доступа и геймплей вынесены в домен quests
 from app.domains.navigation.application.navigation_cache_service import (
@@ -33,7 +33,7 @@ from app.domains.quests.schemas import (
     QuestUpdate,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.node import NodeOut
 
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -49,7 +49,7 @@ async def list_quests(
     """Return all published quests."""
     from app.domains.quests.queries import list_public
 
-    return await list_public(db, workspace_id=tenant)
+    return await list_public(db, tenant_id=tenant)
 
 
 @router.get("/search", response_model=list[QuestOut], summary="Search quests")
@@ -78,7 +78,7 @@ async def search_quests(
         sort_by=sort_by,
         page=page,
         per_page=per_page,
-        workspace_id=tenant,
+        tenant_id=tenant,
     )
 
 
@@ -93,7 +93,7 @@ async def get_quest(
     from app.domains.quests.queries import get_for_view
 
     try:
-        quest = await get_for_view(db, slug=slug, user=current_user, workspace_id=tenant)
+        quest = await get_for_view(db, slug=slug, user=current_user, tenant_id=tenant)
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Quest not found") from err
     except PermissionError as err:
@@ -126,7 +126,7 @@ async def create_quest(
     from app.domains.quests.authoring import create_quest as create_quest_domain
 
     quest = await create_quest_domain(
-        db, payload=payload, author=current_user, workspace_id=tenant
+        db, payload=payload, author=current_user, tenant_id=tenant
     )
     await navcache.invalidate_compass_by_user(current_user.id)
     return quest
@@ -147,7 +147,7 @@ async def update_quest(
         quest = await update_quest_domain(
             db,
             quest_id=quest_id,
-            workspace_id=tenant,
+            tenant_id=tenant,
             payload=payload,
             actor=current_user,
         )
@@ -174,7 +174,7 @@ async def publish_quest(
     result = await db.execute(
         select(Quest).where(
             Quest.id == quest_id,
-            Quest.workspace_id == tenant,
+            Quest.tenant_id == tenant,
             Quest.is_deleted.is_(False),
         )
     )
@@ -188,7 +188,7 @@ async def publish_quest(
 
     try:
         quest = await release_latest(
-            db, quest_id=quest_id, workspace_id=tenant, actor=current_user
+            db, quest_id=quest_id, tenant_id=tenant, actor=current_user
         )
     except ValidationFailed as err:
         raise HTTPException(
@@ -211,7 +211,7 @@ async def delete_quest(
 
     try:
         await delete_quest_soft(
-            db, quest_id=quest_id, workspace_id=tenant, actor=current_user
+            db, quest_id=quest_id, tenant_id=tenant, actor=current_user
         )
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Quest not found") from err
@@ -236,7 +236,7 @@ async def start_quest(
     from app.domains.quests.gameplay import start_quest as start_quest_domain
 
     try:
-        progress = await start_quest_domain(db, quest_id=quest_id, workspace_id=tenant, user=current_user)
+        progress = await start_quest_domain(db, quest_id=quest_id, tenant_id=tenant, user=current_user)
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Quest not found") from err
     except PermissionError as err:
@@ -259,7 +259,7 @@ async def get_progress(
     from app.domains.quests.gameplay import get_progress as get_progress_domain
 
     try:
-        progress = await get_progress_domain(db, quest_id=quest_id, workspace_id=tenant, user=current_user)
+        progress = await get_progress_domain(db, quest_id=quest_id, tenant_id=tenant, user=current_user)
     except ValueError as err:
         raise HTTPException(status_code=404, detail="Progress not found") from err
     return progress
@@ -311,7 +311,7 @@ async def buy_quest(
         select(QuestPurchase).where(
             QuestPurchase.quest_id == quest.id,
             QuestPurchase.user_id == current_user.id,
-            QuestPurchase.workspace_id == quest.workspace_id,
+            QuestPurchase.tenant_id == quest.tenant_id,
         )
     )
     purchase = res.scalars().first()
@@ -346,7 +346,7 @@ async def buy_quest(
     purchase = QuestPurchase(
         quest_id=quest.id,
         user_id=current_user.id,
-        workspace_id=quest.workspace_id,
+        tenant_id=quest.tenant_id,
     )
     db.add(purchase)
     await db.commit()
@@ -355,9 +355,13 @@ async def buy_quest(
     await get_event_bus().publish(
         PurchaseCompleted(
             user_id=current_user.id,
-            workspace_id=quest.workspace_id,
+            tenant_id=quest.tenant_id,
             title="Quest purchased",
             message=quest.title,
         )
     )
     return {"status": "ok", **breakdown}
+
+
+
+

@@ -18,7 +18,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.ai.infrastructure.models.generation_models import (
     GenerationJob,
     JobStatus,
@@ -103,7 +103,6 @@ async def enqueue_generation_job(
     params: dict[str, Any],
     provider: str | None = None,
     model: str | None = None,
-    workspace_id: int | None = None,
     reuse: bool = True,
     preview: PreviewContext | None = None,
 ) -> GenerationJob:
@@ -308,3 +307,4 @@ async def process_next_generation_job(db: AsyncSession) -> UUID | None:
 
 
 __all__ = ["enqueue_generation_job", "process_next_generation_job"]
+

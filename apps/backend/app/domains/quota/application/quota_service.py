@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.quota.infrastructure.dao import QuotaCounterDAO
 
 
@@ -86,3 +86,4 @@ class QuotaService:
                 },
             )
         return result
+

@@ -6,7 +6,7 @@ from typing import cast
 
 import requests
 
-from app.core.config import settings
+from app.kernel.config import settings
 from app.domains.ai.application.embedding_service import (
     EMBEDDING_DIM,
     reduce_vector_dim,

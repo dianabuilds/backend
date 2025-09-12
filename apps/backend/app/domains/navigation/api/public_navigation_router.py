@@ -8,13 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import get_current_user_optional, get_preview_context
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.navigation.application.compass_service import CompassService
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 
 router = APIRouter(prefix="/navigation", tags=["navigation"])
 
@@ -62,3 +62,5 @@ async def navigation(
     if not node or not node.is_visible or not node.is_public:
         raise HTTPException(status_code=404, detail="Node not found")
     return await NavigationService().get_navigation(db, node, user, preview)
+
+

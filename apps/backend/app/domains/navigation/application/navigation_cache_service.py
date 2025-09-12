@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from uuid import UUID
 
-from app.core.cache_keys import cache_key
-from app.core.config import settings
-from app.core.log_events import cache_hit, cache_invalidate, cache_miss
+from app.kernel.cache.utils import cache_key
+from app.kernel.config import settings
+from app.domains.telemetry.log_events import cache_hit, cache_invalidate, cache_miss
 from app.domains.navigation.application.ports.cache_port import IKeyValueCache
 
 
@@ -228,3 +228,5 @@ class NavigationCacheService:
             await self._del_set_key(idx)
         if keys:
             cache_invalidate("comp", reason="all")
+
+

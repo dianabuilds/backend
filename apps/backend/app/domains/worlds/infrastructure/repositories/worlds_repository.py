@@ -19,27 +19,25 @@ class WorldsRepository(IWorldsRepository):
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def list_worlds(self, workspace_id: UUID) -> list[WorldTemplate]:
+    async def list_worlds(self, profile_id: UUID) -> list[WorldTemplate]:
         res = await self._db.execute(
             select(WorldTemplate)
-            .where(WorldTemplate.workspace_id == workspace_id)
+            .where(WorldTemplate.profile_id == profile_id)
             .order_by(WorldTemplate.created_at.desc())
         )
         return list(res.scalars().all())
 
-    async def get_world(self, world_id: UUID, workspace_id: UUID) -> WorldTemplate | None:
+    async def get_world(self, world_id: UUID, profile_id: UUID) -> WorldTemplate | None:
         res = await self._db.execute(select(WorldTemplate).where(WorldTemplate.id == world_id))
         world = res.scalar_one_or_none()
         if not world:
             return None
-        if world.workspace_id != workspace_id:
+        if world.profile_id != profile_id:
             return None
         return world
 
-    async def create_world(
-        self, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
-    ) -> WorldTemplate:
-        world = WorldTemplate(workspace_id=workspace_id, created_by_user_id=actor_id, **data)
+    async def create_world(self, profile_id: UUID, data: dict[str, Any], actor_id: UUID) -> WorldTemplate:
+        world = WorldTemplate(profile_id=profile_id, created_by_user_id=actor_id, **data)
         self._db.add(world)
         await self._db.flush()
         await self._db.refresh(world)
@@ -49,10 +47,10 @@ class WorldsRepository(IWorldsRepository):
         self,
         world: WorldTemplate,
         data: dict[str, Any],
-        workspace_id: UUID,
+        profile_id: UUID,
         actor_id: UUID,
     ) -> WorldTemplate:
-        if world.workspace_id != workspace_id:
+        if world.profile_id != profile_id:
             return world
         for k, v in (data or {}).items():
             setattr(world, k, v)
@@ -61,29 +59,29 @@ class WorldsRepository(IWorldsRepository):
         await self._db.refresh(world)
         return world
 
-    async def delete_world(self, world: WorldTemplate, workspace_id: UUID) -> None:
-        if world.workspace_id != workspace_id:
+    async def delete_world(self, world: WorldTemplate, profile_id: UUID) -> None:
+        if world.profile_id != profile_id:
             return
         await self._db.delete(world)
         await self._db.flush()
 
-    async def list_characters(self, world_id: UUID, workspace_id: UUID) -> list[Character]:
+    async def list_characters(self, world_id: UUID, profile_id: UUID) -> list[Character]:
         res = await self._db.execute(
             select(Character)
             .where(
                 Character.world_id == world_id,
-                Character.workspace_id == workspace_id,
+                Character.profile_id == profile_id,
             )
             .order_by(Character.created_at.asc())
         )
         return list(res.scalars().all())
 
     async def create_character(
-        self, world_id: UUID, workspace_id: UUID, data: dict[str, Any], actor_id: UUID
+        self, world_id: UUID, profile_id: UUID, data: dict[str, Any], actor_id: UUID
     ) -> Character:
         ch = Character(
             world_id=world_id,
-            workspace_id=workspace_id,
+            profile_id=profile_id,
             created_by_user_id=actor_id,
             **data,
         )
@@ -96,10 +94,10 @@ class WorldsRepository(IWorldsRepository):
         self,
         character: Character,
         data: dict[str, Any],
-        workspace_id: UUID,
+        profile_id: UUID,
         actor_id: UUID,
     ) -> Character:
-        if character.workspace_id != workspace_id:
+        if character.profile_id != profile_id:
             return character
         for k, v in (data or {}).items():
             setattr(character, k, v)
@@ -108,14 +106,12 @@ class WorldsRepository(IWorldsRepository):
         await self._db.refresh(character)
         return character
 
-    async def delete_character(self, character: Character, workspace_id: UUID) -> None:
-        if character.workspace_id != workspace_id:
+    async def delete_character(self, character: Character, profile_id: UUID) -> None:
+        if character.profile_id != profile_id:
             return
         await self._db.delete(character)
         await self._db.flush()
 
-    async def get_character(self, char_id: UUID, workspace_id: UUID) -> Character | None:
-        res = await self._db.execute(
-            select(Character).where(Character.id == char_id, Character.workspace_id == workspace_id)
-        )
+    async def get_character(self, char_id: UUID, profile_id: UUID) -> Character | None:
+        res = await self._db.execute(select(Character).where(Character.id == char_id, Character.profile_id == profile_id))
         return res.scalar_one_or_none()

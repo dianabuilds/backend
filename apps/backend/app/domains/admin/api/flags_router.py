@@ -15,9 +15,9 @@ from app.domains.admin.application.feature_flag_service import (
 from app.domains.admin.application.menu_service import invalidate_menu_cache
 from app.domains.admin.infrastructure.models.feature_flag import FeatureFlag
 from app.domains.audit.application.audit_service import audit_log
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.flags import FeatureFlagOut, FeatureFlagUpdateIn
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 logger = logging.getLogger(__name__)
 
@@ -97,3 +97,4 @@ async def update_flag(
     invalidate_menu_cache()
 
     return updated
+

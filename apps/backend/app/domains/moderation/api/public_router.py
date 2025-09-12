@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
-from app.core.rate_limit import rate_limit_dep
+from app.kernel.middlewares.rate_limit import rate_limit_dep
 from app.domains.moderation.application import CasesService
 from app.domains.users.infrastructure.models.user import User
 from app.providers.case_notifier import ICaseNotifier

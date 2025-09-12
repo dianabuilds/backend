@@ -12,17 +12,20 @@ class NodesAdminService:
         self._repo = repo
 
     async def list_by_author(
-        self, author_id: UUID, workspace_id: int, limit: int = 50, offset: int = 0
+        self, author_id: UUID, tenant_id: UUID, limit: int = 50, offset: int = 0
     ) -> list:
-        return await self._repo.list_by_author(author_id, workspace_id, limit, offset)
+        # Repository interface is profile-centric and does not filter by tenant.
+        # Tenant is accepted for consistency but not used at this layer.
+        return await self._repo.list_by_author(author_id, limit=limit, offset=offset)
 
     async def bulk_set_visibility(
         self,
         db: AsyncSession,
         node_ids: list[int],
         is_visible: bool,
-        workspace_id: int,
+        tenant_id: UUID,
     ) -> int:
-        count = await self._repo.bulk_set_visibility(node_ids, is_visible, workspace_id)
+        # Repository method is tenant-agnostic; apply to provided nodes directly.
+        count = await self._repo.bulk_set_visibility(node_ids, is_visible)
         await db.commit()
         return count

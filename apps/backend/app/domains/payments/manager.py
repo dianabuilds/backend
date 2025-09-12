@@ -1,14 +1,16 @@
 """
-Domains.Payments: Manager re-export.
+Payments manager (compat shim).
 
-from app.domains.payments.manager import verify_payment, load_active_gateways
+Deprecated: import from ``app.domains.payments.application.gateways_service``.
+This module re-exports the application-layer helpers for backwards
+compatibility.
 """
 
-from .manager_impl import (
+from app.domains.payments.application.gateways_service import (  # noqa: F401
     get_active_subscriptions_stats,
     load_active_gateways,
     verify_payment,
-)  # noqa: F401
+)
 
 __all__ = [
     "verify_payment",

@@ -12,7 +12,7 @@ if isinstance(mod, SimpleNamespace):
     new_mod.__dict__.update(mod.__dict__)
     sys.modules["app.domains.users.application.nft_service"] = new_mod
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.application.nft_service import user_has_nft
 from app.domains.users.infrastructure.models.user import User
@@ -37,3 +37,4 @@ async def has_access_async(
     if node.nft_required and not await user_has_nft(user, node.nft_required):
         return False
     return True
+

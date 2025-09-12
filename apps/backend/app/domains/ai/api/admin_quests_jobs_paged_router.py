@@ -10,7 +10,7 @@ from sqlalchemy.future import select
 from app.api.deps import admin_required
 from app.domains.ai.infrastructure.models.generation_models import GenerationJob
 from app.domains.common.schemas.paginated import Paginated
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 
@@ -62,3 +62,4 @@ async def list_jobs_paged(
         )
 
     return {"page": page, "per_page": per_page, "total": total, "items": items}
+

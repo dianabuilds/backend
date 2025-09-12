@@ -8,7 +8,7 @@ from sqlalchemy.future import select
 
 from app.api.deps import admin_required
 from app.domains.ai.infrastructure.models.generation_models import GenerationJobLog
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 
@@ -50,3 +50,4 @@ async def get_generation_job_logs(
         return out
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Logs not found or unavailable: {e}") from e
+

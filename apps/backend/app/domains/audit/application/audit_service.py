@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.audit_log import log_admin_action
+from app.domains.telemetry.audit_log import log_admin_action
 
 
 async def audit_log(

@@ -11,7 +11,7 @@ from app.domains.moderation.infrastructure.models.moderation_models import (
     UserRestriction,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.moderation import (
     RestrictionAdminCreate,
     RestrictionAdminUpdate,
@@ -120,3 +120,4 @@ async def delete_restriction(
     await db.delete(restriction)
     await db.commit()
     return {"status": "ok"}
+

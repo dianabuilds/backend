@@ -12,7 +12,7 @@ from app.domains.nodes.infrastructure.repositories.node_repository import (
     NodeRepository,
 )
 from app.domains.nodes.schemas.node import NodeOut, NodeUpdate
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(prefix="/admin/nodes", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
@@ -47,3 +47,4 @@ async def update_global_node_by_id(
         raise HTTPException(status_code=404, detail="Node not found")
     node = await repo.update(node, payload, current_user.id)
     return NodeOut.model_validate(node)
+

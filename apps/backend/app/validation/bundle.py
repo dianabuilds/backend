@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-BUNDLE = {
-    "mode": "sequential",
-    "models": [
-        {"name": "gpt-4o-mini"},
-        {"name": "claude-3-haiku"},
-    ],
-}
+"""Deprecated shim: use app.domains.ai.validation.bundle.BUNDLE."""
+
+import warnings
+
+from app.domains.ai.validation.bundle import BUNDLE  # noqa: F401
+
+warnings.warn(
+    "app.validation.bundle is deprecated; use app.domains.ai.validation.bundle",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 __all__ = ["BUNDLE"]

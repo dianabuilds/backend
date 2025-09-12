@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.navigation.infrastructure.models.echo_models import EchoTrace
 from app.domains.nodes.infrastructure.models.node import Node
@@ -55,3 +55,4 @@ class EchoService:
                 ordered_nodes.append(n)
 
         return ordered_nodes
+

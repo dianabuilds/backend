@@ -1,0 +1,10 @@
+
+version: 1
+actions:
+  - name: sample.read
+  - name: sample.update
+rules:
+  - action: sample.read
+    allow: ["owner", "moderator", "admin"]
+  - action: sample.update
+    allow: ["owner", "moderator", "admin"]

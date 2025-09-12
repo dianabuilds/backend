@@ -6,8 +6,8 @@ from collections.abc import Iterable
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.deps.guards import check_transition
-from app.core.preview import PreviewContext
+from app.domains.navigation.application.guards import check_transition
+from app.kernel.preview import PreviewContext
 from app.domains.admin.application.feature_flag_service import (
     FeatureFlagKey,
     get_effective_flags,
@@ -68,3 +68,4 @@ class TransitionsService:
             )
 
         return allowed
+

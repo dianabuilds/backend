@@ -6,11 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.core.rate_limit import _parse_rule, recent_429  # type: ignore
+from app.kernel.config import settings
+from app.kernel.middlewares.rate_limit import _parse_rule, recent_429  # type: ignore
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.kernel.db import get_db
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role()
 admin_only = require_admin_role({"admin"})
@@ -110,3 +110,4 @@ async def disable_rate_limit(
         },
     )
     return {"enabled": settings.rate_limit.enabled}
+

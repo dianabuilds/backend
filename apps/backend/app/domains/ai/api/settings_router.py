@@ -9,7 +9,7 @@ from app.domains.ai.application.settings_service import SettingsService
 from app.domains.ai.infrastructure.repositories.settings_repository import (
     AISettingsRepository,
 )
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(prefix="/admin/ai", tags=["admin-ai-settings"], responses=ADMIN_AUTH_RESPONSES)
@@ -47,3 +47,4 @@ async def put_settings(
         model_map=model_map if isinstance(model_map, dict) else None,
         cb=cb if isinstance(cb, dict) else None,
     )
+

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.preview import PreviewContext  # isort: skip
+from app.kernel.preview import PreviewContext  # isort: skip
 
 if TYPE_CHECKING:  # pragma: no cover - used for type hints only
     from app.domains.navigation.application.compass_service import CompassService
@@ -134,3 +134,4 @@ class RandomProvider(TransitionProvider):
         if not nodes:
             return []
         return [self._rnd.choice(nodes)]
+

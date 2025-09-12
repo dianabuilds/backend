@@ -18,7 +18,7 @@ from app.domains.nodes.infrastructure.repositories.node_repository import (
     NodeRepository,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 
 router = APIRouter(prefix="/transitions", tags=["transitions"])
 navcache = NavigationCacheService(CoreCacheAdapter())
@@ -43,3 +43,4 @@ async def delete_transition(
     if from_node:
         await navcache.invalidate_navigation_by_user(from_node.author_id)
     return {"message": "Transition deleted"}
+

@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from app.schemas.trace import (  # noqa: F401
-    NodeTraceCreate,
-    NodeTraceOut,
-)
+from .trace import NodeTraceCreate, NodeTraceOut  # noqa: F401
 
 __all__ = ["NodeTraceCreate", "NodeTraceOut"]

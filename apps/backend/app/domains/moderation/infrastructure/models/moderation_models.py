@@ -5,8 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import BigInteger, Column, DateTime, Enum, ForeignKey, Text
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 
 
 class UserRestriction(Base):
@@ -29,3 +28,4 @@ class ContentModeration(Base):
     reason = Column(Text)
     hidden_by = Column(UUID(), ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
+

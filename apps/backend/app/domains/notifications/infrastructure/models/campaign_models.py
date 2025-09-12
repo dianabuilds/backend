@@ -5,8 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 
 
 class CampaignStatus(str):
@@ -34,3 +33,4 @@ class NotificationCampaign(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     started_at = Column(DateTime, nullable=True)
     finished_at = Column(DateTime, nullable=True)
+

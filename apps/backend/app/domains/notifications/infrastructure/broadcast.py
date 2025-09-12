@@ -21,7 +21,7 @@ from app.domains.notifications.infrastructure.transports.websocket import (
     manager as ws_manager,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import db_session
+from app.kernel.db import db_session
 from app.schemas.notification import NotificationOut, NotificationType
 
 BroadcastCondition: TypeAlias = ColumnElement[bool]
@@ -156,3 +156,4 @@ async def cancel_campaign(session: AsyncSession, campaign_id: UUID):
     await session.commit()
     # Задача сама завершится при следующей проверке статуса
     return True
+

@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.providers.db.session import get_db
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.kernel.db import get_db
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role()
 
@@ -63,3 +63,4 @@ async def restore_node(
         node.updated_at = datetime.utcnow()
         await db.commit()
     return {"status": "ok"}
+

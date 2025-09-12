@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, Text
 
-from app.providers.db.base import Base
+from app.kernel.db import Base
 
 
 class AISettings(Base):
@@ -32,3 +32,4 @@ class AISettings(Base):
             "cb": self.cb,
             "has_api_key": bool(self.has_api_key),
         }
+

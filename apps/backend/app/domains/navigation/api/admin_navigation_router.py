@@ -18,7 +18,7 @@ from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.navigation.schemas.problems import NavigationNodeProblem
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.navigation_admin import (
     NavigationCacheInvalidateRequest,
     NavigationCacheSetRequest,
@@ -116,3 +116,4 @@ async def pgvector_status(
     repo = CompassRepository(db)
     enabled = repo.session.get_bind().dialect.name == "postgresql"
     return {"enabled": enabled}
+

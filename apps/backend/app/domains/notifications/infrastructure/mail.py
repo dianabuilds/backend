@@ -2,17 +2,14 @@ from __future__ import annotations
 
 import logging
 from email.message import EmailMessage
-from pathlib import Path
 from typing import Any
 
 import aiosmtplib
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from app.core.config import settings
+from app.kernel.config import settings
+from app.kernel.templates import render as render_template
 
 logger = logging.getLogger(__name__)
-
-TEMPLATES_DIR = Path(__file__).resolve().parents[3] / "templates"
 
 
 class MailService:
@@ -25,15 +22,20 @@ class MailService:
         self.mail_from = settings.smtp.mail_from
         self.from_name = settings.smtp.mail_from_name
         self.mock = settings.smtp.mock
-        self.env = Environment(
-            loader=FileSystemLoader(str(TEMPLATES_DIR)),
-            autoescape=select_autoescape(["html", "xml"]),
-        )
 
-    def render(self, template_name: str, context: dict[str, Any]) -> tuple[str, str]:
-        html_tpl = self.env.get_template(f"{template_name}.html")
-        txt_tpl = self.env.get_template(f"{template_name}.txt")
-        return html_tpl.render(**context), txt_tpl.render(**context)
+    @staticmethod
+    def _split_template(template: str) -> tuple[str | None, str]:
+        """Split "domain/name" into (domain, name)."""
+        if "/" in template:
+            d, n = template.split("/", 1)
+            return d or None, n
+        return None, template
+
+    def render(self, template: str, context: dict[str, Any]) -> tuple[str, str]:
+        domain, name = self._split_template(template)
+        html = render_template(domain, f"{name}.html", context)
+        text = render_template(domain, f"{name}.txt", context)
+        return html, text
 
     async def send_email(
         self,

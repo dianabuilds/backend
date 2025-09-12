@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.settings import get_settings
+from app.kernel.config import get_settings
 from app.domains.moderation.infrastructure.models.moderation_case_models import (
     CaseAttachment,
     CaseEvent,

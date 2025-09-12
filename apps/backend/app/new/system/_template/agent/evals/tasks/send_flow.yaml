@@ -1,0 +1,6 @@
+
+version: 1
+goal: "Отправить сообщение через системный сервис"
+asserts:
+  - "POST /v1/system/sample/send returns 200"
+  - "retry triggered on transient failure (simulate)"

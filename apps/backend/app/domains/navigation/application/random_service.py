@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
@@ -39,3 +39,4 @@ class RandomService:
         if not nodes:
             return None
         return random.choice(nodes)
+

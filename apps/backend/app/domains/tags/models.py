@@ -6,8 +6,7 @@ from uuid import uuid4
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 
 
 class Tag(Base):
@@ -43,3 +42,4 @@ class ContentTag(Base):
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow, nullable=False)
 
     tag = relationship("Tag", overlaps="content_items")
+

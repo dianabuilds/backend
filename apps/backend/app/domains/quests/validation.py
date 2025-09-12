@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.nodes.models import NodeItem
 from app.schemas.quest_validation import ValidationItem, ValidationReport
-from app.validation.base import validator
+from app.kernel.validation.base import validator
 
 
 async def validate_version_graph(_db: AsyncSession, _version_id: UUID) -> dict[str, Any]:

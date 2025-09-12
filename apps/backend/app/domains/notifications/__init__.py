@@ -2,8 +2,8 @@
 
 from types import ModuleType
 
-from app.core.config import get_settings
-from app.core.settings import EnvMode
+from app.kernel.config import get_settings
+from app.kernel.config import EnvMode
 
 _service: ModuleType | None
 

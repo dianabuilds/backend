@@ -5,8 +5,7 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 
-from app.providers.db.adapters import JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import JSONB, UUID, Base
 
 
 class ReferralCode(Base):
@@ -54,3 +53,4 @@ class ReferralEvent(Base):
 
 
 __all__ = ["ReferralCode", "ReferralEvent"]
+

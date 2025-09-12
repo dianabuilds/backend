@@ -11,7 +11,7 @@ from app.domains.ai.infrastructure.repositories.system_v2_repository import (
     ProfilesRepository,
 )
 from app.domains.ai.validation_v2 import validate_routing_profile
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -125,3 +125,4 @@ async def validate_profile(
             if isinstance(price, int | float) and price > max_price:
                 errors.append(f"rule[{idx}]: input price {price} exceeds {max_price}")
     return {"ok": len(errors) == 0, "errors": errors}
+

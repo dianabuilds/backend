@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.admin.application.dashboard_service import DashboardService
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.kernel.db import get_db
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(prefix="/admin", tags=["admin"], responses=ADMIN_AUTH_RESPONSES)
 admin_required = require_admin_role()
@@ -21,3 +21,4 @@ async def admin_dashboard(
     db: AsyncSession = db_dep,
 ):
     return await DashboardService.get_dashboard(db)
+

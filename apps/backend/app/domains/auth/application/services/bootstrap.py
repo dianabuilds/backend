@@ -4,10 +4,10 @@ import logging
 
 from sqlalchemy import select
 
-from app.core.config import settings
-from app.core.security import get_password_hash
+from app.kernel.config import settings
+from app.domains.auth.security.passwords import hash_password as get_password_hash
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import db_session
+from app.kernel.db import db_session
 
 logger = logging.getLogger(__name__)
 
@@ -30,3 +30,4 @@ async def ensure_default_admin() -> None:
         )
         session.add(user)
         logger.info("Default admin user created")
+

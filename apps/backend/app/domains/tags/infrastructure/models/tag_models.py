@@ -6,8 +6,7 @@ from uuid import uuid4
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, String
 from sqlalchemy.orm import relationship
 
-from app.providers.db.adapters import JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import JSONB, UUID, Base
 
 
 class NodeTag(Base):
@@ -49,3 +48,4 @@ class TagBlacklist(Base):
     slug = Column(String, primary_key=True)
     reason = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+

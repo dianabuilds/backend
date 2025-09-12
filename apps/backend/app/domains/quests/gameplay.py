@@ -13,12 +13,12 @@ from app.domains.users.infrastructure.models.user import User
 
 
 async def start_quest(
-    db: AsyncSession, *, quest_id: UUID, workspace_id: UUID, user: User
+    db: AsyncSession, *, quest_id: UUID, tenant_id: UUID, user: User
 ) -> QuestProgress:
     res = await db.execute(
         select(Quest).where(
             Quest.id == quest_id,
-            Quest.workspace_id == workspace_id,
+            Quest.tenant_id == tenant_id,
             Quest.is_deleted.is_(False),
         )
     )
@@ -31,7 +31,7 @@ async def start_quest(
         select(QuestProgress).where(
             QuestProgress.quest_id == quest.id,
             QuestProgress.user_id == user.id,
-            QuestProgress.workspace_id == quest.workspace_id,
+            QuestProgress.tenant_id == quest.tenant_id,
         )
     )
     progress = res.scalars().first()
@@ -42,7 +42,7 @@ async def start_quest(
         progress = QuestProgress(
             quest_id=quest.id,
             user_id=user.id,
-            workspace_id=quest.workspace_id,
+            tenant_id=quest.tenant_id,
             current_node_id=quest.entry_node_id,
         )
         db.add(progress)
@@ -52,12 +52,12 @@ async def start_quest(
 
 
 async def get_progress(
-    db: AsyncSession, *, quest_id: UUID, workspace_id: UUID, user: User
+    db: AsyncSession, *, quest_id: UUID, tenant_id: UUID, user: User
 ) -> QuestProgress:
     qres = await db.execute(
         select(Quest).where(
             Quest.id == quest_id,
-            Quest.workspace_id == workspace_id,
+            Quest.tenant_id == tenant_id,
             Quest.is_deleted.is_(False),
         )
     )
@@ -68,7 +68,7 @@ async def get_progress(
         select(QuestProgress).where(
             QuestProgress.quest_id == quest_id,
             QuestProgress.user_id == user.id,
-            QuestProgress.workspace_id == quest.workspace_id,
+            QuestProgress.tenant_id == quest.tenant_id,
         )
     )
     progress = res.scalars().first()
@@ -81,17 +81,25 @@ async def get_node(
     db: AsyncSession,
     *,
     quest_id: UUID,
-    workspace_id: UUID,
     node_id: UUID,
     user: User,
+    tenant_id: UUID | None = None,
 ) -> Node:
-    res = await db.execute(
-        select(Quest).where(
-            Quest.id == quest_id,
-            Quest.workspace_id == workspace_id,
-            Quest.is_deleted.is_(False),
+    if tenant_id is not None:
+        res = await db.execute(
+            select(Quest).where(
+                Quest.id == quest_id,
+                Quest.tenant_id == tenant_id,
+                Quest.is_deleted.is_(False),
+            )
         )
-    )
+    else:
+        res = await db.execute(
+            select(Quest).where(
+                Quest.id == quest_id,
+                Quest.is_deleted.is_(False),
+            )
+        )
     quest = res.scalars().first()
     if not quest or quest.is_draft:
         raise ValueError("Quest not found")
@@ -109,7 +117,7 @@ async def get_node(
         select(QuestProgress).where(
             QuestProgress.quest_id == quest.id,
             QuestProgress.user_id == user.id,
-            QuestProgress.workspace_id == quest.workspace_id,
+            QuestProgress.tenant_id == quest.tenant_id,
         )
     )
     progress = res.scalars().first()

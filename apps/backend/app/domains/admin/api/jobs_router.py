@@ -7,9 +7,9 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.admin.application.jobs_service import JobsService
-from app.providers.db.session import get_db
-from app.schemas.job import BackgroundJobHistoryOut
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.kernel.db import get_db
+from app.domains.telemetry.schemas.job import BackgroundJobHistoryOut
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role({"admin", "support"})
 
@@ -45,3 +45,4 @@ class QueueStats(BaseModel):
 )
 async def queue_sizes() -> dict[str, QueueStats]:
     return await JobsService.get_queue_stats()
+

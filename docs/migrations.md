@@ -39,13 +39,17 @@ To unify identifiers across domains, we introduce `tenant_id` alongside legacy
 `workspace_id` in several tables and backfill data. See ADR-001 for details.
 
 Affected tables:
-- `quests`, `quest_purchases`, `quest_progress`
-- `event_quests`, `event_quest_completions`
-- `audit_logs`, `outbox`
+- `quests` → add `tenant_id`; later drop `workspace_id`
+- `quest_purchases` → add `tenant_id`; later drop `workspace_id`
+- `quest_progress` → add `tenant_id`; later drop `workspace_id`
+- `event_quests` → add `tenant_id`; later drop `workspace_id`
+- `event_quest_completions` → add `tenant_id`; later drop `workspace_id`
+- `audit_logs` → add `tenant_id`; later drop `workspace_id`
+- `outbox` → add `tenant_id`; later drop `workspace_id`
 
 Operational notes:
 - Apply revision `20250911_add_tenant_id_columns` on Postgres first.
-- Applications accept both `tenant_id` and `workspace_id` request params during
-  the transition; logs warn on legacy param usage.
-- Next release will switch code paths to read `tenant_id` exclusively and drop
-  `workspace_id` in a follow-up migration.
+- Applications now accept only `tenant_id` in request params and paths. Legacy
+  `workspace_id` parameters are not supported.
+- Follow-up revision `20250911_drop_workspace_id_columns` removes legacy
+  `workspace_id` columns after the codebase fully uses `tenant_id`.

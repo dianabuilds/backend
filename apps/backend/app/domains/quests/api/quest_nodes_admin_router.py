@@ -15,7 +15,7 @@ from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.models import NodeItem
 from app.domains.notifications.infrastructure.in_app_port import InAppNotificationPort
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.nodes_common import NodeType
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 from app.api.deps import get_tenant_id
@@ -37,7 +37,7 @@ class PublishIn(BaseModel):
 def _serialize(item: NodeItem) -> dict:
     return {
         "id": str(item.id),
-        "workspace_id": str(item.workspace_id),
+        # tenant scoping is not exposed at this level in profile mode
         "type": item.type,
         "slug": item.slug,
         "title": item.title,
@@ -169,3 +169,4 @@ async def simulate_quest_node(
         tenant, NodeType.quest, node_id, SimulateIn(**payload)
     )
     return {"report": report, "result": result}
+

@@ -12,8 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 
-from app.core.audit_log import log_admin_action
-from app.core.log_events import cache_invalidate
+from app.domains.telemetry.audit_log import log_admin_action
+from app.domains.telemetry.log_events import cache_invalidate
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
@@ -21,7 +21,7 @@ from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.navigation.infrastructure.models.echo_models import EchoTrace
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.echo import AdminEchoTraceOut, PopularityRecomputeRequest
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -259,3 +259,6 @@ async def recompute_popularity(
         resource_id=",".join(payload.node_slugs) if payload.node_slugs else "all",
     )
     return {"updated": len(nodes)}
+
+
+

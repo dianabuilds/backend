@@ -12,10 +12,10 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.preview import PreviewContext  # isort: skip
-from app.core.log_events import no_route, transition_finish, transition_start
-from app.core.scope import get_node_scope_id
-from app.core.transition_metrics import (
+from app.kernel.preview import PreviewContext  # isort: skip
+from app.domains.telemetry.log_events import no_route, transition_finish, transition_start
+from app.shared.scoping import get_node_scope_id
+from app.domains.telemetry.transition_metrics import (\n    record_latency as record_route_latency_ms, 
     record_fallback_used,
     record_no_route,
     record_novelty_rate,
@@ -253,7 +253,7 @@ class TransitionRouter:
             "novelty_rate": novelty_rate,
             "fallback_used": fallback_used,
         }
-        record_route_latency_ms(elapsed_ms)
+        record_route_latency_ms(int(elapsed_ms))
         record_repeat_rate(repeat_rate)
         record_novelty_rate(novelty_rate)
         ws_id = str(get_node_scope_id(start))
@@ -269,17 +269,22 @@ class TransitionRouter:
             record_no_route(ws_id)
             transition_metrics.inc_no_route(ws_id, metrics_mode)
         else:
-            record_route_length(len(history), ws_id)
+            record_route_length(ws_id, len(history))
             if nxt is not None:
                 tags = getattr(nxt, "tags", []) or []
                 ent = _compute_entropy([getattr(t, "slug", t) for t in tags])
-                record_tag_entropy(ent, ws_id)
+                record_tag_entropy(ws_id, ent)
                 transition_metrics.observe_entropy(ws_id, metrics_mode, ent)
         if fallback_used:
-            from app.core.log_events import fallback_used as log_fallback_used
+            from app.domains.telemetry.log_events import fallback_used as log_fallback_used
 
             log_fallback_used("transition.router")
             record_fallback_used(ws_id)
             transition_metrics.inc_fallback(ws_id, metrics_mode)
         transition_finish(nxt.slug if nxt else None)
         return TransitionResult(next=nxt, reason=reason, trace=list(self.trace), metrics=metrics)
+
+
+
+
+

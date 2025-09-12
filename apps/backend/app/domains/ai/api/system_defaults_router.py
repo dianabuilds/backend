@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domains.ai.infrastructure.repositories.system_defaults_repository import (
     AIDefaultModelRepository,
 )
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -42,3 +42,4 @@ async def set_defaults(
         model=payload.get("model"),
     )
     return row.as_dict()
+

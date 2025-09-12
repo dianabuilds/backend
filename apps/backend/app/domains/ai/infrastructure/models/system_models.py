@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 
-from app.providers.db.base import Base
+from app.kernel.db import Base
 
 
 class AISystemModel(Base):
@@ -65,3 +65,4 @@ class AIDefaultModel(Base):
             "provider": self.provider,
             "model": self.model,
         }
+

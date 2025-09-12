@@ -11,7 +11,7 @@ from app.domains.nodes.application.node_service import NodeService
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import publish_content
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -158,3 +158,4 @@ async def publish_article(
     await publish_content(node_id=item.id, slug=item.slug, author_id=current_user.id)
     node = await db.get(Node, item.node_id or item.id, options=(selectinload(Node.tags),))
     return _serialize(item, node)
+

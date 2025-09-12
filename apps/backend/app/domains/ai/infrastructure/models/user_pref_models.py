@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy import Column, String
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 
 
 class UserAIPref(Base):
@@ -14,3 +13,4 @@ class UserAIPref(Base):
 
 
 __all__ = ["UserAIPref"]
+

@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.payments.infrastructure.models.payment_models import PaymentTransaction
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -48,3 +48,4 @@ async def list_recent_payments(
         )
         for tx in txs
     ]
+

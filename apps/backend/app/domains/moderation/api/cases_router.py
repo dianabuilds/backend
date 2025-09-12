@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.moderation.application import CasesService
 from app.providers.case_notifier import ICaseNotifier
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.moderation_cases import (
     CaseClose,
     CaseCreate,
@@ -122,3 +122,4 @@ async def close_case(
     if not res:
         raise HTTPException(status_code=404, detail="Case not found")
     return {"status": "ok"}
+

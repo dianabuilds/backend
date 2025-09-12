@@ -4,8 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Integer, String
 
-from app.providers.db.adapters import JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import JSONB, UUID, Base
 
 
 class NodeVersion(Base):
@@ -18,3 +17,4 @@ class NodeVersion(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     published_at = Column(DateTime, nullable=True)
     created_by_user_id = Column(UUID(), ForeignKey("users.id"), nullable=True)
+

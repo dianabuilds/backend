@@ -5,8 +5,7 @@ from datetime import datetime
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 from app.schemas.nodes_common import Status, Visibility
 
 
@@ -95,3 +94,4 @@ class NodePublishJob(Base):
     created_by_user_id = sa.Column(UUID(), sa.ForeignKey("users.id"), nullable=True)
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
     executed_at = sa.Column(sa.DateTime, nullable=True)
+

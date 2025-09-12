@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.domains.nodes.infrastructure.repositories.node_repository import NodeRepository
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.node import NodeCreate, NodeOut, NodeUpdate
 
 router = APIRouter(prefix="/users/me/nodes", tags=["nodes"])
@@ -63,3 +63,4 @@ async def get_my_node(
     if node is None or node.author_id != current_user.id:
         raise HTTPException(status_code=404, detail="Node not found")
     return node
+

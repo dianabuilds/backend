@@ -9,8 +9,8 @@ from types import SimpleNamespace
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps.guards import check_transition
-from app.core.preview import PreviewContext
+from app.domains.navigation.application.guards import check_transition
+from app.kernel.preview import PreviewContext
 from app.domains.navigation.application.access_policy import has_access_async
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.navigation.infrastructure.history_store import RedisHistoryStore
@@ -181,3 +181,4 @@ class NavigationService:
         stmt = delete(NavigationCache).where(NavigationCache.node_slug == node.slug)
         await db.execute(stmt)
         await db.flush()
+

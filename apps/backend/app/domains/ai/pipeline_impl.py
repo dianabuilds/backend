@@ -514,16 +514,14 @@ async def run_full_generation(db: AsyncSession, job: GenerationJob) -> dict[str,
         providers=providers,
     )
     cost = estimate_cost_usd(res.model, res.usage.prompt_tokens, res.usage.completion_tokens)
-    if workspace_uuid:
-        await record_usage(
-            db,
-            workspace_id=workspace_uuid,
-            user_id=job.created_by,
-            provider=getattr(prov, "name", "?"),
-            model=res.model,
-            usage=res.usage,
-            cost=cost,
-        )
+    await record_usage(
+        db,
+        user_id=job.created_by,
+        provider=getattr(prov, "name", "?"),
+        model=res.model,
+        usage=res.usage,
+        cost=cost,
+    )
     if budget_usd > 0 and (total_cost + cost) > budget_usd:
         try:
             labels = LLMCallLabels(

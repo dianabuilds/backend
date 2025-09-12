@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.notifications.application.notify_service import NotifyService
 from app.domains.notifications.application.ports.notifications import INotificationPort
 from app.domains.notifications.infrastructure.repositories.notification_repository import (
@@ -44,3 +44,4 @@ class InAppNotificationPort(INotificationPort):
 
 
 __all__ = ["InAppNotificationPort"]
+

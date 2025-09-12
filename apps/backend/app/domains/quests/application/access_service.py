@@ -7,15 +7,13 @@ class AccessService:
     def __init__(self, repo: IAccessRepository) -> None:
         self._repo = repo
 
-    async def has_access(self, *, user, quest, workspace_id) -> bool:
+    async def has_access(self, *, user, quest, tenant_id) -> bool:
         if quest.author_id == user.id:
             return True
         if (quest.price is None or quest.price == 0) and not quest.is_premium_only:
             return True
         if quest.is_premium_only and user.is_premium:
             return True
-        if await self._repo.has_purchase(
-            quest_id=quest.id, user_id=user.id, workspace_id=workspace_id
-        ):
+        if await self._repo.has_purchase(quest_id=quest.id, user_id=user.id, tenant_id=tenant_id):
             return True
         return False

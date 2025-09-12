@@ -33,7 +33,7 @@ from app.domains.nodes.infrastructure.repositories.node_repository import (
 from app.domains.nodes.models import NodePublishJob
 from app.domains.nodes.schemas.node import NodeBulkPatch, NodeOut
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.nodes_common import Status
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_admin_role
 
@@ -367,3 +367,4 @@ async def rollback_version_alias(
         raise HTTPException(status_code=404, detail="Node not found")
     node = await repo.rollback(node, version, current_user.id)
     return NodeOut.model_validate(node)
+

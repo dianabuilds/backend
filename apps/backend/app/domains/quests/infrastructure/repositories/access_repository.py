@@ -14,12 +14,12 @@ class AccessRepository(IAccessRepository):
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    async def has_purchase(self, *, quest_id, user_id, workspace_id) -> bool:
+    async def has_purchase(self, *, quest_id, user_id, tenant_id) -> bool:
         res = await self._db.execute(
             select(QuestPurchase).where(
                 QuestPurchase.quest_id == quest_id,
                 QuestPurchase.user_id == user_id,
-                QuestPurchase.workspace_id == workspace_id,
+                QuestPurchase.tenant_id == tenant_id,
             )
         )
         return res.scalars().first() is not None

@@ -13,8 +13,8 @@ from app.api.deps import (
     get_current_user,
     require_premium,
 )
-from app.providers.db.session import get_db
-from app.core.log_events import cache_invalidate
+from app.kernel.db import get_db
+from app.domains.telemetry.log_events import cache_invalidate
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
@@ -361,3 +361,5 @@ async def delete_feedback(
     return await service.delete_feedback(
         db, slug, feedback_id, current_user, author_id=current_user.id
     )
+
+

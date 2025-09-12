@@ -3,9 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Response
 from prometheus_client import generate_latest
 
-from app.core.config import settings
-from app.core.metrics import metrics_storage
-from app.core.transition_metrics import prometheus as core_transition_prometheus
+from app.kernel.config import settings
+from app.domains.telemetry.metrics import metrics_storage
+from app.domains.telemetry.transition_metrics import prometheus as core_transition_prometheus
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.domains.telemetry.application.metrics_registry import llm_metrics
 from app.domains.telemetry.application.transition_metrics_facade import (
@@ -32,3 +32,4 @@ async def metrics() -> Response:
         + transition_metrics.prometheus()
     )
     return Response(text, media_type="text/plain; version=0.0.4")
+

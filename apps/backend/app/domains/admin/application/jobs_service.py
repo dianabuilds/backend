@@ -5,7 +5,7 @@ import json
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from app.kernel.config import settings
 from app.models.background_job_history import BackgroundJobHistory
 from app.providers.cache import cache as shared_cache
 from app.providers.redis_utils import create_async_redis

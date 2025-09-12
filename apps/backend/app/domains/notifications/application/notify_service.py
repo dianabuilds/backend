@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.notifications.application.ports.notification_repo import (
     INotificationRepository,
 )
@@ -51,3 +51,4 @@ class NotifyService:
             except Exception:
                 pass
         return dto
+

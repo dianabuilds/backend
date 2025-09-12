@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.scope import get_node_scope_id
+from app.shared.scoping import get_node_scope_id
 
-from app.core.preview import PreviewContext  # isort: skip
+from app.kernel.preview import PreviewContext  # isort: skip
 
 from .access_policy import has_access_async
 from .providers import TransitionProvider
@@ -202,3 +202,5 @@ class FallbackPolicy(Policy):
 
         fallback_node = SimpleNamespace(slug="fallback", tags=[])
         return fallback_node, TransitionTrace([node.slug], [], "fallback", reason="fallback")
+
+

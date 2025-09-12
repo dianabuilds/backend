@@ -16,7 +16,7 @@ from app.domains.navigation.infrastructure.models.transition_models import (
 from app.domains.navigation.schemas.traces import NodeTraceCreate, NodeTraceOut
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 
 router = APIRouter(prefix="/traces", tags=["traces"])
 
@@ -70,3 +70,4 @@ async def list_traces(
         )
     result = await db.execute(stmt.order_by(NodeTrace.created_at.desc()))
     return result.scalars().all()
+

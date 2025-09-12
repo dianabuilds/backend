@@ -5,8 +5,8 @@ from typing import Any
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import DeclarativeBase
 
-from app.core.config import get_settings
-from app.core.settings import EnvMode
+from app.kernel.config import get_settings
+from app.kernel.config import EnvMode
 
 
 class Base(DeclarativeBase):
@@ -35,8 +35,8 @@ if _settings.env_mode == EnvMode.test:
     from app.domains.nodes.models import NodeItem  # noqa
     import app.domains.tags.models  # noqa: F401
 else:
-    from app.models.idempotency import IdempotencyKey  # noqa
-    from app.models.outbox import OutboxEvent  # noqa
+    from app.kernel.models.idempotency import IdempotencyKey  # noqa
+    from app.kernel.models.outbox import OutboxEvent  # noqa
     from app.domains.nodes.infrastructure.models.node import Node  # noqa
     from app.domains.nodes.models import NodeItem  # noqa
     from app.domains.tags.infrastructure.models.tag_models import TagAlias  # noqa

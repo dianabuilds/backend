@@ -169,3 +169,16 @@ Conventional Commits, semver, auto-changelog. Коммиты агента под
 ---
 
 **TL;DR:** агент всегда идёт по циклу план → тесты → код → самоаудит → PR. Любой регресс без `WAIVER` — блок.
+
+## Доменные инструкции агента
+
+Для отдельных доменов действуют дополнительные гайды и промпты. Перед изменениями в домене изучай соответствующий гайд:
+
+- Profile: `apps/backend/app/domains/profile/agent/AGENT_GUIDE.md`
+  - Промпты: `apps/backend/app/domains/profile/agent/prompts/{coder,critic,planner}.md`
+  - Eval-задачи: `apps/backend/app/domains/profile/agent/evals/tasks/`
+
+Шаблон для новых доменов берётся из `_template` и используется скриптом скаффолдинга:
+
+- Template guide: `apps/backend/app/domains/_template/agent/AGENT_GUIDE.md`
+- Скаффолдинг: `python backend/scripts/scaffold_domain.py <name>`

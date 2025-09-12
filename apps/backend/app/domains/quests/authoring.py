@@ -24,10 +24,10 @@ async def create_quest(
     *,
     payload: QuestCreate,
     author: User,
-    workspace_id: UUID,
+    tenant_id: UUID,
 ) -> Quest:
     quest = Quest(
-        workspace_id=workspace_id,
+        tenant_id=tenant_id,
         title=payload.title,
         subtitle=payload.subtitle,
         description=payload.description,
@@ -52,14 +52,14 @@ async def update_quest(
     db: AsyncSession,
     *,
     quest_id: UUID,
-    workspace_id: UUID,
+    tenant_id: UUID,
     payload: QuestUpdate,
     actor: User,
 ) -> Quest:
     result = await db.execute(
         select(Quest).where(
             Quest.id == quest_id,
-            Quest.workspace_id == workspace_id,
+            Quest.tenant_id == tenant_id,
             Quest.is_deleted.is_(False),
         )
     )
@@ -87,10 +87,10 @@ async def _latest_version(db: AsyncSession, quest_id: UUID) -> QuestVersion | No
 
 
 async def publish_quest(
-    db: AsyncSession, *, quest_id: UUID, workspace_id: UUID, actor: User
+    db: AsyncSession, *, quest_id: UUID, tenant_id: UUID, actor: User
 ) -> Quest:
     """Публикация квеста — делегирует в versions.release_latest с жёсткой валидацией."""
-    return await release_latest(db, quest_id=quest_id, workspace_id=workspace_id, actor=actor)
+    return await release_latest(db, quest_id=quest_id, tenant_id=tenant_id, actor=actor)
 
 
 _KEY_RE = re.compile(r"^[A-Za-z0-9_.:\-]+$")
@@ -300,13 +300,13 @@ async def delete_node(
 
 
 async def delete_quest_soft(
-    db: AsyncSession, *, quest_id: UUID, workspace_id: UUID, actor: User
+    db: AsyncSession, *, quest_id: UUID, tenant_id: UUID, actor: User
 ) -> None:
     """Мягкое удаление квеста (пометка is_deleted=True) с проверкой владельца."""
     res = await db.execute(
         select(Quest).where(
             Quest.id == quest_id,
-            Quest.workspace_id == workspace_id,
+            Quest.tenant_id == tenant_id,
             Quest.is_deleted.is_(False),
         )
     )

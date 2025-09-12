@@ -61,7 +61,7 @@ async def release_latest(
     db: AsyncSession,
     *,
     quest_id: UUID,
-    workspace_id: UUID,
+    tenant_id: UUID,
     actor: User | None = None,
 ) -> Quest:
     """Выпустить (опубликовать) последнюю версию квеста с жёсткой валидацией."""
@@ -69,7 +69,7 @@ async def release_latest(
     resq = await db.execute(
         select(Quest).where(
             Quest.id == quest_id,
-            Quest.workspace_id == workspace_id,
+            Quest.tenant_id == tenant_id,
             Quest.is_deleted.is_(False),
         )
     )

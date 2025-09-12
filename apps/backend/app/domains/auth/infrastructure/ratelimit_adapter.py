@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi.params import Depends as _Depends
 
-from app.core.rate_limit import rate_limit_dep, rate_limit_dep_key
+from app.kernel.middlewares.rate_limit import rate_limit_dep, rate_limit_dep_key
 from app.domains.auth.application.ports.ratelimit_port import IRateLimiter
 
 

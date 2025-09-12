@@ -10,11 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.domains.admin.infrastructure.models.audit_log import AuditLog
-from app.api.deps import get_tenant_id_optional
+from app.kernel.preview import get_tenant_id_optional
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
-from app.schemas.audit import AuditLogOut
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.kernel.db import get_db
+from app.domains.admin.schemas.audit import AuditLogOut
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_only = require_admin_role({"admin"})
 
@@ -47,7 +47,7 @@ async def list_audit_logs(
     if resource:
         stmt = stmt.where(or_(AuditLog.resource_type == resource, AuditLog.resource_id == resource))
     if tenant:
-        stmt = stmt.where(AuditLog.workspace_id == tenant)
+        stmt = stmt.where(AuditLog.tenant_id == tenant)
     if date_from:
         stmt = stmt.where(AuditLog.created_at >= date_from)
     if date_to:
@@ -57,3 +57,4 @@ async def list_audit_logs(
     stmt = stmt.offset(offset).limit(page_size)
     result = await db.execute(stmt)
     return result.scalars().all()
+

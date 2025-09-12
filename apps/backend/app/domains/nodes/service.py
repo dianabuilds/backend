@@ -5,7 +5,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.notifications.application.ports.notifications import (
     INotificationPort,
 )
@@ -105,3 +105,4 @@ class NodePatchService:
         # Mark patch as reverted so it won't be applied as a hotfix overlay.
         patch.reverted_at = patch.created_at
         await db.flush()
+

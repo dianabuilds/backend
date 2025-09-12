@@ -6,8 +6,7 @@ from uuid import uuid4
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 
-from app.providers.db.adapters import ARRAY, JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import ARRAY, JSONB, UUID, Base
 
 
 class NavigationCache(Base):
@@ -24,3 +23,4 @@ class NavigationCache(Base):
         UniqueConstraint("node_slug", name="uq_nav_cache_slug"),
         Index("ix_navigation_cache_generated_at", "generated_at"),
     )
+

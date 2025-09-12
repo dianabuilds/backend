@@ -14,7 +14,7 @@ from app.domains.quests.infrastructure.repositories.event_quests_repository impo
 from app.schemas.notification import NotificationType
 
 
-async def check_quest_completion(db: AsyncSession, user, node, workspace_id) -> None:
+async def check_quest_completion(db: AsyncSession, user, node, tenant_id) -> None:
     """
     Совместимая доменная точка входа для проверки завершения и награждения в Event Quests.
     """
@@ -24,13 +24,13 @@ async def check_quest_completion(db: AsyncSession, user, node, workspace_id) -> 
         node=node,
         reward_premium_days=7,
         notification_type=NotificationType.quest,
-        workspace_id=workspace_id,
+        tenant_id=tenant_id,
     )
 
 
-async def has_access(db: AsyncSession, user, quest, workspace_id) -> bool:
+async def has_access(db: AsyncSession, user, quest, tenant_id) -> bool:
     """
     Совместимая доменная точка входа для проверки доступа к квесту.
     """
     service = AccessService(AccessRepository(db))
-    return await service.has_access(user=user, quest=quest, workspace_id=workspace_id)
+    return await service.has_access(user=user, quest=quest, tenant_id=tenant_id)

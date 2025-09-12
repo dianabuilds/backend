@@ -14,7 +14,7 @@ from app.domains.users.infrastructure.models.user import User
 from app.schemas.nodes_common import Status
 
 
-async def list_public(db: AsyncSession, *, workspace_id: UUID) -> list[Quest]:
+async def list_public(db: AsyncSession, *, tenant_id: UUID) -> list[Quest]:
     res = await db.execute(
         select(Quest)
         .join(NodeItem, NodeItem.id == Quest.id)
@@ -22,7 +22,7 @@ async def list_public(db: AsyncSession, *, workspace_id: UUID) -> list[Quest]:
             NodeItem.type == "quest",
             NodeItem.status == Status.published,
             Quest.is_deleted.is_(False),
-            Quest.workspace_id == workspace_id,
+            Quest.tenant_id == tenant_id,
         )
         .order_by(NodeItem.published_at.desc())
     )
@@ -40,7 +40,7 @@ async def search(
     sort_by: str,
     page: int,
     per_page: int,
-    workspace_id: UUID,
+    tenant_id: UUID,
 ) -> list[Quest]:
     stmt = (
         select(Quest)
@@ -49,7 +49,7 @@ async def search(
             NodeItem.type == "quest",
             NodeItem.status == Status.published,
             Quest.is_deleted.is_(False),
-            Quest.workspace_id == workspace_id,
+            Quest.tenant_id == tenant_id,
         )
     )
 
@@ -91,7 +91,7 @@ async def search(
     return list(res.scalars().all())
 
 
-async def get_for_view(db: AsyncSession, *, slug: str, user: User, workspace_id: UUID) -> Quest:
+async def get_for_view(db: AsyncSession, *, slug: str, user: User, tenant_id: UUID) -> Quest:
     res = await db.execute(
         select(Quest).where(
             Quest.slug == slug,
@@ -101,7 +101,7 @@ async def get_for_view(db: AsyncSession, *, slug: str, user: User, workspace_id:
     quest = res.scalars().first()
     if not quest or (quest.is_draft and quest.author_id != user.id):
         raise ValueError("Quest not found")
-    if quest.workspace_id != workspace_id:
+    if quest.tenant_id != tenant_id:
         # Cross-tenant access via shared objects is not allowed.
         # Treat as not found to avoid leaking existence across tenants.
         raise ValueError("Quest not found")

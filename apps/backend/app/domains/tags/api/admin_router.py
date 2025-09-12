@@ -21,7 +21,7 @@ from app.domains.tags.schemas.admin import (
     TagCreate,
     TagListItem,
 )
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role({"admin"})
@@ -203,3 +203,4 @@ async def delete_tag(
     svc = TagAdminService(TagRepositoryAdapter(db))
     await svc.delete_tag(db, tag_id, str(getattr(current, "id", "")), request)
     return {"ok": True}
+

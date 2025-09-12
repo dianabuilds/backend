@@ -10,7 +10,7 @@ from app.domains.ai.infrastructure.repositories.user_pref_repository import (
 )
 from app.domains.ai.schemas.user_pref import UserAIPrefIn, UserAIPrefOut
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role({"admin", "moderator"})
@@ -42,3 +42,4 @@ async def put_user_pref(
     pref = await repo.set(current.id, body.model)
     await db.commit()
     return UserAIPrefOut(model=pref.model)
+

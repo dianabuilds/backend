@@ -7,11 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import get_current_user_optional, get_preview_context
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.transition import TransitionMode
 
 router = APIRouter(prefix="/nodes", tags=["nodes-navigation"])
@@ -51,3 +51,5 @@ async def get_next_modes(
         "default_mode": "compass",
         "modes": [m.model_dump() for m in modes],
     }
+
+

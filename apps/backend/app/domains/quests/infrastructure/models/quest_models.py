@@ -19,8 +19,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import relationship
 
-from app.providers.db.adapters import ARRAY, JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import ARRAY, JSONB, UUID, Base
 from app.schemas.nodes_common import Status, Visibility
 
 
@@ -33,7 +32,7 @@ class Quest(Base):
     __tablename__ = "quests"
 
     id = Column(UUID(), primary_key=True, default=uuid4)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    tenant_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     slug = Column(String, unique=True, index=True, nullable=False, default=generate_slug)
     title = Column(String, nullable=False)
     subtitle = Column(String, nullable=True)
@@ -80,7 +79,7 @@ class QuestPurchase(Base):
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("quests.id"), nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    tenant_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     paid_at = Column(DateTime, default=datetime.utcnow)
 
     quest = relationship("Quest", back_populates="purchases")
@@ -93,9 +92,10 @@ class QuestProgress(Base):
     id = Column(UUID(), primary_key=True, default=uuid4)
     quest_id = Column(UUID(), ForeignKey("quests.id"), nullable=False)
     user_id = Column(UUID(), ForeignKey("users.id"), nullable=False)
-    workspace_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
+    tenant_id = Column(UUID(), ForeignKey("workspaces.id"), nullable=False, index=True)
     current_node_id = Column(BigInteger, ForeignKey("nodes.id"), nullable=False)
     started_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     quest = relationship("Quest", back_populates="progresses")
+

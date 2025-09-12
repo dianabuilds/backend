@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.quests.application.quest_graph_service import QuestGraphService
 from app.domains.quests.infrastructure.models.quest_version_models import QuestVersion
 from app.domains.quests.schemas import QuestStep, QuestTransition
@@ -240,3 +240,4 @@ class EditorService:
 
     async def generate_navigation_cache(self, db: AsyncSession, version_id: UUID) -> None:
         await self._graph.generate_navigation_cache(db, version_id)
+

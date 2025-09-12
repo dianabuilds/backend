@@ -22,7 +22,7 @@ from app.domains.nodes.models import NodeItem
 from app.domains.nodes.schemas.node import AdminNodeList, AdminNodeOut
 from app.domains.nodes.service import publish_content
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.nodes_common import Status, Visibility
 from app.security import ADMIN_AUTH_RESPONSES, auth_user, require_admin_role
 
@@ -505,3 +505,4 @@ async def publish_node_patch(
 
 # Register sub-routers in the desired order.
 router.include_router(id_router)
+

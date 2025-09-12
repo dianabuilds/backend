@@ -49,6 +49,7 @@ aiosqlite>=0.19
 sentry-sdk>=1.40.0
 fakeredis>=2.21
 punq~=0.7.0
+import-linter>=2.0
 
 ### Observability
 opentelemetry-api~=1.36.0
@@ -60,5 +61,4 @@ opentelemetry-instrumentation-sqlalchemy~=0.57b0
 opentelemetry-instrumentation-httpx~=0.57b0
 opentelemetry-instrumentation-requests~=0.57b0
 prometheus-client~=0.20.0
-
 

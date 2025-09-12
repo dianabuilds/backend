@@ -7,14 +7,14 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.log_events import cache_counters, cache_key_hits
+from app.domains.telemetry.log_events import cache_counters, cache_key_hits
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
 )
 from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.kernel.db import get_db
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role()
 admin_only = require_admin_role({"admin"})
@@ -65,3 +65,4 @@ async def invalidate_by_pattern(
         },
     )
     return {"deleted": len(keys or [])}
+

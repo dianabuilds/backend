@@ -7,7 +7,7 @@ from collections.abc import Callable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from app.kernel.config import settings
 from app.domains.ai.application.ports.embedding_port import IEmbeddingProvider
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.tags.infrastructure.models.tag_models import NodeTag

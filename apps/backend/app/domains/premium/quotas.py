@@ -1,9 +1,15 @@
 """
-Domains.Premium: Quotas re-export.
+Premium quotas API (compat shim).
 
-from app.domains.premium.quotas import check_and_consume_quota, get_quota_status
+This module re-exports quota helpers from the application layer.
+Legacy ``quotas_impl.py`` is deprecated; import from
+``app.domains.premium.application.user_quota_service`` instead or keep using
+this shim during migration.
 """
 
-from .quotas_impl import check_and_consume_quota, get_quota_status  # noqa: F401
+from app.domains.premium.application.user_quota_service import (  # noqa: F401
+    check_and_consume_quota,
+    get_quota_status,
+)
 
 __all__ = ["check_and_consume_quota", "get_quota_status"]

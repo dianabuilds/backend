@@ -6,14 +6,14 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from app.schemas.node import (
+from app.domains.nodes.schemas.node_public import (
     NodeBulkOperation,
     NodeBulkPatch,
     NodeCreate,
     NodeOut,
     NodeUpdate,
 )
-from app.schemas.nodes_common import Status
+from app.domains.nodes.schemas.nodes_common import Status
 
 
 class AdminNodeOut(BaseModel):

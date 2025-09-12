@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 
 
 def user_limit(*_args, **_kwargs):
@@ -45,3 +45,4 @@ class CompassService:
             if n and await has_access_async(n, user, preview):
                 nodes.append(n)
         return nodes
+

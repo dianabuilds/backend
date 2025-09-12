@@ -22,7 +22,7 @@ from app.domains.navigation.schemas.transitions import (
 )
 from app.domains.nodes.application.query_models import PageRequest, QueryContext
 from app.domains.nodes.infrastructure.models.node import Node
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.providers.db.transition_query import (
     TransitionFilterSpec,
     TransitionQueryService,
@@ -164,3 +164,4 @@ async def disable_transitions_by_node(
     await navcache.invalidate_navigation_by_user(node.author_id)
     await navcache.invalidate_compass_by_user(node.author_id)
     return {"disabled": len(transitions)}
+

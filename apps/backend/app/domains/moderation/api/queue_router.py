@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.moderation.application import CasesService
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.moderation_cases import CaseListResponse
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -28,3 +28,4 @@ async def list_queue(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,  # noqa: B008
 ) -> CaseListResponse:
     return await cases_service.list_cases(db, page=page, size=size, statuses=["new", "in_progress"])
+

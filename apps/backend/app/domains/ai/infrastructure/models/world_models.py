@@ -8,7 +8,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
 
-from app.providers.db.base import Base
+from app.kernel.db import Base
 from app.schemas.nodes_common import Status, Visibility
 
 
@@ -76,3 +76,4 @@ class Character(Base):
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     world = relationship("WorldTemplate", back_populates="characters")
+

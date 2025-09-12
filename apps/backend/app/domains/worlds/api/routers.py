@@ -8,13 +8,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.infrastructure.models.world_models import WorldTemplate
-from app.api.deps import get_tenant_id
 from app.domains.users.infrastructure.models.user import User
 from app.domains.worlds.application.worlds_service import WorldsService
 from app.domains.worlds.infrastructure.repositories.worlds_repository import (
     WorldsRepository,
 )
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.worlds import (
     CharacterIn,
     CharacterOut,
@@ -33,22 +32,22 @@ def _svc(db: AsyncSession) -> WorldsService:
 
 @router.get("", response_model=list[WorldTemplateOut], summary="List world templates")
 async def list_worlds(
-    tenant: Annotated[UUID, Depends(get_tenant_id)],
+    profile_id: Annotated[UUID, Query()],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    return await _svc(db).list_worlds(tenant)
+    return await _svc(db).list_worlds(profile_id)
 
 
 @router.post("", response_model=WorldTemplateOut, summary="Create world template")
 async def create_world(
     payload: WorldTemplateIn,
-    tenant: Annotated[UUID, Depends(get_tenant_id)],
+    profile_id: Annotated[UUID, Query()],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     return await _svc(db).create_world(
-        db, tenant, payload.model_dump(exclude_none=True), current_user.id
+        db, profile_id, payload.model_dump(exclude_none=True), current_user.id
     )
 
 
@@ -56,7 +55,7 @@ async def create_world(
 async def update_world(
     world_id: UUID,
     payload: WorldTemplateIn,
-    tenant: Annotated[UUID, Depends(get_tenant_id)],
+    profile_id: Annotated[UUID, Query()],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -64,12 +63,12 @@ async def update_world(
     world = res.scalars().first()
     if not world:
         raise HTTPException(status_code=404, detail="World not found")
-    if world.workspace_id != tenant:
+    if world.profile_id != profile_id:
         # Cross-tenant access via shared objects is not allowed.
         raise HTTPException(status_code=403, detail="No access")
     out = await _svc(db).update_world(
         db,
-        world.workspace_id,
+        world.profile_id,
         world_id,
         payload.model_dump(exclude_none=True),
         current_user.id,
@@ -82,7 +81,7 @@ async def update_world(
 @router.delete("/{world_id}", summary="Delete world template")
 async def delete_world(
     world_id: UUID,
-    tenant: Annotated[UUID, Depends(get_tenant_id)],
+    profile_id: Annotated[UUID, Query()],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -90,10 +89,10 @@ async def delete_world(
     world = res.scalars().first()
     if not world:
         raise HTTPException(status_code=404, detail="World not found")
-    if world.workspace_id != tenant:
+    if world.profile_id != profile_id:
         # Cross-tenant access via shared objects is not allowed.
         raise HTTPException(status_code=403, detail="No access")
-    ok = await _svc(db).delete_world(db, world.workspace_id, world_id)
+    ok = await _svc(db).delete_world(db, world.profile_id, world_id)
     if not ok:
         raise HTTPException(status_code=404, detail="World not found")
     return {"status": "ok"}
@@ -106,25 +105,25 @@ async def delete_world(
 )
 async def list_characters(
     world_id: UUID,
-    tenant: Annotated[UUID, Depends(get_tenant_id)],
+    profile_id: Annotated[UUID, Query()],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    return await _svc(db).list_characters(world_id, tenant)
+    return await _svc(db).list_characters(world_id, profile_id)
 
 
 @router.post("/{world_id}/characters", response_model=CharacterOut, summary="Create character")
 async def create_character(
     world_id: UUID,
     payload: CharacterIn,
-    tenant: Annotated[UUID, Depends(get_tenant_id)],
+    profile_id: Annotated[UUID, Query()],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ch = await _svc(db).create_character(
         db,
         world_id,
-        tenant,
+        profile_id,
         payload.model_dump(exclude_none=True),
         current_user.id,
     )
@@ -137,14 +136,14 @@ async def create_character(
 async def update_character(
     char_id: UUID,
     payload: CharacterIn,
-    tenant: Annotated[UUID, Depends(get_tenant_id)],
+    profile_id: Annotated[UUID, Query()],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     ch = await _svc(db).update_character(
         db,
         char_id,
-        tenant,
+        profile_id,
         payload.model_dump(exclude_none=True),
         current_user.id,
     )
@@ -156,11 +155,12 @@ async def update_character(
 @router.delete("/characters/{char_id}", summary="Delete character")
 async def delete_character(
     char_id: UUID,
-    tenant: Annotated[UUID, Depends(get_tenant_id)],
+    profile_id: Annotated[UUID, Query()],
     current_user: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
-    ok = await _svc(db).delete_character(db, char_id, tenant)
+    ok = await _svc(db).delete_character(db, char_id, profile_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Character not found")
     return {"status": "ok"}
+

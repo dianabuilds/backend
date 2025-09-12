@@ -20,18 +20,18 @@ class QuestService:
         node,
         reward_premium_days: int,
         notification_type,
-        workspace_id,
+        tenant_id,
     ) -> None:
         now = datetime.utcnow()
-        quests = await self._repo.get_active_for_node(workspace_id, now, node.id)
+        quests = await self._repo.get_active_for_node(tenant_id, now, node.id)
         if not quests:
             return
         for quest in quests:
-            already = await self._repo.has_completion(quest.id, user.id, workspace_id)
+            already = await self._repo.has_completion(quest.id, user.id, tenant_id)
             if already:
                 continue
-            await self._repo.create_completion(quest.id, user.id, node.id, workspace_id)
-            count = await self._repo.count_completions(quest.id, workspace_id)
+            await self._repo.create_completion(quest.id, user.id, node.id, tenant_id)
+            count = await self._repo.count_completions(quest.id, tenant_id)
             if count <= quest.max_rewards:
                 # Премиум награда
                 try:

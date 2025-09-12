@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 from fastapi import HTTPException
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.providers.cache import Cache
 from app.providers.cache import cache as shared_cache
 
@@ -55,7 +55,7 @@ class QuotaService:
         preview: PreviewContext | None = None,
         plan: str | None = None,
         idempotency_token: str | None = None,
-        workspace_id: str | None = None,
+        tenant_id: str | None = None,
     ) -> dict[str, Any]:
         if preview and preview.plan:
             plan = preview.plan
@@ -87,8 +87,8 @@ class QuotaService:
             raise ValueError(f"unknown scope: {scope}")
         ttl = int((reset_at - now).total_seconds())
 
-        workspace_part = workspace_id or "-"
-        counter_key = f"q:{quota_key}:{period}:{user_id}:{workspace_part}"
+        tenant_part = tenant_id or "-"
+        counter_key = f"q:{quota_key}:{period}:{user_id}:{tenant_part}"
 
         # idempotency: if token exists, return stored result without modification
         if idempotency_token:
@@ -133,3 +133,4 @@ class QuotaService:
                 },
             )
         return result
+

@@ -1,0 +1,8 @@
+
+version: 1
+roles: [service, admin]
+actions:
+  - name: system.sample.send
+rules:
+  - action: system.sample.send
+    allow: ["service", "admin"]

@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends
 
-from app.core.config import settings
+from app.kernel.config import settings
 from app.domains.ai.application.embedding_service import EMBEDDING_DIM, get_embedding
 from app.domains.users.infrastructure.models.user import User
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role

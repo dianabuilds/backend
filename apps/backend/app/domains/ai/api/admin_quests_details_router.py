@@ -11,7 +11,7 @@ from app.domains.ai.infrastructure.models.generation_models import (
     GenerationJob,
     GenerationJobLog,
 )
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 
@@ -95,3 +95,4 @@ async def get_generation_job_details(
         },
     }
     return details
+

@@ -5,7 +5,7 @@ from uuid import UUID
 
 import httpx
 
-from app.core.settings import Settings, get_settings
+from app.kernel.config import Settings, get_settings
 from app.providers.email import IEmail
 
 

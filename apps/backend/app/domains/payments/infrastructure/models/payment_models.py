@@ -5,8 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, UniqueConstraint
 
-from app.providers.db.adapters import JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import JSONB, UUID, Base
 
 
 class PaymentGatewayConfig(Base):
@@ -45,3 +44,4 @@ class PaymentTransaction(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     meta = Column(JSONB, nullable=True)
+

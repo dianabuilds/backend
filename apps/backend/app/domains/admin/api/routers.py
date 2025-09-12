@@ -14,8 +14,8 @@ from app.domains.admin.application.menu_service import (
     invalidate_menu_cache,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.kernel.db import get_db
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 logger = logging.getLogger(__name__)
 
@@ -73,3 +73,4 @@ async def invalidate_admin_menu(
 ) -> JSONResponse:
     invalidate_menu_cache()
     return JSONResponse({"status": "invalidated"})
+

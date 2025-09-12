@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domains.ai.infrastructure.repositories.usage_repository import (
     AIUsageRepository,
 )
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required = require_admin_role({"admin"})
@@ -30,3 +30,4 @@ async def get_system_usage(
 
 
 # Only system-wide totals are exposed in this build.
+

@@ -12,11 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 
-from app.core.audit_log import log_admin_action
+from app.domains.telemetry.audit_log import log_admin_action
 from app.domains.navigation.infrastructure.models.transition_models import NodeTrace
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 logger = logging.getLogger(__name__)
@@ -256,3 +256,4 @@ async def bulk_delete_traces(
         resource_id=",".join(str(i) for i in payload.ids),
     )
     return {"deleted": deleted}
+

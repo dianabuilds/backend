@@ -9,7 +9,7 @@ from sqlalchemy.future import select
 from app.api.deps import admin_required
 from app.domains.quests.infrastructure.models.quest_version_models import QuestVersion
 from app.domains.quests.validation import validate_version_graph
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 
@@ -33,3 +33,4 @@ async def get_version_validation(
     if report is None:
         report = await validate_version_graph(db, version_id)
     return {"version_id": version_id, "report": report}
+

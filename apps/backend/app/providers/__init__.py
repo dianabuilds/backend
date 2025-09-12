@@ -2,7 +2,7 @@
 
 from punq import Container
 
-from app.core.settings import EnvMode, Settings
+from app.kernel.config import EnvMode, Settings
 
 from .ai import FakeAIProvider, IAIProvider, RealAIProvider, SandboxAIProvider
 from .case_notifier import (
@@ -59,6 +59,17 @@ def register_providers(container: Container, settings: Settings) -> None:
     mapping = ENV_PROVIDER_MAP.get(settings.env_mode, {})
     for interface, implementation in mapping.items():
         container.register(interface, implementation)
+
+    # Domain-specific providers
+    try:  # keep optional to not fail partial deployments
+        from app.domains.auth.infrastructure.container import (
+            register_auth_providers,
+        )
+
+        register_auth_providers(container, settings)
+    except Exception:
+        # Domains may be optional in some environments; log/ignore here
+        pass
 
 
 __all__ = [

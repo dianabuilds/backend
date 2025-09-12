@@ -7,8 +7,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_storage
-from app.core.log_events import (
+from app.domains.media.infrastructure.deps import get_storage
+from app.domains.telemetry.log_events import (
     node_cover_upload_fail,
     node_cover_upload_start,
     node_cover_upload_success,
@@ -17,7 +17,7 @@ from app.domains.media.application.ports.storage_port import IStorageGateway
 from app.domains.media.application.storage_service import StorageService
 from app.domains.media.dao import MediaAssetDAO
 from app.domains.media.schemas import MediaAssetOut
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -80,3 +80,5 @@ async def upload_media_asset(
         "url": url,
         "asset": MediaAssetOut.model_validate(asset),
     }
+
+

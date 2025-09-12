@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.achievements.application.ports.repository import (
     IAchievementsRepository,
 )
@@ -142,3 +142,4 @@ class AchievementsService:
 
 
 __all__ = ["AchievementsService"]
+

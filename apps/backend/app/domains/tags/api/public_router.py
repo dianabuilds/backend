@@ -10,7 +10,7 @@ from sqlalchemy.future import select
 from app.api import deps as api_deps
 from app.domains.tags.models import ContentTag, Tag
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.tag import TagOut
 
 router = APIRouter(prefix="/tags", tags=["tags"])
@@ -18,8 +18,7 @@ router = APIRouter(prefix="/tags", tags=["tags"])
 
 @router.get("/", response_model=list[TagOut], summary="List tags")
 async def list_tags(
-    workspace_id: Annotated[str | None, Query()] = None,  # legacy param ignored
-    tenant_id: Annotated[str | None, Query()] = None,  # preferred; ignored for now
+    tenant_id: Annotated[str | None, Query()] = None,  # reserved; ignored for now
     q: Annotated[str | None, Query()] = None,
     popular: Annotated[bool, Query()] = False,
     limit: Annotated[int, Query()] = 10,
@@ -49,3 +48,4 @@ async def list_tags(
     stmt = stmt.offset(offset).limit(limit)
     rows = (await db.execute(stmt)).all()
     return [TagOut(slug=t.slug, name=t.name, count=c) for t, c in rows]
+

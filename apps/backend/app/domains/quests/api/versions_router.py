@@ -16,7 +16,7 @@ from app.api.deps import (
     get_preview_context,
     get_tenant_id,
 )
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.quests.application.editor_service import EditorService
 from app.domains.quests.application.quest_graph_service import QuestGraphService
 from app.domains.quests.infrastructure.models.quest_models import Quest
@@ -34,22 +34,22 @@ router = APIRouter(prefix="/quests", tags=["quests"])
 
 
 async def _ensure_quest_access(
-    db: AsyncSession, quest_id: UUID, workspace_id: UUID, current_user: User
+    db: AsyncSession, quest_id: UUID, tenant_id: UUID, current_user: User
 ) -> Quest:
     quest = await db.get(Quest, quest_id)
-    if not quest or quest.workspace_id != workspace_id or quest.is_deleted:
+    if not quest or quest.tenant_id != tenant_id or quest.is_deleted:
         raise HTTPException(status_code=404, detail="Quest not found")
     assert_owner_or_role(quest.author_id, "moderator", current_user)
     return quest
 
 
 async def _ensure_version_access(
-    db: AsyncSession, version_id: UUID, workspace_id: UUID, current_user: User
+    db: AsyncSession, version_id: UUID, tenant_id: UUID, current_user: User
 ) -> QuestVersion:
     version = await db.get(QuestVersion, version_id)
     if not version:
         raise HTTPException(status_code=404, detail="Version not found")
-    await _ensure_quest_access(db, version.quest_id, workspace_id, current_user)
+    await _ensure_quest_access(db, version.quest_id, tenant_id, current_user)
     return version
 
 
@@ -259,3 +259,4 @@ async def publish_version(
     await db.commit()
     await db.refresh(version)
     return QuestVersionOut.model_validate(version, from_attributes=True)
+

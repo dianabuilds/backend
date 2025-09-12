@@ -8,12 +8,12 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.preview import PreviewContext, PreviewMode
-from app.core.rng import next_seed
+from app.kernel.preview import PreviewContext, PreviewMode
+from app.kernel.rng import next_seed
 from app.domains.navigation.application.navigation_service import NavigationService
 from app.domains.nodes.infrastructure.models.node import Node
-from app.providers.db.session import get_db
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.kernel.db import get_db
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 
 class SimulateRequest(BaseModel):
@@ -59,3 +59,5 @@ async def simulate_transitions(
         "metrics": res.metrics,
         "seed": seed,
     }
+
+

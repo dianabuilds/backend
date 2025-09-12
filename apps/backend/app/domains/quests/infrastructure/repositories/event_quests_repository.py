@@ -20,11 +20,11 @@ class EventQuestsRepository(IEventQuestsRepository):
         self._db = db
 
     async def get_active_for_node(
-        self, workspace_id, now: datetime, node_id
+        self, tenant_id, now: datetime, node_id
     ) -> Sequence[EventQuest]:
         result = await self._db.execute(
             select(EventQuest).where(
-                EventQuest.workspace_id == workspace_id,
+                EventQuest.tenant_id == tenant_id,
                 EventQuest.is_active.is_(True),
                 EventQuest.target_node_id == node_id,
                 EventQuest.starts_at <= now,
@@ -33,35 +33,35 @@ class EventQuestsRepository(IEventQuestsRepository):
         )
         return list(result.scalars().all())
 
-    async def has_completion(self, quest_id, user_id, workspace_id) -> bool:
+    async def has_completion(self, quest_id, user_id, tenant_id) -> bool:
         res = await self._db.execute(
             select(EventQuestCompletion).where(
                 EventQuestCompletion.quest_id == quest_id,
                 EventQuestCompletion.user_id == user_id,
-                EventQuestCompletion.workspace_id == workspace_id,
+                EventQuestCompletion.tenant_id == tenant_id,
             )
         )
         return res.scalars().first() is not None
 
     async def create_completion(
-        self, quest_id, user_id, node_id, workspace_id
+        self, quest_id, user_id, node_id, tenant_id
     ) -> EventQuestCompletion:
         completion = EventQuestCompletion(
             quest_id=quest_id,
             user_id=user_id,
             node_id=node_id,
-            workspace_id=workspace_id,
+            tenant_id=tenant_id,
         )
         self._db.add(completion)
         await self._db.commit()
         await self._db.refresh(completion)
         return completion
 
-    async def count_completions(self, quest_id, workspace_id) -> int:
+    async def count_completions(self, quest_id, tenant_id) -> int:
         count_res = await self._db.execute(
             select(func.count(EventQuestCompletion.id)).where(
                 EventQuestCompletion.quest_id == quest_id,
-                EventQuestCompletion.workspace_id == workspace_id,
+                EventQuestCompletion.tenant_id == tenant_id,
             )
         )
         return int(count_res.scalar_one())

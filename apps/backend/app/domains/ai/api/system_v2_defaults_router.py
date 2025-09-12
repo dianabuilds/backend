@@ -6,7 +6,7 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.infrastructure.repositories.system_v2_repository import DefaultsRepository
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -49,3 +49,4 @@ async def put_defaults(
         "model_id": str(row.model_id) if row and row.model_id else None,
         "bundle_id": str(row.bundle_id) if row and row.bundle_id else None,
     }
+

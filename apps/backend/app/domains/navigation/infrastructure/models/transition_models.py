@@ -9,8 +9,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import backref, relationship
 
-from app.providers.db.adapters import ARRAY, JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import ARRAY, JSONB, UUID, Base
 
 
 class NodeTransitionType(str, Enum):
@@ -85,3 +84,4 @@ class NodeTrace(Base):
 
     node = relationship("Node")
     user = relationship("User")
+

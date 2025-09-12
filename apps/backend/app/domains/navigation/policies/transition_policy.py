@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.navigation.infrastructure.models.transition_models import (
     NodeTransition,
 )
@@ -26,3 +26,4 @@ class TransitionPolicy:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to modify this transition",
         )
+

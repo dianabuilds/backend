@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import jwt
 
-from app.core.config import settings
+from app.kernel.config import settings
 
 
 class PaymentService:

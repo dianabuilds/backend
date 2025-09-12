@@ -1,0 +1,28 @@
+{
+  "$id": "internal.system.message",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "push",
+        "webhook"
+      ]
+    },
+    "template": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "id",
+    "channel",
+    "template"
+  ]
+}

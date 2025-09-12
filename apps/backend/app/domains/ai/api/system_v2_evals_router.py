@@ -6,7 +6,7 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.ai.infrastructure.repositories.system_v2_repository import EvalRunsRepository
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 router = APIRouter(
@@ -28,3 +28,4 @@ async def run_evals(
     row = await repo.create(spec=payload or {}, profile_id=(payload or {}).get("profile_id"))
     # Enqueue background job here in future (rq/celery/etc)
     return {"id": str(row.id), "status": row.status}
+

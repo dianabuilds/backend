@@ -5,8 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Index, Integer, String
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 
 
 class AIUsage(Base):
@@ -29,3 +28,4 @@ class AIUsage(Base):
     completion_tokens = Column(Integer, nullable=False, default=0)
     total_tokens = Column(Integer, nullable=False, default=0)
     cost = Column(Float, nullable=True)
+

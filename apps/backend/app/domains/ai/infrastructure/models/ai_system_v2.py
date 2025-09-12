@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
-from app.providers.db.base import Base
+from app.kernel.db import Base
 
 
 class AIProvider(Base):
@@ -113,3 +113,4 @@ class AIEvalRun(Base):
     stats = Column(JSONB, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     finished_at = Column(DateTime, nullable=True)
+

@@ -8,7 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.config import settings
+from app.kernel.config import settings
 from app.domains.moderation.infrastructure.models.moderation_models import (
     UserRestriction,
 )

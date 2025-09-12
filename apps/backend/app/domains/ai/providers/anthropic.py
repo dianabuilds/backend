@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from app.core.errors import ERROR_CODE_MAP, DomainError
+from app.kernel.errors import ERROR_CODE_MAP, DomainError
 from app.domains.ai.providers.base import (
     LLMProvider,
     LLMRateLimit,

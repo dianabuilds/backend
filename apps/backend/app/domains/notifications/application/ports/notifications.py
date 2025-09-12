@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 
 
 class INotificationPort(Protocol):
@@ -20,3 +20,4 @@ class INotificationPort(Protocol):
 
 
 __all__ = ["INotificationPort"]
+

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
-from app.core.log_events import cache_invalidate
+from app.domains.telemetry.log_events import cache_invalidate
 from app.domains.navigation.application.echo_service import EchoService
 from app.domains.navigation.application.navigation_cache_service import (
     NavigationCacheService,
@@ -80,3 +80,4 @@ async def create_transition(
     await navcache.invalidate_navigation_by_user(from_node.author_id)
     cache_invalidate("nav", reason="transition_create", key=slug)
     return {"id": str(transition.id)}
+

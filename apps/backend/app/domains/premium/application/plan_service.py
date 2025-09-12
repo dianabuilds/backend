@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.premium.application.quota_service import QuotaService
 from app.domains.premium.infrastructure.models.premium_models import SubscriptionPlan
 from app.domains.premium.plans_impl import (
@@ -53,3 +53,4 @@ async def refresh_quota_limits(db: AsyncSession) -> None:
     """Reload quota limits from plans without restarting the service."""
     plans = await _build_quota_plans_map(db)
     _get_qs().set_plans_map(plans)
+

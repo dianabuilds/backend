@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_preview_context, get_tenant_id
-from app.core.preview import PreviewContext
+from app.kernel.preview import PreviewContext
 from app.domains.audit.application.audit_service import audit_log
 from app.domains.nodes import service as node_service
 from app.domains.nodes.service import validate_transition
@@ -31,7 +31,7 @@ from app.domains.quests.schemas import (
 )
 from app.domains.telemetry.application.event_metrics_facade import event_metrics
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.nodes_common import Status
 from app.schemas.quest_editor import (
     QuestCreateIn,
@@ -60,7 +60,7 @@ async def create_quest(
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
     q = Quest(
-        workspace_id=tenant,
+        tenant_id=tenant,
         title=body.title,
         subtitle=None,
         description=None,
@@ -93,7 +93,7 @@ async def get_quest(
     quest = await db.get(Quest, quest_id)
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
-    if quest.workspace_id != tenant:
+    if quest.tenant_id != tenant:
         raise HTTPException(status_code=404, detail="Quest not found")
     res = await db.execute(
         select(QuestVersion)
@@ -121,7 +121,7 @@ async def create_draft(
     quest = await db.get(Quest, quest_id)
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
-    if quest.workspace_id != tenant:
+    if quest.tenant_id != tenant:
         raise HTTPException(status_code=404, detail="Quest not found")
     svc = EditorService()
     v = await svc.create_version(db, quest_id, current_user.id)
@@ -198,7 +198,7 @@ async def put_graph(
 )
 async def validate_version(
     version_id: UUID,
-    workspace_id: UUID,
+    tenant: Annotated[UUID, Depends(get_tenant_id)],
     _: Annotated[User, Depends(admin_required)] = ...,
     db: Annotated[AsyncSession, Depends(get_db)] = ...,
 ):
@@ -206,10 +206,10 @@ async def validate_version(
     if not ver:
         raise HTTPException(status_code=404, detail="Version not found")
     q = await db.get(Quest, ver.quest_id)
-    if not q or q.workspace_id != workspace_id:
+    if not q or q.tenant_id != tenant:
         raise HTTPException(status_code=404, detail="Version not found")
     svc = EditorService()
-    event_metrics.inc("quest.validate", str(workspace_id))
+    event_metrics.inc("quest.validate", str(tenant))
     return await svc.validate_version(db, version_id)
 
 
@@ -324,7 +324,7 @@ async def publish_version(
     if not v:
         raise HTTPException(status_code=404, detail="Version not found")
     q = await db.get(Quest, v.quest_id)
-    if not q or q.workspace_id != workspace_id:
+    if not q or q.tenant_id != tenant:
         raise HTTPException(status_code=404, detail="Version not found")
     if v.status != "draft":
         raise HTTPException(status_code=400, detail="Only draft can be published")
@@ -430,7 +430,7 @@ async def simulate_version(
     if not ver:
         raise HTTPException(status_code=404, detail="Version not found")
     q = await db.get(Quest, ver.quest_id)
-    if not q or q.workspace_id != tenant:
+    if not q or q.tenant_id != tenant:
         raise HTTPException(status_code=404, detail="Version not found")
     svc = EditorService()
     return await svc.simulate_version(db, version_id, payload, preview)
@@ -448,7 +448,7 @@ async def delete_draft(
     if not v:
         raise HTTPException(status_code=404, detail="Version not found")
     q = await db.get(Quest, v.quest_id)
-    if not q or q.workspace_id != tenant:
+    if not q or q.tenant_id != tenant:
         raise HTTPException(status_code=404, detail="Version not found")
     if v.status != "draft":
         raise HTTPException(status_code=400, detail="Only draft can be deleted")
@@ -464,3 +464,7 @@ async def delete_draft(
     await svc.delete_version(db, version_id)
     await db.commit()
     return {"ok": True}
+
+
+
+

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from app.schemas.tag import (  # noqa: F401
-    TagCreate,
-)
-from app.schemas.tags_admin import (  # noqa: F401
+from app.domains.tags.schemas.tag import TagCreate  # noqa: F401
+from app.domains.tags.schemas.tags_admin import (  # noqa: F401
     AliasOut,
     BlacklistAdd,
     BlacklistItem,

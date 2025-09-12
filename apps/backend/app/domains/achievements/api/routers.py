@@ -18,7 +18,7 @@ from app.domains.achievements.infrastructure.repositories.achievements_repositor
     AchievementsRepository,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.achievement import AchievementOut
 from app.schemas.achievement_admin import (
     AchievementAdminOut,
@@ -217,3 +217,4 @@ async def revoke_achievement(
 
 router.include_router(user_router)
 router.include_router(admin_router)
+

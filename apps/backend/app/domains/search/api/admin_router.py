@@ -11,7 +11,7 @@ from app.domains.search.application.stats_service import search_stats
 from app.domains.search.infrastructure.repositories.search_config_repository import (
     SearchConfigRepository,
 )
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.search_settings import (
     RelevanceApplyOut,
     RelevanceDryRunOut,
@@ -114,3 +114,4 @@ async def get_top(
     _: AdminRequired,
 ) -> list[SearchTopQuery]:
     return [SearchTopQuery(**item) for item in search_stats.top()]
+

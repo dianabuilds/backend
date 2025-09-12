@@ -10,9 +10,8 @@ from app.domains.system.events import (
     NodeArchived,
     NodePublished,
     NodeUpdated,
-    get_event_bus,
 )
-from app.providers.db.session import db_session
+from app.kernel.db import db_session
 
 
 async def _create_campaign(title: str, message: str, author_id: UUID) -> None:
@@ -51,19 +50,9 @@ async def _on_archived(event: NodeArchived) -> None:
     )
 
 
-_registered = False
+__all__ = [
+    "_on_published",
+    "_on_updated",
+    "_on_archived",
+]
 
-
-def register_listeners() -> None:
-    global _registered
-    if _registered:
-        return
-    bus = get_event_bus()
-    bus.subscribe(NodePublished, _on_published)
-    bus.subscribe(NodeUpdated, _on_updated)
-    bus.subscribe(NodeArchived, _on_archived)
-    _registered = True
-
-
-# Register on import
-register_listeners()

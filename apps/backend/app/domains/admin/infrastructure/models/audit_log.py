@@ -5,8 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import Boolean, Column, DateTime, String
 
-from app.providers.db.adapters import JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import JSONB, UUID, Base
 
 
 class AuditLog(Base):
@@ -17,7 +16,7 @@ class AuditLog(Base):
     action = Column(String, nullable=False)
     resource_type = Column(String, nullable=True)
     resource_id = Column(String, nullable=True)
-    workspace_id = Column(UUID(), nullable=True, index=True)
+    tenant_id = Column(UUID(), nullable=True, index=True)
     before = Column(JSONB, nullable=True)
     after = Column(JSONB, nullable=True)
     override = Column(Boolean, default=False, nullable=False)
@@ -26,3 +25,4 @@ class AuditLog(Base):
     user_agent = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     extra = Column(JSONB, nullable=True)
+

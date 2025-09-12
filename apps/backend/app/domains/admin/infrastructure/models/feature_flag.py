@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, Column, DateTime, String, Text
 from sqlalchemy import Enum as SAEnum
 
-from app.providers.db.base import Base
+from app.kernel.db import Base
 
 
 class FeatureFlag(Base):
@@ -22,3 +22,4 @@ class FeatureFlag(Base):
     )
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = Column(String, nullable=True)  # user id (string/uuid) as text
+

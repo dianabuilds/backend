@@ -14,12 +14,10 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import set_committed_value
 
-from app.core.log_events import cache_invalidate
-from app.domains.navigation.application.navigation_cache_service import (
-    NavigationCacheService,
-)
-from app.domains.navigation.application.navigation_service import NavigationService
-from app.domains.navigation.infrastructure.cache_adapter import CoreCacheAdapter
+from app.domains.telemetry.log_events import cache_invalidate
+from app.domains.nodes.application.ports.cache_port import INodeCacheInvalidation
+from app.domains.nodes.application.ports.slug_port import ISlugService
+from app.domains.nodes.application.ports.tag_sync_port import ITagSyncService
 from app.domains.nodes.dao import NodeItemDAO, NodePatchDAO
 from app.domains.nodes.infrastructure.models.node import Node
 from app.domains.nodes.models import NodeItem
@@ -29,19 +27,34 @@ from app.schemas.nodes_common import Status, Visibility
 
 logger = logging.getLogger(__name__)
 
-navcache = NavigationCacheService(CoreCacheAdapter())
-navsvc = NavigationService()
-
 HEX_RE = re.compile(r"[a-f0-9]{16}")
 
 
 class NodeService:
     """Service layer for managing graph nodes."""
 
-    def __init__(self, db: AsyncSession) -> None:
-        """Initialize service."""
+    def __init__(
+        self,
+        db: AsyncSession,
+        *,
+        slugger: ISlugService | None = None,
+        tag_sync: ITagSyncService | None = None,
+        cache: INodeCacheInvalidation | None = None,
+    ) -> None:
+        """Initialize service with optional ports for slug, tags, cache."""
+
+        from app.domains.nodes.infrastructure.adapters.slug_adapter import SlugService
+        from app.domains.nodes.infrastructure.adapters.tag_sync_adapter import (
+            TagSyncService,
+        )
+        from app.domains.nodes.infrastructure.adapters.cache_invalidation_adapter import (
+            NodeCacheInvalidation,
+        )
 
         self._db = db
+        self._slugger = slugger or SlugService()
+        self._tag_sync = tag_sync or TagSyncService()
+        self._cache = cache or NodeCacheInvalidation()
 
     async def _unique_slug(
         self,
@@ -50,18 +63,10 @@ class NodeService:
         *,
         skip_node_id: int | None = None,
     ) -> str:
-        slug_base = slugify(base) or "node"
-        idx = 0
-        while True:
-            text = slug_base if idx == 0 else f"{slug_base}-{idx}"
-            candidate = hashlib.sha256(text.encode()).hexdigest()[:16]
-            stmt = select(Node).where(Node.slug == candidate, Node.author_id == author_id)
-            if skip_node_id is not None:
-                stmt = stmt.where(Node.id != skip_node_id)
-            res = await self._db.execute(stmt)
-            if res.scalar_one_or_none() is None:
-                return candidate
-            idx += 1
+        # Delegate to slug port for consistency across repositories/services
+        return await self._slugger.unique_slug(
+            self._db, base, author_id, skip_node_id=skip_node_id
+        )
 
     # Queries -----------------------------------------------------------------
     async def list(
@@ -110,20 +115,12 @@ class NodeService:
 
     @staticmethod
     def _normalize_tags(data: dict[str, Any]) -> list[str] | None:
-        raw = data.get("tags")
-        if not isinstance(raw, list | tuple):
-            return None
-        slugs: list[str] = []
-        for t in raw:
-            if isinstance(t, str):
-                s = t.strip().lower()
-            elif isinstance(t, dict):
-                s = str(t.get("slug") or t.get("value") or t.get("id") or "").strip().lower()
-            else:
-                continue
-            if s and s not in slugs:
-                slugs.append(s)
-        return slugs
+        # Backwards-compatible wrapper around tag sync port
+        from app.domains.nodes.infrastructure.adapters.tag_sync_adapter import (
+            TagSyncService as _TagSyncService,
+        )
+
+        return _TagSyncService().normalize(data)
 
     async def _sync_tags(
         self,
@@ -132,59 +129,10 @@ class NodeService:
         node: Node,
         tags: list[str] | None,
     ) -> bool:
-        try:
-            res = await self._db.execute(
-                select(Tag)
-                .join(ContentTag, Tag.id == ContentTag.tag_id)
-                .where(ContentTag.content_id == item.id)
-            )
-            existing_tags = list(res.scalars().all())
-        except Exception:
-            # Tags infrastructure may be absent in minimal/test setups
-            existing_tags = []
-        current_slugs = {t.slug for t in existing_tags}
-
-        if not tags:
-            set_committed_value(node, "tags", existing_tags)
-            node.tags = existing_tags
-            set_committed_value(item, "tags", existing_tags)
-            return False
-
-        if current_slugs == set(tags):
-            set_committed_value(node, "tags", existing_tags)
-            node.tags = existing_tags
-            set_committed_value(item, "tags", existing_tags)
-            return False
-
-        existing = {}
-        try:
-            res = await self._db.execute(select(Tag).where(Tag.slug.in_(tags)))
-            existing = {t.slug: t for t in res.scalars().all()}
-        except Exception:
-            existing = {}
-
-        tag_objs: list[Tag] = []
-        for slug in tags:
-            tag = existing.get(slug)
-            if tag is None:
-                tag = Tag(slug=slug, name=slug)
-                self._db.add(tag)
-                await self._db.flush()
-            tag_objs.append(tag)
-
-        set_committed_value(node, "tags", [])
-        node.tags = tag_objs
-        try:
-            await self._db.execute(delete(ContentTag).where(ContentTag.content_id == item.id))
-        except Exception:
-            pass
-        for t in tag_objs:
-            try:
-                await NodeItemDAO.attach_tag(self._db, node_id=item.id, tag_id=t.id)
-            except Exception:
-                pass
-        set_committed_value(item, "tags", tag_objs)
-        return True
+        # Delegate to tag sync port
+        return await self._tag_sync.sync(
+            self._db, item=item, node=node, tags=tags
+        )
 
     # Mutations ---------------------------------------------------------------
     async def create_item_for_node(self, node: Node) -> NodeItem:
@@ -396,12 +344,9 @@ class NodeService:
 
         await self._db.commit()
         if changed:
-            await navsvc.invalidate_navigation_cache(self._db, node)
-            await navcache.invalidate_navigation_by_user(node.author_id)
-            await navcache.invalidate_compass_by_user(node.author_id)
-            cache_invalidate("nav", reason="node_update", key=node.slug)
-            cache_invalidate("navm", reason="node_update", key=node.slug)
-            cache_invalidate("comp", reason="node_update")
+            await self._cache.invalidate_for_node(self._db, node)
+            await self._cache.invalidate_by_user(node.author_id)
+            await self._cache.invalidate_compass_by_user(node.author_id)
 
         return item
 
@@ -484,3 +429,4 @@ class NodeService:
 
         await self._db.commit()
         return item
+

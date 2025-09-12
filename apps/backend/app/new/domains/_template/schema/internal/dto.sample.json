@@ -1,0 +1,23 @@
+{
+  "$id": "internal.dto.sample",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "title"
+  ]
+}

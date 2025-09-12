@@ -18,12 +18,12 @@ sys.path.insert(
 
 fileConfig(config.config_file_name)
 
-from app.core.env_loader import load_dotenv  # noqa: E402
+from app.kernel.env import load_dotenv  # noqa: E402
 
 # Load environment variables from .env before importing settings
 load_dotenv()
 
-from app.core.config import settings  # noqa: E402
+from app.kernel.config import settings  # noqa: E402
 from app.providers.db.base import Base  # noqa: E402
 
 target_metadata = Base.metadata

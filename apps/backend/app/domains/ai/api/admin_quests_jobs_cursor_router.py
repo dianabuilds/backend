@@ -9,7 +9,7 @@ from sqlalchemy.future import select
 
 from app.api.deps import admin_required
 from app.domains.ai.infrastructure.models.generation_models import GenerationJob
-from app.providers.db.pagination import (
+from app.kernel.db import (
     FilterSpec,
     apply_filters,
     apply_pagination,
@@ -20,7 +20,7 @@ from app.providers.db.pagination import (
     fetch_page,
     parse_page_query,
 )
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 
 router = APIRouter(prefix="/admin/ai/quests", tags=["admin-ai-quests"])
 
@@ -91,3 +91,4 @@ async def list_jobs_cursor(
         "items": out,
         "next_cursor": next_cursor,
     }
+

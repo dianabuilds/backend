@@ -1,2 +1,0 @@
-{% if username %}Привет, {{ username }}!{% endif %}
-{{ message }}

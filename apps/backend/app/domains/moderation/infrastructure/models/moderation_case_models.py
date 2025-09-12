@@ -7,7 +7,7 @@ from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 
 from app.models.adapters import JSONB, UUID  # используем core-адаптеры типов
-from app.providers.db.base import Base
+from app.kernel.db import Base
 
 
 class ModerationCase(Base):
@@ -115,3 +115,4 @@ class CaseEvent(Base):
     # add_attachment | status_change | decision_* | escalate_overdue | reopen
     payload = Column(JSONB, nullable=True)
     case = relationship("ModerationCase", back_populates="events")
+

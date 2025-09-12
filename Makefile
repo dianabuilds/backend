@@ -17,3 +17,7 @@ unit:   ## fast tests only
 
 build:  ## optional package/build
 	python -m build
+
+.PHONY: openapi
+openapi:  ## export OpenAPI to docs/openapi/openapi.json
+	ENVIRONMENT=development python scripts/export_openapi.py

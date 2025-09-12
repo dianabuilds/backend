@@ -13,7 +13,7 @@ from app.domains.moderation.infrastructure.models.moderation_models import (
     UserRestriction,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.user import AdminUserOut, UserPremiumUpdate, UserRoleUpdate
 from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
@@ -128,3 +128,4 @@ async def set_user_role(
     await db.commit()
     await db.refresh(user)
     return {"role": user.role}
+

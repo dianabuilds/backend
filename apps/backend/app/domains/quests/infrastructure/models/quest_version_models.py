@@ -13,8 +13,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-from app.providers.db.adapters import JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import JSONB, UUID, Base
 
 
 class QuestVersion(Base):
@@ -86,3 +85,4 @@ class DraftLock(Base):
     )
     user_id = Column(UUID(), nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+

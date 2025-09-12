@@ -22,7 +22,7 @@ from app.domains.referrals.infrastructure.repositories.referrals_repository impo
     ReferralsRepository,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.referrals_admin import (
     ActivateCodeOut,
     DeactivateCodeOut,
@@ -257,3 +257,4 @@ async def export_events_admin(
 
 router.include_router(user_router)
 router.include_router(admin_router)
+

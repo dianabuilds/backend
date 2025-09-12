@@ -7,8 +7,7 @@ from uuid import uuid4
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, String
 from sqlalchemy.orm import relationship
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 
 
 class TokenAction(str, enum.Enum):
@@ -28,3 +27,4 @@ class UserToken(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", backref="tokens")
+

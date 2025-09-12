@@ -1,0 +1,15 @@
+
+version: 1
+goal: "Обновить сущность домена и опубликовать событие"
+stages:
+  - id: validate_request
+    tool: mcp.schema.validate
+    input: { schema: "schema/internal/dto.sample.json" }
+
+  - id: apply
+    tool: mcp.domain.apply_patch
+    input: { repo: "sql", upsert: "@request" }
+
+  - id: publish_event
+    tool: mcp.outbox.publish
+    input: { topic: "domain.sample.updated.v1", key: "@request.id" }

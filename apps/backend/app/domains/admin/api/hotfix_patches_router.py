@@ -7,13 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.nodes.dao import NodePatchDAO
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
-from app.schemas.node_patch import (
+from app.kernel.db import get_db
+from app.domains.nodes.schemas.node_patch import (
     NodePatchCreate,
     NodePatchDiffOut,
     NodePatchOut,
 )
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_only = require_admin_role({"admin"})
 
@@ -82,3 +82,4 @@ async def get_patch(
     out = NodePatchDiffOut.from_orm(patch)
     out.diff = diff
     return out
+

@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
-from app.core.config import settings
+from app.kernel.config import settings
 from app.domains.telemetry.application.ports.rum_port import IRumRepository
 from app.domains.telemetry.infrastructure.repositories.rum_repository import (
     RumRedisRepository,

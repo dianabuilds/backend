@@ -12,8 +12,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import admin_required, get_preview_context
-from app.core.preview import PreviewContext
+from app.kernel.preview import get_preview_context
+from app.domains.auth.security import require_admin_role as admin_required
+from app.kernel.preview import PreviewContext
 from app.domains.ai.infrastructure.models.ai_settings import AISettings
 from app.domains.ai.infrastructure.models.generation_models import (
     GenerationJob,
@@ -36,8 +37,8 @@ from app.domains.ai.schemas.worlds import (
 from app.domains.ai.services.generation import enqueue_generation_job
 from app.domains.quests.infrastructure.models.quest_models import Quest
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
-from app.security import ADMIN_AUTH_RESPONSES, require_admin_role
+from app.kernel.db import get_db
+from app.domains.auth.security import ADMIN_AUTH_RESPONSES, require_admin_role
 
 admin_required_dep = require_admin_role({"admin", "moderator"})
 CurrentUser = Annotated[User, Depends(admin_required)]
@@ -393,3 +394,5 @@ async def delete_character(
     await db.delete(c)
     await db.commit()
     return {"ok": True}
+
+

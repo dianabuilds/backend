@@ -5,8 +5,7 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 
-from app.providers.db.adapters import JSONB, UUID
-from app.providers.db.base import Base
+from app.kernel.db import JSONB, UUID, Base
 
 
 class MediaAsset(Base):
@@ -20,3 +19,4 @@ class MediaAsset(Base):
     type = sa.Column(sa.String, nullable=False)
     metadata_json = sa.Column(JSONB, nullable=True)
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
+

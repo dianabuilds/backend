@@ -6,7 +6,7 @@ from typing import Protocol
 
 import aiosmtplib
 
-from app.core.settings import Settings, get_settings
+from app.kernel.config import Settings, get_settings
 
 
 class IEmail(Protocol):

@@ -16,8 +16,7 @@ from sqlalchemy import (
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
 
-from app.providers.db.adapters import UUID
-from app.providers.db.base import Base
+from app.kernel.db import UUID, Base
 from app.schemas.nodes_common import Status, Visibility
 
 
@@ -62,3 +61,4 @@ class UserAchievement(Base):
     achievement = relationship("Achievement", back_populates="users")
 
     # No legacy shim required.
+

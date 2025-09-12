@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.deps import get_current_user
-from app.core.security import verify_access_token
+from app.domains.auth.security.tokens import verify_access_token
 from app.domains.notifications.infrastructure.models.notification_models import (
     Notification,
 )
@@ -24,7 +24,7 @@ from app.domains.notifications.infrastructure.transports.websocket import (
     manager as ws_manager,
 )
 from app.domains.users.infrastructure.models.user import User
-from app.providers.db.session import get_db
+from app.kernel.db import get_db
 from app.schemas.notification import NotificationFilter, NotificationOut
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
@@ -102,3 +102,4 @@ async def notifications_websocket(
             await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(user.id, websocket)
+

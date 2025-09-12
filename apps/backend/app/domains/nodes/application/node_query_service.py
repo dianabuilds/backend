@@ -5,8 +5,7 @@ import json
 
 from sqlalchemy import and_, asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.common.scoping import apply_scope
+from app.shared.scoping import apply_scope
 from app.domains.nodes.application.query_models import (
     NodeFilterSpec,
     PageRequest,

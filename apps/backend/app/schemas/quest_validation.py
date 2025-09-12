@@ -1,41 +1,9 @@
 from __future__ import annotations
 
-from typing import Literal
-from uuid import UUID
+"""Transitional re-export for quest validation schemas.
 
-from pydantic import BaseModel
+Prefer importing from ``app.domains.quests.schemas.quest_validation``.
+"""
 
+from app.domains.quests.schemas.quest_validation import *  # noqa: F401,F403
 
-class ValidationItem(BaseModel):
-    level: Literal["error", "warning", "info"]
-    code: str
-    message: str
-    node_id: UUID | None = None
-    hint: str | None = None
-
-
-class ValidationReport(BaseModel):
-    errors: int
-    warnings: int
-    items: list[ValidationItem]
-
-
-class AutofixRequest(BaseModel):
-    actions: list[str] = []  # e.g. ["mark_endings","remove_broken_links"]
-
-
-class AutofixResult(BaseModel):
-    type: str
-    affected: int
-    note: str | None = None
-
-
-class AutofixReport(BaseModel):
-    applied: list[AutofixResult] = []
-    skipped: list[AutofixResult] = []
-
-
-class PublishRequest(BaseModel):
-    access: Literal["premium_only", "everyone", "early_access"] = "everyone"
-    coverUrl: str | None = None
-    style_preset: str | None = None

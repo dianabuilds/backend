@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.schemas.transition import (  # noqa: F401
+from .transition import (  # noqa: F401
     AdminTransitionOut,
     AvailableMode,
     NextModes,
