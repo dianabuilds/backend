@@ -1,0 +1,31 @@
+openapi: 3.0.3
+info:
+  title: Telemetry Admin API
+  version: 1.0.0
+paths:
+  /v1/admin/telemetry/rum:
+    get:
+      parameters:
+        - in: query
+          name: event
+          schema: { type: string }
+        - in: query
+          name: url
+          schema: { type: string }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+      responses:
+        '200': { description: OK }
+  /v1/admin/telemetry/rum/summary:
+    get:
+      parameters:
+        - in: query
+          name: window
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+      responses:
+        '200': { description: OK }
+

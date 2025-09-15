@@ -1,0 +1,12 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+exporters:
+  logging: {}
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [logging]
+

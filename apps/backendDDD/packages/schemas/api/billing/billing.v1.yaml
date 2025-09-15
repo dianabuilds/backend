@@ -1,0 +1,36 @@
+openapi: 3.0.3
+info:
+  title: Billing API
+  version: 1.0.0
+paths:
+  /v1/billing/plans:
+    get:
+      responses:
+        '200': { description: OK }
+  /v1/billing/checkout:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan]
+              properties:
+                plan: { type: string }
+      responses:
+        '200': { description: OK }
+  /v1/billing/webhook:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: OK }
+  /v1/billing/subscriptions/me:
+    get:
+      responses:
+        '200': { description: OK }
+

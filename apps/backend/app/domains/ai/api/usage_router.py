@@ -29,4 +29,4 @@ async def get_system_usage(
     return await repo.system_totals()
 
 
-# Only system-wide totals are exposed in this build.
+# Only platform-wide totals are exposed in this build.

@@ -43,7 +43,7 @@ class CampaignFilters(BaseModel):
 class CampaignCreate(BaseModel):
     title: str
     message: str
-    type: str = "system"
+    type: str = "platform"
     filters: CampaignFilters | None = None
 
 

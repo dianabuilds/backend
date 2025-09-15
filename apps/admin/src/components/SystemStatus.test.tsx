@@ -28,7 +28,7 @@ describe('SystemStatus', () => {
     vi.spyOn(api, 'get').mockRejectedValue(new Error('boom'));
     render(<SystemStatus />);
     await waitFor(() => expect(screen.getByTestId('status-dot-db')).toHaveClass('bg-red-500'));
-    fireEvent.click(screen.getByTestId('system-status-button'));
+    fireEvent.click(screen.getByTestId('platform-status-button'));
     expect(await screen.findByTestId('error-text')).toHaveTextContent('boom');
   });
 });

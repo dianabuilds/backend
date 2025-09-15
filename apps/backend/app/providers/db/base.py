@@ -43,7 +43,7 @@ else:
     import app.domains.tags.models  # noqa: F401
     from app.domains.users.infrastructure.models.user import User  # noqa
 
-    # AI domain models (v1 minimal + v2 system tables)
+    # AI domain models (v1 minimal + v2 platform tables)
     from app.domains.ai.infrastructure.models.system_models import (  # noqa: F401
         AISystemModel,
         AIModelPrice,

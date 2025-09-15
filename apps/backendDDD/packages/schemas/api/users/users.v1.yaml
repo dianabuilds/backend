@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: Users API
+  version: 1.0.0
+paths:
+  /v1/users/me:
+    get:
+      summary: Current user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/users/{user_id}:
+    get:
+      summary: Get user by id (admin)
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+

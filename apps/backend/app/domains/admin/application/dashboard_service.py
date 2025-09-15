@@ -123,7 +123,7 @@ class DashboardService:
             },
             "latest_nodes": latest_nodes,
             "latest_restrictions": latest_restrictions,
-            "system": {
+            "platform": {
                 "db_ok": db_ok,
                 "redis_ok": redis_ok,
                 "nav_keys": nav_keys,

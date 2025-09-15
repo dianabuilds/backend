@@ -13,7 +13,7 @@ _CACHE_TTL = 30  # seconds
 _cache: tuple[float, dict[str, tuple[bool, str]]] | None = None
 
 
-# Predefined feature flags available in the system with optional descriptions.
+# Predefined feature flags available in the platform with optional descriptions.
 class FeatureFlagKey(StrEnum):
     PAYMENTS = "payments"
     AI_VALIDATION = "ai.validation"
@@ -34,7 +34,7 @@ class FeatureFlagKey(StrEnum):
     QUESTS_NODES_REDIRECT = "quests.nodes_redirect"
 
 
-# Predefined feature flags available in the system with optional descriptions
+# Predefined feature flags available in the platform with optional descriptions
 # and default audience.
 KNOWN_FLAGS: dict[FeatureFlagKey, tuple[str, str]] = {
     FeatureFlagKey.PAYMENTS: ("Enable payments module", "all"),

@@ -118,9 +118,9 @@ BASE_MENU: list[dict] = [
                 "order": 2,
             },
             {
-                "id": "ai-system-settings",
+                "id": "ai-platform-settings",
                 "label": "AI Settings",
-                "path": "/ai/system",
+                "path": "/ai/platform",
                 "icon": "settings",
                 "order": 3,
                 "roles": ["admin"],

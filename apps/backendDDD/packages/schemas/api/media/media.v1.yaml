@@ -1,0 +1,29 @@
+openapi: 3.0.3
+info:
+  title: Media API
+  version: 1.0.0
+paths:
+  /v1/media:
+    post:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200': { description: OK }
+  /v1/media/file/{name}:
+    get:
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+

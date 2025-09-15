@@ -1,0 +1,5 @@
+type: product
+layers: [api, application, domain, adapters]
+owners: ["team-profile"]
+depends_on_clients: ["platform/notifications"]
+

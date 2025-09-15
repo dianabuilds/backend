@@ -24,7 +24,7 @@ class NotificationCampaign(Base):
     id = Column(UUID(), primary_key=True, default=uuid4)
     title = Column(String, nullable=False)
     message = Column(Text, nullable=False)
-    type = Column(String, nullable=False, default="system")
+    type = Column(String, nullable=False, default="platform")
     filters = Column(JSON, nullable=True)
     status = Column(String, nullable=False, default=CampaignStatus.draft)
     total = Column(Integer, nullable=False, default=0)

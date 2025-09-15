@@ -44,7 +44,7 @@ class OpenAIProvider(LLMProvider):
         }
         messages = []
         if system:
-            messages.append({"role": "system", "nodes": system})
+            messages.append({"role": "platform", "nodes": system})
         messages.append({"role": "user", "nodes": prompt})
         body: dict[str, Any] = {
             "model": model,

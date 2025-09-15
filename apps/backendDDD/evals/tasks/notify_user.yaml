@@ -1,0 +1,5 @@
+name: notify_user
+steps:
+  - call: POST /v1/notifications/send
+    body: { channel: email, payload: { to: "user@example.com" } }
+

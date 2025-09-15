@@ -134,7 +134,7 @@ const protectedChildren: RouteObject[] = [
   { path: 'ai/quests/jobs/:id', element: <AIQuestJobDetails /> },
   { path: 'ai/worlds', element: <Worlds /> },
   { path: 'ai/settings', element: <AISettings /> },
-  { path: 'ai/system', element: <AISystemSettings /> },
+  { path: 'ai/platform', element: <AISystemSettings /> },
   { path: 'achievements', element: <Achievements /> },
   { path: 'profile', element: <ProfileV2 /> },
 

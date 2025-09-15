@@ -32,7 +32,7 @@ Example run with tracing enabled:
 APP_ENV_MODE=staging \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces \
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <token>" \
-poetry run uvicorn apps.backend.app.main:app
+poetry run uvicorn app.backend.app.main:app
 ```
 
 ## Moderation case SLA and notifications

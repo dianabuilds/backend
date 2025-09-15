@@ -61,7 +61,7 @@ class NodeTraceKind(str, Enum):
 class NodeTraceVisibility(str, Enum):
     public = "public"
     private = "private"
-    system = "system"
+    system = "platform"
 
 
 class NodeTrace(Base):

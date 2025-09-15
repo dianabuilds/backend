@@ -20,6 +20,7 @@ from packaging import version
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.env_loader import load_dotenv
+import os
 from app.core.logging_configuration import configure_logging
 from app.core.rng import init_rng
 
@@ -92,6 +93,12 @@ register_providers(container, settings)
 
 app = FastAPI(default_response_class=DefaultJSONResponse)
 app.state.container = container
+
+# Bridge DDD security settings to match monolith configuration
+os.environ.setdefault("APP_AUTH_JWT_SECRET", settings.jwt.secret)
+os.environ.setdefault("APP_AUTH_JWT_ALGORITHM", settings.jwt.algorithm)
+os.environ.setdefault("APP_AUTH_CSRF_COOKIE_NAME", settings.csrf.cookie_name)
+os.environ.setdefault("APP_AUTH_CSRF_HEADER_NAME", settings.csrf.header_name)
 enable_tracing = settings.env_mode in {
     EnvMode.staging,
     EnvMode.production,
@@ -195,7 +202,7 @@ UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Static file app for uploads with long-lived caching
 uploads_static = ImmutableStaticFiles(directory=UPLOADS_DIR)
-# Wrap with CORS middleware because mounted apps bypass the main app middlewares
+# Wrap with CORS middleware because mounted app bypass the main app middlewares
 _uploads_cors = {
     **settings.effective_origins(),
     "allow_credentials": settings.cors_allow_credentials,
@@ -245,6 +252,69 @@ else:
         register_domain_routers(app)
     except Exception as exc:  # pragma: no cover - optional domains
         logging.getLogger(__name__).warning("Domain router registration failed: %s", exc)
+
+    # Include DDD product/profile router under feature flag
+    try:
+        from app.bridges.profile_integration import wire_profile_service, include_profile_router
+
+        wire_profile_service(app)
+        include_profile_router(app)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Profile DDD integration failed: %s", exc)
+
+    # Include DDD product/tags router (read-only public API)
+    try:
+        from app.bridges.tags_integration import wire_tags_service, include_tags_router
+
+        wire_tags_service(app)
+        include_tags_router(app)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Tags DDD integration failed: %s", exc)
+
+    # Include DDD product/nodes router
+    try:
+        from app.bridges.nodes_integration import wire_nodes_service, include_nodes_router
+
+        wire_nodes_service(app)
+        include_nodes_router(app)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Nodes DDD integration failed: %s", exc)
+
+    # Include DDD product/quests router (fully decoupled from nodes)
+    try:
+        from app.bridges.quests_integration import wire_quests_service, include_quests_router
+
+        wire_quests_service(app)
+        include_quests_router(app)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Quests DDD integration failed: %s", exc)
+
+    # Include DDD product/navigation router (decoupled, uses NodesPort)
+    try:
+        from app.bridges.navigation_integration import wire_navigation_service, include_navigation_router
+
+        wire_navigation_service(app)
+        include_navigation_router(app)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Navigation DDD integration failed: %s", exc)
+
+    # Include DDD product/ai router
+    try:
+        from app.bridges.ai_integration import wire_ai_service, include_ai_router
+
+        wire_ai_service(app)
+        include_ai_router(app)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("AI DDD integration failed: %s", exc)
+
+    # Include DDD product/moderation router
+    try:
+        from app.bridges.moderation_integration import wire_moderation_service, include_moderation_router
+
+        wire_moderation_service(app)
+        include_moderation_router(app)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Moderation DDD integration failed: %s", exc)
 
     # Removed fallback /users/me: domain routers must provide it or app should fail earlier.
     register_admin_override(app)

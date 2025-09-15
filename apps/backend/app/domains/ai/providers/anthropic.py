@@ -137,7 +137,7 @@ class AnthropicProvider(LLMProvider):
             "messages": [{"role": "user", "content": prompt}],
         }
         if system:
-            body["messages"].insert(0, {"role": "system", "content": system})
+            body["messages"].insert(0, {"role": "platform", "content": system})
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(url, headers=headers, json=body)

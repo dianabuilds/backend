@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, String
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, String, Integer
 from sqlalchemy.orm import relationship
 
 from app.providers.db.adapters import JSONB, UUID
@@ -49,3 +49,13 @@ class TagBlacklist(Base):
     slug = Column(String, primary_key=True)
     reason = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class TagUsageCounter(Base):
+    __tablename__ = "tag_usage_counters"
+
+    author_id = Column(UUID(), primary_key=True)
+    content_type = Column(String, primary_key=True, default="node")
+    slug = Column(String, primary_key=True)
+    count = Column(Integer, nullable=False, default=0)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

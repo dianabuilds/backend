@@ -8,11 +8,23 @@ services:
       - .:/app
     env_file:
       - .env
+      - apps/backendDDD/.env
     depends_on:
       - postgres
       - redis
       - minio
     profiles: ["local", "dev", "test"]
+
+  ddd:
+    build: .
+    command: make run-ddd
+    volumes:
+      - .:/app
+    env_file:
+      - apps/backendDDD/.env
+    ports:
+      - "8000:8000"
+    profiles: ["local", "dev"]
 
   admin:
     build: ./apps/admin

@@ -1,0 +1,43 @@
+[project]
+name = "backendDDD"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.111",
+  "uvicorn>=0.30",
+  "redis>=5.0",
+  "httpx>=0.27",
+  "pydantic-settings>=2.3",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["apps/backendDDD/domains"]
+
+[tool.black]
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+  "apps/backendDDD/templates",
+  "apps/backendDDD/domains/platform/_template",
+]
+
+[tool.ruff.lint]
+select = ["E","F","W","I","UP","B","A"]
+ignore = ["E501","E402","B008"]
+extend-ignore = ["UP038","B017"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+disallow_any_generics = true
+no_implicit_optional = true
+exclude = [
+  ".venv",
+  "apps/backendDDD/templates/",
+  "apps/backendDDD/domains/platform/_template/",
+]

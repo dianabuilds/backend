@@ -1,0 +1,18 @@
+openapi: 3.0.3
+info:
+  title: Admin API
+  version: 1.0.0
+paths:
+  /v1/admin/health:
+    get:
+      responses:
+        '200': { description: OK }
+  /v1/admin/readyz:
+    get:
+      responses:
+        '200': { description: OK }
+  /v1/admin/config:
+    get:
+      responses:
+        '200': { description: OK }
+

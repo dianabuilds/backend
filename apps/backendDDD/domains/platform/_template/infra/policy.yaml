@@ -1,0 +1,9 @@
+kind: Policy
+metadata:
+  name: <your-domain>-rbac
+spec:
+  allow:
+    - subject: service:api-gateway
+      action: ["operate"]
+      resource: <your-domain>
+

@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: Feature Flags API
+  version: 1.0.0
+paths:
+  /v1/flags:
+    get:
+      responses:
+        '200': { description: OK }
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug]
+              properties:
+                slug: { type: string }
+                enabled: { type: boolean }
+                rollout: { type: integer, minimum: 0, maximum: 100 }
+                users: { type: array, items: { type: string } }
+                roles: { type: array, items: { type: string } }
+      responses:
+        '200': { description: OK }
+  /v1/flags/{slug}:
+    delete:
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /v1/flags/check/{slug}:
+    get:
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+

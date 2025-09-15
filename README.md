@@ -121,7 +121,7 @@ CI запускает проверки уязвимостей через `pip-au
 
 ```bash
 pip install pip-audit && pip-audit -r requirements.txt -c constraints/py311-max.txt
-cd apps/admin && npm audit
+cd app/admin && npm audit
 ```
 
 Пайплайн падает при критических уязвимостях, а отчёты сохраняются как артефакты CI для отслеживания ремедиации.

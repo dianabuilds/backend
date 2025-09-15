@@ -1,0 +1,5 @@
+type: platform
+owners: ["team-platform"]
+depends_on_clients: []
+notes: "Заполните owner-ы, зависимости и дополнительные теги"
+

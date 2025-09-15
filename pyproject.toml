@@ -5,12 +5,12 @@ extend-exclude = "apps/admin"
 [tool.isort]
 profile = "black"
 line_length = 100
-src_paths = ["apps/backend"]
+src_paths = ["apps/backendDDD"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["apps/backend"]
+src = ["apps/backendDDD"]
 extend-exclude = ["apps/admin"]
 
 
@@ -31,9 +31,7 @@ ignore_missing_imports = false
 disable_error_code = ["import-untyped"]
 
 # ВАЖНО: укажи, ЧТО проверять, вместо "packages = …"
-files = [
-  "apps/backend/app",
-]
+files = ["apps/backendDDD"]
 
 # Отрежем мусор и виртуальные окружения
 exclude = "(^|/)(build|dist|.venv|venv|.mypy_cache|.pytest_cache)/"

@@ -31,7 +31,7 @@ class SignupSchema(BaseModel):
         if not re.match(r"^[a-zA-Z0-9._]+$", v):
             logger.warning("Invalid username format: %s", v)
             raise ValueError("Username can only contain letters, numbers, dots and underscores")
-        if v in {"000", "admin", "root", "system"}:
+        if v in {"000", "admin", "root", "platform"}:
             logger.warning("Reserved username being used: %s", v)
         return v
 

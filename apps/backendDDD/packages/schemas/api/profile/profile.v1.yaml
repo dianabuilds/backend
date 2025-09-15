@@ -1,0 +1,36 @@
+openapi: 3.0.3
+info:
+  title: Profile API
+  version: 1.0.0
+paths:
+  /v1/profile/{user_id}/username:
+    put:
+      operationId: updateUsername
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username]
+              additionalProperties: false
+              properties:
+                username: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, username]
+                additionalProperties: false
+                properties:
+                  id: { type: string }
+                  username: { type: string }
+

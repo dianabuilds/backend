@@ -10,7 +10,7 @@ interface SystemUsage {
 
 export default function AIUsage() {
   const { data } = useQuery({
-    queryKey: ['ai-usage-system'],
+    queryKey: ['ai-usage-platform'],
     queryFn: async () => {
       const res = await api.get<SystemUsage>('/admin/ai/usage/system');
       return res.data ?? { tokens: 0, cost: 0 };

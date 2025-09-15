@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 class NotificationType(str, Enum):
     quest = "quest"
-    system = "system"
+    system = "platform"
     moderation = "moderation"
     achievement = "achievement"
     purchase = "purchase"

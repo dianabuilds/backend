@@ -1,0 +1,33 @@
+from __future__ import annotations
+
+from typing import Protocol, runtime_checkable
+
+from apps.backendDDD.domains.product.worlds.domain.entities import (
+    Character,
+    WorldTemplate,
+)
+
+
+@runtime_checkable
+class Repo(Protocol):
+    # Worlds
+    def list_worlds(self, workspace_id: str) -> list[WorldTemplate]: ...
+    def get_world(self, world_id: str, workspace_id: str) -> WorldTemplate | None: ...
+    def create_world(
+        self, workspace_id: str, data: dict, actor_id: str
+    ) -> WorldTemplate: ...
+    def update_world(
+        self, world: WorldTemplate, data: dict, workspace_id: str, actor_id: str
+    ) -> WorldTemplate: ...
+    def delete_world(self, world: WorldTemplate, workspace_id: str) -> None: ...
+
+    # Characters
+    def list_characters(self, world_id: str, workspace_id: str) -> list[Character]: ...
+    def get_character(self, char_id: str, workspace_id: str) -> Character | None: ...
+    def create_character(
+        self, world_id: str, workspace_id: str, data: dict, actor_id: str
+    ) -> Character: ...
+    def update_character(
+        self, ch: Character, data: dict, workspace_id: str, actor_id: str
+    ) -> Character: ...
+    def delete_character(self, ch: Character, workspace_id: str) -> None: ...

@@ -1,6 +1,6 @@
 FROM node:18-alpine
 WORKDIR /app
-COPY apps/admin/package*.json ./
+COPY app/admin/package*.json ./
 RUN npm ci
-COPY apps/admin .
+COPY app/admin .
 RUN npm run build

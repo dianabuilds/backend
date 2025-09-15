@@ -15,7 +15,7 @@ but covers the needs of the tests and the application:
   ``uvicorn.access`` and ``uvicorn.error``.
 
 The function is idempotent – calling it multiple times reconfigures the
-logging system without accumulating handlers.
+logging platform without accumulating handlers.
 """
 
 from __future__ import annotations

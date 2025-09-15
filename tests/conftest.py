@@ -9,7 +9,7 @@ import pytest
 
 @pytest.fixture(scope="session", autouse=True)
 def _add_backend_to_sys_path() -> None:
-    backend_path = Path(__file__).resolve().parents[1] / "apps/backend"
+    backend_path = Path(__file__).resolve().parents[1] / "app/backend"
     sys.path.insert(0, str(backend_path))
     yield
     sys.path.remove(str(backend_path))

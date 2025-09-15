@@ -26,6 +26,7 @@ from app.domains.nodes.models import NodeItem
 from app.domains.nodes.service import validate_transition
 from app.domains.tags.models import ContentTag, Tag
 from app.schemas.nodes_common import Status, Visibility
+from app.domains.ai.application.embedding_service import update_node_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -224,6 +225,12 @@ class NodeService:
             version=1,
         )
 
+        # Recompute embedding if node content/title/tags changed
+        try:
+            await update_node_embedding(self._db, node)
+        except Exception:
+            # Non-fatal: log and continue
+            logger.exception("Failed to update node embedding for id=%s", getattr(node, "id", None))
         await self._db.commit()
         return item
 
@@ -482,5 +489,10 @@ class NodeService:
         node.updated_by_user_id = actor_id
         node.updated_at = datetime.utcnow()
 
+        # Ensure embedding vector present on publish
+        try:
+            await update_node_embedding(self._db, node)
+        except Exception:
+            logger.exception("Failed to update node embedding for id=%s on publish", getattr(node, "id", None))
         await self._db.commit()
         return item
