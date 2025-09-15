@@ -8,10 +8,10 @@ import redis  # type: ignore
 
 from domains.platform.events.adapters.redis_bus import RedisBus
 from domains.platform.events.logic.idempotency import RedisIdempotency
+from domains.platform.events.logic.policies import rate_limit
 from domains.platform.telemetry.application.event_metrics_service import (
     event_metrics,
 )
-from domains.platform.events.logic.policies import rate_limit
 from packages.core.schema_registry import validate_event_payload
 
 Handler = Callable[[str, dict], None]
@@ -99,7 +99,10 @@ class RedisRelay:
                                 try:
                                     dt = (_t.perf_counter() - t0) * 1000.0
                                     event_metrics.record_handler(
-                                        topic, getattr(handler, "__name__", "handler"), ok, dt
+                                        topic,
+                                        getattr(handler, "__name__", "handler"),
+                                        ok,
+                                        dt,
                                     )
                                 except Exception:
                                     pass

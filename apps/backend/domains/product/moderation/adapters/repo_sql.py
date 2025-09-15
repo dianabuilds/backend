@@ -40,10 +40,9 @@ class SQLModerationRepo(Repo):
                 .mappings()
                 .all()
             )
-            total = (
-                (await conn.execute(q_total, params)).mappings().first().get("c")
-                or 0
-            )
+            total = (await conn.execute(q_total, params)).mappings().first().get(
+                "c"
+            ) or 0
         items = []
         for r in rows:
             d = dict(r["data"] or {})
@@ -58,12 +57,20 @@ class SQLModerationRepo(Repo):
         )
         st = str(payload.get("status") or "open")
         async with self._engine.begin() as conn:
-            r = (await conn.execute(sql, {"d": dict(payload), "st": st})).mappings().first()
+            r = (
+                (await conn.execute(sql, {"d": dict(payload), "st": st}))
+                .mappings()
+                .first()
+            )
             assert r is not None
             return str(r["id"])  # type: ignore[return-value]
 
-    async def add_note(self, case_id: str, note: dict, *, author_id: str | None) -> dict | None:
-        chk = text("SELECT 1 FROM product_moderation_cases WHERE id = cast(:id as uuid)")
+    async def add_note(
+        self, case_id: str, note: dict, *, author_id: str | None
+    ) -> dict | None:
+        chk = text(
+            "SELECT 1 FROM product_moderation_cases WHERE id = cast(:id as uuid)"
+        )
         ins = text(
             "INSERT INTO product_moderation_notes(case_id, author_id, data) VALUES (cast(:cid as uuid), cast(:aid as uuid), :d) RETURNING id::text AS id"
         )
@@ -72,13 +79,16 @@ class SQLModerationRepo(Repo):
             if not ok:
                 return None
             r = (
-                await conn.execute(
-                    ins, {"cid": case_id, "aid": author_id, "d": dict(note)}
+                (
+                    await conn.execute(
+                        ins, {"cid": case_id, "aid": author_id, "d": dict(note)}
+                    )
                 )
-            ).mappings().first()
+                .mappings()
+                .first()
+            )
             assert r is not None
             return {"id": str(r["id"]), **dict(note), "author_id": author_id}
 
 
 __all__ = ["SQLModerationRepo"]
-

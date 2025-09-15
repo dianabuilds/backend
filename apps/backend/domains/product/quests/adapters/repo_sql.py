@@ -211,7 +211,9 @@ class SQLQuestsRepo(Repo):
             async with self._engine.begin() as conn:
                 chk = (
                     await conn.execute(
-                        text("SELECT 1 FROM product_quests WHERE id = cast(:id as uuid)"),
+                        text(
+                            "SELECT 1 FROM product_quests WHERE id = cast(:id as uuid)"
+                        ),
                         {"id": str(quest_id)},
                     )
                 ).first()
@@ -282,7 +284,6 @@ class SQLQuestsRepo(Repo):
             return asyncio.run(_run())
         else:
             return loop.run_until_complete(_run())  # type: ignore[misc]
-
 
     # --- internal async helpers ---
     async def _araw_get(self, quest_id: str) -> QuestDTO | None:

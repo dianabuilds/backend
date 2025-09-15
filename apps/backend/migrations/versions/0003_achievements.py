@@ -55,4 +55,3 @@ def downgrade() -> None:
     ]
     for stmt in drops:
         op.execute(stmt)
-

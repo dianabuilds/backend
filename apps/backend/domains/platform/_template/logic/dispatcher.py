@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from .retry import with_retry
 from .policies import rate_limited
+from .retry import with_retry
 
 
 @with_retry(attempts=3, backoff=0.2)

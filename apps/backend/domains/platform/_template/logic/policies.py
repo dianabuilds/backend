@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import wraps
 from time import time
-from typing import Callable, Dict
 
-_buckets: Dict[str, list[float]] = {}
+_buckets: dict[str, list[float]] = {}
 
 
 def rate_limited(key: str, qps: int):  # pragma: no cover - template

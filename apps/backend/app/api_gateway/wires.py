@@ -46,6 +46,7 @@ from domains.product.profile.adapters.iam_client import (
 from domains.product.profile.adapters.repo_memory import (
     MemoryRepo as ProfileRepoMemory,
 )
+from domains.product.profile.adapters.repo_sql import SQLProfileRepo
 from domains.product.profile.application.ports import (
     IamClient as ProfileIam,
 )
@@ -58,22 +59,21 @@ from domains.product.profile.application.ports import (
 from domains.product.profile.application.services import (
     Service as ProfileService,
 )
-
-from domains.product.profile.adapters.repo_sql import SQLProfileRepo
 from domains.product.tags.adapters.repo_sql import SQLTagsRepo
 from domains.product.tags.adapters.usage_sql_writer import (
     register_tags_usage_writer,
 )
-from packages.core.config import Settings, load_settings
 from packages.core import Flags
+from packages.core.config import Settings, load_settings
 
 """DI wiring for DDD app: only DDD imports, no monolith references."""
+
 
 # Simple reachability check to decide SQL vs Memory repos
 def _db_reachable(url: str) -> bool:
     try:
-        from urllib.parse import urlparse
         import socket
+        from urllib.parse import urlparse
 
         u = urlparse(url)
         host = u.hostname or "localhost"
@@ -82,6 +82,7 @@ def _db_reachable(url: str) -> bool:
             return True
     except Exception:
         return False
+
 
 # Product domain services
 from domains.product.achievements.adapters.repo_memory import (
@@ -99,13 +100,18 @@ from domains.product.achievements.application.service import (
 from domains.product.ai.adapters.provider_fake import FakeProvider as AIFakeProvider
 from domains.product.ai.application.service import AIService
 from domains.product.moderation.adapters.repo_memory import MemoryModerationRepo
+from domains.product.moderation.adapters.repo_sql import SQLModerationRepo
 from domains.product.moderation.application.service import (
     ModerationService as DddModerationService,
+)
+from domains.product.navigation.application.ports import (
+    NodesPort as _NodesPort,
 )
 from domains.product.navigation.application.service import (
     NavigationService as NavigationService,
 )
 from domains.product.nodes.adapters.repo_memory import MemoryNodesRepo
+from domains.product.nodes.adapters.repo_sql import SQLNodesRepo
 from domains.product.nodes.adapters.tag_catalog_memory import MemoryTagCatalog
 from domains.product.nodes.adapters.usage_memory import MemoryUsageProjection
 from domains.product.nodes.application.service import NodeService as NodesService
@@ -113,8 +119,10 @@ from domains.product.premium.application.service import (
     PremiumService as DddPremiumService,
 )
 from domains.product.quests.adapters.repo_memory import MemoryQuestsRepo
+from domains.product.quests.adapters.repo_sql import SQLQuestsRepo
 from domains.product.quests.application.service import QuestService as QuestsService
 from domains.product.referrals.adapters.repo_memory import MemoryReferralsRepo
+from domains.product.referrals.adapters.repo_sql import SQLReferralsRepo
 from domains.product.referrals.application.service import (
     ReferralsService as DddReferralsService,
 )
@@ -122,16 +130,8 @@ from domains.product.tags.adapters.repo_memory import MemoryTagsRepo
 from domains.product.tags.adapters.store_memory import TagUsageStore
 from domains.product.tags.application.service import TagService as TagsService
 from domains.product.worlds.adapters.repo_memory import MemoryRepo as WorldsMemoryRepo
-from domains.product.worlds.application.service import WorldsService as DddWorldsService
-
 from domains.product.worlds.adapters.repo_sql import SQLWorldsRepo
-from domains.product.moderation.adapters.repo_sql import SQLModerationRepo
-from domains.product.referrals.adapters.repo_sql import SQLReferralsRepo
-from domains.product.navigation.application.ports import (
-    NodesPort as _NodesPort,
-)
-from domains.product.nodes.adapters.repo_sql import SQLNodesRepo
-from domains.product.quests.adapters.repo_sql import SQLQuestsRepo
+from domains.product.worlds.application.service import WorldsService as DddWorldsService
 
 
 @dataclass
@@ -180,7 +180,9 @@ def build_container(env: str = "dev") -> Container:
             raise RuntimeError("Redis is required for events/outbox in prod") from e
         outbox: ProfileOutbox = ProfileOutboxRedis(str(settings.redis_url))
         bus = RedisEventBus(
-            redis_url=str(settings.redis_url), topics=topics, group=str(settings.event_group)
+            redis_url=str(settings.redis_url),
+            topics=topics,
+            group=str(settings.event_group),
         )
     else:
         try:
@@ -190,7 +192,9 @@ def build_container(env: str = "dev") -> Container:
             rc.ping()
             outbox = ProfileOutboxRedis(str(settings.redis_url))
             bus = RedisEventBus(
-                redis_url=str(settings.redis_url), topics=topics, group=str(settings.event_group)
+                redis_url=str(settings.redis_url),
+                topics=topics,
+                group=str(settings.event_group),
             )
         except Exception:
             # no Redis available -> in-memory bus, and a no-op outbox via memory

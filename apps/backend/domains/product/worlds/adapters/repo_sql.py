@@ -74,8 +74,10 @@ class SQLWorldsRepo(Repo):
             )
             async with self._engine.begin() as conn:
                 r = (
-                    await conn.execute(sql, {"id": world_id, "ws": workspace_id})
-                ).mappings().first()
+                    (await conn.execute(sql, {"id": world_id, "ws": workspace_id}))
+                    .mappings()
+                    .first()
+                )
                 if not r:
                     return None
                 return WorldTemplate(
@@ -98,7 +100,9 @@ class SQLWorldsRepo(Repo):
         else:
             return loop.run_until_complete(_run())  # type: ignore[misc]
 
-    def create_world(self, workspace_id: str, data: dict, actor_id: str) -> WorldTemplate:
+    def create_world(
+        self, workspace_id: str, data: dict, actor_id: str
+    ) -> WorldTemplate:
         import asyncio
 
         async def _run() -> WorldTemplate:
@@ -153,8 +157,15 @@ class SQLWorldsRepo(Repo):
         import asyncio
 
         async def _run() -> WorldTemplate:
-            sets: list[str] = ["updated_at = now()", "updated_by_user_id = cast(:actor as uuid)"]
-            params: dict[str, Any] = {"id": world.id, "ws": workspace_id, "actor": actor_id}
+            sets: list[str] = [
+                "updated_at = now()",
+                "updated_by_user_id = cast(:actor as uuid)",
+            ]
+            params: dict[str, Any] = {
+                "id": world.id,
+                "ws": workspace_id,
+                "actor": actor_id,
+            }
             if "title" in data and data["title"] is not None:
                 sets.append("title = :title")
                 params["title"] = str(data["title"]).strip()
@@ -237,7 +248,9 @@ class SQLWorldsRepo(Repo):
                 """
             )
             async with self._engine.begin() as conn:
-                ok = (await conn.execute(chk, {"id": world_id, "ws": workspace_id})).first()
+                ok = (
+                    await conn.execute(chk, {"id": world_id, "ws": workspace_id})
+                ).first()
                 if not ok:
                     return []
                 rows = (await conn.execute(q, {"id": world_id})).mappings().all()
@@ -281,7 +294,11 @@ class SQLWorldsRepo(Repo):
                 """
             )
             async with self._engine.begin() as conn:
-                r = (await conn.execute(sql, {"cid": char_id, "ws": workspace_id})).mappings().first()
+                r = (
+                    (await conn.execute(sql, {"cid": char_id, "ws": workspace_id}))
+                    .mappings()
+                    .first()
+                )
                 if not r:
                     return None
                 return Character(
@@ -338,7 +355,9 @@ class SQLWorldsRepo(Repo):
                 "actor": actor_id,
             }
             async with self._engine.begin() as conn:
-                ok = (await conn.execute(chk, {"id": world_id, "ws": workspace_id})).first()
+                ok = (
+                    await conn.execute(chk, {"id": world_id, "ws": workspace_id})
+                ).first()
                 if not ok:
                     raise ValueError("world not found")
                 r = (await conn.execute(ins, params)).mappings().first()
@@ -369,8 +388,15 @@ class SQLWorldsRepo(Repo):
         import asyncio
 
         async def _run() -> Character:
-            sets: list[str] = ["updated_at = now()", "updated_by_user_id = cast(:actor as uuid)"]
-            params: dict[str, Any] = {"id": ch.id, "ws": workspace_id, "actor": actor_id}
+            sets: list[str] = [
+                "updated_at = now()",
+                "updated_by_user_id = cast(:actor as uuid)",
+            ]
+            params: dict[str, Any] = {
+                "id": ch.id,
+                "ws": workspace_id,
+                "actor": actor_id,
+            }
             if "name" in data and data["name"] is not None:
                 sets.append("name = :name")
                 params["name"] = str(data["name"]).strip()
@@ -441,4 +467,3 @@ class SQLWorldsRepo(Repo):
 
 
 __all__ = ["SQLWorldsRepo"]
-

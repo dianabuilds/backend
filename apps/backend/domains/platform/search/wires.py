@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import redis.asyncio as redis  # type: ignore
-from domains.platform.events.service import Events
 
+from domains.platform.events.service import Events
 from domains.platform.search.adapters.cache_memory import (
     InMemorySearchCache,
 )

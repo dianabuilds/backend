@@ -32,21 +32,69 @@ def upgrade() -> None:
         base / "domains" / "product" / "nodes" / "schema" / "sql" / "002_node_tags.sql",
         # Quests
         base / "domains" / "product" / "quests" / "schema" / "sql" / "001_quests.sql",
-        base / "domains" / "product" / "quests" / "schema" / "sql" / "002_quest_tags.sql",
+        base
+        / "domains"
+        / "product"
+        / "quests"
+        / "schema"
+        / "sql"
+        / "002_quest_tags.sql",
         # Worlds
         base / "domains" / "product" / "worlds" / "schema" / "sql" / "001_worlds.sql",
-        base / "domains" / "product" / "worlds" / "schema" / "sql" / "002_characters.sql",
+        base
+        / "domains"
+        / "product"
+        / "worlds"
+        / "schema"
+        / "sql"
+        / "002_characters.sql",
         # Moderation
-        base / "domains" / "product" / "moderation" / "schema" / "sql" / "001_cases.sql",
-        base / "domains" / "product" / "moderation" / "schema" / "sql" / "002_notes.sql",
+        base
+        / "domains"
+        / "product"
+        / "moderation"
+        / "schema"
+        / "sql"
+        / "001_cases.sql",
+        base
+        / "domains"
+        / "product"
+        / "moderation"
+        / "schema"
+        / "sql"
+        / "002_notes.sql",
         # Referrals
         base / "domains" / "product" / "referrals" / "schema" / "sql" / "001_codes.sql",
-        base / "domains" / "product" / "referrals" / "schema" / "sql" / "002_events.sql",
+        base
+        / "domains"
+        / "product"
+        / "referrals"
+        / "schema"
+        / "sql"
+        / "002_events.sql",
         # Tags
         base / "domains" / "product" / "tags" / "schema" / "sql" / "001_tags.sql",
-        base / "domains" / "product" / "tags" / "schema" / "sql" / "002_tag_aliases.sql",
-        base / "domains" / "product" / "tags" / "schema" / "sql" / "003_tag_blacklist.sql",
-        base / "domains" / "product" / "tags" / "schema" / "sql" / "004_tag_usage_counters.sql",
+        base
+        / "domains"
+        / "product"
+        / "tags"
+        / "schema"
+        / "sql"
+        / "002_tag_aliases.sql",
+        base
+        / "domains"
+        / "product"
+        / "tags"
+        / "schema"
+        / "sql"
+        / "003_tag_blacklist.sql",
+        base
+        / "domains"
+        / "product"
+        / "tags"
+        / "schema"
+        / "sql"
+        / "004_tag_usage_counters.sql",
     ]
     for f in files:
         sql = _read_sql(f)

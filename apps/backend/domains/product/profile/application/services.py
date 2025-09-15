@@ -3,7 +3,6 @@ from __future__ import annotations
 from domains.product.profile.application.mappers import to_view
 from domains.product.profile.application.ports import IamClient, Outbox, Repo
 from domains.product.profile.domain.entities import Profile
-
 from packages.core import Flags
 
 

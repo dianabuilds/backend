@@ -21,7 +21,9 @@ class SQLRepo(Repo):
         )
 
     # --- User views ---
-    def list_for_user(self, user_id: str) -> Iterable[tuple[Achievement, UserAchievement | None]]:
+    def list_for_user(
+        self, user_id: str
+    ) -> Iterable[tuple[Achievement, UserAchievement | None]]:
         async def _run() -> list[tuple[Achievement, UserAchievement | None]]:
             sql = text(
                 """
@@ -263,12 +265,23 @@ class SQLRepo(Repo):
                     "SELECT 1 FROM product_achievements WHERE code = :code AND id <> cast(:id as uuid)"
                 )
                 async with self._engine.begin() as conn:
-                    conflict = (await conn.execute(chk, {"code": new_code, "id": achievement_id})).first()
+                    conflict = (
+                        await conn.execute(
+                            chk, {"code": new_code, "id": achievement_id}
+                        )
+                    ).first()
                 if conflict:
                     return None
             sets = ["updated_at = now()"]
             params: dict[str, Any] = {"id": achievement_id}
-            for field in ("code", "title", "description", "icon", "visible", "condition"):
+            for field in (
+                "code",
+                "title",
+                "description",
+                "icon",
+                "visible",
+                "condition",
+            ):
                 if field in data:
                     sets.append(f"{field} = :{field}")
                     params[field] = data[field]
@@ -330,4 +343,3 @@ class SQLRepo(Repo):
 
 
 __all__ = ["SQLRepo"]
-

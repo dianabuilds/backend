@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from logging.config import fileConfig
-
 import os
+from logging.config import fileConfig
 from urllib.parse import quote_plus
+
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
@@ -43,7 +43,9 @@ def _get_db_url() -> str:
         sslmode = os.getenv("DATABASE__SSLMODE")
         pw = f":{quote_plus(password)}" if password else ""
         query = f"?sslmode={sslmode}" if sslmode else ""
-        return f"postgresql+psycopg2://{quote_plus(user)}{pw}@{host}:{port}/{name}{query}"
+        return (
+            f"postgresql+psycopg2://{quote_plus(user)}{pw}@{host}:{port}/{name}{query}"
+        )
 
     # Try to read from Settings if project config provides it
     try:

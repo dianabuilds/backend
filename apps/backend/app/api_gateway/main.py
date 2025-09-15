@@ -6,8 +6,8 @@ from typing import cast
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from starlette.responses import JSONResponse
 from starlette.applications import Starlette
+from starlette.responses import JSONResponse
 
 from .wires import build_container
 
@@ -57,6 +57,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+
 # Return 400 for payload validation errors to match legacy API
 def _validation_handler(request, exc: RequestValidationError):  # type: ignore[override]
     try:
@@ -71,6 +72,7 @@ def _validation_handler(request, exc: RequestValidationError):  # type: ignore[o
     except Exception:
         return JSONResponse(status_code=400, content={"detail": "invalid_payload"})
 
+
 app.add_exception_handler(RequestValidationError, _validation_handler)
 
 
@@ -82,7 +84,6 @@ def healthz() -> dict:
 
 @app.get("/readyz", include_in_schema=False)
 async def readyz() -> dict:
-    from starlette.requests import Request  # type: ignore
 
     # Access container via global app state (Starlette)
     # This handler is async to allow DB ping via async engine
@@ -119,8 +120,6 @@ async def readyz() -> dict:
         try:
             # If container exists and has search, mark as ready
             # Note: FastAPI app.state.container is set in lifespan
-            from starlette.applications import Starlette  # type: ignore
-            import builtins as _b
 
             # We can't access Request here easily; rely on app state
             # noinspection PyUnresolvedReferences
@@ -132,6 +131,7 @@ async def readyz() -> dict:
         return {"ok": bool(ok), "components": details}
     except Exception:
         return {"ok": False}
+
 
 # Product routers registration
 from domains.platform.admin.api.http import make_router as admin_router  # noqa: E402

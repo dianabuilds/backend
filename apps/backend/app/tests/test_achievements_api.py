@@ -120,4 +120,3 @@ async def test_achievements_crud_and_grants():
         d = client.delete(f"/v1/admin/achievements/{ach_id}", headers=_with_csrf())
         assert d.status_code == 200, d.text
         assert d.json()["ok"] is True
-

@@ -18,10 +18,11 @@ def main() -> None:
     args = parser.parse_args()
     spec = app.openapi()
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(spec, ensure_ascii=False, indent=2), encoding="utf-8")
+    args.out.write_text(
+        json.dumps(spec, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(f"OpenAPI exported to {args.out}")
 
 
 if __name__ == "__main__":
     main()
-

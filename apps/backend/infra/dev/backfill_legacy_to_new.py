@@ -19,8 +19,8 @@ Notes:
 
 import argparse
 import os
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -47,9 +47,17 @@ async def _write_nodes(engine: AsyncEngine, rows: Iterable[NodeRow]) -> int:
                     ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, is_public = EXCLUDED.is_public, updated_at = now()
                     """
                 ),
-                {"id": int(r.id), "aid": r.author_id, "title": r.title, "pub": bool(r.is_public)},
+                {
+                    "id": int(r.id),
+                    "aid": r.author_id,
+                    "title": r.title,
+                    "pub": bool(r.is_public),
+                },
             )
-            await conn.execute(text("DELETE FROM product_node_tags WHERE node_id = :id"), {"id": int(r.id)})
+            await conn.execute(
+                text("DELETE FROM product_node_tags WHERE node_id = :id"),
+                {"id": int(r.id)},
+            )
             for t in sorted(set(s.strip().lower() for s in (r.tags or []) if s)):
                 await conn.execute(
                     text(
@@ -69,8 +77,12 @@ def read_nodes_from_csv(path: str) -> list[NodeRow]:
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Legacy -> DDD backfill (template)")
-    parser.add_argument("--from-csv", type=str, default=None, help="Path to CSV export folder")
-    parser.add_argument("--from-db", action="store_true", help="Read from legacy DB (implement)")
+    parser.add_argument(
+        "--from-csv", type=str, default=None, help="Path to CSV export folder"
+    )
+    parser.add_argument(
+        "--from-db", action="store_true", help="Read from legacy DB (implement)"
+    )
     args = parser.parse_args()
 
     dsn = os.getenv("APP_DATABASE_URL") or os.getenv("DATABASE_URL")
@@ -93,4 +105,3 @@ if __name__ == "__main__":
     import asyncio
 
     asyncio.run(main())
-

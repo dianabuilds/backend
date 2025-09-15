@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from domains.product.profile.domain.entities import Profile
 
 
