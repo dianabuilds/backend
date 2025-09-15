@@ -12,7 +12,7 @@ except Exception:  # pragma: no cover
 
 
 def _load_openapi_yaml(rel_path: str) -> dict[str, Any] | None:
-    base = Path("apps/backendDDD/packages/schemas/api")
+    base = Path("apps/apps/backend/packages/schemas/api")
     p = base / rel_path
     if not p.exists() or yaml is None:
         return None
@@ -39,7 +39,7 @@ def validate_notifications_request(
 ) -> None:
     """Validate payload for Notifications API using bundled OpenAPI schema.
 
-    Uses apps/backendDDD/packages/schemas/api/notifications/notifications.v1.yaml.
+    Uses apps/apps/backend/packages/schemas/api/notifications/notifications.v1.yaml.
     No-op if dependencies or schema missing.
     """
     if jsonschema_validate is None:

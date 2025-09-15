@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from logging.config import fileConfig
 
+import os
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
@@ -14,15 +15,29 @@ logger = logging.getLogger(__name__)
 
 
 def _get_db_url() -> str:
-    # Pull URL from DDD settings
+    """Resolve DB URL with sensible precedence after repo move.
+
+    1) If APP_DATABASE_URL is set (env/.env), use it.
+    2) Else, use sqlalchemy.url from alembic.ini (supports DATABASE__* vars).
+    """
+    app_url = os.getenv("APP_DATABASE_URL")
+    if app_url:
+        return app_url
+
+    # Try to read from Settings, but only if it overrides default via APP_DATABASE_URL
     try:
         from packages.core.config import load_settings
 
         s = load_settings()
-        return str(s.database_url)
+        # If env provides APP_DATABASE_URL, Settings would pick it; otherwise
+        # prefer alembic.ini interpolation of DATABASE__* vars.
+        if os.getenv("APP_DATABASE_URL"):
+            return str(s.database_url)
     except Exception:
-        # Fallback to ini value
-        return config.get_main_option("sqlalchemy.url")
+        pass
+
+    # Fallback to ini value (works with DATABASE__* variables in .env)
+    return config.get_main_option("sqlalchemy.url")
 
 
 def run_migrations_offline() -> None:

@@ -9,13 +9,13 @@ from typing import BinaryIO
 class LocalStorageGateway:
     """Local filesystem storage adapter.
 
-    Saves files under ``apps/backendDDD/var/uploads`` and returns URL path
+    Saves files under ``apps/apps/backend/var/uploads`` and returns URL path
     ``/v1/media/file/<name>`` which is served by the media API router.
     """
 
     def __init__(
         self,
-        base_dir: str = "apps/backendDDD/var/uploads",
+        base_dir: str = "apps/backend/var/uploads",
         public_route_prefix: str = "/v1/media/file",
     ) -> None:
         self.base_dir = Path(base_dir)

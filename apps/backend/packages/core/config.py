@@ -9,9 +9,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="APP_",
+        # Load env from new locations (repo root first), fallback to app dir
         env_file=(
-            "apps/backendDDD/.env.local",
-            "apps/backendDDD/.env",
+            ".env.local",
+            ".env",
+            "apps/backend/.env.local",
+            "apps/backend/.env",
         ),
         env_file_encoding="utf-8",
         extra="ignore",
@@ -54,7 +57,7 @@ class Settings(BaseSettings):
     admin_api_key: str | None = None
 
     # search (in-memory only)
-    search_persist_path: str | None = "apps/backendDDD/var/search_index.json"
+    search_persist_path: str | None = "apps/backend/var/search_index.json"
 
     # product feature flags (DDD-only)
     referrals_enabled: bool = True

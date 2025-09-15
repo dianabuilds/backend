@@ -9,32 +9,35 @@ lint:   ## ruff + black --check
 	ruff check .
 	black --check .
 
-type:   ## mypy for DDD
-	mypy apps/backendDDD
+type:   ## mypy for backend
+	mypy apps/backend
 
 unit:   ## fast tests only (DDD)
 	pytest -q -m "not slow" tests/ddd --maxfail=1 || true
 
-run-ddd: ## run DDD API locally
-	uvicorn apps.backendDDD.app.api_gateway.main:app --host 0.0.0.0 --port 8000 --reload
+run-backend: ## run backend API locally
+	uvicorn apps.backend.app.api_gateway.main:app --host 0.0.0.0 --port 8000 --reload
 
-openapi-export: ## export FastAPI OpenAPI to apps/backendDDD/var/openapi.json
-	python apps/backendDDD/infra/ci/export_openapi.py --out apps/backendDDD/var/openapi.json
+openapi-export: ## export FastAPI OpenAPI to apps/backend/var/openapi.json
+	python apps/backend/infra/ci/export_openapi.py --out apps/backend/var/openapi.json
 
 run-events: ## run events relay worker
-	python -m apps.backendDDD.infra.events_worker
+	python -m apps.backend.infra.events_worker
 
 build:  ## optional package/build
 	python -m build
 
-.PHONY: db-ddd-revision db-ddd-upgrade db-ddd-downgrade
+.PHONY: db-revision db-upgrade db-downgrade migrate
 
-db-ddd-revision:  ## create new DDD alembic revision (use: make db-ddd-revision m="message")
-	@if [ -z "$(m)" ]; then echo "Usage: make db-ddd-revision m=\"message\""; exit 1; fi; \
-	alembic -c apps/backendDDD/alembic.ini revision -m "$(m)"
+db-revision:  ## create new alembic revision (use: make db-revision m="message")
+	@if [ -z "$(m)" ]; then echo "Usage: make db-revision m=\"message\""; exit 1; fi; \
+	alembic -c alembic.ini revision -m "$(m)"
 
-db-ddd-upgrade:   ## upgrade DDD DB to head
-	alembic -c apps/backendDDD/alembic.ini upgrade head
+db-upgrade:   ## upgrade DB to head
+	alembic -c alembic.ini upgrade head
 
-db-ddd-downgrade: ## downgrade DDD DB one revision
-	alembic -c apps/backendDDD/alembic.ini downgrade -1
+migrate: ## alias for db-upgrade
+	alembic -c alembic.ini upgrade head
+
+db-downgrade: ## downgrade DB one revision
+	alembic -c alembic.ini downgrade -1

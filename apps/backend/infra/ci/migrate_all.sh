@@ -8,7 +8,8 @@ if [[ -z "$DB_URL" ]]; then
 fi
 
 shopt -s nullglob
-ROOT="apps/backendDDD/domains"
+# Root for domain SQL DDL files (moved from backendDDD -> backend)
+ROOT="apps/backend/domains"
 
 # Collect all *.sql files under domains/*/schema/sql, sorted
 mapfile -t FILES < <(find "$ROOT" -type d -path "*/schema/sql" -print0 | xargs -0 -I{} find {} -maxdepth 1 -type f -name "*.sql" | sort)

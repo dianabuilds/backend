@@ -11,8 +11,8 @@ from .adapters.repo_sql import SQLRepo as ProductSQLRepo
 from .application.ports import Flags
 
 # Note: In real domains import these from your shared packages, e.g.:
-# from apps.backendDDD.packages.core.config import load_settings, Settings
-# from apps.backendDDD.packages.core.flags import Flags
+# from apps.apps/backend.packages.core.config import load_settings, Settings
+# from apps.apps/backend.packages.core.flags import Flags
 from .application.services import Service as ProductService
 
 

@@ -1,5 +1,5 @@
 [project]
-name = "backendDDD"
+name = "backend"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
@@ -12,7 +12,7 @@ dependencies = [
 
 [tool.pytest.ini_options]
 addopts = "-q"
-testpaths = ["apps/backendDDD/domains"]
+testpaths = ["apps/backend/domains"]
 
 [tool.black]
 target-version = ["py311"]
@@ -21,8 +21,8 @@ target-version = ["py311"]
 line-length = 100
 target-version = "py311"
 extend-exclude = [
-  "apps/backendDDD/templates",
-  "apps/backendDDD/domains/platform/_template",
+  "apps/backend/templates",
+  "apps/backend/domains/platform/_template",
 ]
 
 [tool.ruff.lint]
@@ -38,6 +38,6 @@ disallow_any_generics = true
 no_implicit_optional = true
 exclude = [
   ".venv",
-  "apps/backendDDD/templates/",
-  "apps/backendDDD/domains/platform/_template/",
+  "apps/backend/templates/",
+  "apps/backend/domains/platform/_template/",
 ]

@@ -12,7 +12,7 @@ def main() -> None:
     parser.add_argument(
         "--out",
         type=Path,
-        default=Path("apps/backendDDD/var/openapi.json"),
+        default=Path("apps/apps/backend/var/openapi.json"),
         help="Output path for openapi.json",
     )
     args = parser.parse_args()

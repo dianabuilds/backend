@@ -25,7 +25,7 @@ def _read_sql(path: Path) -> str:
 
 
 def upgrade() -> None:
-    base = Path(__file__).resolve().parents[2]  # apps/backendDDD
+    base = Path(__file__).resolve().parents[2]  # apps/apps/backend
     files = [
         # Nodes
         base / "domains" / "product" / "nodes" / "schema" / "sql" / "001_nodes.sql",

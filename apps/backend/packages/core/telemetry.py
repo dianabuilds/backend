@@ -4,7 +4,7 @@ import logging
 import time
 from collections.abc import Callable
 
-logger = logging.getLogger("backendDDD")
+logger = logging.getLogger("apps/backend")
 
 
 def setup_logging(level: int = logging.INFO) -> None:

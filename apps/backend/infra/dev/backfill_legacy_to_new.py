@@ -5,12 +5,12 @@ Backfill script template: migrate data from legacy DB to new DDD schema.
 
 Usage examples:
   APP_DATABASE_URL=postgresql://app:app@localhost:5432/app \
-  python apps/backendDDD/infra/dev/backfill_legacy_to_new.py --from-csv ./export
+  python apps/apps/backend/infra/dev/backfill_legacy_to_new.py --from-csv ./export
 
 Or provide a legacy DSN (implement readers accordingly):
   LEGACY_DSN=postgresql://legacy:pass@host:5432/legacy \
   APP_DATABASE_URL=postgresql://app:app@localhost:5432/app \
-  python apps/backendDDD/infra/dev/backfill_legacy_to_new.py --from-db
+  python apps/apps/backend/infra/dev/backfill_legacy_to_new.py --from-db
 
 Notes:
 - This is a scaffold. Replace read_* impls with real legacy readers.
