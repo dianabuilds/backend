@@ -17,7 +17,7 @@ services:
 
   ddd:
     build: .
-    command: make run-ddd
+    command: make run-smoke
     volumes:
       - .:/app
     env_file:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .conftest import add_auth, make_jwt
+from tests.conftest import add_auth, make_jwt
 from uuid import uuid4
 
 

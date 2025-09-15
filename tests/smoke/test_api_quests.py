@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from .conftest import add_auth, make_jwt
+from tests.conftest import add_auth, make_jwt
 
 
 def test_quests_create_get_and_update_tags(app_client):
