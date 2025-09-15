@@ -1,1 +1,0 @@
-# Repositories for telemetry infrastructure

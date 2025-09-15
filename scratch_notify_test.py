@@ -1,8 +1,8 @@
-from apps.backendDDD.domains.platform.events.adapters.event_bus_memory import InMemoryEventBus
-from apps.backendDDD.domains.platform.events.adapters.outbox_memory import MemoryOutbox
-from apps.backendDDD.domains.platform.events.service import Events
-from apps.backendDDD.domains.platform.notifications.logic.dispatcher import register_channel
-from apps.backendDDD.domains.platform.notifications.wires import register_event_relays
+from domains.platform.events.adapters.event_bus_memory import InMemoryEventBus
+from domains.platform.events.adapters.outbox_memory import MemoryOutbox
+from domains.platform.events.service import Events
+from domains.platform.notifications.logic.dispatcher import register_channel
+from domains.platform.notifications.wires import register_event_relays
 
 bus = InMemoryEventBus()
 outbox = MemoryOutbox()
