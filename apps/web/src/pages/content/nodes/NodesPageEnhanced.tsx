@@ -135,7 +135,11 @@ export default function NodesPageEnhanced() {
   );
   const headerStats = React.useMemo(() => {
     const total = items.length;
-    const published = items.filter((it) => (it.status || '').toLowerCase() === 'published').length;
+    const published = items.filter((it) => {
+      const normalized = (it.status || '').toLowerCase();
+      if (normalized) return normalized === 'published' || normalized === 'scheduled_unpublish';
+      return Boolean(it.is_public);
+    }).length;
     const ratio = total ? Math.round((published / Math.max(total, 1)) * 100) : 0;
     const stats = [
       { label: 'Nodes in view', value: total || '--', hint: status === 'all' ? 'Current filter: all statuses' : `Filter: ${status}` },
