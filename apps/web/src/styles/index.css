@@ -1,0 +1,31 @@
+/* Bridge to vendor theme CSS; compiled via Tailwind/PostCSS */
+/* Base Quill styles first, then our theme overrides */
+@import "quill/dist/quill.snow.css";
+@import "../../vendor/template/src/styles/index.css";
+
+/* Autofill fix for inputs */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: inherit;
+  -webkit-box-shadow: 0 0 0px 1000px white inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Fix checkbox visibility when checked (override minimal theme styles) */
+.form-checkbox {
+  background-color: white;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px 12px;
+}
+.dark .form-checkbox { background-color: transparent; }
+.form-checkbox:checked {
+  background-color: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+  background-image: var(--tw-thumb);
+}
+.dark .form-checkbox:checked {
+  background-color: var(--color-primary-400);
+  border-color: var(--color-primary-400);
+}

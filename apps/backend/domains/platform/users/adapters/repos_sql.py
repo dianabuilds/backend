@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid as _uuid
 from typing import Any
 
 from sqlalchemy import text
@@ -23,11 +24,43 @@ def _row_to_user(r: Any) -> User:
 
 class SQLUsersRepo(UsersRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
-        self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
-        )
+        if isinstance(engine, str):
+            dsn = str(engine)
+            # Normalize DSN for asyncpg: strip query (sslmode etc.), set ssl via connect_args
+            try:
+                from urllib.parse import parse_qsl, urlparse, urlunparse
+
+                u = urlparse(dsn)
+                scheme = u.scheme
+                if scheme.startswith("postgresql") and not scheme.startswith("postgresql+asyncpg"):
+                    scheme = "postgresql+asyncpg"
+                q = dict(parse_qsl(u.query))
+                ssl_flag = None
+                if "ssl" in q:
+                    ssl_flag = str(q.get("ssl")).lower() in {"1", "true", "yes"}
+                else:
+                    sm = str(q.get("sslmode", "")).lower()
+                    if sm in {"require", "verify-full", "verify-ca"}:
+                        ssl_flag = True
+                    elif sm in {"disable", "allow", "prefer", "0", "false"}:
+                        ssl_flag = False
+                dsn_no_query = urlunparse((scheme, u.netloc, u.path, u.params, "", u.fragment))
+            except Exception:
+                ssl_flag = None
+                dsn_no_query = dsn
+            kwargs = {"connect_args": {}}  # type: ignore[var-annotated]
+            if ssl_flag is not None:
+                kwargs["connect_args"] = {"ssl": ssl_flag}
+            self._engine = create_async_engine(dsn_no_query, **kwargs)
+        else:
+            self._engine = engine
 
     async def get_by_id(self, user_id: str) -> User | None:
+        # If user_id is not a valid UUID, treat it as email and fallback
+        try:
+            _uuid.UUID(str(user_id))
+        except Exception:
+            return await self.get_by_email(str(user_id))
         sql = text(
             "SELECT id, email, wallet_address, is_active, role, username, created_at FROM users WHERE id = :id"
         )

@@ -1,5 +1,5 @@
 -- Product nodes main table
-CREATE TABLE IF NOT EXISTS product_nodes (
+CREATE TABLE IF NOT EXISTS nodes (
   id bigserial PRIMARY KEY,
   author_id uuid NOT NULL,
   title text NULL,
@@ -7,5 +7,5 @@ CREATE TABLE IF NOT EXISTS product_nodes (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS ix_product_nodes_author ON product_nodes(author_id, id);
+CREATE INDEX IF NOT EXISTS ix_nodes_author ON nodes(author_id, id);
 

@@ -10,7 +10,7 @@ from domains.platform.events.service import Events
 
 
 class SQLTagUsageWriter:
-    """Event-driven writer for product_tag_usage_counters.
+    """Event-driven writer for tag_usage_counters.
 
     Handles topics like `node.tags.updated.v1` with payload shape:
       {
@@ -31,16 +31,8 @@ class SQLTagUsageWriter:
         if not aid:
             return
         ctype = str(payload.get("content_type") or "node").strip() or "node"
-        added = [
-            str(s).strip().lower()
-            for s in (payload.get("added") or [])
-            if str(s).strip()
-        ]
-        removed = [
-            str(s).strip().lower()
-            for s in (payload.get("removed") or [])
-            if str(s).strip()
-        ]
+        added = [str(s).strip().lower() for s in (payload.get("added") or []) if str(s).strip()]
+        removed = [str(s).strip().lower() for s in (payload.get("removed") or []) if str(s).strip()]
         if not added and not removed:
             return
         async with self._engine.begin() as conn:
@@ -48,10 +40,10 @@ class SQLTagUsageWriter:
             if added:
                 sql_inc = text(
                     """
-                    INSERT INTO product_tag_usage_counters(author_id, content_type, slug, count)
+                    INSERT INTO tag_usage_counters(author_id, content_type, slug, count)
                     VALUES (cast(:aid as uuid), :ctype, :slug, 1)
                     ON CONFLICT (author_id, content_type, slug)
-                    DO UPDATE SET count = product_tag_usage_counters.count + 1
+                    DO UPDATE SET count = tag_usage_counters.count + 1
                     """
                 )
                 for s in added:
@@ -60,14 +52,14 @@ class SQLTagUsageWriter:
             if removed:
                 sql_dec = text(
                     """
-                    UPDATE product_tag_usage_counters
+                    UPDATE tag_usage_counters
                     SET count = GREATEST(count - 1, 0)
                     WHERE author_id = cast(:aid as uuid) AND content_type = :ctype AND slug = :slug
                     """
                 )
                 sql_del = text(
                     """
-                    DELETE FROM product_tag_usage_counters
+                    DELETE FROM tag_usage_counters
                     WHERE author_id = cast(:aid as uuid) AND content_type = :ctype AND slug = :slug AND count <= 0
                     """
                 )
@@ -76,9 +68,7 @@ class SQLTagUsageWriter:
                     await conn.execute(sql_del, {"aid": aid, "ctype": ctype, "slug": s})
 
 
-def register_tags_usage_writer(
-    events: Events, engine_or_dsn: AsyncEngine | str
-) -> None:
+def register_tags_usage_writer(events: Events, engine_or_dsn: AsyncEngine | str) -> None:
     """Register event consumers for tags usage counters.
 
     Safe to call without DB: failures are swallowed to avoid breaking API startup.

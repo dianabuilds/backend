@@ -9,4 +9,4 @@
 
 SLA/SLO: см. `METRICS.md`.
 
-События: перечислите и добавьте схемы в `apps/backendDDD/packages/schemas/events/<your_domain>/`.
+События: перечислите и добавьте схемы в `apps/backend/packages/schemas/events/<your_domain>/`.

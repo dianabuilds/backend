@@ -1,0 +1,55 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "allowJs": false,
+    "esModuleInterop": true,
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ui": ["src/shared/ui/index.ts"],
+      "@ui/*": ["src/shared/ui/*"],
+      "@icons": ["src/shared/icons/index.ts"],
+      "@icons/*": ["src/shared/icons/*"],
+      "@/*": ["vendor/template/src/*"],
+      "@constants/*": ["vendor/template/src/constants/*"],
+      "@utils/*": ["vendor/template/src/utils/*"],
+      "@shared/*": ["vendor/template/src/shared/*"]
+    },
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src/main.tsx",
+    "src/App.tsx",
+    "src/pages/**/*.tsx",
+    "src/shared/ui/**/*.ts",
+    "src/shared/ui/**/*.tsx",
+    "src/shared/auth/**/*.ts",
+    "src/shared/auth/**/*.tsx",
+    "src/vite-env.d.ts"
+  ],
+  "exclude": [
+    "vendor",
+    "ts/demo",
+    "node_modules",
+    "dist",
+    "src/app",
+    "src/components",
+    "src/assets",
+    "src/styles",
+    "src/i18n",
+    "src/configs",
+    "src/constants",
+    "src/hooks",
+    "src/utils",
+    "src/@types"
+  ]
+}

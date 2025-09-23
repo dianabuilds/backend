@@ -16,3 +16,4 @@ CREATE TABLE IF NOT EXISTS notification_campaigns (
 );
 CREATE INDEX IF NOT EXISTS ix_notification_campaigns_created ON notification_campaigns (created_at DESC);
 
+

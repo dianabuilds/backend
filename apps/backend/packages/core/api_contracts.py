@@ -12,16 +12,14 @@ except Exception:  # pragma: no cover
 
 
 def _load_openapi_yaml(rel_path: str) -> dict[str, Any] | None:
-    base = Path("apps/apps/backend/packages/schemas/api")
+    base = Path("apps/backend/packages/schemas/api")
     p = base / rel_path
     if not p.exists() or yaml is None:
         return None
     return yaml.safe_load(p.read_text(encoding="utf-8"))
 
 
-def _find_request_schema(
-    spec: dict[str, Any], path: str, method: str
-) -> dict[str, Any] | None:
+def _find_request_schema(spec: dict[str, Any], path: str, method: str) -> dict[str, Any] | None:
     paths = spec.get("paths") or {}
     node = paths.get(path) or {}
     op = node.get(method.lower()) or {}
@@ -34,12 +32,10 @@ def _find_request_schema(
     return None
 
 
-def validate_notifications_request(
-    path: str, method: str, payload: dict[str, Any]
-) -> None:
+def validate_notifications_request(path: str, method: str, payload: dict[str, Any]) -> None:
     """Validate payload for Notifications API using bundled OpenAPI schema.
 
-    Uses apps/apps/backend/packages/schemas/api/notifications/notifications.v1.yaml.
+    Uses apps/backend/packages/schemas/api/notifications/notifications.v1.yaml.
     No-op if dependencies or schema missing.
     """
     if jsonschema_validate is None:

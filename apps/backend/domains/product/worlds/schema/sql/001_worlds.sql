@@ -1,5 +1,5 @@
 -- Product worlds (templates)
-CREATE TABLE IF NOT EXISTS product_worlds (
+CREATE TABLE IF NOT EXISTS worlds (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL,
   title text NOT NULL,
@@ -11,5 +11,5 @@ CREATE TABLE IF NOT EXISTS product_worlds (
   created_by_user_id uuid NULL,
   updated_by_user_id uuid NULL
 );
-CREATE INDEX IF NOT EXISTS ix_product_worlds_workspace ON product_worlds(workspace_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_worlds_workspace ON worlds(workspace_id, created_at DESC);
 

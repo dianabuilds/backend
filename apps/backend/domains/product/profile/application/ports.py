@@ -1,5 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol, runtime_checkable
 
 from domains.product.profile.domain.entities import Profile
@@ -7,8 +8,41 @@ from domains.product.profile.domain.entities import Profile
 
 @runtime_checkable
 class Repo(Protocol):
-    def get(self, id: str) -> Profile | None: ...  # noqa: A002
-    def upsert(self, p: Profile) -> Profile: ...
+    def get(self, user_id: str) -> Profile | None: ...
+    def update_profile(
+        self,
+        user_id: str,
+        *,
+        updates: dict[str, object | None],
+        set_username_timestamp: bool,
+        now: datetime,
+    ) -> Profile: ...
+    def email_in_use(self, email: str, exclude_user_id: str | None = None) -> bool: ...
+    def create_email_change_request(
+        self,
+        user_id: str,
+        *,
+        email: str,
+        token: str,
+        requested_at: datetime,
+    ) -> None: ...
+    def confirm_email_change(
+        self,
+        user_id: str,
+        *,
+        token: str,
+        now: datetime,
+    ) -> Profile: ...
+    def set_wallet(
+        self,
+        user_id: str,
+        *,
+        address: str,
+        chain_id: str | None,
+        signature: str | None,
+        verified_at: datetime,
+    ) -> Profile: ...
+    def clear_wallet(self, user_id: str) -> Profile: ...
 
 
 @runtime_checkable
@@ -19,3 +53,6 @@ class Outbox(Protocol):
 @runtime_checkable
 class IamClient(Protocol):
     def allow(self, subject: dict, action: str, resource: dict) -> bool: ...
+
+
+__all__ = ["Repo", "Outbox", "IamClient"]

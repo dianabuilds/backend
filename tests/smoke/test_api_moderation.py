@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from tests.conftest import add_auth, make_jwt
 from uuid import uuid4
+
+from tests.conftest import add_auth, make_jwt
 
 
 def test_moderation_list_create_add_note(app_client):
@@ -16,7 +17,9 @@ def test_moderation_list_create_add_note(app_client):
     assert r0.status_code == 200, r0.text
 
     # Create case
-    c = app_client.post("/v1/moderation/cases", json={"title": "t", "description": "d"}, headers=headers)
+    c = app_client.post(
+        "/v1/moderation/cases", json={"title": "t", "description": "d"}, headers=headers
+    )
     assert c.status_code == 200, c.text
     cid = c.json()["id"]
 
@@ -24,4 +27,3 @@ def test_moderation_list_create_add_note(app_client):
     n = app_client.post(f"/v1/moderation/cases/{cid}/notes", json={"text": "ping"}, headers=headers)
     assert n.status_code == 200, n.text
     assert n.json()["text"] == "ping"
-

@@ -4,7 +4,7 @@
 
 - Порт: `ports/storage_port.py`
 - Сервис: `application/storage_service.py`
-- Адаптер: `adapters/local_storage.py` — хранит в `apps/backendDDD/var/uploads` с шардированием `xx/yy/<uuid>.<ext>`
+- Адаптер: `adapters/local_storage.py` — хранит в `apps/backend/var/uploads` с шардированием `xx/yy/<uuid>.<ext>`
 - API: `api/http.py`
   - `POST /v1/media` — загрузка (jpeg/png/webp, ≤5MB)
   - `GET /v1/media/file/{name:path}` — отдача файла

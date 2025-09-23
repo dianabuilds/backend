@@ -32,69 +32,21 @@ def upgrade() -> None:
         base / "domains" / "product" / "nodes" / "schema" / "sql" / "002_node_tags.sql",
         # Quests
         base / "domains" / "product" / "quests" / "schema" / "sql" / "001_quests.sql",
-        base
-        / "domains"
-        / "product"
-        / "quests"
-        / "schema"
-        / "sql"
-        / "002_quest_tags.sql",
+        base / "domains" / "product" / "quests" / "schema" / "sql" / "002_quest_tags.sql",
         # Worlds
         base / "domains" / "product" / "worlds" / "schema" / "sql" / "001_worlds.sql",
-        base
-        / "domains"
-        / "product"
-        / "worlds"
-        / "schema"
-        / "sql"
-        / "002_characters.sql",
+        base / "domains" / "product" / "worlds" / "schema" / "sql" / "002_characters.sql",
         # Moderation
-        base
-        / "domains"
-        / "product"
-        / "moderation"
-        / "schema"
-        / "sql"
-        / "001_cases.sql",
-        base
-        / "domains"
-        / "product"
-        / "moderation"
-        / "schema"
-        / "sql"
-        / "002_notes.sql",
+        base / "domains" / "product" / "moderation" / "schema" / "sql" / "001_cases.sql",
+        base / "domains" / "product" / "moderation" / "schema" / "sql" / "002_notes.sql",
         # Referrals
         base / "domains" / "product" / "referrals" / "schema" / "sql" / "001_codes.sql",
-        base
-        / "domains"
-        / "product"
-        / "referrals"
-        / "schema"
-        / "sql"
-        / "002_events.sql",
+        base / "domains" / "product" / "referrals" / "schema" / "sql" / "002_events.sql",
         # Tags
         base / "domains" / "product" / "tags" / "schema" / "sql" / "001_tags.sql",
-        base
-        / "domains"
-        / "product"
-        / "tags"
-        / "schema"
-        / "sql"
-        / "002_tag_aliases.sql",
-        base
-        / "domains"
-        / "product"
-        / "tags"
-        / "schema"
-        / "sql"
-        / "003_tag_blacklist.sql",
-        base
-        / "domains"
-        / "product"
-        / "tags"
-        / "schema"
-        / "sql"
-        / "004_tag_usage_counters.sql",
+        base / "domains" / "product" / "tags" / "schema" / "sql" / "002_tag_aliases.sql",
+        base / "domains" / "product" / "tags" / "schema" / "sql" / "003_tag_blacklist.sql",
+        base / "domains" / "product" / "tags" / "schema" / "sql" / "004_tag_usage_counters.sql",
     ]
     for f in files:
         sql = _read_sql(f)
@@ -105,14 +57,14 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Drop in reverse dependency order
     drops = [
-        "DROP TABLE IF EXISTS product_quest_tags CASCADE",
-        "DROP TABLE IF EXISTS product_quests CASCADE",
+        "DROP TABLE IF EXISTS quest_tags CASCADE",
+        "DROP TABLE IF EXISTS quests CASCADE",
         "DROP TABLE IF EXISTS product_node_tags CASCADE",
-        "DROP TABLE IF EXISTS product_nodes CASCADE",
-        "DROP TABLE IF EXISTS product_tag_usage_counters CASCADE",
-        "DROP TABLE IF EXISTS product_tag_alias CASCADE",
-        "DROP TABLE IF EXISTS product_tag_blacklist CASCADE",
-        "DROP TABLE IF EXISTS product_tag CASCADE",
+        "DROP TABLE IF EXISTS nodes CASCADE",
+        "DROP TABLE IF EXISTS tag_usage_counters CASCADE",
+        "DROP TABLE IF EXISTS tag_alias CASCADE",
+        "DROP TABLE IF EXISTS tag_blacklist CASCADE",
+        "DROP TABLE IF EXISTS tag CASCADE",
     ]
     for stmt in drops:
         op.execute(stmt)

@@ -19,6 +19,11 @@ from domains.product.achievements.api.schemas import (
 )
 
 
+class UserIdIn(BaseModel):
+    user_id: UUID
+    reason: str | None = None
+
+
 def make_router() -> APIRouter:
     router = APIRouter()
 
@@ -45,12 +50,8 @@ def make_router() -> APIRouter:
                 icon=r.icon,
                 visible=bool(r.visible),
                 condition=dict(r.condition or {}),
-                created_by_user_id=(
-                    UUID(r.created_by_user_id) if r.created_by_user_id else None
-                ),
-                updated_by_user_id=(
-                    UUID(r.updated_by_user_id) if r.updated_by_user_id else None
-                ),
+                created_by_user_id=(UUID(r.created_by_user_id) if r.created_by_user_id else None),
+                updated_by_user_id=(UUID(r.updated_by_user_id) if r.updated_by_user_id else None),
             )
             for r in rows
         ]
@@ -86,12 +87,8 @@ def make_router() -> APIRouter:
             icon=item.icon,
             visible=bool(item.visible),
             condition=dict(item.condition or {}),
-            created_by_user_id=(
-                UUID(item.created_by_user_id) if item.created_by_user_id else None
-            ),
-            updated_by_user_id=(
-                UUID(item.updated_by_user_id) if item.updated_by_user_id else None
-            ),
+            created_by_user_id=(UUID(item.created_by_user_id) if item.created_by_user_id else None),
+            updated_by_user_id=(UUID(item.updated_by_user_id) if item.updated_by_user_id else None),
         )
 
     @admin.patch(
@@ -110,9 +107,7 @@ def make_router() -> APIRouter:
         data = body.model_dump(exclude_unset=True)
         try:
             actor = str(claims.get("sub") or "")
-            item = await container.achievements_admin.update(
-                str(achievement_id), data, actor
-            )
+            item = await container.achievements_admin.update(str(achievement_id), data, actor)
         except ValueError as err:
             if str(err) == "code_conflict":
                 raise HTTPException(status_code=409, detail="conflict") from err
@@ -127,12 +122,8 @@ def make_router() -> APIRouter:
             icon=item.icon,
             visible=bool(item.visible),
             condition=dict(item.condition or {}),
-            created_by_user_id=(
-                UUID(item.created_by_user_id) if item.created_by_user_id else None
-            ),
-            updated_by_user_id=(
-                UUID(item.updated_by_user_id) if item.updated_by_user_id else None
-            ),
+            created_by_user_id=(UUID(item.created_by_user_id) if item.created_by_user_id else None),
+            updated_by_user_id=(UUID(item.updated_by_user_id) if item.updated_by_user_id else None),
         )
 
     @admin.delete("/{achievement_id}", summary="Delete achievement")
@@ -146,10 +137,6 @@ def make_router() -> APIRouter:
         if not ok:
             raise HTTPException(status_code=404, detail="not_found")
         return {"ok": True}
-
-    class UserIdIn(BaseModel):
-        user_id: UUID
-        reason: str | None = None
 
     @admin.post("/{achievement_id}/grant", summary="Grant achievement to user")
     async def grant_achievement(
@@ -178,9 +165,7 @@ def make_router() -> APIRouter:
         return {"revoked": revoked}
 
     @user.get("", response_model=list[AchievementOut], summary="List achievements")
-    async def list_for_user(
-        claims=Depends(get_current_user), container=Depends(get_container)
-    ):
+    async def list_for_user(claims=Depends(get_current_user), container=Depends(get_container)):
         uid = str(claims.get("sub") or "")
         rows = await container.achievements_service.list(uid)
         out: list[AchievementOut] = []

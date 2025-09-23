@@ -1,16 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from domains.platform.audit.wires import AuditContainer
 from domains.platform.audit.wires import build_container as build_audit_container
 from domains.platform.billing.wires import BillingContainer
 from domains.platform.billing.wires import build_container as build_billing_container
-from domains.platform.events.adapters.event_bus_memory import InMemoryEventBus
 from domains.platform.events.adapters.event_bus_redis import RedisEventBus
-from domains.platform.events.adapters.outbox_memory import (
-    MemoryOutbox as EventsMemoryOutbox,
-)
 from domains.platform.events.adapters.outbox_redis import (
     RedisOutbox as ProfileOutboxRedis,
 )
@@ -21,6 +18,12 @@ from domains.platform.iam.wires import IAMContainer
 from domains.platform.iam.wires import build_container as build_iam_container
 from domains.platform.media.wires import MediaContainer
 from domains.platform.media.wires import build_container as build_media_container
+from domains.platform.moderation.wires import (
+    ModerationContainer as PlatformModerationContainer,
+)
+from domains.platform.moderation.wires import (
+    build_container as build_platform_moderation_container,
+)
 from domains.platform.notifications.adapters.email_smtp import register_email_channel
 from domains.platform.notifications.adapters.webhook import register_webhook_channel
 from domains.platform.notifications.wires import (
@@ -70,7 +73,7 @@ from packages.core.config import Settings, load_settings
 
 
 # Simple reachability check to decide SQL vs Memory repos
-def _db_reachable(url: str) -> bool:
+def _db_reachable(url: str, *, allow_remote: bool = False) -> bool:
     try:
         import socket
         from urllib.parse import urlparse
@@ -78,6 +81,8 @@ def _db_reachable(url: str) -> bool:
         u = urlparse(url)
         host = u.hostname or "localhost"
         port = u.port or 5432
+        # When allow_remote is False we still attempt the connection; callers can tighten behaviour
+        # via settings.database_allow_remote but we do not block ahead of time.
         with socket.create_connection((host, port), timeout=0.25):
             return True
     except Exception:
@@ -98,6 +103,7 @@ from domains.product.achievements.application.service import (
     AchievementsService as DddAchievementsService,
 )
 from domains.product.ai.adapters.provider_fake import FakeProvider as AIFakeProvider
+from domains.product.ai.application.registry import LLMRegistry
 from domains.product.ai.application.service import AIService
 from domains.product.moderation.adapters.repo_memory import MemoryModerationRepo
 from domains.product.moderation.adapters.repo_sql import SQLModerationRepo
@@ -114,6 +120,8 @@ from domains.product.nodes.adapters.repo_memory import MemoryNodesRepo
 from domains.product.nodes.adapters.repo_sql import SQLNodesRepo
 from domains.product.nodes.adapters.tag_catalog_memory import MemoryTagCatalog
 from domains.product.nodes.adapters.usage_memory import MemoryUsageProjection
+from domains.product.nodes.application.embedding import EmbeddingClient
+from domains.product.nodes.application.embedding_worker import register_embedding_worker
 from domains.product.nodes.application.service import NodeService as NodesService
 from domains.product.premium.application.service import (
     PremiumService as DddPremiumService,
@@ -145,6 +153,7 @@ class Container:
     quests_service: QuestsService
     navigation_service: NavigationService
     ai_service: AIService | None
+    ai_registry: LLMRegistry
     achievements_service: DddAchievementsService
     achievements_admin: DddAchievementsAdminService
     worlds_service: DddWorldsService
@@ -156,6 +165,7 @@ class Container:
     quota: QuotaContainer
     iam: IAMContainer
     search: SearchContainer
+    platform_moderation: PlatformModerationContainer
     media: MediaContainer
     audit: AuditContainer
     billing: BillingContainer
@@ -167,39 +177,29 @@ class Container:
 def build_container(env: str = "dev") -> Container:
     # Configuration is provided via pydantic-settings
     settings = load_settings()
+    allow_remote_db = bool(
+        getattr(settings, "database_allow_remote", False) or settings.env == "prod"
+    )
     repo: ProfileRepo = ProfileRepoMemory()
-    # Events wiring: Redis mandatory in prod, optional in dev/test
+    # Events wiring: Redis is required in all environments
     topics = [t.strip() for t in str(settings.event_topics).split(",") if t.strip()]
-    if settings.env == "prod":
-        try:
-            import redis  # type: ignore
+    if "node.embedding.requested.v1" not in topics:
+        topics.append("node.embedding.requested.v1")
+    try:
+        import redis  # type: ignore
 
-            rc = redis.Redis.from_url(str(settings.redis_url), decode_responses=True)
-            rc.ping()
-        except Exception as e:
-            raise RuntimeError("Redis is required for events/outbox in prod") from e
-        outbox: ProfileOutbox = ProfileOutboxRedis(str(settings.redis_url))
-        bus = RedisEventBus(
-            redis_url=str(settings.redis_url),
-            topics=topics,
-            group=str(settings.event_group),
-        )
-    else:
-        try:
-            import redis  # type: ignore
-
-            rc = redis.Redis.from_url(str(settings.redis_url), decode_responses=True)
-            rc.ping()
-            outbox = ProfileOutboxRedis(str(settings.redis_url))
-            bus = RedisEventBus(
-                redis_url=str(settings.redis_url),
-                topics=topics,
-                group=str(settings.event_group),
-            )
-        except Exception:
-            # no Redis available -> in-memory bus, and a no-op outbox via memory
-            outbox = EventsMemoryOutbox()  # type: ignore[assignment]
-            bus = InMemoryEventBus()
+        rc = redis.Redis.from_url(str(settings.redis_url), decode_responses=True)
+        rc.ping()
+    except Exception as e:
+        raise RuntimeError(
+            "Redis is required for platform events; ensure APP_REDIS_URL is reachable"
+        ) from e
+    outbox: ProfileOutbox = ProfileOutboxRedis(str(settings.redis_url))
+    bus = RedisEventBus(
+        redis_url=str(settings.redis_url),
+        topics=topics,
+        group=str(settings.event_group),
+    )
     events = Events(outbox=outbox, bus=bus)
     iam: ProfileIam = ProfileIamClient()
     svc = ProfileService(repo=repo, outbox=outbox, iam=iam, flags=Flags())
@@ -207,10 +207,8 @@ def build_container(env: str = "dev") -> Container:
     # Try SQL repo for Profile if DB reachable (no event-loop gymnastics)
     try:
         dsn = str(settings.database_url)
-        if _db_reachable(dsn):
-            svc = ProfileService(
-                repo=SQLProfileRepo(dsn), outbox=outbox, iam=iam, flags=Flags()
-            )
+        if _db_reachable(dsn, allow_remote=allow_remote_db):
+            svc = ProfileService(repo=SQLProfileRepo(dsn), outbox=outbox, iam=iam, flags=Flags())
     except Exception:
         pass
 
@@ -222,18 +220,34 @@ def build_container(env: str = "dev") -> Container:
     tag_catalog = MemoryTagCatalog()
     outbox_bridge = outbox  # unify events outbox across services
     usage_proj = MemoryUsageProjection(tag_usage, content_type="node")
+    embedding_client = EmbeddingClient(
+        base_url=settings.embedding_api_base,
+        model=settings.embedding_model,
+        api_key=settings.embedding_api_key,
+        provider=settings.embedding_provider,
+        timeout=settings.embedding_timeout,
+        connect_timeout=settings.embedding_connect_timeout,
+        retries=settings.embedding_retries,
+        enabled=settings.embedding_enabled,
+    )
+
     # Prefer SQL repo when DB is reachable
     try:
         from packages.core.config import to_async_dsn as _to_async
 
         _dsn_nodes = _to_async(settings.database_url)
-        if _dsn_nodes and _db_reachable(str(settings.database_url)):
+        if _dsn_nodes and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
             nodes_repo = SQLNodesRepo(_dsn_nodes)  # type: ignore[assignment]
     except Exception:
         pass
     nodes = NodesService(
-        repo=nodes_repo, tags=tag_catalog, outbox=outbox_bridge, usage=usage_proj
+        repo=nodes_repo,
+        tags=tag_catalog,
+        outbox=outbox_bridge,
+        usage=usage_proj,
+        embedding=embedding_client,
     )
+    register_embedding_worker(events, nodes)
 
     # Tags service based on usage store
     tags_repo = MemoryTagsRepo(tag_usage)
@@ -241,7 +255,7 @@ def build_container(env: str = "dev") -> Container:
         from packages.core.config import to_async_dsn as _to_async
 
         dsn_tags = _to_async(settings.database_url)
-        if dsn_tags and _db_reachable(str(settings.database_url)):
+        if dsn_tags and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
             # Switch to SQL-backed read repo while keeping usage writer
             tags_repo = SQLTagsRepo(dsn_tags)  # type: ignore[assignment]
     except Exception:
@@ -254,7 +268,7 @@ def build_container(env: str = "dev") -> Container:
         from packages.core.config import to_async_dsn as _to_async
 
         dsn_q = _to_async(settings.database_url)
-        if dsn_q and _db_reachable(str(settings.database_url)):
+        if dsn_q and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
             quests_repo = SQLQuestsRepo(dsn_q)  # type: ignore[assignment]
     except Exception:
         pass
@@ -269,6 +283,8 @@ def build_container(env: str = "dev") -> Container:
                     "id": it.id,
                     "author_id": it.author_id,
                     "title": it.title,
+                    "tags": list(it.tags),
+                    "embedding": list(it.embedding) if it.embedding is not None else None,
                     "is_public": it.is_public,
                 }
                 for it in items
@@ -281,16 +297,35 @@ def build_container(env: str = "dev") -> Container:
                     "id": v.id,
                     "author_id": v.author_id,
                     "title": v.title,
+                    "tags": list(v.tags),
+                    "embedding": list(v.embedding) if v.embedding is not None else None,
                     "is_public": v.is_public,
                 }
                 if v
                 else None
             )
 
+        def search_by_embedding(
+            self, embedding: Sequence[float], *, limit: int = 64
+        ) -> Sequence[dict]:
+            items = nodes.search_by_embedding(embedding, limit=limit)
+            return [
+                {
+                    "id": it.id,
+                    "author_id": it.author_id,
+                    "title": it.title,
+                    "tags": list(it.tags),
+                    "embedding": list(it.embedding) if it.embedding is not None else None,
+                    "is_public": it.is_public,
+                }
+                for it in items
+            ]
+
     navigation = NavigationService(nodes=_NodesReadPort())
 
     # AI (dev default provider)
     ai = AIService(provider=AIFakeProvider(), outbox=outbox_bridge)
+    ai_registry = LLMRegistry()
 
     # Achievements
     ach_repo = AchievementsMemoryRepo()
@@ -298,7 +333,7 @@ def build_container(env: str = "dev") -> Container:
         from packages.core.config import to_async_dsn as _to_async
 
         dsn_ach = _to_async(settings.database_url)
-        if dsn_ach and (_db_reachable(str(settings.database_url))):
+        if dsn_ach and (_db_reachable(str(settings.database_url), allow_remote=allow_remote_db)):
             ach_repo = AchievementsSQLRepo(dsn_ach)  # type: ignore[assignment]
     except Exception:
         pass
@@ -311,7 +346,11 @@ def build_container(env: str = "dev") -> Container:
         from packages.core.config import to_async_dsn as _to_async
 
         dsn_worlds = _to_async(settings.database_url)
-        if dsn_worlds and _db_reachable(str(settings.database_url)):
+        # Some providers append libpq/psycopg-only params (sslmode, options, etc.)
+        # Trim query to keep asyncpg happy.
+        if isinstance(dsn_worlds, str) and "?" in dsn_worlds:
+            dsn_worlds = dsn_worlds.split("?", 1)[0]
+        if dsn_worlds and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
             worlds_repo = SQLWorldsRepo(dsn_worlds)  # type: ignore[assignment]
     except Exception:
         pass
@@ -323,7 +362,7 @@ def build_container(env: str = "dev") -> Container:
         from packages.core.config import to_async_dsn as _to_async
 
         dsn_ref = _to_async(settings.database_url)
-        if dsn_ref and _db_reachable(str(settings.database_url)):
+        if dsn_ref and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
             referrals_repo = SQLReferralsRepo(dsn_ref)  # type: ignore[assignment]
     except Exception:
         pass
@@ -338,7 +377,7 @@ def build_container(env: str = "dev") -> Container:
         from packages.core.config import to_async_dsn as _to_async
 
         dsn_mod = _to_async(settings.database_url)
-        if dsn_mod and _db_reachable(str(settings.database_url)):
+        if dsn_mod and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
             _mod_repo = SQLModerationRepo(dsn_mod)  # type: ignore[assignment]
     except Exception:
         pass
@@ -370,6 +409,7 @@ def build_container(env: str = "dev") -> Container:
     except Exception:
         pass
     media = build_media_container()
+    platform_moderation = build_platform_moderation_container(settings)
     audit = build_audit_container()
     billing = build_billing_container(settings)
     flags = build_flags_container(settings)
@@ -385,6 +425,7 @@ def build_container(env: str = "dev") -> Container:
         quests_service=quests,
         navigation_service=navigation,
         ai_service=ai,
+        ai_registry=ai_registry,
         achievements_service=achievements_service,
         achievements_admin=achievements_admin,
         worlds_service=worlds_service,
@@ -396,6 +437,7 @@ def build_container(env: str = "dev") -> Container:
         quota=quota,
         iam=iam,
         search=search,
+        platform_moderation=platform_moderation,
         media=media,
         audit=audit,
         billing=billing,

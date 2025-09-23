@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from domains.platform.billing.domain.models import Plan, Subscription
 from domains.platform.billing.ports import (
+    GatewayRepo,
     LedgerRepo,
     PlanRepo,
     SubscriptionRepo,
@@ -31,20 +32,40 @@ class SQLPlanRepo(PlanRepo):
                     id=str(r["id"]),
                     slug=str(r["slug"]),
                     title=str(r["title"]),
-                    price_cents=(
-                        int(r["price_cents"]) if r["price_cents"] is not None else None
-                    ),
+                    price_cents=(int(r["price_cents"]) if r["price_cents"] is not None else None),
                     currency=(str(r["currency"]) if r["currency"] else None),
                     is_active=bool(r["is_active"]),
                     order=int(r["order"]),
                     monthly_limits=(
-                        dict(r["monthly_limits"])
-                        if r["monthly_limits"] is not None
-                        else None
+                        dict(r["monthly_limits"]) if r["monthly_limits"] is not None else None
                     ),
-                    features=(
-                        dict(r["features"]) if r["features"] is not None else None
+                    features=(dict(r["features"]) if r["features"] is not None else None),
+                    created_at=r["created_at"],
+                    updated_at=r["updated_at"],
+                )
+                for r in rows
+            ]
+
+    async def list_all(self) -> list[Plan]:
+        sql = text(
+            "SELECT id, slug, title, description, price_cents, currency, is_active, order, monthly_limits, features, created_at, updated_at FROM subscription_plans ORDER BY order, created_at"
+        )
+        async with self._engine.begin() as conn:
+            res = await conn.execute(sql)
+            rows = res.mappings().all()
+            return [
+                Plan(
+                    id=str(r["id"]),
+                    slug=str(r["slug"]),
+                    title=str(r["title"]),
+                    price_cents=(int(r["price_cents"]) if r["price_cents"] is not None else None),
+                    currency=(str(r["currency"]) if r["currency"] else None),
+                    is_active=bool(r["is_active"]),
+                    order=int(r["order"]),
+                    monthly_limits=(
+                        dict(r["monthly_limits"]) if r["monthly_limits"] is not None else None
                     ),
+                    features=(dict(r["features"]) if r["features"] is not None else None),
                     created_at=r["created_at"],
                     updated_at=r["updated_at"],
                 )
@@ -64,16 +85,36 @@ class SQLPlanRepo(PlanRepo):
                 id=str(r["id"]),
                 slug=str(r["slug"]),
                 title=str(r["title"]),
-                price_cents=(
-                    int(r["price_cents"]) if r["price_cents"] is not None else None
-                ),
+                price_cents=(int(r["price_cents"]) if r["price_cents"] is not None else None),
                 currency=(str(r["currency"]) if r["currency"] else None),
                 is_active=bool(r["is_active"]),
                 order=int(r["order"]),
                 monthly_limits=(
-                    dict(r["monthly_limits"])
-                    if r["monthly_limits"] is not None
-                    else None
+                    dict(r["monthly_limits"]) if r["monthly_limits"] is not None else None
+                ),
+                features=(dict(r["features"]) if r["features"] is not None else None),
+                created_at=r["created_at"],
+                updated_at=r["updated_at"],
+            )
+
+    async def get_by_id(self, plan_id: str) -> Plan | None:
+        sql = text(
+            "SELECT id, slug, title, description, price_cents, currency, is_active, order, monthly_limits, features, created_at, updated_at FROM subscription_plans WHERE id = cast(:id as uuid)"
+        )
+        async with self._engine.begin() as conn:
+            r = (await conn.execute(sql, {"id": plan_id})).mappings().first()
+            if not r:
+                return None
+            return Plan(
+                id=str(r["id"]),
+                slug=str(r["slug"]),
+                title=str(r["title"]),
+                price_cents=(int(r["price_cents"]) if r["price_cents"] is not None else None),
+                currency=(str(r["currency"]) if r["currency"] else None),
+                is_active=bool(r["is_active"]),
+                order=int(r["order"]),
+                monthly_limits=(
+                    dict(r["monthly_limits"]) if r["monthly_limits"] is not None else None
                 ),
                 features=(dict(r["features"]) if r["features"] is not None else None),
                 created_at=r["created_at"],
@@ -118,16 +159,12 @@ class SQLPlanRepo(PlanRepo):
                 id=str(r["id"]),
                 slug=str(r["slug"]),
                 title=str(r["title"]),
-                price_cents=(
-                    int(r["price_cents"]) if r["price_cents"] is not None else None
-                ),
+                price_cents=(int(r["price_cents"]) if r["price_cents"] is not None else None),
                 currency=(str(r["currency"]) if r["currency"] else None),
                 is_active=bool(r["is_active"]),
                 order=int(r["order"]),
                 monthly_limits=(
-                    dict(r["monthly_limits"])
-                    if r["monthly_limits"] is not None
-                    else None
+                    dict(r["monthly_limits"]) if r["monthly_limits"] is not None else None
                 ),
                 features=(dict(r["features"]) if r["features"] is not None else None),
                 created_at=r["created_at"],
@@ -222,5 +259,126 @@ class SQLLedgerRepo(LedgerRepo):
         async with self._engine.begin() as conn:
             await conn.execute(sql, tx)
 
+    async def list_for_user(self, user_id: str, limit: int = 20) -> list[dict[str, Any]]:
+        sql = text(
+            """
+            SELECT id, user_id, gateway_slug, currency, gross_cents, fee_cents, net_cents, status, created_at, meta
+            FROM payment_transactions
+            WHERE user_id = cast(:uid as uuid)
+            ORDER BY created_at DESC
+            LIMIT :lim
+            """
+        )
+        try:
+            async with self._engine.begin() as conn:
+                rows = (
+                    (await conn.execute(sql, {"uid": user_id, "lim": int(max(1, min(limit, 100)))}))
+                    .mappings()
+                    .all()
+                )
+                return [dict(r) for r in rows]
+        except Exception:
+            raise
 
-__all__ = ["SQLPlanRepo", "SQLSubscriptionRepo", "SQLLedgerRepo"]
+    async def list_recent(self, limit: int = 100) -> list[dict[str, Any]]:
+        try:
+            sql = text(
+                """
+                SELECT id, user_id, gateway_slug, currency, gross_cents, fee_cents, net_cents, status, created_at, meta
+                FROM payment_transactions
+                ORDER BY created_at DESC
+                LIMIT :lim
+                """
+            )
+            async with self._engine.begin() as conn:
+                rows = (
+                    (await conn.execute(sql, {"lim": int(max(1, min(limit, 1000)))}))
+                    .mappings()
+                    .all()
+                )
+                return [dict(r) for r in rows]
+        except Exception:
+            # Table may be absent or schema incompatible; return empty for admin list
+            return []
+
+
+class SQLGatewaysRepo(GatewayRepo):
+    def __init__(self, engine: AsyncEngine | str) -> None:
+        self._engine: AsyncEngine = (
+            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+        )
+
+    async def list(self) -> list[dict[str, Any]]:
+        sql = text(
+            "SELECT slug, type, enabled, priority, config, created_at, updated_at FROM payment_gateways ORDER BY priority, created_at"
+        )
+        async with self._engine.begin() as conn:
+            rows = (await conn.execute(sql)).mappings().all()
+            out: list[dict[str, Any]] = []
+            for r in rows:
+                item = {
+                    "slug": str(r["slug"]),
+                    "type": str(r["type"]),
+                    "enabled": bool(r["enabled"]),
+                    "priority": int(r["priority"]),
+                    "config": dict(r["config"]) if r["config"] is not None else None,
+                    "created_at": r["created_at"],
+                    "updated_at": r["updated_at"],
+                }
+                # Redact sensitive fields in config
+                cfg = item.get("config") or {}
+                if isinstance(cfg, dict):
+                    for k in list(cfg.keys()):
+                        if "key" in k.lower() or "secret" in k.lower():
+                            cfg[k] = "***"
+                out.append(item)
+            return out
+
+    async def upsert(self, g: dict[str, Any]) -> dict[str, Any]:
+        sql = text(
+            """
+            INSERT INTO payment_gateways (slug, type, enabled, priority, config, created_at, updated_at)
+            VALUES (:slug, :type, coalesce(:enabled,true), coalesce(:priority,100), cast(:config as jsonb), now(), now())
+            ON CONFLICT (slug) DO UPDATE SET
+                type = excluded.type,
+                enabled = excluded.enabled,
+                priority = excluded.priority,
+                config = excluded.config,
+                updated_at = now()
+            RETURNING slug, type, enabled, priority, config, created_at, updated_at
+            """
+        )
+        payload = {
+            "slug": g.get("slug"),
+            "type": g.get("type"),
+            "enabled": g.get("enabled", True),
+            "priority": g.get("priority", 100),
+            "config": g.get("config"),
+        }
+        async with self._engine.begin() as conn:
+            r = (await conn.execute(sql, payload)).mappings().first()
+            assert r is not None
+            item = {
+                "slug": str(r["slug"]),
+                "type": str(r["type"]),
+                "enabled": bool(r["enabled"]),
+                "priority": int(r["priority"]),
+                "config": dict(r["config"]) if r["config"] is not None else None,
+                "created_at": r["created_at"],
+                "updated_at": r["updated_at"],
+            }
+            # Redact sensitive values in immediate response
+            cfg = item.get("config") or {}
+            if isinstance(cfg, dict):
+                for k in list(cfg.keys()):
+                    if "key" in k.lower() or "secret" in k.lower():
+                        cfg[k] = "***"
+            return item
+
+    async def delete(self, slug: str) -> None:
+        sql = text("DELETE FROM payment_gateways WHERE slug = :slug")
+        async with self._engine.begin() as conn:
+            await conn.execute(sql, {"slug": slug})
+
+
+__all__ = ["SQLPlanRepo", "SQLSubscriptionRepo", "SQLLedgerRepo", "SQLGatewaysRepo"]

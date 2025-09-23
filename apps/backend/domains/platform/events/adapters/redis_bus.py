@@ -13,8 +13,8 @@ class RedisBus:
     - Consumer groups created on demand
     """
 
-    def __init__(self, redis_url: str):
-        self._r = redis.Redis.from_url(redis_url, decode_responses=True)
+    def __init__(self, redis_url: str, client: Any | None = None):
+        self._r = client or redis.Redis.from_url(redis_url, decode_responses=True)
 
     def stream_key(self, topic: str) -> str:
         return f"events:{topic}"
@@ -31,10 +31,7 @@ class RedisBus:
         self, topics: list[str], group: str, consumer: str, count: int, block_ms: int
     ) -> list[tuple[str, list[tuple[str, dict[str, str]]]]]:
         streams = {self.stream_key(t): ">" for t in topics}
-        return (
-            self._r.xreadgroup(group, consumer, streams, count=count, block=block_ms)
-            or []
-        )
+        return self._r.xreadgroup(group, consumer, streams, count=count, block=block_ms) or []
 
     def ack(self, topic: str, group: str, msg_id: str) -> None:
         self._r.xack(self.stream_key(topic), group, msg_id)
@@ -45,9 +42,7 @@ class RedisBus:
     def xpending(self, topic: str, group: str) -> int:
         try:
             info = self._r.xpending(self.stream_key(topic), group)
-            return (
-                int(info.get("pending", 0)) if isinstance(info, dict) else int(info[0])
-            )
+            return int(info.get("pending", 0)) if isinstance(info, dict) else int(info[0])
         except Exception:
             return 0
 

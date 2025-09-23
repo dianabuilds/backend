@@ -4,7 +4,7 @@
 
 - Порты: `ports.py`
 - Фасад: `service.py`
-- Транспорты: `adapters/event_bus_redis.py`, `adapters/event_bus_memory.py`
+- Транспорты: `adapters/event_bus_redis.py`
 - Публикация: `adapters/outbox_redis.py`
 - Политики: `logic/*`
 - Документация: `docs/`

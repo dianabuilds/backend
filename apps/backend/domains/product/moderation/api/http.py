@@ -11,6 +11,15 @@ from domains.platform.iam.security import (
 )
 
 
+class CaseCreate(BaseModel):
+    title: str
+    description: str | None = None
+
+
+class CaseNoteCreate(BaseModel):
+    text: str
+
+
 def make_router() -> APIRouter:
     router = APIRouter(prefix="/v1/moderation", tags=["moderation"])
 
@@ -27,11 +36,6 @@ def make_router() -> APIRouter:
         return await svc.list(page=page, size=size, statuses=sts)
 
     @router.post("/cases")
-    class CaseCreate(BaseModel):
-        title: str
-        description: str | None = None
-
-    @router.post("/cases")
     async def create_case(
         body: CaseCreate,
         _admin: None = Depends(require_admin),
@@ -42,10 +46,6 @@ def make_router() -> APIRouter:
         svc = container.moderation_service
         payload = body.model_dump()
         return await svc.create(payload)
-
-    @router.post("/cases/{case_id}/notes")
-    class CaseNoteCreate(BaseModel):
-        text: str
 
     @router.post("/cases/{case_id}/notes")
     async def add_note(

@@ -17,10 +17,11 @@ class RedisOutboxCore:
     {"key": key, "payload": json, "ts": epoch_ms}.
     """
 
-    def __init__(self, redis_url: str):
+    def __init__(self, redis_url: str, client: Any | None = None):
         if redis is None:  # pragma: no cover
             raise RuntimeError("redis-py is required for Redis outbox")
-        self._r = redis.Redis.from_url(redis_url, decode_responses=True)
+        # Allow injecting a pre-configured Redis client (e.g. fakeredis) for tests.
+        self._r = client or redis.Redis.from_url(redis_url, decode_responses=True)
 
     def publish(self, topic: str, payload: dict, key: str | None = None) -> str:
         stream = f"events:{topic}"

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from domains.platform.events.logic.relay import RedisRelay
 from domains.platform.events.ports import EventBus, Handler
 
@@ -11,9 +13,14 @@ class RedisEventBus(EventBus):
         topics: list[str],
         group: str = "relay",
         consumer: str | None = None,
+        redis_client: Any | None = None,
     ):
         self._relay = RedisRelay(
-            redis_url=redis_url, topics=topics, group=group, consumer=consumer
+            redis_url=redis_url,
+            topics=topics,
+            group=group,
+            consumer=consumer,
+            redis_client=redis_client,
         )
         self._routes: dict[str, Handler] = {}
 

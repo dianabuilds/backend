@@ -18,18 +18,14 @@ class InMemoryLLMMetricsSink(ILLMMetricsSink):
         return (metric, labels.provider, labels.model, labels.stage or "unknown")
 
     def inc(self, metric: str, labels: LLMCallLabels, by: int = 1) -> None:
-        self.counters[self._k(metric, labels)] = (
-            self.counters.get(self._k(metric, labels), 0) + by
-        )
+        self.counters[self._k(metric, labels)] = self.counters.get(self._k(metric, labels), 0) + by
 
     def observe_latency(self, labels: LLMCallLabels, ms: float) -> None:
         key = (labels.provider, labels.model, labels.stage or "unknown")
         self.latency_sum[key] = self.latency_sum.get(key, 0.0) + float(ms)
         self.latency_count[key] = self.latency_count.get(key, 0) + 1
 
-    def observe_tokens(
-        self, labels: LLMCallLabels, prompt: int, completion: int
-    ) -> None:
+    def observe_tokens(self, labels: LLMCallLabels, prompt: int, completion: int) -> None:
         kpr = (labels.provider, labels.model, labels.stage or "unknown", "prompt")
         kco = (labels.provider, labels.model, labels.stage or "unknown", "completion")
         self.tokens_sum[kpr] = self.tokens_sum.get(kpr, 0) + int(prompt)
@@ -38,6 +34,58 @@ class InMemoryLLMMetricsSink(ILLMMetricsSink):
     def observe_cost(self, labels: LLMCallLabels, cost: float) -> None:
         key = (labels.provider, labels.model, labels.stage or "unknown")
         self.cost_sum[key] = self.cost_sum.get(key, 0.0) + float(cost)
+
+    def snapshot(self) -> dict:
+        """JSON-friendly snapshot for admin UI consumption."""
+        calls: list[dict[str, object]] = []
+        for (metric, provider, model, stage), cnt in self.counters.items():
+            calls.append(
+                {
+                    "type": metric,
+                    "provider": provider,
+                    "model": model,
+                    "stage": stage,
+                    "count": int(cnt),
+                }
+            )
+        lat: list[dict[str, object]] = []
+        for (provider, model, stage), s in self.latency_sum.items():
+            c = self.latency_count.get((provider, model, stage), 1)
+            lat.append(
+                {
+                    "provider": provider,
+                    "model": model,
+                    "stage": stage,
+                    "avg_ms": (s / max(c, 1)),
+                }
+            )
+        toks: list[dict[str, object]] = []
+        for (provider, model, stage, t), s in self.tokens_sum.items():
+            toks.append(
+                {
+                    "provider": provider,
+                    "model": model,
+                    "stage": stage,
+                    "type": t,
+                    "total": int(s),
+                }
+            )
+        cost: list[dict[str, object]] = []
+        for (provider, model, stage), s in self.cost_sum.items():
+            cost.append(
+                {
+                    "provider": provider,
+                    "model": model,
+                    "stage": stage,
+                    "total_usd": float(s),
+                }
+            )
+        return {
+            "calls": calls,
+            "latency_avg_ms": lat,
+            "tokens_total": toks,
+            "cost_usd_total": cost,
+        }
 
     def prometheus(self) -> str:
         lines = []

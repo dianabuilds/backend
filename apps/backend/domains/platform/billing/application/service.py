@@ -29,9 +29,7 @@ class BillingService:
             raise ValueError("plan_not_found")
         return await self.provider.checkout(user_id, plan)
 
-    async def handle_webhook(
-        self, payload: bytes, signature: str | None
-    ) -> dict[str, Any]:
+    async def handle_webhook(self, payload: bytes, signature: str | None) -> dict[str, Any]:
         ok = await self.provider.verify_webhook(payload, signature)
         if not ok:
             return {"ok": False}
@@ -41,6 +39,61 @@ class BillingService:
     async def get_subscription_for_user(self, user_id: str) -> dict[str, Any] | None:
         sub = await self.subs.get_active_for_user(user_id)
         return None if not sub else sub.__dict__
+
+    async def get_summary_for_user(self, user_id: str) -> dict[str, Any]:
+        summary: dict[str, Any] = {
+            "plan": None,
+            "subscription": None,
+            "payment": {
+                "mode": "evm_wallet",
+                "title": "EVM wallet",
+                "message": "Currently we only support EVM (SIWE) wallets. Card payments are coming soon.",
+                "coming_soon": True,
+            },
+        }
+        sub = await self.subs.get_active_for_user(user_id)
+        if sub:
+            summary["subscription"] = {
+                "plan_id": sub.plan_id,
+                "status": sub.status,
+                "auto_renew": sub.auto_renew,
+                "started_at": sub.started_at,
+                "ends_at": sub.ends_at,
+            }
+            plan = await self.plans.get_by_id(sub.plan_id)
+            if plan:
+                summary["plan"] = {
+                    "id": plan.id,
+                    "slug": plan.slug,
+                    "title": plan.title,
+                    "price_cents": plan.price_cents,
+                    "currency": plan.currency,
+                    "features": plan.features,
+                }
+        return summary
+
+    async def get_history_for_user(self, user_id: str, limit: int = 20) -> dict[str, Any]:
+        try:
+            rows = await self.ledger.list_for_user(user_id, limit=limit)
+        except Exception:
+            return {"items": [], "coming_soon": True}
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            gross = row.get("gross_cents")
+            amount = float(gross) / 100.0 if isinstance(gross, (int, float)) else None
+            items.append(
+                {
+                    "id": row.get("id"),
+                    "status": row.get("status"),
+                    "created_at": row.get("created_at"),
+                    "amount": amount,
+                    "currency": row.get("currency"),
+                    "provider": row.get("gateway_slug"),
+                    "product_type": row.get("product_type"),
+                    "meta": row.get("meta") or {},
+                }
+            )
+        return {"items": items, "coming_soon": False}
 
 
 __all__ = ["BillingService"]

@@ -1,6 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
@@ -8,7 +8,7 @@ except Exception:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 from apps.backend import get_container
-from domains.platform.iam.security import csrf_protect, get_current_user
+from domains.platform.iam.security import get_current_user
 
 
 def make_router() -> APIRouter:
@@ -24,21 +24,57 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/generate",
-        dependencies=(
-            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []),
     )
     async def generate(
         body: dict,
+        req: Request,
         container=Depends(get_container),
-        claims=Depends(get_current_user),
-        _csrf: None = Depends(csrf_protect),
     ):
         prompt = str(body.get("prompt") or "").strip()
         if not prompt:
             raise HTTPException(status_code=400, detail="prompt_required")
         svc = container.ai_service
+        if not svc:
+            raise HTTPException(status_code=503, detail="ai_unavailable")
+        try:
+            await get_current_user(req)
+        except HTTPException as exc:
+            if exc.status_code not in {401, 403}:
+                raise
+        # Determine default model/provider from registry settings
+        model_name: str | None = None
+        provider_name: str | None = None
+        try:
+            reg = container.ai_registry
+            items = await reg.list_models()
+            # Filter to enabled/active
+            act = [m for m in items if (m.status or "active") != "disabled"]
+
+            def prio(m) -> int:
+                p = 1000
+                try:
+                    if m.params and isinstance(m.params, dict):
+                        v = m.params.get("fallback_priority")
+                        if v is not None:
+                            p = int(v)
+                except Exception:
+                    pass
+                return p
+
+            chosen = None
+            for m in act:
+                if bool(getattr(m, "is_default", False)):
+                    chosen = m
+                    break
+            if not chosen and act:
+                chosen = sorted(act, key=lambda x: prio(x))[0]
+            if chosen:
+                model_name = str(chosen.name)
+                provider_name = str(chosen.provider_slug)
+        except Exception:
+            pass
         # user_id = str(claims.get("sub") or "") if claims else ""
-        return await svc.generate(prompt)
+        return await svc.generate(prompt, model=model_name, provider=provider_name)
 
     return router

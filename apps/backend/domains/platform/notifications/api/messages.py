@@ -22,9 +22,7 @@ def make_router() -> APIRouter:
 
     @router.get(
         "",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
     )
     async def list_my_notifications(
         req: Request,
@@ -33,17 +31,25 @@ def make_router() -> APIRouter:
         claims=Depends(get_current_user),
     ) -> dict[str, Any]:
         c = get_container(req)
-        user_id = str(claims.get("sub"))
-        items = await c.notifications.repo.list_for_user(
-            user_id, limit=limit, offset=offset
-        )
+        import uuid as _uuid
+
+        sub = str(claims.get("sub"))
+        # Resolve UUID id if sub is not a UUID (e.g., email in dev)
+        user = await c.users.service.get(sub)
+        if user:
+            user_id = user.id
+        else:
+            try:
+                _uuid.UUID(sub)
+                user_id = sub
+            except Exception:
+                user_id = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{sub}"))
+        items = await c.notifications.repo.list_for_user(user_id, limit=limit, offset=offset)
         return {"items": items}
 
     @router.post(
         "/read/{notif_id}",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
     )
     async def mark_read(
         req: Request,
@@ -52,7 +58,18 @@ def make_router() -> APIRouter:
         _csrf: None = Depends(csrf_protect),
     ) -> dict[str, Any]:
         c = get_container(req)
-        user_id = str(claims.get("sub"))
+        import uuid as _uuid
+
+        sub = str(claims.get("sub"))
+        user = await c.users.service.get(sub)
+        if user:
+            user_id = user.id
+        else:
+            try:
+                _uuid.UUID(sub)
+                user_id = sub
+            except Exception:
+                user_id = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{sub}"))
         ok = await c.notifications.repo.mark_read(user_id, notif_id)
         if not ok:
             raise HTTPException(status_code=404, detail="not_found")
@@ -61,9 +78,7 @@ def make_router() -> APIRouter:
     # Admin send
     @router.post(
         "/admin/send",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
     )
     async def admin_send(
         req: Request,

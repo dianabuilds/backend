@@ -20,6 +20,7 @@ def make_router() -> APIRouter:
         stories = await container.premium_service.get_quota_status(
             user_id, quota_key="stories", scope="month"
         )
-        return {"plan": plan, "limits": {"stories": {"month": stories}}}
+        limits = {"stories": {"month": stories}, "month": {"stories": stories}}
+        return {"plan": plan, "limits": limits}
 
     return router

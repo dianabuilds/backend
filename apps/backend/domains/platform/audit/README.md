@@ -17,13 +17,13 @@
 
 1) Примените миграцию на PostgreSQL:
 
-psql $DATABASE_URL -f apps/backendDDD/domains/platform/audit/schema/sql/001_create_audit_logs.sql
+psql $DATABASE_URL -f apps/backend/domains/platform/audit/schema/sql/001_create_audit_logs.sql
 
 2) Соберите контейнер домена с SQL репозиторием (пример DI):
 
 from sqlalchemy.ext.asyncio import create_async_engine
-from apps.backendDDD.domains.platform.audit.adapters.repo_sql import SQLAuditRepo
-from apps.backendDDD.domains.platform.audit.application.service import AuditService
+from apps.backend.domains.platform.audit.adapters.repo_sql import SQLAuditRepo
+from apps.backend.domains.platform.audit.application.service import AuditService
 
 engine = create_async_engine(str(settings.database_url))
 repo = SQLAuditRepo(engine)

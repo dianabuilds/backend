@@ -22,7 +22,7 @@ class SQLQuestsRepo(Repo):
         if not quest_ids:
             return {}
         sql = text(
-            "SELECT quest_id::text AS quest_id, slug FROM product_quest_tags WHERE quest_id = ANY(:ids) ORDER BY slug"
+            "SELECT quest_id::text AS quest_id, slug FROM quest_tags WHERE quest_id = ANY(:ids) ORDER BY slug"
         )
         async with self._engine.begin() as conn:
             rows = (await conn.execute(sql, {"ids": quest_ids})).mappings().all()
@@ -37,7 +37,7 @@ class SQLQuestsRepo(Repo):
 
         async def _run() -> QuestDTO | None:
             sql = text(
-                "SELECT id::text AS id, author_id::text AS author_id, slug, title, description, is_public FROM product_quests WHERE id = cast(:id as uuid)"
+                "SELECT id::text AS id, author_id::text AS author_id, slug, title, description, is_public FROM quests WHERE id = cast(:id as uuid)"
             )
             async with self._engine.begin() as conn:
                 r = (await conn.execute(sql, {"id": str(quest_id)})).mappings().first()
@@ -66,7 +66,7 @@ class SQLQuestsRepo(Repo):
 
         async def _run() -> QuestDTO | None:
             sql = text(
-                "SELECT id::text AS id, author_id::text AS author_id, slug, title, description, is_public FROM product_quests WHERE slug = :slug"
+                "SELECT id::text AS id, author_id::text AS author_id, slug, title, description, is_public FROM quests WHERE slug = :slug"
             )
             async with self._engine.begin() as conn:
                 r = (await conn.execute(sql, {"slug": str(slug)})).mappings().first()
@@ -91,16 +91,14 @@ class SQLQuestsRepo(Repo):
         else:
             return loop.run_until_complete(_run())  # type: ignore[misc]
 
-    def list_by_author(
-        self, author_id: str, *, limit: int = 50, offset: int = 0
-    ) -> list[QuestDTO]:
+    def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0) -> list[QuestDTO]:
         import asyncio
 
         async def _run() -> list[QuestDTO]:
             sql = text(
                 """
                 SELECT id::text AS id, author_id::text AS author_id, slug, title, description, is_public
-                FROM product_quests
+                FROM quests
                 WHERE author_id = cast(:aid as uuid)
                 ORDER BY created_at DESC
                 LIMIT :limit OFFSET :offset
@@ -156,7 +154,7 @@ class SQLQuestsRepo(Repo):
                         await conn.execute(
                             text(
                                 """
-                            INSERT INTO product_quests(author_id, slug, title, description, is_public)
+                            INSERT INTO quests(author_id, slug, title, description, is_public)
                             VALUES (cast(:aid as uuid), :slug, :title, :description, :pub)
                             RETURNING id::text AS id, author_id::text AS author_id, slug, title, description, is_public
                             """
@@ -181,7 +179,7 @@ class SQLQuestsRepo(Repo):
                         continue
                     await conn.execute(
                         text(
-                            "INSERT INTO product_quest_tags(quest_id, slug) VALUES (cast(:id as uuid), :slug) ON CONFLICT DO NOTHING"
+                            "INSERT INTO quest_tags(quest_id, slug) VALUES (cast(:id as uuid), :slug) ON CONFLICT DO NOTHING"
                         ),
                         {"id": qid, "slug": v},
                     )
@@ -211,24 +209,20 @@ class SQLQuestsRepo(Repo):
             async with self._engine.begin() as conn:
                 chk = (
                     await conn.execute(
-                        text(
-                            "SELECT 1 FROM product_quests WHERE id = cast(:id as uuid)"
-                        ),
+                        text("SELECT 1 FROM quests WHERE id = cast(:id as uuid)"),
                         {"id": str(quest_id)},
                     )
                 ).first()
                 if not chk:
                     raise ValueError("quest not found")
                 await conn.execute(
-                    text(
-                        "DELETE FROM product_quest_tags WHERE quest_id = cast(:id as uuid)"
-                    ),
+                    text("DELETE FROM quest_tags WHERE quest_id = cast(:id as uuid)"),
                     {"id": str(quest_id)},
                 )
                 for s in norm:
                     await conn.execute(
                         text(
-                            "INSERT INTO product_quest_tags(quest_id, slug) VALUES (cast(:id as uuid), :slug) ON CONFLICT DO NOTHING"
+                            "INSERT INTO quest_tags(quest_id, slug) VALUES (cast(:id as uuid), :slug) ON CONFLICT DO NOTHING"
                         ),
                         {"id": str(quest_id), "slug": s},
                     )
@@ -267,7 +261,7 @@ class SQLQuestsRepo(Repo):
                 params["pub"] = bool(is_public)
             if sets:
                 sql = text(
-                    "UPDATE product_quests SET "
+                    "UPDATE quests SET "
                     + ", ".join(sets)
                     + ", updated_at = now() WHERE id = cast(:id as uuid)"
                 )
@@ -288,7 +282,7 @@ class SQLQuestsRepo(Repo):
     # --- internal async helpers ---
     async def _araw_get(self, quest_id: str) -> QuestDTO | None:
         sql = text(
-            "SELECT id::text AS id, author_id::text AS author_id, slug, title, description, is_public FROM product_quests WHERE id = cast(:id as uuid)"
+            "SELECT id::text AS id, author_id::text AS author_id, slug, title, description, is_public FROM quests WHERE id = cast(:id as uuid)"
         )
         async with self._engine.begin() as conn:
             r = (await conn.execute(sql, {"id": str(quest_id)})).mappings().first()

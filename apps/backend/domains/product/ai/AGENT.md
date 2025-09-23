@@ -31,14 +31,14 @@ Events (outbox)
 - Outbox adapter: `apps/backend/app/bridges/outbox_adapter.py` (writes to `outbox` table).
 
 Metrics (LLM)
-- Facade: `apps/backendDDD/domains/platform/telemetry/application/metrics_registry.py: llm_metrics`.
+- Facade: `apps/backend/domains/platform/telemetry/application/metrics_registry.py: llm_metrics`.
 - Labels: `{provider, model, stage}`; current stage=`unknown` (can be specialized later).
 - Recorded: calls/errors counters, latency, optional tokens/cost if the provider exposes them.
 
 Contracts
-- Provider port: `apps/backendDDD/domains/product/ai/application/ports.py` → `Provider.generate(prompt) -> str`.
-- Service: `apps/backendDDD/domains/product/ai/application/service.py` — emits events + metrics.
-- API: `apps/backendDDD/domains/product/ai/api/http.py` — thin wrapper, validates `prompt`.
+- Provider port: `apps/backend/domains/product/ai/application/ports.py` → `Provider.generate(prompt) -> str`.
+- Service: `apps/backend/domains/product/ai/application/service.py` — emits events + metrics.
+- API: `apps/backend/domains/product/ai/api/http.py` — thin wrapper, validates `prompt`.
 
 Auth/Security
 - The minimal routes do not enforce auth by default. If required, add JWT guard and CSRF as in other product domains.

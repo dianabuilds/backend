@@ -27,22 +27,16 @@ class SQLModerationRepo(Repo):
             where = "WHERE lower(status) = ANY(:st)"
             params["st"] = norm
         q_items = text(
-            "SELECT id::text AS id, status, data FROM product_moderation_cases "
+            "SELECT id::text AS id, status, data FROM moderation_cases "
             + where
             + " ORDER BY created_at DESC LIMIT :lim OFFSET :off"
         )
-        q_total = text(
-            "SELECT count(*)::int AS c FROM product_moderation_cases " + where
-        )
+        q_total = text("SELECT count(*)::int AS c FROM moderation_cases " + where)
         async with self._engine.begin() as conn:
             rows = (
-                (await conn.execute(q_items, {**params, "lim": size, "off": offs}))
-                .mappings()
-                .all()
+                (await conn.execute(q_items, {**params, "lim": size, "off": offs})).mappings().all()
             )
-            total = (await conn.execute(q_total, params)).mappings().first().get(
-                "c"
-            ) or 0
+            total = (await conn.execute(q_total, params)).mappings().first().get("c") or 0
         items = []
         for r in rows:
             d = dict(r["data"] or {})
@@ -53,37 +47,25 @@ class SQLModerationRepo(Repo):
 
     async def create_case(self, payload: dict) -> str:
         sql = text(
-            "INSERT INTO product_moderation_cases(data, status) VALUES (:d, :st) RETURNING id::text AS id"
+            "INSERT INTO moderation_cases(data, status) VALUES (:d, :st) RETURNING id::text AS id"
         )
         st = str(payload.get("status") or "open")
         async with self._engine.begin() as conn:
-            r = (
-                (await conn.execute(sql, {"d": dict(payload), "st": st}))
-                .mappings()
-                .first()
-            )
+            r = (await conn.execute(sql, {"d": dict(payload), "st": st})).mappings().first()
             assert r is not None
             return str(r["id"])  # type: ignore[return-value]
 
-    async def add_note(
-        self, case_id: str, note: dict, *, author_id: str | None
-    ) -> dict | None:
-        chk = text(
-            "SELECT 1 FROM product_moderation_cases WHERE id = cast(:id as uuid)"
-        )
+    async def add_note(self, case_id: str, note: dict, *, author_id: str | None) -> dict | None:
+        chk = text("SELECT 1 FROM moderation_cases WHERE id = cast(:id as uuid)")
         ins = text(
-            "INSERT INTO product_moderation_notes(case_id, author_id, data) VALUES (cast(:cid as uuid), cast(:aid as uuid), :d) RETURNING id::text AS id"
+            "INSERT INTO moderation_notes(case_id, author_id, data) VALUES (cast(:cid as uuid), cast(:aid as uuid), :d) RETURNING id::text AS id"
         )
         async with self._engine.begin() as conn:
             ok = (await conn.execute(chk, {"id": case_id})).first()
             if not ok:
                 return None
             r = (
-                (
-                    await conn.execute(
-                        ins, {"cid": case_id, "aid": author_id, "d": dict(note)}
-                    )
-                )
+                (await conn.execute(ins, {"cid": case_id, "aid": author_id, "d": dict(note)}))
                 .mappings()
                 .first()
             )

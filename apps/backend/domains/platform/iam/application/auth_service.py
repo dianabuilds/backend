@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 from dataclasses import dataclass
 from typing import Any
 
@@ -13,12 +14,14 @@ except Exception:  # pragma: no cover
     Web3 = None  # type: ignore
 import re
 
+from domains.platform.iam.ports.credentials_port import AuthIdentity, CredentialsPort
 from domains.platform.iam.ports.email_port import EmailSender
 from domains.platform.iam.ports.nonce_store_port import NonceStore
 from domains.platform.iam.ports.token_port import TokenPair, TokenPort
 from domains.platform.iam.ports.verification_port import (
     VerificationTokenStore,
 )
+from packages.core.config import Settings
 
 
 @dataclass
@@ -29,8 +32,15 @@ class SignupIn:
 
 @dataclass
 class LoginIn:
-    email: str
+    login: str
     password: str
+
+
+@dataclass
+class LoginResult:
+    tokens: TokenPair
+    user: AuthIdentity
+    source: str = "credentials"
 
 
 @dataclass
@@ -40,6 +50,10 @@ class EvmVerifyIn:
     wallet_address: str
 
 
+class AuthError(Exception):
+    """Raised when authentication fails (invalid credentials, inactive user, etc.)."""
+
+
 class AuthService:
     def __init__(
         self,
@@ -47,11 +61,15 @@ class AuthService:
         nonces: NonceStore,
         verification: VerificationTokenStore,
         mail: EmailSender,
+        credentials: CredentialsPort,
+        settings: Settings,
     ) -> None:
         self.tokens = tokens
         self.nonces = nonces
         self.verification = verification
         self.mail = mail
+        self.credentials = credentials
+        self.settings = settings
 
     async def signup(self, data: SignupIn) -> dict[str, Any]:
         # Stub: send verification email with token
@@ -66,9 +84,44 @@ class AuthService:
         # Stub: mark user as verified (no DB yet)
         return {"ok": True, "email": email}
 
-    async def login(self, data: LoginIn) -> TokenPair:
-        # Stub: accept any password; in real code check hash from DB
-        return self.tokens.issue(subject=data.email)
+    def _bootstrap_identity(self, login: str, password: str) -> AuthIdentity | None:
+        configured_login = (self.settings.auth_bootstrap_login or "").strip()
+        configured_password = self.settings.auth_bootstrap_password
+        if not configured_login or configured_password is None:
+            return None
+        if not hmac.compare_digest(login.strip().lower(), configured_login.lower()):
+            return None
+        if not hmac.compare_digest(password, configured_password):
+            return None
+        role = (self.settings.auth_bootstrap_role or "admin").strip() or "admin"
+        return AuthIdentity(
+            id=str(self.settings.auth_bootstrap_user_id or "bootstrap-root"),
+            email=None,
+            username=configured_login,
+            role=role,
+            is_active=True,
+        )
+
+    async def login(self, data: LoginIn) -> LoginResult:
+        source = "credentials"
+        try:
+            user = await self.credentials.authenticate(data.login, data.password)
+        except Exception:
+            user = None
+        if not user:
+            user = self._bootstrap_identity(data.login, data.password)
+            if not user:
+                raise AuthError("invalid_credentials")
+            source = "bootstrap"
+        if not user.is_active:
+            raise AuthError("user_inactive")
+        claims: dict[str, Any] = {"role": user.role}
+        if user.email:
+            claims["email"] = user.email
+        if user.username:
+            claims["username"] = user.username
+        tokens = self.tokens.issue(subject=user.id, claims=claims)
+        return LoginResult(tokens=tokens, user=user, source=source)
 
     async def refresh(self, refresh_token: str) -> TokenPair:
         return self.tokens.refresh(refresh_token)
@@ -107,5 +160,7 @@ __all__ = [
     "AuthService",
     "SignupIn",
     "LoginIn",
+    "LoginResult",
     "EvmVerifyIn",
+    "AuthError",
 ]

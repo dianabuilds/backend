@@ -9,7 +9,7 @@ if [[ -z "$KIND" || -z "$NAME" ]]; then
   exit 1
 fi
 
-ROOT="apps/backendDDD/domains"
+ROOT="apps/backend/domains"
 SRC="$ROOT/$KIND/_template"
 DST="$ROOT/$KIND/$NAME"
 

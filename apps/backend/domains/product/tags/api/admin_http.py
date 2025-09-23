@@ -25,7 +25,7 @@ def make_router() -> APIRouter:
     router = APIRouter(prefix="/v1/admin/tags", tags=["admin-tags"])
 
     def _svc(container) -> TagAdminService:
-        # Prefer SQL repo if DB configured; fallback to memory store
+        # Prefer SQL repo if DB configured; if engine creation fails, fall back to memory
         try:
             dsn = to_async_dsn(container.settings.database_url)
             if dsn:
@@ -40,9 +40,24 @@ def make_router() -> APIRouter:
             usage_store = getattr(repo0, "store", None)
         except Exception:
             usage_store = None
-        return TagAdminService(
-            MemoryAdminRepo(usage_store), outbox=container.events.outbox
-        )
+        return TagAdminService(MemoryAdminRepo(usage_store), outbox=container.events.outbox)
+
+    @router.get("/groups", summary="List tag content groups")
+    def list_groups(
+        _: None = Depends(require_admin),
+        container=Depends(get_container),
+    ):
+        svc = _svc(container)
+        groups = svc.list_groups()
+        return [
+            {
+                "key": g.key,
+                "tag_count": g.tag_count,
+                "usage_count": g.usage_count,
+                "author_count": g.author_count,
+            }
+            for g in groups
+        ]
 
     @router.get("/list", summary="List tags with usage")
     def list_tags(
@@ -90,9 +105,7 @@ def make_router() -> APIRouter:
     @router.post(
         "/{tag_id}/aliases",
         summary="Add tag alias",
-        dependencies=(
-            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []),
     )
     def post_alias(
         tag_id: UUID,
@@ -117,9 +130,7 @@ def make_router() -> APIRouter:
     @router.delete(
         "/aliases/{alias_id}",
         summary="Remove tag alias",
-        dependencies=(
-            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []),
     )
     def del_alias(
         alias_id: UUID,
@@ -140,17 +151,12 @@ def make_router() -> APIRouter:
     ):
         svc = _svc(container)
         items = svc.blacklist_list(q)
-        return [
-            {"slug": i.slug, "reason": i.reason, "created_at": i.created_at}
-            for i in items
-        ]
+        return [{"slug": i.slug, "reason": i.reason, "created_at": i.created_at} for i in items]
 
     @router.post(
         "/blacklist",
         summary="Add tag to blacklist",
-        dependencies=(
-            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []),
     )
     def add_blacklist(
         payload: dict,
@@ -170,9 +176,7 @@ def make_router() -> APIRouter:
     @router.delete(
         "/blacklist/{slug}",
         summary="Remove tag from blacklist",
-        dependencies=(
-            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []),
     )
     def delete_blacklist(
         slug: str,
@@ -188,9 +192,7 @@ def make_router() -> APIRouter:
     @router.post(
         "",
         summary="Create tag",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
     )
     def create_tag(
         body: dict,
@@ -221,9 +223,7 @@ def make_router() -> APIRouter:
     @router.delete(
         "/{tag_id}",
         summary="Delete tag",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
     )
     def delete_tag(
         tag_id: UUID,
@@ -239,9 +239,7 @@ def make_router() -> APIRouter:
     @router.post(
         "/merge",
         summary="Merge tags (dry-run/apply)",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
     )
     def merge_tags(
         body: dict,
@@ -269,8 +267,6 @@ def make_router() -> APIRouter:
             actor_id = None
         except Exception:
             pass
-        return svc.merge_apply(
-            str(from_id), str(to_id), actor_id, reason, content_type=type_
-        )
+        return svc.merge_apply(str(from_id), str(to_id), actor_id, reason, content_type=type_)
 
     return router

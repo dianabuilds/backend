@@ -27,13 +27,7 @@ def _read_sql(path: Path) -> str:
 def upgrade() -> None:
     base = Path(__file__).resolve().parents[2]  # apps/apps/backend
     files = [
-        base
-        / "domains"
-        / "product"
-        / "achievements"
-        / "schema"
-        / "sql"
-        / "001_achievements.sql",
+        base / "domains" / "product" / "achievements" / "schema" / "sql" / "001_achievements.sql",
         base
         / "domains"
         / "product"
@@ -51,7 +45,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     drops = [
         "DROP TABLE IF EXISTS product_achievement_grants CASCADE",
-        "DROP TABLE IF EXISTS product_achievements CASCADE",
+        "DROP TABLE IF EXISTS achievements CASCADE",
     ]
     for stmt in drops:
         op.execute(stmt)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import time
 from collections.abc import Callable
+from typing import Any
 
 import redis  # type: ignore
 
@@ -31,9 +32,10 @@ class RedisRelay:
         topics: list[str],
         group: str = "relay",
         consumer: str | None = None,
+        redis_client: Any | None = None,
     ):
-        self._r = redis.Redis.from_url(redis_url, decode_responses=True)
-        self._bus = RedisBus(redis_url)
+        self._r = redis_client or redis.Redis.from_url(redis_url, decode_responses=True)
+        self._bus = RedisBus(redis_url, client=self._r)
         self._group = group
         self._consumer = consumer or f"c-{os.getpid()}"
         self._topics = topics
@@ -54,9 +56,7 @@ class RedisRelay:
         batch = int(os.getenv("EVENT_COUNT", str(count or 100)))
         while True:
             try:
-                resp = self._bus.read_batch(
-                    self._topics, self._group, self._consumer, batch, block
-                )
+                resp = self._bus.read_batch(self._topics, self._group, self._consumer, batch, block)
             except Exception:
                 time.sleep(1.0)
                 continue

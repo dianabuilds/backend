@@ -1,25 +1,80 @@
 from __future__ import annotations
 
-from sqlalchemy import text
+from sqlalchemy import Integer, String, bindparam, text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from domains.product.tags.application.admin_ports import AdminRepo
 from domains.product.tags.domain.admin_models import (
     AliasView,
     BlacklistItem,
+    TagGroupSummary,
     TagListItem,
 )
 
 
 class SQLAdminRepo(AdminRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
-        self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
-        )
+        if isinstance(engine, str):
+            # Normalize DSN: strip libpq sslmode for asyncpg
+            try:
+                from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+
+                u = urlparse(engine)
+                q = dict(parse_qsl(u.query))
+                if "sslmode" in q:
+                    sm = (q.get("sslmode") or "").lower()
+                    q.pop("sslmode", None)
+                    if sm in ("require", "verify-ca", "verify-full"):
+                        q["ssl"] = "true"
+                    elif sm in ("disable", "allow", "prefer"):
+                        q.setdefault("ssl", "false")
+                # Rebuild DSN without unknown params
+                engine = urlunparse(
+                    (u.scheme, u.netloc, u.path, u.params, urlencode(q), u.fragment)
+                )
+            except Exception:
+                pass
+            # Final safety: drop query entirely and pass SSL via connect_args if still problematic
+            try:
+                self._engine = create_async_engine(engine, connect_args={"ssl": True})
+            except TypeError:
+                # Some drivers may not accept connect_args in this form; fallback
+                base = engine.split("?", 1)[0]
+                self._engine = create_async_engine(base, connect_args={"ssl": True})
+        else:
+            self._engine = engine
+        # Lazy-detected table names to support different schemas
+        self._tbl_tag: str | None = None
+        self._tbl_usage: str | None = None
+        self._tbl_alias: str | None = None
+
+    async def _ensure_introspected(self, conn) -> None:
+        if self._tbl_tag is not None:
+            return
+        rows = (
+            await conn.execute(
+                text(
+                    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
+                )
+            )
+        ).fetchall()
+        names = {str(r[0]) for r in rows}
+        # Tag table (prefer canonical 'tags' if both exist)
+        if "tags" in names:
+            self._tbl_tag = "tags"
+        elif "tag" in names:
+            self._tbl_tag = "tag"
+        else:
+            # Fall back to an obviously missing table to surface error early
+            self._tbl_tag = "tag"
+        # Optional tables
+        self._tbl_usage = "tag_usage_counters" if "tag_usage_counters" in names else None
+        self._tbl_alias = "tag_alias" if "tag_alias" in names else None
 
     async def _exists_tag(self, tag_id: str) -> bool:
-        sql = text("SELECT 1 FROM product_tag WHERE id = :id")
         async with self._engine.begin() as conn:
+            await self._ensure_introspected(conn)
+            sql = text(f"SELECT 1 FROM {self._tbl_tag or 'tag'} WHERE id = :id")
             row = (await conn.execute(sql, {"id": tag_id})).first()
             return bool(row)
 
@@ -29,36 +84,53 @@ class SQLAdminRepo(AdminRepo):
         import asyncio
 
         async def _run() -> list[TagListItem]:
-            sql = text(
-                """
-                WITH usage AS (
-                  SELECT slug, SUM(count)::int AS usage_count
-                  FROM product_tag_usage_counters
-                  WHERE (:ctype IS NULL OR content_type = :ctype)
-                  GROUP BY slug
-                ), alia AS (
-                  SELECT tag_id, COUNT(*)::int AS aliases_count
-                  FROM product_tag_alias
-                  GROUP BY tag_id
-                )
-                SELECT t.id, t.slug, t.name, t.created_at, t.is_hidden,
-                       COALESCE(u.usage_count, 0) AS usage_count,
-                       COALESCE(a.aliases_count, 0) AS aliases_count
-                FROM product_tag t
-                LEFT JOIN usage u ON u.slug = t.slug
-                LEFT JOIN alia a ON a.tag_id = t.id
-                WHERE (:q IS NULL OR t.slug ILIKE '%' || :q || '%' OR t.name ILIKE '%' || :q || '%')
-                ORDER BY t.name ASC, t.slug ASC
-                LIMIT :limit OFFSET :offset
-                """
-            )
-            params = {
-                "q": q,
-                "limit": int(limit),
-                "offset": int(offset),
-                "ctype": content_type,
-            }
             async with self._engine.begin() as conn:
+                await self._ensure_introspected(conn)
+                tag_tbl = self._tbl_tag or "tag"
+                # Build dynamic SQL parts
+                usage_cte = (
+                    f"WITH usage AS (SELECT slug, SUM(count)::int AS usage_count FROM {self._tbl_usage} WHERE (:ctype IS NULL OR content_type = CAST(:ctype AS text)) GROUP BY slug)"
+                    if self._tbl_usage
+                    else "WITH usage AS (SELECT NULL::text AS slug, 0::int AS usage_count WHERE false)"
+                )
+                alias_cte = (
+                    f", alia AS (SELECT tag_id, COUNT(*)::int AS aliases_count FROM {self._tbl_alias} GROUP BY tag_id)"
+                    if self._tbl_alias
+                    else ", alia AS (SELECT NULL::uuid AS tag_id, 0::int AS aliases_count WHERE false)"
+                )
+                sql = text(
+                    f"""
+                    {usage_cte}
+                    {alias_cte}
+                    SELECT t.id, t.slug, t.name, t.created_at, t.is_hidden,
+                           COALESCE(u.usage_count, 0) AS usage_count,
+                           COALESCE(a.aliases_count, 0) AS aliases_count
+                    FROM {tag_tbl} t
+                    LEFT JOIN usage u ON u.slug = t.slug
+                    LEFT JOIN alia a ON a.tag_id::text = t.id::text
+                    WHERE (:q IS NULL OR t.slug ILIKE ('%' || :q || '%') OR t.name ILIKE ('%' || :q || '%'))
+                    ORDER BY t.name ASC, t.slug ASC
+                    LIMIT :limit OFFSET :offset
+                    """
+                ).bindparams(
+                    bindparam("q", type_=String),
+                    bindparam("limit", type_=Integer),
+                    bindparam("offset", type_=Integer),
+                    bindparam("ctype", type_=String),
+                )
+                # Treat empty string as NULL to disable filter
+                q_val = None if (q is None or str(q).strip() == "") else str(q)
+                ctype_val = (
+                    None
+                    if (content_type is None or str(content_type).strip() == "")
+                    else str(content_type)
+                )
+                params = {
+                    "q": q_val,
+                    "limit": int(limit),
+                    "offset": int(offset),
+                    "ctype": ctype_val,
+                }
                 rows = (await conn.execute(sql, params)).mappings().all()
                 return [
                     TagListItem(
@@ -66,9 +138,46 @@ class SQLAdminRepo(AdminRepo):
                         slug=str(r["slug"]),
                         name=str(r["name"]),
                         created_at=r["created_at"],
-                        is_hidden=bool(r["is_hidden"]),
-                        usage_count=int(r["usage_count"]),
-                        aliases_count=int(r["aliases_count"]),
+                        is_hidden=bool(r.get("is_hidden", False)),
+                        usage_count=int(r.get("usage_count", 0)),
+                        aliases_count=int(r.get("aliases_count", 0)),
+                    )
+                    for r in rows
+                ]
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(_run())
+        else:
+            return loop.run_until_complete(_run())  # type: ignore[misc]
+
+    def list_groups(self) -> list[TagGroupSummary]:
+        import asyncio
+
+        async def _run() -> list[TagGroupSummary]:
+            async with self._engine.begin() as conn:
+                await self._ensure_introspected(conn)
+                if not self._tbl_usage:
+                    return []
+                sql = text(
+                    f"""
+                    SELECT content_type,
+                           COUNT(DISTINCT slug)::int AS tag_count,
+                           SUM(count)::bigint AS usage_count,
+                           COUNT(DISTINCT author_id)::int AS author_count
+                      FROM {self._tbl_usage}
+                  GROUP BY content_type
+                  ORDER BY usage_count DESC, content_type ASC
+                    """
+                )
+                rows = (await conn.execute(sql)).mappings().all()
+                return [
+                    TagGroupSummary(
+                        key=str(r.get("content_type") or "all"),
+                        tag_count=int(r.get("tag_count") or 0),
+                        usage_count=int(r.get("usage_count") or 0),
+                        author_count=int(r.get("author_count") or 0),
                     )
                     for r in rows
                 ]
@@ -84,10 +193,13 @@ class SQLAdminRepo(AdminRepo):
         import asyncio
 
         async def _run() -> list[AliasView]:
-            sql = text(
-                "SELECT id, tag_id, alias, type, created_at FROM product_tag_alias WHERE tag_id = :tid ORDER BY created_at DESC"
-            )
             async with self._engine.begin() as conn:
+                await self._ensure_introspected(conn)
+                if not self._tbl_alias:
+                    return []
+                sql = text(
+                    f"SELECT id, tag_id, alias, type, created_at FROM {self._tbl_alias} WHERE tag_id = :tid ORDER BY created_at DESC"
+                )
                 rows = (await conn.execute(sql, {"tid": tag_id})).mappings().all()
                 return [
                     AliasView(
@@ -113,14 +225,17 @@ class SQLAdminRepo(AdminRepo):
         async def _run() -> AliasView:
             if not await self._exists_tag(tag_id):
                 raise ValueError("tag_not_found")
-            sql = text(
-                """
-                INSERT INTO product_tag_alias(tag_id, alias, type)
-                VALUES (:tid, :alias, 'alias')
-                RETURNING id, tag_id, alias, type, created_at
-                """
-            )
             async with self._engine.begin() as conn:
+                await self._ensure_introspected(conn)
+                if not self._tbl_alias:
+                    raise ValueError("aliases_unsupported")
+                sql = text(
+                    f"""
+                    INSERT INTO {self._tbl_alias}(tag_id, alias, type)
+                    VALUES (:tid, :alias, 'alias')
+                    RETURNING id, tag_id, alias, type, created_at
+                    """
+                )
                 try:
                     r = (
                         (await conn.execute(sql, {"tid": tag_id, "alias": alias}))
@@ -149,8 +264,11 @@ class SQLAdminRepo(AdminRepo):
         import asyncio
 
         async def _run() -> None:
-            sql = text("DELETE FROM product_tag_alias WHERE id = :id")
             async with self._engine.begin() as conn:
+                await self._ensure_introspected(conn)
+                if not self._tbl_alias:
+                    return None
+                sql = text(f"DELETE FROM {self._tbl_alias} WHERE id = :id")
                 await conn.execute(sql, {"id": alias_id})
 
         try:
@@ -164,11 +282,9 @@ class SQLAdminRepo(AdminRepo):
         import asyncio
 
         async def _run() -> list[BlacklistItem]:
-            base = "SELECT slug, reason, created_at FROM product_tag_blacklist"
+            base = "SELECT slug, reason, created_at FROM tag_blacklist"
             if q:
-                sql = text(
-                    base + " WHERE slug ILIKE '%' || :q || '%' ORDER BY created_at DESC"
-                )
+                sql = text(base + " WHERE slug ILIKE '%' || :q || '%' ORDER BY created_at DESC")
                 params = {"q": q}
             else:
                 sql = text(base + " ORDER BY created_at DESC")
@@ -197,18 +313,14 @@ class SQLAdminRepo(AdminRepo):
         async def _run() -> BlacklistItem:
             sql = text(
                 """
-                INSERT INTO product_tag_blacklist(slug, reason)
+                INSERT INTO tag_blacklist(slug, reason)
                 VALUES (:slug, :reason)
                 ON CONFLICT (slug) DO UPDATE SET reason = EXCLUDED.reason
                 RETURNING slug, reason, created_at
                 """
             )
             async with self._engine.begin() as conn:
-                r = (
-                    (await conn.execute(sql, {"slug": slug, "reason": reason}))
-                    .mappings()
-                    .first()
-                )
+                r = (await conn.execute(sql, {"slug": slug, "reason": reason})).mappings().first()
                 assert r is not None
                 return BlacklistItem(
                     slug=str(r["slug"]), reason=r["reason"], created_at=r["created_at"]
@@ -225,7 +337,7 @@ class SQLAdminRepo(AdminRepo):
         import asyncio
 
         async def _run() -> None:
-            sql = text("DELETE FROM product_tag_blacklist WHERE slug = :slug")
+            sql = text("DELETE FROM tag_blacklist WHERE slug = :slug")
             async with self._engine.begin() as conn:
                 await conn.execute(sql, {"slug": slug})
 
@@ -242,27 +354,21 @@ class SQLAdminRepo(AdminRepo):
         async def _run() -> TagListItem:
             sql = text(
                 """
-                INSERT INTO product_tag(slug, name) VALUES (:slug, :name)
+                INSERT INTO tag(slug, name) VALUES (:slug, :name)
                 ON CONFLICT (slug) DO NOTHING
                 RETURNING id, slug, name, created_at, is_hidden
                 """
             )
             async with self._engine.begin() as conn:
-                r = (
-                    (await conn.execute(sql, {"slug": slug, "name": name}))
-                    .mappings()
-                    .first()
-                )
+                r = (await conn.execute(sql, {"slug": slug, "name": name})).mappings().first()
                 if r is None:
                     # slug conflict
                     raise ValueError("conflict")
                 # compute usage count
                 sql2 = text(
-                    "SELECT COALESCE(SUM(count),0)::int AS c FROM product_tag_usage_counters WHERE slug = :slug"
+                    "SELECT COALESCE(SUM(count),0)::int AS c FROM tag_usage_counters WHERE slug = :slug"
                 )
-                usage_row = (
-                    (await conn.execute(sql2, {"slug": slug})).mappings().first()
-                )
+                usage_row = (await conn.execute(sql2, {"slug": slug})).mappings().first()
                 usage = int(usage_row["c"]) if usage_row else 0
                 return TagListItem(
                     id=str(r["id"]),
@@ -290,7 +396,7 @@ class SQLAdminRepo(AdminRepo):
                 r = (
                     (
                         await conn.execute(
-                            text("SELECT slug FROM product_tag WHERE id = :id"),
+                            text("SELECT slug FROM tag WHERE id = :id"),
                             {"id": tag_id},
                         )
                     )
@@ -300,11 +406,9 @@ class SQLAdminRepo(AdminRepo):
                 if not r:
                     return
                 slug = str(r["slug"])
+                await conn.execute(text("DELETE FROM tag WHERE id = :id"), {"id": tag_id})
                 await conn.execute(
-                    text("DELETE FROM product_tag WHERE id = :id"), {"id": tag_id}
-                )
-                await conn.execute(
-                    text("DELETE FROM product_tag_usage_counters WHERE slug = :slug"),
+                    text("DELETE FROM tag_usage_counters WHERE slug = :slug"),
                     {"slug": slug},
                 )
 
@@ -315,36 +419,28 @@ class SQLAdminRepo(AdminRepo):
         else:
             loop.run_until_complete(_run())  # type: ignore[misc]
 
-    def merge_dry_run(
-        self, from_id: str, to_id: str, content_type: str | None = None
-    ) -> dict:
+    def merge_dry_run(self, from_id: str, to_id: str, content_type: str | None = None) -> dict:
         import asyncio
 
         async def _run() -> dict:
-            sql = text("SELECT id, slug, name FROM product_tag WHERE id = :id")
+            sql = text("SELECT id, slug, name FROM tag WHERE id = :id")
             async with self._engine.begin() as conn:
                 f = (await conn.execute(sql, {"id": from_id})).mappings().first()
                 t = (await conn.execute(sql, {"id": to_id})).mappings().first()
                 if not f or not t:
                     return {"errors": ["tag not found"], "warnings": []}
                 cnt_sql = text(
-                    "SELECT COALESCE(SUM(count),0)::int AS c FROM product_tag_usage_counters WHERE slug = :slug AND (:ctype IS NULL OR content_type = :ctype)"
+                    "SELECT COALESCE(SUM(count),0)::int AS c FROM tag_usage_counters WHERE slug = :slug AND (:ctype IS NULL OR content_type = :ctype)"
                 )
                 usage_row = (
-                    (
-                        await conn.execute(
-                            cnt_sql, {"slug": f["slug"], "ctype": content_type}
-                        )
-                    )
+                    (await conn.execute(cnt_sql, {"slug": f["slug"], "ctype": content_type}))
                     .mappings()
                     .first()
                 )
                 aliases_row = (
                     (
                         await conn.execute(
-                            text(
-                                "SELECT COUNT(*)::int AS n FROM product_tag_alias WHERE tag_id = :tid"
-                            ),
+                            text("SELECT COUNT(*)::int AS n FROM tag_alias WHERE tag_id = :tid"),
                             {"tid": from_id},
                         )
                     )
@@ -394,7 +490,7 @@ class SQLAdminRepo(AdminRepo):
                 return report
             async with self._engine.begin() as conn:
                 # Re-fetch slugs for safety
-                sel = text("SELECT id, slug FROM product_tag WHERE id = :id")
+                sel = text("SELECT id, slug FROM tag WHERE id = :id")
                 f = (await conn.execute(sel, {"id": from_id})).mappings().first()
                 t = (await conn.execute(sel, {"id": to_id})).mappings().first()
                 if not f or not t:
@@ -403,9 +499,7 @@ class SQLAdminRepo(AdminRepo):
                 tslug = str(t["slug"])
                 # Move aliases
                 await conn.execute(
-                    text(
-                        "UPDATE product_tag_alias SET tag_id = :tid WHERE tag_id = :fid"
-                    ),
+                    text("UPDATE tag_alias SET tag_id = :tid WHERE tag_id = :fid"),
                     {"tid": to_id, "fid": from_id},
                 )
                 # Merge usage counters
@@ -414,9 +508,9 @@ class SQLAdminRepo(AdminRepo):
                     await conn.execute(
                         text(
                             """
-                            INSERT INTO product_tag_usage_counters(author_id, content_type, slug, count)
+                            INSERT INTO tag_usage_counters(author_id, content_type, slug, count)
                             SELECT author_id, content_type, :tslug AS slug, SUM(count) AS count
-                            FROM product_tag_usage_counters
+                            FROM tag_usage_counters
                             WHERE slug IN (:fslug, :tslug)
                             GROUP BY author_id, content_type
                             ON CONFLICT (author_id, content_type, slug) DO UPDATE SET count = EXCLUDED.count
@@ -428,9 +522,9 @@ class SQLAdminRepo(AdminRepo):
                     await conn.execute(
                         text(
                             """
-                            INSERT INTO product_tag_usage_counters(author_id, content_type, slug, count)
+                            INSERT INTO tag_usage_counters(author_id, content_type, slug, count)
                             SELECT author_id, content_type, :tslug AS slug, SUM(count) AS count
-                            FROM product_tag_usage_counters
+                            FROM tag_usage_counters
                             WHERE slug IN (:fslug, :tslug) AND content_type = :ctype
                             GROUP BY author_id, content_type
                             ON CONFLICT (author_id, content_type, slug) DO UPDATE SET count = EXCLUDED.count
@@ -440,13 +534,11 @@ class SQLAdminRepo(AdminRepo):
                     )
                 # Remove old slug rows
                 await conn.execute(
-                    text("DELETE FROM product_tag_usage_counters WHERE slug = :fslug"),
+                    text("DELETE FROM tag_usage_counters WHERE slug = :fslug"),
                     {"fslug": fslug},
                 )
                 # Delete old tag
-                await conn.execute(
-                    text("DELETE FROM product_tag WHERE id = :id"), {"id": from_id}
-                )
+                await conn.execute(text("DELETE FROM tag WHERE id = :id"), {"id": from_id})
             return report
 
         try:

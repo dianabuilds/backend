@@ -16,14 +16,16 @@ class AIService:
         self.provider = provider
         self.outbox = outbox
 
-    async def generate(self, prompt: str) -> dict:
+    async def generate(
+        self, prompt: str, *, model: str | None = None, provider: str | None = None
+    ) -> dict:
         provider_name = (
-            getattr(self.provider, "__class__", type(self.provider))
-            .__name__.replace("Provider", "")
+            (provider or getattr(self.provider, "__class__", type(self.provider)).__name__)
+            .replace("Provider", "")
             .lower()
         )
-        model = "default"
-        labels = LLMCallLabels(provider=provider_name, model=model, stage="unknown")
+        model_name = model or "default"
+        labels = LLMCallLabels(provider=provider_name, model=model_name, stage="unknown")
         t0 = time.perf_counter()
         try:
             if self.outbox:
@@ -33,12 +35,13 @@ class AIService:
                         {
                             "prompt_len": len(prompt or ""),
                             "provider": provider_name,
-                            "model": model,
+                            "model": model_name,
                         },
                         key=None,
                     )
                 except Exception:
                     pass
+            # Provider interface may ignore model/provider specifics (fake, mock)
             text = await self.provider.generate(prompt)
             # metrics
             dt_ms = (time.perf_counter() - t0) * 1000.0
@@ -52,7 +55,7 @@ class AIService:
                             "latency_ms": dt_ms,
                             "result_len": len(text or ""),
                             "provider": provider_name,
-                            "model": model,
+                            "model": model_name,
                         },
                         key=None,
                     )

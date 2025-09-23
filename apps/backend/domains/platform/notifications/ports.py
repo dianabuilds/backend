@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from domains.platform.notifications.domain.campaign import Campaign
+from domains.platform.notifications.domain.template import Template
 
 
 class CampaignRepo(Protocol):
@@ -12,4 +13,17 @@ class CampaignRepo(Protocol):
     async def delete(self, campaign_id: str) -> None: ...
 
 
-__all__ = ["CampaignRepo"]
+class TemplateRepo(Protocol):
+    async def upsert(self, payload: dict[str, Any]) -> Template: ...
+    async def list(self, limit: int = 50, offset: int = 0) -> list[Template]: ...
+    async def get(self, template_id: str) -> Template | None: ...
+    async def get_by_slug(self, slug: str) -> Template | None: ...
+    async def delete(self, template_id: str) -> None: ...
+
+
+class NotificationPreferenceRepo(Protocol):
+    async def get_preferences(self, user_id: str) -> dict[str, Any]: ...
+    async def set_preferences(self, user_id: str, prefs: dict[str, Any]) -> None: ...
+
+
+__all__ = ["CampaignRepo", "TemplateRepo", "NotificationPreferenceRepo"]

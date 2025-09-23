@@ -1,11 +1,11 @@
-BackendDDD (demo)
+backend (demo)
 
 Цель: минимальный каркас для старта разработки с ИИ‑агентом.
 
 Слои: api → application → domain → adapters. Публичные контракты в packages/schemas, генерация клиентов в packages/clients. Per‑domain миграции, общий сборщик в infra/ci.
 
 Среда:
-- Файл `apps/backendDDD/.env` (пример):
+- Файл `apps/backend/.env` (пример):
   - `DATABASE_URL=postgresql://app:app@localhost:5432/app`
   - `REDIS_URL=redis://localhost:6379/0`
 
@@ -22,7 +22,7 @@ Dev: ручная публикация события
 
 - Через CLI-скрипт:
   - Пример:
-    python apps/backendDDD/infra/dev/publish_event.py --topic node.tags.updated.v1 --payload '{"author_id":"00000000-0000-0000-0000-000000000001","content_type":"node","added":["python"],"removed":[]}'
+    python apps/backend/infra/dev/publish_event.py --topic node.tags.updated.v1 --payload '{"author_id":"00000000-0000-0000-0000-000000000001","content_type":"node","added":["python"],"removed":[]}'
   - Использует Redis URL из настроек (переменная `APP_REDIS_URL`).
 
 Проверка счётчиков тегов (SQL)

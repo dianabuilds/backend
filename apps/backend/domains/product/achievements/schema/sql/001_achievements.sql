@@ -1,5 +1,5 @@
 -- Achievements catalog
-CREATE TABLE IF NOT EXISTS product_achievements (
+CREATE TABLE IF NOT EXISTS achievements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   code text UNIQUE NOT NULL,
   title text NOT NULL,
@@ -12,5 +12,5 @@ CREATE TABLE IF NOT EXISTS product_achievements (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS ix_product_achievements_title ON product_achievements(title);
+CREATE INDEX IF NOT EXISTS ix_achievements_title ON achievements(title);
 

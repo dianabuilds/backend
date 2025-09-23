@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 
 @dataclass
@@ -11,7 +12,7 @@ class TokenPair:
 
 
 class TokenPort(Protocol):
-    def issue(self, subject: str) -> TokenPair: ...
+    def issue(self, subject: str, claims: Mapping[str, Any] | None = None) -> TokenPair: ...
     def refresh(self, refresh_token: str) -> TokenPair: ...
 
 

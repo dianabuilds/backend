@@ -1,4 +1,4 @@
-.PHONY: dev-up seed test schemas-validate clients-gen schemas-compat migrate-all eval imports-check imports-lint lint lint-fix typecheck run run-relay run-events
+.PHONY: dev-up seed test schemas-validate clients-gen schemas-compat migrate-all eval imports-check imports-lint lint lint-fix typecheck run run-relay run-events run-scheduler
 
 dev-up:
 	docker compose -f infra/docker-compose.yml up -d
@@ -55,3 +55,6 @@ run-relay:
 
 run-events:
 	python -m apps.backend.infra.events_worker
+
+run-scheduler:
+	python -m apps.backend.infra.schedule_worker

@@ -4,6 +4,7 @@ import re
 
 from domains.platform.events.ports import OutboxPublisher
 from domains.product.tags.application.admin_ports import AdminRepo
+from domains.product.tags.domain.admin_models import TagGroupSummary
 
 
 def _norm_slug(s: str) -> str:
@@ -24,15 +25,16 @@ class TagAdminService:
         self.outbox = outbox
 
     # Queries
-    def list_tags(
-        self, q: str | None, limit: int, offset: int, *, content_type: str | None = None
-    ):
+    def list_tags(self, q: str | None, limit: int, offset: int, *, content_type: str | None = None):
         limit = max(1, min(int(limit or 50), 1000))
         offset = max(0, int(offset or 0))
         if content_type not in (None, "node", "quest", "all"):
             content_type = None
         ctype = None if content_type in (None, "all") else content_type
         return self.repo.list_with_counters(q, limit, offset, ctype)
+
+    def list_groups(self) -> list[TagGroupSummary]:
+        return self.repo.list_groups()
 
     def list_aliases(self, tag_id: str):
         return self.repo.list_aliases(tag_id)
@@ -42,9 +44,7 @@ class TagAdminService:
         res = self.repo.add_alias(tag_id, _norm_alias(alias))
         try:
             if self.outbox:
-                self.outbox.publish(
-                    "tag.alias.added.v1", {"tag_id": tag_id, "alias": res.alias}
-                )
+                self.outbox.publish("tag.alias.added.v1", {"tag_id": tag_id, "alias": res.alias})
         except Exception:
             pass
         return res
@@ -75,9 +75,7 @@ class TagAdminService:
         self.repo.blacklist_delete(_norm_slug(slug))
         try:
             if self.outbox:
-                self.outbox.publish(
-                    "tag.blacklist.removed.v1", {"slug": _norm_slug(slug)}
-                )
+                self.outbox.publish("tag.blacklist.removed.v1", {"slug": _norm_slug(slug)})
         except Exception:
             pass
 
@@ -100,9 +98,7 @@ class TagAdminService:
         except Exception:
             pass
 
-    def merge_dry_run(
-        self, from_id: str, to_id: str, *, content_type: str | None = None
-    ) -> dict:
+    def merge_dry_run(self, from_id: str, to_id: str, *, content_type: str | None = None) -> dict:
         return self.repo.merge_dry_run(from_id, to_id, content_type)
 
     def merge_apply(

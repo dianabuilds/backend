@@ -12,8 +12,8 @@ from domains.product.tags.domain.results import TagView
 class SQLTagsRepo(Repo):
     """Read-only tags repo backed by aggregated usage counters.
 
-    Expects table `product_tag_usage_counters(author_id uuid, content_type text, slug text, count int)`
-    and optional `product_tag(slug text, name text, ...)` for naming.
+    Expects table `tag_usage_counters(author_id uuid, content_type text, slug text, count int)`
+    and optional `tag(slug text, name text, ...)` for naming.
     """
 
     def __init__(self, engine: AsyncEngine | str) -> None:
@@ -29,12 +29,12 @@ class SQLTagsRepo(Repo):
                    u.count::int AS count
             FROM (
               SELECT slug, SUM(count) AS count
-              FROM product_tag_usage_counters
+              FROM tag_usage_counters
               WHERE author_id = :uid
                 AND (:ctype IS NULL OR content_type = :ctype)
               GROUP BY slug
             ) AS u
-            LEFT JOIN product_tag AS t ON t.slug = u.slug
+            LEFT JOIN tag AS t ON t.slug = u.slug
             WHERE (:q IS NULL
                    OR u.slug ILIKE '%' || :q || '%'
                    OR COALESCE(t.name, '') ILIKE '%' || :q || '%')
@@ -67,9 +67,7 @@ class SQLTagsRepo(Repo):
             async with self._engine.begin() as conn:
                 rows = (await conn.execute(sql, params)).mappings().all()
                 return [
-                    TagView(
-                        slug=str(r["slug"]), name=str(r["name"]), count=int(r["count"])
-                    )
+                    TagView(slug=str(r["slug"]), name=str(r["name"]), count=int(r["count"]))
                     for r in rows
                 ]
 

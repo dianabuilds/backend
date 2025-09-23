@@ -17,22 +17,54 @@ from domains.platform.iam.security import (
 )
 
 
+class MyReferralCodeOut(BaseModel):
+    code: str
+    active: bool
+
+
+class MyReferralStatsOut(BaseModel):
+    total_signups: int
+
+
+class ReasonIn(BaseModel):
+    reason: str | None = None
+
+
+class ReferralCodeAdminOut(BaseModel):
+    id: UUID
+    owner_user_id: UUID | None = None
+    code: str
+    uses_count: int
+    active: bool
+    created_at: datetime | None = None
+
+
+class ReferralEventAdminOut(BaseModel):
+    id: UUID
+    code_id: UUID | None = None
+    code: str | None = None
+    referrer_user_id: UUID | None = None
+    referee_user_id: UUID
+    event_type: str
+    occurred_at: datetime
+
+
+class ActivateCodeOut(BaseModel):
+    ok: bool = True
+    code: str
+
+
+class DeactivateCodeOut(BaseModel):
+    ok: bool = True
+
+
 def make_router() -> APIRouter:
     router = APIRouter()
 
     user = APIRouter(prefix="/v1/referrals", tags=["referrals"])
     admin = APIRouter(prefix="/v1/admin/referrals", tags=["admin", "referrals"])
 
-    class MyReferralCodeOut(BaseModel):
-        code: str
-        active: bool
-
-    class MyReferralStatsOut(BaseModel):
-        total_signups: int
-
-    @user.get(
-        "/me/code", response_model=MyReferralCodeOut, summary="Get my referral code"
-    )
+    @user.get("/me/code", response_model=MyReferralCodeOut, summary="Get my referral code")
     async def get_my_code(
         claims=Depends(get_current_user), container=Depends(get_container)
     ) -> MyReferralCodeOut:
@@ -42,9 +74,7 @@ def make_router() -> APIRouter:
         code = await container.referrals_service.get_or_create_personal_code(uid)
         return MyReferralCodeOut(code=code.code, active=bool(code.active))
 
-    @user.get(
-        "/me/stats", response_model=MyReferralStatsOut, summary="My referral stats"
-    )
+    @user.get("/me/stats", response_model=MyReferralStatsOut, summary="My referral stats")
     async def get_my_stats(
         claims=Depends(get_current_user), container=Depends(get_container)
     ) -> MyReferralStatsOut:
@@ -53,33 +83,6 @@ def make_router() -> APIRouter:
             raise HTTPException(status_code=401, detail="unauthorized")
         total = await container.referrals_repo.count_signups(uid)
         return MyReferralStatsOut(total_signups=int(total))
-
-    class ReasonIn(BaseModel):
-        reason: str | None = None
-
-    class ReferralCodeAdminOut(BaseModel):
-        id: UUID
-        owner_user_id: UUID | None = None
-        code: str
-        uses_count: int
-        active: bool
-        created_at: datetime | None = None
-
-    class ReferralEventAdminOut(BaseModel):
-        id: UUID
-        code_id: UUID | None = None
-        code: str | None = None
-        referrer_user_id: UUID | None = None
-        referee_user_id: UUID
-        event_type: str
-        occurred_at: datetime
-
-    class ActivateCodeOut(BaseModel):
-        ok: bool = True
-        code: str
-
-    class DeactivateCodeOut(BaseModel):
-        ok: bool = True
 
     @admin.get(
         "/codes",
@@ -180,9 +183,7 @@ def make_router() -> APIRouter:
                 id=UUID(it.id),
                 code_id=UUID(it.code_id) if it.code_id else None,
                 code=it.code,
-                referrer_user_id=(
-                    UUID(it.referrer_user_id) if it.referrer_user_id else None
-                ),
+                referrer_user_id=(UUID(it.referrer_user_id) if it.referrer_user_id else None),
                 referee_user_id=UUID(it.referee_user_id),
                 event_type=it.event_type,
                 occurred_at=it.occurred_at,

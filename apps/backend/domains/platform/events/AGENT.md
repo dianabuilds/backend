@@ -12,7 +12,7 @@
 
 Контракты и схемы:
 - Имена тем: `context.entity.action.vN`.
-- Схемы событий: `apps/backendDDD/packages/schemas/events/**`.
+- Схемы событий: `apps/backend/packages/schemas/events/**`.
 
-Конфигурация: см. `apps/backendDDD/packages/core/config.py`.
+Конфигурация: см. `apps/backend/packages/core/config.py`.
 

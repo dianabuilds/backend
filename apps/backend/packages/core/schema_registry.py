@@ -20,7 +20,7 @@ def read_schema(path: str) -> str:
 def event_schema_path(topic: str) -> Path:
     # events/<domain>/<topic>.json; e.g., profile.updated.v1 -> events/profile/profile.updated.v1.json
     domain = topic.split(".", 1)[0]
-    return Path("apps/apps/backend/packages/schemas/events") / domain / f"{topic}.json"
+    return Path("apps/backend/packages/schemas/events") / domain / f"{topic}.json"
 
 
 def load_event_schema(topic: str) -> dict[str, Any] | None:

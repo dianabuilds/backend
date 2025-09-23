@@ -1,6 +1,0 @@
-[
-  { "type": "moderation", "query": "/admin/moderation/queue?size=5", "refreshInterval": 60000 },
-  { "type": "drafts", "query": "/admin/drafts/issues", "refreshInterval": 120000 },
-  { "type": "jobs", "query": "/admin/jobs/recent", "refreshInterval": 120000 },
-  { "type": "problems", "query": "/admin/navigation/problems", "refreshInterval": 120000 }
-]

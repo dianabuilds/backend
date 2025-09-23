@@ -7,13 +7,14 @@ import redis.asyncio as redis  # type: ignore
 from domains.platform.users.adapters.repos_cached import CachedUsersRepo
 from domains.platform.users.adapters.repos_sql import SQLUsersRepo
 from domains.platform.users.application.service import UsersService
+from domains.platform.users.ports import UsersRepo
 from packages.core.config import Settings, load_settings, to_async_dsn
 
 
 @dataclass
 class UsersContainer:
     settings: Settings
-    repo: SQLUsersRepo
+    repo: UsersRepo
     service: UsersService
 
 
@@ -27,7 +28,7 @@ def build_container(settings: Settings | None = None) -> UsersContainer:
             repo = CachedUsersRepo(base, client, ttl_seconds=60)
     except Exception:
         repo = base
-    svc = UsersService(repo)
+    svc = UsersService(repo=repo, settings=s)
     return UsersContainer(settings=s, repo=repo, service=svc)
 
 

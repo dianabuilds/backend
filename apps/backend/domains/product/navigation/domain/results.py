@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from .transition import (
+    TransitionCandidate,
+    TransitionContext,
+    TransitionDecision,
+)
 
-
-@dataclass(frozen=True)
-class NextStep:
-    node_id: int | None
-    reason: str | None = None
+__all__ = ["TransitionCandidate", "TransitionContext", "TransitionDecision"]

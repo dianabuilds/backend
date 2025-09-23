@@ -5,7 +5,7 @@
 Компоненты
 - Порты: `OutboxPublisher`, `EventBus` (см. `ports.py`).
 - Фасад: `Events` (`service.py`) — публикация/подписка/запуск доставки.
-- Транспорты: `adapters/event_bus_redis.py`, `adapters/event_bus_memory.py`.
+- Транспорты: `adapters/event_bus_redis.py`.
 - Публикация: `adapters/outbox_redis.py` (низкоуровневый core в `packages/core/redis_outbox.py`).
 - Политики: `logic/relay.py`, `logic/idempotency.py`, `logic/policies.py`.
 

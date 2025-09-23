@@ -33,6 +33,13 @@ class CharacterIn(BaseModel):
     traits: dict[str, Any] | None = None
 
 
+class CharacterPatch(BaseModel):
+    name: str | None = None
+    role: str | None = None
+    description: str | None = None
+    traits: dict[str, Any] | None = None
+
+
 class CharacterOut(BaseModel):
     id: UUID
     world_id: UUID

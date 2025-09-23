@@ -6,6 +6,17 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 try:
+    from prometheus_client import Counter  # type: ignore
+except Exception:  # pragma: no cover
+    Counter = None  # type: ignore
+
+QUOTA_HIT = (
+    Counter("quota_hit_total", "Total quota rejections", labelnames=("key", "scope"))
+    if Counter is not None
+    else None
+)
+
+try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
 except Exception:  # pragma: no cover
     RateLimiter = None  # type: ignore
@@ -22,9 +33,7 @@ def make_router() -> APIRouter:
     @router.post(
         "/consume",
         response_model=QuotaConsumeOut,
-        dependencies=(
-            [Depends(RateLimiter(times=120, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=120, seconds=60))] if RateLimiter else []),
     )
     async def consume(
         req: Request, body: QuotaConsumeIn, _admin: None = Depends(require_admin)
@@ -39,9 +48,12 @@ def make_router() -> APIRouter:
         )
         out = asdict(res)
         if not res.allowed:
-            raise HTTPException(
-                status_code=429, detail={"code": "QUOTA_EXCEEDED", **out}
-            )
+            try:
+                if QUOTA_HIT is not None:
+                    QUOTA_HIT.labels(key=body.key, scope=body.scope).inc()
+            except Exception:
+                pass
+            raise HTTPException(status_code=429, detail={"code": "QUOTA_EXCEEDED", **out})
         return out
 
     return router

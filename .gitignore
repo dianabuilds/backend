@@ -223,3 +223,4 @@ apps/admin/.vite/
 apps/admin/coverage/
 /uploads/
 /.idea/
+/apps/web/vendor/

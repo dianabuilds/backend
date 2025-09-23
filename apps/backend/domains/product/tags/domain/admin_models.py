@@ -16,6 +16,14 @@ class TagListItem:
 
 
 @dataclass(frozen=True)
+class TagGroupSummary:
+    key: str
+    tag_count: int
+    usage_count: int
+    author_count: int
+
+
+@dataclass(frozen=True)
 class AliasView:
     id: str
     tag_id: str

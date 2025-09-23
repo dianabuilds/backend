@@ -11,7 +11,7 @@ from __future__ import annotations
 
 # revision identifiers, used by Alembic.
 revision = "0001"
-down_revision = None
+down_revision = "20251010_ai_providers_code_not_unique"
 branch_labels = None
 depends_on = None
 

@@ -17,7 +17,7 @@ source_if_exists() {
   fi
 }
 
-# Load in order: repo .env, repo .env.local, app .env, app .env.local
+# Load in order: repo .env, repo .env.example, app .env, app .env.example
 source_if_exists "$REPO_ROOT/.env"
 source_if_exists "$REPO_ROOT/.env.local"
 source_if_exists "$APP_ROOT/.env"

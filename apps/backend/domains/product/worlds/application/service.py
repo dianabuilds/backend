@@ -15,12 +15,13 @@ class WorldsService:
         self.repo = repo
         self.outbox = outbox
 
-    async def list_worlds(self, workspace_id: str) -> list[WorldTemplate]:
+    def list_worlds(self, workspace_id: str) -> list[WorldTemplate]:
         return self.repo.list_worlds(workspace_id)
 
-    async def create_world(
-        self, workspace_id: str, data: dict[str, Any], actor_id: str
-    ) -> WorldTemplate:
+    def get_world(self, workspace_id: str, world_id: str) -> WorldTemplate | None:
+        return self.repo.get_world(world_id, workspace_id)
+
+    def create_world(self, workspace_id: str, data: dict[str, Any], actor_id: str) -> WorldTemplate:
         w = self.repo.create_world(workspace_id, data, actor_id)
         try:
             if self.outbox:
@@ -32,7 +33,7 @@ class WorldsService:
             pass
         return w
 
-    async def update_world(
+    def update_world(
         self, workspace_id: str, world_id: str, data: dict[str, Any], actor_id: str
     ) -> WorldTemplate | None:
         world = self.repo.get_world(world_id, workspace_id)
@@ -53,7 +54,7 @@ class WorldsService:
             pass
         return updated
 
-    async def delete_world(self, workspace_id: str, world_id: str) -> bool:
+    def delete_world(self, workspace_id: str, world_id: str) -> bool:
         world = self.repo.get_world(world_id, workspace_id)
         if not world:
             return False
@@ -67,17 +68,13 @@ class WorldsService:
             pass
         return True
 
-    async def list_characters(
-        self, world_id: str, workspace_id: str
-    ) -> list[Character]:
+    def list_characters(self, world_id: str, workspace_id: str) -> list[Character]:
         return self.repo.list_characters(world_id, workspace_id)
 
-    async def create_character(
+    def create_character(
         self, world_id: str, workspace_id: str, data: dict[str, Any], actor_id: str
     ) -> Character | None:
-        world = self.repo.get_world(world_id, workspace_id)
-        if not world:
-            return None
+        # Repo enforces world/workspace matching where needed
         ch = self.repo.create_character(world_id, workspace_id, data, actor_id)
         try:
             if ch and self.outbox:
@@ -94,7 +91,7 @@ class WorldsService:
             pass
         return ch
 
-    async def update_character(
+    def update_character(
         self, char_id: str, workspace_id: str, data: dict[str, Any], actor_id: str
     ) -> Character | None:
         ch = self.repo.get_character(char_id, workspace_id)
@@ -116,7 +113,7 @@ class WorldsService:
             pass
         return out
 
-    async def delete_character(self, char_id: str, workspace_id: str) -> bool:
+    def delete_character(self, char_id: str, workspace_id: str) -> bool:
         ch = self.repo.get_character(char_id, workspace_id)
         if not ch:
             return False
@@ -134,3 +131,6 @@ class WorldsService:
         except Exception:
             pass
         return True
+
+    def get_character(self, char_id: str, workspace_id: str) -> Character | None:
+        return self.repo.get_character(char_id, workspace_id)

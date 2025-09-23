@@ -21,9 +21,7 @@ class SQLRepo(Repo):
         )
 
     # --- User views ---
-    def list_for_user(
-        self, user_id: str
-    ) -> Iterable[tuple[Achievement, UserAchievement | None]]:
+    def list_for_user(self, user_id: str) -> Iterable[tuple[Achievement, UserAchievement | None]]:
         async def _run() -> list[tuple[Achievement, UserAchievement | None]]:
             sql = text(
                 """
@@ -32,7 +30,7 @@ class SQLRepo(Repo):
                        a.updated_by_user_id::text AS updated_by_user_id,
                        a.created_at, a.updated_at,
                        g.unlocked_at
-                FROM product_achievements AS a
+                FROM achievements AS a
                 LEFT JOIN product_achievement_grants AS g
                   ON g.achievement_id = a.id AND g.user_id = cast(:uid as uuid)
                 ORDER BY a.title ASC
@@ -125,7 +123,7 @@ class SQLRepo(Repo):
                        created_by_user_id::text AS created_by_user_id,
                        updated_by_user_id::text AS updated_by_user_id,
                        created_at, updated_at
-                FROM product_achievements
+                FROM achievements
                 ORDER BY title ASC
                 """
             )
@@ -163,7 +161,7 @@ class SQLRepo(Repo):
                        created_by_user_id::text AS created_by_user_id,
                        updated_by_user_id::text AS updated_by_user_id,
                        created_at, updated_at
-                FROM product_achievements WHERE id = cast(:id as uuid)
+                FROM achievements WHERE id = cast(:id as uuid)
                 """
             )
             async with self._engine.begin() as conn:
@@ -193,7 +191,7 @@ class SQLRepo(Repo):
 
     def exists_code(self, code: str) -> bool:
         async def _run() -> bool:
-            sql = text("SELECT 1 FROM product_achievements WHERE code = :code")
+            sql = text("SELECT 1 FROM achievements WHERE code = :code")
             async with self._engine.begin() as conn:
                 r = (await conn.execute(sql, {"code": code})).first()
             return bool(r)
@@ -209,7 +207,7 @@ class SQLRepo(Repo):
         async def _run() -> Achievement:
             sql = text(
                 """
-                INSERT INTO product_achievements(
+                INSERT INTO achievements(
                     code, title, description, icon, visible, condition,
                     created_by_user_id, updated_by_user_id
                 ) VALUES (
@@ -262,13 +260,11 @@ class SQLRepo(Repo):
             if "code" in data and data["code"] is not None:
                 new_code = str(data["code"]).strip()
                 chk = text(
-                    "SELECT 1 FROM product_achievements WHERE code = :code AND id <> cast(:id as uuid)"
+                    "SELECT 1 FROM achievements WHERE code = :code AND id <> cast(:id as uuid)"
                 )
                 async with self._engine.begin() as conn:
                     conflict = (
-                        await conn.execute(
-                            chk, {"code": new_code, "id": achievement_id}
-                        )
+                        await conn.execute(chk, {"code": new_code, "id": achievement_id})
                     ).first()
                 if conflict:
                     return None
@@ -292,7 +288,7 @@ class SQLRepo(Repo):
                 # nothing to update
                 return self.get(achievement_id)
             sql = text(
-                "UPDATE product_achievements SET "
+                "UPDATE achievements SET "
                 + ", ".join(sets)
                 + " WHERE id = cast(:id as uuid)"
                 + " RETURNING id::text AS id, code, title, description, icon, visible, condition,"
@@ -325,7 +321,7 @@ class SQLRepo(Repo):
 
     def delete(self, achievement_id: str) -> bool:
         async def _run() -> bool:
-            sql = text("DELETE FROM product_achievements WHERE id = cast(:id as uuid)")
+            sql = text("DELETE FROM achievements WHERE id = cast(:id as uuid)")
             async with self._engine.begin() as conn:
                 res = await conn.execute(sql, {"id": achievement_id})
                 try:

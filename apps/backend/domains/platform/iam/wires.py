@@ -1,9 +1,12 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 
 import redis.asyncio as redis  # type: ignore
 
+from domains.platform.iam.adapters.credentials_sql import (
+    SQLCredentialsAdapter,
+)
 from domains.platform.iam.adapters.email_via_notifications import (
     EmailViaNotifications,
 )
@@ -18,7 +21,7 @@ from domains.platform.iam.adapters.verification_store_redis import (
     RedisVerificationStore,
 )
 from domains.platform.iam.application.auth_service import AuthService
-from packages.core.config import Settings, load_settings
+from packages.core.config import Settings, load_settings, to_async_dsn
 
 
 @dataclass
@@ -38,8 +41,14 @@ def build_container(settings: Settings | None = None) -> IAMContainer:
     nonces = RedisNonceStore(client)
     verification = RedisVerificationStore(client)
     mail = EmailViaNotifications()
+    credentials = SQLCredentialsAdapter(to_async_dsn(s.database_url))
     svc = AuthService(
-        tokens=tokens, nonces=nonces, verification=verification, mail=mail
+        tokens=tokens,
+        nonces=nonces,
+        verification=verification,
+        mail=mail,
+        credentials=credentials,
+        settings=s,
     )
     return IAMContainer(settings=s, service=svc)
 

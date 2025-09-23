@@ -21,9 +21,7 @@ class EventMetrics:
             ev_map = self._counters.setdefault(event, {})
             ev_map[ws] = ev_map.get(ws, 0) + 1
 
-    def record_handler(
-        self, event: str, handler: str, success: bool, duration_ms: float
-    ) -> None:
+    def record_handler(self, event: str, handler: str, success: bool, duration_ms: float) -> None:
         status = "success" if success else "failure"
         with self._lock:
             hmap = self._handler_counts.setdefault(event, {}).setdefault(handler, {})
@@ -48,6 +46,30 @@ class EventMetrics:
                     out.setdefault(ws, {})[ev] = cnt
             return out
 
+    def handler_snapshot(self) -> list[dict[str, object]]:
+        """Aggregate handler stats with success/failure counts and avg duration."""
+        rows: list[dict[str, object]] = []
+        with self._lock:
+            for ev, hmap in self._handler_counts.items():
+                for handler, smap in hmap.items():
+                    success = int(smap.get("success", 0))
+                    failure = int(smap.get("failure", 0))
+                    total = success + failure
+                    t_sum = float(self._handler_time_sum.get(ev, {}).get(handler, 0.0))
+                    t_cnt = int(self._handler_time_count.get(ev, {}).get(handler, 0))
+                    avg_ms = (t_sum / t_cnt) if t_cnt else 0.0
+                    rows.append(
+                        {
+                            "event": ev,
+                            "handler": handler,
+                            "success": success,
+                            "failure": failure,
+                            "total": total,
+                            "avg_ms": avg_ms,
+                        }
+                    )
+        return rows
+
     def prometheus(self) -> str:
         lines = []
         lines.append("# HELP app_events_total Total domain events")
@@ -55,9 +77,7 @@ class EventMetrics:
         with self._lock:
             for ev, ws_map in self._counters.items():
                 for ws, cnt in ws_map.items():
-                    lines.append(
-                        f'app_events_total{{event="{ev}",tenant="{ws}"}} {cnt}'
-                    )
+                    lines.append(f'app_events_total{{event="{ev}",tenant="{ws}"}} {cnt}')
             lines.append("# HELP app_event_handler_calls_total Event handler calls")
             lines.append("# TYPE app_event_handler_calls_total counter")
             for ev, hmap in self._handler_counts.items():

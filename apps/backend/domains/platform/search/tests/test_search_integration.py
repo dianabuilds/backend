@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import asyncio
 
+import fakeredis
 import pytest
 
-from domains.platform.events.adapters.event_bus_memory import (
-    InMemoryEventBus,
+from domains.platform.events.adapters.event_bus_redis import (
+    RedisEventBus,
 )
-from domains.platform.events.adapters.outbox_memory import MemoryOutbox
+from domains.platform.events.adapters.outbox_redis import RedisOutbox
 from domains.platform.events.service import Events
 from domains.platform.search.ports import Doc
 from domains.platform.search.wires import (
@@ -26,19 +27,23 @@ async def test_search_upsert_and_query():
 
 @pytest.mark.asyncio
 async def test_event_indexing_profile_updated():
-    # Arrange search container and events bus
     c = build_container()
-    bus = InMemoryEventBus()
-    outbox = MemoryOutbox()
+    fake = fakeredis.FakeStrictRedis(decode_responses=True)
+    bus = RedisEventBus(
+        redis_url="redis://fake-host/0",
+        topics=["profile.updated.v1"],
+        group="test",
+        redis_client=fake,
+    )
+    outbox = RedisOutbox("redis://fake-host/0", redis_client=fake)
     events = Events(outbox=outbox, bus=bus)
     register_event_indexers(events, c)
 
-    # Emit an event and allow async handler to run
     payload = {"id": "u42", "username": "Trinity"}
-    bus.emit("profile.updated.v1", payload)
+    handler = bus._routes["profile.updated.v1"]
+    handler("profile.updated.v1", payload)
     await asyncio.sleep(0)
     await asyncio.sleep(0)
 
-    # Verify indexed
     hits = await c.service.search("Trinity", tags=None, match="any", limit=10, offset=0)
     assert any(h.id == "profile:u42" for h in hits)

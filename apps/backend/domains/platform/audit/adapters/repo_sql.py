@@ -55,14 +55,54 @@ class SQLAuditRepo(AuditLogRepository):
         }
         async with self._engine.begin() as conn:
             await conn.execute(sql, params)
+            # Retention: keep only last 30 days
+            try:
+                await conn.execute(
+                    text("DELETE FROM audit_logs WHERE created_at < now() - interval '30 days'")
+                )
+            except Exception:
+                # Best-effort; ignore retention failures
+                pass
 
-    async def list(self, limit: int = 100) -> list[dict]:
-        sql = text(
+    async def list(
+        self,
+        limit: int = 100,
+        actions: list[str] | None = None,
+        actor_id: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[dict]:
+        base = (
             "SELECT id, actor_id, action, resource_type, resource_id, workspace_id, before, after, override, reason, ip, user_agent, created_at, extra "
-            "FROM audit_logs ORDER BY created_at DESC LIMIT :limit"
+            "FROM audit_logs"
         )
+        where: list[str] = []
+        params: dict[str, Any] = {"limit": int(limit)}
+        if actions:
+            # Normalize to lowercase strings
+            acts = [str(a).strip() for a in actions if a and str(a).strip()]
+            if acts:
+                conds = []
+                for idx, a in enumerate(acts):
+                    key = f"act_{idx}"
+                    conds.append(f"action = :{key}")
+                    params[key] = a
+                where.append("(" + " OR ".join(conds) + ")")
+        if actor_id:
+            where.append("actor_id = :actor_id")
+            params["actor_id"] = str(actor_id)
+        if date_from:
+            where.append("created_at >= :date_from")
+            params["date_from"] = date_from
+        if date_to:
+            where.append("created_at <= :date_to")
+            params["date_to"] = date_to
+        if where:
+            base += " WHERE " + " AND ".join(where)
+        base += " ORDER BY created_at DESC LIMIT :limit"
+        sql = text(base)
         async with self._engine.begin() as conn:
-            res = await conn.execute(sql, {"limit": int(limit)})
+            res = await conn.execute(sql, params)
             rows = res.mappings().all()
             return [dict(r) for r in rows]
 

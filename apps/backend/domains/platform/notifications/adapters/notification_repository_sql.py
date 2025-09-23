@@ -12,9 +12,39 @@ from domains.platform.notifications.ports_notify import (
 
 class NotificationRepository(INotificationRepository):
     def __init__(self, engine: AsyncEngine | str) -> None:
-        self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
-        )
+        if isinstance(engine, str):
+            dsn = str(engine)
+            try:
+                from urllib.parse import parse_qsl, urlparse, urlunparse
+
+                u = urlparse(dsn)
+                scheme = u.scheme
+                if scheme.startswith("postgresql") and not scheme.startswith("postgresql+asyncpg"):
+                    scheme = "postgresql+asyncpg"
+                raw_pairs = parse_qsl(u.query)
+                ssl_flag = None
+                for key, value in raw_pairs:
+                    lower_key = key.lower()
+                    if lower_key == "ssl":
+                        ssl_flag = str(value).lower() in {"1", "true", "yes"}
+                        continue
+                    if lower_key == "sslmode":
+                        sm = str(value).lower()
+                        if sm in {"require", "verify-full", "verify-ca"}:
+                            ssl_flag = True
+                        elif sm in {"disable", "allow", "prefer", "0", "false"}:
+                            ssl_flag = False
+                        continue
+                dsn_no_query = urlunparse((scheme, u.netloc, u.path, u.params, "", u.fragment))
+            except Exception:
+                ssl_flag = None
+                dsn_no_query = dsn
+            kwargs = {"connect_args": {}}  # type: ignore[var-annotated]
+            if ssl_flag is not None:
+                kwargs["connect_args"] = {"ssl": ssl_flag}
+            self._engine = create_async_engine(dsn_no_query, **kwargs)
+        else:
+            self._engine = engine
 
     async def create_and_commit(
         self,
