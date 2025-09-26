@@ -8,9 +8,7 @@ class PremiumService:
         # plans: plan_slug -> {quota_key: {"month": limit}, "__grace__": 0}
         self._plans = plans or {"free": {"__grace__": 0, "stories": {"month": 0}}}
         self._user_plans: dict[str, str] = {}
-        self._usage: dict[tuple[str, str, str], int] = (
-            {}
-        )  # (user_id, quota_key, scope) -> used
+        self._usage: dict[tuple[str, str, str], int] = {}  # (user_id, quota_key, scope) -> used
 
     async def set_user_plan(self, user_id: str, plan: str) -> None:
         self._user_plans[str(user_id)] = str(plan)
@@ -20,9 +18,7 @@ class PremiumService:
             return "free"
         return self._user_plans.get(str(user_id), "free")
 
-    async def get_quota_status(
-        self, user_id: str, *, quota_key: str, scope: str = "month"
-    ) -> dict:
+    async def get_quota_status(self, user_id: str, *, quota_key: str, scope: str = "month") -> dict:
         plan = await self.get_effective_plan_slug(user_id)
         conf = self._plans.get(plan, {})
         total = int(((conf.get(quota_key) or {}).get(scope)) or 0)

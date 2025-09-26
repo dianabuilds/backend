@@ -1,14 +1,15 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
 from packages.core.config import to_async_dsn
+from packages.core.db import get_async_engine
 
 
 async def _ensure_engine(container) -> AsyncEngine | None:
@@ -19,7 +20,7 @@ async def _ensure_engine(container) -> AsyncEngine | None:
             dsn = dsn.split("?", 1)[0]
         if not dsn:
             return None
-        return create_async_engine(dsn, future=True)
+        return get_async_engine("nodes-admin", url=dsn, cache=False, future=True)
     except Exception:
         return None
 

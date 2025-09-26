@@ -65,4 +65,3 @@ def test_worlds_crud_and_characters(app_client):
     # Delete world
     dw = app_client.delete(f"/v1/admin/worlds/{wid}?tenant_id={tenant}", headers=headers)
     assert dw.status_code == 200, dw.text
-

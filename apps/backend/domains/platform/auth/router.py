@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+
+logging.basicConfig(level=logging.INFO)
 import os
 import secrets
 
@@ -10,6 +13,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 
 def _normalize_db_url(url: str) -> str:
@@ -53,7 +57,9 @@ def _session_settings() -> dict:
         "session_hours": session_hours,
         "refresh_days": refresh_days,
         "secure": secure,
-        "samesite": "strict" if samesite == "strict" else ("none" if samesite == "none" else "lax"),
+        "samesite": (
+            "strict" if samesite == "strict" else ("none" if samesite == "none" else "lax")
+        ),
         "domain": domain,
     }
 
@@ -147,7 +153,8 @@ def register(data: RegisterIn, response: Response):
         raise HTTPException(status_code=400, detail="Invalid username or password length")
     with ENGINE.begin() as conn:
         exists = conn.execute(
-            text("SELECT 1 FROM users WHERE lower(username)=lower(:u)"), {"u": data.username}
+            text("SELECT 1 FROM users WHERE lower(username)=lower(:u)"),
+            {"u": data.username},
         ).first()
         if exists:
             raise HTTPException(status_code=409, detail="Username already taken")
@@ -158,10 +165,15 @@ def register(data: RegisterIn, response: Response):
                     """
                 INSERT INTO users (username, email, display_name, is_active, password_hash)
                 VALUES (:u, :e, :d, TRUE, crypt(:p, gen_salt('bf')))
-                RETURNING id, username, email, display_name, is_active
+                        RETURNING id, username, email, display_name, is_active
                 """
                 ),
-                {"u": data.username, "e": data.email, "d": data.display_name, "p": data.password},
+                {
+                    "u": data.username,
+                    "e": data.email,
+                    "d": data.display_name,
+                    "p": data.password,
+                },
             )
             .mappings()
             .first()
@@ -198,6 +210,7 @@ def register(data: RegisterIn, response: Response):
 
 @router.post("/login", response_model=MeOut)
 def login(data: LoginIn, request: Request, response: Response):
+    print("Auth login attempt for", data.login, flush=True)
     with ENGINE.begin() as conn:
         row = (
             conn.execute(
@@ -217,6 +230,15 @@ def login(data: LoginIn, request: Request, response: Response):
             .mappings()
             .first()
         )
+        if row:
+            print("Auth login success for", data.login, "id", row["id"], flush=True)
+        else:
+            print(
+                "Auth login failed for",
+                data.login,
+                "(no matching credentials)",
+                flush=True,
+            )
         if not row:
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -288,7 +310,11 @@ def refresh(request: Request, response: Response):
                 WHERE refresh_token_hash = :rh
                 """
             ),
-            {"sh": _hash(session_token), "shours": cfg["session_hours"], "rh": refresh_hash},
+            {
+                "sh": _hash(session_token),
+                "shours": cfg["session_hours"],
+                "rh": refresh_hash,
+            },
         )
     _set_cookies(response, session_token, refresh_token)
     return row

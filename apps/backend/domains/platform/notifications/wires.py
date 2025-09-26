@@ -1,9 +1,18 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 
 from domains.platform.events.service import Events
+from domains.platform.flags.application.service import FlagService
+from domains.platform.notifications.adapters.broadcast_sql import SQLBroadcastRepo
+from domains.platform.notifications.adapters.consent_audit_sql import (
+    SQLNotificationConsentAuditRepo,
+)
+from domains.platform.notifications.adapters.matrix_sql import (
+    SQLNotificationMatrixRepo,
+)
 from domains.platform.notifications.adapters.notification_repository_sql import (
     NotificationRepository,
 )
@@ -14,14 +23,23 @@ from domains.platform.notifications.adapters.repo_sql import (
     SQLNotificationPreferenceRepo,
 )
 from domains.platform.notifications.adapters.repos_sql import (
-    SQLCampaignRepo,
     SQLTemplateRepo,
 )
 from domains.platform.notifications.adapters.ws_manager import (
     WebSocketManager,
 )
-from domains.platform.notifications.application.campaign_service import (
-    CampaignService,
+from domains.platform.notifications.application.audience_resolver import (
+    BroadcastAudienceResolver,
+)
+from domains.platform.notifications.application.broadcast_orchestrator import (
+    BroadcastOrchestrator,
+)
+from domains.platform.notifications.application.broadcast_service import (
+    BroadcastService,
+)
+from domains.platform.notifications.application.delivery_service import (
+    DeliveryService,
+    NotificationEvent,
 )
 from domains.platform.notifications.application.notify_service import (
     NotifyService,
@@ -36,12 +54,43 @@ from domains.platform.notifications.logic.dispatcher import dispatch
 from packages.core.config import Settings, load_settings, to_async_dsn
 
 
-def register_event_relays(events: Events, topics: list[str]) -> None:
-    def _handler(_topic: str, payload: dict[str, Any]) -> None:
+def register_event_relays(
+    events: Events, topics: list[str], delivery: DeliveryService | None = None
+) -> None:
+    def _handler(topic: str, payload: dict[str, Any]) -> None:
+        if delivery is not None:
+            try:
+                event = NotificationEvent.from_payload(topic, payload)
+            except Exception:
+                try:
+                    dispatch("log", payload)
+                except Exception:
+                    pass
+                return
+
+            async def _deliver() -> None:
+                try:
+                    await delivery.deliver_to_inbox(event)
+                except Exception:
+                    pass
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                try:
+                    asyncio.run(delivery.deliver_to_inbox(event))
+                except Exception:
+                    pass
+            else:
+                loop.create_task(_deliver())
+            try:
+                dispatch("log", payload)
+            except Exception:
+                pass
+            return
         try:
             dispatch("log", payload)
         except Exception:
-            # Swallow to avoid breaking bus in demo wiring
             pass
 
     for t in topics:
@@ -53,34 +102,76 @@ class NotificationsContainer:
     settings: Settings
     notify_service: NotifyService
     preference_service: PreferenceService
-    campaigns: CampaignService
+    broadcasts: BroadcastService
     templates: TemplateService
     repo: NotificationRepository
     notify: NotifyService
     ws_manager: WebSocketManager
+    matrix_repo: SQLNotificationMatrixRepo
+    preference_repo: SQLNotificationPreferenceRepo
+    consent_audit_repo: SQLNotificationConsentAuditRepo | None
+    flag_service: FlagService | None
+    audience_resolver: BroadcastAudienceResolver
+    orchestrator: BroadcastOrchestrator
+    delivery: DeliveryService
 
 
-def build_container(settings: Settings | None = None) -> NotificationsContainer:
+def build_container(
+    settings: Settings | None = None,
+    *,
+    flag_service: FlagService | None = None,
+) -> NotificationsContainer:
     s = settings or load_settings()
-    repo = SQLCampaignRepo(to_async_dsn(s.database_url))
-    campaigns = CampaignService(repo)
-    templates_repo = SQLTemplateRepo(to_async_dsn(s.database_url))
+    async_dsn = to_async_dsn(s.database_url)
+    broadcast_repo = SQLBroadcastRepo(async_dsn)
+    broadcasts = BroadcastService(broadcast_repo)
+    templates_repo = SQLTemplateRepo(async_dsn)
     templates = TemplateService(templates_repo)
-    notif_repo = NotificationRepository(to_async_dsn(s.database_url))
+    notif_repo = NotificationRepository(async_dsn)
     ws_manager = WebSocketManager()
     pusher = WebSocketPusher(ws_manager)
     notify_service = NotifyService(notif_repo, pusher)
-    pref_repo = SQLNotificationPreferenceRepo(to_async_dsn(s.database_url))
-    preference_service = PreferenceService(pref_repo)
+    pref_repo = SQLNotificationPreferenceRepo(async_dsn)
+    matrix_repo = SQLNotificationMatrixRepo(async_dsn)
+    audit_repo = SQLNotificationConsentAuditRepo(async_dsn)
+    preference_service = PreferenceService(
+        matrix_repo=matrix_repo,
+        preference_repo=pref_repo,
+        audit_repo=audit_repo,
+        flag_service=flag_service,
+    )
+    delivery_service = DeliveryService(
+        matrix_repo=matrix_repo,
+        preference_repo=pref_repo,
+        notify_service=notify_service,
+        template_service=templates,
+        flag_service=flag_service,
+    )
+
+    audience_resolver = BroadcastAudienceResolver(async_dsn)
+    orchestrator = BroadcastOrchestrator(
+        repo=broadcast_repo,
+        delivery=delivery_service,
+        audience_resolver=audience_resolver,
+        template_service=templates,
+    )
+
     return NotificationsContainer(
         settings=s,
         notify_service=notify_service,
         preference_service=preference_service,
-        campaigns=campaigns,
+        broadcasts=broadcasts,
         templates=templates,
         repo=notif_repo,
         notify=notify_service,
         ws_manager=ws_manager,
+        matrix_repo=matrix_repo,
+        preference_repo=pref_repo,
+        consent_audit_repo=audit_repo,
+        flag_service=flag_service,
+        audience_resolver=audience_resolver,
+        orchestrator=orchestrator,
+        delivery=delivery_service,
     )
 
 

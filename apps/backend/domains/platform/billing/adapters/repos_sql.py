@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.billing.domain.models import Plan, Subscription
 from domains.platform.billing.ports import (
@@ -12,12 +12,13 @@ from domains.platform.billing.ports import (
     PlanRepo,
     SubscriptionRepo,
 )
+from packages.core.db import get_async_engine
 
 
 class SQLPlanRepo(PlanRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("billing", url=engine) if isinstance(engine, str) else engine
         )
 
     async def list_active(self) -> list[Plan]:
@@ -180,7 +181,7 @@ class SQLPlanRepo(PlanRepo):
 class SQLSubscriptionRepo(SubscriptionRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("billing", url=engine) if isinstance(engine, str) else engine
         )
 
     async def get_active_for_user(self, user_id: str) -> Subscription | None:
@@ -246,7 +247,7 @@ class SQLSubscriptionRepo(SubscriptionRepo):
 class SQLLedgerRepo(LedgerRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("billing", url=engine) if isinstance(engine, str) else engine
         )
 
     async def add_tx(self, tx: dict[str, Any]) -> None:
@@ -305,7 +306,7 @@ class SQLLedgerRepo(LedgerRepo):
 class SQLGatewaysRepo(GatewayRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("billing", url=engine) if isinstance(engine, str) else engine
         )
 
     async def list(self) -> list[dict[str, Any]]:

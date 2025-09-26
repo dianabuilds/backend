@@ -3,15 +3,18 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.moderation.application.ports import Repo
+from packages.core.db import get_async_engine
 
 
 class SQLModerationRepo(Repo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("product-moderation", url=engine)
+            if isinstance(engine, str)
+            else engine
         )
 
     async def list_cases(

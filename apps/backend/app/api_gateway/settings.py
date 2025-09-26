@@ -16,7 +16,7 @@ from fastapi import (
 )
 from pydantic import BaseModel, Field
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.iam.adapters.credentials_sql import SQLCredentialsAdapter
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
@@ -27,6 +27,7 @@ from domains.platform.notifications.application.preference_service import (
     PreferenceService,
 )
 from packages.core.config import to_async_dsn
+from packages.core.db import get_async_engine
 from packages.core.errors import ApiError
 from packages.core.settings_contract import (
     assert_if_match,
@@ -42,7 +43,7 @@ SETTINGS_SCHEMA_TAG = "settings"
 
 
 router = APIRouter(prefix="/v1/settings", tags=[SETTINGS_SCHEMA_TAG])
-me_router = APIRouter(prefix="/me/settings", tags=[SETTINGS_SCHEMA_TAG])
+me_router = APIRouter(prefix="/v1/me/settings", tags=[SETTINGS_SCHEMA_TAG])
 
 _FEATURE_SLUGS = {
     "notifications_email": "notifications.email",
@@ -237,7 +238,7 @@ def _dsn_from_settings(settings) -> str:
 
 @lru_cache(maxsize=4)
 def _engine_for_dsn(dsn: str) -> AsyncEngine:
-    return create_async_engine(dsn, pool_pre_ping=True, future=True)
+    return get_async_engine("settings", url=dsn, pool_pre_ping=True, future=True)
 
 
 @lru_cache(maxsize=4)
@@ -282,7 +283,7 @@ async def _billing_bundle(container, user_id: str) -> dict[str, Any]:
     history = await svc.get_history_for_user(user_id)
     wallet = None
     try:
-        profile = container.profile_service.get_profile(user_id)
+        profile = await container.profile_service.get_profile(user_id)
         wallet = profile.get("wallet")
     except ValueError:
         wallet = None
@@ -507,7 +508,7 @@ async def settings_profile_get(
     container = get_container(request)
     svc = container.profile_service
     try:
-        profile = svc.get_profile(user_id)
+        profile = await svc.get_profile(user_id)
     except ValueError as exc:
         _raise_profile_error(exc)
     return _profile_payload(response, profile)
@@ -526,7 +527,7 @@ async def settings_profile_update(
     container = get_container(request)
     svc = container.profile_service
     try:
-        current = svc.get_profile(user_id)
+        current = await svc.get_profile(user_id)
     except ValueError as exc:
         _raise_profile_error(exc)
     assert_if_match(if_match, compute_etag(current))
@@ -535,7 +536,7 @@ async def settings_profile_update(
     subject = _subject_from_claims(claims, str(fallback_actor))
     subject.setdefault("role", "admin")
     try:
-        updated = svc.update_profile(user_id, payload, subject=subject)
+        updated = await svc.update_profile(user_id, payload, subject=subject)
     except PermissionError:
         raise ApiError(
             code="E_FORBIDDEN",
@@ -557,7 +558,7 @@ async def me_settings_profile_get(
     container = get_container(request)
     svc = container.profile_service
     try:
-        profile = svc.get_profile(user_id)
+        profile = await svc.get_profile(user_id)
     except ValueError as exc:
         _raise_profile_error(exc)
     return _profile_payload(response, profile)
@@ -575,14 +576,14 @@ async def me_settings_profile_update(
     container = get_container(request)
     svc = container.profile_service
     try:
-        current = svc.get_profile(user_id)
+        current = await svc.get_profile(user_id)
     except ValueError as exc:
         _raise_profile_error(exc)
     assert_if_match(if_match, compute_etag(current))
     payload = body.model_dump(exclude_unset=True)
     subject = _subject_from_claims(claims, user_id)
     try:
-        updated = svc.update_profile(user_id, payload, subject=subject)
+        updated = await svc.update_profile(user_id, payload, subject=subject)
     except PermissionError:
         raise ApiError(
             code="E_FORBIDDEN",
@@ -609,7 +610,7 @@ async def me_settings_email_request(
     svc = container.profile_service
     subject = _subject_from_claims(claims, user_id)
     try:
-        result = svc.request_email_change(user_id, payload.email, subject=subject)
+        result = await svc.request_email_change(user_id, payload.email, subject=subject)
     except PermissionError:
         raise ApiError(
             code="E_FORBIDDEN",
@@ -637,7 +638,7 @@ async def me_settings_email_confirm(
     svc = container.profile_service
     subject = _subject_from_claims(claims, user_id)
     try:
-        updated = svc.confirm_email_change(user_id, payload.token, subject=subject)
+        updated = await svc.confirm_email_change(user_id, payload.token, subject=subject)
     except PermissionError:
         raise ApiError(
             code="E_FORBIDDEN",
@@ -664,7 +665,7 @@ async def me_settings_wallet_bind(
     svc = container.profile_service
     subject = _subject_from_claims(claims, user_id)
     try:
-        updated = svc.set_wallet(
+        updated = await svc.set_wallet(
             user_id,
             address=payload.address.strip(),
             chain_id=(payload.chain_id.strip() if payload.chain_id else None),
@@ -696,7 +697,7 @@ async def me_settings_wallet_unbind(
     svc = container.profile_service
     subject = _subject_from_claims(claims, user_id)
     try:
-        updated = svc.clear_wallet(user_id, subject)
+        updated = await svc.clear_wallet(user_id, subject)
     except PermissionError:
         raise ApiError(
             code="E_FORBIDDEN",
@@ -812,15 +813,17 @@ async def me_settings_notifications_get(
 ) -> dict[str, Any]:
     user_id = _require_user_id(claims)
     container = get_container(request)
+    svc = _get_preference_service(container)
+    context = claims or {"sub": user_id}
     try:
-        prefs = await _get_preference_service(container).get_preferences(user_id)
+        overview = await svc.get_preferences_overview(user_id, context=context)
     except RuntimeError:
         raise ApiError(
             code="E_NOTIFICATIONS_UNAVAILABLE",
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             message="Notifications backend unavailable",
         ) from None
-    return _settings_payload(response, "preferences", prefs)
+    return _settings_payload(response, "overview", overview)
 
 
 @me_router.put(
@@ -837,8 +840,9 @@ async def me_settings_notifications_put(
     user_id = _require_user_id(claims)
     container = get_container(request)
     svc = _get_preference_service(container)
+    context = claims or {"sub": user_id}
     try:
-        current = await svc.get_preferences(user_id)
+        current = await svc.get_preferences_overview(user_id, context=context)
     except RuntimeError:
         raise ApiError(
             code="E_NOTIFICATIONS_UNAVAILABLE",
@@ -846,9 +850,17 @@ async def me_settings_notifications_put(
             message="Notifications backend unavailable",
         ) from None
     assert_if_match(if_match, compute_etag(current))
-    await svc.set_preferences(user_id, body.preferences)
-    updated = await svc.get_preferences(user_id)
-    payload = _settings_payload(response, "preferences", updated)
+    request_id = request.headers.get(IDEMPOTENCY_HEADER)
+    await svc.set_preferences(
+        user_id,
+        body.preferences,
+        actor_id=user_id,
+        source="user",
+        context=context,
+        request_id=request_id,
+    )
+    updated = await svc.get_preferences_overview(user_id, context=context)
+    payload = _settings_payload(response, "overview", updated)
     try:
         await container.audit.service.log(
             actor_id=user_id,

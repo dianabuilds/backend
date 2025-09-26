@@ -1,246 +1,507 @@
 import React from 'react';
-import { Card, Input, Textarea, Button, InputErrorMsg, Spinner } from '../../shared/ui';
-import { apiGetWithResponse, apiPost, apiPutWithResponse } from '../../shared/api/client';
+import { useNavigate } from 'react-router-dom';
+import { Card, Input, Textarea, Button, Spinner, Avatar, Badge, Accordion } from '../../shared/ui';
+import { SettingsLayout } from '../../shared/settings/SettingsLayout';
+import { CopyButton } from '../../shared/vendor-ui';
+import { CheckCircle2, Copy as CopyIcon } from '../../shared/icons';
+import { useWalletConnection } from '../../shared/settings/useWalletConnection';
+import { apiGetWithResponse, apiPutWithResponse, apiUploadMedia } from '../../shared/api/client';
 import { useSettingsIdempotencyHeader } from '../../shared/settings/SettingsContext';
+import { extractErrorMessage } from '../../shared/utils/errors';
+import { makeIdempotencyKey } from '../../shared/utils/idempotency';
 
-interface ProfilePayload {
+type ProfilePayload = {
   id: string;
   username?: string | null;
   email?: string | null;
-  pending_email?: string | null;
   bio?: string | null;
   avatar_url?: string | null;
   role?: string | null;
-  wallet?: { address?: string | null };
+  wallet?: { address?: string | null; chain_id?: string | null } | null;
   limits?: {
     can_change_username: boolean;
     next_username_change_at?: string | null;
-    can_change_email: boolean;
-    next_email_change_at?: string | null;
   };
-}
+};
 
 const USERNAME_LIMIT_HINT = 'You can change the username once every 14 days.';
-const EMAIL_LIMIT_HINT = 'You can change the email once every 14 days.';
-
-function makeIdempotencyKey(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-  return `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
+const BIO_LIMIT = 280;
 
 export default function ProfilePage() {
   const [profile, setProfile] = React.useState<ProfilePayload | null>(null);
   const [formUsername, setFormUsername] = React.useState('');
   const [formBio, setFormBio] = React.useState('');
   const [formAvatar, setFormAvatar] = React.useState('');
-  const [emailInput, setEmailInput] = React.useState('');
-  const [emailToken, setEmailToken] = React.useState('');
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
-  const [requestingEmail, setRequestingEmail] = React.useState(false);
-  const [confirmingEmail, setConfirmingEmail] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [ok, setOk] = React.useState(false);
-  const [emailMessage, setEmailMessage] = React.useState<string | null>(null);
+  const [saved, setSaved] = React.useState(false);
   const [etag, setEtag] = React.useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = React.useState(false);
+  const [avatarError, setAvatarError] = React.useState<string | null>(null);
+  const [avatarUrlEditable, setAvatarUrlEditable] = React.useState(false);
+  const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
+  const previewUrlRef = React.useRef<string | null>(null);
   const idempotencyHeader = useSettingsIdempotencyHeader();
+  const navigate = useNavigate();
 
-  const applyProfile = React.useCallback((data: ProfilePayload, nextEtag?: string | null) => {
-    setProfile(data);
-    setFormUsername(data.username ?? '');
-    setFormBio(data.bio ?? '');
-    setFormAvatar(data.avatar_url ?? '');
-    if (typeof nextEtag === 'string' && nextEtag.length) {
-      setEtag(nextEtag);
+  const clearPreview = React.useCallback(() => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
     }
   }, []);
+
+  const applyProfile = React.useCallback(
+    (data: ProfilePayload, nextEtag?: string | null) => {
+      setProfile(data);
+      setFormUsername(data.username ?? '');
+      setFormBio(data.bio ?? '');
+      setFormAvatar(data.avatar_url ?? '');
+      setAvatarUrlEditable(false);
+      setAvatarError(null);
+      clearPreview();
+      setAvatarPreview(data.avatar_url ?? null);
+      if (typeof nextEtag === 'string' && nextEtag.length > 0) {
+        setEtag(nextEtag);
+      }
+    },
+    [clearPreview],
+  );
 
   const loadProfile = React.useCallback(async () => {
     setLoading(true);
     setError(null);
-    setEmailMessage(null);
     try {
       const { data, response } = await apiGetWithResponse<ProfilePayload>('/v1/profile/me');
       applyProfile(data, response.headers.get('ETag'));
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load profile');
+    } catch (err) {
+      setProfile(null);
+      setError(extractErrorMessage(err, 'Failed to load profile'));
+      clearPreview();
+      setAvatarPreview(null);
     } finally {
       setLoading(false);
     }
-  }, [applyProfile]);
+  }, [applyProfile, clearPreview]);
 
   React.useEffect(() => {
-    loadProfile();
+    void loadProfile();
   }, [loadProfile]);
 
-  const onSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  React.useEffect(() => () => clearPreview(), [clearPreview]);
+
+  React.useEffect(() => {
+    if (!saved) return;
+    const timer = window.setTimeout(() => setSaved(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [saved]);
+
+  const limits = profile?.limits;
+  const canChangeUsername = limits?.can_change_username ?? true;
+  const nextUsernameAt = limits?.next_username_change_at ? new Date(limits.next_username_change_at) : null;
+
+  const usernameHint = canChangeUsername
+    ? USERNAME_LIMIT_HINT
+    : nextUsernameAt
+        ? `You can change the username after ${nextUsernameAt.toLocaleString()}`
+        : USERNAME_LIMIT_HINT;
+
+  const onSaveProfile = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!profile?.id) return;
     setSaving(true);
     setError(null);
-    setOk(false);
+    setSaved(false);
     try {
       const payload: Record<string, any> = {
-        username: formUsername,
-        bio: formBio,
-        avatar_url: formAvatar || null,
+        username: formUsername.trim() || null,
+        bio: formBio.trim() || null,
+        avatar_url: formAvatar.trim() || null,
       };
-      const headers: Record<string, string> = {};
+      const headers: Record<string, string> = { [idempotencyHeader]: makeIdempotencyKey() };
       if (etag) headers['If-Match'] = etag;
       const { data, response } = await apiPutWithResponse<ProfilePayload>('/v1/profile/me', payload, { headers });
       applyProfile(data, response.headers.get('ETag'));
-      setOk(true);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to save changes');
+      setSaved(true);
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Failed to save profile'));
     } finally {
       setSaving(false);
     }
   };
 
-  const onRequestEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile?.id) return;
-    setRequestingEmail(true);
-    setEmailMessage(null);
-    setError(null);
+  const onUploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setAvatarError(null);
+    setAvatarUploading(true);
     try {
-      const headers: Record<string, string> = { [idempotencyHeader]: makeIdempotencyKey() };
-      const result = await apiPost('/v1/profile/me/email/request-change', { email: emailInput }, { headers });
-      const token = typeof result?.token === 'string' ? result.token : null;
-      setEmailMessage(
-        token
-          ? `Confirmation email requested. Token: ${token}`
-          : 'Confirmation email requested. Check your inbox.'
-      );
-      setEmailToken('');
-      await loadProfile();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to request email change');
+      const preview = URL.createObjectURL(file);
+      clearPreview();
+      previewUrlRef.current = preview;
+      setAvatarPreview(preview);
+
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await apiUploadMedia('/v1/profile/me/avatar', formData);
+      const uploadedUrl = typeof (result as any)?.url === 'string' ? (result as any).url : null;
+      if (uploadedUrl) {
+        setFormAvatar(uploadedUrl);
+      }
+    } catch (err) {
+      setAvatarError(extractErrorMessage(err, 'Failed to upload avatar'));
     } finally {
-      setRequestingEmail(false);
+      setAvatarUploading(false);
     }
   };
 
-  const onConfirmEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile?.id) return;
-    setConfirmingEmail(true);
-    setEmailMessage(null);
-    setError(null);
-    try {
-      await apiPost('/v1/profile/me/email/confirm', { token: emailToken });
-      setEmailMessage('Email updated successfully.');
-      setEmailToken('');
-      setEmailInput('');
-      await loadProfile();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to confirm email');
-    } finally {
-      setConfirmingEmail(false);
-    }
-  };
+  const errorBanner = error ? (
+    <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+  ) : null;
 
-  const limits = profile?.limits;
-  const canChangeUsername = limits?.can_change_username ?? true;
-  const nextUsernameAt = limits?.next_username_change_at
-    ? new Date(limits.next_username_change_at)
-    : null;
-  const canChangeEmail = limits?.can_change_email ?? true;
-  const nextEmailAt = limits?.next_email_change_at ? new Date(limits.next_email_change_at) : null;
+  const quickLinksCard = (
+    <Card className="space-y-4 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm">
+      <h2 className="text-sm font-semibold text-gray-700">Quick links</h2>
+      <div className="space-y-2 text-sm text-gray-600">
+        <p>Adjust notifications, security tools or review billing without leaving settings.</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" size="sm" variant="ghost" color="neutral" onClick={() => navigate('/settings/security')}>
+          Security
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          onClick={() => navigate('/settings/notifications')}
+        >
+          Notifications
+        </Button>
+        <Button type="button" size="sm" color="primary" onClick={() => navigate('/billing')}>
+          Billing
+        </Button>
+      </div>
+    </Card>
+  );
+
+  const sidePanel = loading ? (
+    <Card className="flex items-center gap-2 p-5 text-sm text-gray-500">
+      <Spinner size="sm" /> Loading summary...
+    </Card>
+  ) : (
+    <>
+      <AccountSnapshotCard
+        profile={profile}
+        canChangeUsername={canChangeUsername}
+        nextUsernameAt={nextUsernameAt}
+        onReloadProfile={() => {
+          void loadProfile();
+        }}
+      />
+      {quickLinksCard}
+    </>
+  );
+
+  const profileFormCard = (
+    <Card className="space-y-6 rounded-3xl border border-white/60 bg-white/80 p-6 sm:p-8 xl:p-10 shadow-sm">
+      {saved && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+          Profile updated.
+        </div>
+      )}
+      <form onSubmit={onSaveProfile} className="flex flex-col gap-7">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col items-center gap-4">
+            <div className="rounded-full bg-gradient-to-br from-primary-200/50 via-white to-primary-300/60 p-1 shadow-lg ring-4 ring-white/70">
+              <Avatar
+                size="lg"
+                src={avatarPreview || profile?.avatar_url || undefined}
+                name={formUsername || profile?.email || 'avatar'}
+                className="h-36 w-36 sm:h-40 sm:w-40"
+                classNames={{ root: 'h-full w-full overflow-hidden rounded-full', image: 'h-full w-full object-cover', display: 'h-full w-full flex items-center justify-center text-3xl font-semibold' }}
+              />
+            </div>
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <Button type="button" size="sm" color="primary" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading}>
+                {avatarUploading ? 'Uploading...' : 'Upload avatar'}
+              </Button>
+              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={onUploadAvatar} />
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                color="neutral"
+                onClick={() => {
+                  clearPreview();
+                  setAvatarPreview(null);
+                  setFormAvatar('');
+                }}
+                disabled={avatarUploading || (!avatarPreview && !formAvatar)}
+              >
+                Remove
+              </Button>
+            </div>
+            {avatarError && <div className="text-xs text-rose-600">{avatarError}</div>}
+          </div>
+
+          <div className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+              <Input
+                label="Username"
+                value={formUsername}
+                onChange={(event) => setFormUsername(event.target.value)}
+                disabled={saving || !profile?.id || !canChangeUsername}
+                hint={usernameHint}
+              />
+              <Input label="Role" value={profile?.role || 'Member'} disabled />
+            </div>
+            <Input
+              label="Primary email"
+              value={profile?.email || ''}
+              readOnly
+              disabled
+              description="Change primary email from the Security settings."
+            />
+            <div className="space-y-2">
+              <Textarea
+                label={labelWithHint('Bio', 'Short public blurb. Max 280 characters.')}
+                value={formBio}
+                onChange={(event) => setFormBio(event.target.value)}
+                rows={6}
+                maxLength={BIO_LIMIT}
+                placeholder="Tell people something useful (max 280 characters)"
+                disabled={saving}
+              />
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>Keep it short and relevant.</span>
+                <span>{`${formBio.length}/${BIO_LIMIT}`}</span>
+              </div>
+            </div>
+            <Accordion
+              title={<span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Advanced</span>}
+              className="border border-dashed border-gray-200"
+            >
+              <div className="space-y-3 rounded-xl bg-white/70 px-4 py-4 backdrop-blur-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Avatar URL</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    color="neutral"
+                    onClick={() => setAvatarUrlEditable((value) => !value)}
+                  >
+                    {avatarUrlEditable ? 'Lock field' : 'Enable editing'}
+                  </Button>
+                </div>
+                <Input
+                  value={formAvatar}
+                  onChange={(event) => setFormAvatar(event.target.value)}
+                  placeholder="https://assets.example.com/avatar.png"
+                  readOnly={!avatarUrlEditable}
+                  disabled={saving || avatarUploading}
+                />
+                <p className="text-xs text-gray-500">Managed automatically after uploads. Edit only if you host the image elsewhere.</p>
+              </div>
+            </Accordion>
+          </div>
+        </div>
+
+        {error && (
+          <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</div>
+        )}
+
+        <div className="flex flex-wrap justify-end gap-3">
+          <Button type="button" variant="ghost" color="neutral" size="sm" onClick={() => void loadProfile()} disabled={saving}>
+            Reset
+          </Button>
+          <Button type="submit" color="primary" disabled={saving || !profile?.id}>
+            {saving ? 'Saving...' : 'Save changes'}
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+  const mainContent = loading ? (
+    <Card className="flex items-center justify-center gap-3 p-6 text-sm text-gray-500">
+      <Spinner size="sm" /> Loading profile...
+    </Card>
+  ) : (
+    <div className="flex flex-col gap-6">
+      {profileFormCard}
+    </div>
+  );
 
   return (
-    <div className="grid gap-4">
-      <h1 className="text-xl font-semibold text-gray-700">Profile</h1>
-      <Card className="p-5 max-w-3xl space-y-6">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Spinner size="sm" /> Loading…
-          </div>
-        ) : (
-          <>
-            <form onSubmit={onSaveProfile} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Input
-                  label="Username"
-                  value={formUsername}
-                  onChange={(e) => setFormUsername(e.target.value)}
-                  disabled={saving || !canChangeUsername}
-                  hint={canChangeUsername ? USERNAME_LIMIT_HINT : nextUsernameAt ? `You can change the username after ${nextUsernameAt.toLocaleString()}` : USERNAME_LIMIT_HINT}
-                />
-                <Input label="Email" value={profile?.email || ''} disabled />
-              </div>
-              <Textarea
-                label="Bio"
-                value={formBio}
-                onChange={(e) => setFormBio(e.target.value)}
-                rows={4}
-                placeholder="Tell a bit about yourself, projects, links…"
-                disabled={saving}
-              />
-              <Input
-                label="Avatar URL"
-                value={formAvatar}
-                onChange={(e) => setFormAvatar(e.target.value)}
-                placeholder="https://..."
-                disabled={saving}
-              />
-              {profile?.wallet?.address && (
-                <div className="text-sm text-gray-500">
-                  Connected wallet: <span className="font-mono">{profile.wallet.address}</span>
-                </div>
-              )}
-              {error && <InputErrorMsg when className="block">{error}</InputErrorMsg>}
-              {ok && <div className="text-xs text-success">Profile saved</div>}
-              <div className="flex gap-3">
-                <Button type="submit" color="primary" disabled={saving || !profile?.id}>
-                  {saving ? 'Saving…' : 'Save'}
-                </Button>
-                <Button type="button" variant="ghost" disabled={saving} onClick={loadProfile}>
-                  Reset
-                </Button>
-              </div>
-            </form>
+    <SettingsLayout
+      title="Profile"
+      description="Manage how people see you and keep contact details up to date."
+      error={errorBanner}
+      side={sidePanel}
+    >
+      {mainContent}
+    </SettingsLayout>
+  );
+}
 
-            <div className="border-t border-gray-200 pt-4 space-y-4">
-              <h2 className="text-sm font-semibold text-gray-600">Email change</h2>
-              <form onSubmit={onRequestEmail} className="grid gap-3 md:grid-cols-[2fr,auto] md:items-end">
-                <div>
-                  <Input
-                    label="New email"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    disabled={requestingEmail || !canChangeEmail}
-                    hint={canChangeEmail ? EMAIL_LIMIT_HINT : nextEmailAt ? `Next change available after ${nextEmailAt.toLocaleString()}` : EMAIL_LIMIT_HINT}
-                  />
-                  {profile?.pending_email && (
-                    <div className="mt-2 text-xs text-gray-500">
-                      Pending confirmation: <strong>{profile.pending_email}</strong>
-                    </div>
-                  )}
-                </div>
-                <Button type="submit" color="primary" disabled={requestingEmail || !profile?.id || !canChangeEmail}>
-                  {requestingEmail ? 'Requesting…' : 'Request change'}
-                </Button>
-              </form>
+type AccountSnapshotCardProps = {
+  profile: ProfilePayload | null;
+  canChangeUsername: boolean;
+  nextUsernameAt: Date | null;
+  onReloadProfile: () => void;
+};
 
-              <form onSubmit={onConfirmEmail} className="grid gap-3 md:grid-cols-[2fr,auto] md:items-end">
-                <Input
-                  label="Confirmation token"
-                  value={emailToken}
-                  onChange={(e) => setEmailToken(e.target.value)}
-                  placeholder="Paste token from email"
-                  disabled={confirmingEmail || !profile?.pending_email}
-                />
-                <Button type="submit" color="secondary" disabled={confirmingEmail || !emailToken.trim()}>
-                  {confirmingEmail ? 'Confirming…' : 'Confirm email'}
-                </Button>
-              </form>
-              {emailMessage && <div className="text-xs text-success">{emailMessage}</div>}
+function AccountSnapshotCard({ profile, canChangeUsername, nextUsernameAt, onReloadProfile }: AccountSnapshotCardProps) {
+  const initialWalletAddress = profile ? profile.wallet?.address ?? null : undefined;
+  const initialWalletChainId = profile ? profile.wallet?.chain_id ?? null : undefined;
+
+  const {
+    wallet,
+    shortAddress,
+    isConnected,
+    loading,
+    busy,
+    error,
+    status,
+    loadWallet,
+    connectWallet,
+    disconnectWallet,
+  } = useWalletConnection({
+    initialWalletAddress,
+    initialWalletChainId,
+    onWalletChange: onReloadProfile,
+  });
+
+  const usernameDisplay = profile?.username || 'Not set';
+  const emailDisplay = profile?.email || 'Not set';
+
+  const walletDisplay = isConnected ? (
+    <CopyButton value={wallet ?? ''}>
+      {({ copy, copied }) => (
+        <button
+          type="button"
+          onClick={copy}
+          className="group inline-flex items-center gap-2 font-mono text-sm text-gray-900"
+          title="Copy wallet address"
+        >
+          <span className="max-w-[12rem] truncate">{shortAddress}</span>
+          {copied ? (
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+          ) : (
+            <CopyIcon className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
+          )}
+        </button>
+      )}
+    </CopyButton>
+  ) : (
+    <span className="text-gray-500">Not connected</span>
+  );
+
+  return (
+    <Card className="space-y-5 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-gray-700">Account snapshot</h2>
+          <p className="text-xs text-gray-500">Overview of your account identity and wallet connection.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {profile?.role && <Badge color="neutral" variant="soft">{profile.role}</Badge>}
+          <Badge color={isConnected ? 'success' : 'neutral'} variant="soft">
+            {isConnected ? 'Connected' : 'Not connected'}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="space-y-2 text-sm text-gray-600">
+        <SnapshotRow label="Username">
+          <span className="font-medium text-gray-900">{usernameDisplay}</span>
+        </SnapshotRow>
+        <SnapshotRow label="Email">
+          <span className="max-w-[14rem] truncate font-medium text-gray-900">{emailDisplay}</span>
+        </SnapshotRow>
+        <SnapshotRow label="Wallet">{walletDisplay}</SnapshotRow>
+      </div>
+
+      {(loading || status || error) && (
+        <div className="space-y-2">
+          {loading && (
+            <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
+              <Spinner size="sm" /> Checking wallet status...
             </div>
-          </>
+          )}
+          {status && (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{status}</div>
+          )}
+          {error && (
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</div>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <div className="text-xs text-gray-500">Username change status</div>
+        <div
+          className={`rounded-lg border px-3 py-2 text-xs ${
+            canChangeUsername ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'
+          }`}
+        >
+          {canChangeUsername
+            ? 'Ready'
+            : nextUsernameAt
+                ? `Available after ${nextUsernameAt.toLocaleString()}`
+                : 'Cooldown active'}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" size="sm" color="primary" onClick={connectWallet} disabled={busy}>
+          {busy ? 'Connecting...' : isConnected ? 'Reconnect wallet' : 'Connect wallet'}
+        </Button>
+        {isConnected && (
+          <Button type="button" size="sm" variant="ghost" color="neutral" onClick={disconnectWallet} disabled={busy}>
+            Disconnect
+          </Button>
         )}
-      </Card>
+        <Button type="button" size="sm" variant="ghost" color="neutral" onClick={() => void loadWallet()} disabled={busy || loading}>
+          {loading ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
+
+      <p className="text-[11px] text-gray-400">
+        We attempt to use MetaMask when available. Install a compatible wallet extension if your browser cannot detect a provider.
+      </p>
+    </Card>
+  );
+}
+
+type SnapshotRowProps = {
+  label: string;
+  children: React.ReactNode;
+};
+
+function SnapshotRow({ label, children }: SnapshotRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span>{label}</span>
+      <div className="flex min-w-0 items-center justify-end gap-2 text-right">{children}</div>
     </div>
   );
 }
 
+function labelWithHint(label: string, hint: string): React.ReactNode {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span>{label}</span>
+      <span
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-gray-300 text-[10px] font-semibold uppercase leading-none text-gray-500"
+        title={hint}
+        aria-label={hint}
+      >
+        i
+      </span>
+    </span>
+  );
+}

@@ -3,19 +3,20 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.quests.application.ports import (
     CreateQuestInput,
     QuestDTO,
     Repo,
 )
+from packages.core.db import get_async_engine
 
 
 class SQLQuestsRepo(Repo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("quests", url=engine) if isinstance(engine, str) else engine
         )
 
     async def _aload_tags(self, quest_ids: list[str]) -> dict[str, list[str]]:

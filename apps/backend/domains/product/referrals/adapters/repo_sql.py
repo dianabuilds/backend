@@ -4,19 +4,20 @@ import uuid as _uuid
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.referrals.application.ports import Repo
 from domains.product.referrals.domain.entities import (
     ReferralCode,
     ReferralEvent,
 )
+from packages.core.db import get_async_engine
 
 
 class SQLReferralsRepo(Repo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("referrals", url=engine) if isinstance(engine, str) else engine
         )
 
     async def get_personal_code(self, owner_user_id: str) -> ReferralCode | None:
@@ -45,11 +46,7 @@ class SQLReferralsRepo(Repo):
             """
         )
         async with self._engine.begin() as conn:
-            r = (
-                (await conn.execute(sql, {"uid": owner_user_id, "code": code}))
-                .mappings()
-                .first()
-            )
+            r = (await conn.execute(sql, {"uid": owner_user_id, "code": code})).mappings().first()
             assert r is not None
             return ReferralCode(
                 id=str(r["id"]),
@@ -119,9 +116,7 @@ class SQLReferralsRepo(Repo):
             id=str(r["id"]),
             code_id=str(r["code_id"]) if r["code_id"] else None,
             code=str(r["code"]) if r["code"] else None,
-            referrer_user_id=(
-                str(r["referrer_user_id"]) if r["referrer_user_id"] else None
-            ),
+            referrer_user_id=(str(r["referrer_user_id"]) if r["referrer_user_id"] else None),
             referee_user_id=str(r["referee_user_id"]),
             event_type=str(r["event_type"]),
             occurred_at=r["occurred_at"],
@@ -193,9 +188,7 @@ class SQLReferralsRepo(Repo):
                 id=str(r["id"]),
                 code_id=str(r["code_id"]) if r["code_id"] else None,
                 code=str(r["code"]) if r["code"] else None,
-                referrer_user_id=(
-                    str(r["referrer_user_id"]) if r["referrer_user_id"] else None
-                ),
+                referrer_user_id=(str(r["referrer_user_id"]) if r["referrer_user_id"] else None),
                 referee_user_id=str(r["referee_user_id"]),
                 event_type=str(r["event_type"]),
                 occurred_at=r["occurred_at"],
@@ -226,11 +219,7 @@ class SQLReferralsRepo(Repo):
         )
         async with self._engine.begin() as conn:
             r = (
-                (
-                    await conn.execute(
-                        sql, {"active": bool(active), "uid": owner_user_id}
-                    )
-                )
+                (await conn.execute(sql, {"active": bool(active), "uid": owner_user_id}))
                 .mappings()
                 .first()
             )

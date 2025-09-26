@@ -45,18 +45,13 @@ def make_router() -> APIRouter:
         hits = await c.search.service.search(
             qq, tags=tag_list, match=match, limit=limit, offset=offset
         )
-        out = [
-            {"id": h.id, "title": h.title, "tags": list(h.tags), "score": h.score}
-            for h in hits
-        ]
+        out = [{"id": h.id, "title": h.title, "tags": list(h.tags), "score": h.score} for h in hits]
         search_stats.record(qq, len(out))
         return out
 
     @router.post(
         "/search/index",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
     )
     async def index(
         req: Request,
@@ -72,9 +67,7 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/search/{doc_id}",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
     )
     async def delete(
         req: Request,
@@ -89,9 +82,7 @@ def make_router() -> APIRouter:
     @router.get("/search/suggest")
     async def suggest(req: Request, q: str, limit: int = 10) -> list[str]:
         c = get_container(req)
-        hits = await c.search.service.search(
-            q, tags=None, match="any", limit=limit, offset=0
-        )
+        hits = await c.search.service.search(q, tags=None, match="any", limit=limit, offset=0)
         return [h.title for h in hits]
 
     @router.get("/search/stats/top")

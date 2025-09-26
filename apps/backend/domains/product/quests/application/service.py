@@ -35,9 +35,9 @@ class QuestService:
     @with_trace
     def create(self, data: CreateQuestInput) -> QuestView:
         # simple slug: could be replaced by a slugger
-        slug = hashlib.sha256(
-            f"{data.author_id}-{data.title}-{time.time()}".encode()
-        ).hexdigest()[:16]
+        slug = hashlib.sha256(f"{data.author_id}-{data.title}-{time.time()}".encode()).hexdigest()[
+            :16
+        ]
         tags = self.tags.ensure_canonical_slugs(list(data.tags or ()))
         created = self.repo.create(
             CreateQuestInput(
@@ -85,9 +85,7 @@ class QuestService:
         )
 
     @with_trace
-    def update_tags(
-        self, quest_id: str, new_slugs: Sequence[str], *, actor_id: str
-    ) -> QuestView:
+    def update_tags(self, quest_id: str, new_slugs: Sequence[str], *, actor_id: str) -> QuestView:
         tags = self.tags.ensure_canonical_slugs(list(new_slugs))
         before = self.repo.get(quest_id)
         updated = self.repo.set_tags(quest_id, tags)

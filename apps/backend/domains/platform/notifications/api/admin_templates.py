@@ -18,7 +18,7 @@ from domains.platform.iam.security import csrf_protect, require_admin
 
 class TemplatePayload(BaseModel):
     id: str | None = None
-    slug: str
+    slug: str | None = None
     name: str
     body: str
     description: str | None = None
@@ -58,9 +58,11 @@ def make_router() -> APIRouter:
     ) -> dict[str, Any]:
         svc = get_container(req).notifications.templates
         try:
-            tmpl = await svc.save(payload.model_dump())
+            tmpl = await svc.save(payload.model_dump(exclude_none=True, exclude_unset=True))
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            detail = str(exc)
+            status = 404 if detail == "template_not_found" else 400
+            raise HTTPException(status_code=status, detail=detail) from exc
         except IntegrityError as exc:
             raise HTTPException(status_code=409, detail="template slug already exists") from exc
         return {"template": asdict(tmpl)}

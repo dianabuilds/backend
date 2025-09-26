@@ -4,10 +4,11 @@ import json
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.audit.domain.audit import AuditEntry
 from domains.platform.audit.ports.repo import AuditLogRepository
+from packages.core.db import get_async_engine
 
 
 class SQLAuditRepo(AuditLogRepository):
@@ -18,7 +19,7 @@ class SQLAuditRepo(AuditLogRepository):
 
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("audit", url=engine) if isinstance(engine, str) else engine
         )
 
     async def add(self, entry: AuditEntry) -> None:

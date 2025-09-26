@@ -19,9 +19,7 @@ class MemoryModerationRepo(Repo):
         items = list(self._cases.values())
         if statuses:
             statuses_set = {s.lower() for s in statuses}
-            items = [
-                c for c in items if str(c.get("status", "")).lower() in statuses_set
-            ]
+            items = [c for c in items if str(c.get("status", "")).lower() in statuses_set]
         total = len(items)
         start = (max(1, page) - 1) * max(1, size)
         slice_ = items[start : start + size]
@@ -35,9 +33,7 @@ class MemoryModerationRepo(Repo):
         self._notes[cid] = []
         return cid
 
-    async def add_note(
-        self, case_id: str, note: dict, *, author_id: str | None
-    ) -> dict | None:
+    async def add_note(self, case_id: str, note: dict, *, author_id: str | None) -> dict | None:
         if case_id not in self._cases:
             return None
         n = {"id": str(uuid.uuid4()), **dict(note), "author_id": author_id}

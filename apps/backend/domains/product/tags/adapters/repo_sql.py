@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.tags.application.ports import Repo
 from domains.product.tags.domain.results import TagView
+from packages.core.db import get_async_engine
 
 
 class SQLTagsRepo(Repo):
@@ -18,7 +19,7 @@ class SQLTagsRepo(Repo):
 
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("tags", url=engine) if isinstance(engine, str) else engine
         )
 
     def _build_query(self, popular: bool) -> str:

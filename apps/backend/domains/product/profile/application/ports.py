@@ -8,8 +8,8 @@ from domains.product.profile.domain.entities import Profile
 
 @runtime_checkable
 class Repo(Protocol):
-    def get(self, user_id: str) -> Profile | None: ...
-    def update_profile(
+    async def get(self, user_id: str) -> Profile | None: ...
+    async def update_profile(
         self,
         user_id: str,
         *,
@@ -17,8 +17,8 @@ class Repo(Protocol):
         set_username_timestamp: bool,
         now: datetime,
     ) -> Profile: ...
-    def email_in_use(self, email: str, exclude_user_id: str | None = None) -> bool: ...
-    def create_email_change_request(
+    async def email_in_use(self, email: str, exclude_user_id: str | None = None) -> bool: ...
+    async def create_email_change_request(
         self,
         user_id: str,
         *,
@@ -26,14 +26,14 @@ class Repo(Protocol):
         token: str,
         requested_at: datetime,
     ) -> None: ...
-    def confirm_email_change(
+    async def confirm_email_change(
         self,
         user_id: str,
         *,
         token: str,
         now: datetime,
     ) -> Profile: ...
-    def set_wallet(
+    async def set_wallet(
         self,
         user_id: str,
         *,
@@ -42,7 +42,7 @@ class Repo(Protocol):
         signature: str | None,
         verified_at: datetime,
     ) -> Profile: ...
-    def clear_wallet(self, user_id: str) -> Profile: ...
+    async def clear_wallet(self, user_id: str) -> Profile: ...
 
 
 @runtime_checkable

@@ -22,22 +22,16 @@ def make_router() -> APIRouter:
 
     @router.get(
         "",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
     )
-    async def list_flags(
-        req: Request, _admin: None = Depends(require_admin)
-    ) -> dict[str, Any]:
+    async def list_flags(req: Request, _admin: None = Depends(require_admin)) -> dict[str, Any]:
         c = get_container(req)
         items = await c.flags.service.list()
         return {"items": [f.__dict__ for f in items]}
 
     @router.post(
         "",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
     )
     async def upsert_flag(
         req: Request,
@@ -53,9 +47,7 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/{slug}",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
     )
     async def delete_flag(
         req: Request,

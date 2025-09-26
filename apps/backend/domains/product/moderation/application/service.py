@@ -23,9 +23,7 @@ class ModerationService:
             pass
         return {"id": cid}
 
-    async def add_note(
-        self, case_id: str, note: dict, *, author_id: str | None
-    ) -> dict | None:
+    async def add_note(self, case_id: str, note: dict, *, author_id: str | None) -> dict | None:
         res = await self.repo.add_note(case_id, note, author_id=author_id)
         try:
             if res and self.outbox:

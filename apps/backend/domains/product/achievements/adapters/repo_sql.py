@@ -5,19 +5,20 @@ from collections.abc import Iterable
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.achievements.application.ports import Repo
 from domains.product.achievements.domain.entities import (
     Achievement,
     UserAchievement,
 )
+from packages.core.db import get_async_engine
 
 
 class SQLRepo(Repo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("achievements", url=engine) if isinstance(engine, str) else engine
         )
 
     # --- User views ---

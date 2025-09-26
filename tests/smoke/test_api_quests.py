@@ -13,7 +13,12 @@ def test_quests_create_get_and_update_tags(app_client):
     # Create quest
     created = app_client.post(
         "/v1/quests",
-        json={"title": "My Quest", "description": "desc", "tags": ["alpha", "beta"], "is_public": True},
+        json={
+            "title": "My Quest",
+            "description": "desc",
+            "tags": ["alpha", "beta"],
+            "is_public": True,
+        },
     )
     assert created.status_code == 200, created.text
     qid = created.json()["id"]
@@ -29,4 +34,3 @@ def test_quests_create_get_and_update_tags(app_client):
     upd = app_client.put(f"/v1/quests/{qid}/tags", json={"tags": ["beta", "gamma"]})
     assert upd.status_code == 200, upd.text
     assert set(upd.json()["tags"]) == {"beta", "gamma"}
-

@@ -3,18 +3,19 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.worlds.application.ports import Repo
 from domains.product.worlds.domain.entities import Character, WorldTemplate
+from packages.core.config import sanitize_async_dsn
+from packages.core.db import get_async_engine
 
 
 class SQLWorldsRepo(Repo):
     def __init__(self, engine: AsyncEngine | str) -> None:
-        # If a DSN string is provided, create a short-lived engine per call.
         if isinstance(engine, str):
             self._engine: AsyncEngine | None = None
-            self._dsn: str | None = str(engine)
+            self._dsn: str | None = sanitize_async_dsn(engine)
         else:
             self._engine = engine
             self._dsn = None
@@ -24,7 +25,7 @@ class SQLWorldsRepo(Repo):
             return self._engine, False
         if self._dsn is None:
             raise RuntimeError("SQLWorldsRepo requires an engine or DSN configuration")
-        return create_async_engine(self._dsn), True
+        return get_async_engine("worlds", url=self._dsn), False
 
     # --- Worlds ---
     def list_worlds(self, workspace_id: str) -> list[WorldTemplate]:
@@ -43,7 +44,7 @@ class SQLWorldsRepo(Repo):
                 ORDER BY created_at DESC
                 """
             )
-            eng = self._engine or create_async_engine(str(self._dsn))
+            eng = self._engine or get_async_engine("worlds", url=self._dsn)
             try:
                 async with eng.begin() as conn:
                     rows = (await conn.execute(sql, {"ws": workspace_id})).mappings().all()
@@ -88,7 +89,7 @@ class SQLWorldsRepo(Repo):
                 WHERE id = cast(:id as uuid) AND workspace_id = cast(:ws as uuid)
                 """
             )
-            eng = self._engine or create_async_engine(str(self._dsn))
+            eng = self._engine or get_async_engine("worlds", url=self._dsn)
             try:
                 async with eng.begin() as conn:
                     r = (
@@ -149,7 +150,7 @@ class SQLWorldsRepo(Repo):
                 "meta": json.dumps(data.get("meta") or {}),
                 "actor": actor_id,
             }
-            eng = self._engine or create_async_engine(str(self._dsn))
+            eng = self._engine or get_async_engine("worlds", url=self._dsn)
             try:
                 async with eng.begin() as conn:
                     r = (await conn.execute(sql, params)).mappings().first()

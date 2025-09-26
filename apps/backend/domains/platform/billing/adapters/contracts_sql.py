@@ -1,34 +1,20 @@
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.billing.ports import ContractsRepo
+from packages.core.db import get_async_engine
 
-
-def _normalize_async_dsn(url: str) -> str:
-    out = url
-    if out.startswith("postgresql://"):
-        out = "postgresql+asyncpg://" + out[len("postgresql://") :]
-    try:
-        u = urlparse(out)
-        q = dict(parse_qsl(u.query, keep_blank_values=True))
-        if "sslmode" in q:
-            q.pop("sslmode", None)
-        new_q = urlencode(q)
-        out = urlunparse((u.scheme, u.netloc, u.path, u.params, new_q, u.fragment))
-    except Exception:
-        pass
-    return out
+from .dsn_utils import normalize_async_dsn
 
 
 class SQLContractsRepo(ContractsRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         if isinstance(engine, str):
-            self._engine = create_async_engine(_normalize_async_dsn(engine))
+            self._engine = get_async_engine("billing-contracts", url=normalize_async_dsn(engine))
         else:
             self._engine = engine
 

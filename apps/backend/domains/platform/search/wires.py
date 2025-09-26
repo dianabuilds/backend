@@ -78,9 +78,7 @@ def register_event_indexers(events: Events, container: SearchContainer) -> None:
 
     events.on(
         "profile.updated.v1",
-        lambda t, p: __import__("asyncio")
-        .get_event_loop()
-        .create_task(_on_profile_updated(t, p)),
+        lambda t, p: __import__("asyncio").get_event_loop().create_task(_on_profile_updated(t, p)),
     )
 
 

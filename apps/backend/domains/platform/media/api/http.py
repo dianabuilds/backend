@@ -24,9 +24,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/media",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
     )
     async def upload_media(
         req: Request, file: UploadFile = File(...), _csrf: None = Depends(csrf_protect)

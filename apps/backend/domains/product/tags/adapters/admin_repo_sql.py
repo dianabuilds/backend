@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import Integer, String, bindparam, text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.tags.application.admin_ports import AdminRepo
 from domains.product.tags.domain.admin_models import (
@@ -10,39 +10,15 @@ from domains.product.tags.domain.admin_models import (
     TagGroupSummary,
     TagListItem,
 )
+from packages.core.db import get_async_engine
 
 
 class SQLAdminRepo(AdminRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
-        if isinstance(engine, str):
-            # Normalize DSN: strip libpq sslmode for asyncpg
-            try:
-                from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
-
-                u = urlparse(engine)
-                q = dict(parse_qsl(u.query))
-                if "sslmode" in q:
-                    sm = (q.get("sslmode") or "").lower()
-                    q.pop("sslmode", None)
-                    if sm in ("require", "verify-ca", "verify-full"):
-                        q["ssl"] = "true"
-                    elif sm in ("disable", "allow", "prefer"):
-                        q.setdefault("ssl", "false")
-                # Rebuild DSN without unknown params
-                engine = urlunparse(
-                    (u.scheme, u.netloc, u.path, u.params, urlencode(q), u.fragment)
-                )
-            except Exception:
-                pass
-            # Final safety: drop query entirely and pass SSL via connect_args if still problematic
-            try:
-                self._engine = create_async_engine(engine, connect_args={"ssl": True})
-            except TypeError:
-                # Some drivers may not accept connect_args in this form; fallback
-                base = engine.split("?", 1)[0]
-                self._engine = create_async_engine(base, connect_args={"ssl": True})
-        else:
+        if isinstance(engine, AsyncEngine):
             self._engine = engine
+        else:
+            self._engine = get_async_engine("tags-admin", url=engine)
         # Lazy-detected table names to support different schemas
         self._tbl_tag: str | None = None
         self._tbl_usage: str | None = None

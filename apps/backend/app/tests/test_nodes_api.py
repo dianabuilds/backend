@@ -50,9 +50,7 @@ async def test_nodes_crud_and_tags():
         assert r.json()["title"] == "Updated"
 
         # Set tags
-        r = client.put(
-            f"/v1/nodes/{nid}/tags", json={"tags": ["ai", "ml"]}, headers=headers
-        )
+        r = client.put(f"/v1/nodes/{nid}/tags", json={"tags": ["ai", "ml"]}, headers=headers)
         assert r.status_code == 200
         assert set(r.json()["tags"]) == {"ai", "ml"}
 

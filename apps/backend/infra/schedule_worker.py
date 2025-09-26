@@ -6,10 +6,11 @@ import os
 from datetime import UTC, datetime
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.api_gateway.wires import build_container
 from packages.core.config import to_async_dsn
+from packages.core.db import get_async_engine
 
 
 async def _ensure_engine(dsn: str) -> AsyncEngine | None:
@@ -17,10 +18,7 @@ async def _ensure_engine(dsn: str) -> AsyncEngine | None:
         adsn = to_async_dsn(dsn)
         if not adsn:
             return None
-        # Strip query params that asyncpg may not recognize
-        if "?" in adsn:
-            adsn = adsn.split("?", 1)[0]
-        return create_async_engine(adsn, future=True)
+        return get_async_engine("nodes-scheduler", url=adsn, cache=False, future=True)
     except Exception:
         return None
 

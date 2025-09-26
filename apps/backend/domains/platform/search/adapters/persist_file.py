@@ -36,10 +36,7 @@ class FileSearchPersistence(SearchPersistence):
         p = self._path
         # Ensure directory exists
         await asyncio.to_thread(p.parent.mkdir, parents=True, exist_ok=True)
-        data = [
-            {"id": d.id, "title": d.title, "text": d.text, "tags": list(d.tags)}
-            for d in docs
-        ]
+        data = [{"id": d.id, "title": d.title, "text": d.text, "tags": list(d.tags)} for d in docs]
         await asyncio.to_thread(
             p.write_text, json.dumps(data, ensure_ascii=False, indent=2), "utf-8"
         )

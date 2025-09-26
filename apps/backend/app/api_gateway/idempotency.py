@@ -4,9 +4,10 @@ from functools import lru_cache
 
 from fastapi import Depends, Header, Request, status
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from packages.core.config import to_async_dsn
+from packages.core.db import get_async_engine
 from packages.core.errors import ApiError
 
 from .routers import get_container
@@ -17,7 +18,7 @@ IDEMPOTENCY_RETRY_SECONDS = 5
 
 @lru_cache(maxsize=1)
 def _engine_for_dsn(dsn: str) -> AsyncEngine:
-    return create_async_engine(dsn, pool_pre_ping=True, future=True)
+    return get_async_engine("idempotency", url=dsn, pool_pre_ping=True, future=True)
 
 
 class IdempotencyStore:
@@ -44,8 +45,6 @@ def _get_store(settings) -> IdempotencyStore | None:
         return None
     if not dsn:
         return None
-    if isinstance(dsn, str) and "?" in dsn:
-        dsn = dsn.split("?", 1)[0]
     engine = _engine_for_dsn(str(dsn))
     return IdempotencyStore(engine)
 

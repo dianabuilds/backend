@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import logging
@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from apps.backend import get_container
 from domains.platform.iam.security import (
@@ -18,6 +18,7 @@ from domains.platform.iam.security import (
 )
 from domains.product.navigation.application.ports import TransitionRequest
 from packages.core.config import to_async_dsn
+from packages.core.db import get_async_engine
 
 logger = logging.getLogger(__name__)
 ALGO_ALIASES = {
@@ -200,7 +201,7 @@ def make_router() -> APIRouter:
                 return None
             if "?" in dsn:
                 dsn = dsn.split("?", 1)[0]
-            return create_async_engine(dsn, future=True)
+            return get_async_engine("navigation-api", url=dsn, cache=False, future=True)
         except Exception:
             logger.exception("navigation relations: failed to create engine")
             return None

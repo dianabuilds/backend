@@ -63,7 +63,7 @@ const sections: Section[] = [
         label: 'Notifications',
         icon: iconNode(<BellIcon />),
         children: [
-          { to: '/notifications', label: 'Campaigns' },
+          { to: '/notifications', label: 'Broadcasts' },
           { to: '/notifications/templates', label: 'Templates' },
           { to: '/notifications/channels', label: 'Channels' },
           { to: '/notifications/history', label: 'History' },
@@ -139,11 +139,6 @@ const sections: Section[] = [
   },
 ];
 
-const footerLinks = [
-  { to: '/profile', label: 'Profile' },
-  { to: '/settings/notifications', label: 'Notification prefs' },
-  { to: '/billing', label: 'Billing portal' },
-];
 
 function renderIcon(descriptor: IconDescriptor) {
   if (descriptor.kind === 'img') {
@@ -277,33 +272,15 @@ export function Sidebar() {
           </nav>
 
           <div className="border-t border-gray-200 px-6 py-4 text-sm dark:border-dark-600">
-            <div className="flex flex-col gap-2">
-              {footerLinks.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  end
-                  className={({ isActive }) =>
-                    `flex items-center justify-between rounded-md px-2 py-2 transition ${
-                      isActive
-                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-500/10 dark:text-primary-300'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-dark-200 dark:hover:bg-dark-700/60 dark:hover:text-dark-50'
-                    }`
-                  }
-                >
-                  <span>{link.label}</span>
-                </NavLink>
-              ))}
-              <button
-                type="button"
-                onClick={logout}
-                className="flex items-center justify-between rounded-md px-2 py-2 text-left text-gray-600 transition hover:bg-rose-50 hover:text-rose-600 dark:text-dark-200 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
-              >
-                Sign out
-              </button>
-              <div className="mt-2 text-xs text-gray-400 dark:text-dark-400">
-                Flavour Trip Control - build {new Date().getFullYear()}
-              </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-dark-600 dark:bg-dark-700 dark:text-dark-100 dark:hover:bg-dark-600"
+            >
+              Sign out
+            </button>
+            <div className="mt-3 text-xs text-gray-400 dark:text-dark-400">
+              Flavour Trip Control - build {new Date().getFullYear()}
             </div>
           </div>
         </div>
@@ -311,4 +288,5 @@ export function Sidebar() {
     </aside>
   );
 }
+
 

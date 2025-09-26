@@ -7,6 +7,7 @@ import { AppLayout } from './layout/AppLayout';
 import DashboardPage from './pages/dashboard/Dashboard';
 import ProfilePage from './pages/profile/Profile';
 import NotificationSettingsPage from './pages/notifications/Settings';
+import SecuritySettingsPage from './pages/security/Security';
 import BillingPage from './pages/billing/Billing';
 import NodesOverviewPage from './pages/content/nodes/NodesOverviewPage';
 import NodesPage from './pages/content/nodes/NodesPageEnhanced';
@@ -23,7 +24,8 @@ import WorldsPage from './pages/content/worlds/WorldsPage';
 import WorldsCreatePage from './pages/content/worlds/WorldsCreatePage';
 import CharacterCardPage from './pages/content/worlds/CharacterCardPage';
 import ImportExportPage from './pages/content/import-export/ImportExportPage';
-import NotificationsCampaignsPage from './pages/notifications/CampaignsPage';
+import NotificationsInboxSettingsPage from './pages/settings/NotificationsInboxPage';
+import NotificationsBroadcastsPage from './pages/notifications/BroadcastsPage';
 import NotificationsTemplatesPage from './pages/notifications/TemplatesPage';
 import NotificationsChannelsPage from './pages/notifications/ChannelsPage';
 import NotificationsHistoryPage from './pages/notifications/HistoryPage';
@@ -51,10 +53,29 @@ import ModerationTickets from './pages/moderation/Tickets';
 import ModerationAppeals from './pages/moderation/Appeals';
 import ModerationAIRules from './pages/moderation/AIRules';
 
+const ADMIN_ROLES = ['admin', 'superadmin', 'owner', 'platform_admin', 'billing_admin'];
+
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { isAuthenticated, isReady } = useAuth();
   if (!isReady) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function RequireAdmin({ children }: { children: JSX.Element }) {
+  const { isAuthenticated, isReady, user } = useAuth();
+  if (!isReady) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  const roles: string[] = [];
+  if (Array.isArray(user?.roles)) {
+    roles.push(...user.roles.map((role) => String(role).toLowerCase()));
+  }
+  if (user?.role) {
+    roles.push(String(user.role).toLowerCase());
+  }
+  if (!roles.some((role) => ADMIN_ROLES.includes(role))) {
+    return <Navigate to="/billing" replace />;
+  }
   return children;
 }
 
@@ -93,7 +114,8 @@ export default function App() {
           <Route path="/quests/ai-studio" element={<RequireAuth><AppLayout><QuestAIStudioPage /></AppLayout></RequireAuth>} />
 
           {/* Notifications workspace */}
-          <Route path="/notifications" element={<RequireAuth><AppLayout><NotificationsCampaignsPage /></AppLayout></RequireAuth>} />
+          <Route path="/settings/notifications/inbox" element={<RequireAuth><AppLayout><NotificationsInboxSettingsPage /></AppLayout></RequireAuth>} />
+          <Route path="/notifications" element={<RequireAuth><AppLayout><NotificationsBroadcastsPage /></AppLayout></RequireAuth>} />
           <Route path="/notifications/templates" element={<RequireAuth><AppLayout><NotificationsTemplatesPage /></AppLayout></RequireAuth>} />
           <Route path="/notifications/channels" element={<RequireAuth><AppLayout><NotificationsChannelsPage /></AppLayout></RequireAuth>} />
           <Route path="/notifications/history" element={<RequireAuth><AppLayout><NotificationsHistoryPage /></AppLayout></RequireAuth>} />
@@ -103,9 +125,9 @@ export default function App() {
 
           {/* Billing & plans */}
           <Route path="/billing" element={<RequireAuth><AppLayout><BillingPage /></AppLayout></RequireAuth>} />
-          <Route path="/billing/payments" element={<RequireAuth><AppLayout><ManagementPayments /></AppLayout></RequireAuth>} />
-          <Route path="/billing/payments/monitoring" element={<RequireAuth><AppLayout><PaymentsMonitoring /></AppLayout></RequireAuth>} />
-          <Route path="/billing/tariffs" element={<RequireAuth><AppLayout><ManagementTariffs /></AppLayout></RequireAuth>} />
+          <Route path="/billing/payments" element={<RequireAdmin><AppLayout><ManagementPayments /></AppLayout></RequireAdmin>} />
+          <Route path="/billing/payments/monitoring" element={<RequireAdmin><AppLayout><PaymentsMonitoring /></AppLayout></RequireAdmin>} />
+          <Route path="/billing/tariffs" element={<RequireAdmin><AppLayout><ManagementTariffs /></AppLayout></RequireAdmin>} />
 
           {/* Platform admin */}
           <Route path="/platform/ai" element={<RequireAuth><AppLayout><ManagementAI /></AppLayout></RequireAuth>} />
@@ -134,6 +156,7 @@ export default function App() {
 
           {/* Account & personal settings */}
           <Route path="/profile" element={<RequireAuth><AppLayout><ProfilePage /></AppLayout></RequireAuth>} />
+          <Route path="/settings/security" element={<RequireAuth><AppLayout><SecuritySettingsPage /></AppLayout></RequireAuth>} />
           <Route path="/settings/notifications" element={<RequireAuth><AppLayout><NotificationSettingsPage /></AppLayout></RequireAuth>} />
 
           {/* Legacy redirects */}
@@ -180,3 +203,8 @@ function RumRouteTracker() {
   }, [loc.pathname, loc.search]);
   return null;
 }
+
+
+
+
+

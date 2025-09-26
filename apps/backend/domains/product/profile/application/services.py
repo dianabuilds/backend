@@ -31,15 +31,23 @@ class Service:
 
     def _to_dict(self, profile: Profile) -> dict[str, Any]:
         view = to_view(profile, cooldown=self.cooldown)
-        return asdict(view)
+        data = asdict(view)
+        wallet = data.get("wallet") or {}
+        if wallet.get("verified_at") is not None:
+            wallet["verified_at"] = wallet["verified_at"].isoformat()
+        limits = data.get("limits") or {}
+        for key in ("next_username_change_at", "next_email_change_at"):
+            if limits.get(key) is not None:
+                limits[key] = limits[key].isoformat()
+        return data
 
-    def get_profile(self, user_id: str) -> dict[str, Any]:
-        profile = self.repo.get(user_id)
+    async def get_profile(self, user_id: str) -> dict[str, Any]:
+        profile = await self.repo.get(user_id)
         if not profile:
             raise ValueError("profile_not_found")
         return self._to_dict(profile)
 
-    def update_profile(
+    async def update_profile(
         self,
         user_id: str,
         payload: dict[str, Any],
@@ -48,7 +56,7 @@ class Service:
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
 
-        current = self.repo.get(user_id)
+        current = await self.repo.get(user_id)
         if not current:
             raise ValueError("profile_not_found")
 
@@ -97,26 +105,24 @@ class Service:
         if not updates:
             return self._to_dict(current)
 
-        updated = self.repo.update_profile(
+        updated = await self.repo.update_profile(
             user_id,
             updates=updates,
             set_username_timestamp=username_changed,
             now=self._now(),
         )
 
+        event_payload = {"id": updated.id, "username": updated.username}
+        if "bio" in updates:
+            event_payload["bio"] = updated.bio
         self.outbox.publish(
             "profile.updated.v1",
-            {
-                "id": updated.id,
-                "username": updated.username,
-                "bio": updated.bio,
-                "avatar_url": updated.avatar_url,
-            },
+            event_payload,
             key=updated.id,
         )
         return self._to_dict(updated)
 
-    def request_email_change(
+    async def request_email_change(
         self,
         user_id: str,
         new_email: str,
@@ -131,7 +137,7 @@ class Service:
         if "@" not in normalized_email or "." not in normalized_email:
             raise ValueError("invalid_email")
 
-        current = self.repo.get(user_id)
+        current = await self.repo.get(user_id)
         if not current:
             raise ValueError("profile_not_found")
 
@@ -143,12 +149,12 @@ class Service:
         if current.email and current.email.lower() == normalized_email:
             raise ValueError("email_same")
 
-        if self.repo.email_in_use(normalized_email, exclude_user_id=user_id):
+        if await self.repo.email_in_use(normalized_email, exclude_user_id=user_id):
             raise ValueError("email_taken")
 
         token = uuid4().hex
         now = self._now()
-        self.repo.create_email_change_request(
+        await self.repo.create_email_change_request(
             user_id,
             email=normalized_email,
             token=token,
@@ -165,7 +171,7 @@ class Service:
         )
         return {"status": "pending", "pending_email": normalized_email, "token": token}
 
-    def confirm_email_change(
+    async def confirm_email_change(
         self,
         user_id: str,
         token: str,
@@ -176,7 +182,7 @@ class Service:
         if not isinstance(token, str) or not token.strip():
             raise ValueError("token_required")
 
-        updated = self.repo.confirm_email_change(
+        updated = await self.repo.confirm_email_change(
             user_id,
             token=token.strip(),
             now=self._now(),
@@ -192,7 +198,7 @@ class Service:
         )
         return self._to_dict(updated)
 
-    def set_wallet(
+    async def set_wallet(
         self,
         user_id: str,
         *,
@@ -205,7 +211,7 @@ class Service:
             raise PermissionError("denied")
         if not isinstance(address, str) or not address:
             raise ValueError("wallet_required")
-        updated = self.repo.set_wallet(
+        updated = await self.repo.set_wallet(
             user_id,
             address=address,
             chain_id=chain_id,
@@ -223,10 +229,10 @@ class Service:
         )
         return self._to_dict(updated)
 
-    def clear_wallet(self, user_id: str, subject: dict) -> dict[str, Any]:
+    async def clear_wallet(self, user_id: str, subject: dict) -> dict[str, Any]:
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
-        updated = self.repo.clear_wallet(user_id)
+        updated = await self.repo.clear_wallet(user_id)
         self.outbox.publish(
             "profile.wallet.cleared.v1",
             {"id": updated.id},

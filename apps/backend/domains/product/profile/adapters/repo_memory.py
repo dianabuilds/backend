@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
 
@@ -28,11 +28,11 @@ class MemoryRepo(Repo):
             last_email_change_at=profile.last_email_change_at,
         )
 
-    def get(self, user_id: str) -> Profile | None:  # noqa: A002
-        profile = self._profiles.get(id)
+    async def get(self, user_id: str) -> Profile | None:  # noqa: A002
+        profile = self._profiles.get(user_id)
         return self._copy(profile) if profile else None
 
-    def update_profile(
+    async def update_profile(
         self,
         user_id: str,
         *,
@@ -40,9 +40,9 @@ class MemoryRepo(Repo):
         set_username_timestamp: bool,
         now: datetime,
     ) -> Profile:
-        profile = self._profiles.get(id)
+        profile = self._profiles.get(user_id)
         if not profile:
-            profile = Profile(id=id)
+            profile = Profile(id=user_id)
         if "username" in updates:
             profile.username = updates["username"]  # type: ignore[assignment]
             if set_username_timestamp:
@@ -53,23 +53,24 @@ class MemoryRepo(Repo):
             profile.bio = updates["bio"]  # type: ignore[assignment]
         if "avatar_url" in updates:
             profile.avatar_url = updates["avatar_url"]  # type: ignore[assignment]
-        self._profiles[id] = self._copy(profile)
+        self._profiles[user_id] = self._copy(profile)
         return self._copy(profile)
 
-    def email_in_use(self, email: str, exclude_user_id: str | None = None) -> bool:
+    async def email_in_use(self, email: str, exclude_user_id: str | None = None) -> bool:
+        lowered = email.lower()
         for uid, profile in self._profiles.items():
             if exclude_user_id and uid == exclude_user_id:
                 continue
-            if profile.email and profile.email.lower() == email.lower():
+            if profile.email and profile.email.lower() == lowered:
                 return True
         for uid, (_, pending_email, _) in self._email_requests.items():
             if exclude_user_id and uid == exclude_user_id:
                 continue
-            if pending_email.lower() == email.lower():
+            if pending_email.lower() == lowered:
                 return True
         return False
 
-    def create_email_change_request(
+    async def create_email_change_request(
         self,
         user_id: str,
         *,
@@ -77,37 +78,37 @@ class MemoryRepo(Repo):
         token: str,
         requested_at: datetime,
     ) -> None:
-        profile = self._profiles.get(id)
+        profile = self._profiles.get(user_id)
         if not profile:
-            profile = Profile(id=id)
+            profile = Profile(id=user_id)
         profile.pending_email = email
         profile.email_change_requested_at = requested_at
-        self._profiles[id] = self._copy(profile)
-        self._email_requests[id] = (token, email, requested_at)
+        self._profiles[user_id] = self._copy(profile)
+        self._email_requests[user_id] = (token, email, requested_at)
 
-    def confirm_email_change(
+    async def confirm_email_change(
         self,
         user_id: str,
         *,
         token: str,
         now: datetime,
     ) -> Profile:
-        record = self._email_requests.get(id)
+        record = self._email_requests.get(user_id)
         if not record or record[0] != token:
             raise ValueError("email_change_not_found")
         _, email, _requested_at = record
-        profile = self._profiles.get(id)
+        profile = self._profiles.get(user_id)
         if not profile:
-            profile = Profile(id=id)
+            profile = Profile(id=user_id)
         profile.email = email
         profile.pending_email = None
         profile.email_change_requested_at = None
         profile.last_email_change_at = now
-        self._profiles[id] = self._copy(profile)
-        self._email_requests.pop(id, None)
+        self._profiles[user_id] = self._copy(profile)
+        self._email_requests.pop(user_id, None)
         return self._copy(profile)
 
-    def set_wallet(
+    async def set_wallet(
         self,
         user_id: str,
         *,
@@ -116,23 +117,23 @@ class MemoryRepo(Repo):
         signature: str | None,
         verified_at: datetime,
     ) -> Profile:
-        profile = self._profiles.get(id)
+        profile = self._profiles.get(user_id)
         if not profile:
-            profile = Profile(id=id)
+            profile = Profile(id=user_id)
         profile.wallet_address = address
         profile.wallet_chain_id = chain_id
         profile.wallet_verified_at = verified_at
-        self._profiles[id] = self._copy(profile)
+        self._profiles[user_id] = self._copy(profile)
         return self._copy(profile)
 
-    def clear_wallet(self, user_id: str) -> Profile:
-        profile = self._profiles.get(id)
+    async def clear_wallet(self, user_id: str) -> Profile:
+        profile = self._profiles.get(user_id)
         if not profile:
-            profile = Profile(id=id)
+            profile = Profile(id=user_id)
         profile.wallet_address = None
         profile.wallet_chain_id = None
         profile.wallet_verified_at = None
-        self._profiles[id] = self._copy(profile)
+        self._profiles[user_id] = self._copy(profile)
         return self._copy(profile)
 
 

@@ -18,9 +18,7 @@ def make_router() -> APIRouter:
         token = websocket.cookies.get("access_token") or None
         if not token:
             # allow token via query for dev
-            token = (
-                websocket.query_params.get("token") if websocket.query_params else None
-            )
+            token = websocket.query_params.get("token") if websocket.query_params else None
         user_id: str | None = None
         if token:
             try:

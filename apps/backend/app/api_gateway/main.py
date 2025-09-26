@@ -12,6 +12,7 @@ from fastapi.openapi.utils import get_openapi
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 
+from packages.core.db import get_async_engine
 from packages.core.errors import ApiError
 
 from .metrics_middleware import setup_http_metrics
@@ -218,11 +219,9 @@ async def readyz() -> dict:
         # DB check
         try:
             from sqlalchemy import text as _text  # type: ignore
-            from sqlalchemy.ext.asyncio import create_async_engine  # type: ignore
 
             s = load_settings()
-            dsn = str(s.database_url)
-            engine = create_async_engine(dsn)
+            engine = get_async_engine("readyz", url=s.database_url, cache=False)
             async with engine.begin() as conn:
                 await conn.execute(_text("SELECT 1"))
             details["database"] = True

@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from apps.backend import get_container
 from domains.platform.iam.security import (
@@ -12,6 +12,7 @@ from domains.platform.iam.security import (
     require_admin,
 )
 from packages.core.config import to_async_dsn
+from packages.core.db import get_async_engine
 
 
 def make_router() -> APIRouter:
@@ -37,11 +38,12 @@ def make_router() -> APIRouter:
     async def _ensure_engine(container) -> AsyncEngine | None:
         try:
             dsn = to_async_dsn(container.settings.database_url)
-            if not dsn:
-                return None
-            if "?" in dsn:
-                dsn = dsn.split("?", 1)[0]
-            return create_async_engine(dsn, future=True)
+        except Exception:
+            return None
+        if not dsn:
+            return None
+        try:
+            return get_async_engine("platform-users-search", url=dsn, cache=False, future=True)
         except Exception:
             return None
 

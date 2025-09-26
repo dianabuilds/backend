@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from urllib.parse import parse_qsl, urlsplit, urlunsplit
-
 from apps.backend import get_container
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from packages.core.config import to_async_dsn
+from packages.core.db import get_async_engine
 
 from ..dtos import OverviewDTO
 from ..rbac import require_scopes
@@ -35,16 +33,9 @@ async def get_overview(limit: int = 10, container=Depends(get_container)) -> Ove
                 charts={},
                 cards=[],
             )
-        u = urlsplit(dsn)
-        qdict = {k.lower(): v for k, v in parse_qsl(u.query, keep_blank_values=True)}
-        ssl_flag = None
-        if "ssl" in qdict:
-            ssl_flag = str(qdict["ssl"]).strip().lower() in {"1", "true", "yes"}
-        dsn_no_query = urlunsplit((u.scheme, u.netloc, u.path, "", u.fragment))
-        connect_args = {"connect_args": {}}  # type: ignore[var-annotated]
-        if ssl_flag is not None:
-            connect_args = {"connect_args": {"ssl": ssl_flag}}
-        eng = create_async_engine(dsn_no_query, future=True, **connect_args)
+
+        eng = get_async_engine("moderation-overview", url=dsn, cache=False, future=True)
+
         async with eng.begin() as conn:
             try:
                 rows = (

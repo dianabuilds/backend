@@ -277,11 +277,7 @@ class PlatformModerationService:
 
     def _get_sanctions_for_user(self, user: UserRecord) -> list[SanctionRecord]:
         return sorted(
-            [
-                self._sanctions[sid]
-                for sid in user.sanction_ids
-                if sid in self._sanctions
-            ],
+            [self._sanctions[sid] for sid in user.sanction_ids if sid in self._sanctions],
             key=lambda s: s.issued_at,
             reverse=True,
         )
@@ -414,23 +410,19 @@ class PlatformModerationService:
     def _user_to_summary(self, record: UserRecord) -> UserSummary:
         sanctions = self._get_sanctions_for_user(record)
         active_dtos = [
-            self._sanction_to_dto(s)
-            for s in sanctions
-            if s.status == SanctionStatus.active
+            self._sanction_to_dto(s) for s in sanctions if s.status == SanctionStatus.active
         ]
         last_dto = self._sanction_to_dto(sanctions[0]) if sanctions else None
         open_tickets = sum(
             1
             for tid in record.ticket_ids
             if tid in self._tickets
-            and self._tickets[tid].status
-            not in {TicketStatus.solved, TicketStatus.closed}
+            and self._tickets[tid].status not in {TicketStatus.solved, TicketStatus.closed}
         )
         appeals_active = sum(
             1
             for appeal in self._appeals.values()
-            if appeal.user_id == record.id
-            and appeal.status.lower() in {"new", "pending", "review"}
+            if appeal.user_id == record.id and appeal.status.lower() in {"new", "pending", "review"}
         )
         return UserSummary(
             id=record.id,
@@ -453,9 +445,7 @@ class PlatformModerationService:
 
     def _user_to_detail(self, record: UserRecord) -> UserDetail:
         base = self._user_to_summary(record)
-        sanctions = [
-            self._sanction_to_dto(s) for s in self._get_sanctions_for_user(record)
-        ]
+        sanctions = [self._sanction_to_dto(s) for s in self._get_sanctions_for_user(record)]
         reports = [
             self._report_to_dto(self._reports[rid])
             for rid in record.report_ids
@@ -467,9 +457,7 @@ class PlatformModerationService:
             if tid in self._tickets
         ]
         notes = [
-            self._note_to_dto(self._notes[nid])
-            for nid in record.note_ids
-            if nid in self._notes
+            self._note_to_dto(self._notes[nid]) for nid in record.note_ids if nid in self._notes
         ]
         data = base.model_dump()
         data.update(
@@ -536,10 +524,7 @@ class PlatformModerationService:
         )
         self._sanctions[sanction.id] = sanction
         user.sanction_ids.insert(0, sanction.id)
-        if (
-            sanction.type == SanctionType.ban
-            and sanction.status == SanctionStatus.active
-        ):
+        if sanction.type == SanctionType.ban and sanction.status == SanctionStatus.active:
             user.status = "banned"
         return sanction
 
@@ -1057,16 +1042,10 @@ class PlatformModerationService:
             except ValueError as exc:
                 raise ValueError("invalid_sanction_type") from exc
             status_value = body.get("status")
-            status = (
-                SanctionStatus(str(status_value))
-                if status_value
-                else SanctionStatus.active
-            )
+            status = SanctionStatus(str(status_value)) if status_value else SanctionStatus.active
             now = self._now()
             starts_at = self._parse_datetime(body.get("starts_at")) or now
-            ends_at = self._parse_datetime(
-                body.get("ends_at") or body.get("expires_at")
-            )
+            ends_at = self._parse_datetime(body.get("ends_at") or body.get("expires_at"))
             duration_hours = body.get("duration_hours")
             if ends_at is None and duration_hours is not None:
                 try:
@@ -1090,10 +1069,7 @@ class PlatformModerationService:
             if idempotency_key:
                 self._idempotency[idempotency_key] = sanction.id
             # Auto-ban after 3 warnings within 10 days
-            if (
-                stype == SanctionType.warning
-                and sanction.status == SanctionStatus.active
-            ):
+            if stype == SanctionType.warning and sanction.status == SanctionStatus.active:
                 recent = 0
                 since = now - timedelta(days=10)
                 for sid in user.sanction_ids:
@@ -1153,9 +1129,7 @@ class PlatformModerationService:
             metadata = body.get("meta") or body.get("metadata")
             if metadata:
                 sanction.meta.update(dict(metadata))
-            if body.get("revoke") or (
-                body.get("status") == SanctionStatus.canceled.value
-            ):
+            if body.get("revoke") or (body.get("status") == SanctionStatus.canceled.value):
                 sanction.status = SanctionStatus.canceled
                 sanction.revoked_at = self._now()
                 sanction.revoked_by = actor_id or body.get("revoked_by") or "system"
@@ -1297,9 +1271,7 @@ class PlatformModerationService:
                 "decision": decision_entry,
             }
 
-    async def edit_content(
-        self, content_id: str, patch: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def edit_content(self, content_id: str, patch: dict[str, Any]) -> dict[str, Any]:
         async with self._lock:
             content = self._content.get(content_id)
             if not content:
@@ -1459,9 +1431,7 @@ class PlatformModerationService:
             filtered.append(ticket)
 
         filtered.sort(
-            key=lambda t: t.updated_at
-            or t.created_at
-            or datetime.min.replace(tzinfo=UTC),
+            key=lambda t: t.updated_at or t.created_at or datetime.min.replace(tzinfo=UTC),
             reverse=True,
         )
         chunk, next_cursor = self._paginate(filtered, limit, cursor)
@@ -1526,9 +1496,7 @@ class PlatformModerationService:
                 ticket.unread_count = max(ticket.unread_count, 0) + 1
             return self._ticket_message_to_dto(message)
 
-    async def update_ticket(
-        self, ticket_id: str, patch: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def update_ticket(self, ticket_id: str, patch: dict[str, Any]) -> dict[str, Any]:
         async with self._lock:
             ticket = self._tickets.get(ticket_id)
             if not ticket:
@@ -1674,9 +1642,7 @@ class PlatformModerationService:
                 "decided_at": self._iso(appeal.decided_at),
             }
 
-    async def list_rules(
-        self, limit: int = 50, cursor: str | None = None
-    ) -> dict[str, Any]:
+    async def list_rules(self, limit: int = 50, cursor: str | None = None) -> dict[str, Any]:
         async with self._lock:
             rules = list(self._ai_rules.values())
         rules.sort(
@@ -1798,16 +1764,12 @@ class PlatformModerationService:
             "rule": self._ai_rule_to_dto(rule),
         }
 
-    async def rules_history(
-        self, limit: int = 50, cursor: str | None = None
-    ) -> dict[str, Any]:
+    async def rules_history(self, limit: int = 50, cursor: str | None = None) -> dict[str, Any]:
         async with self._lock:
             history_entries: list[dict[str, Any]] = []
             for rule in self._ai_rules.values():
                 for entry in rule.history:
-                    history_entries.append(
-                        {**entry, "rule_id": rule.id, "category": rule.category}
-                    )
+                    history_entries.append({**entry, "rule_id": rule.id, "category": rule.category})
         history_entries.sort(key=lambda e: e.get("updated_at") or "", reverse=True)
         chunk, next_cursor = self._paginate(history_entries, limit, cursor)
         return {"items": chunk, "next_cursor": next_cursor}
@@ -1816,9 +1778,7 @@ class PlatformModerationService:
         async with self._lock:
             reports = list(self._reports.values())
             tickets = list(self._tickets.values())
-            sanctions = sorted(
-                self._sanctions.values(), key=lambda s: s.issued_at, reverse=True
-            )
+            sanctions = sorted(self._sanctions.values(), key=lambda s: s.issued_at, reverse=True)
             content_items = list(self._content.values())
             appeals = list(self._appeals.values())
 
@@ -1829,9 +1789,7 @@ class PlatformModerationService:
 
         tickets_block = {
             "open": sum(
-                1
-                for t in tickets
-                if t.status not in {TicketStatus.closed, TicketStatus.solved}
+                1 for t in tickets if t.status not in {TicketStatus.closed, TicketStatus.solved}
             ),
             "waiting": sum(1 for t in tickets if t.status == TicketStatus.waiting),
             "appeals_open": sum(
@@ -1866,9 +1824,7 @@ class PlatformModerationService:
                 actor = (history.get("actor") or "").lower()
                 if "ai" in actor:
                     ai_decisions += 1
-        ai_share = (
-            float(ai_decisions) / float(total_decisions) if total_decisions else 0.0
-        )
+        ai_share = float(ai_decisions) / float(total_decisions) if total_decisions else 0.0
 
         cards: list[CardDTO] = []
         flagged_users = [
@@ -1887,9 +1843,7 @@ class PlatformModerationService:
                     meta=user_summary.meta,
                     actions=[
                         CardAction(key="open_user", label="Open", kind="primary"),
-                        CardAction(
-                            key="lift_sanctions", label="Lift sanction", kind="danger"
-                        ),
+                        CardAction(key="lift_sanctions", label="Lift sanction", kind="danger"),
                     ],
                     roleVisibility=["Admin", "Moderator"],
                 )

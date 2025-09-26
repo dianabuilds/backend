@@ -27,9 +27,7 @@ class MemoryTagsRepo(Repo):
         offset: int,
         content_type: str | None = None,
     ) -> list[TagView]:
-        rows = self._store.list_for_user(
-            user_id, q, popular, limit, offset, content_type
-        )
+        rows = self._store.list_for_user(user_id, q, popular, limit, offset, content_type)
         out: list[TagView] = []
         for slug, count in rows:
             out.append(

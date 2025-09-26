@@ -13,9 +13,7 @@ class RedisQuotaDAO(QuotaDAO):
     def _key(key: str, period: str, user_id: str) -> str:
         return f"q:{key}:{period}:{user_id}"
 
-    async def incr(
-        self, *, user_id: str, key: str, period: str, amount: int, ttl: int
-    ) -> int:
+    async def incr(self, *, user_id: str, key: str, period: str, amount: int, ttl: int) -> int:
         redis_key = self._key(key, period, user_id)
         new_value = await self._r.incrby(redis_key, amount)
         if int(new_value) == int(amount):

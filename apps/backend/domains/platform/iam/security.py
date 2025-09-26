@@ -9,7 +9,8 @@ from domains.platform.users.application.service import (
     ROLE_ORDER,
     UsersService,
 )
-from packages.core.config import load_settings
+from packages.core.config import load_settings, to_async_dsn
+from packages.core.db import get_async_engine
 
 
 def _is_local_host(host: str | None) -> bool:
@@ -65,12 +66,9 @@ async def get_current_user(req: Request) -> dict[str, Any]:
         claims = _decode(token)
         # Enforce global ban from SQL sanctions (if table exists)
         try:
-            from urllib.parse import parse_qsl, urlsplit, urlunsplit
+            from urllib.parse import urlsplit
 
             from sqlalchemy import text
-            from sqlalchemy.ext.asyncio import create_async_engine
-
-            from packages.core.config import to_async_dsn
 
             uid = str(claims.get("sub") or "")
             cfg = load_settings()
@@ -81,15 +79,7 @@ async def get_current_user(req: Request) -> dict[str, Any]:
                     u = urlsplit(dsn)
                     if not host_allowed and not _is_local_host(u.hostname):
                         raise RuntimeError("remote_database_access_disabled")
-                    q = {k.lower(): v for k, v in parse_qsl(u.query, keep_blank_values=True)}
-                    ssl_flag = None
-                    if "ssl" in q:
-                        ssl_flag = str(q["ssl"]).strip().lower() in {"1", "true", "yes"}
-                    dsn_no_query = urlunsplit((u.scheme, u.netloc, u.path, "", u.fragment))
-                    kwargs = {"connect_args": {}}  # type: ignore[var-annotated]
-                    if ssl_flag is not None:
-                        kwargs = {"connect_args": {"ssl": ssl_flag}}
-                    eng = create_async_engine(dsn_no_query, future=True, **kwargs)
+                    eng = get_async_engine("iam-security-check", url=dsn, cache=False, future=True)
                     async with eng.begin() as conn:
                         exists_tbl = (
                             await conn.execute(
@@ -102,18 +92,14 @@ async def get_current_user(req: Request) -> dict[str, Any]:
                             banned = (
                                 await conn.execute(
                                     text(
-                                        """
-                                SELECT 1 FROM user_sanctions
-                                WHERE user_id = cast(:id as uuid) AND type = 'ban' AND status = 'active'
-                                  AND starts_at <= now() AND (ends_at IS NULL OR ends_at > now())
-                                LIMIT 1
-                            """
+                                        "SELECT 1 FROM user_sanctions WHERE user_id = cast(:id as uuid) AND type = 'ban' AND status = 'active' AND starts_at <= now() AND (ends_at IS NULL OR ends_at > now()) LIMIT 1"
                                     ),
                                     {"id": uid},
                                 )
                             ).first()
                             if banned:
                                 raise HTTPException(status_code=403, detail="banned")
+                    await eng.dispose()
         except HTTPException:
             raise
         except Exception:

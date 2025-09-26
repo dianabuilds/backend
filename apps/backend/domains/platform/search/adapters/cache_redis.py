@@ -41,10 +41,7 @@ class RedisSearchCache(SearchCache):
             return None
 
     async def set(self, key: str, hits: list[Hit]) -> None:
-        arr = [
-            {"id": h.id, "score": h.score, "title": h.title, "tags": list(h.tags)}
-            for h in hits
-        ]
+        arr = [{"id": h.id, "score": h.score, "title": h.title, "tags": list(h.tags)} for h in hits]
         await self._r.set(key, json.dumps(arr), ex=self._ttl)
 
     async def bump_version(self) -> None:

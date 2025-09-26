@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { PageHeader } from '@ui';
 
@@ -39,7 +39,7 @@ const questsTabs: ContentTab[] = [
 ];
 
 const notificationsTabs: ContentTab[] = [
-  { to: '/notifications', label: 'Campaigns' },
+  { to: '/notifications', label: 'Broadcasts' },
   { to: '/notifications/templates', label: 'Templates' },
   { to: '/notifications/channels', label: 'Channels' },
   { to: '/notifications/history', label: 'History' },
@@ -49,7 +49,7 @@ const presetDescriptions: Record<ContentContext, React.ReactNode> = {
   legacy: 'Unified workspace for narrative objects, tagging, relations, and experimentation across the Flavour Trip worlds.',
   nodes: 'Dedicated cockpit for the narrative graph: monitor, grow, and curate nodes powering every player journey.',
   quests: 'Plan, validate, and launch quests with confidence - from authoring pipelines to AI-assisted ideation.',
-  notifications: 'Coordinate announcements, automate campaigns, and keep every player cohort informed.',
+  notifications: 'Coordinate announcements, automate broadcasts, and keep every player cohort informed.',
 };
 
 const buttonBase = 'btn-base btn h-9 rounded-full px-4 text-sm font-medium shadow-sm transition focus-visible:outline-none focus-visible:ring-2';
@@ -102,7 +102,7 @@ const questsActions = (
 const notificationsActions = (
   <div className="flex flex-wrap items-center gap-2">
     <NavLink to="/notifications?compose=1" className={primaryBtn}>
-      New campaign
+      New broadcast
     </NavLink>
     <NavLink to="/notifications/templates" className={outlineBtn}>
       Manage templates
@@ -200,3 +200,4 @@ export function ContentLayout({
     </div>
   );
 }
+

@@ -12,6 +12,4 @@ class Repo(Protocol):
 
     async def create_case(self, payload: dict) -> str: ...  # returns case_id
 
-    async def add_note(
-        self, case_id: str, note: dict, *, author_id: str | None
-    ) -> dict | None: ...
+    async def add_note(self, case_id: str, note: dict, *, author_id: str | None) -> dict | None: ...

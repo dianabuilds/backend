@@ -1,36 +1,22 @@
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.billing.ports import CryptoConfigRepo
+from packages.core.db import get_async_engine
 
-
-def _normalize_async_dsn(url: str) -> str:
-    # Ensure async driver and strip libpq-only params (sslmode)
-    out = url
-    if out.startswith("postgresql://"):
-        out = "postgresql+asyncpg://" + out[len("postgresql://") :]
-    try:
-        u = urlparse(out)
-        q = dict(parse_qsl(u.query, keep_blank_values=True))
-        if "sslmode" in q:
-            # asyncpg does not accept sslmode in URL; remove it
-            q.pop("sslmode", None)
-        new_q = urlencode(q)
-        out = urlunparse((u.scheme, u.netloc, u.path, u.params, new_q, u.fragment))
-    except Exception:
-        pass
-    return out
+from .dsn_utils import normalize_async_dsn
 
 
 class SQLCryptoConfigRepo(CryptoConfigRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         if isinstance(engine, str):
-            self._engine = create_async_engine(_normalize_async_dsn(engine))
+            self._engine = get_async_engine(
+                "billing-crypto-config", url=normalize_async_dsn(engine)
+            )
         else:
             self._engine = engine
 

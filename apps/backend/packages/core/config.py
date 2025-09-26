@@ -5,6 +5,87 @@ from typing import Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from pydantic import AliasChoices, AnyUrl, Field, ValidationError, field_validator
+
+TRUTHY_SSL_VALUES = {
+    "require",
+    "verify-full",
+    "verify-ca",
+    "allow",
+    "prefer",
+    "true",
+    "1",
+    "yes",
+    "on",
+}
+FALSY_SSL_VALUES = {"disable", "false", "0", "no", "off"}
+
+
+def _map_ssl_value(value: str | None) -> str:
+    if value is None:
+        return "true"
+    normalized = str(value).strip().lower()
+    if normalized in FALSY_SSL_VALUES:
+        return "false"
+    if normalized in TRUTHY_SSL_VALUES:
+        return "true"
+    return "true"
+
+
+def _coerce_async_scheme(url: str) -> str:
+    if url.startswith("postgresql+asyncpg://"):
+        return url
+    if url.startswith("postgresql://"):
+        return "postgresql+asyncpg://" + url[len("postgresql://") :]
+    return url
+
+
+def _normalize_async_ssl(url: str) -> str:
+    try:
+        parsed = urlparse(url)
+        raw_pairs = parse_qsl(parsed.query, keep_blank_values=True)
+        ssl_value: str | None = None
+        filtered: list[tuple[str, str]] = []
+        for key, value in raw_pairs:
+            lower = key.lower()
+            if lower == "sslmode":
+                ssl_value = _map_ssl_value(value)
+                continue
+            if lower == "ssl":
+                ssl_value = _map_ssl_value(value)
+                continue
+            filtered.append((key, value))
+        if ssl_value is not None:
+            filtered.append(("ssl", ssl_value))
+        new_query = urlencode(filtered)
+        url = urlunparse(
+            (
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                new_query,
+                parsed.fragment,
+            )
+        )
+    except Exception:
+        return url
+    try:
+        url = re.sub(
+            r"([?&])sslmode=[^&]*(&|$)",
+            lambda m: m.group(1) if m.group(2) == "&" else "",
+            url,
+            flags=re.IGNORECASE,
+        )
+        url = re.sub(r"[?&]$", "", url)
+    except Exception:
+        pass
+    return url
+
+
+def sanitize_async_dsn(url: AnyUrl | str) -> str:
+    return _normalize_async_ssl(_coerce_async_scheme(str(url)))
+
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +101,14 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalize_database_url(cls, value):  # type: ignore[override]
+        try:
+            return sanitize_async_dsn(value)
+        except Exception:
+            return value
 
     # base
     env: Literal["dev", "test", "prod"] = "dev"
@@ -126,67 +215,7 @@ class Settings(BaseSettings):
 
 
 def to_async_dsn(url: AnyUrl) -> str:
-    """Convert sync Postgres URL to asyncpg URL for SQLAlchemy Async.
-
-    - If already an async URL, returns as-is.
-    - Convert libpq-style `sslmode` to asyncpg-compatible `ssl` flag to avoid
-      `TypeError: connect() got an unexpected keyword argument 'sslmode'`.
-    """
-    s = str(url)
-    # Normalize scheme first
-    if s.startswith("postgresql+asyncpg://"):
-        out = s
-    elif s.startswith("postgresql://"):
-        out = "postgresql+asyncpg://" + s[len("postgresql://") :]
-    else:
-        out = s
-
-    # Map/normalize ssl params for asyncpg: remove sslmode always
-    try:
-        u = urlparse(out)
-        raw_pairs = parse_qsl(u.query)
-        q: dict[str, str] = {}
-        sslmode_val: str | None = None
-        ssl_flag: str | None = None
-        for key, value in raw_pairs:
-            lower_key = key.lower()
-            if lower_key == "sslmode":
-                sslmode_val = value
-                continue
-            if lower_key == "ssl" and ssl_flag is None:
-                ssl_flag = str(value)
-                continue
-            q[key] = value
-        if sslmode_val is not None:
-            mode = str(sslmode_val).strip().lower()
-            if mode in ("require", "verify-full", "verify-ca"):
-                ssl_flag = "true"
-            elif mode in ("disable", "allow", "prefer", "0", "false"):
-                ssl_flag = "false"
-            else:
-                # Unknown value -> default to non-SSL to avoid client errors
-                ssl_flag = "false"
-        if ssl_flag is not None:
-            q["ssl"] = ssl_flag
-        new_query = urlencode(q)
-        out = urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
-    except Exception:
-        # if parsing fails, return as-is
-        pass
-
-    # Final guard: strip any lingering sslmode from the full DSN string
-    try:
-        out = re.sub(
-            r"([?&])sslmode=[^&]*(&|$)",
-            lambda m: m.group(1) if m.group(2) == "&" else "",
-            out,
-            flags=re.IGNORECASE,
-        )
-        # Remove possible trailing '?' or '&'
-        out = re.sub(r"[?&]$", "", out)
-    except Exception:
-        pass
-    return out
+    return sanitize_async_dsn(url)
 
 
 def load_settings() -> Settings:

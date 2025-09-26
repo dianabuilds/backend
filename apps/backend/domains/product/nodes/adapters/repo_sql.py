@@ -1,21 +1,16 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
 import os
 import secrets
 from collections.abc import Sequence
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sqlalchemy import Text, bindparam, text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.nodes.application.ports import NodeDTO, Repo
-
-try:
-    from packages.core.config import to_async_dsn as _to_async_dsn  # type: ignore[misc]
-except Exception:  # pragma: no cover - optional import fallback
-    _to_async_dsn = None
+from packages.core.db import get_async_engine
 
 
 def _format_vector(values: Sequence[float] | None) -> str | None:
@@ -79,49 +74,10 @@ _VECTOR_SQL_TYPE = f"vector({_VECTOR_DIM})"
 
 class SQLNodesRepo(Repo):
     def __init__(self, engine: AsyncEngine | str) -> None:
-        if isinstance(engine, str):
-            dsn = str(engine)
-            try:
-                if _to_async_dsn is not None:
-                    dsn = _to_async_dsn(dsn)  # type: ignore[misc]
-            except Exception:
-                pass
-            ssl_flag = None
-            try:
-                parsed = urlparse(dsn)
-                query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
-                new_pairs = []
-                for key, value in query_pairs:
-                    lower = key.lower()
-                    if lower == "ssl":
-                        ssl_flag = str(value).strip().lower() in {"1", "true", "yes"}
-                        continue
-                    if lower == "sslmode":
-                        val = str(value).strip().lower()
-                        if val in {"require", "verify-full", "verify-ca"}:
-                            ssl_flag = True
-                        elif val in {"disable", "allow", "prefer", "0", "false"}:
-                            ssl_flag = False
-                        continue
-                    new_pairs.append((key, value))
-                dsn = urlunparse(
-                    (
-                        parsed.scheme,
-                        parsed.netloc,
-                        parsed.path,
-                        parsed.params,
-                        urlencode(new_pairs),
-                        parsed.fragment,
-                    )
-                )
-            except Exception:
-                pass
-            kwargs: dict = {}
-            if ssl_flag is not None:
-                kwargs["connect_args"] = {"ssl": ssl_flag}
-            self._engine = create_async_engine(dsn, **kwargs)
-        else:
+        if isinstance(engine, AsyncEngine):
             self._engine = engine
+        else:
+            self._engine = get_async_engine("nodes", url=engine)
 
     async def _load_tags(self, conn, node_ids: Sequence[int]) -> dict[int, list[str]]:
         if not node_ids:

@@ -9,9 +9,7 @@ from domains.platform.iam.security import require_admin
 
 
 def make_router() -> APIRouter:
-    router = APIRouter(
-        prefix="/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)]
-    )
+    router = APIRouter(prefix="/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
     @router.get("/health")
     async def health() -> dict[str, Any]:

@@ -32,9 +32,7 @@ class MemoryRepo(Repo):
             return None
         return w if w.workspace_id == workspace_id else None
 
-    def create_world(
-        self, workspace_id: str, data: dict, actor_id: str
-    ) -> WorldTemplate:
+    def create_world(self, workspace_id: str, data: dict, actor_id: str) -> WorldTemplate:
         wid = _uuid()
         w = WorldTemplate(
             id=wid,

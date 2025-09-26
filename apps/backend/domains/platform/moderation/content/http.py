@@ -4,21 +4,20 @@ import json
 import logging
 from datetime import UTC, datetime
 from typing import Any
-from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 from apps.backend import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from packages.core.config import to_async_dsn
+from packages.core.db import get_async_engine
 
 from ..dtos import ContentStatus, ContentSummary, ContentType
 from ..rbac import require_scopes
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/content", tags=["moderation-content"])
-_ENGINE_CACHE: dict[str, AsyncEngine] = {}
 
 
 def _iso(dt: Any) -> str | None:
@@ -76,26 +75,8 @@ def _get_engine(settings) -> AsyncEngine | None:
         return None
     if not dsn:
         return None
-    key = str(dsn)
-    engine = _ENGINE_CACHE.get(key)
-    if engine is not None:
-        return engine
     try:
-        parts = urlsplit(dsn)
-        qdict = {k.lower(): v for k, v in parse_qsl(parts.query, keep_blank_values=True)}
-        ssl_flag: bool | None = None
-        if "ssl" in qdict:
-            try:
-                ssl_flag = str(qdict["ssl"]).strip().lower() in {"1", "true", "yes"}
-            except Exception:
-                ssl_flag = None
-        base_dsn = urlunsplit((parts.scheme, parts.netloc, parts.path, "", parts.fragment))
-        kwargs: dict[str, Any] = {"future": True}
-        if ssl_flag is not None:
-            kwargs["connect_args"] = {"ssl": ssl_flag}
-        engine = create_async_engine(base_dsn, **kwargs)
-        _ENGINE_CACHE[key] = engine
-        return engine
+        return get_async_engine("moderation-content", url=dsn, future=True)
     except Exception:
         logger.exception("moderation content: failed to create async engine")
         return None

@@ -1,13 +1,12 @@
-﻿import logging
+import logging
 from typing import Any
-from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 from apps.backend import get_container
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from packages.core.config import to_async_dsn
+from packages.core.db import get_async_engine
 
 from ..dtos import SanctionDTO, UserDetail
 from ..rbac import require_scopes
@@ -31,17 +30,9 @@ async def list_users(
         dsn = to_async_dsn(container.settings.database_url)
         if not dsn:
             return {"items": [], "next_cursor": None}
-        u = urlsplit(dsn)
-        qdict = {k.lower(): v for k, v in parse_qsl(u.query, keep_blank_values=True)}
-        ssl_flag = None
-        if "ssl" in qdict:
-            ssl_flag = str(qdict["ssl"]).strip().lower() in {"1", "true", "yes"}
-        dsn_no_query = urlunsplit((u.scheme, u.netloc, u.path, "", u.fragment))
-        connect_args = {"connect_args": {}}  # type: ignore[var-annotated]
-        if ssl_flag is not None:
-            connect_args = {"connect_args": {"ssl": ssl_flag}}
 
-        eng = create_async_engine(dsn_no_query, future=True, **connect_args)
+        eng = get_async_engine("moderation-users-list", url=dsn, cache=False, future=True)
+
         qp = f"%{(q or '').strip()}%"
         try:
             offset = int(cursor or 0)
@@ -183,16 +174,11 @@ async def list_users(
             dsn = to_async_dsn(container.settings.database_url)
             if not dsn:
                 return {"items": [], "next_cursor": None}
-            u = urlsplit(dsn)
-            qdict = {k.lower(): v for k, v in parse_qsl(u.query, keep_blank_values=True)}
-            ssl_flag = None
-            if "ssl" in qdict:
-                ssl_flag = str(qdict["ssl"]).strip().lower() in {"1", "true", "yes"}
-            dsn_no_query = urlunsplit((u.scheme, u.netloc, u.path, "", u.fragment))
-            connect_args = {"connect_args": {}}
-            if ssl_flag is not None:
-                connect_args = {"connect_args": {"ssl": ssl_flag}}
-            eng = create_async_engine(dsn_no_query, future=True, **connect_args)
+
+            eng = get_async_engine(
+                "moderation-users-list-fallback", url=dsn, cache=False, future=True
+            )
+
             qp = f"%{(q or '').strip()}%"
             try:
                 offset = int(cursor or 0)
@@ -261,16 +247,9 @@ async def get_user(user_id: str, container=Depends(get_container)) -> UserDetail
         dsn = to_async_dsn(container.settings.database_url)
         if not dsn:
             raise KeyError("no_dsn")
-        u = urlsplit(dsn)
-        qdict = {k.lower(): v for k, v in parse_qsl(u.query, keep_blank_values=True)}
-        ssl_flag = None
-        if "ssl" in qdict:
-            ssl_flag = str(qdict["ssl"]).strip().lower() in {"1", "true", "yes"}
-        dsn_no_query = urlunsplit((u.scheme, u.netloc, u.path, "", u.fragment))
-        connect_args = {"connect_args": {}}
-        if ssl_flag is not None:
-            connect_args = {"connect_args": {"ssl": ssl_flag}}
-        eng = create_async_engine(dsn_no_query, future=True, **connect_args)
+
+        eng = get_async_engine("moderation-users-detail", url=dsn, cache=False, future=True)
+
         async with eng.begin() as conn:
             # detect user_roles
             have_user_roles = bool(
@@ -361,16 +340,8 @@ async def update_roles(
         dsn = to_async_dsn(container.settings.database_url)
         if not dsn:
             raise KeyError("no_dsn")
-        u = urlsplit(dsn)
-        qdict = {k.lower(): v for k, v in parse_qsl(u.query, keep_blank_values=True)}
-        ssl_flag = None
-        if "ssl" in qdict:
-            ssl_flag = str(qdict["ssl"]).strip().lower() in {"1", "true", "yes"}
-        dsn_no_query = urlunsplit((u.scheme, u.netloc, u.path, "", u.fragment))
-        connect_args = {"connect_args": {}}
-        if ssl_flag is not None:
-            connect_args = {"connect_args": {"ssl": ssl_flag}}
-        eng = create_async_engine(dsn_no_query, future=True, **connect_args)
+
+        eng = get_async_engine("moderation-users-roles", url=dsn, cache=False, future=True)
 
         async with eng.begin() as conn:
             # ensure user exists
@@ -501,16 +472,9 @@ async def issue_sanction(
         try:
             dsn = to_async_dsn(container.settings.database_url)
             if dsn:
-                u = urlsplit(dsn)
-                qdict = {k.lower(): v for k, v in parse_qsl(u.query, keep_blank_values=True)}
-                ssl_flag = None
-                if "ssl" in qdict:
-                    ssl_flag = str(qdict["ssl"]).strip().lower() in {"1", "true", "yes"}
-                dsn_no_query = urlunsplit((u.scheme, u.netloc, u.path, "", u.fragment))
-                connect_args = {"connect_args": {}}
-                if ssl_flag is not None:
-                    connect_args = {"connect_args": {"ssl": ssl_flag}}
-                eng = create_async_engine(dsn_no_query, future=True, **connect_args)
+                eng = get_async_engine(
+                    "moderation-users-sanction-bootstrap", url=dsn, cache=False, future=True
+                )
                 async with eng.begin() as conn:
                     row = (
                         (
@@ -548,16 +512,9 @@ async def issue_sanction(
         try:
             dsn = to_async_dsn(container.settings.database_url)
             if dsn:
-                u = urlsplit(dsn)
-                qdict = {k.lower(): v for k, v in parse_qsl(u.query, keep_blank_values=True)}
-                ssl_flag = None
-                if "ssl" in qdict:
-                    ssl_flag = str(qdict["ssl"]).strip().lower() in {"1", "true", "yes"}
-                dsn_no_query = urlunsplit((u.scheme, u.netloc, u.path, "", u.fragment))
-                connect_args = {"connect_args": {}}
-                if ssl_flag is not None:
-                    connect_args = {"connect_args": {"ssl": ssl_flag}}
-                eng = create_async_engine(dsn_no_query, future=True, **connect_args)
+                eng = get_async_engine(
+                    "moderation-users-sanction-store", url=dsn, cache=False, future=True
+                )
                 async with eng.begin() as conn:
                     # ensure table exists
                     exists_tbl = (

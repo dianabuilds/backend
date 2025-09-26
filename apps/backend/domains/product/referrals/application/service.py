@@ -38,9 +38,7 @@ class ReferralsService:
             meta["ip"] = ip
         if ua:
             meta["ua"] = ua
-        evt = await self.repo.record_signup(
-            code=code, referee_user_id=referee_user_id, meta=meta
-        )
+        evt = await self.repo.record_signup(code=code, referee_user_id=referee_user_id, meta=meta)
         try:
             if evt and self.outbox:
                 self.outbox.publish(
@@ -60,11 +58,7 @@ class ReferralsService:
         try:
             if code and self.outbox:
                 self.outbox.publish(
-                    (
-                        "referral.code.activated.v1"
-                        if active
-                        else "referral.code.deactivated.v1"
-                    ),
+                    ("referral.code.activated.v1" if active else "referral.code.deactivated.v1"),
                     {"owner_user_id": owner_user_id, "code": code.code},
                 )
         except Exception:

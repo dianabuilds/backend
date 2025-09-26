@@ -1,14 +1,17 @@
+
 import React from 'react';
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  label?: string;
-  error?: string;
+  label?: React.ReactNode;
+  error?: React.ReactNode;
   prefix?: React.ReactNode;
+  hint?: React.ReactNode;
+  description?: React.ReactNode;
 };
 
 // Native template classes: input-label, input-wrapper, form-input-base, form-input
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, prefix, className = '', ...props }, ref) => {
+  ({ label, error, prefix, hint, description, className = '', ...props }, ref) => {
     const inputCls = [
       'form-input-base',
       'form-input',
@@ -19,11 +22,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       .filter(Boolean)
       .join(' ');
 
+    const isPlainLabel = typeof label === 'string' || typeof label === 'number';
     const labelText = label ? (
       <label className="input-label">
-        <span className="input-label">{label}</span>
+        {isPlainLabel ? <span className="input-label">{label}</span> : label}
       </label>
     ) : null;
+
+    const helper = description ?? hint;
+    const showError = error && typeof error !== 'boolean';
 
     return (
       <div className="input-root">
@@ -36,7 +43,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </div>
           )}
         </div>
+        {showError && <div className="mt-1 text-xs text-error">{error}</div>}
+        {helper && !showError && (
+          <span className="input-description dark:text-dark-300 mt-1 text-xs text-gray-400">{helper}</span>
+        )}
       </div>
     );
   },
 );
+

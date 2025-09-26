@@ -67,7 +67,7 @@ from domains.product.tags.adapters.usage_sql_writer import (
     register_tags_usage_writer,
 )
 from packages.core import Flags
-from packages.core.config import Settings, load_settings
+from packages.core.config import Settings, load_settings, to_async_dsn
 
 """DI wiring for DDD app: only DDD imports, no monolith references."""
 
@@ -206,8 +206,8 @@ def build_container(env: str = "dev") -> Container:
 
     # Try SQL repo for Profile if DB reachable (no event-loop gymnastics)
     try:
-        dsn = str(settings.database_url)
-        if _db_reachable(dsn, allow_remote=allow_remote_db):
+        dsn = to_async_dsn(settings.database_url)
+        if dsn and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
             svc = ProfileService(repo=SQLProfileRepo(dsn), outbox=outbox, iam=iam, flags=Flags())
     except Exception:
         pass
@@ -284,7 +284,7 @@ def build_container(env: str = "dev") -> Container:
                     "author_id": it.author_id,
                     "title": it.title,
                     "tags": list(it.tags),
-                    "embedding": list(it.embedding) if it.embedding is not None else None,
+                    "embedding": (list(it.embedding) if it.embedding is not None else None),
                     "is_public": it.is_public,
                 }
                 for it in items
@@ -315,7 +315,7 @@ def build_container(env: str = "dev") -> Container:
                     "author_id": it.author_id,
                     "title": it.title,
                     "tags": list(it.tags),
-                    "embedding": list(it.embedding) if it.embedding is not None else None,
+                    "embedding": (list(it.embedding) if it.embedding is not None else None),
                     "is_public": it.is_public,
                 }
                 for it in items
@@ -346,10 +346,6 @@ def build_container(env: str = "dev") -> Container:
         from packages.core.config import to_async_dsn as _to_async
 
         dsn_worlds = _to_async(settings.database_url)
-        # Some providers append libpq/psycopg-only params (sslmode, options, etc.)
-        # Trim query to keep asyncpg happy.
-        if isinstance(dsn_worlds, str) and "?" in dsn_worlds:
-            dsn_worlds = dsn_worlds.split("?", 1)[0]
         if dsn_worlds and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
             worlds_repo = SQLWorldsRepo(dsn_worlds)  # type: ignore[assignment]
     except Exception:
@@ -394,7 +390,6 @@ def build_container(env: str = "dev") -> Container:
         for t in str(settings.notify_topics or settings.event_topics).split(",")
         if t.strip()
     ]
-    register_event_relays(events, notify_topics)
     iam = build_iam_container(settings)
     search = build_search_container()
     # Index incoming events into search
@@ -413,7 +408,8 @@ def build_container(env: str = "dev") -> Container:
     audit = build_audit_container()
     billing = build_billing_container(settings)
     flags = build_flags_container(settings)
-    notifications = build_notifications_container(settings)
+    notifications = build_notifications_container(settings, flag_service=flags.service)
+    register_event_relays(events, notify_topics, delivery=notifications.delivery)
     users = build_users_container(settings)
     return Container(
         settings=settings,

@@ -13,5 +13,8 @@ def test_premium_me_limits_free_plan(app_client):
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["plan"] == "free"
-    assert "limits" in body and "stories" in body["limits"]["month"] or "month" in body["limits"]["stories"]
-
+    assert (
+        "limits" in body
+        and "stories" in body["limits"]["month"]
+        or "month" in body["limits"]["stories"]
+    )

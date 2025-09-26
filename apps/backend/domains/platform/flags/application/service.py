@@ -45,15 +45,11 @@ class FlagService:
         f = Flag(
             slug=str(data["slug"]).strip(),
             enabled=bool(data.get("enabled", True)),
-            description=(
-                str(data.get("description")) if data.get("description") else None
-            ),
+            description=(str(data.get("description")) if data.get("description") else None),
             rollout=int(data.get("rollout", 100)),
             users=set(map(str, data.get("users") or [])),
             roles=set(map(str, data.get("roles") or [])),
-            meta=(
-                dict(data.get("meta")) if isinstance(data.get("meta"), dict) else None
-            ),
+            meta=(dict(data.get("meta")) if isinstance(data.get("meta"), dict) else None),
         )
         return await self.store.upsert(f)
 

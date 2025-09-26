@@ -51,9 +51,7 @@ def register_email_channel(settings: Settings, name: str = "email") -> None:
             msg.set_content(str(text or ""))
 
         try:
-            with smtplib.SMTP(
-                settings.smtp_host, int(settings.smtp_port or 25), timeout=10
-            ) as s:
+            with smtplib.SMTP(settings.smtp_host, int(settings.smtp_port or 25), timeout=10) as s:
                 if settings.smtp_tls:
                     s.starttls()
                 if settings.smtp_username and settings.smtp_password:

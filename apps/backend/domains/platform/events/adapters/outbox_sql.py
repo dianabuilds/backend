@@ -4,7 +4,9 @@ import json
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+
+from packages.core.db import get_async_engine
 
 
 class SQLOutbox:
@@ -22,7 +24,7 @@ class SQLOutbox:
         else:
             self._session = None
             self._engine = (
-                create_async_engine(str(engine)) if isinstance(engine, str) else engine
+                get_async_engine("events-outbox", url=engine) if isinstance(engine, str) else engine
             )
 
     async def publish(self, topic: str, payload: dict, key: str | None = None) -> None:

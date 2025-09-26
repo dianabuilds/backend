@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.telemetry.domain.generation import (
     GenerationStageLog,
@@ -9,6 +9,7 @@ from domains.platform.telemetry.domain.generation import (
 from domains.platform.telemetry.ports.generation_log_port import (
     IGenerationLogRepository,
 )
+from packages.core.db import get_async_engine
 
 
 class GenerationLogSQLRepository(IGenerationLogRepository):
@@ -16,7 +17,7 @@ class GenerationLogSQLRepository(IGenerationLogRepository):
 
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            create_async_engine(str(engine)) if isinstance(engine, str) else engine
+            get_async_engine("telemetry", url=engine) if isinstance(engine, str) else engine
         )
 
     async def add_stage(self, entry: GenerationStageLog) -> None:

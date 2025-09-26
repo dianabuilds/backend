@@ -10,4 +10,3 @@ def test_ai_health_and_generate(app_client):
     assert g.status_code == 200, g.text
     body = g.json()
     assert isinstance(body.get("result"), str)
-

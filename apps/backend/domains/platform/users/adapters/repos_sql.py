@@ -4,85 +4,102 @@ import uuid as _uuid
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.users.domain.models import User
 from domains.platform.users.ports import UsersRepo
+from packages.core.config import sanitize_async_dsn
+from packages.core.db import get_async_engine
 
 
 def _row_to_user(r: Any) -> User:
+    role_value = r.get("role") or "user"
     return User(
         id=str(r["id"]),
-        email=(str(r["email"]) if r["email"] else None),
-        wallet_address=(str(r["wallet_address"]) if r["wallet_address"] else None),
+        email=(str(r["email"]) if r.get("email") else None),
+        wallet_address=(str(r["wallet_address"]) if r.get("wallet_address") else None),
         is_active=bool(r["is_active"]),
-        role=str(r["role"]),
-        username=(str(r["username"]) if r["username"] else None),
+        role=str(role_value),
+        username=(str(r["username"]) if r.get("username") else None),
         created_at=r["created_at"],
     )
 
 
 class SQLUsersRepo(UsersRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
-        if isinstance(engine, str):
-            dsn = str(engine)
-            # Normalize DSN for asyncpg: strip query (sslmode etc.), set ssl via connect_args
-            try:
-                from urllib.parse import parse_qsl, urlparse, urlunparse
-
-                u = urlparse(dsn)
-                scheme = u.scheme
-                if scheme.startswith("postgresql") and not scheme.startswith("postgresql+asyncpg"):
-                    scheme = "postgresql+asyncpg"
-                q = dict(parse_qsl(u.query))
-                ssl_flag = None
-                if "ssl" in q:
-                    ssl_flag = str(q.get("ssl")).lower() in {"1", "true", "yes"}
-                else:
-                    sm = str(q.get("sslmode", "")).lower()
-                    if sm in {"require", "verify-full", "verify-ca"}:
-                        ssl_flag = True
-                    elif sm in {"disable", "allow", "prefer", "0", "false"}:
-                        ssl_flag = False
-                dsn_no_query = urlunparse((scheme, u.netloc, u.path, u.params, "", u.fragment))
-            except Exception:
-                ssl_flag = None
-                dsn_no_query = dsn
-            kwargs = {"connect_args": {}}  # type: ignore[var-annotated]
-            if ssl_flag is not None:
-                kwargs["connect_args"] = {"ssl": ssl_flag}
-            self._engine = create_async_engine(dsn_no_query, **kwargs)
-        else:
+        if isinstance(engine, AsyncEngine):
             self._engine = engine
+        else:
+            sanitized = sanitize_async_dsn(engine)
+            self._engine = get_async_engine("users", url=sanitized)
+        self._use_roles_table = True
+        self._use_role_column = True
+
+    def _build_query(self, where_clause: str) -> str:
+        role_expr: str
+        joins: list[str] = []
+        if self._use_roles_table:
+            role_expr = "COALESCE(r.role::text, 'user') AS role"
+            joins.append(
+                "LEFT JOIN ("
+                " SELECT DISTINCT ON (user_id) user_id, role"
+                " FROM user_roles"
+                " ORDER BY user_id, granted_at DESC"
+                ") AS r ON r.user_id = u.id"
+            )
+        elif self._use_role_column:
+            role_expr = "COALESCE(u.role::text, 'user') AS role"
+        else:
+            role_expr = "'user'::text AS role"
+        select_parts = [
+            "u.id AS id",
+            "u.email AS email",
+            "u.wallet_address AS wallet_address",
+            "u.is_active AS is_active",
+            role_expr,
+            "u.username AS username",
+            "u.created_at AS created_at",
+        ]
+        query = ["SELECT", ", ".join(select_parts), "FROM users u"]
+        query.extend(joins)
+        query.append(where_clause)
+        return " ".join(query)
+
+    async def _fetch_one(self, where_clause: str, params: dict[str, Any]) -> User | None:
+        sql_text = text(self._build_query(where_clause))
+        async with self._engine.begin() as conn:
+            try:
+                row = (await conn.execute(sql_text, params)).mappings().first()
+            except ProgrammingError as exc:
+                detail = "".join(str(x) for x in getattr(exc.orig, "args", [exc])).lower()
+                message = str(exc).lower()
+                combined = f"{detail} {message}"
+                if self._use_roles_table and "user_roles" in combined:
+                    self._use_roles_table = False
+                    return await self._fetch_one(where_clause, params)
+                if self._use_role_column and " column" in combined and "role" in combined:
+                    self._use_role_column = False
+                    return await self._fetch_one(where_clause, params)
+                raise
+        if not row:
+            return None
+        return _row_to_user(row)
 
     async def get_by_id(self, user_id: str) -> User | None:
-        # If user_id is not a valid UUID, treat it as email and fallback
         try:
             _uuid.UUID(str(user_id))
         except Exception:
             return await self.get_by_email(str(user_id))
-        sql = text(
-            "SELECT id, email, wallet_address, is_active, role, username, created_at FROM users WHERE id = :id"
-        )
-        async with self._engine.begin() as conn:
-            r = (await conn.execute(sql, {"id": user_id})).mappings().first()
-            return _row_to_user(r) if r else None
+        return await self._fetch_one("WHERE u.id = :id", {"id": user_id})
 
     async def get_by_email(self, email: str) -> User | None:
-        sql = text(
-            "SELECT id, email, wallet_address, is_active, role, username, created_at FROM users WHERE email = :email"
-        )
-        async with self._engine.begin() as conn:
-            r = (await conn.execute(sql, {"email": email})).mappings().first()
-            return _row_to_user(r) if r else None
+        return await self._fetch_one("WHERE lower(u.email) = lower(:email)", {"email": email})
 
     async def get_by_wallet(self, wallet_address: str) -> User | None:
-        sql = text(
-            "SELECT id, email, wallet_address, is_active, role, username, created_at FROM users WHERE wallet_address = :w"
+        return await self._fetch_one(
+            "WHERE lower(u.wallet_address) = lower(:wallet)", {"wallet": wallet_address}
         )
-        async with self._engine.begin() as conn:
-            r = (await conn.execute(sql, {"w": wallet_address})).mappings().first()
-            return _row_to_user(r) if r else None
 
 
 __all__ = ["SQLUsersRepo"]

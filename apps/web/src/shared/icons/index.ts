@@ -15,4 +15,5 @@ export {
   Users,
   Gauge,
   TrendingDown,
+  Copy,
 } from 'lucide-react';

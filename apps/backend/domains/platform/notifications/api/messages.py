@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -44,8 +47,15 @@ def make_router() -> APIRouter:
                 user_id = sub
             except Exception:
                 user_id = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{sub}"))
-        items = await c.notifications.repo.list_for_user(user_id, limit=limit, offset=offset)
-        return {"items": items}
+        rows = await c.notifications.repo.list_for_user(
+            user_id,
+            placement="inbox",
+            limit=limit,
+            offset=offset,
+        )
+        items = [_serialize_notification(row) for row in rows]
+        unread = sum(1 for item in items if item.get("read_at") is None)
+        return {"items": items, "unread": unread}
 
     @router.post(
         "/read/{notif_id}",
@@ -70,10 +80,10 @@ def make_router() -> APIRouter:
                 user_id = sub
             except Exception:
                 user_id = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{sub}"))
-        ok = await c.notifications.repo.mark_read(user_id, notif_id)
-        if not ok:
+        updated = await c.notifications.repo.mark_read(user_id, notif_id)
+        if not updated:
             raise HTTPException(status_code=404, detail="not_found")
-        return {"ok": True}
+        return {"notification": _serialize_notification(updated)}
 
     # Admin send
     @router.post(
@@ -94,13 +104,58 @@ def make_router() -> APIRouter:
         message = str(body.get("message") or "")
         type_ = str(body.get("type") or "system")
         placement = str(body.get("placement") or "inbox")
+        topic_key = body.get("topic_key")
+        channel_key = body.get("channel_key")
+        priority = str(body.get("priority") or "normal")
+        cta_label = body.get("cta_label")
+        cta_url = body.get("cta_url")
+        raw_meta = body.get("meta")
+        event_id = body.get("event_id")
+
+        meta_payload: Mapping[str, Any] | None = None
+        if isinstance(raw_meta, Mapping):
+            meta_payload = raw_meta
+        elif isinstance(raw_meta, str) and raw_meta.strip():
+            try:
+                meta_payload = json.loads(raw_meta)
+            except json.JSONDecodeError:
+                meta_payload = None
+
         dto = await c.notifications.notify.create_notification(
             user_id=user_id,
             title=title,
             message=message,
-            type=type_,
+            type_=type_,
             placement=placement,
+            topic_key=topic_key,
+            channel_key=channel_key,
+            priority=priority,
+            cta_label=cta_label,
+            cta_url=cta_url,
+            meta=meta_payload,
+            event_id=event_id,
         )
-        return {"notification": dto}
+        return {"notification": _serialize_notification(dto)}
 
     return router
+
+
+def _serialize_notification(row: Mapping[str, Any]) -> dict[str, Any]:
+    data = dict(row)
+    for field in ("created_at", "updated_at", "read_at"):
+        value = data.get(field)
+        if isinstance(value, datetime):
+            data[field] = value.isoformat()
+    meta = data.get("meta")
+    if isinstance(meta, Mapping):
+        data["meta"] = dict(meta)
+    elif isinstance(meta, str):
+        try:
+            data["meta"] = json.loads(meta)
+        except json.JSONDecodeError:
+            data["meta"] = {}
+    else:
+        data["meta"] = {}
+    data["priority"] = str(data.get("priority") or "normal")
+    data["is_read"] = data.get("read_at") is not None
+    return data
