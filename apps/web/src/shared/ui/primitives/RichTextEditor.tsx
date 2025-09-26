@@ -31,6 +31,11 @@ const DEFAULT_MODULES = {
 export function RichTextEditor({ value, onChange, label, placeholder, className = '', modules, readOnly = false }: RteProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const quillRef = React.useRef<any>(null);
+  const onChangeRef = React.useRef(onChange);
+
+  React.useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -40,12 +45,11 @@ export function RichTextEditor({ value, onChange, label, placeholder, className 
       const toolbarModules = modules || DEFAULT_MODULES;
       const q = new Quill(editorRef.current, {
         theme: 'snow',
-        placeholder: placeholder || 'Enter your content…',
+        placeholder: placeholder || 'Enter your contentâ€¦',
         modules: toolbarModules,
         readOnly,
       });
       quillRef.current = q;
-      if (value) q.clipboard.dangerouslyPasteHTML(value);
       if (readOnly) {
         q.enable(false);
         try {
@@ -55,7 +59,7 @@ export function RichTextEditor({ value, onChange, label, placeholder, className 
       }
       q.on('text-change', () => {
         if (readOnly) return;
-        onChange(q.root.innerHTML);
+        onChangeRef.current(q.root.innerHTML);
       });
     })();
     return () => {
@@ -65,7 +69,7 @@ export function RichTextEditor({ value, onChange, label, placeholder, className 
         quillRef.current = null;
       }
     };
-  }, []);
+  }, [modules, placeholder, readOnly]);
 
   React.useEffect(() => {
     const q = quillRef.current;

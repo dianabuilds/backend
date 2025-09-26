@@ -1,4 +1,4 @@
-﻿from typing import Any
+from typing import Any
 
 from apps.backend import get_container
 from fastapi import APIRouter, Depends, HTTPException

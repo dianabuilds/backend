@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Input, Button, Badge } from '../ui';
 import { apiPost } from '../api/client';
-import { useSettingsIdempotencyHeader } from './SettingsContext';
+import { useSettingsIdempotencyHeader } from './';
 import { extractErrorMessage } from '../utils/errors';
 import { makeIdempotencyKey } from '../utils/idempotency';
 

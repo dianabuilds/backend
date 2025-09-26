@@ -5,9 +5,10 @@ import asyncio
 import logging
 from collections.abc import Iterable
 
-from apps.backend.app.api_gateway.wires import build_container
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
+
+from app.api_gateway.wires import build_container
 
 logger = logging.getLogger(__name__)
 from domains.product.nodes.application.service import NodeService
@@ -45,7 +46,9 @@ async def _recompute_for_ids(service: NodeService, node_ids: Iterable[int]) -> t
         except Exception as exc:  # pragma: no cover - defensive
             failed += 1
             logger.warning(
-                "embedding_recompute_update_failed", extra={"node_id": view.id}, exc_info=exc
+                "embedding_recompute_update_failed",
+                extra={"node_id": view.id},
+                exc_info=exc,
             )
     return updated, skipped, failed
 

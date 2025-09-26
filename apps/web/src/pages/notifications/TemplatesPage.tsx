@@ -4,7 +4,7 @@ import { ContentLayout } from '../content/ContentLayout';
 import { NotificationSurface, notificationTableHeadCellClass, notificationTableRowClass } from './NotificationSurface';
 import { Badge, Button, Drawer, Input, Pagination, Select, Spinner, Switch, Table, Textarea } from '@ui';
 import { apiDelete, apiGet, apiPost } from '../../shared/api/client';
-import { useAuth } from '../../shared/auth/AuthContext';
+import { useAuth } from '../../shared/auth';
 
 export type NotificationTemplate = {
   id: string;
@@ -107,11 +107,11 @@ function rowsToTemplateObject(rows: TemplateFieldRow[]): { result: Record<string
         break;
       case 'number': {
         if (!row.value.trim()) {
-          return { error: `Value for "${key}" must be a number.` };
+          return { result: null, error: `Value for "${key}" must be a number.` };
         }
         const num = Number(row.value);
         if (Number.isNaN(num)) {
-          return { error: `Value for "${key}" must be a number.` };
+          return { result: null, error: `Value for "${key}" must be a number.` };
         }
         payload[key] = num;
         break;
@@ -121,12 +121,12 @@ function rowsToTemplateObject(rows: TemplateFieldRow[]): { result: Record<string
         break;
       case 'json': {
         if (!row.value.trim()) {
-          return { error: `Value for "${key}" must be valid JSON.` };
+          return { result: null, error: `Value for "${key}" must be valid JSON.` };
         }
         try {
           payload[key] = JSON.parse(row.value);
         } catch {
-          return { error: `Value for "${key}" must be valid JSON.` };
+          return { result: null, error: `Value for "${key}" must be valid JSON.` };
         }
         break;
       }

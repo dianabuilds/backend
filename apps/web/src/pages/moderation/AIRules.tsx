@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Card, Spinner, TablePagination } from '@ui';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../../shared/api/client';
 
@@ -28,7 +28,7 @@ export default function ModerationAIRules() {
     setTotalItems(undefined);
   }, []);
 
-  async function load() {
+  const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -50,7 +50,7 @@ export default function ModerationAIRules() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, pageSize]);
 
   async function create() {
     if (!newCategory.trim()) return;
@@ -87,7 +87,7 @@ export default function ModerationAIRules() {
 
   React.useEffect(() => {
     void load();
-  }, [page, pageSize]);
+  }, [load]);
 
   return (
     <div className="p-6 space-y-4">

@@ -1,4 +1,4 @@
-﻿"""settings foundations: profile limits, notification preferences, wallet columns, session extensions
+"""settings foundations: profile limits, notification preferences, wallet columns, session extensions
 
 Revision ID: 0018
 Revises: 0017

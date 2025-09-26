@@ -56,7 +56,7 @@ function coercePrimitive(value: string): unknown {
   if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
     try {
       return JSON.parse(trimmed);
-    } catch (error) {
+    } catch {
       // Fall through to raw string if parsing fails.
     }
   }
@@ -198,7 +198,7 @@ export default function ManagementIntegrations(): JSX.Element {
           <div className="space-y-1">
             <div className="text-sm font-semibold text-gray-900">Send a test notification</div>
             <p className="text-xs text-gray-500">
-              Pick a channel and fill in the required fields — we will build the payload for you.
+              Pick a channel and fill in the required fields â€” we will build the payload for you.
             </p>
           </div>
 
@@ -322,7 +322,7 @@ export default function ManagementIntegrations(): JSX.Element {
 
           <div className="flex justify-end">
             <Button type="button" color="primary" onClick={sendNotification} disabled={!canSend || sending}>
-              {sending ? 'Sending…' : 'Send notification'}
+              {sending ? 'Sendingâ€¦' : 'Send notification'}
             </Button>
           </div>
         </div>

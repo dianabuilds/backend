@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping, Sequence
@@ -157,24 +157,24 @@ class PreferenceService:
                     channel_payload["digest"] = payload["digest"]
                 topic_channels.append(channel_payload)
 
-                summary = channels_acc.get(channel.key)
-                if summary is None:
-                    summary = {
+                channel_summary = channels_acc.get(channel.key)
+                if channel_summary is None:
+                    channel_summary = {
                         "key": channel.key,
                         "label": channel.display_name,
                         "status": "optional",
                         "opt_in": False,
                         "order": int(channel.position),
                     }
-                    channels_acc[channel.key] = summary
+                    channels_acc[channel.key] = channel_summary
                 if rule.delivery is DeliveryRequirement.MANDATORY:
-                    summary["status"] = "required"
+                    channel_summary["status"] = "required"
                 elif (
                     rule.delivery is DeliveryRequirement.DEFAULT_ON
-                    and summary["status"] != "required"
+                    and channel_summary["status"] != "required"
                 ):
-                    summary["status"] = "recommended"
-                summary["opt_in"] = summary["opt_in"] or bool(payload["opt_in"])
+                    channel_summary["status"] = "recommended"
+                channel_summary["opt_in"] = channel_summary["opt_in"] or bool(payload["opt_in"])
                 if channel.key == "email" and payload.get("supports_digest"):
                     email_digests.append(str(payload["digest"]))
 
@@ -208,9 +208,10 @@ class PreferenceService:
             summary["email_digest"] = digest_value
 
         timestamps = [
-            record.updated_at or record.created_at
+            ts
             for record in records
-            if record.updated_at or record.created_at
+            for ts in (record.updated_at, record.created_at)
+            if ts is not None
         ]
         if timestamps:
             summary["updated_at"] = max(timestamps).isoformat()
@@ -405,7 +406,9 @@ def _build_preference_record(
     )
 
 
-def _parse_incoming(incoming: Any) -> tuple[bool | None, str | None, tuple[int, ...] | None]:
+def _parse_incoming(
+    incoming: Any,
+) -> tuple[bool | None, str | None, tuple[int, ...] | None]:
     if isinstance(incoming, Mapping):
         opt_in = incoming.get("opt_in") if isinstance(incoming.get("opt_in"), bool) else None
         digest = incoming.get("digest") if isinstance(incoming.get("digest"), str) else None

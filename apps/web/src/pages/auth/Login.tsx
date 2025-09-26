@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Button, Card, Checkbox, Input, InputErrorMsg } from '@ui';
-import { useAuth } from '../../shared/auth/AuthContext';
+import { useAuth } from '../../shared/auth';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRightIcon, ShieldCheckIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
@@ -19,7 +19,7 @@ export default function LoginPage() {
   };
 
   const apiBase = (import.meta as any).env.VITE_API_BASE as string | undefined;
-  const info = useMemo(() => `${apiBase || ''} · Auth via /v1/auth/login`, [apiBase]);
+  const info = useMemo(() => `${apiBase || ''} Â· Auth via /v1/auth/login`, [apiBase]);
 
   return (
     <main className="relative flex min-h-screen flex-col lg:flex-row">

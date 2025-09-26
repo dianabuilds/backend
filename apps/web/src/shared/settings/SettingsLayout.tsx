@@ -10,7 +10,7 @@ export type SettingsNavItem = {
   path: string;
 };
 
-export const SETTINGS_NAV: SettingsNavItem[] = [
+const SETTINGS_NAV: SettingsNavItem[] = [
   { key: 'profile', label: 'Profile', description: 'Identity & avatar', path: '/profile' },
   { key: 'security', label: 'Security', description: 'Passwords & sessions', path: '/settings/security' },
   { key: 'notifications', label: 'Notifications', description: 'Channels & digests', path: '/settings/notifications' },

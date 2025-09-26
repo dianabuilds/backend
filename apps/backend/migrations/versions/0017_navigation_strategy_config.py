@@ -1,4 +1,4 @@
-﻿"""
+"""
 Create navigation strategy config
 
 Revision ID: 0017

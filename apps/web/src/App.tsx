@@ -1,8 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import LoginPage from './pages/auth/Login';
-import { AuthProvider, useAuth } from './shared/auth/AuthContext';
-import { SettingsProvider } from './shared/settings/SettingsContext';
+import { AuthProvider, useAuth } from './shared/auth';
+import { SettingsProvider } from './shared/settings';
 import { AppLayout } from './layout/AppLayout';
 import DashboardPage from './pages/dashboard/Dashboard';
 import ProfilePage from './pages/profile/Profile';

@@ -1,4 +1,4 @@
-﻿// Curated UI primitives styled with template CSS classes
+// Curated UI primitives styled with template CSS classes
 export { Button } from './primitives/Button';
 export { Card } from './primitives/Card';
 export { Checkbox } from './primitives/Checkbox';
@@ -14,6 +14,7 @@ export { Avatar } from './primitives/Avatar';
 export { Badge } from './primitives/Badge';
 export { Tag } from './primitives/Tag';
 export { TagInput } from './primitives/TagInput';
+export { CopyButton } from './primitives/CopyButton';
 export { Spinner } from './primitives/Spinner';
 export { Skeleton } from './primitives/Skeleton';
 export { Pagination } from './primitives/Pagination';
@@ -27,7 +28,8 @@ export { Surface } from './patterns/Surface';
 export { MetricCard } from './patterns/MetricCard';
 
 // Theme provider (lightweight local implementation)
-export { ThemeProvider, useThemeContext } from './theme';
+export { ThemeProvider } from './theme';
+export { useThemeContext } from './themeContext';
 export { RichTextEditor } from './primitives/RichTextEditor';
 export { ImageUpload } from './primitives/ImageUpload';
 export { Drawer } from './primitives/Drawer';

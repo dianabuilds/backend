@@ -1,4 +1,4 @@
-﻿"""
+"""
 Moderation domain package.
 
 Contains routers and DTOs for moderation features:

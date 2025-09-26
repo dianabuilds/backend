@@ -1,6 +1,6 @@
 import React from 'react';
 import { ContentLayout } from '../ContentLayout';
-import { Card, Button } from '../../../shared/ui';
+import { Card, Button } from '@ui';
 
 export default function ImportExportPage() {
   return (

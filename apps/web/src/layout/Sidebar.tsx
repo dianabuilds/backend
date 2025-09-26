@@ -1,20 +1,22 @@
 import React from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ChevronDownIcon, BellIcon, Cog6ToothIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
-import DashboardsIconUrl from '@/assets/dualicons/dashboards.svg';
-import DocumentIconUrl from '@/assets/nav-icons/document.svg';
-import UserIconUrl from '@/assets/nav-icons/user.svg';
-import CurrencyDollarIconUrl from '@/assets/nav-icons/currency-dollar.svg';
-import { useAuth } from '../shared/auth/AuthContext';
-
-type IconDescriptor =
-  | { kind: 'img'; src: string }
-  | { kind: 'node'; element: React.ReactElement };
+import {
+  ChevronDownIcon,
+  BellIcon,
+  Cog6ToothIcon,
+  ShieldCheckIcon,
+  Squares2X2Icon,
+  DocumentTextIcon,
+  UserGroupIcon,
+  CurrencyDollarIcon,
+  ChartBarIcon,
+} from '@heroicons/react/24/outline';
+import { useAuth } from '../shared/auth';
 
 type Group = {
   base: string;
   label: string;
-  icon: IconDescriptor;
+  icon: React.ReactElement;
   children: Array<{ to: string; label: string }>;
 };
 
@@ -23,9 +25,6 @@ type Section = {
   groups: Group[];
 };
 
-const iconImg = (src: string): IconDescriptor => ({ kind: 'img', src });
-const iconNode = (element: React.ReactElement): IconDescriptor => ({ kind: 'node', element });
-
 const sections: Section[] = [
   {
     title: 'Workspace',
@@ -33,7 +32,7 @@ const sections: Section[] = [
       {
         base: '/nodes',
         label: 'Nodes',
-        icon: iconImg(DocumentIconUrl),
+        icon: <DocumentTextIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
           { to: '/nodes', label: 'Overview' },
           { to: '/nodes/library', label: 'Library' },
@@ -44,7 +43,7 @@ const sections: Section[] = [
       {
         base: '/quests',
         label: 'Quests',
-        icon: iconImg(UserIconUrl),
+        icon: <UserGroupIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
           { to: '/quests', label: 'Overview' },
           { to: '/quests/library', label: 'Library' },
@@ -61,7 +60,7 @@ const sections: Section[] = [
       {
         base: '/notifications',
         label: 'Notifications',
-        icon: iconNode(<BellIcon />),
+        icon: <BellIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
           { to: '/notifications', label: 'Broadcasts' },
           { to: '/notifications/templates', label: 'Templates' },
@@ -77,7 +76,7 @@ const sections: Section[] = [
       {
         base: '/billing',
         label: 'Billing & Plans',
-        icon: iconImg(CurrencyDollarIconUrl),
+        icon: <CurrencyDollarIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
           { to: '/billing', label: 'Overview' },
           { to: '/billing/payments', label: 'Payments' },
@@ -93,7 +92,7 @@ const sections: Section[] = [
       {
         base: '/platform',
         label: 'Platform Admin',
-        icon: iconNode(<Cog6ToothIcon />),
+        icon: <Cog6ToothIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
           { to: '/platform/ai', label: 'AI & LLM' },
           { to: '/platform/flags', label: 'Feature Flags' },
@@ -105,7 +104,7 @@ const sections: Section[] = [
       {
         base: '/observability',
         label: 'Observability',
-        icon: iconImg(DashboardsIconUrl),
+        icon: <ChartBarIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
           { to: '/observability', label: 'Overview' },
           { to: '/observability/api', label: 'API' },
@@ -124,7 +123,7 @@ const sections: Section[] = [
       {
         base: '/moderation',
         label: 'Moderation',
-        icon: iconNode(<ShieldCheckIcon />),
+        icon: <ShieldCheckIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
           { to: '/moderation', label: 'Overview' },
           { to: '/moderation/users', label: 'Users' },
@@ -139,15 +138,6 @@ const sections: Section[] = [
   },
 ];
 
-
-function renderIcon(descriptor: IconDescriptor) {
-  if (descriptor.kind === 'img') {
-    return <img src={descriptor.src} alt="" className="size-5 opacity-80" />;
-  }
-  return React.cloneElement(descriptor.element, {
-    className: `h-5 w-5 text-gray-400 dark:text-dark-300 ${descriptor.element.props.className ?? ''}`,
-  });
-}
 
 function buildInitialState(pathname: string) {
   const state: Record<string, boolean> = {};
@@ -199,7 +189,7 @@ export function Sidebar() {
                   }`
                 }
               >
-                <img src={DashboardsIconUrl} alt="" className="size-5 shrink-0" />
+                <Squares2X2Icon className="size-5 shrink-0 text-gray-500 dark:text-dark-300" />
                 <span className="truncate">Dashboard</span>
               </NavLink>
             </div>
@@ -226,7 +216,7 @@ export function Sidebar() {
                         >
                           <span className="flex items-center gap-3">
                             <span className="flex items-center justify-center rounded-md bg-white/80 p-2 shadow-sm shadow-gray-200 ring-1 ring-gray-200 transition group-hover:bg-white dark:bg-dark-800 dark:shadow-none dark:ring-dark-600">
-                              {renderIcon(group.icon)}
+                              {group.icon}
                             </span>
                             <span className="text-xs tracking-normal text-gray-700 dark:text-dark-50">
                               {group.label}

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 r"""
 Seed demo data into the database: creates N users and M nodes.

@@ -16,6 +16,7 @@ addopts = "-q"
 testpaths = ["apps/backend/domains"]
 
 [tool.black]
+line-length = 100
 target-version = ["py311"]
 
 [tool.ruff]

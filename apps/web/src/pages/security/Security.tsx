@@ -4,7 +4,7 @@ import { SettingsLayout } from '../../shared/settings/SettingsLayout';
 import { SecurityCard } from '../../shared/settings/SecurityCard';
 import { WalletConnectionCard } from '../../shared/settings/WalletConnectionCard';
 import { apiGet, apiPost } from '../../shared/api/client';
-import { useSettingsIdempotencyHeader } from '../../shared/settings/SettingsContext';
+import { useSettingsIdempotencyHeader } from '../../shared/settings';
 import { extractErrorMessage } from '../../shared/utils/errors';
 import { makeIdempotencyKey } from '../../shared/utils/idempotency';
 

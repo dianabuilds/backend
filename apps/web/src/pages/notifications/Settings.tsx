@@ -4,7 +4,7 @@ import { Card, Button, Switch, Input, Select, Badge, Spinner } from '../../share
 import { SettingsLayout } from '../../shared/settings/SettingsLayout';
 import { WalletConnectionCard } from '../../shared/settings/WalletConnectionCard';
 import { apiGetWithResponse, apiPutWithResponse } from '../../shared/api/client';
-import { useSettingsIdempotencyHeader } from '../../shared/settings/SettingsContext';
+import { useSettingsIdempotencyHeader } from '../../shared/settings';
 import { extractErrorMessage } from '../../shared/utils/errors';
 import { makeIdempotencyKey } from '../../shared/utils/idempotency';
 
@@ -220,7 +220,7 @@ function sanitizeConfig(config: Record<string, any> | undefined): Record<string,
   if (!config) return {};
   const entries = Object.entries(config)
     .map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v])
-    .filter(([_, v]) => v !== undefined && v !== null && `${v}`.trim().length);
+    .filter(([, v]) => v !== undefined && v !== null && `${v}`.trim().length);
   return Object.fromEntries(entries);
 }
 

@@ -1,9 +1,7 @@
 import React from 'react';
 
-export function createSwapComponent() {
-  return (props: any) => <span {...props} />;
-}
+const createSwapComponent = () => (props: any) => <span {...props} />;
 
-export const SwapOn = (props: any) => <span {...props} />;
-export const SwapOff = (props: any) => <span {...props} />;
+export const SwapOn = createSwapComponent();
+export const SwapOff = createSwapComponent();
 

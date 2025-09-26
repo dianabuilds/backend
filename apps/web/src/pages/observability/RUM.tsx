@@ -23,6 +23,9 @@ export default function ObservabilityRUM() {
   const [eventPage, setEventPage] = React.useState(1);
   const [eventPageSize, setEventPageSize] = React.useState(20);
 
+  const countsLength = React.useMemo(() => Object.keys(summary?.counts ?? {}).length, [summary]);
+  const eventsLength = events?.length ?? 0;
+
   React.useEffect(() => {
     let mounted = true;
     apiGet<RumSummary>('/v1/admin/telemetry/rum/summary')
@@ -39,11 +42,11 @@ export default function ObservabilityRUM() {
 
   React.useEffect(() => {
     setCountsPage(1);
-  }, [summary?.counts && Object.keys(summary.counts || {}).length]);
+  }, [countsLength]);
 
   React.useEffect(() => {
     setEventPage(1);
-  }, [events?.length]);
+  }, [eventsLength]);
 
   if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!summary) return <div className="p-6"><Spinner /></div>;

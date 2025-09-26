@@ -128,7 +128,11 @@ export default function TariffsPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs items={[{ key: 'plans', label: 'Планы' }, { key: 'matrix', label: 'Матрица лимитов' }, { key: 'history', label: 'История изменений' }]} value={tab} onChange={setTab} />
+      <Tabs
+        items={[{ key: 'plans', label: 'Планы' }, { key: 'matrix', label: 'Матрица лимитов' }, { key: 'history', label: 'История изменений' }]}
+        value={tab}
+        onChange={(key) => setTab(key as 'plans' | 'matrix' | 'history')}
+      />
 
       {tab === 'plans' && (
         <Card>

@@ -12,15 +12,16 @@ export default function QuestsOverviewPage() {
   React.useEffect(() => {
     void (async () => {
       try {
-        const data = await apiGet<Partial<ContentStats>>('/v1/content/stats');
+        const data = await apiGet<(Partial<ContentStats> & { links_per_object?: number })>('/v1/content/stats');
         if (data) {
+          const legacyLinks = typeof data.links_per_object === 'number' ? data.links_per_object : undefined;
           setStats({
             nodes: Number(data.nodes ?? 0),
             quests: Number(data.quests ?? 0),
             worlds: Number(data.worlds ?? 0),
             published: Number(data.published ?? 0),
             drafts: Number(data.drafts ?? 0),
-            linksPerObject: Number(data.linksPerObject ?? data.links_per_object ?? 0),
+            linksPerObject: Number(data.linksPerObject ?? legacyLinks ?? 0),
           });
         }
       } catch (err) {

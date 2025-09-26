@@ -34,7 +34,7 @@ export default function ModerationAppeals() {
     setTotalItems(undefined);
   }, []);
 
-  async function load() {
+  const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -58,12 +58,12 @@ export default function ModerationAppeals() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, pageSize, status]);
 
   React.useEffect(() => {
     const t = setTimeout(() => { void load(); }, 200);
     return () => clearTimeout(t);
-  }, [status, page, pageSize]);
+  }, [load]);
 
   return (
     <div className="p-6 space-y-4">

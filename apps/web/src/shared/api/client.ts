@@ -189,7 +189,7 @@ export async function apiGet<T = any>(u: string, opts: { omitCredentials?: boole
   return data;
 }
 
-export async function apiPost(u: string, body: any, opts: { omitCredentials?: boolean; headers?: Record<string, string> } = {}) {
+export async function apiPost<T = any>(u: string, body: any, opts: { omitCredentials?: boolean; headers?: Record<string, string> } = {}): Promise<T> {
   const res = await fetch(url(u), {
     method: 'POST',
     credentials: opts.omitCredentials ? 'omit' : 'include',
@@ -197,14 +197,11 @@ export async function apiPost(u: string, body: any, opts: { omitCredentials?: bo
     body: JSON.stringify(body ?? {}),
   });
   const ok = await handleResponse(res);
-  try {
-    return await ok.json();
-  } catch {
-    return true;
-  }
+  const text = await ok.text();
+  return text ? (JSON.parse(text) as T) : (undefined as T);
 }
 
-export async function apiPatch(u: string, body: any, opts: { omitCredentials?: boolean; headers?: Record<string, string> } = {}) {
+export async function apiPatch<T = any>(u: string, body: any, opts: { omitCredentials?: boolean; headers?: Record<string, string> } = {}): Promise<T> {
   const res = await fetch(url(u), {
     method: 'PATCH',
     credentials: opts.omitCredentials ? 'omit' : 'include',
@@ -212,11 +209,8 @@ export async function apiPatch(u: string, body: any, opts: { omitCredentials?: b
     body: JSON.stringify(body ?? {}),
   });
   const ok = await handleResponse(res);
-  try {
-    return await ok.json();
-  } catch {
-    return true;
-  }
+  const text = await ok.text();
+  return text ? (JSON.parse(text) as T) : (undefined as T);
 }
 
 export async function apiPutWithResponse<T = any>(
@@ -246,18 +240,15 @@ export async function apiPut<T = any>(
   return data;
 }
 
-export async function apiDelete(u: string, opts: { omitCredentials?: boolean } = {}) {
+export async function apiDelete<T = any>(u: string, opts: { omitCredentials?: boolean } = {}): Promise<T> {
   const res = await fetch(url(u), {
     method: 'DELETE',
     credentials: opts.omitCredentials ? 'omit' : 'include',
     headers: maybeWithAdminKey({ ...csrfHeaders() }, u),
   });
   const ok = await handleResponse(res);
-  try {
-    return await ok.json();
-  } catch {
-    return true;
-  }
+  const text = await ok.text();
+  return text ? (JSON.parse(text) as T) : (undefined as T);
 }
 
 export type UploadPayload =

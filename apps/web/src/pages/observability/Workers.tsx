@@ -10,6 +10,8 @@ export default function ObservabilityWorkers() {
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
 
+  const stagesLength = React.useMemo(() => Object.keys(data?.stages ?? {}).length, [data]);
+
   React.useEffect(() => {
     let mounted = true;
     apiGet<WorkersSummary>('/v1/admin/telemetry/workers/summary')
@@ -23,7 +25,7 @@ export default function ObservabilityWorkers() {
 
   React.useEffect(() => {
     setPage(1);
-  }, [data?.stages && Object.keys(data.stages || {}).length]);
+  }, [stagesLength]);
 
   const stages = React.useMemo(() => data?.stages ?? {}, [data]);
   const stageRows = React.useMemo(() => Object.entries(stages).map(([stage, v]) => ({ stage, ...(v as any) })), [stages]);

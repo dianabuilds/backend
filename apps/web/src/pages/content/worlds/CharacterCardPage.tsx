@@ -31,7 +31,7 @@ export default function CharacterCardPage() {
         }
       })();
     }
-  }, [charId]);
+  }, [charId, mode]);
 
   async function save() {
     setBusy(true);

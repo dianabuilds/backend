@@ -24,7 +24,7 @@ export default function QuestCreatePage() {
       if (!payload.title) throw new Error('Укажите название');
       const res = await apiPost('/v1/quests', payload);
       setCreated(res);
-      setTitle(''); setDescription(''); setTags(''); setIsPublic(false);
+      setTitle(''); setDescription(''); setTags([]); setIsPublic(false);
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally { setBusy(false); }

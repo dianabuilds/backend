@@ -1,8 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2021",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2021",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "skipLibCheck": true,
     "allowJs": false,
@@ -15,16 +19,23 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@ui": ["src/shared/ui/index.ts"],
-      "@ui/*": ["src/shared/ui/*"],
-      "@icons": ["src/shared/icons/index.ts"],
-      "@icons/*": ["src/shared/icons/*"],
-      "@/*": ["vendor/template/src/*"],
-      "@constants/*": ["vendor/template/src/constants/*"],
-      "@utils/*": ["vendor/template/src/utils/*"],
-      "@shared/*": ["vendor/template/src/shared/*"]
+      "@ui": [
+        "src/shared/ui/index.ts"
+      ],
+      "@ui/*": [
+        "src/shared/ui/*"
+      ],
+      "@icons": [
+        "src/shared/icons/index.ts"
+      ],
+      "@icons/*": [
+        "src/shared/icons/*"
+      ]
     },
-    "types": ["vite/client"]
+    "types": [
+      "vite/client"
+    ],
+    "allowImportingTsExtensions": true
   },
   "include": [
     "src/main.tsx",

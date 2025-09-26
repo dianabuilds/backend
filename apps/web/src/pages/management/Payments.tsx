@@ -216,7 +216,11 @@ export default function ManagementPayments() {
 
       {/* Tabs + action */}
       <div className="space-y-3">
-        <Tabs items={[{ key: 'providers', label: 'Провайдеры' }, { key: 'contracts', label: 'Контракты' }]} value={activeTab} onChange={setActiveTab} />
+        <Tabs
+          items={[{ key: 'providers', label: 'Провайдеры' }, { key: 'contracts', label: 'Контракты' }]}
+          value={activeTab}
+          onChange={(key) => setActiveTab(key as 'providers' | 'contracts')}
+        />
         <div className="flex justify-end">
           {activeTab === 'providers' ? (
             <Button onClick={openNewProvider} className="flex items-center gap-2"><CreditCard className="h-4 w-4" /> Добавить провайдера</Button>

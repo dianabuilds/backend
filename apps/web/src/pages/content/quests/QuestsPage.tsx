@@ -15,7 +15,7 @@ const QUEST_STATUS_OPTIONS: Array<{ value: QuestStatus; label: string }> = [
   { value: 'published', label: 'Published' },
 ];
 
-const mock: Quest[] = Array.from({ length: 12 }).map((_, i) => ({ id: String(i + 1), title: `Квест ${i + 1}`, slug: `quest-${i + 1}`, is_public: i % 2 === 0, updated_at: new Date(Date.now() - i * 864e5).toISOString() }));
+const mock: Quest[] = Array.from({ length: 12 }).map((_, i) => ({ id: String(i + 1), title: `РљРІРµСЃС‚ ${i + 1}`, slug: `quest-${i + 1}`, is_public: i % 2 === 0, updated_at: new Date(Date.now() - i * 864e5).toISOString() }));
 
 export default function QuestsPage() {
   const navigate = useNavigate();
@@ -42,7 +42,7 @@ export default function QuestsPage() {
     }
   }, [params, status]);
 
-  async function load() {
+  const load = React.useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const offset = (page - 1) * pageSize;
@@ -84,12 +84,12 @@ export default function QuestsPage() {
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally { setLoading(false); }
-  }
+  }, [page, pageSize, q, status]);
 
   React.useEffect(() => {
-    const t = setTimeout(load, 200);
+    const t = setTimeout(() => { void load(); }, 200);
     return () => clearTimeout(t);
-  }, [q, page, pageSize, status]);
+  }, [load]);
 
   const applyStatus = React.useCallback((value: QuestStatus) => {
     setStatus(value);
@@ -116,7 +116,7 @@ export default function QuestsPage() {
         tags: tags.split(',').map((s) => s.trim()).filter(Boolean),
         is_public: isPublic,
       };
-      if (!payload.title) throw new Error('Укажите название');
+      if (!payload.title) throw new Error('РЈРєР°Р¶РёС‚Рµ РЅР°Р·РІР°РЅРёРµ');
       const res = await apiPost('/v1/quests', payload);
       setCreated(res);
       setTitle(''); setDescription(''); setTags(''); setIsPublic(false);
@@ -192,21 +192,21 @@ export default function QuestsPage() {
       {createOpen && (
         <Card className="p-4 mt-3">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-base font-semibold">Создать квест</h2>
-            <button className="btn-base btn bg-gray-150 text-gray-900 hover:bg-gray-200" onClick={closeCreate}>Закрыть</button>
+            <h2 className="text-base font-semibold">РЎРѕР·РґР°С‚СЊ РєРІРµСЃС‚</h2>
+            <button className="btn-base btn bg-gray-150 text-gray-900 hover:bg-gray-200" onClick={closeCreate}>Р—Р°РєСЂС‹С‚СЊ</button>
           </div>
           {error && <div className="mb-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
           <div className="grid gap-3 sm:grid-cols-2">
-            <TInput label="Название" placeholder="Введите название" value={title} onChange={(e: any) => setTitle(e.target.value)} className="sm:col-span-2" />
-            <Textarea label="Описание" placeholder="Краткое описание" value={description} onChange={(e: any) => setDescription(e.target.value)} className="sm:col-span-2" />
-            <TInput label="Теги (через запятую)" placeholder="story, ai, demo" value={tags} onChange={(e: any) => setTags(e.target.value)} className="sm:col-span-2" />
+            <TInput label="РќР°Р·РІР°РЅРёРµ" placeholder="Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ" value={title} onChange={(e: any) => setTitle(e.target.value)} className="sm:col-span-2" />
+            <Textarea label="РћРїРёСЃР°РЅРёРµ" placeholder="РљСЂР°С‚РєРѕРµ РѕРїРёСЃР°РЅРёРµ" value={description} onChange={(e: any) => setDescription(e.target.value)} className="sm:col-span-2" />
+            <TInput label="РўРµРіРё (С‡РµСЂРµР· Р·Р°РїСЏС‚СѓСЋ)" placeholder="story, ai, demo" value={tags} onChange={(e: any) => setTags(e.target.value)} className="sm:col-span-2" />
             <div className="sm:col-span-2 flex items-center gap-3">
               <Switch checked={isPublic} onChange={(e: any) => setIsPublic(e.currentTarget.checked)} />
-              <span className="text-sm">Опубликовать</span>
+              <span className="text-sm">РћРїСѓР±Р»РёРєРѕРІР°С‚СЊ</span>
             </div>
             <div className="sm:col-span-2">
-              <button className="btn-base btn bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-60" disabled={busy} onClick={createQuest}>{busy ? 'Сохранение…' : 'Создать'}</button>
-              {created && (<span className="ml-3 text-sm text-gray-700">Создано: id={created.id}{created.slug ? `, slug=${created.slug}` : ''}</span>)}
+              <button className="btn-base btn bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-60" disabled={busy} onClick={createQuest}>{busy ? 'РЎРѕС…СЂР°РЅРµРЅРёРµвЂ¦' : 'РЎРѕР·РґР°С‚СЊ'}</button>
+              {created && (<span className="ml-3 text-sm text-gray-700">РЎРѕР·РґР°РЅРѕ: id={created.id}{created.slug ? `, slug=${created.slug}` : ''}</span>)}
             </div>
           </div>
         </Card>
@@ -218,10 +218,10 @@ export default function QuestsPage() {
           <Table.Table hover className="min-w-[720px] w-full">
             <Table.THead>
               <Table.TR>
-                <Table.TH className="bg-gray-200 text-gray-800 uppercase py-3 px-4">Название</Table.TH>
+                <Table.TH className="bg-gray-200 text-gray-800 uppercase py-3 px-4">РќР°Р·РІР°РЅРёРµ</Table.TH>
                 <Table.TH className="bg-gray-200 text-gray-800 uppercase py-3 px-4">Slug</Table.TH>
-                <Table.TH className="bg-gray-200 text-gray-800 uppercase py-3 px-4">Статус</Table.TH>
-                <Table.TH className="bg-gray-200 text-gray-800 uppercase py-3 px-4">Обновлено</Table.TH>
+                <Table.TH className="bg-gray-200 text-gray-800 uppercase py-3 px-4">РЎС‚Р°С‚СѓСЃ</Table.TH>
+                <Table.TH className="bg-gray-200 text-gray-800 uppercase py-3 px-4">РћР±РЅРѕРІР»РµРЅРѕ</Table.TH>
               </Table.TR>
             </Table.THead>
             <Table.TBody>
@@ -236,10 +236,10 @@ export default function QuestsPage() {
               {!loading && items.map((q) => (
                 <Table.TR key={q.id} className="dark:border-b-dark-500 border-b border-gray-200">
                   <Table.TD className="py-2 px-4 font-medium text-gray-800 dark:text-dark-100">{q.title}</Table.TD>
-                  <Table.TD className="py-2 px-4 text-gray-600">{q.slug || '—'}</Table.TD>
+                  <Table.TD className="py-2 px-4 text-gray-600">{q.slug || 'вЂ”'}</Table.TD>
                   <Table.TD className="py-2 px-4">
                     <Badge color={q.is_public || (q.status||'').toLowerCase()==='published' ? 'success' : 'warning'}>
-                      {q.is_public || (q.status||'').toLowerCase()==='published' ? 'Опубликовано' : 'Черновик'}
+                      {q.is_public || (q.status||'').toLowerCase()==='published' ? 'РћРїСѓР±Р»РёРєРѕРІР°РЅРѕ' : 'Р§РµСЂРЅРѕРІРёРє'}
                     </Badge>
                   </Table.TD>
                   <Table.TD className="py-2 px-4 text-gray-500">{formatDateTime(q.updated_at)}</Table.TD>
@@ -250,14 +250,14 @@ export default function QuestsPage() {
         </div>
         <div className="mt-4 flex items-center justify-between p-4 pt-2">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500">Показать</span>
+            <span className="text-gray-500">РџРѕРєР°Р·Р°С‚СЊ</span>
             <select className="form-select h-8 w-20" value={String(pageSize)} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
               {[10,20,30,40,50,100].map((n) => (<option key={n} value={n}>{n}</option>))}
             </select>
-            <span className="text-gray-500">записей</span>
+            <span className="text-gray-500">Р·Р°РїРёСЃРµР№</span>
           </div>
           <Pagination page={page} total={hasNext ? page + 1 : page} onChange={setPage} />
-          <div className="text-sm text-gray-500">{(page-1)*pageSize + (items.length?1:0)}–{(page-1)*pageSize + items.length} записей</div>
+          <div className="text-sm text-gray-500">{(page-1)*pageSize + (items.length?1:0)}вЂ“{(page-1)*pageSize + items.length} Р·Р°РїРёСЃРµР№</div>
         </div>
       </Card>
     </ContentLayout>

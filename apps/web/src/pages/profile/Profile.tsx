@@ -1,12 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Input, Textarea, Button, Spinner, Avatar, Badge, Accordion } from '../../shared/ui';
+import { Card, Input, Textarea, Button, Spinner, Avatar, Badge, Accordion, CopyButton } from '../../shared/ui';
 import { SettingsLayout } from '../../shared/settings/SettingsLayout';
-import { CopyButton } from '../../shared/vendor-ui';
 import { CheckCircle2, Copy as CopyIcon } from '../../shared/icons';
 import { useWalletConnection } from '../../shared/settings/useWalletConnection';
 import { apiGetWithResponse, apiPutWithResponse, apiUploadMedia } from '../../shared/api/client';
-import { useSettingsIdempotencyHeader } from '../../shared/settings/SettingsContext';
+import { useSettingsIdempotencyHeader } from '../../shared/settings';
 import { extractErrorMessage } from '../../shared/utils/errors';
 import { makeIdempotencyKey } from '../../shared/utils/idempotency';
 
@@ -220,8 +219,7 @@ export default function ProfilePage() {
                 size="lg"
                 src={avatarPreview || profile?.avatar_url || undefined}
                 name={formUsername || profile?.email || 'avatar'}
-                className="h-36 w-36 sm:h-40 sm:w-40"
-                classNames={{ root: 'h-full w-full overflow-hidden rounded-full', image: 'h-full w-full object-cover', display: 'h-full w-full flex items-center justify-center text-3xl font-semibold' }}
+                className="h-36 w-36 overflow-hidden rounded-full sm:h-40 sm:w-40"
               />
             </div>
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-4">

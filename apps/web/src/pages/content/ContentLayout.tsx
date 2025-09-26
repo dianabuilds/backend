@@ -4,7 +4,7 @@ import { PageHeader } from '@ui';
 
 type ContentTab = { to: string; label: React.ReactNode };
 
-type ContentContext = 'legacy' | 'nodes' | 'quests' | 'notifications';
+type ContentContext = 'legacy' | 'nodes' | 'quests' | 'notifications' | 'ops';
 
 type LayoutPreset = {
   tabs: ContentTab[];
@@ -50,6 +50,7 @@ const presetDescriptions: Record<ContentContext, React.ReactNode> = {
   nodes: 'Dedicated cockpit for the narrative graph: monitor, grow, and curate nodes powering every player journey.',
   quests: 'Plan, validate, and launch quests with confidence - from authoring pipelines to AI-assisted ideation.',
   notifications: 'Coordinate announcements, automate broadcasts, and keep every player cohort informed.',
+  ops: 'Operational cockpit for content ops teams balancing drafts, imports, and relations upkeep.',
 };
 
 const buttonBase = 'btn-base btn h-9 rounded-full px-4 text-sm font-medium shadow-sm transition focus-visible:outline-none focus-visible:ring-2';
@@ -115,6 +116,7 @@ const contextPresets: Record<ContentContext, LayoutPreset> = {
   nodes: { tabs: nodesTabs, description: presetDescriptions.nodes, actions: nodesActions },
   quests: { tabs: questsTabs, description: presetDescriptions.quests, actions: questsActions },
   notifications: { tabs: notificationsTabs, description: presetDescriptions.notifications, actions: notificationsActions },
+  ops: { tabs: legacyTabs, description: presetDescriptions.ops, actions: legacyActions },
 };
 
 type ContentLayoutProps = {

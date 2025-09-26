@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../shared/auth/AuthContext';
+import { useAuth } from '../shared/auth';
 import { apiGet, apiPost } from '../shared/api/client';
 import {
   ArrowRightOnRectangleIcon,
@@ -11,7 +11,6 @@ import {
   CreditCardIcon,
   Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
-import AlarmIconUrl from '@/assets/dualicons/alarm.svg';
 import { Spinner } from '@ui';
 
 interface ProfileSummary {
@@ -288,7 +287,7 @@ export function Topbar(): React.ReactElement {
             onClick={handleToggleNotifications}
           >
             <span className="sr-only">Notifications</span>
-            <img src={AlarmIconUrl} alt="" className="size-6" />
+            <BellAlertIcon className="size-6 text-indigo-500" />
             {hasUnread && (
               <span className="absolute top-0 ltr:right-0 rtl:left-0 m-1 inline-flex h-2.5 w-2.5 rounded-full bg-error ring-2 ring-white dark:ring-dark-900" />
             )}

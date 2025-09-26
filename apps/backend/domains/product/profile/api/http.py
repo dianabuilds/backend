@@ -14,8 +14,8 @@ from fastapi import (
 )
 from pydantic import BaseModel, Field
 
+from app.api_gateway.idempotency import require_idempotency_key
 from apps.backend import get_container
-from apps.backend.app.api_gateway.idempotency import require_idempotency_key
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
 from domains.platform.media.application.storage_service import StorageService
 from packages.core.settings_contract import assert_if_match, compute_etag, set_etag
