@@ -18,7 +18,6 @@ from domains.platform.worker.domain.models import JobStatus, WorkerJob
 
 class JobPayload(BaseModel):
     job_id: UUID | None = None
-    tenant_id: UUID
     type: str
     input: dict[str, Any]
     priority: int = Field(default=5, ge=0)
@@ -32,7 +31,6 @@ class JobPayload(BaseModel):
 
 class JobView(BaseModel):
     job_id: UUID
-    tenant_id: UUID
     type: str
     status: JobStatus
     priority: int
@@ -90,7 +88,6 @@ def make_router() -> APIRouter:
         job = await service.enqueue(
             JobCreateCommand(
                 job_id=payload.job_id,
-                tenant_id=payload.tenant_id,
                 type=payload.type,
                 input=payload.input,
                 priority=payload.priority,
@@ -186,7 +183,6 @@ def _job_to_view(job: WorkerJob) -> JobView:
     updated_at = job.updated_at.isoformat()
     return JobView(
         job_id=job.job_id,
-        tenant_id=job.tenant_id,
         type=job.type,
         status=job.status,
         priority=job.priority,

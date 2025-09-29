@@ -14,7 +14,6 @@ from ..adapters.jobs_sql import SQLWorkerJobRepository
 
 @dataclass(slots=True)
 class JobCreateCommand:
-    tenant_id: UUID
     type: str
     input: dict[str, Any]
     priority: int = 5
@@ -54,14 +53,11 @@ class WorkerQueueService:
         else:
             job_id = command.job_id
         if command.idempotency_key:
-            existing = await self._repo.find_by_idempotency(
-                command.tenant_id, command.type, command.idempotency_key
-            )
+            existing = await self._repo.find_by_idempotency(command.type, command.idempotency_key)
             if existing is not None:
                 return existing
         payload = {
             "job_id": job_id,
-            "tenant_id": command.tenant_id,
             "type": command.type,
             "status": JobStatus.QUEUED.value,
             "priority": command.priority,

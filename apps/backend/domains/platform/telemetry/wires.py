@@ -8,10 +8,12 @@ import redis.asyncio as redis  # type: ignore
 
 from domains.platform.telemetry.adapters.rum_memory import RumMemoryRepository
 from domains.platform.telemetry.adapters.rum_repository import RumRedisRepository
+from domains.platform.telemetry.adapters.rum_sql import RumSQLRepository
 from domains.platform.telemetry.application.rum_service import (
     RumMetricsService,
 )
-from packages.core.config import Settings, load_settings
+from domains.platform.telemetry.ports.rum_port import IRumRepository
+from packages.core.config import Settings, load_settings, to_async_dsn
 
 
 @dataclass
@@ -31,24 +33,43 @@ def _redis_reachable(url: str) -> bool:
         return False
 
 
+def _database_dsn(settings: Settings) -> str | None:
+    raw = getattr(settings, "database_url", None)
+    if not raw:
+        return None
+    try:
+        dsn = to_async_dsn(raw)
+    except Exception:
+        return None
+    if isinstance(dsn, str):
+        if "?" in dsn:
+            return dsn.split("?", 1)[0]
+        return dsn
+    return None
+
+
 def build_container(settings: Settings | None = None) -> TelemetryContainer:
     s = settings or load_settings()
-    repo = None
-    try:
-        if _redis_reachable(str(s.redis_url)):
-            client = redis.from_url(str(s.redis_url), decode_responses=True)
-            repo = RumRedisRepository(client)
-    except Exception:
-        repo = None
-    if repo is None:
-        # Fallback to in-memory RUM store in dev/test for visibility
-        try:
-            from packages.core.config import load_settings as _ls
+    repo: IRumRepository | None = None
 
-            if _ls().env != "prod":
-                repo = RumMemoryRepository(maxlen=1000)
+    dsn = _database_dsn(s)
+    if dsn:
+        try:
+            repo = RumSQLRepository(dsn)
         except Exception:
-            pass
+            repo = None
+
+    if repo is None:
+        try:
+            if _redis_reachable(str(s.redis_url)):
+                client = redis.from_url(str(s.redis_url), decode_responses=True)
+                repo = RumRedisRepository(client)
+        except Exception:
+            repo = None
+
+    if repo is None and getattr(s, "env", None) != "prod":
+        repo = RumMemoryRepository(maxlen=1000)
+
     rum_service = RumMetricsService(repo)
     return TelemetryContainer(settings=s, rum_service=rum_service)
 

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import asyncio
 from typing import Any
@@ -24,7 +24,7 @@ class SQLTagUsageWriter:
 
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            get_async_engine("tags-usage", url=engine) if isinstance(engine, str) else engine
+            get_async_engine("tags", url=engine) if isinstance(engine, str) else engine
         )
 
     async def apply(self, payload: dict[str, Any]) -> None:
@@ -84,18 +84,17 @@ def register_tags_usage_writer(events: Events, engine_or_dsn: AsyncEngine | str)
                 # best-effort: do not crash relay
                 pass
 
-        loop = asyncio.get_running_loop()
-        events.on(
-            "node.tags.updated.v1",
-            lambda t, p: loop.create_task(_on_node_tags_updated(t, p)),
-        )
+        def _schedule(topic: str, payload: dict[str, Any]) -> None:
+            try:
+                asyncio.create_task(_on_node_tags_updated(topic, payload))
+            except RuntimeError:
+                asyncio.run(_on_node_tags_updated(topic, payload))
+
+        events.on("node.tags.updated.v1", _schedule)
         # Optionally, support quest tags event name if present in the system
-        events.on(
-            "quest.tags.updated.v1",
-            lambda t, p: loop.create_task(_on_node_tags_updated(t, p)),
-        )
+        events.on("quest.tags.updated.v1", _schedule)
     except Exception:
-        # No DB / engine issues — skip registration silently
+        # No DB / engine issues вЂ” skip registration silently
         return
 
 

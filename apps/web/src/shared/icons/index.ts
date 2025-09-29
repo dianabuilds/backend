@@ -16,4 +16,9 @@ export {
   Gauge,
   TrendingDown,
   Copy,
+  Edit3,
+  Trash2,
+  BarChart3,
+  Settings2,
+  Send,
 } from 'lucide-react';

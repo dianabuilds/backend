@@ -43,7 +43,7 @@ def make_router() -> APIRouter:
         if not dsn:
             return None
         try:
-            return get_async_engine("platform-users-search", url=dsn, cache=False, future=True)
+            return get_async_engine("platform-users-search", url=dsn, future=True)
         except Exception:
             return None
 

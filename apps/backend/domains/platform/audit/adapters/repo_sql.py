@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from typing import Any
@@ -67,28 +67,35 @@ class SQLAuditRepo(AuditLogRepository):
 
     async def list(
         self,
-        limit: int = 100,
+        *,
+        limit: int = 20,
+        offset: int = 0,
         actions: list[str] | None = None,
         actor_id: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
+        resource_types: list[str] | None = None,
+        modules: list[str] | None = None,
+        search: str | None = None,
     ) -> list[dict]:
         base = (
             "SELECT id, actor_id, action, resource_type, resource_id, workspace_id, before, after, override, reason, ip, user_agent, created_at, extra "
             "FROM audit_logs"
         )
         where: list[str] = []
-        params: dict[str, Any] = {"limit": int(limit)}
+        params: dict[str, Any] = {
+            "limit": int(max(limit, 0)),
+            "offset": int(max(offset, 0)),
+        }
         if actions:
-            # Normalize to lowercase strings
             acts = [str(a).strip() for a in actions if a and str(a).strip()]
             if acts:
-                conds = []
-                for idx, a in enumerate(acts):
+                clause = []
+                for idx, action in enumerate(acts):
                     key = f"act_{idx}"
-                    conds.append(f"action = :{key}")
-                    params[key] = a
-                where.append("(" + " OR ".join(conds) + ")")
+                    clause.append(f"action = :{key}")
+                    params[key] = action
+                where.append("(" + " OR ".join(clause) + ")")
         if actor_id:
             where.append("actor_id = :actor_id")
             params["actor_id"] = str(actor_id)
@@ -98,14 +105,35 @@ class SQLAuditRepo(AuditLogRepository):
         if date_to:
             where.append("created_at <= :date_to")
             params["date_to"] = date_to
+        if resource_types:
+            rt = [str(r).strip() for r in resource_types if r and str(r).strip()]
+            if rt:
+                where.append("resource_type = ANY(:resource_types)")
+                params["resource_types"] = rt
+        if modules:
+            mods = [str(m).strip() for m in modules if m and str(m).strip()]
+            if mods:
+                mod_clauses = []
+                for idx, mod in enumerate(mods):
+                    key = f"module_{idx}"
+                    mod_clauses.append(f"action = :{key} OR action LIKE :{key}_like")
+                    params[key] = mod
+                    params[f"{key}_like"] = f"{mod}.%"
+                where.append("(" + " OR ".join(mod_clauses) + ")")
+        if search:
+            needle = f"%{search.strip()}%"
+            where.append(
+                "(action ILIKE :search OR resource_id ILIKE :search OR resource_type ILIKE :search OR reason ILIKE :search OR ip ILIKE :search OR user_agent ILIKE :search)"
+            )
+            params["search"] = needle
         if where:
             base += " WHERE " + " AND ".join(where)
-        base += " ORDER BY created_at DESC LIMIT :limit"
+        base += " ORDER BY created_at DESC, id DESC LIMIT :limit OFFSET :offset"
         sql = text(base)
         async with self._engine.begin() as conn:
             res = await conn.execute(sql, params)
             rows = res.mappings().all()
-            return [dict(r) for r in rows]
+            return [dict(row) for row in rows]
 
 
 __all__ = ["SQLAuditRepo"]

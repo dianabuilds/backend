@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from typing import cast
+from uuid import UUID
 
 import pytest
 
+from domains.platform.worker.adapters.jobs_sql import SQLWorkerJobRepository
 from domains.platform.worker.application.service import (
     JobCompletionCommand,
     JobCreateCommand,
@@ -18,12 +20,11 @@ from domains.platform.worker.domain.models import JobStatus, WorkerJob
 class _FakeRepo:
     def __init__(self) -> None:
         self.jobs: dict[UUID, WorkerJob] = {}
-        self.idempotent: dict[tuple[UUID, str, str | None], WorkerJob] = {}
+        self.idempotent: dict[tuple[str, str | None], WorkerJob] = {}
 
     async def enqueue(self, payload):
         job = WorkerJob(
             job_id=payload["job_id"],
-            tenant_id=payload["tenant_id"],
             type=payload["type"],
             status=JobStatus(payload["status"]),
             priority=payload["priority"],
@@ -45,11 +46,11 @@ class _FakeRepo:
         )
         self.jobs[job.job_id] = job
         if job.idempotency_key:
-            self.idempotent[(job.tenant_id, job.type, job.idempotency_key)] = job
+            self.idempotent[(job.type, job.idempotency_key)] = job
         return job
 
-    async def find_by_idempotency(self, tenant_id, job_type, key):
-        return self.idempotent.get((tenant_id, job_type, key))
+    async def find_by_idempotency(self, job_type, key):
+        return self.idempotent.get((job_type, key))
 
     async def lease_jobs(self, *, worker_id, job_types, limit, lease_seconds, job_ids=None):
         now = datetime.now(UTC)
@@ -120,11 +121,8 @@ class _StubQueue:
 @pytest.mark.asyncio
 async def test_enqueue_generates_job_id_when_missing() -> None:
     repo = _FakeRepo()
-    service = WorkerQueueService(repo)
-    tenant = uuid4()
-    job = await service.enqueue(
-        JobCreateCommand(tenant_id=tenant, type="test", input={"foo": "bar"})
-    )
+    service = WorkerQueueService(cast(SQLWorkerJobRepository, repo))
+    job = await service.enqueue(JobCreateCommand(type="test", input={"foo": "bar"}))
     assert job.job_id in repo.jobs
     assert job.input == {"foo": "bar"}
 
@@ -132,11 +130,9 @@ async def test_enqueue_generates_job_id_when_missing() -> None:
 @pytest.mark.asyncio
 async def test_enqueue_returns_existing_for_idempotent_key() -> None:
     repo = _FakeRepo()
-    service = WorkerQueueService(repo)
-    tenant = uuid4()
+    service = WorkerQueueService(cast(SQLWorkerJobRepository, repo))
     first = await service.enqueue(
         JobCreateCommand(
-            tenant_id=tenant,
             type="test",
             input={"foo": 1},
             idempotency_key="abc",
@@ -144,7 +140,6 @@ async def test_enqueue_returns_existing_for_idempotent_key() -> None:
     )
     second = await service.enqueue(
         JobCreateCommand(
-            tenant_id=tenant,
             type="test",
             input={"foo": 2},
             idempotency_key="abc",
@@ -158,20 +153,16 @@ async def test_enqueue_returns_existing_for_idempotent_key() -> None:
 async def test_enqueue_pushes_to_queue() -> None:
     repo = _FakeRepo()
     queue = _StubQueue()
-    service = WorkerQueueService(repo, queue=queue)
-    tenant = uuid4()
-    job = await service.enqueue(
-        JobCreateCommand(tenant_id=tenant, type="test", input={}, priority=2)
-    )
+    service = WorkerQueueService(cast(SQLWorkerJobRepository, repo), queue=queue)
+    job = await service.enqueue(JobCreateCommand(type="test", input={}, priority=2))
     assert queue.pushed == [(job.job_id, 2)]
 
 
 @pytest.mark.asyncio
 async def test_complete_updates_status() -> None:
     repo = _FakeRepo()
-    service = WorkerQueueService(repo)
-    tenant = uuid4()
-    job = await service.enqueue(JobCreateCommand(tenant_id=tenant, type="test", input={}))
+    service = WorkerQueueService(cast(SQLWorkerJobRepository, repo))
+    job = await service.enqueue(JobCreateCommand(type="test", input={}))
     completed = await service.complete(
         JobCompletionCommand(job_id=job.job_id, worker_id="worker-1", result={"ok": True})
     )
@@ -183,9 +174,8 @@ async def test_complete_updates_status() -> None:
 async def test_fail_requeues_when_retryable() -> None:
     repo = _FakeRepo()
     queue = _StubQueue()
-    service = WorkerQueueService(repo, queue=queue)
-    tenant = uuid4()
-    job = await service.enqueue(JobCreateCommand(tenant_id=tenant, type="test", input={}))
+    service = WorkerQueueService(cast(SQLWorkerJobRepository, repo), queue=queue)
+    job = await service.enqueue(JobCreateCommand(type="test", input={}))
     repo.jobs[job.job_id] = replace(
         repo.jobs[job.job_id],
         attempts=1,
@@ -211,11 +201,8 @@ async def test_fail_requeues_when_retryable() -> None:
 async def test_fail_final_when_attempts_exhausted() -> None:
     repo = _FakeRepo()
     queue = _StubQueue()
-    service = WorkerQueueService(repo, queue=queue)
-    tenant = uuid4()
-    job = await service.enqueue(
-        JobCreateCommand(tenant_id=tenant, type="test", input={}, priority=1)
-    )
+    service = WorkerQueueService(cast(SQLWorkerJobRepository, repo), queue=queue)
+    job = await service.enqueue(JobCreateCommand(type="test", input={}, priority=1))
     repo.jobs[job.job_id] = replace(
         repo.jobs[job.job_id],
         attempts=3,

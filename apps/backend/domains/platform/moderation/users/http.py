@@ -31,7 +31,7 @@ async def list_users(
         if not dsn:
             return {"items": [], "next_cursor": None}
 
-        eng = get_async_engine("moderation-users-list", url=dsn, cache=False, future=True)
+        eng = get_async_engine("moderation-users-list", url=dsn, future=True)
 
         qp = f"%{(q or '').strip()}%"
         try:
@@ -175,9 +175,7 @@ async def list_users(
             if not dsn:
                 return {"items": [], "next_cursor": None}
 
-            eng = get_async_engine(
-                "moderation-users-list-fallback", url=dsn, cache=False, future=True
-            )
+            eng = get_async_engine("moderation-users-list-fallback", url=dsn, future=True)
 
             qp = f"%{(q or '').strip()}%"
             try:
@@ -248,7 +246,7 @@ async def get_user(user_id: str, container=Depends(get_container)) -> UserDetail
         if not dsn:
             raise KeyError("no_dsn")
 
-        eng = get_async_engine("moderation-users-detail", url=dsn, cache=False, future=True)
+        eng = get_async_engine("moderation-users-detail", url=dsn, future=True)
 
         async with eng.begin() as conn:
             # detect user_roles
@@ -341,7 +339,7 @@ async def update_roles(
         if not dsn:
             raise KeyError("no_dsn")
 
-        eng = get_async_engine("moderation-users-roles", url=dsn, cache=False, future=True)
+        eng = get_async_engine("moderation-users-roles", url=dsn, future=True)
 
         async with eng.begin() as conn:
             # ensure user exists
@@ -472,9 +470,7 @@ async def issue_sanction(
         try:
             dsn = to_async_dsn(container.settings.database_url)
             if dsn:
-                eng = get_async_engine(
-                    "moderation-users-sanction-bootstrap", url=dsn, cache=False, future=True
-                )
+                eng = get_async_engine("moderation-users-sanction-bootstrap", url=dsn, future=True)
                 async with eng.begin() as conn:
                     row = (
                         (
@@ -512,9 +508,7 @@ async def issue_sanction(
         try:
             dsn = to_async_dsn(container.settings.database_url)
             if dsn:
-                eng = get_async_engine(
-                    "moderation-users-sanction-store", url=dsn, cache=False, future=True
-                )
+                eng = get_async_engine("moderation-users-sanction-store", url=dsn, future=True)
                 async with eng.begin() as conn:
                     # ensure table exists
                     exists_tbl = (

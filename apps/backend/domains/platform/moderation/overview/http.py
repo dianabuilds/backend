@@ -34,7 +34,7 @@ async def get_overview(limit: int = 10, container=Depends(get_container)) -> Ove
                 cards=[],
             )
 
-        eng = get_async_engine("moderation-overview", url=dsn, cache=False, future=True)
+        eng = get_async_engine("moderation-overview", url=dsn, future=True)
 
         async with eng.begin() as conn:
             try:

@@ -26,7 +26,6 @@ class SQLWorkerJobRepository:
             """
             INSERT INTO worker_jobs (
                 job_id,
-                tenant_id,
                 type,
                 status,
                 priority,
@@ -41,7 +40,6 @@ class SQLWorkerJobRepository:
                 result
             ) VALUES (
                 :job_id,
-                :tenant_id,
                 :type,
                 :status,
                 :priority,
@@ -75,7 +73,7 @@ class SQLWorkerJobRepository:
                 return self._row_to_job(row)
         except IntegrityError:
             existing = await self.find_by_idempotency(
-                payload["tenant_id"], payload["type"], payload.get("idempotency_key")
+                payload["type"], payload.get("idempotency_key")
             )
             if existing is None:
                 raise
@@ -87,18 +85,10 @@ class SQLWorkerJobRepository:
             row = (await conn.execute(sql, {"job_id": job_id})).mappings().first()
         return self._row_to_job(row) if row else None
 
-    async def find_by_idempotency(
-        self, tenant_id: UUID, job_type: str, key: str | None
-    ) -> WorkerJob | None:
-        sql = text(
-            "SELECT * FROM worker_jobs WHERE tenant_id = :tenant_id AND type = :type AND idempotency_key = :key"
-        )
+    async def find_by_idempotency(self, job_type: str, key: str | None) -> WorkerJob | None:
+        sql = text("SELECT * FROM worker_jobs WHERE type = :type AND idempotency_key = :key")
         async with self._engine.begin() as conn:
-            row = (
-                (await conn.execute(sql, {"tenant_id": tenant_id, "type": job_type, "key": key}))
-                .mappings()
-                .first()
-            )
+            row = (await conn.execute(sql, {"type": job_type, "key": key})).mappings().first()
         return self._row_to_job(row) if row else None
 
     async def lease_jobs(
@@ -381,7 +371,6 @@ class SQLWorkerJobRepository:
         result_payload = self._ensure_dict(row.get("result"))
         return WorkerJob(
             job_id=row["job_id"],
-            tenant_id=row["tenant_id"],
             type=row["type"],
             status=JobStatus(row["status"]),
             priority=int(row["priority"]),

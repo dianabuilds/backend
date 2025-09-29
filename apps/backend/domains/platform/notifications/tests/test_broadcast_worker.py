@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 
@@ -14,6 +15,7 @@ from domains.platform.notifications.workers.broadcast import (
     _BroadcastWorker,
 )
 from domains.platform.telemetry.application.worker_metrics_service import worker_metrics
+from packages.core.config import Settings
 from packages.worker.registry import WorkerRuntimeContext
 
 
@@ -68,8 +70,9 @@ async def test_broadcast_worker_updates_metrics() -> None:
     def _factory(context: WorkerRuntimeContext) -> _StubContainer:
         return _StubContainer(orchestrator)
 
+    settings = cast(Settings, SimpleNamespace())
     ctx = WorkerRuntimeContext(
-        settings=SimpleNamespace(),
+        settings=settings,
         env={},
         logger=logging.getLogger("test.broadcast.worker"),
     )

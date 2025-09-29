@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import replace
 
 import pytest
@@ -45,7 +46,7 @@ class _MemoryPreferenceRepo(NotificationPreferenceRepo):
     async def list_for_user(self, user_id: str) -> list[PreferenceRecord]:
         return [replace(record) for record in self._storage.get(user_id, [])]
 
-    async def replace_for_user(self, user_id: str, records: list[PreferenceRecord]) -> None:
+    async def replace_for_user(self, user_id: str, records: Sequence[PreferenceRecord]) -> None:
         self._storage[user_id] = [replace(record) for record in records]
 
 
@@ -53,7 +54,7 @@ class _MemoryAuditRepo(NotificationConsentAuditRepo):
     def __init__(self) -> None:
         self.records: list[ConsentAuditRecord] = []
 
-    async def append_many(self, records: list[ConsentAuditRecord]) -> None:
+    async def append_many(self, records: Sequence[ConsentAuditRecord]) -> None:
         self.records.extend(records)
 
 

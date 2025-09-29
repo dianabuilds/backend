@@ -6,7 +6,7 @@ import { apiGet } from '../../shared/api/client';
 type Summary = {
   llm: any;
   workers: any;
-  events: { per_tenant: Record<string, Record<string, number>>; handlers: any[] };
+  events: { counts: Record<string, number>; handlers: any[] };
   transitions: Array<any>;
   ux: any;
   rum: any;
@@ -121,3 +121,4 @@ export default function ObservabilityOverview() {
     </ObservabilityLayout>
   );
 }
+

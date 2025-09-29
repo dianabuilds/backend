@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from typing import Any
 
 from fastapi import FastAPI, Request
 
@@ -11,8 +12,8 @@ except Exception:  # pragma: no cover
     Counter = Histogram = None  # type: ignore
 
 
-HTTP_REQUESTS = None
-HTTP_REQUEST_DURATION = None
+HTTP_REQUESTS: Any | None = None
+HTTP_REQUEST_DURATION: Any | None = None
 
 
 def _ensure_metrics():
@@ -62,12 +63,14 @@ def setup_http_metrics(app: FastAPI) -> None:
             return response
         finally:
             dt_ms = (time.perf_counter() - t0) * 1000.0
-            try:
-                # type: ignore[union-attr]
-                HTTP_REQUESTS.labels(method=method, path=path, status=status).inc()
-                HTTP_REQUEST_DURATION.labels(method=method, path=path).observe(dt_ms)
-            except Exception:
-                pass
+            counter = HTTP_REQUESTS
+            duration = HTTP_REQUEST_DURATION
+            if counter is not None and duration is not None:
+                try:
+                    counter.labels(method=method, path=path, status=status).inc()
+                    duration.labels(method=method, path=path).observe(dt_ms)
+                except Exception:
+                    pass
 
 
 __all__ = ["setup_http_metrics"]

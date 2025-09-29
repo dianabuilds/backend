@@ -385,7 +385,7 @@ def make_router() -> APIRouter:
         except Exception:
             ok = err = vol = 0
         # Avg confirmation time (requires meta.confirmed_at; best effort)
-        avg_confirm_ms = 0
+        avg_confirm_ms = 0.0
         try:
             from sqlalchemy import text  # type: ignore
 
@@ -402,7 +402,7 @@ def make_router() -> APIRouter:
                 if r and r.get("ms") is not None:
                     avg_confirm_ms = float(r.get("ms") or 0.0)
         except Exception:
-            avg_confirm_ms = 0
+            avg_confirm_ms = 0.0
         return {
             "success": ok,
             "errors": err,

@@ -79,7 +79,7 @@ async def get_current_user(req: Request) -> dict[str, Any]:
                     u = urlsplit(dsn)
                     if not host_allowed and not _is_local_host(u.hostname):
                         raise RuntimeError("remote_database_access_disabled")
-                    eng = get_async_engine("iam-security-check", url=dsn, cache=False, future=True)
+                    eng = get_async_engine("iam-security-check", url=dsn, future=True)
                     async with eng.begin() as conn:
                         exists_tbl = (
                             await conn.execute(

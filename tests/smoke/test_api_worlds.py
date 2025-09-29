@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from uuid import uuid4
 
@@ -6,20 +6,19 @@ from tests.conftest import add_auth, make_jwt
 
 
 def test_worlds_crud_and_characters(app_client):
-    tenant = str(uuid4())
     uid = str(uuid4())
     tok = make_jwt(uid, role="admin")
     add_auth(app_client, tok)
     headers = {"X-Admin-Key": "adminkey"}
 
-    # List empty
-    r0 = app_client.get(f"/v1/admin/worlds?tenant_id={tenant}", headers=headers)
+    # List initial state
+    r0 = app_client.get("/v1/admin/worlds", headers=headers)
     assert r0.status_code == 200, r0.text
-    assert r0.json() == []
+    baseline = r0.json()
 
     # Create world
     c = app_client.post(
-        f"/v1/admin/worlds?tenant_id={tenant}",
+        "/v1/admin/worlds",
         json={"title": "World", "locale": "en", "description": "d"},
         headers=headers,
     )
@@ -28,21 +27,21 @@ def test_worlds_crud_and_characters(app_client):
 
     # Update world
     u = app_client.patch(
-        f"/v1/admin/worlds/{wid}?tenant_id={tenant}",
+        f"/v1/admin/worlds/{wid}",
         json={"title": "World2"},
         headers=headers,
     )
     assert u.status_code == 200, u.text
     assert u.json()["title"] == "World2"
 
-    # List characters empty
-    lc = app_client.get(f"/v1/admin/worlds/{wid}/characters?tenant_id={tenant}", headers=headers)
+    # List characters empty for new world
+    lc = app_client.get(f"/v1/admin/worlds/{wid}/characters", headers=headers)
     assert lc.status_code == 200, lc.text
     assert lc.json() == []
 
     # Create character
     cc = app_client.post(
-        f"/v1/admin/worlds/{wid}/characters?tenant_id={tenant}",
+        f"/v1/admin/worlds/{wid}/characters",
         json={"name": "NPC", "role": "guide"},
         headers=headers,
     )
@@ -51,7 +50,7 @@ def test_worlds_crud_and_characters(app_client):
 
     # Update character
     uc = app_client.patch(
-        f"/v1/admin/worlds/characters/{cid}?tenant_id={tenant}",
+        f"/v1/admin/worlds/characters/{cid}",
         json={"description": "updated"},
         headers=headers,
     )
@@ -59,9 +58,15 @@ def test_worlds_crud_and_characters(app_client):
     assert uc.json()["description"] == "updated"
 
     # Delete character
-    dc = app_client.delete(f"/v1/admin/worlds/characters/{cid}?tenant_id={tenant}", headers=headers)
+    dc = app_client.delete(f"/v1/admin/worlds/characters/{cid}", headers=headers)
     assert dc.status_code == 200, dc.text
 
     # Delete world
-    dw = app_client.delete(f"/v1/admin/worlds/{wid}?tenant_id={tenant}", headers=headers)
+    dw = app_client.delete(f"/v1/admin/worlds/{wid}", headers=headers)
     assert dw.status_code == 200, dw.text
+
+    r_final = app_client.get("/v1/admin/worlds", headers=headers)
+    assert r_final.status_code == 200, r_final.text
+    ids = {item["id"] for item in r_final.json()}
+    assert wid not in ids
+    assert len(r_final.json()) == len(baseline)

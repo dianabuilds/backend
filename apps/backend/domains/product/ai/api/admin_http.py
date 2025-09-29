@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -31,19 +32,20 @@ def make_router() -> APIRouter:
         if not prompt:
             raise HTTPException(status_code=400, detail="prompt_required")
         model = str(body.get("model") or "") or None
+        model_id = str(body.get("model_id") or "") or None
         provider = str(body.get("provider") or "") or None
         c = get_container(req)
         svc = c.ai_service
         if not svc:
             raise HTTPException(status_code=503, detail="ai_unavailable")
-        return await svc.generate(prompt, model=model, provider=provider)
+        return await svc.generate(prompt, model=model, provider=provider, model_id=model_id)
 
     # Models
     @router.get("/models")
     async def list_models(req: Request, _admin: None = Depends(require_admin)) -> dict:
         c = get_container(req)
         items = await c.ai_registry.list_models()
-        return {"items": [m.__dict__ for m in items]}
+        return {"items": [asdict(m) for m in items]}
 
     @router.post(
         "/models",
@@ -57,7 +59,7 @@ def make_router() -> APIRouter:
     ) -> dict:
         c = get_container(req)
         m = await c.ai_registry.upsert_model(body)
-        return {"model": m.__dict__}
+        return {"model": asdict(m)}
 
     @router.delete(
         "/models/{model_id}",
@@ -95,7 +97,7 @@ def make_router() -> APIRouter:
         c = get_container(req)
         p = await c.ai_registry.upsert_provider(body)
         # redact api_key in response
-        out = dict(p.__dict__)
+        out = asdict(p)
         if out.get("api_key"):
             out["api_key"] = "***"
         return {"provider": out}
@@ -119,7 +121,7 @@ def make_router() -> APIRouter:
     async def list_fallbacks(req: Request, _admin: None = Depends(require_admin)) -> dict:
         c = get_container(req)
         items = await c.ai_registry.list_fallbacks()
-        return {"items": [r.__dict__ for r in items]}
+        return {"items": [asdict(r) for r in items]}
 
     @router.post(
         "/fallbacks",
@@ -133,7 +135,7 @@ def make_router() -> APIRouter:
     ) -> dict:
         c = get_container(req)
         r = await c.ai_registry.upsert_fallback(body)
-        return {"rule": r.__dict__}
+        return {"rule": asdict(r)}
 
     @router.delete(
         "/fallbacks/{rule_id}",

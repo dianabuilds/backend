@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from typing import Any
 from uuid import UUID
 
@@ -24,7 +25,7 @@ class SQLNotificationConsentAuditRepo(NotificationConsentAuditRepo):
         except (TypeError, ValueError):
             return None
 
-    async def append_many(self, records: list[ConsentAuditRecord]) -> None:
+    async def append_many(self, records: Sequence[ConsentAuditRecord]) -> None:
         if not records:
             return
         payloads: list[dict[str, Any]] = []

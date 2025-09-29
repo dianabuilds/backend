@@ -472,7 +472,7 @@ def _discover_cover_images() -> list[str]:
     return []
 
 
-def _canon_tag(value: str) -> str:
+def _canon_tag(value: object) -> str:
     slug = re.sub(r"[^a-z0-9\s-]", "", str(value).lower())
     slug = slug.replace(" ", "-")
     slug = re.sub(r"-+", "-", slug).strip("-")
@@ -658,7 +658,7 @@ async def _seed_node_assoc_cache(engine: AsyncEngine, nodes: Sequence[CreatedNod
         tag_set = set(node.tags)
         if not tag_set:
             continue
-        scored: list[tuple[float, int]] = []
+        tag_scored: list[tuple[float, int]] = []
         for other in nodes:
             if other.id == node.id:
                 continue
@@ -671,9 +671,9 @@ async def _seed_node_assoc_cache(engine: AsyncEngine, nodes: Sequence[CreatedNod
             union = len(tag_set | other_tags)
             jaccard = inter / union if union else 0.0
             score = jaccard + (0.05 if other.is_public else 0.0)
-            scored.append((score, other.id))
-        scored.sort(key=lambda item: item[0], reverse=True)
-        for score, target_id in scored[:6]:
+            tag_scored.append((score, other.id))
+        tag_scored.sort(key=lambda item: item[0], reverse=True)
+        for score, target_id in tag_scored[:6]:
             entries[("tags", node.id, target_id)] = max(
                 entries.get(("tags", node.id, target_id), 0.0), float(score)
             )
@@ -943,8 +943,8 @@ async def main() -> None:
     from urllib.parse import urlsplit as _usplit
     from urllib.parse import urlunsplit as _uunsplit
 
-    u = _usplit(dsn_norm)
-    qs = dict(_pqsl(u.query, keep_blank_values=True))
+    dsn_parts = _usplit(dsn_norm)
+    qs = dict(_pqsl(dsn_parts.query, keep_blank_values=True))
     ssl_flag = None
     if "ssl" in {k.lower() for k in qs.keys()}:
         for k, v in list(qs.items()):
@@ -960,7 +960,9 @@ async def main() -> None:
                 elif mode in {"disable", "allow", "prefer", "0", "false"}:
                     ssl_flag = False
                 break
-    dsn_no_query = _uunsplit((u.scheme, u.netloc, u.path, "", u.fragment))
+    dsn_no_query = _uunsplit(
+        (dsn_parts.scheme, dsn_parts.netloc, dsn_parts.path, "", dsn_parts.fragment)
+    )
     connect_args = {}
     if ssl_flag is not None:
         connect_args = {"connect_args": {"ssl": ssl_flag}}
@@ -979,7 +981,16 @@ async def main() -> None:
                 return netloc
 
         print(
-            "[seed] Using DSN:", _uunsplit((u.scheme, _sanitize(u.netloc), u.path, "", u.fragment))
+            "[seed] Using DSN:",
+            _uunsplit(
+                (
+                    dsn_parts.scheme,
+                    _sanitize(dsn_parts.netloc),
+                    dsn_parts.path,
+                    "",
+                    dsn_parts.fragment,
+                )
+            ),
         )
         print("[seed] connect_args:", connect_args)
         print("[seed] PGSSLMODE present:", "PGSSLMODE" in os.environ)

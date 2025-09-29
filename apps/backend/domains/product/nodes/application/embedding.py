@@ -63,7 +63,10 @@ class EmbeddingClient:
                 data = resp.json()
                 embedding = self._extract_embedding(data)
                 if embedding is None:
-                    logger.warning("embedding_response_missing_data", provider=self._provider)
+                    logger.warning(
+                        "embedding_response_missing_data",
+                        extra={"provider": self._provider},
+                    )
                     return None
                 return [float(v) for v in embedding]
             except Exception as exc:  # pragma: no cover - network failure path

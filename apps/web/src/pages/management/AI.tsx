@@ -1,386 +1,548 @@
 import React from 'react';
-import { ApexChart, Button, Card, Drawer, Input, Select, Spinner, Switch, Table, Textarea } from '@ui';
-import { apiDelete, apiGet, apiPost } from '../../shared/api/client';
+import { AlertTriangle, FileCode2, Gauge, Link2 } from '@icons';
+import { Button, Card, PageHeader, Spinner, Tabs } from '@ui';
+import { apiDelete, apiPost } from '../../shared/api/client';
+import { useAuth } from '../../shared/auth';
+import { FallbacksSection } from './ai/components/FallbacksSection';
+import { ModelDrawer } from './ai/components/ModelDrawer';
+import { ModelsSection } from './ai/components/ModelsSection';
+import { PlaygroundSection } from './ai/components/PlaygroundSection';
+import { ProviderDrawer } from './ai/components/ProviderDrawer';
+import { ProvidersSection } from './ai/components/ProvidersSection';
+import { UsageSection } from './ai/components/UsageSection';
+import { useAiManagement } from './ai/hooks/useAiManagement';
+import { buildUsageRows, groupFallbacksByPrimary, groupFallbacksBySecondary } from './ai/utils';
+import type { Model, ModelFormState, Provider, ProviderFormState } from './ai/types';
 
-type Model = {
-  id: string;
-  name: string;
-  provider_slug: string;
-  version?: string | null;
-  status?: string;
-  is_default?: boolean;
-  params?: any | null;
-};
+const TAB_ITEMS = [
+  { key: 'overview', label: 'Обзор' },
+  { key: 'models', label: 'Модели' },
+  { key: 'providers', label: 'Провайдеры' },
+  { key: 'fallbacks', label: 'Fallback' },
+  { key: 'playground', label: 'Playground' },
+] as const;
 
-type Provider = {
-  slug: string;
-  title?: string | null;
-  enabled?: boolean;
-  base_url?: string | null;
-  timeout_sec?: number | null;
-};
+type TabKey = (typeof TAB_ITEMS)[number]['key'];
 
 export default function ManagementAI() {
-  // Datasets
-  const [models, setModels] = React.useState<Model[]>([]);
-  const [providers, setProviders] = React.useState<Provider[]>([]);
-  const [metrics, setMetrics] = React.useState<any | null>(null);
+  const { user } = useAuth();
+  const {
+    models,
+    providers,
+    fallbacks,
+    metrics,
+    loading,
+    refreshing,
+    error,
+    loadAll,
+  } = useAiManagement();
 
-  // UI state
-  const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [editing, setEditing] = React.useState<Model | null>(null);
-  const [editingProvider, setEditingProvider] = React.useState<Provider | null>(null);
-  const [provApiKey, setProvApiKey] = React.useState<string>('');
-  const [provRetries, setProvRetries] = React.useState<number | ''>('');
+  const [activeTab, setActiveTab] = React.useState<TabKey>('overview');
 
-  // Playground
-  const [pgPrompt, setPgPrompt] = React.useState('');
-  const [pgModel, setPgModel] = React.useState('');
-  const [pgResult, setPgResult] = React.useState<string>('');
-  const [pgBusy, setPgBusy] = React.useState(false);
-  const [pgLatency, setPgLatency] = React.useState<number | null>(null);
+  const roles = React.useMemo(() => {
+    const result = new Set<string>();
+    if (user?.role) result.add(String(user.role).toLowerCase());
+    (user?.roles || []).forEach((role) => result.add(String(role).toLowerCase()));
+    return Array.from(result);
+  }, [user]);
 
-  const load = React.useCallback(async () => {
-    try {
-      const m = await apiGet<{ items: Model[] }>('/v1/ai/admin/models');
-      setModels(m?.items || []);
-    } catch {}
-    try {
-      const p = await apiGet<{ items: Provider[] }>('/v1/ai/admin/providers');
-      setProviders(p?.items || []);
-    } catch {}
-    try {
-      const s = await apiGet<any>('/v1/admin/telemetry/llm/summary');
-      setMetrics(s || {});
-    } catch {}
-  }, []);
-  React.useEffect(() => { void load(); }, [load]);
+  const hasProviderAccess = React.useMemo(
+    () => roles.some((role) => role === 'admin' || role === 'support' || role.includes('platform_admin') || role.includes('platform-admin')),
+    [roles],
+  );
 
-  // Helpers
-  const usageByKey = React.useMemo(() => {
-    const calls = (metrics?.calls || []) as Array<any>;
-    const tokens = (metrics?.tokens_total || []) as Array<any>;
-    const errors = calls.filter((r) => r.type === 'errors');
-    const ok = calls.filter((r) => r.type === 'calls');
-    const by: Record<string, { calls: number; errors: number; prompt: number; completion: number }> = {};
-    for (const r of ok) {
-      const k = `${r.provider}:${r.model}`;
-      by[k] = by[k] || { calls: 0, errors: 0, prompt: 0, completion: 0 };
-      by[k].calls += r.count || 0;
-    }
-    for (const r of errors) {
-      const k = `${r.provider}:${r.model}`;
-      by[k] = by[k] || { calls: 0, errors: 0, prompt: 0, completion: 0 };
-      by[k].errors += r.count || 0;
-    }
-    for (const r of tokens) {
-      const k = `${r.provider}:${r.model}`;
-      by[k] = by[k] || { calls: 0, errors: 0, prompt: 0, completion: 0 };
-      if (r.type === 'prompt') by[k].prompt += r.total || 0;
-      if (r.type === 'completion') by[k].completion += r.total || 0;
-    }
-    return by;
+  const usageRows = React.useMemo(() => buildUsageRows(metrics), [metrics]);
+  const fallbackByPrimary = React.useMemo(() => groupFallbacksByPrimary(fallbacks), [fallbacks]);
+  const fallbackBySecondary = React.useMemo(() => groupFallbacksBySecondary(fallbacks), [fallbacks]);
+
+  const activeModels = React.useMemo(() => models.filter((m) => (m.status || 'active') !== 'disabled'), [models]);
+  const totalActiveModels = activeModels.length;
+  const fallbackCount = fallbacks.length;
+  const totalErrors = usageRows.reduce((acc, row) => acc + row.errors, 0);
+  const totalCalls = usageRows.reduce((acc, row) => acc + row.calls, 0);
+  const enabledProviders = providers.filter((p) => p.enabled !== false).length;
+  const avgLatency = React.useMemo(() => {
+    const latencies = metrics?.latency_avg_ms || [];
+    if (!latencies.length) return null;
+    const sum = latencies.reduce((acc, row) => acc + (row.avg_ms || 0), 0);
+    return Math.round(sum / latencies.length);
   }, [metrics]);
 
-  const openAddModel = () => {
-    setEditing({ id: '', name: '', provider_slug: '', version: '', status: 'active', params: { limits: {}, usage: {}, fallback_priority: 100 } });
-    setEditingProvider(null);
-    setProvApiKey('');
-    setProvRetries('');
-    setDrawerOpen(true);
-  };
-  const openEditModel = (m: Model) => {
-    setEditing({ ...m });
-    setEditingProvider(providers.find((p) => p.slug === m.provider_slug) || null);
-    setProvApiKey('');
-    setProvRetries('');
-    setDrawerOpen(true);
-  };
+  const [modelDrawerOpen, setModelDrawerOpen] = React.useState(false);
+  const [modelForm, setModelForm] = React.useState<ModelFormState | null>(null);
+  const [modelSaving, setModelSaving] = React.useState(false);
+  const [busyModelId, setBusyModelId] = React.useState<string | null>(null);
 
-  const saveModel = async () => {
-    if (!editing) return;
-    const payload: any = {
-      id: editing.id || undefined,
-      name: editing.name,
-      provider_slug: editing.provider_slug,
-      version: (editing.version || '').trim() || undefined,
-      status: editing.status || 'active',
-      is_default: !!editing.is_default,
-      params: editing.params || {},
-    };
-    await apiPost('/v1/ai/admin/models', payload);
-    if (editingProvider && editingProvider.slug) {
-      await apiPost('/v1/ai/admin/providers', {
-        slug: editingProvider.slug,
-        title: editingProvider.title,
-        enabled: editingProvider.enabled,
-        base_url: editingProvider.base_url,
-        timeout_sec: editingProvider.timeout_sec,
-        api_key: provApiKey || undefined,
-        extras: typeof provRetries === 'number' ? { retries: provRetries } : undefined,
+  const [providerDrawerOpen, setProviderDrawerOpen] = React.useState(false);
+  const [providerForm, setProviderForm] = React.useState<ProviderFormState | null>(null);
+  const [providerSaving, setProviderSaving] = React.useState(false);
+  const [busyProviderSlug, setBusyProviderSlug] = React.useState<string | null>(null);
+
+  const [fallbackDraft, setFallbackDraft] = React.useState({ primary: '', fallback: '', mode: 'on_error', priority: 100 });
+  const [fallbackSaving, setFallbackSaving] = React.useState(false);
+  const [fallbackRemoving, setFallbackRemoving] = React.useState<string | null>(null);
+
+  const [playgroundPrompt, setPlaygroundPrompt] = React.useState('');
+  const [playgroundModel, setPlaygroundModel] = React.useState('');
+  const [playgroundResult, setPlaygroundResult] = React.useState<string | null>(null);
+  const [playgroundBusy, setPlaygroundBusy] = React.useState(false);
+  const [playgroundLatency, setPlaygroundLatency] = React.useState<number | null>(null);
+  const [playgroundError, setPlaygroundError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setPlaygroundModel((prev) => {
+      if (!models.length) return '';
+      if (prev && models.some((m) => m.id === prev)) return prev;
+      return models[0].id;
+    });
+    setFallbackDraft((prev) => {
+      const hasPrimary = prev.primary && models.some((m) => m.name === prev.primary);
+      const hasFallback = prev.fallback && models.some((m) => m.name === prev.fallback);
+      return {
+        ...prev,
+        primary: hasPrimary ? prev.primary : '',
+        fallback: hasFallback ? prev.fallback : '',
+      };
+    });
+  }, [models]);
+
+  const summaryCards = React.useMemo(
+    () => [
+      {
+        title: 'Активные LLM',
+        value: totalActiveModels,
+        hint: models.length ? `из ${models.length}` : 'нет моделей',
+        icon: FileCode2,
+        tone: 'bg-violet-50 text-violet-700',
+      },
+      {
+        title: 'Fallback-правила',
+        value: fallbackCount,
+        hint: fallbackCount ? 'активные правила' : 'не настроены',
+        icon: Link2,
+        tone: 'bg-sky-50 text-sky-700',
+      },
+      {
+        title: 'Ошибки LLM',
+        value: totalErrors,
+        hint: totalCalls ? `из ${totalCalls}` : 'нет данных',
+        icon: AlertTriangle,
+        tone: 'bg-rose-50 text-rose-700',
+      },
+      {
+        title: 'Средняя латентность',
+        value: avgLatency != null ? `${avgLatency} мс` : '—',
+        hint: `провайдеров: ${enabledProviders}`,
+        icon: Gauge,
+        tone: 'bg-emerald-50 text-emerald-700',
+      },
+    ],
+    [totalActiveModels, models.length, fallbackCount, totalErrors, totalCalls, avgLatency, enabledProviders],
+  );
+
+  const startCreateModel = React.useCallback(() => {
+    setModelForm(createEmptyModelForm(providers));
+    setModelDrawerOpen(true);
+  }, [providers]);
+
+  const startEditModel = React.useCallback((model: Model) => {
+    setModelForm(createFormFromModel(model));
+    setModelDrawerOpen(true);
+  }, []);
+
+  const openProviderDrawer = React.useCallback((provider?: Provider) => {
+    if (!hasProviderAccess) return;
+    if (provider) {
+      setProviderForm({
+        slug: provider.slug,
+        title: provider.title ?? '',
+        enabled: provider.enabled !== false,
+        base_url: provider.base_url ?? '',
+        timeout_sec: provider.timeout_sec ?? null,
+        retries: provider.extras?.retries ?? null,
+        api_key: '',
+        originalSlug: provider.slug,
+      });
+    } else {
+      setProviderForm({
+        slug: '',
+        title: '',
+        enabled: true,
+        base_url: '',
+        timeout_sec: 30,
+        retries: 0,
+        api_key: '',
       });
     }
-    setDrawerOpen(false);
-    await load();
-  };
+    setProviderDrawerOpen(true);
+  }, [hasProviderAccess]);
 
-  const toggleEnabled = async (m: Model) => {
-    const status = (m.status || 'active') === 'disabled' ? 'active' : 'disabled';
-    await apiPost('/v1/ai/admin/models', { id: m.id, name: m.name, provider_slug: m.provider_slug, version: m.version, status, params: m.params || {} });
-    await load();
-  };
+  const handleSubmitModel = React.useCallback(
+    async (form: ModelFormState) => {
+      setModelSaving(true);
+      try {
+        await apiPost('/v1/ai/admin/models', {
+          id: form.id || undefined,
+          name: form.name.trim(),
+          provider_slug: form.provider_slug.trim(),
+          version: form.version?.trim() || undefined,
+          status: form.status || 'active',
+          is_default: !!form.is_default,
+          params: {
+            limits: {
+              daily_tokens: form.params.limits?.daily_tokens ?? undefined,
+              monthly_tokens: form.params.limits?.monthly_tokens ?? undefined,
+            },
+            usage: {
+              content: !!form.params.usage?.content,
+              quests: !!form.params.usage?.quests,
+              moderation: !!form.params.usage?.moderation,
+            },
+            fallback_priority: form.params.fallback_priority ?? undefined,
+            mode: form.params.mode ?? undefined,
+          },
+        });
+        setModelDrawerOpen(false);
+        setModelForm(null);
+        await loadAll({ silent: true });
+      } finally {
+        setModelSaving(false);
+      }
+    },
+    [loadAll],
+  );
 
-  const deleteModel = async (m: Model) => {
-    if (!m?.id) return;
-    await apiDelete(`/v1/ai/admin/models/${encodeURIComponent(m.id)}`);
-    await load();
-  };
+  const handleToggleModel = React.useCallback(
+    async (model: Model) => {
+      setBusyModelId(model.id);
+      try {
+        const current = (model.status || 'active') !== 'disabled';
+        const status = current ? 'disabled' : 'active';
+        await apiPost('/v1/ai/admin/models', {
+          id: model.id,
+          name: model.name,
+          provider_slug: model.provider_slug,
+          version: model.version || undefined,
+          status,
+          params: model.params || {},
+        });
+        await loadAll({ silent: true });
+      } finally {
+        setBusyModelId(null);
+      }
+    },
+    [loadAll],
+  );
 
-  const onPlay = async () => {
-    if (!pgPrompt) return;
-    setPgBusy(true);
-    setPgResult('');
-    const t0 = performance.now();
+  const handleDeleteModel = React.useCallback(
+    async (model: Model) => {
+      if (!model?.id) return;
+      setBusyModelId(model.id);
+      try {
+        await apiDelete(`/v1/ai/admin/models/${encodeURIComponent(model.id)}`);
+        await loadAll({ silent: true });
+      } finally {
+        setBusyModelId(null);
+      }
+    },
+    [loadAll],
+  );
+
+  const handleSaveProvider = React.useCallback(
+    async (form: ProviderFormState) => {
+      if (!hasProviderAccess) return;
+      setProviderSaving(true);
+      try {
+        await apiPost('/v1/ai/admin/providers', {
+          slug: form.slug.trim(),
+          title: form.title?.trim() || undefined,
+          enabled: form.enabled,
+          base_url: form.base_url?.trim() || undefined,
+          timeout_sec: form.timeout_sec ?? undefined,
+          api_key: form.api_key?.trim() || undefined,
+          extras: form.retries != null ? { retries: form.retries } : undefined,
+        });
+        setProviderDrawerOpen(false);
+        setProviderForm(null);
+        await loadAll({ silent: true });
+      } finally {
+        setProviderSaving(false);
+      }
+    },
+    [hasProviderAccess, loadAll],
+  );
+
+  const handleToggleProvider = React.useCallback(
+    async (provider: Provider) => {
+      if (!hasProviderAccess) return;
+      setBusyProviderSlug(provider.slug);
+      try {
+        const current = provider.enabled !== false;
+        await apiPost('/v1/ai/admin/providers', {
+          slug: provider.slug,
+          title: provider.title ?? undefined,
+          enabled: !current,
+          base_url: provider.base_url ?? undefined,
+          timeout_sec: provider.timeout_sec ?? undefined,
+          extras: provider.extras ?? undefined,
+        });
+        await loadAll({ silent: true });
+      } finally {
+        setBusyProviderSlug(null);
+      }
+    },
+    [hasProviderAccess, loadAll],
+  );
+
+  const handleCreateFallback = React.useCallback(async () => {
+    if (!fallbackDraft.primary || !fallbackDraft.fallback || fallbackDraft.primary === fallbackDraft.fallback) return;
+    setFallbackSaving(true);
     try {
-      const chosen = models.find((x) => x.id === pgModel);
-      const r = await apiPost<{ result: string }>('/v1/ai/admin/playground', {
-        prompt: pgPrompt,
-        model: chosen?.name || undefined,
-        provider: chosen?.provider_slug || undefined,
+      await apiPost('/v1/ai/admin/fallbacks', {
+        primary_model: fallbackDraft.primary,
+        fallback_model: fallbackDraft.fallback,
+        mode: fallbackDraft.mode,
+        priority: fallbackDraft.priority,
       });
-      setPgResult(String((r as any)?.result || ''));
-    } catch (e: any) {
-      setPgResult(String(e?.message || e || 'error'));
+      setFallbackDraft((prev) => ({ ...prev, fallback: '' }));
+      await loadAll({ silent: true });
     } finally {
-      setPgLatency(Math.round(performance.now() - t0));
-      setPgBusy(false);
+      setFallbackSaving(false);
     }
-  };
+  }, [fallbackDraft, loadAll]);
 
-  // Derived lists for charts
-  const providersList = React.useMemo(() => Array.from(new Set(models.map((m) => `${m.provider_slug}:${m.name}`))), [models]);
-  const okSeries = providersList.map((k) => usageByKey[k]?.calls || 0);
-  const errSeries = providersList.map((k) => usageByKey[k]?.errors || 0);
+  const handleRemoveFallback = React.useCallback(
+    async (id: string) => {
+      setFallbackRemoving(id);
+      try {
+        await apiDelete(`/v1/ai/admin/fallbacks/${encodeURIComponent(id)}`);
+        await loadAll({ silent: true });
+      } finally {
+        setFallbackRemoving(null);
+      }
+    },
+    [loadAll],
+  );
+
+  const handlePlayground = React.useCallback(async () => {
+    if (!playgroundPrompt.trim()) return;
+    setPlaygroundBusy(true);
+    setPlaygroundResult(null);
+    setPlaygroundError(null);
+    const started = performance.now();
+    try {
+      const selected = models.find((m) => m.id === playgroundModel);
+      const response = await apiPost<{ result?: string }>('/v1/ai/admin/playground', {
+        prompt: playgroundPrompt,
+        model: selected?.name || undefined,
+        model_id: selected?.id || undefined,
+        provider: selected?.provider_slug || undefined,
+      });
+      setPlaygroundResult(String(response?.result ?? ''));
+    } catch (err: any) {
+      setPlaygroundError(String(err?.message || err || 'Не удалось выполнить запрос'));
+    } finally {
+      setPlaygroundLatency(Math.round(performance.now() - started));
+      setPlaygroundBusy(false);
+    }
+  }, [models, playgroundModel, playgroundPrompt]);
+
+  const handleUseTemplate = React.useCallback(() => {
+    setPlaygroundPrompt((prev) => prev || 'Ты — ассистент Caves. Ответь, что админ-панель готова к обновлению.');
+  }, []);
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-xl font-semibold">AI & LLM — Управление моделями</div>
-          <div className="text-sm text-gray-500">Здесь вы управляете списком моделей, лимитами и fallback-политиками. Все изменения влияют на работу платформы в реальном времени.</div>
-        </div>
-        <Button onClick={openAddModel}>Добавить модель</Button>
-      </div>
+    <div className='p-6 space-y-6'>
+      <PageHeader
+        title='AI & LLM — управление моделями'
+        description='Выберите активные модели, настройте fallback-политику и провайдеров. Изменения применяются мгновенно — проверяйте значения перед сохранением.'
+        stats={summaryCards.map((item) => ({ label: item.title, value: item.value, hint: item.hint }))}
+        actions={
+          <div className='flex flex-wrap items-center gap-3'>
+            <Button variant='outlined' color='neutral' onClick={() => void loadAll({ silent: true })} disabled={refreshing}>
+              {refreshing ? (
+                <span className='flex items-center gap-2'>
+                  <Spinner size='sm' />
+                  Обновляем...
+                </span>
+              ) : (
+                'Обновить'
+              )}
+            </Button>
+            <Button onClick={startCreateModel}>Добавить модель</Button>
+          </div>
+        }
+      />
 
-      {/* Models table */}
-      <Card>
-        <div className="p-4">
-          <Table.Table>
-            <Table.THead>
-              <Table.TR>
-                <Table.TH>Вкл</Table.TH>
-                <Table.TH>Модель</Table.TH>
-                <Table.TH>Провайдер</Table.TH>
-                <Table.TH>Версия</Table.TH>
-                <Table.TH>Статус</Table.TH>
-                <Table.TH>Лимиты</Table.TH>
-                <Table.TH>Использование</Table.TH>
-                <Table.TH>Fallback</Table.TH>
-                <Table.TH>Действия</Table.TH>
-              </Table.TR>
-            </Table.THead>
-            <Table.TBody>
-              {models.map((m) => {
-                const key = `${m.provider_slug}:${m.name}`;
-                const u = usageByKey[key] || { calls: 0, errors: 0, prompt: 0, completion: 0 };
-                const limits = m?.params?.limits || {};
-                const priority = m?.params?.fallback_priority ?? '-';
-                const enabled = (m.status || 'active') !== 'disabled';
-                const statusColor = u.errors > 0 ? 'text-red-600' : 'text-green-600';
-                return (
-                  <Table.TR key={m.id}>
-                    <Table.TD>
-                      <Switch checked={enabled} onChange={() => void toggleEnabled(m)} />
-                    </Table.TD>
-                    <Table.TD>{m.name}</Table.TD>
-                    <Table.TD>{m.provider_slug}</Table.TD>
-                    <Table.TD>{m.version || '-'}</Table.TD>
-                    <Table.TD><span className={`text-xs ${statusColor}`}>{enabled ? (u.errors ? 'ошибки' : 'работает') : 'выкл'}</span></Table.TD>
-                    <Table.TD>
-                      <div className="text-xs text-gray-600">
-                        {limits.daily_tokens ? `день: ${limits.daily_tokens}` : ''}{limits.daily_tokens && limits.monthly_tokens ? ', ' : ''}{limits.monthly_tokens ? `мес: ${limits.monthly_tokens}` : ''}
-                      </div>
-                    </Table.TD>
-                    <Table.TD>
-                      <div className="text-xs">calls: {u.calls} / err: {u.errors}</div>
-                      <div className="text-xs">tok: {u.prompt + u.completion}</div>
-                    </Table.TD>
-                    <Table.TD>{priority}</Table.TD>
-                    <Table.TD>
-                      <div className="flex gap-2">
-                        <Button onClick={() => openEditModel(m)}>✏️ Редактировать</Button>
-                        <Button onClick={() => deleteModel(m)}>🗑️ Удалить</Button>
-                        <Button onClick={() => window.open('/observability/llm', '_blank')}>🔍 Логи</Button>
-                      </div>
-                    </Table.TD>
-                  </Table.TR>
-                );
-              })}
-            </Table.TBody>
-          </Table.Table>
-        </div>
-      </Card>
-
-      {/* Global settings & stats */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Global */}
+      {loading ? (
         <Card>
-          <div className="p-4 space-y-3">
-            <div className="text-sm font-semibold">Глобальные настройки</div>
-            <div className="text-xs text-gray-500">Fallback-политика настраивается правилами ниже. Таймаут/ретраи — через провайдер.</div>
-            {/* Fallback rules editor (simple) */}
-            <FallbackRules models={models} onChange={load} />
+          <div className='flex items-center gap-3 p-6 text-sm text-gray-500'>
+            <Spinner />
+            <span>Загружаем конфигурацию AI...</span>
           </div>
         </Card>
-        {/* Stats */}
-        <Card>
-          <div className="p-4">
-            <div className="mb-2 text-sm text-gray-500">LLM calls/errors by provider:model</div>
-            <ApexChart
-              type="bar"
-              series={[
-                { name: 'calls', data: providersList.map((_, i) => okSeries[i]) },
-                { name: 'errors', data: providersList.map((_, i) => errSeries[i]) },
-              ]}
-              options={{ xaxis: { categories: providersList, labels: { rotate: -45 } }, legend: { show: true } }}
-              height={300}
+      ) : (
+        <>
+          {error ? (
+            <Card>
+              <div className='p-4 text-sm text-rose-600'>{error}</div>
+            </Card>
+          ) : null}
+
+          <div className='space-y-4'>
+            <Tabs
+              items={TAB_ITEMS.map((tab) => ({ key: tab.key, label: tab.label }))}
+              value={activeTab}
+              onChange={(key) => setActiveTab(key as TabKey)}
             />
-          </div>
-        </Card>
-      </div>
 
-      {/* Playground */}
-      <Card>
-        <div className="p-4 space-y-2">
-          <div className="text-sm font-semibold">Playground</div>
-          <div className="grid grid-cols-3 gap-2">
-            <Select value={pgModel} onChange={(e: any) => setPgModel(e.target.value)}>
-              <option value="">Выберите модель</option>
-              {models.map((m) => (
-                <option value={m.id} key={m.id}>{m.provider_slug}:{m.name}</option>
-              ))}
-            </Select>
-            <div className="col-span-2" />
-          </div>
-          <Textarea placeholder="Prompt" value={pgPrompt} onChange={(e) => setPgPrompt(e.target.value)} />
-          <div className="flex items-center gap-2">
-            <Button onClick={onPlay} disabled={!pgPrompt || pgBusy}>Отправить</Button>
-            {pgBusy && <Spinner />}
-            {pgLatency != null && <span className="text-xs text-gray-500">{pgLatency} ms</span>}
-          </div>
-          {pgResult && <pre className="mt-2 rounded bg-gray-50 p-3 text-sm whitespace-pre-wrap">{pgResult}</pre>}
-        </div>
-      </Card>
+            {activeTab === 'overview' ? (
+              <div className='space-y-6'>
+                <div className='grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4'>
+                  {summaryCards.map((card) => {
+                    const Icon = card.icon;
+                    return (
+                      <Card key={card.title}>
+                        <div className={`p-6 lg:p-8 flex items-start gap-4 rounded-md ${card.tone}`}>
+                          <div className='rounded-full bg-white/70 p-2'>
+                            <Icon className='h-5 w-5' />
+                          </div>
+                          <div>
+                            <div className='text-xs text-gray-600'>{card.title}</div>
+                            <div className='text-2xl font-semibold tracking-tight'>{card.value}</div>
+                            <div className='text-xs text-gray-500'>{card.hint}</div>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
 
-      {/* Drawer for model/provider editing */}
-      <Drawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        title="Редактирование модели"
-        footer={<Button onClick={saveModel} disabled={!editing?.name || !editing?.provider_slug}>Сохранить изменения</Button>}
-        widthClass="w-[640px]"
-      >
-        <div className="p-4 space-y-3">
-          {/* Model */}
-          <div className="text-sm font-semibold">Модель</div>
-          <div className="grid grid-cols-2 gap-2">
-            <Input placeholder="Название (системное)" value={editing?.name || ''} onChange={(e) => setEditing((s) => ({ ...(s as any), name: e.target.value }))} />
-            <Input placeholder="Провайдер (slug)" value={editing?.provider_slug || ''} onChange={(e) => { const v = e.target.value; setEditing((s) => ({ ...(s as any), provider_slug: v })); setEditingProvider((p) => p && p.slug === v ? p : { slug: v }); }} />
-            <Input placeholder="Версия" value={editing?.version || ''} onChange={(e) => setEditing((s) => ({ ...(s as any), version: e.target.value }))} />
-            <div className="flex items-center gap-2 text-sm"><span>Включено</span><Switch checked={(editing?.status || 'active') !== 'disabled'} onChange={() => setEditing((s) => ({ ...(s as any), status: ((s?.status || 'active') === 'disabled') ? 'active' : 'disabled' }))} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Input placeholder="Лимит токенов (день)" value={editing?.params?.limits?.daily_tokens || ''} onChange={(e) => setEditing((s) => ({ ...(s as any), params: { ...(s?.params||{}), limits: { ...((s?.params||{}).limits||{}), daily_tokens: Number(e.target.value||0) } } }))} />
-            <Input placeholder="Лимит токенов (мес)" value={editing?.params?.limits?.monthly_tokens || ''} onChange={(e) => setEditing((s) => ({ ...(s as any), params: { ...(s?.params||{}), limits: { ...((s?.params||{}).limits||{}), monthly_tokens: Number(e.target.value||0) } } }))} />
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="flex items-center gap-2 text-sm"><Switch checked={!!editing?.params?.usage?.content} onChange={() => setEditing((s) => ({ ...(s as any), params: { ...(s?.params||{}), usage: { ...((s?.params||{}).usage||{}), content: !s?.params?.usage?.content } } }))} /><span>генерация контента</span></div>
-            <div className="flex items-center gap-2 text-sm"><Switch checked={!!editing?.params?.usage?.quests} onChange={() => setEditing((s) => ({ ...(s as any), params: { ...(s?.params||{}), usage: { ...((s?.params||{}).usage||{}), quests: !s?.params?.usage?.quests } } }))} /><span>AI-квесты</span></div>
-            <div className="flex items-center gap-2 text-sm"><Switch checked={!!editing?.params?.usage?.moderation} onChange={() => setEditing((s) => ({ ...(s as any), params: { ...(s?.params||{}), usage: { ...((s?.params||{}).usage||{}), moderation: !s?.params?.usage?.moderation } } }))} /><span>модерация</span></div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Input placeholder="Fallback-приоритет (число)" value={editing?.params?.fallback_priority ?? ''} onChange={(e) => setEditing((s) => ({ ...(s as any), params: { ...(s?.params||{}), fallback_priority: Number(e.target.value||0) } }))} />
-          </div>
+                <UsageSection usageRows={usageRows} />
+              </div>
+            ) : null}
 
-          {/* Provider config */}
-          <div className="mt-2 text-sm font-semibold">Провайдер</div>
-          <div className="grid grid-cols-2 gap-2">
-            <Input placeholder="Название (опц.)" value={editingProvider?.title || ''} onChange={(e) => setEditingProvider((p: any) => ({ ...(p||{ slug: editing?.provider_slug||'' }), title: e.target.value }))} />
-            <Input placeholder="Endpoint URL (опц.)" value={editingProvider?.base_url || ''} onChange={(e) => setEditingProvider((p: any) => ({ ...(p||{ slug: editing?.provider_slug||'' }), base_url: e.target.value }))} />
-            <Input placeholder="Timeout, сек (опц.)" value={editingProvider?.timeout_sec ?? ''} onChange={(e) => setEditingProvider((p: any) => ({ ...(p||{ slug: editing?.provider_slug||'' }), timeout_sec: Number(e.target.value||0) }))} />
-            <Input placeholder="Ретраи (опц.)" value={provRetries} onChange={(e) => { const v = e.target.value; setProvRetries(v === '' ? '' : Number(v)); }} />
-            <Input placeholder="API ключ (не отображается)" value={provApiKey} onChange={(e) => setProvApiKey(e.target.value)} />
+            {activeTab === 'models' ? (
+              <ModelsSection
+                models={models}
+                providers={providers}
+                usageRows={usageRows}
+                fallbackByPrimary={fallbackByPrimary}
+                fallbackBySecondary={fallbackBySecondary}
+                busyModelId={busyModelId}
+                onCreateModel={startCreateModel}
+                onEditModel={startEditModel}
+                onToggleModel={(model) => void handleToggleModel(model)}
+                onDeleteModel={(model) => void handleDeleteModel(model)}
+              />
+            ) : null}
+
+            {activeTab === 'providers' ? (
+              <ProvidersSection
+                providers={providers}
+                hasProviderAccess={hasProviderAccess}
+                busyProviderSlug={busyProviderSlug}
+                onToggleProvider={(provider) => void handleToggleProvider(provider)}
+                onOpenProvider={(provider) => openProviderDrawer(provider)}
+              />
+            ) : null}
+
+            {activeTab === 'fallbacks' ? (
+              <FallbacksSection
+                models={models}
+                fallbacks={fallbacks}
+                draft={fallbackDraft}
+                onDraftChange={setFallbackDraft}
+                onCreateFallback={() => void handleCreateFallback()}
+                onRemoveFallback={(id) => void handleRemoveFallback(id)}
+                saving={fallbackSaving}
+                removingId={fallbackRemoving}
+              />
+            ) : null}
+
+            {activeTab === 'playground' ? (
+              <PlaygroundSection
+                models={models}
+                selectedModel={playgroundModel}
+                onSelectModel={setPlaygroundModel}
+                prompt={playgroundPrompt}
+                onChangePrompt={setPlaygroundPrompt}
+                onUseTemplate={handleUseTemplate}
+                onRun={() => void handlePlayground()}
+                busy={playgroundBusy}
+                latency={playgroundLatency}
+                result={playgroundResult}
+                error={playgroundError}
+              />
+            ) : null}
           </div>
-        </div>
-      </Drawer>
+        </>
+      )}
+
+      <ModelDrawer
+        open={modelDrawerOpen}
+        model={modelForm}
+        providers={providers}
+        saving={modelSaving}
+        onClose={() => {
+          setModelDrawerOpen(false);
+          setModelForm(null);
+        }}
+        onSubmit={(form) => void handleSubmitModel(form)}
+        onCreateProvider={hasProviderAccess ? () => openProviderDrawer() : undefined}
+        hasProviderAccess={hasProviderAccess}
+      />
+
+      <ProviderDrawer
+        open={providerDrawerOpen}
+        provider={providerForm}
+        saving={providerSaving}
+        hasAccess={hasProviderAccess}
+        onClose={() => {
+          setProviderDrawerOpen(false);
+          setProviderForm(null);
+        }}
+        onSubmit={(form) => void handleSaveProvider(form)}
+      />
     </div>
   );
 }
 
-function FallbackRules({ models, onChange }: { models: Model[]; onChange: () => void }) {
-  const [rules, setRules] = React.useState<any[]>([]);
-  const [primary, setPrimary] = React.useState('');
-  const [secondary, setSecondary] = React.useState('');
-  const load = React.useCallback(async () => {
-    try { const r = await apiGet<{ items: any[] }>('/v1/ai/admin/fallbacks'); setRules(r?.items || []); } catch {}
-  }, []);
-  React.useEffect(() => { void load(); }, [load]);
-  const add = async () => {
-    if (!primary || !secondary) return;
-    await apiPost('/v1/ai/admin/fallbacks', { primary_model: primary, fallback_model: secondary, mode: 'on_error' });
-    setPrimary(''); setSecondary('');
-    await load();
-    onChange();
+function createEmptyModelForm(providers: Provider[]): ModelFormState {
+  return {
+    name: '',
+    provider_slug: providers[0]?.slug || '',
+    version: '',
+    status: 'active',
+    is_default: false,
+    params: {
+      limits: {},
+      usage: {},
+      fallback_priority: 100,
+    },
   };
-  const del = async (id: string) => {
-    await apiDelete(`/v1/ai/admin/fallbacks/${encodeURIComponent(id)}`);
-    await load();
-    onChange();
+}
+
+function createFormFromModel(model: Model): ModelFormState {
+  return {
+    id: model.id,
+    name: model.name,
+    provider_slug: model.provider_slug,
+    version: model.version ?? '',
+    status: model.status ?? 'active',
+    is_default: !!model.is_default,
+    params: {
+      limits: {
+        daily_tokens: model.params?.limits?.daily_tokens ?? null,
+        monthly_tokens: model.params?.limits?.monthly_tokens ?? null,
+      },
+      usage: {
+        content: !!model.params?.usage?.content,
+        quests: !!model.params?.usage?.quests,
+        moderation: !!model.params?.usage?.moderation,
+      },
+      fallback_priority: model.params?.fallback_priority ?? null,
+      mode: model.params?.mode ?? null,
+    },
   };
-  return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-3 gap-2">
-        <Select value={primary} onChange={(e: any) => setPrimary(e.target.value)}>
-          <option value="">primary model</option>
-          {models.map((m) => <option key={m.id} value={m.name}>{m.name}</option>)}
-        </Select>
-        <Select value={secondary} onChange={(e: any) => setSecondary(e.target.value)}>
-          <option value="">fallback model</option>
-          {models.map((m) => <option key={m.id} value={m.name}>{m.name}</option>)}
-        </Select>
-        <Button onClick={add} disabled={!primary || !secondary}>Добавить правило</Button>
-      </div>
-      <Table.Table>
-        <Table.THead>
-          <Table.TR>
-            <Table.TH>primary</Table.TH>
-            <Table.TH>fallback</Table.TH>
-            <Table.TH>mode</Table.TH>
-            <Table.TH></Table.TH>
-          </Table.TR>
-        </Table.THead>
-        <Table.TBody>
-          {rules.map((r) => (
-            <Table.TR key={r.id}>
-              <Table.TD>{r.primary_model}</Table.TD>
-              <Table.TD>{r.fallback_model}</Table.TD>
-              <Table.TD>{r.mode}</Table.TD>
-              <Table.TD><Button onClick={() => del(r.id)}>Удалить</Button></Table.TD>
-            </Table.TR>
-          ))}
-        </Table.TBody>
-      </Table.Table>
-    </div>
-  );
 }

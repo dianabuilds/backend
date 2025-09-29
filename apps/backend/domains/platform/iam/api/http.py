@@ -63,8 +63,9 @@ def make_router() -> APIRouter:
     async def login(req: Request, payload: LoginSchema, response: Response) -> dict[str, Any]:
         c = get_container(req)
         try:
+            login_value = payload.login or ""
             result = await c.iam.service.login(
-                LoginIn(login=payload.login, password=payload.password)
+                LoginIn(login=login_value, password=payload.password)
             )
         except AuthError as e:
             raise HTTPException(status_code=401, detail=str(e)) from e

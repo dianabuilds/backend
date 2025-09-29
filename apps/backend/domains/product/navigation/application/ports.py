@@ -28,6 +28,5 @@ class TransitionRequest:
     requested_ui_slots: int = 3
     premium_level: str = "free"
     policies_hash: str | None = None
-    tenant_id: str = "default"
     requested_provider_overrides: Sequence[str] | None = None
     emergency: bool = False

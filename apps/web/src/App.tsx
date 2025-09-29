@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import LoginPage from './pages/auth/Login';
 import { AuthProvider, useAuth } from './shared/auth';
@@ -53,7 +53,7 @@ import ModerationTickets from './pages/moderation/Tickets';
 import ModerationAppeals from './pages/moderation/Appeals';
 import ModerationAIRules from './pages/moderation/AIRules';
 
-const ADMIN_ROLES = ['admin', 'superadmin', 'owner', 'platform_admin', 'billing_admin'];
+const ADMIN_ROLES = ['admin'];
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { isAuthenticated, isReady } = useAuth();

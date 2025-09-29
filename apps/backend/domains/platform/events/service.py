@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from domains.platform.events.ports import (
     EventBus,
@@ -20,19 +19,9 @@ class Events:
 
     # Publish integration event
     def publish(self, topic: str, payload: dict, key: str | None = None) -> None:
-        # Record basic event counter (tenant/user if available)
-        tenant_or_user: str | None = None
+        # Record basic event counter
         try:
-            # Try common keys without coupling to specific domains
-            for k in ("tenant_id", "author_id", "user_id", "id"):
-                v: Any = payload.get(k)  # type: ignore[assignment]
-                if v:
-                    tenant_or_user = str(v)
-                    break
-        except Exception:
-            tenant_or_user = None
-        try:
-            event_metrics.inc(topic, tenant_or_user)
+            event_metrics.inc(topic)
         except Exception:
             pass
         self.outbox.publish(topic=topic, payload=payload, key=key)

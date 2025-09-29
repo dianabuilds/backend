@@ -242,7 +242,10 @@ class SQLProfileRepo(Repo):
                     {"user_id": user_id, "ts": now},
                 )
 
-        return await self.get(user_id)
+        profile_after = await self.get(user_id)
+        if profile_after is None:
+            raise ValueError("profile_not_found")
+        return profile_after
 
     async def email_in_use(self, email: str, exclude_user_id: str | None = None) -> bool:
         async with self._engine.connect() as conn:
@@ -377,7 +380,10 @@ class SQLProfileRepo(Repo):
                 {"user_id": user_id},
             )
 
-        return await self.get(user_id)
+        profile_after = await self.get(user_id)
+        if profile_after is None:
+            raise ValueError("profile_not_found")
+        return profile_after
 
     async def set_wallet(
         self,
@@ -414,7 +420,10 @@ class SQLProfileRepo(Repo):
             except IntegrityError as exc:
                 raise ValueError("wallet_taken") from exc
 
-        return await self.get(user_id)
+        profile_after = await self.get(user_id)
+        if profile_after is None:
+            raise ValueError("profile_not_found")
+        return profile_after
 
     async def clear_wallet(self, user_id: str) -> Profile:
         async with self._engine.begin() as conn:
@@ -430,7 +439,10 @@ class SQLProfileRepo(Repo):
             )
             await conn.execute(sql, {"id": user_id})
 
-        return await self.get(user_id)
+        profile_after = await self.get(user_id)
+        if profile_after is None:
+            raise ValueError("profile_not_found")
+        return profile_after
 
 
 __all__ = ["SQLProfileRepo"]

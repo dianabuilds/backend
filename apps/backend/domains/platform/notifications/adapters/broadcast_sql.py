@@ -354,8 +354,8 @@ class SQLBroadcastRepo(BroadcastRepo):
             "status": payload.status.value,
             "scheduled_at": payload.scheduled_at,
         }
-        if created:
-            params["created_by"] = payload.created_by  # type: ignore[attr-defined]
+        if created and isinstance(payload, BroadcastCreateModel):
+            params["created_by"] = payload.created_by
         return params
 
     @staticmethod

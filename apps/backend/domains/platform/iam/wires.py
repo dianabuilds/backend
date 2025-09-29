@@ -21,6 +21,7 @@ from domains.platform.iam.adapters.verification_store_redis import (
     RedisVerificationStore,
 )
 from domains.platform.iam.application.auth_service import AuthService
+from domains.platform.iam.ports.token_port import TokenPort
 from packages.core.config import Settings, load_settings, to_async_dsn
 
 
@@ -34,6 +35,7 @@ def build_container(settings: Settings | None = None) -> IAMContainer:
     s = settings or load_settings()
     client = redis.from_url(str(s.redis_url), decode_responses=True)
     # Prefer JWT adapter; fall back to simple tokens if something goes wrong
+    tokens: TokenPort
     try:
         tokens = JWTTokenAdapter(s)
     except Exception:

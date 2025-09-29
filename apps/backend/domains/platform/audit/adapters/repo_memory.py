@@ -37,11 +37,16 @@ class InMemoryAuditRepo(AuditLogRepository):
 
     async def list(
         self,
-        limit: int = 100,
+        *,
+        limit: int = 20,
+        offset: int = 0,
         actions: list[str] | None = None,
         actor_id: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
+        resource_types: list[str] | None = None,
+        modules: list[str] | None = None,
+        search: str | None = None,
     ) -> list[dict]:
         self._prune()
         data = list(self._items)
@@ -53,18 +58,15 @@ class InMemoryAuditRepo(AuditLogRepository):
             aid = str(actor_id)
             data = [d for d in data if str(d.get("actor_id")) == aid]
 
-        # date_from/date_to are ISO strings; parse to ms if provided
         def _parse_iso(s: str | None) -> int | None:
             if not s:
                 return None
             try:
-                # Accept YYYY-MM-DD or full ISO; ensure UTC without tz -> treat as local naive
                 from datetime import datetime
 
                 if len(s) <= 10:
                     dt = datetime.fromisoformat(s)
                 else:
-                    # Strip Z if present for fromisoformat
                     dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
                 return int(dt.timestamp() * 1000)
             except Exception:
@@ -76,9 +78,40 @@ class InMemoryAuditRepo(AuditLogRepository):
             data = [d for d in data if int(d.get("ts", 0)) >= start_ms]
         if end_ms is not None:
             data = [d for d in data if int(d.get("ts", 0)) <= end_ms]
-        # Return newest first
+
+        if resource_types:
+            rset = {str(r).strip().lower() for r in resource_types if r}
+            if rset:
+                data = [d for d in data if str(d.get("resource_type", "")).lower() in rset]
+        if modules:
+            mset = {str(m).strip().lower() for m in modules if m}
+            if mset:
+                data = [
+                    d for d in data if str(d.get("action", "")).split(".", 1)[0].lower() in mset
+                ]
+        if search:
+            needle = search.strip().lower()
+            if needle:
+
+                def _matches(row: dict) -> bool:
+                    parts = [
+                        str(row.get("action", "")),
+                        str(row.get("resource_id", "")),
+                        str(row.get("resource_type", "")),
+                        str(row.get("actor_id", "")),
+                        str(row.get("extra", "")),
+                        str(row.get("ip", "")),
+                        str(row.get("user_agent", "")),
+                    ]
+                    payload = " ".join(parts).lower()
+                    return needle in payload
+
+                data = [row for row in data if _matches(row)]
+
         data.sort(key=lambda d: int(d.get("ts", 0)), reverse=True)
-        return data[: int(limit)]
+        start = max(int(offset), 0)
+        end = start + max(int(limit), 0)
+        return data[start:end]
 
 
 __all__ = ["InMemoryAuditRepo"]

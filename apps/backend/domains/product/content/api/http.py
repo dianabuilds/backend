@@ -35,7 +35,7 @@ async def _ensure_engine(settings) -> AsyncEngine | None:
         dsn = to_async_dsn(settings.database_url)
         if not dsn:
             return None
-        return get_async_engine("content-analytics", url=dsn, cache=False, future=True)
+        return get_async_engine("content-analytics", url=dsn, future=True)
     except Exception:
         logger.exception("content analytics: failed to create engine")
         return None

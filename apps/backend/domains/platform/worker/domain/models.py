@@ -21,7 +21,6 @@ class JobStatus(str, Enum):
 @dataclass(slots=True)
 class WorkerJob:
     job_id: UUID
-    tenant_id: UUID
     type: str
     status: JobStatus
     priority: int

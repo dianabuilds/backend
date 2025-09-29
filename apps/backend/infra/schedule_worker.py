@@ -18,7 +18,7 @@ async def _ensure_engine(dsn: str) -> AsyncEngine | None:
         adsn = to_async_dsn(dsn)
         if not adsn:
             return None
-        return get_async_engine("nodes-scheduler", url=adsn, cache=False, future=True)
+        return get_async_engine("nodes-scheduler", url=adsn, future=True)
     except Exception:
         return None
 

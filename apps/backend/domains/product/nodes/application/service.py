@@ -6,6 +6,7 @@ import re
 import time
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from typing import Protocol, cast, runtime_checkable
 
 try:
     from prometheus_client import Counter, Histogram  # type: ignore
@@ -22,6 +23,14 @@ from domains.product.nodes.application.ports import (
 )
 from domains.product.nodes.domain.results import NodeView
 from packages.core import with_trace
+
+
+@runtime_checkable
+class _EmbeddingRepo(Protocol):
+    async def search_by_embedding(
+        self, embedding: Sequence[float], *, limit: int = 64
+    ) -> list[NodeDTO]: ...
+
 
 logger = logging.getLogger(__name__)
 
@@ -220,8 +229,12 @@ class NodeService:
         return [self._to_view(item) for item in items]
 
     def search_by_embedding(self, embedding: Sequence[float], *, limit: int = 64) -> list[NodeView]:
+        if not isinstance(self.repo, _EmbeddingRepo):
+            return []
+        repo = cast(_EmbeddingRepo, self.repo)
+
         async def _run() -> list[NodeDTO]:
-            return await self.repo.search_by_embedding(embedding, limit=limit)
+            return await repo.search_by_embedding(embedding, limit=limit)
 
         try:
             loop = asyncio.get_running_loop()

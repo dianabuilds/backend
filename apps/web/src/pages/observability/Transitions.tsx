@@ -1,9 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import { ApexChart, Card, Spinner, Table, TablePagination } from '@ui';
 import { apiGet } from '../../shared/api/client';
 
 type Row = {
-  tenant_id: string;
   mode: string;
   avg_latency_ms: number;
   no_route_ratio: number;
@@ -37,7 +36,7 @@ export default function ObservabilityTransitions() {
   const start = (page - 1) * pageSize;
   const paginatedRows = dataRows.slice(start, start + pageSize);
   const hasNext = page * pageSize < totalRows;
-  const cats = dataRows.map((r) => `${r.tenant_id}/${r.mode}`);
+  const cats = dataRows.map((r) => r.mode);
 
   if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!rows) return <div className="p-6"><Spinner /></div>;
@@ -46,7 +45,7 @@ export default function ObservabilityTransitions() {
     <div className="p-6 space-y-6">
       <Card>
         <div className="p-4">
-          <div className="mb-2 text-sm text-gray-500">Avg latency by tenant/mode</div>
+          <div className="mb-2 text-sm text-gray-500">Avg latency by mode</div>
           <ApexChart
             type="bar"
             series={[{ name: 'avg_ms', data: dataRows.map((r) => Math.round(r.avg_latency_ms || 0)) }]}
@@ -76,7 +75,7 @@ export default function ObservabilityTransitions() {
           <Table.Table>
             <Table.THead>
               <Table.TR>
-                <Table.TH>Tenant/Mode</Table.TH>
+                <Table.TH>Mode</Table.TH>
                 <Table.TH>Avg ms</Table.TH>
                 <Table.TH>No-route %</Table.TH>
                 <Table.TH>Fallback %</Table.TH>
@@ -85,8 +84,8 @@ export default function ObservabilityTransitions() {
             </Table.THead>
             <Table.TBody>
               {paginatedRows.map((r, index) => (
-                <Table.TR key={`${r.tenant_id}-${r.mode}-${index}`}>
-                  <Table.TD className="font-mono text-xs">{r.tenant_id}/{r.mode}</Table.TD>
+                <Table.TR key={`${r.mode}-${index}`}>
+                  <Table.TD className="font-mono text-xs">{r.mode}</Table.TD>
                   <Table.TD>{Math.round(r.avg_latency_ms || 0)}</Table.TD>
                   <Table.TD>{((r.no_route_ratio || 0) * 100).toFixed(2)}%</Table.TD>
                   <Table.TD>{((r.fallback_ratio || 0) * 100).toFixed(2)}%</Table.TD>
@@ -109,3 +108,9 @@ export default function ObservabilityTransitions() {
     </div>
   );
 }
+
+
+
+
+
+

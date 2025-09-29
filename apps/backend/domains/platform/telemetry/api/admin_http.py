@@ -65,7 +65,7 @@ def make_router() -> APIRouter:
             "llm": llm_metrics.snapshot(),
             "workers": worker_metrics.snapshot(),
             "events": {
-                "per_tenant": event_metrics.snapshot(),
+                "counts": event_metrics.snapshot(),
                 "handlers": event_metrics.handler_snapshot(),
             },
             "transitions": transition_metrics.snapshot(),
@@ -143,7 +143,7 @@ def make_router() -> APIRouter:
     @router.get("/events/summary")
     async def events_summary(_admin: None = Depends(require_admin)) -> dict[str, Any]:
         return {
-            "per_tenant": event_metrics.snapshot(),
+            "counts": event_metrics.snapshot(),
             "handlers": event_metrics.handler_snapshot(),
         }
 

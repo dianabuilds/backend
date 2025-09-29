@@ -155,11 +155,6 @@ class Settings(BaseSettings):
     # admin guard
     admin_api_key: str | None = None
 
-    # admin guard
-
-    # admin guard
-    admin_api_key: str | None = None
-
     # search (in-memory only)
     search_persist_path: str | None = "apps/backend/var/search_index.json"
 

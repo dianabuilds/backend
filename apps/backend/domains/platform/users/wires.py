@@ -21,7 +21,7 @@ class UsersContainer:
 def build_container(settings: Settings | None = None) -> UsersContainer:
     s = settings or load_settings()
     base = SQLUsersRepo(to_async_dsn(s.database_url))
-    repo = base
+    repo: UsersRepo = base
     try:
         if s.redis_url:
             client = redis.from_url(str(s.redis_url), decode_responses=True)

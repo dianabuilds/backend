@@ -27,7 +27,6 @@ from datetime import UTC, datetime
 def make_context():
     return TransitionContext(
         session_id="s",
-        tenant_id="t",
         user_id="u",
         origin_node_id=None,
         route_window=tuple(),

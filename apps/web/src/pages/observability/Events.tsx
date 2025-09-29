@@ -3,7 +3,7 @@ import { Card, Spinner, Table, TablePagination } from '@ui';
 import { apiGet } from '../../shared/api/client';
 
 type HandlerRow = { event: string; handler: string; success: number; failure: number; total: number; avg_ms: number };
-type EventsSummary = { per_tenant: Record<string, Record<string, number>>; handlers: HandlerRow[] };
+type EventsSummary = { counts: Record<string, number>; handlers: HandlerRow[] };
 
 export default function ObservabilityEvents() {
   const [data, setData] = React.useState<EventsSummary | null>(null);
@@ -77,3 +77,4 @@ export default function ObservabilityEvents() {
     </div>
   );
 }
+

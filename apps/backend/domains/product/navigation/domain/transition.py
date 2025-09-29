@@ -8,7 +8,6 @@ from datetime import datetime
 @dataclass(frozen=True)
 class TransitionContext:
     session_id: str
-    tenant_id: str
     user_id: str | None
     origin_node_id: int | None
     route_window: tuple[int, ...]

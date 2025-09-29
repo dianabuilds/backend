@@ -4,7 +4,7 @@ import json
 import logging
 import math
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import text
@@ -201,7 +201,7 @@ def make_router() -> APIRouter:
                 return None
             if "?" in dsn:
                 dsn = dsn.split("?", 1)[0]
-            return get_async_engine("navigation-api", url=dsn, cache=False, future=True)
+            return get_async_engine("navigation-api", url=dsn, future=True)
         except Exception:
             logger.exception("navigation relations: failed to create engine")
             return None
@@ -250,7 +250,6 @@ def make_router() -> APIRouter:
         mode = str(body.get("mode") or "normal")
         premium_level = str(body.get("premium_level") or claims.get("premium_level") or "free")
         policies_hash = body.get("policies_hash")
-        tenant_id = str(body.get("tenant_id") or req.headers.get("x-tenant") or "default")
         emergency = bool(body.get("emergency"))
 
         transition = TransitionRequest(
@@ -263,7 +262,6 @@ def make_router() -> APIRouter:
             requested_ui_slots=requested_slots,
             premium_level=premium_level,
             policies_hash=str(policies_hash) if policies_hash is not None else None,
-            tenant_id=tenant_id,
             requested_provider_overrides=provider_overrides,
             emergency=emergency,
         )
@@ -643,11 +641,12 @@ def make_router() -> APIRouter:
         if eng is None:
             raise HTTPException(status_code=503, detail="storage_unavailable")
         norm = _normalize_algo_key(strategy)
-        weight_val = None
-        if payload.get("weight") is not None:
+        weight_val: float | None = None
+        weight_raw = payload.get("weight")
+        if weight_raw is not None:
             try:
-                weight_val = float(payload.get("weight"))
-            except Exception as exc:
+                weight_val = float(cast(float | int | str, weight_raw))
+            except (TypeError, ValueError) as exc:
                 raise HTTPException(status_code=400, detail="invalid_weight") from exc
             if weight_val < 0:
                 raise HTTPException(status_code=400, detail="weight_must_be_non_negative")

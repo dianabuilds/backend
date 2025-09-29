@@ -146,8 +146,6 @@ class BroadcastListResponse(BaseModel):
     has_next: bool
     status_counts: dict[str, int]
     recipients: int
-    status_counts: dict[str, int]
-    recipients: int
 
 
 def make_router() -> APIRouter:

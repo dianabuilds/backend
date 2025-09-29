@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 export type MetricTrend = 'up' | 'down' | 'steady';
 
@@ -7,6 +7,7 @@ export type MetricCardProps = {
   value: React.ReactNode;
   delta?: string;
   trend?: MetricTrend;
+  trendLabel?: string;
   icon?: React.ReactNode;
   description?: React.ReactNode;
   tone?: 'primary' | 'secondary' | 'warning' | 'success' | 'neutral';
@@ -23,7 +24,7 @@ const toneMap: Record<Required<MetricCardProps>['tone'], string> = {
 
 const trendCopy: Record<MetricTrend, string> = {
   up: '^',
-  down: '�',
+  down: 'Ў',
   steady: '-',
 };
 
@@ -32,6 +33,7 @@ export function MetricCard({
   value,
   delta,
   trend,
+  trendLabel,
   icon,
   description,
   tone = 'primary',
@@ -47,10 +49,24 @@ export function MetricCard({
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-700/80 dark:text-dark-200/80">{label}</div>
           <div className="text-2xl font-semibold leading-tight text-gray-900 drop-shadow-sm dark:text-white">{value}</div>
           {description ? <p className="text-sm text-gray-600 dark:text-dark-100/70">{description}</p> : null}
+          {!delta && trendLabel ? (
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-600/80 dark:text-dark-200/70">{trendLabel}</p>
+          ) : null}
         </div>
         {delta ? (
-          <div className={`rounded-full px-3 py-1 text-xs font-semibold ${trend === 'down' ? 'bg-error/15 text-error' : trend === 'steady' ? 'bg-gray-200/60 text-gray-700 dark:bg-dark-700/40 dark:text-gray-200' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300'}`}>
-            {trend ? `${trendCopy[trend]} ` : ''}{delta}
+          <div
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              trend === 'down'
+                ? 'bg-error/15 text-error'
+                : trend === 'steady'
+                ? 'bg-gray-200/60 text-gray-700 dark:bg-dark-700/40 dark:text-gray-200'
+                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300'
+            }`}
+          >
+            <span>{trend ? `${trendCopy[trend]} ` : ''}{delta}</span>
+            {trendLabel ? (
+              <span className="mt-1 block text-[10px] font-medium uppercase tracking-wide opacity-80">{trendLabel}</span>
+            ) : null}
           </div>
         ) : null}
       </div>

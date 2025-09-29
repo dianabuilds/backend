@@ -11,19 +11,24 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from .config import load_settings, sanitize_async_dsn
 
+EngineKey = tuple[str, tuple[tuple[str, str], ...], tuple[tuple[str, str], ...]]
+
 _engine_cache: dict[str, AsyncEngine] = {}
+_engine_shared_cache: dict[EngineKey, AsyncEngine] = {}
+_engine_alias_to_key: dict[str, EngineKey] = {}
+_engine_key_refcounts: dict[EngineKey, int] = {}
 
 
 _SSL_TRUE = {"1", "true", "yes", "on", "require", "verify-ca", "verify-full"}
 _SSL_FALSE = {"0", "false", "no", "off", "disable", "allow", "prefer"}
 
 
-def _peel_ssl_connect_args(url: str) -> tuple[str, dict[str, Any]]:
+def _peel_ssl_connect_args(url: str) -> tuple[str, dict[str, Any], dict[str, str]]:
     """Strip SSL toggles from a DSN query string and return connect arguments."""
 
     parsed = urlparse(url)
     if not parsed.query:
-        return url, {}
+        return url, {}, {}
 
     pairs = parse_qsl(parsed.query, keep_blank_values=True)
     filtered: list[tuple[str, str]] = []
@@ -68,6 +73,7 @@ def _peel_ssl_connect_args(url: str) -> tuple[str, dict[str, Any]]:
     )
 
     connect_args: dict[str, Any] = {}
+    fingerprint: dict[str, str] = {}
     ssl_context = None
 
     if cert_path is not None:
@@ -75,13 +81,40 @@ def _peel_ssl_connect_args(url: str) -> tuple[str, dict[str, Any]]:
         if not resolved.is_absolute():
             resolved = (Path.cwd() / resolved).resolve()
         ssl_context = ssl.create_default_context(cafile=str(resolved))
+        fingerprint["ssl"] = f"context:{resolved}"
 
     if ssl_context is not None:
         connect_args["ssl"] = ssl_context
     elif ssl_flag is not None:
         connect_args["ssl"] = "require" if ssl_flag else False
+        fingerprint["ssl"] = f"flag:{'require' if ssl_flag else 'disable'}"
 
-    return sanitized, connect_args
+    return sanitized, connect_args, fingerprint
+
+
+def _stable_items(
+    mapping: dict[str, Any], overrides: dict[str, str] | None = None
+) -> tuple[tuple[str, str], ...]:
+    items: list[tuple[str, str]] = []
+    for key in sorted(mapping):
+        if overrides and key in overrides:
+            items.append((key, overrides[key]))
+            continue
+        value = mapping[key]
+        if isinstance(value, ssl.SSLContext):
+            items.append((key, "sslctx"))
+        else:
+            items.append((key, repr(value)))
+    return tuple(items)
+
+
+def _stable_kwargs(kwargs: dict[str, Any]) -> tuple[tuple[str, str], ...]:
+    items: list[tuple[str, str]] = []
+    for key in sorted(kwargs):
+        if key == "connect_args":
+            continue
+        items.append((key, repr(kwargs[key])))
+    return tuple(items)
 
 
 def get_async_engine(
@@ -102,9 +135,11 @@ def get_async_engine(
 
     raw_url = url if url is not None else load_settings().database_url
     sanitized = sanitize_async_dsn(raw_url)
-    sanitized, ssl_connect_args = _peel_ssl_connect_args(sanitized)
+    sanitized, ssl_connect_args, ssl_fingerprint = _peel_ssl_connect_args(sanitized)
 
     effective_kwargs = dict(create_kwargs)
+    effective_kwargs.setdefault("future", True)
+    effective_kwargs.setdefault("pool_pre_ping", True)
     connect_args = dict(ssl_connect_args)
     if "connect_args" in effective_kwargs and effective_kwargs["connect_args"]:
         existing = dict(effective_kwargs["connect_args"])  # type: ignore[arg-type]
@@ -114,15 +149,34 @@ def get_async_engine(
     else:
         effective_kwargs.pop("connect_args", None)
 
-    cache_key = (name, sanitized, tuple(sorted(connect_args.items())))
+    overrides: dict[str, str] = {}
+    if "ssl" in connect_args:
+        ssl_value = connect_args["ssl"]
+        if isinstance(ssl_value, ssl.SSLContext):
+            overrides["ssl"] = ssl_fingerprint.get("ssl", "sslctx")
+        else:
+            overrides["ssl"] = repr(ssl_value)
+
+    connect_key = _stable_items(connect_args, overrides=overrides)
+    kwargs_key = _stable_kwargs(effective_kwargs)
+    canonical_key: EngineKey = (str(sanitized), connect_key, kwargs_key)
+
     if not cache:
         return create_async_engine(sanitized, **effective_kwargs)
 
-    key = ":".join(map(str, cache_key))
-    engine = _engine_cache.get(key)
+    alias_key = f"{name}:{repr(canonical_key)}"
+    engine = _engine_cache.get(alias_key)
+    if engine is not None:
+        return engine
+
+    engine = _engine_shared_cache.get(canonical_key)
     if engine is None:
         engine = create_async_engine(sanitized, **effective_kwargs)
-        _engine_cache[key] = engine
+        _engine_shared_cache[canonical_key] = engine
+
+    _engine_cache[alias_key] = engine
+    _engine_alias_to_key[alias_key] = canonical_key
+    _engine_key_refcounts[canonical_key] = _engine_key_refcounts.get(canonical_key, 0) + 1
     return engine
 
 
@@ -140,8 +194,20 @@ async def dispose_async_engines(*names: str) -> None:
 
     for key in keys:
         engine = _engine_cache.pop(key, None)
-        if engine is not None:
+        if engine is None:
+            continue
+        canonical = _engine_alias_to_key.pop(key, None)
+        if canonical is None:
             await engine.dispose()
+            continue
+        remaining = _engine_key_refcounts.get(canonical, 0) - 1
+        if remaining <= 0:
+            _engine_key_refcounts.pop(canonical, None)
+            shared = _engine_shared_cache.pop(canonical, None)
+            if shared is not None:
+                await shared.dispose()
+        else:
+            _engine_key_refcounts[canonical] = remaining
 
 
 async def db_session_dep() -> AsyncIterator[object]:  # pragma: no cover - placeholder

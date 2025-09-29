@@ -74,7 +74,7 @@ export function RichTextEditor({ value, onChange, label, placeholder, className 
   React.useEffect(() => {
     const q = quillRef.current;
     if (!q) return;
-    if (typeof value === 'string' && value !== q.root.innerHTML) {
+    if (value !== q.root.innerHTML) {
       const sel = q.getSelection();
       q.clipboard.dangerouslyPasteHTML(value || '');
       if (sel) q.setSelection(sel);

@@ -42,6 +42,10 @@ class FlagService:
         return _stable_bucket(uid) < int(flag.rollout)
 
     async def upsert(self, data: dict[str, Any]) -> Flag:
+        raw_meta = data.get("meta")
+        meta_dict: dict[str, Any] | None = None
+        if isinstance(raw_meta, dict):
+            meta_dict = dict(raw_meta)
         f = Flag(
             slug=str(data["slug"]).strip(),
             enabled=bool(data.get("enabled", True)),
@@ -49,7 +53,7 @@ class FlagService:
             rollout=int(data.get("rollout", 100)),
             users=set(map(str, data.get("users") or [])),
             roles=set(map(str, data.get("roles") or [])),
-            meta=(dict(data.get("meta")) if isinstance(data.get("meta"), dict) else None),
+            meta=meta_dict,
         )
         return await self.store.upsert(f)
 

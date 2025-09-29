@@ -7,6 +7,7 @@ import time
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any, cast
 
 try:
     from prometheus_client import Counter  # type: ignore
@@ -267,7 +268,6 @@ class NavigationService:
         requested = data.requested_ui_slots if data.requested_ui_slots > 0 else allowed
         ui_slots = max(1, min(requested, allowed))
         cache_seed = self._compute_seed(
-            tenant_id=data.tenant_id,
             user_id=data.user_id,
             session_id=data.session_id,
             origin_node_id=data.origin_node_id,
@@ -276,7 +276,6 @@ class NavigationService:
         )
         return TransitionContext(
             session_id=data.session_id,
-            tenant_id=data.tenant_id,
             user_id=data.user_id,
             origin_node_id=data.origin_node_id,
             route_window=tuple(int(n) for n in data.route_window),
@@ -343,11 +342,13 @@ class NavigationService:
         nodes_by_id: dict[int, NodeSnapshot] = {snap.id: snap for snap in nodes}
         ann_nodes: list[NodeSnapshot] = []
         embedding_status = "query_missing"
-        ann_raw: list[dict] = []
+        ann_raw: list[dict[str, Any]] = []
         if query_embedding is not None:
             try:
-                ann_raw = self.nodes.search_by_embedding(
-                    list(query_embedding), limit=max(k_limit * 2, 64)
+                ann_raw = list(
+                    self.nodes.search_by_embedding(
+                        list(query_embedding), limit=max(k_limit * 2, 64)
+                    )
                 )
                 embedding_status = "used" if ann_raw else "empty"
             except Exception:
@@ -534,12 +535,15 @@ class NavigationService:
         raw = self.nodes.get(int(node_id))
         return self._normalize_node(raw)
 
-    def _normalize_node(self, raw: dict | None) -> NodeSnapshot | None:
+    def _normalize_node(self, raw: dict[str, Any] | None) -> NodeSnapshot | None:
         if not raw:
             return None
+        raw_id = raw.get("id")
+        if raw_id is None:
+            return None
         try:
-            node_id = int(raw.get("id"))
-        except Exception:
+            node_id = int(cast(int | float | str, raw_id))
+        except (TypeError, ValueError):
             return None
         author = str(raw.get("author_id") or "")
         if not author:
@@ -669,7 +673,6 @@ class NavigationService:
     @staticmethod
     def _compute_seed(
         *,
-        tenant_id: str,
         user_id: str,
         session_id: str,
         origin_node_id: int | None,
@@ -678,7 +681,6 @@ class NavigationService:
     ) -> str:
         payload = "|".join(
             [
-                tenant_id,
                 user_id,
                 session_id,
                 str(origin_node_id or 0),

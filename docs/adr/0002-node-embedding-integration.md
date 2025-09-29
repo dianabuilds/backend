@@ -1,4 +1,4 @@
-# ADR 0002: Node Embedding Integration
+ï»¿# ADR 0002: Node Embedding Integration
 
 - Status: Approved
 - Date: 2025-09-21
@@ -49,13 +49,13 @@ Adopt pgvector-backed embeddings for product nodes. Embeddings are generated onl
 
 ### Frontend
 
-- Admin UI: update node forms to submit `content_html`, tags, etc. Node list surfaces embedding status badges (“Ready/Pending/Disabled/Error”) and aggregates outstanding recomputes. Ensure `/v1/navigation/next` consumer (if any internal admin tool) adapts to new response fields (`ui_slots_requested`, `decision.candidates[].reason` etc.) introduced earlier.
+- Admin UI: update node forms to submit `content_html`, tags, etc. Node list surfaces embedding status badges (â€œReady/Pending/Disabled/Errorâ€) and aggregates outstanding recomputes. Ensure `/v1/navigation/next` consumer (if any internal admin tool) adapts to new response fields (`ui_slots_requested`, `decision.candidates[].reason` etc.) introduced earlier.
 - No new user-facing UI changes required, but internal dashboards should expose telemetry from the API (pool size, embedding usage).
 
 ## Consequences
 
 - **Positive**: improved ranking quality, ability to reuse ADR 0001 pipeline, deterministic explainability, direct path to ANN retrieval.
-- **Trade-offs**: writes incur embedding generation latency (~100–300 ms). Need resilience to API outages. Without queue, spikes in writes may stress the embedding API (mitigated with flag and retries).
+- **Trade-offs**: writes incur embedding generation latency (~100â€“300 ms). Need resilience to API outages. Without queue, spikes in writes may stress the embedding API (mitigated with flag and retries).
 - **Operational**: thin wrappers around pgvector rely on proper extension availability; database migrations must precede app rollout.
 
 ## Implementation Plan
@@ -97,7 +97,7 @@ Adopt pgvector-backed embeddings for product nodes. Embeddings are generated onl
 - Structured logs capture embedding requests, response latency, provider codes, and fallback paths for traceability. CLI recompute emits `embedding_recompute_summary` totals per run.
 - Metrics: `node_embedding_requests_total`, `node_embedding_latency_ms`, and `navigation_embedding_queries_total` with status dimensions; counters for CLI processed nodes and ANN fallback rate.
 - Alerts: embedding failure ratio >5% over 10 minutes, ANN latency p95 >50 ms, or embedding_enabled flag disabled in production for >30 minutes.
-- Feature flag instrumentation: track dark launches with per-tenant overrides before full rollout.
+- Feature flag instrumentation: track dark launches with scoped overrides before full rollout.
 
 ## Testing & Readiness
 
@@ -120,7 +120,7 @@ Adopt pgvector-backed embeddings for product nodes. Embeddings are generated onl
 - Embedding provider outage: guard with feature flag, cached vectors, and explicit alerts; add runbook for manual disable.
 - Model drift across re-training: version embeddings via metadata and schedule recompute when provider model changes.
 - Latency regression on writes: measure continuously and consider background queues if p95 exceeds target.
-- Data governance: ensure text sent to provider respects tenant privacy redactions and audit logs include who triggered recompute.
+- Data governance: ensure text sent to provider respects data privacy redactions and audit logs include who triggered recompute.
 
 ## Alternatives Considered
 
@@ -167,9 +167,9 @@ Adopt pgvector-backed embeddings for product nodes. Embeddings are generated onl
 
 ### Tenant API keys and rate limiting
 
-- Issue dedicated credentials per tenant/environment; store key ids in `tenant_api_keys` and keep secrets in the provider or KMS.
-- Apply hierarchical token buckets (tenant, tenant+model, tenant+endpoint) with configurable burst/rate, e.g., burst 60 and 120/min per model.
-- Use weighted fair queuing on workers plus max in-flight per tenant (e.g., 8) to prevent noisy-neighbour pressure.
+- Issue dedicated credentials per environment; store key ids in `api_keys` and keep secrets in the provider or KMS.
+- Apply hierarchical token buckets (global, model, endpoint) with configurable burst/rate, e.g., burst 60 and 120/min per model.
+- Use weighted fair queuing on workers plus max in-flight per cohort (e.g., 8) to prevent noisy-neighbour pressure.
 - Enforce monthly budget caps: when usage approaches the limit, throttle aggressively or pause non-critical calls.
 - Support dual-key rotation (90-day schedule or incident-driven) with seamless cutover.
 
@@ -180,10 +180,11 @@ Adopt pgvector-backed embeddings for product nodes. Embeddings are generated onl
 - FinOps/PM sets monthly budgets and approves increases or stop-gaps.
 - Budget alerts: 80% (heads-up), 90% (enable moderate throttling, pause experiments), 100% (severe throttling, halt background recompute).
 - Monitor anomalies: >30% day-over-day cost per request growth, provider 429/5xx spikes, latency breaching p95 SLO.
-- Dashboards: cost per 1k embeddings, QPS per tenant, success/timeout rates, token usage per minute, A/B traffic split, recompute coverage.
+- Dashboards: cost per 1k embeddings, QPS per cohort, success/timeout rates, token usage per minute, A/B traffic split, recompute coverage.
 ## Status
 
 Implementation in progress; queue/worker integration will follow once the synchronous flow is stable.
+
 
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 from contextlib import asynccontextmanager
-from typing import cast
+from typing import Any, cast
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -221,7 +221,7 @@ async def readyz() -> dict:
             from sqlalchemy import text as _text  # type: ignore
 
             s = load_settings()
-            engine = get_async_engine("readyz", url=s.database_url, cache=False)
+            engine = get_async_engine("readyz", url=s.database_url)
             async with engine.begin() as conn:
                 await conn.execute(_text("SELECT 1"))
             details["database"] = True
@@ -379,7 +379,7 @@ except Exception:
 
 
 def _api_error_handler(request, exc: ApiError):  # type: ignore[override]
-    body = {"error": {"code": exc.code}}
+    body: dict[str, dict[str, Any]] = {"error": {"code": exc.code}}
     if exc.message:
         body["error"]["message"] = exc.message
     if getattr(exc, "extra", None):

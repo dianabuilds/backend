@@ -46,9 +46,6 @@ from domains.platform.users.wires import build_container as build_users_containe
 from domains.product.profile.adapters.iam_client import (
     IamClient as ProfileIamClient,
 )
-from domains.product.profile.adapters.repo_memory import (
-    MemoryRepo as ProfileRepoMemory,
-)
 from domains.product.profile.adapters.repo_sql import SQLProfileRepo
 from domains.product.profile.application.ports import (
     IamClient as ProfileIam,
@@ -62,7 +59,9 @@ from domains.product.profile.application.ports import (
 from domains.product.profile.application.services import (
     Service as ProfileService,
 )
+from domains.product.referrals.application.ports import Repo as ReferralsRepo
 from domains.product.tags.adapters.repo_sql import SQLTagsRepo
+from domains.product.tags.adapters.store_memory import TagUsageStore
 from domains.product.tags.adapters.usage_sql_writer import (
     register_tags_usage_writer,
 )
@@ -89,10 +88,16 @@ def _db_reachable(url: str, *, allow_remote: bool = False) -> bool:
         return False
 
 
+def _require_async_dsn(settings: Settings, *, allow_remote: bool) -> str:
+    dsn = to_async_dsn(settings.database_url)
+    if not dsn:
+        raise RuntimeError("APP_DATABASE_URL is required for SQL-backed storages")
+    if not _db_reachable(str(settings.database_url), allow_remote=allow_remote):
+        raise RuntimeError("database unreachable for SQL-backed storages")
+    return dsn
+
+
 # Product domain services
-from domains.product.achievements.adapters.repo_memory import (
-    MemoryRepo as AchievementsMemoryRepo,
-)
 from domains.product.achievements.adapters.repo_sql import (
     SQLRepo as AchievementsSQLRepo,
 )
@@ -103,9 +108,11 @@ from domains.product.achievements.application.service import (
     AchievementsService as DddAchievementsService,
 )
 from domains.product.ai.adapters.provider_fake import FakeProvider as AIFakeProvider
+from domains.product.ai.adapters.provider_registry import (
+    RegistryBackedProvider as AIRegistryProvider,
+)
 from domains.product.ai.application.registry import LLMRegistry
 from domains.product.ai.application.service import AIService
-from domains.product.moderation.adapters.repo_memory import MemoryModerationRepo
 from domains.product.moderation.adapters.repo_sql import SQLModerationRepo
 from domains.product.moderation.application.service import (
     ModerationService as DddModerationService,
@@ -116,28 +123,30 @@ from domains.product.navigation.application.ports import (
 from domains.product.navigation.application.service import (
     NavigationService as NavigationService,
 )
-from domains.product.nodes.adapters.repo_memory import MemoryNodesRepo
 from domains.product.nodes.adapters.repo_sql import SQLNodesRepo
 from domains.product.nodes.adapters.tag_catalog_memory import MemoryTagCatalog
 from domains.product.nodes.adapters.usage_memory import MemoryUsageProjection
+from domains.product.nodes.adapters.usage_sql import SQLUsageProjection
 from domains.product.nodes.application.embedding import EmbeddingClient
 from domains.product.nodes.application.embedding_worker import register_embedding_worker
+from domains.product.nodes.application.ports import (
+    TagCatalog as NodesTagCatalog,
+)
+from domains.product.nodes.application.ports import (
+    UsageProjection as NodesUsageProjection,
+)
 from domains.product.nodes.application.service import NodeService as NodesService
 from domains.product.premium.application.service import (
     PremiumService as DddPremiumService,
 )
-from domains.product.quests.adapters.repo_memory import MemoryQuestsRepo
 from domains.product.quests.adapters.repo_sql import SQLQuestsRepo
 from domains.product.quests.application.service import QuestService as QuestsService
-from domains.product.referrals.adapters.repo_memory import MemoryReferralsRepo
 from domains.product.referrals.adapters.repo_sql import SQLReferralsRepo
 from domains.product.referrals.application.service import (
     ReferralsService as DddReferralsService,
 )
-from domains.product.tags.adapters.repo_memory import MemoryTagsRepo
-from domains.product.tags.adapters.store_memory import TagUsageStore
+from domains.product.tags.adapters.tag_catalog_sql import SQLTagCatalog
 from domains.product.tags.application.service import TagService as TagsService
-from domains.product.worlds.adapters.repo_memory import MemoryRepo as WorldsMemoryRepo
 from domains.product.worlds.adapters.repo_sql import SQLWorldsRepo
 from domains.product.worlds.application.service import WorldsService as DddWorldsService
 
@@ -158,7 +167,7 @@ class Container:
     achievements_admin: DddAchievementsAdminService
     worlds_service: DddWorldsService
     referrals_service: DddReferralsService
-    referrals_repo: MemoryReferralsRepo
+    referrals_repo: ReferralsRepo
     premium_service: DddPremiumService
     moderation_service: DddModerationService
     telemetry: TelemetryContainer
@@ -180,7 +189,8 @@ def build_container(env: str = "dev") -> Container:
     allow_remote_db = bool(
         getattr(settings, "database_allow_remote", False) or settings.env == "prod"
     )
-    repo: ProfileRepo = ProfileRepoMemory()
+    dsn_primary = _require_async_dsn(settings, allow_remote=allow_remote_db)
+
     # Events wiring: Redis is required in all environments
     topics = [t.strip() for t in str(settings.event_topics).split(",") if t.strip()]
     if "node.embedding.requested.v1" not in topics:
@@ -201,25 +211,24 @@ def build_container(env: str = "dev") -> Container:
         group=str(settings.event_group),
     )
     events = Events(outbox=outbox, bus=bus)
-    iam: ProfileIam = ProfileIamClient()
-    svc = ProfileService(repo=repo, outbox=outbox, iam=iam, flags=Flags())
-
-    # Try SQL repo for Profile if DB reachable (no event-loop gymnastics)
-    try:
-        dsn = to_async_dsn(settings.database_url)
-        if dsn and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
-            svc = ProfileService(repo=SQLProfileRepo(dsn), outbox=outbox, iam=iam, flags=Flags())
-    except Exception:
-        pass
+    profile_iam: ProfileIam = ProfileIamClient()
+    profile_repo: ProfileRepo = SQLProfileRepo(dsn_primary)
+    svc = ProfileService(repo=profile_repo, outbox=outbox, iam=profile_iam, flags=Flags())
 
     # --- Product domains wiring (DDD-only) ---
-    # Shared tag usage store
-    tag_usage = TagUsageStore()
-    # Nodes
-    nodes_repo = MemoryNodesRepo()
-    tag_catalog = MemoryTagCatalog()
+    # Nodes / tags helpers
+    nodes_repo = SQLNodesRepo(dsn_primary)
     outbox_bridge = outbox  # unify events outbox across services
-    usage_proj = MemoryUsageProjection(tag_usage, content_type="node")
+    tag_catalog: NodesTagCatalog
+    try:
+        tag_catalog = SQLTagCatalog(dsn_primary)
+    except Exception:
+        tag_catalog = MemoryTagCatalog()
+    usage_proj: NodesUsageProjection
+    try:
+        usage_proj = SQLUsageProjection(dsn_primary, content_type="node")
+    except Exception:
+        usage_proj = MemoryUsageProjection(TagUsageStore(), content_type="node")
     embedding_client = EmbeddingClient(
         base_url=settings.embedding_api_base,
         model=settings.embedding_model,
@@ -230,16 +239,6 @@ def build_container(env: str = "dev") -> Container:
         retries=settings.embedding_retries,
         enabled=settings.embedding_enabled,
     )
-
-    # Prefer SQL repo when DB is reachable
-    try:
-        from packages.core.config import to_async_dsn as _to_async
-
-        _dsn_nodes = _to_async(settings.database_url)
-        if _dsn_nodes and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
-            nodes_repo = SQLNodesRepo(_dsn_nodes)  # type: ignore[assignment]
-    except Exception:
-        pass
     nodes = NodesService(
         repo=nodes_repo,
         tags=tag_catalog,
@@ -250,28 +249,11 @@ def build_container(env: str = "dev") -> Container:
     register_embedding_worker(events, nodes)
 
     # Tags service based on usage store
-    tags_repo = MemoryTagsRepo(tag_usage)
-    try:
-        from packages.core.config import to_async_dsn as _to_async
-
-        dsn_tags = _to_async(settings.database_url)
-        if dsn_tags and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
-            # Switch to SQL-backed read repo while keeping usage writer
-            tags_repo = SQLTagsRepo(dsn_tags)  # type: ignore[assignment]
-    except Exception:
-        pass
+    tags_repo = SQLTagsRepo(dsn_primary)
     tags = TagsService(tags_repo)
 
     # Quests
-    quests_repo = MemoryQuestsRepo()
-    try:
-        from packages.core.config import to_async_dsn as _to_async
-
-        dsn_q = _to_async(settings.database_url)
-        if dsn_q and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
-            quests_repo = SQLQuestsRepo(dsn_q)  # type: ignore[assignment]
-    except Exception:
-        pass
+    quests_repo = SQLQuestsRepo(dsn_primary)
     quests = QuestsService(repo=quests_repo, tags=tag_catalog, outbox=outbox_bridge)
 
     # Navigation (depends on nodes service read port)
@@ -323,60 +305,29 @@ def build_container(env: str = "dev") -> Container:
 
     navigation = NavigationService(nodes=_NodesReadPort())
 
-    # AI (dev default provider)
-    ai = AIService(provider=AIFakeProvider(), outbox=outbox_bridge)
-    ai_registry = LLMRegistry()
+    # AI (sql-backed registry)
+    ai_registry = LLMRegistry(dsn_primary)
+    ai_provider = AIRegistryProvider(ai_registry, fallback=AIFakeProvider())
+    ai = AIService(provider=ai_provider, outbox=outbox_bridge)
 
     # Achievements
-    ach_repo = AchievementsMemoryRepo()
-    try:
-        from packages.core.config import to_async_dsn as _to_async
-
-        dsn_ach = _to_async(settings.database_url)
-        if dsn_ach and (_db_reachable(str(settings.database_url), allow_remote=allow_remote_db)):
-            ach_repo = AchievementsSQLRepo(dsn_ach)  # type: ignore[assignment]
-    except Exception:
-        pass
+    ach_repo = AchievementsSQLRepo(dsn_primary)
     achievements_service = DddAchievementsService(ach_repo, outbox=outbox)
     achievements_admin = DddAchievementsAdminService(ach_repo, outbox=outbox)
 
     # Worlds
-    worlds_repo = WorldsMemoryRepo()
-    try:
-        from packages.core.config import to_async_dsn as _to_async
-
-        dsn_worlds = _to_async(settings.database_url)
-        if dsn_worlds and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
-            worlds_repo = SQLWorldsRepo(dsn_worlds)  # type: ignore[assignment]
-    except Exception:
-        pass
+    worlds_repo = SQLWorldsRepo(dsn_primary)
     worlds_service = DddWorldsService(worlds_repo, outbox=outbox)
 
     # Referrals
-    referrals_repo = MemoryReferralsRepo()
-    try:
-        from packages.core.config import to_async_dsn as _to_async
-
-        dsn_ref = _to_async(settings.database_url)
-        if dsn_ref and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
-            referrals_repo = SQLReferralsRepo(dsn_ref)  # type: ignore[assignment]
-    except Exception:
-        pass
+    referrals_repo = SQLReferralsRepo(dsn_primary)
     referrals_service = DddReferralsService(referrals_repo, outbox=outbox)
 
     # Premium
     premium_service = DddPremiumService()
 
     # Moderation
-    _mod_repo = MemoryModerationRepo()
-    try:
-        from packages.core.config import to_async_dsn as _to_async
-
-        dsn_mod = _to_async(settings.database_url)
-        if dsn_mod and _db_reachable(str(settings.database_url), allow_remote=allow_remote_db):
-            _mod_repo = SQLModerationRepo(dsn_mod)  # type: ignore[assignment]
-    except Exception:
-        pass
+    _mod_repo = SQLModerationRepo(dsn_primary)
     moderation_service = DddModerationService(_mod_repo, outbox=outbox)
     telemetry = build_telemetry_container(settings)
     quota = build_quota_container(settings)
@@ -390,7 +341,7 @@ def build_container(env: str = "dev") -> Container:
         for t in str(settings.notify_topics or settings.event_topics).split(",")
         if t.strip()
     ]
-    iam = build_iam_container(settings)
+    iam_container = build_iam_container(settings)
     search = build_search_container()
     # Index incoming events into search
     register_event_indexers(events, search)
@@ -431,7 +382,7 @@ def build_container(env: str = "dev") -> Container:
         moderation_service=moderation_service,
         telemetry=telemetry,
         quota=quota,
-        iam=iam,
+        iam=iam_container,
         search=search,
         platform_moderation=platform_moderation,
         media=media,

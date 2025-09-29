@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from domains.platform.events.adapters.outbox_redis import (
     RedisOutbox as ProductOutboxRedis,
@@ -18,11 +19,11 @@ from .application.services import Service as ProductService
 
 @dataclass(slots=True)
 class Container:
-    settings: object  # replace with real Settings
+    settings: Any  # replace with real Settings
     product_service: ProductService
 
 
-def load_settings() -> object:  # placeholder to keep template self-contained
+def load_settings() -> Any:  # placeholder to keep template self-contained
     class _S:
         database_url = "postgresql://user:pass@localhost:5432/app"
         redis_url = "redis://localhost:6379/0"

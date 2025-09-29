@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from uuid import UUID
 
@@ -19,9 +19,6 @@ from domains.product.worlds.api.schemas import (
     WorldTemplateOut,
 )
 
-# Tenant is no longer a user-facing parameter. Keep a fixed workspace id.
-DEFAULT_WORKSPACE_ID = UUID("00000000-0000-0000-0000-000000000000")
-
 
 def make_router() -> APIRouter:
     router = APIRouter(prefix="/v1/admin/worlds", tags=["admin-worlds"])
@@ -32,9 +29,7 @@ def make_router() -> APIRouter:
         _: None = Depends(admin_required),
         container=Depends(get_container),
     ):
-        items = await anyio.to_thread.run_sync(
-            container.worlds_service.list_worlds, str(DEFAULT_WORKSPACE_ID)
-        )
+        items = await anyio.to_thread.run_sync(container.worlds_service.list_worlds)
         return [
             WorldTemplateOut(
                 id=UUID(w.id),
@@ -56,11 +51,7 @@ def make_router() -> APIRouter:
         _: None = Depends(admin_required),
         container=Depends(get_container),
     ):
-        w = await anyio.to_thread.run_sync(
-            container.worlds_service.get_world,
-            str(DEFAULT_WORKSPACE_ID),
-            str(world_id),
-        )
+        w = await anyio.to_thread.run_sync(container.worlds_service.get_world, str(world_id))
         if not w:
             raise HTTPException(status_code=404, detail="not_found")
         return WorldTemplateOut(
@@ -86,7 +77,6 @@ def make_router() -> APIRouter:
         actor = str(claims.get("sub") or "")
         w = await anyio.to_thread.run_sync(
             container.worlds_service.create_world,
-            str(DEFAULT_WORKSPACE_ID),
             payload.model_dump(exclude_none=True),
             actor,
         )
@@ -114,7 +104,6 @@ def make_router() -> APIRouter:
         actor = str(claims.get("sub") or "")
         out = await anyio.to_thread.run_sync(
             container.worlds_service.update_world,
-            str(DEFAULT_WORKSPACE_ID),
             str(world_id),
             payload.model_dump(exclude_none=True),
             actor,
@@ -140,11 +129,7 @@ def make_router() -> APIRouter:
         _csrf: None = Depends(csrf_protect),
         container=Depends(get_container),
     ):
-        ok = await anyio.to_thread.run_sync(
-            container.worlds_service.delete_world,
-            str(DEFAULT_WORKSPACE_ID),
-            str(world_id),
-        )
+        ok = await anyio.to_thread.run_sync(container.worlds_service.delete_world, str(world_id))
         if not ok:
             raise HTTPException(status_code=404, detail="not_found")
         return {"status": "ok"}
@@ -155,9 +140,7 @@ def make_router() -> APIRouter:
         _: None = Depends(admin_required),
         container=Depends(get_container),
     ):
-        ch = await anyio.to_thread.run_sync(
-            container.worlds_service.get_character, str(char_id), str(DEFAULT_WORKSPACE_ID)
-        )
+        ch = await anyio.to_thread.run_sync(container.worlds_service.get_character, str(char_id))
         if not ch:
             raise HTTPException(status_code=404, detail="not_found")
         return CharacterOut(
@@ -186,7 +169,6 @@ def make_router() -> APIRouter:
         chs = await anyio.to_thread.run_sync(
             container.worlds_service.list_characters,
             str(world_id),
-            str(DEFAULT_WORKSPACE_ID),
         )
         return [
             CharacterOut(
@@ -221,12 +203,11 @@ def make_router() -> APIRouter:
         ch = await anyio.to_thread.run_sync(
             container.worlds_service.create_character,
             str(world_id),
-            str(DEFAULT_WORKSPACE_ID),
             payload.model_dump(exclude_none=True),
             actor,
         )
         if not ch:
-            raise HTTPException(status_code=404, detail="not_found")
+            raise HTTPException(status_code=404, detail="world_not_found")
         return CharacterOut(
             id=UUID(ch.id),
             world_id=UUID(ch.world_id),
@@ -240,7 +221,11 @@ def make_router() -> APIRouter:
             updated_by_user_id=(UUID(ch.updated_by_user_id) if ch.updated_by_user_id else None),
         )
 
-    @router.patch("/characters/{char_id}", response_model=CharacterOut, summary="Update character")
+    @router.patch(
+        "/characters/{char_id}",
+        response_model=CharacterOut,
+        summary="Update character",
+    )
     async def update_character(
         char_id: UUID,
         payload: CharacterPatch,
@@ -253,7 +238,6 @@ def make_router() -> APIRouter:
         ch = await anyio.to_thread.run_sync(
             container.worlds_service.update_character,
             str(char_id),
-            str(DEFAULT_WORKSPACE_ID),
             payload.model_dump(exclude_none=True),
             actor,
         )
@@ -280,7 +264,8 @@ def make_router() -> APIRouter:
         container=Depends(get_container),
     ):
         ok = await anyio.to_thread.run_sync(
-            container.worlds_service.delete_character, str(char_id), str(DEFAULT_WORKSPACE_ID)
+            container.worlds_service.delete_character,
+            str(char_id),
         )
         if not ok:
             raise HTTPException(status_code=404, detail="not_found")

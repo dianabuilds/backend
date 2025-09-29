@@ -1296,6 +1296,7 @@ class PlatformModerationService:
             reports = list(self._reports.values())
 
         category_filter = category.lower() if category else None
+        status_filter: str | None
         if isinstance(status, ReportStatus):
             status_filter = status.value
         else:
@@ -1400,10 +1401,12 @@ class PlatformModerationService:
         async with self._lock:
             tickets = list(self._tickets.values())
 
+        status_filter: str | None
         if isinstance(status, TicketStatus):
             status_filter = status.value
         else:
             status_filter = str(status).lower() if status else None
+        priority_filter: str | None
         if isinstance(priority, TicketPriority):
             priority_filter = priority.value
         else:

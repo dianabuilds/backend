@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Any
 from uuid import UUID
@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.iam.adapters.credentials_sql import SQLCredentialsAdapter
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
+from domains.platform.notifications.adapters.matrix_sql import SQLNotificationMatrixRepo
 from domains.platform.notifications.adapters.repo_sql import (
     SQLNotificationPreferenceRepo,
 )
@@ -244,7 +245,9 @@ def _engine_for_dsn(dsn: str) -> AsyncEngine:
 @lru_cache(maxsize=4)
 def _preference_service_for_dsn(dsn: str) -> PreferenceService:
     engine = _engine_for_dsn(dsn)
-    return PreferenceService(SQLNotificationPreferenceRepo(engine))
+    preference_repo = SQLNotificationPreferenceRepo(engine)
+    matrix_repo = SQLNotificationMatrixRepo(engine)
+    return PreferenceService(matrix_repo=matrix_repo, preference_repo=preference_repo)
 
 
 @lru_cache(maxsize=4)
@@ -378,7 +381,7 @@ async def _list_sessions(engine: AsyncEngine, user_id: str) -> list[dict[str, An
     )
     async with engine.begin() as conn:
         rows = (await conn.execute(query, {"uid": user_id})).mappings().all()
-    now = datetime.now(datetime.UTC)
+    now = datetime.now(UTC)
     sessions: list[dict[str, Any]] = []
     for row in rows:
         revoked_at = row.get("revoked_at")

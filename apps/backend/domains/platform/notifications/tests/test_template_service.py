@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 
+from domains.platform.flags.application.service import FlagService
 from domains.platform.notifications.application.delivery_service import (
     DeliveryService,
     NotificationEvent,
@@ -182,7 +183,7 @@ async def test_delivery_service_renders_template_with_variables() -> None:
         preference_repo=StubPreferenceRepo(),
         notify_service=cast(NotifyService, notify),
         template_service=cast(TemplateService, template_service),
-        flag_service=StubFlagService(),
+        flag_service=cast(FlagService, StubFlagService()),
     )
 
     payload = {

@@ -6,6 +6,9 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.billing.ports import ContractsRepo
+
+JsonDict = dict[str, Any]
+JsonDictList = list[JsonDict]
 from packages.core.db import get_async_engine
 
 from .dsn_utils import normalize_async_dsn
@@ -18,7 +21,7 @@ class SQLContractsRepo(ContractsRepo):
         else:
             self._engine = engine
 
-    async def list(self) -> list[dict[str, Any]]:
+    async def list(self) -> JsonDictList:
         sql = text(
             """
             SELECT id, slug, title, chain, address, type, enabled, status, testnet,
@@ -32,7 +35,7 @@ class SQLContractsRepo(ContractsRepo):
                 rows = (await conn.execute(sql)).mappings().all()
             except Exception:
                 return []
-            out: list[dict[str, Any]] = []
+            out: JsonDictList = []
             for r in rows:
                 out.append(
                     {
@@ -54,7 +57,7 @@ class SQLContractsRepo(ContractsRepo):
                 )
             return out
 
-    async def upsert(self, c: dict[str, Any]) -> dict[str, Any]:
+    async def upsert(self, c: JsonDict) -> JsonDict:
         sql = text(
             """
             INSERT INTO payment_contracts (
@@ -122,7 +125,7 @@ class SQLContractsRepo(ContractsRepo):
         async with self._engine.begin() as conn:
             await conn.execute(sql, {"id": id_or_slug})
 
-    async def get(self, id_or_slug: str) -> dict[str, Any] | None:
+    async def get(self, id_or_slug: str) -> JsonDict | None:
         sql = text(
             """
             SELECT id, slug, title, chain, address, type, enabled, status, testnet,
@@ -153,7 +156,7 @@ class SQLContractsRepo(ContractsRepo):
                 "updated_at": r["updated_at"],
             }
 
-    async def get_by_address(self, address: str) -> dict[str, Any] | None:
+    async def get_by_address(self, address: str) -> JsonDict | None:
         sql = text(
             """
             SELECT id, slug, title, chain, address, type, enabled, status, testnet,
@@ -184,7 +187,7 @@ class SQLContractsRepo(ContractsRepo):
                 "updated_at": r["updated_at"],
             }
 
-    async def list_events(self, id_or_slug: str | None, limit: int = 100) -> list[dict[str, Any]]:
+    async def list_events(self, id_or_slug: str | None, limit: int = 100) -> JsonDictList:
         if id_or_slug:
             sql = text(
                 """
@@ -211,7 +214,7 @@ class SQLContractsRepo(ContractsRepo):
                 rows = (await conn.execute(sql, params)).mappings().all()
             except Exception:
                 return []
-            out: list[dict[str, Any]] = []
+            out: JsonDictList = []
             for r in rows:
                 out.append(
                     {
@@ -229,7 +232,7 @@ class SQLContractsRepo(ContractsRepo):
                 )
             return out
 
-    async def add_event(self, e: dict[str, Any]) -> None:
+    async def add_event(self, e: JsonDict) -> None:
         sql = text(
             """
             INSERT INTO payment_contract_events (id, contract_id, event, method, tx_hash, status, amount, token, meta, created_at)
@@ -239,9 +242,7 @@ class SQLContractsRepo(ContractsRepo):
         async with self._engine.begin() as conn:
             await conn.execute(sql, e)
 
-    async def metrics_methods(
-        self, id_or_slug: str | None, window: int = 1000
-    ) -> list[dict[str, Any]]:
+    async def metrics_methods(self, id_or_slug: str | None, window: int = 1000) -> JsonDictList:
         if id_or_slug:
             sql = text(
                 """
@@ -266,9 +267,7 @@ class SQLContractsRepo(ContractsRepo):
                 return []
             return [{"method": r["method"], "calls": int(r["calls"])} for r in rows]
 
-    async def metrics_methods_ts(
-        self, id_or_slug: str | None, days: int = 30
-    ) -> list[dict[str, Any]]:
+    async def metrics_methods_ts(self, id_or_slug: str | None, days: int = 30) -> JsonDictList:
         if id_or_slug:
             sql = text(
                 """
@@ -302,9 +301,7 @@ class SQLContractsRepo(ContractsRepo):
                 for r in rows
             ]
 
-    async def metrics_volume_ts(
-        self, id_or_slug: str | None, days: int = 30
-    ) -> list[dict[str, Any]]:
+    async def metrics_volume_ts(self, id_or_slug: str | None, days: int = 30) -> JsonDictList:
         if id_or_slug:
             sql = text(
                 """

@@ -15,122 +15,87 @@ class WorldsService:
         self.repo = repo
         self.outbox = outbox
 
-    def list_worlds(self, workspace_id: str) -> list[WorldTemplate]:
-        return self.repo.list_worlds(workspace_id)
+    def list_worlds(self) -> list[WorldTemplate]:
+        return self.repo.list_worlds()
 
-    def get_world(self, workspace_id: str, world_id: str) -> WorldTemplate | None:
-        return self.repo.get_world(world_id, workspace_id)
+    def get_world(self, world_id: str) -> WorldTemplate | None:
+        return self.repo.get_world(world_id)
 
-    def create_world(self, workspace_id: str, data: dict[str, Any], actor_id: str) -> WorldTemplate:
-        w = self.repo.create_world(workspace_id, data, actor_id)
-        try:
-            if self.outbox:
-                self.outbox.publish(
-                    "world.created.v1",
-                    {"id": w.id, "workspace_id": w.workspace_id, "actor_id": actor_id},
-                )
-        except Exception:
-            pass
-        return w
+    def create_world(self, data: dict[str, Any], actor_id: str) -> WorldTemplate:
+        world = self.repo.create_world(data, actor_id)
+        self._publish(
+            "world.created.v1",
+            {"id": world.id, "actor_id": actor_id},
+        )
+        return world
 
     def update_world(
-        self, workspace_id: str, world_id: str, data: dict[str, Any], actor_id: str
+        self, world_id: str, data: dict[str, Any], actor_id: str
     ) -> WorldTemplate | None:
-        world = self.repo.get_world(world_id, workspace_id)
+        world = self.repo.get_world(world_id)
         if not world:
             return None
-        updated = self.repo.update_world(world, data, workspace_id, actor_id)
-        try:
-            if updated and self.outbox:
-                self.outbox.publish(
-                    "world.updated.v1",
-                    {
-                        "id": updated.id,
-                        "workspace_id": updated.workspace_id,
-                        "actor_id": actor_id,
-                    },
-                )
-        except Exception:
-            pass
+        updated = self.repo.update_world(world, data, actor_id)
+        self._publish(
+            "world.updated.v1",
+            {"id": updated.id, "actor_id": actor_id},
+        )
         return updated
 
-    def delete_world(self, workspace_id: str, world_id: str) -> bool:
-        world = self.repo.get_world(world_id, workspace_id)
+    def delete_world(self, world_id: str) -> bool:
+        world = self.repo.get_world(world_id)
         if not world:
             return False
-        self.repo.delete_world(world, workspace_id)
-        try:
-            if self.outbox:
-                self.outbox.publish(
-                    "world.deleted.v1", {"id": world.id, "workspace_id": workspace_id}
-                )
-        except Exception:
-            pass
+        self.repo.delete_world(world)
+        self._publish("world.deleted.v1", {"id": world.id})
         return True
 
-    def list_characters(self, world_id: str, workspace_id: str) -> list[Character]:
-        return self.repo.list_characters(world_id, workspace_id)
+    def list_characters(self, world_id: str) -> list[Character]:
+        return self.repo.list_characters(world_id)
 
     def create_character(
-        self, world_id: str, workspace_id: str, data: dict[str, Any], actor_id: str
+        self, world_id: str, data: dict[str, Any], actor_id: str
     ) -> Character | None:
-        # Repo enforces world/workspace matching where needed
-        ch = self.repo.create_character(world_id, workspace_id, data, actor_id)
-        try:
-            if ch and self.outbox:
-                self.outbox.publish(
-                    "world.character.created.v1",
-                    {
-                        "id": ch.id,
-                        "world_id": ch.world_id,
-                        "workspace_id": workspace_id,
-                        "actor_id": actor_id,
-                    },
-                )
-        except Exception:
-            pass
-        return ch
+        character = self.repo.create_character(world_id, data, actor_id)
+        if character:
+            self._publish(
+                "world.character.created.v1",
+                {"id": character.id, "world_id": character.world_id, "actor_id": actor_id},
+            )
+        return character
 
     def update_character(
-        self, char_id: str, workspace_id: str, data: dict[str, Any], actor_id: str
+        self, char_id: str, data: dict[str, Any], actor_id: str
     ) -> Character | None:
-        ch = self.repo.get_character(char_id, workspace_id)
-        if not ch:
+        character = self.repo.get_character(char_id)
+        if not character:
             return None
-        out = self.repo.update_character(ch, data, workspace_id, actor_id)
-        try:
-            if out and self.outbox:
-                self.outbox.publish(
-                    "world.character.updated.v1",
-                    {
-                        "id": out.id,
-                        "world_id": out.world_id,
-                        "workspace_id": workspace_id,
-                        "actor_id": actor_id,
-                    },
-                )
-        except Exception:
-            pass
-        return out
+        updated = self.repo.update_character(character, data, actor_id)
+        if updated:
+            self._publish(
+                "world.character.updated.v1",
+                {"id": updated.id, "world_id": updated.world_id, "actor_id": actor_id},
+            )
+        return updated
 
-    def delete_character(self, char_id: str, workspace_id: str) -> bool:
-        ch = self.repo.get_character(char_id, workspace_id)
-        if not ch:
+    def delete_character(self, char_id: str) -> bool:
+        character = self.repo.get_character(char_id)
+        if not character:
             return False
-        self.repo.delete_character(ch, workspace_id)
-        try:
-            if self.outbox:
-                self.outbox.publish(
-                    "world.character.deleted.v1",
-                    {
-                        "id": ch.id,
-                        "world_id": ch.world_id,
-                        "workspace_id": workspace_id,
-                    },
-                )
-        except Exception:
-            pass
+        self.repo.delete_character(character)
+        self._publish(
+            "world.character.deleted.v1",
+            {"id": character.id, "world_id": character.world_id},
+        )
         return True
 
-    def get_character(self, char_id: str, workspace_id: str) -> Character | None:
-        return self.repo.get_character(char_id, workspace_id)
+    def get_character(self, char_id: str) -> Character | None:
+        return self.repo.get_character(char_id)
+
+    def _publish(self, topic: str, payload: dict[str, Any]) -> None:
+        if not self.outbox:
+            return
+        try:
+            self.outbox.publish(topic, payload, key=str(payload.get("id")))
+        except Exception:
+            pass

@@ -9,7 +9,7 @@
   - In-memory: `adapters/repo_memory.py`
   - SQL (Postgres): `adapters/repo_sql.py` — использует SQLAlchemy Core (async)
 - API: `api/http.py`
-  - `GET /v1/audit?limit=100`
+  - `GET /v1/audit?page=1&page_size=20`
   - `POST /v1/audit` (для внутренних вызовов/демо)
 - Миграции: `schema/sql/001_create_audit_logs.sql`
 

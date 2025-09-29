@@ -1,4 +1,4 @@
-# ADR 0001: Transition Engine Core Model
+﻿# ADR 0001: Transition Engine Core Model
 
 - Status: Accepted
 - Date: 2025-09-21
@@ -17,7 +17,7 @@ We introduce a single transition engine contract centred on a TransitionContext 
 
 TransitionContext captures the minimum state required to choose the next node and to replay the decision:
 
-- session_id, tenant_id, optional user_id (pseudonymous)
+- session_id, optional user_id (pseudonymous)
 - origin_node_id and route_window (last 6 nodes)
 - limit_state (normal, near_limit, exceeded_lite) and premium_level
 - requested_ui_slots
@@ -25,7 +25,7 @@ TransitionContext captures the minimum state required to choose the next node an
 - cache_seed providing deterministic selection
 - timestamps for TTL management
 
-Contexts are cached for five minutes on the key `(tenant_id, user_or_session, origin_node_id, limit_state, mode)` so UI slots remain stable while quotas and policies are respected. Every decision persists the context reference plus the ranked candidates (TransitionDecision) for observability and replay.
+Contexts are cached for five minutes on the key `(user_or_session, origin_node_id, limit_state, mode)` so UI slots remain stable while quotas and policies are respected. Every decision persists the context reference plus the ranked candidates (TransitionDecision) for observability and replay.
 
 TransitionDecision stores `ui_slots_requested`, `ui_slots_granted`, `curated_blocked_reason`, `empty_pool_reason`, factor payloads, and the selected node id. Analytics clients consume these fields directly; they are not optional in the schema.
 
@@ -69,7 +69,7 @@ When the provider pool drains after eligibility and diversity checks, the engine
 
 ### Caching & Determinism
 
-- cache_seed = hash(tenant_id, user_id|session_id, origin_node_id, limit_state, mode)
+- cache_seed = hash(user_id|session_id, origin_node_id, limit_state, mode)
 - Cache key matches the same tuple; TTL is 5 minutes or until invalidated by new EchoEvent or NavigationPolicy change.
 - Selector softmax uses the cache_seed to drive deterministic sampling where randomness is required.
 
@@ -96,7 +96,7 @@ Trade-offs and costs:
 
 ## Implementation Notes
 
-1. Create storage models and caching keyed on (tenant, user_or_session, origin_node, limit_state, mode); invalidate on policy changes or new EchoEvent.
+1. Create storage models and caching keyed on (user_or_session, origin_node, limit_state, mode); invalidate on policy changes or new EchoEvent.
 2. Refactor existing compass code to emit stage metrics and structured factors in key=value form (`reason` keys frozen below).
 3. Store mode configuration as data (YAML or feature-flagged settings), log `mode_config_version`, and allow runtime overrides behind ops controls.
 4. Update /compass/next to expose ui_slots_requested, ui_slots, mode_applied, served_from_cache, curated_blocked_reason, and emergency_used flags.
@@ -200,11 +200,13 @@ If `empty_pool=true`, the response must also contain `fallback_suggestions` popu
 - Guest policy: identify as `anon_<hash(session_id)>`, quota 40 CompassQuery/day, near_limit at <=20% remaining, emergency unavailable, same slot rules as free tier.
 - Diversity thresholds per mode: normal T=3, discover T=2 with mandatory orthogonal hop every 4 transitions, editorial T=4, near_limit T=3 (random off), lite T=4 (penalties only).
 - Quota hysteresis reaffirmed: enter near_limit <=20%, exit >=30% (also encoded in Operational Controls).
-- Determinism: cache_seed and selection use hash(tenant_id, user_id|session_id, origin_node_id, limit_state, mode) feeding the softmax sampler.
+- Determinism: cache_seed and selection use hash(user_id|session_id, origin_node_id, limit_state, mode) feeding the softmax sampler.
 
 ## Open Questions
 
 - Canonical hash function for cache_seed (fnv1a, murmur, xxhash) and rollout plan across services.
 - Operational ownership for emergency rate limiter and associated alerting thresholds.
 - Benchmark targets for ANN latency after provider refactor and diversity guard tuning.
+
+
 

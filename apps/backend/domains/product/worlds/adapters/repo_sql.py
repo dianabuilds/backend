@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import json
 from typing import Any
 
 from sqlalchemy import text
@@ -25,117 +27,95 @@ class SQLWorldsRepo(Repo):
             return self._engine, False
         if self._dsn is None:
             raise RuntimeError("SQLWorldsRepo requires an engine or DSN configuration")
-        return get_async_engine("worlds", url=self._dsn), False
+        return get_async_engine("worlds", url=self._dsn), True
 
     # --- Worlds ---
-    def list_worlds(self, workspace_id: str) -> list[WorldTemplate]:
-        import asyncio
-
+    def list_worlds(self) -> list[WorldTemplate]:
         async def _run() -> list[WorldTemplate]:
             sql = text(
                 """
-                SELECT id::text AS id, workspace_id::text AS workspace_id,
+                SELECT id::text AS id,
                        title, locale, description, meta,
                        created_at, updated_at,
                        created_by_user_id::text AS created_by_user_id,
                        updated_by_user_id::text AS updated_by_user_id
-                FROM worlds
-                WHERE workspace_id = cast(:ws as uuid)
-                ORDER BY created_at DESC
+                  FROM worlds
+                 ORDER BY created_at DESC
                 """
             )
-            eng = self._engine or get_async_engine("worlds", url=self._dsn)
+            engine, dispose = self._engine_for_call()
             try:
-                async with eng.begin() as conn:
-                    rows = (await conn.execute(sql, {"ws": workspace_id})).mappings().all()
-                    return [
-                        WorldTemplate(
-                            id=str(r["id"]),
-                            workspace_id=str(r["workspace_id"]),
-                            title=str(r["title"]),
-                            locale=r["locale"],
-                            description=r["description"],
-                            meta=r["meta"] or {},
-                            created_at=r["created_at"],
-                            updated_at=r["updated_at"],
-                            created_by_user_id=r.get("created_by_user_id"),
-                            updated_by_user_id=r.get("updated_by_user_id"),
-                        )
-                        for r in rows
-                    ]
+                async with engine.begin() as conn:
+                    rows = (await conn.execute(sql)).mappings().all()
+                return [
+                    WorldTemplate(
+                        id=str(row["id"]),
+                        title=str(row["title"]),
+                        locale=row["locale"],
+                        description=row["description"],
+                        meta=row["meta"] or {},
+                        created_at=row["created_at"],
+                        updated_at=row["updated_at"],
+                        created_by_user_id=row.get("created_by_user_id"),
+                        updated_by_user_id=row.get("updated_by_user_id"),
+                    )
+                    for row in rows
+                ]
             finally:
-                if self._engine is None:
-                    await eng.dispose()
+                if dispose:
+                    await engine.dispose()
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return self._run_sync(_run())
 
-    def get_world(self, world_id: str, workspace_id: str) -> WorldTemplate | None:
-        import asyncio
-
+    def get_world(self, world_id: str) -> WorldTemplate | None:
         async def _run() -> WorldTemplate | None:
             sql = text(
                 """
-                SELECT id::text AS id, workspace_id::text AS workspace_id,
+                SELECT id::text AS id,
                        title, locale, description, meta,
                        created_at, updated_at,
                        created_by_user_id::text AS created_by_user_id,
                        updated_by_user_id::text AS updated_by_user_id
-                FROM worlds
-                WHERE id = cast(:id as uuid) AND workspace_id = cast(:ws as uuid)
+                  FROM worlds
+                 WHERE id = cast(:id as uuid)
                 """
             )
-            eng = self._engine or get_async_engine("worlds", url=self._dsn)
+            engine, dispose = self._engine_for_call()
             try:
-                async with eng.begin() as conn:
-                    r = (
-                        (await conn.execute(sql, {"id": world_id, "ws": workspace_id}))
-                        .mappings()
-                        .first()
-                    )
-                    if not r:
-                        return None
-                    return WorldTemplate(
-                        id=str(r["id"]),
-                        workspace_id=str(r["workspace_id"]),
-                        title=str(r["title"]),
-                        locale=r["locale"],
-                        description=r["description"],
-                        meta=r["meta"] or {},
-                        created_at=r["created_at"],
-                        updated_at=r["updated_at"],
-                        created_by_user_id=r.get("created_by_user_id"),
-                        updated_by_user_id=r.get("updated_by_user_id"),
-                    )
+                async with engine.begin() as conn:
+                    row = (await conn.execute(sql, {"id": world_id})).mappings().first()
+                if not row:
+                    return None
+                return WorldTemplate(
+                    id=str(row["id"]),
+                    title=str(row["title"]),
+                    locale=row["locale"],
+                    description=row["description"],
+                    meta=row["meta"] or {},
+                    created_at=row["created_at"],
+                    updated_at=row["updated_at"],
+                    created_by_user_id=row.get("created_by_user_id"),
+                    updated_by_user_id=row.get("updated_by_user_id"),
+                )
             finally:
-                if self._engine is None:
-                    await eng.dispose()
+                if dispose:
+                    await engine.dispose()
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return self._run_sync(_run())
 
-    def create_world(self, workspace_id: str, data: dict, actor_id: str) -> WorldTemplate:
-        import asyncio
-
+    def create_world(self, data: dict, actor_id: str) -> WorldTemplate:
         async def _run() -> WorldTemplate:
-            import json
-
             sql = text(
                 """
                 INSERT INTO worlds(
-                    workspace_id, title, locale, description, meta,
+                    title, locale, description, meta,
                     created_by_user_id, updated_by_user_id
                 )
-                VALUES (cast(:ws as uuid), :title, :locale, :description, cast(:meta as jsonb), cast(:actor as uuid), cast(:actor as uuid))
-                RETURNING id::text AS id, workspace_id::text AS workspace_id,
+                VALUES (
+                    :title, :locale, :description, cast(:meta as jsonb),
+                    cast(:actor as uuid), cast(:actor as uuid)
+                )
+                RETURNING id::text AS id,
                           title, locale, description, meta,
                           created_at, updated_at,
                           created_by_user_id::text AS created_by_user_id,
@@ -143,56 +123,41 @@ class SQLWorldsRepo(Repo):
                 """
             )
             params: dict[str, Any] = {
-                "ws": workspace_id,
                 "title": str(data.get("title") or "").strip(),
                 "locale": data.get("locale"),
-                "description": data.get("description"),
+                "description": str(data.get("description") or "").strip(),
                 "meta": json.dumps(data.get("meta") or {}),
                 "actor": actor_id,
             }
-            eng = self._engine or get_async_engine("worlds", url=self._dsn)
+            engine, dispose = self._engine_for_call()
             try:
-                async with eng.begin() as conn:
-                    r = (await conn.execute(sql, params)).mappings().first()
-                    assert r is not None
-                    return WorldTemplate(
-                        id=str(r["id"]),
-                        workspace_id=str(r["workspace_id"]),
-                        title=str(r["title"]),
-                        locale=r["locale"],
-                        description=r["description"],
-                        meta=r["meta"] or {},
-                        created_at=r["created_at"],
-                        updated_at=r["updated_at"],
-                        created_by_user_id=r.get("created_by_user_id"),
-                        updated_by_user_id=r.get("updated_by_user_id"),
-                    )
+                async with engine.begin() as conn:
+                    row = (await conn.execute(sql, params)).mappings().first()
+                assert row is not None
+                return WorldTemplate(
+                    id=str(row["id"]),
+                    title=str(row["title"]),
+                    locale=row["locale"],
+                    description=row["description"],
+                    meta=row["meta"] or {},
+                    created_at=row["created_at"],
+                    updated_at=row["updated_at"],
+                    created_by_user_id=row.get("created_by_user_id"),
+                    updated_by_user_id=row.get("updated_by_user_id"),
+                )
             finally:
-                if self._engine is None:
-                    await eng.dispose()
+                if dispose:
+                    await engine.dispose()
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return self._run_sync(_run())
 
-    def update_world(
-        self, world: WorldTemplate, data: dict, workspace_id: str, actor_id: str
-    ) -> WorldTemplate:
-        import asyncio
-
+    def update_world(self, world: WorldTemplate, data: dict, actor_id: str) -> WorldTemplate:
         async def _run() -> WorldTemplate:
-            sets: list[str] = [
+            sets = [
                 "updated_at = now()",
                 "updated_by_user_id = cast(:actor as uuid)",
             ]
-            params: dict[str, Any] = {
-                "id": world.id,
-                "ws": workspace_id,
-                "actor": actor_id,
-            }
+            params: dict[str, Any] = {"id": world.id, "actor": actor_id}
             if "title" in data and data["title"] is not None:
                 sets.append("title = :title")
                 params["title"] = str(data["title"]).strip()
@@ -201,192 +166,148 @@ class SQLWorldsRepo(Repo):
                 params["locale"] = data.get("locale")
             if "description" in data:
                 sets.append("description = :description")
-                params["description"] = data.get("description")
+                params["description"] = str(data.get("description") or "").strip()
             if "meta" in data and data["meta"] is not None:
-                import json
-
                 sets.append("meta = cast(:meta as jsonb)")
-                params["meta"] = json.dumps(dict(data["meta"]))  # shallow copy
+                params["meta"] = json.dumps(dict(data["meta"]) or {})
             sql = text(
-                "UPDATE worlds SET "
+                """
+                UPDATE worlds
+                   SET """
                 + ", ".join(sets)
-                + " WHERE id = cast(:id as uuid) AND workspace_id = cast(:ws as uuid)"
-                + " RETURNING id::text AS id, workspace_id::text AS workspace_id, title, locale, description, meta, created_at, updated_at, created_by_user_id::text AS created_by_user_id, updated_by_user_id::text AS updated_by_user_id"
+                + " WHERE id = cast(:id as uuid)"
+                + " RETURNING id::text AS id, title, locale, description, meta, created_at, updated_at, created_by_user_id::text AS created_by_user_id, updated_by_user_id::text AS updated_by_user_id"
             )
             engine, dispose = self._engine_for_call()
             try:
                 async with engine.begin() as conn:
-                    r = (await conn.execute(sql, params)).mappings().first()
-                    if not r:
-                        # World not matched (workspace mismatch?) — return original world
-                        return world
-                    return WorldTemplate(
-                        id=str(r["id"]),
-                        workspace_id=str(r["workspace_id"]),
-                        title=str(r["title"]),
-                        locale=r["locale"],
-                        description=r["description"],
-                        meta=r["meta"] or {},
-                        created_at=r["created_at"],
-                        updated_at=r["updated_at"],
-                        created_by_user_id=r.get("created_by_user_id"),
-                        updated_by_user_id=r.get("updated_by_user_id"),
-                    )
+                    row = (await conn.execute(sql, params)).mappings().first()
+                if not row:
+                    return world
+                return WorldTemplate(
+                    id=str(row["id"]),
+                    title=str(row["title"]),
+                    locale=row["locale"],
+                    description=row["description"],
+                    meta=row["meta"] or {},
+                    created_at=row["created_at"],
+                    updated_at=row["updated_at"],
+                    created_by_user_id=row.get("created_by_user_id"),
+                    updated_by_user_id=row.get("updated_by_user_id"),
+                )
             finally:
                 if dispose:
                     await engine.dispose()
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return self._run_sync(_run())
 
-    def delete_world(self, world: WorldTemplate, workspace_id: str) -> None:
-        import asyncio
-
+    def delete_world(self, world: WorldTemplate) -> None:
         async def _run() -> None:
-            sql = text(
-                "DELETE FROM worlds WHERE id = cast(:id as uuid) AND workspace_id = cast(:ws as uuid)"
-            )
+            sql = text("DELETE FROM worlds WHERE id = cast(:id as uuid)")
             engine, dispose = self._engine_for_call()
             try:
                 async with engine.begin() as conn:
-                    await conn.execute(sql, {"id": world.id, "ws": workspace_id})
+                    await conn.execute(sql, {"id": world.id})
             finally:
                 if dispose:
                     await engine.dispose()
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            asyncio.run(_run())
-        else:
-            loop.run_until_complete(_run())  # type: ignore[misc]
+        self._run_sync(_run())
 
     # --- Characters ---
-    def list_characters(self, world_id: str, workspace_id: str) -> list[Character]:
-        import asyncio
-
+    def list_characters(self, world_id: str) -> list[Character]:
         async def _run() -> list[Character]:
-            # Ensure world belongs to workspace
-            chk = text(
-                "SELECT 1 FROM worlds WHERE id = cast(:id as uuid) AND workspace_id = cast(:ws as uuid)"
-            )
-            q = text(
+            sql = text(
                 """
-                SELECT id::text AS id, world_id::text AS world_id,
+                SELECT id::text AS id,
+                       world_id::text AS world_id,
                        name, role, description, traits,
                        created_at, updated_at,
                        created_by_user_id::text AS created_by_user_id,
                        updated_by_user_id::text AS updated_by_user_id
-                FROM world_characters
-                WHERE world_id = cast(:id as uuid)
-                ORDER BY created_at DESC
+                  FROM world_characters
+                 WHERE world_id = cast(:world_id as uuid)
+                 ORDER BY created_at DESC
                 """
             )
             engine, dispose = self._engine_for_call()
             try:
                 async with engine.begin() as conn:
-                    ok = (await conn.execute(chk, {"id": world_id, "ws": workspace_id})).first()
-                    if not ok:
-                        return []
-                    rows = (await conn.execute(q, {"id": world_id})).mappings().all()
-                    return [
-                        Character(
-                            id=str(r["id"]),
-                            world_id=str(r["world_id"]),
-                            name=str(r["name"]),
-                            role=r["role"],
-                            description=r["description"],
-                            traits=r["traits"] or {},
-                            created_at=r["created_at"],
-                            updated_at=r["updated_at"],
-                            created_by_user_id=r.get("created_by_user_id"),
-                            updated_by_user_id=r.get("updated_by_user_id"),
-                        )
-                        for r in rows
-                    ]
+                    rows = (await conn.execute(sql, {"world_id": world_id})).mappings().all()
+                return [
+                    Character(
+                        id=str(row["id"]),
+                        world_id=str(row["world_id"]),
+                        name=str(row["name"]),
+                        role=row["role"],
+                        description=row["description"],
+                        traits=row["traits"] or {},
+                        created_at=row["created_at"],
+                        updated_at=row["updated_at"],
+                        created_by_user_id=row.get("created_by_user_id"),
+                        updated_by_user_id=row.get("updated_by_user_id"),
+                    )
+                    for row in rows
+                ]
             finally:
                 if dispose:
                     await engine.dispose()
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return self._run_sync(_run())
 
-    def get_character(self, char_id: str, workspace_id: str) -> Character | None:
-        import asyncio
-
+    def get_character(self, char_id: str) -> Character | None:
         async def _run() -> Character | None:
             sql = text(
                 """
-                SELECT c.id::text AS id, c.world_id::text AS world_id,
-                       c.name, c.role, c.description, c.traits,
-                       c.created_at, c.updated_at,
-                       c.created_by_user_id::text AS created_by_user_id,
-                       c.updated_by_user_id::text AS updated_by_user_id
-                FROM world_characters c
-                JOIN worlds w ON w.id = c.world_id
-                WHERE c.id = cast(:cid as uuid) AND w.workspace_id = cast(:ws as uuid)
+                SELECT id::text AS id,
+                       world_id::text AS world_id,
+                       name, role, description, traits,
+                       created_at, updated_at,
+                       created_by_user_id::text AS created_by_user_id,
+                       updated_by_user_id::text AS updated_by_user_id
+                  FROM world_characters
+                 WHERE id = cast(:id as uuid)
                 """
             )
             engine, dispose = self._engine_for_call()
             try:
                 async with engine.begin() as conn:
-                    r = (
-                        (await conn.execute(sql, {"cid": char_id, "ws": workspace_id}))
-                        .mappings()
-                        .first()
-                    )
-                    if not r:
-                        return None
-                    return Character(
-                        id=str(r["id"]),
-                        world_id=str(r["world_id"]),
-                        name=str(r["name"]),
-                        role=r["role"],
-                        description=r["description"],
-                        traits=r["traits"] or {},
-                        created_at=r["created_at"],
-                        updated_at=r["updated_at"],
-                        created_by_user_id=r.get("created_by_user_id"),
-                        updated_by_user_id=r.get("updated_by_user_id"),
-                    )
+                    row = (await conn.execute(sql, {"id": char_id})).mappings().first()
+                if not row:
+                    return None
+                return Character(
+                    id=str(row["id"]),
+                    world_id=str(row["world_id"]),
+                    name=str(row["name"]),
+                    role=row["role"],
+                    description=row["description"],
+                    traits=row["traits"] or {},
+                    created_at=row["created_at"],
+                    updated_at=row["updated_at"],
+                    created_by_user_id=row.get("created_by_user_id"),
+                    updated_by_user_id=row.get("updated_by_user_id"),
+                )
             finally:
                 if dispose:
                     await engine.dispose()
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return self._run_sync(_run())
 
-    def create_character(
-        self, world_id: str, workspace_id: str, data: dict, actor_id: str
-    ) -> Character:
-        import asyncio
-
+    def create_character(self, world_id: str, data: dict, actor_id: str) -> Character:
         async def _run() -> Character:
-            import json
-
-            # Ensure world belongs to workspace
-            chk = text(
-                "SELECT 1 FROM worlds WHERE id = cast(:id as uuid) AND workspace_id = cast(:ws as uuid)"
-            )
-            ins = text(
+            ensure_sql = text("SELECT 1 FROM worlds WHERE id = cast(:id as uuid)")
+            insert_sql = text(
                 """
                 INSERT INTO world_characters(
                     world_id, name, role, description, traits,
                     created_by_user_id, updated_by_user_id
-                ) VALUES (cast(:wid as uuid), :name, :role, :description, cast(:traits as jsonb), cast(:actor as uuid), cast(:actor as uuid))
-                RETURNING id::text AS id, world_id::text AS world_id,
+                )
+                VALUES (
+                    cast(:world_id as uuid), :name, :role, :description, cast(:traits as jsonb),
+                    cast(:actor as uuid), cast(:actor as uuid)
+                )
+                RETURNING id::text AS id,
+                          world_id::text AS world_id,
                           name, role, description, traits,
                           created_at, updated_at,
                           created_by_user_id::text AS created_by_user_id,
@@ -394,61 +315,46 @@ class SQLWorldsRepo(Repo):
                 """
             )
             params: dict[str, Any] = {
-                "id": world_id,
-                "ws": workspace_id,
-                "wid": world_id,
+                "world_id": world_id,
                 "name": str(data.get("name") or "").strip(),
                 "role": data.get("role"),
-                "description": data.get("description"),
+                "description": str(data.get("description") or "").strip(),
                 "traits": json.dumps(data.get("traits") or {}),
                 "actor": actor_id,
             }
             engine, dispose = self._engine_for_call()
             try:
                 async with engine.begin() as conn:
-                    ok = (await conn.execute(chk, {"id": world_id, "ws": workspace_id})).first()
-                    if not ok:
-                        raise ValueError("world not found")
-                    r = (await conn.execute(ins, params)).mappings().first()
-                    assert r is not None
-                    return Character(
-                        id=str(r["id"]),
-                        world_id=str(r["world_id"]),
-                        name=str(r["name"]),
-                        role=r["role"],
-                        description=r["description"],
-                        traits=r["traits"] or {},
-                        created_at=r["created_at"],
-                        updated_at=r["updated_at"],
-                        created_by_user_id=r.get("created_by_user_id"),
-                        updated_by_user_id=r.get("updated_by_user_id"),
-                    )
+                    exists = (await conn.execute(ensure_sql, {"id": world_id})).first()
+                    if not exists:
+                        raise ValueError("world_not_found")
+                    row = (await conn.execute(insert_sql, params)).mappings().first()
+                assert row is not None
+                return Character(
+                    id=str(row["id"]),
+                    world_id=str(row["world_id"]),
+                    name=str(row["name"]),
+                    role=row["role"],
+                    description=row["description"],
+                    traits=row["traits"] or {},
+                    created_at=row["created_at"],
+                    updated_at=row["updated_at"],
+                    created_by_user_id=row.get("created_by_user_id"),
+                    updated_by_user_id=row.get("updated_by_user_id"),
+                )
             finally:
                 if dispose:
                     await engine.dispose()
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return self._run_sync(_run())
 
-    def update_character(
-        self, ch: Character, data: dict, workspace_id: str, actor_id: str
-    ) -> Character:
-        import asyncio
-
+    def update_character(self, ch: Character, data: dict, actor_id: str) -> Character:
         async def _run() -> Character:
-            sets: list[str] = [
+            sets = [
                 "updated_at = now()",
                 "updated_by_user_id = cast(:actor as uuid)",
             ]
-            params: dict[str, Any] = {
-                "id": ch.id,
-                "ws": workspace_id,
-                "actor": actor_id,
-            }
+            params: dict[str, Any] = {"id": ch.id, "actor": actor_id}
             if "name" in data and data["name"] is not None:
                 sets.append("name = :name")
                 params["name"] = str(data["name"]).strip()
@@ -457,77 +363,63 @@ class SQLWorldsRepo(Repo):
                 params["role"] = data.get("role")
             if "description" in data:
                 sets.append("description = :description")
-                params["description"] = data.get("description")
+                params["description"] = str(data.get("description") or "").strip()
             if "traits" in data and data["traits"] is not None:
-                import json
-
                 sets.append("traits = cast(:traits as jsonb)")
-                params["traits"] = json.dumps(dict(data["traits"]))  # shallow copy
+                params["traits"] = json.dumps(dict(data["traits"]) or {})
             sql = text(
                 """
-                UPDATE world_characters AS c
-                SET """
+                UPDATE world_characters
+                   SET """
                 + ", ".join(sets)
-                + " FROM worlds w"
-                + " WHERE c.id = cast(:id as uuid) AND w.id = c.world_id AND w.workspace_id = cast(:ws as uuid)"
-                + " RETURNING c.id::text AS id, c.world_id::text AS world_id, c.name, c.role, c.description, c.traits, c.created_at, c.updated_at, c.created_by_user_id::text AS created_by_user_id, c.updated_by_user_id::text AS updated_by_user_id"
+                + " WHERE id = cast(:id as uuid)"
+                + " RETURNING id::text AS id, world_id::text AS world_id, name, role, description, traits, created_at, updated_at, created_by_user_id::text AS created_by_user_id, updated_by_user_id::text AS updated_by_user_id"
             )
             engine, dispose = self._engine_for_call()
             try:
                 async with engine.begin() as conn:
-                    r = (await conn.execute(sql, params)).mappings().first()
-                    if not r:
-                        return ch
-                    return Character(
-                        id=str(r["id"]),
-                        world_id=str(r["world_id"]),
-                        name=str(r["name"]),
-                        role=r["role"],
-                        description=r["description"],
-                        traits=r["traits"] or {},
-                        created_at=r["created_at"],
-                        updated_at=r["updated_at"],
-                        created_by_user_id=r.get("created_by_user_id"),
-                        updated_by_user_id=r.get("updated_by_user_id"),
-                    )
+                    row = (await conn.execute(sql, params)).mappings().first()
+                if not row:
+                    return ch
+                return Character(
+                    id=str(row["id"]),
+                    world_id=str(row["world_id"]),
+                    name=str(row["name"]),
+                    role=row["role"],
+                    description=row["description"],
+                    traits=row["traits"] or {},
+                    created_at=row["created_at"],
+                    updated_at=row["updated_at"],
+                    created_by_user_id=row.get("created_by_user_id"),
+                    updated_by_user_id=row.get("updated_by_user_id"),
+                )
             finally:
                 if dispose:
                     await engine.dispose()
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return self._run_sync(_run())
 
-    def delete_character(self, ch: Character, workspace_id: str) -> None:
-        import asyncio
-
+    def delete_character(self, ch: Character) -> None:
         async def _run() -> None:
-            sql = text(
-                """
-                DELETE FROM world_characters AS c
-                USING worlds AS w
-                WHERE c.id = cast(:id as uuid)
-                  AND w.id = c.world_id
-                  AND w.workspace_id = cast(:ws as uuid)
-                """
-            )
+            sql = text("DELETE FROM world_characters WHERE id = cast(:id as uuid)")
             engine, dispose = self._engine_for_call()
             try:
                 async with engine.begin() as conn:
-                    await conn.execute(sql, {"id": ch.id, "ws": workspace_id})
+                    await conn.execute(sql, {"id": ch.id})
             finally:
                 if dispose:
                     await engine.dispose()
 
+        self._run_sync(_run())
+
+    # Helpers
+    def _run_sync(self, coro):
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
-            asyncio.run(_run())
+            return asyncio.run(coro)
         else:
-            loop.run_until_complete(_run())  # type: ignore[misc]
+            return loop.run_until_complete(coro)  # type: ignore[misc]
 
 
 __all__ = ["SQLWorldsRepo"]

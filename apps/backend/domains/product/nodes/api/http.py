@@ -23,7 +23,7 @@ def make_router() -> APIRouter:
             # Strip query params to avoid client unsupported params
             if "?" in dsn:
                 dsn = dsn.split("?", 1)[0]
-            return get_async_engine("nodes-api", url=dsn, cache=False, future=True)
+            return get_async_engine("nodes-api", url=dsn, future=True)
         except Exception:
             return None
 

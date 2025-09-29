@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from domains.platform.audit.adapters.repo_memory import (
-    InMemoryAuditRepo,
-)
 from domains.platform.audit.adapters.repo_sql import SQLAuditRepo
 from domains.platform.audit.application.service import AuditService
 from domains.platform.audit.ports.repo import AuditLogRepository
@@ -30,22 +27,19 @@ def _db_reachable(url: str) -> bool:
         return False
 
 
-def build_container() -> AuditContainer:
-    repo: AuditLogRepository = InMemoryAuditRepo()
-    # Try SQL if DB configured and reachable
-    try:
-        from packages.core.config import load_settings, to_async_dsn  # type: ignore
+from packages.core.config import load_settings, to_async_dsn
 
-        s = load_settings()
-        if s.database_url and _db_reachable(str(s.database_url)):
-            dsn = to_async_dsn(s.database_url)
-            # Some providers append libpq/psycopg-only params; trim for asyncpg
-            if isinstance(dsn, str) and "?" in dsn:
-                dsn = dsn.split("?", 1)[0]
-            if dsn:
-                repo = SQLAuditRepo(dsn)  # type: ignore[assignment]
-    except Exception:
-        pass
+
+def build_container() -> AuditContainer:
+    settings = load_settings()
+    if not settings.database_url:
+        raise RuntimeError("APP_DATABASE_URL is required for audit repository")
+    if not _db_reachable(str(settings.database_url)):
+        raise RuntimeError("database is unreachable for audit repository")
+    dsn = to_async_dsn(settings.database_url)
+    if isinstance(dsn, str) and "?" in dsn:
+        dsn = dsn.split("?", 1)[0]
+    repo: AuditLogRepository = SQLAuditRepo(dsn)
     svc = AuditService(repo)
     return AuditContainer(repo=repo, service=svc)
 

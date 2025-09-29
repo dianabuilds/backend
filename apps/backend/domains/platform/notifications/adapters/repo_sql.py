@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from typing import Any
 from uuid import UUID
 
@@ -75,7 +76,7 @@ class SQLNotificationPreferenceRepo(NotificationPreferenceRepo):
             )
         return records
 
-    async def replace_for_user(self, user_id: str, records: list[PreferenceRecord]) -> None:
+    async def replace_for_user(self, user_id: str, records: Sequence[PreferenceRecord]) -> None:
         normalized = self._normalize_user_id(user_id)
         if normalized is None:
             return

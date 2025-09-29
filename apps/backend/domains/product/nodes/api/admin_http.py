@@ -20,7 +20,7 @@ async def _ensure_engine(container) -> AsyncEngine | None:
             dsn = dsn.split("?", 1)[0]
         if not dsn:
             return None
-        return get_async_engine("nodes-admin", url=dsn, cache=False, future=True)
+        return get_async_engine("nodes-admin", url=dsn, future=True)
     except Exception:
         return None
 
@@ -91,9 +91,16 @@ def make_router() -> APIRouter:
             where.append("n.updated_at <= cast(:updated_to as timestamptz)")
             params["updated_to"] = str(updated_to)
 
-        def base_sql(table: str, include_slug: bool, include_status: bool) -> str:
+        def base_sql(
+            table: str, include_slug: bool, include_status: bool, include_embedding: bool
+        ) -> str:
             slug_expr = "n.slug AS slug," if include_slug else "NULL::text AS slug,"
             status_expr = "n.status AS status," if include_status else "NULL::text AS status,"
+            embedding_expr = (
+                "(n.embedding IS NOT NULL) AS embedding_ready,"
+                if include_embedding
+                else "NULL::bool AS embedding_ready,"
+            )
             where_local = list(where)
             if include_status and st in (
                 "published",
@@ -128,6 +135,7 @@ def make_router() -> APIRouter:
                      n.updated_at,
                      {slug_expr}
                      n.author_id::text AS author_id,
+                     {embedding_expr}
                      COALESCE(u.username, u.email, n.author_id::text) AS author_name
               FROM {table} AS n
               LEFT JOIN users AS u ON u.id = n.author_id
@@ -174,7 +182,6 @@ def make_router() -> APIRouter:
                             "nodes",
                             has_slug_column,
                             has_status_column,
-                            has_embedding_column,
                             has_embedding_column,
                         )
                     ),
