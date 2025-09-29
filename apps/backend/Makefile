@@ -54,7 +54,7 @@ run-relay:
 	python -c "from apps.backend.domains.platform.events.logic.relay import RedisRelay; import os; topics=os.getenv('EVENT_TOPICS','profile.updated.v1').split(','); from apps.backend.packages.core.config import load_settings; s=load_settings(); RedisRelay(s.redis_url, topics).loop(routes={t: (lambda t,p: print('event',t,p)) for t in topics})"
 
 run-events:
-	python -m apps.backend.infra.events_worker
+	python -m apps.backend.workers.events_worker
 
 run-scheduler:
-	python -m apps.backend.infra.schedule_worker
+	python -m apps.backend.workers.schedule_worker

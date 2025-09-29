@@ -72,3 +72,7 @@ pytest -c apps/backend/pytest.ini
 ---
 
 If you need to add repository-level tooling, prefer wiring it through the respective `apps/<module>` directory to avoid duplicating configuration in the repo root.
+
+## Documentation
+
+Backend docs live in `apps/backend/docs/` (ADR, knowledge base, etc.).

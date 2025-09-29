@@ -1,6 +1,11 @@
 # infra/
 
-- Локальная инфраструктура (docker-compose, otel-collector) и CI-скрипты.
-- `ci/` — проверка схем, генерация клиентов, миграции всех доменов, правила импортов.
-- Не содержит бизнес-логики. Изменения здесь влияют на пайплайн и среду.
+Infrastructure assets for the backend:
 
+- ci/ - CI helpers (schema checks, domain scaffolding, import rules).
+- dev/ - developer utilities and local environment helpers.
+- config/ - shared service configuration (logging, etc.).
+- observability/ - OpenTelemetry bootstrap and Prometheus assets.
+- constraints/ - pip-compile constraint locks.
+
+Worker entrypoints live in apps/backend/workers/.

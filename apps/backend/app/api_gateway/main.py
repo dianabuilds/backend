@@ -100,7 +100,7 @@ app = FastAPI(lifespan=lifespan, swagger_ui_parameters={"persistAuthorization": 
 # Observability bootstrap (optional deps, non-fatal)
 try:
     # OpenTelemetry (Prometheus metric reader, OTLP traces)
-    from config.opentelemetry import setup_otel  # type: ignore
+    from apps.backend.infra.observability.opentelemetry import setup_otel  # type: ignore
 
     setup_otel(service_name="backend")
 except Exception:
