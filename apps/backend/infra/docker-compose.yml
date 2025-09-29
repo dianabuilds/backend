@@ -19,6 +19,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - APP_EVENT_TOPICS=${APP_EVENT_TOPICS:-profile.updated.v1}
-    command: ["python","-m","apps.backend.workers.events_worker"]
+    command: ["python","-m","apps.backend.workers","events"]
     depends_on:
       - redis

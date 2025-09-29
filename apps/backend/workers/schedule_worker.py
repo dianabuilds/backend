@@ -8,9 +8,10 @@ from datetime import UTC, datetime
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.api_gateway.wires import build_container
 from packages.core.config import to_async_dsn
 from packages.core.db import get_async_engine
+
+from . import get_worker_container
 
 
 async def _ensure_engine(dsn: str) -> AsyncEngine | None:
@@ -57,7 +58,6 @@ async def run_once(engine: AsyncEngine, publish_cb, unpublish_cb) -> None:
     async with engine.begin() as conn:
         posted = await _tick_publish(conn)
         unposted = await _tick_unpublish(conn)
-    # Emit events outside of transaction
     now_iso = datetime.now(UTC).isoformat()
     for r in posted:
         try:
@@ -89,26 +89,35 @@ async def run_once(engine: AsyncEngine, publish_cb, unpublish_cb) -> None:
             pass
 
 
-async def main_async() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    container = build_container()
-    eng = await _ensure_engine(container.settings.database_url)
-    if eng is None:
-        logging.getLogger("nodes.scheduler").warning("No database engine available; exiting")
+async def _main_async(interval: int | None) -> None:
+    logger = logging.getLogger("nodes.scheduler")
+    if not logger.handlers and not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
+        )
+
+    container = get_worker_container()
+    engine = await _ensure_engine(str(container.settings.database_url))
+    if engine is None:
+        logger.warning("No database engine available; exiting")
         return
-    interval = int(os.getenv("NODES_SCHEDULER_INTERVAL", "30"))
-    log = logging.getLogger("nodes.scheduler")
-    log.info("Starting scheduler worker; interval=%ss", interval)
+
+    tick_interval = interval or int(os.getenv("NODES_SCHEDULER_INTERVAL", "30"))
+    logger.info("Starting scheduler worker; interval=%ss", tick_interval)
     while True:
         try:
-            await run_once(eng, container.events.publish, container.events.publish)
-        except Exception as e:
-            log.error("Scheduler tick failed: %s", e)
-        await asyncio.sleep(interval)
+            await run_once(engine, container.events.publish, container.events.publish)
+        except Exception as exc:  # pragma: no cover - log for observability
+            logger.error("Scheduler tick failed: %s", exc)
+        await asyncio.sleep(tick_interval)
+
+
+def run(*, interval: int | None = None) -> None:
+    asyncio.run(_main_async(interval))
 
 
 def main() -> None:  # pragma: no cover - runtime script
-    asyncio.run(main_async())
+    run()
 
 
 if __name__ == "__main__":  # pragma: no cover

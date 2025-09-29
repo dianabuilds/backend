@@ -1,10 +1,19 @@
 # workers/
 
-Background workers for the backend.
+Background workers for the backend:
 
-- events_worker.py – dispatches domain events from Redis.
-- 
-otifications_worker.py – placeholder for notification queue processing.
-- schedule_worker.py – cron-style scheduler runner.
+- `events_worker.run()` – dispatches domain events from Redis Streams.
+- `schedule_worker.run()` – periodic scheduler for content publish/unpublish.
+- `notifications_worker.run()` – runs the notifications broadcast queue via `packages.worker`.
 
-TODO: evaluate migration to Celery or another queue backend; scripts live here to keep runtime targets in one place.
+## CLI
+
+Use the unified entrypoint:
+
+```
+python -m apps.backend.workers events
+python -m apps.backend.workers scheduler --interval 45
+python -m apps.backend.workers notifications -- --once
+```
+
+The helper caches the DI container, so repeated runs reuse the same bootstrap.
