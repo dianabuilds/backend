@@ -51,3 +51,18 @@ If this repo uses npm workspaces at the root, ensure root `package.json` include
 Then you can run from the repo root:
 
   npm run --workspace apps/web dev
+
+## Checks
+
+```
+npm run lint       # ESLint across src
+npm run typecheck  # TypeScript project validation
+npm run check      # lint + typecheck
+```
+
+To run them automatically with backend pre-commit hooks:
+
+```
+pre-commit run --all-files --config apps/backend/.pre-commit-config.yaml
+```
+

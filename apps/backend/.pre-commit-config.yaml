@@ -14,3 +14,17 @@ repos:
       - id: mypy
         additional_dependencies: []
 
+  - repo: local
+    hooks:
+      - id: web-lint
+        name: web lint
+        entry: npm
+        language: system
+        args: ["--prefix", "apps/web", "run", "lint"]
+        pass_filenames: false
+      - id: web-typecheck
+        name: web typecheck
+        entry: npm
+        language: system
+        args: ["--prefix", "apps/web", "run", "typecheck"]
+        pass_filenames: false

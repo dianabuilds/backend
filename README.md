@@ -1,44 +1,74 @@
-## Feature Flags Management (Backend)
+# Caves Monorepo
 
-- FastAPI service exposing management endpoints for compact, safe Off/All/Premium feature flags.
-- JSON persistence with audit history and revisions for rollback.
-- Minimal admin page at `/management` with inline edits.
+This repository hosts two major applications:
 
-## Run
+- `apps/backend` – FastAPI service with domain-driven modules, Alembic migrations, tasks, and tooling.
+- `apps/web` – React frontend (Vite) that consumes the backend APIs.
 
-- Install deps: `pip install -r requirements.txt`
-- Start: `uvicorn app.main:app --reload`
-- Open: `http://127.0.0.1:8000/management`
+## Backend
 
-Headers for RBAC:
-- `X-User-Role: admin` is required for mutations. `moderator` can only read.
-- `X-User-Id: 42` identifies the actor in audit.
+All backend sources and configuration live under `apps/backend`:
 
-Production safeguard:
-- Changing production to enabled requires `?confirm=true` (API) and is prompted in the demo UI.
+```
+apps/backend/
+  +-- app/                # FastAPI entrypoints and wiring
+  +-- domains/            # DDD modules (platform, product, ...)
+  +-- packages/           # Shared libraries (config, db, schemas)
+  +-- migrations/         # Alembic scripts (0100_squashed_base + legacy/)
+  +-- infra/              # Dev/CI tooling and scripts
+  +-- requirements.txt    # Runtime + dev dependencies
+  L-- pyproject.toml      # Tooling configuration (ruff, black, mypy, pytest)
+```
 
-## Key Endpoints
+### Quick start
 
-- `GET /management/flags?env=production&state=on&group=AI&query=quest`
-- `POST /management/flags` (create; default off/draft) body: `{ key, title, env, [preset] }`
-- `PATCH /management/flags/{key}?env=...` (update fields)
-- `POST /management/flags/{key}/rollback?env=...&to=0`
-- `GET /management/flags/{key}/audit`
-- `POST /management/flags/batch`
-- `GET /management/flags/export?env=...` and `POST /management/flags/import`
-- `POST /management/eval` to evaluate for a user
+```bash
+cd apps/backend
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+# optional: pip install -e .
 
-## Model (JSON)
+# Run migrations against a dev database
+echo APP_DATABASE_URL=... >> .env
+python -m alembic -c alembic.ini upgrade head
 
-Matches the spec with `state`, `audience`, `rollout`, `depends_on`, `schedule`, `env`, `updated_by`, `updated_at`, and `pinned`.
+# Launch the API
+uvicorn app.api_gateway.main:app --reload
+```
 
-## Presets
+Hooks and linters:
 
-- `toggle`: Off/All/Premium basic (created as off/off)
-- `kill-switch`: One toggle, System group, audience off
-- `gradual-rollout`: On + All, rollout 5% on staging
+```bash
+# one-off
+pre-commit install --config apps/backend/.pre-commit-config.yaml
+# manual run
+pre-commit run --all-files --config apps/backend/.pre-commit-config.yaml
 
-## Notes
+make -C apps/backend lint
+make -C apps/backend type
+```
 
-- Storage files under `data/`: `flags.json`, `audit.json`, `revisions.json`.
-- UI uses Tailwind CDN; drawer and history sidebar can be expanded similarly (out of demo scope).
+Alembic now uses the squashed baseline `0100_squashed_base`. Legacy migrations are archived under `apps/backend/migrations/legacy/` and are invoked automatically by the squashed script when applying to a clean database.
+
+## Frontend
+
+The React app is under `apps/web` (see `apps/web/README.md`). Typical workflow:
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+## Tests
+
+Backend tests live in the repository root under `tests/`. Use the backend pytest config:
+
+```bash
+pytest -c apps/backend/pytest.ini
+```
+
+---
+
+If you need to add repository-level tooling, prefer wiring it through the respective `apps/<module>` directory to avoid duplicating configuration in the repo root.
