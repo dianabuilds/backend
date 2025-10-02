@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import jwt
 from fastapi import Depends, HTTPException, Request
+from sqlalchemy.exc import SQLAlchemyError
 
 from domains.platform.users.application.service import (
     ROLE_ORDER,
@@ -11,6 +13,13 @@ from domains.platform.users.application.service import (
 )
 from packages.core.config import load_settings, to_async_dsn
 from packages.core.db import get_async_engine
+
+try:
+    from jwt import PyJWTError  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover
+    from jwt import InvalidTokenError as PyJWTError  # type: ignore[attr-defined]
+
+logger = logging.getLogger(__name__)
 
 
 def _is_local_host(host: str | None) -> bool:
@@ -30,16 +39,11 @@ def _decode(token: str) -> dict[str, Any]:
             options={"require": ["exp", "sub"], "verify_aud": False},
         )
         return dict(claims)
-    except Exception as e:
-        # In dev it is extremely helpful to see the reason; in prod keep generic
-        try:
-            from packages.core.config import load_settings as _ls  # local alias
-
-            if _ls().env != "prod":
-                raise HTTPException(status_code=401, detail=f"invalid_token: {e}") from e
-        except Exception:
-            pass
-        raise HTTPException(status_code=401, detail="invalid_token") from e
+    except PyJWTError as exc:
+        detail = "invalid_token"
+        if getattr(s, "env", "prod") != "prod":
+            detail = f"invalid_token: {exc}"
+        raise HTTPException(status_code=401, detail=detail) from exc
 
 
 def _get_token_from_request(req: Request) -> str | None:
@@ -102,8 +106,8 @@ async def get_current_user(req: Request) -> dict[str, Any]:
                     await eng.dispose()
         except HTTPException:
             raise
-        except Exception:
-            pass
+        except (SQLAlchemyError, RuntimeError, ValueError) as exc:
+            logger.debug("sanctions_check_failed", exc_info=exc)
         return claims
     except HTTPException:
         # Fallback: try refresh token from cookies in dev to smooth cutover
@@ -114,8 +118,8 @@ async def get_current_user(req: Request) -> dict[str, Any]:
                 rt = req.cookies.get("refresh_token")
                 if rt:
                     return _decode(rt)
-        except Exception:
-            pass
+        except (SQLAlchemyError, RuntimeError, ValueError) as exc:
+            logger.debug("sanctions_check_failed", exc_info=exc)
         raise
 
 
@@ -166,19 +170,22 @@ async def require_admin(req: Request) -> None:
                     u = await users.get(uid)
                     if u and ROLE_ORDER.get(u.role, 0) >= ROLE_ORDER.get("admin", 0):
                         info = {"auth_via": "token-db", "role": u.role}
-            except Exception:
+            except (AttributeError, RuntimeError, SQLAlchemyError) as exc:
+                logger.debug("admin_role_lookup_failed", exc_info=exc)
                 info = None
         if info is None:
             raise HTTPException(status_code=403, detail="admin_required")
     try:
         req.state.auth_context = info or {}  # type: ignore[attr-defined]
-    except Exception:
-        pass
+    except AttributeError:
+        logger.debug("Request state missing while setting auth context", exc_info=True)
     return None
 
 
 def require_role_db(min_role: str):
-    async def _guard(req: Request, claims: dict[str, Any] = Depends(get_current_user)) -> None:
+    async def _guard(
+        req: Request, claims: dict[str, Any] = Depends(get_current_user)
+    ) -> None:
         role = str(claims.get("role") or "").lower()
         if ROLE_ORDER.get(role, 0) >= ROLE_ORDER.get(min_role, 0):
             return None
@@ -190,8 +197,8 @@ def require_role_db(min_role: str):
                 u = await users.get(uid)
                 if u and ROLE_ORDER.get(u.role, 0) >= ROLE_ORDER.get(min_role, 0):
                     return None
-        except Exception:
-            pass
+        except (SQLAlchemyError, RuntimeError, ValueError) as exc:
+            logger.debug("sanctions_check_failed", exc_info=exc)
         raise HTTPException(status_code=403, detail="insufficient_role")
 
     return _guard

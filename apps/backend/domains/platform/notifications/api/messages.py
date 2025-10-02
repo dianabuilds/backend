@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 from apps.backend import get_container
@@ -25,7 +25,9 @@ def make_router() -> APIRouter:
 
     @router.get(
         "",
-        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
     )
     async def list_my_notifications(
         req: Request,
@@ -45,7 +47,7 @@ def make_router() -> APIRouter:
             try:
                 _uuid.UUID(sub)
                 user_id = sub
-            except Exception:
+            except ValueError:
                 user_id = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{sub}"))
         rows = await c.notifications.repo.list_for_user(
             user_id,
@@ -59,7 +61,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/read/{notif_id}",
-        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
     )
     async def mark_read(
         req: Request,
@@ -78,7 +82,7 @@ def make_router() -> APIRouter:
             try:
                 _uuid.UUID(sub)
                 user_id = sub
-            except Exception:
+            except ValueError:
                 user_id = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{sub}"))
         updated = await c.notifications.repo.mark_read(user_id, notif_id)
         if not updated:
@@ -88,7 +92,9 @@ def make_router() -> APIRouter:
     # Admin send
     @router.post(
         "/admin/send",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
     )
     async def admin_send(
         req: Request,

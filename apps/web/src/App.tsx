@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import LoginPage from './pages/auth/Login';
 import { AuthProvider, useAuth } from './shared/auth';
+import { ToastProvider } from '@ui';
 import { SettingsProvider } from './shared/settings';
 import { AppLayout } from './layout/AppLayout';
 import DashboardPage from './pages/dashboard/Dashboard';
@@ -10,7 +11,7 @@ import NotificationSettingsPage from './pages/notifications/Settings';
 import SecuritySettingsPage from './pages/security/Security';
 import BillingPage from './pages/billing/Billing';
 import NodesOverviewPage from './pages/content/nodes/NodesOverviewPage';
-import NodesPage from './pages/content/nodes/NodesPageEnhanced';
+import NodesPage from './pages/content/nodes/NodesPage';
 import NodeCreatePage from './pages/content/nodes/NodeCreatePage';
 import NodePublicPage from './pages/public/NodePublicPage';
 import QuestsOverviewPage from './pages/content/quests/QuestsOverviewPage';
@@ -80,6 +81,7 @@ export default function App() {
   return (
     <AuthProvider>
       <SettingsProvider>
+        <ToastProvider>
       <BrowserRouter>
         <RumRouteTracker />
         <Routes>
@@ -184,6 +186,7 @@ export default function App() {
           <Route path="/content/import-export" element={<Navigate to="/tools/import-export" replace />} />
         </Routes>
       </BrowserRouter>
+        </ToastProvider>
       </SettingsProvider>
     </AuthProvider>
   );

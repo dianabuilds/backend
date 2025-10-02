@@ -1,12 +1,17 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from packages.core.config import Settings, load_settings
 from packages.core.db import get_async_engine
 
 from .service import PlatformModerationService
 from .storage import ModerationStorage
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -21,7 +26,11 @@ def build_container(settings: Settings | None = None) -> ModerationContainer:
     if getattr(cfg, "database_url", None):
         try:
             engine = get_async_engine("platform-moderation", url=str(cfg.database_url))
-        except Exception:
+        except (SQLAlchemyError, ValueError, TypeError) as exc:
+            logger.error("Failed to initialise moderation SQL engine: %s", exc)
+            engine = None
+        except ImportError as exc:
+            logger.warning("SQLAlchemy not available for moderation module: %s", exc)
             engine = None
     storage = ModerationStorage(engine)
     svc = PlatformModerationService(storage=storage, seed_demo=cfg.env != "prod")

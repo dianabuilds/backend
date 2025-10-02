@@ -69,8 +69,8 @@ class _BroadcastWorker(PeriodicWorker):
         started_at = perf_counter()
         try:
             summaries = await self._orchestrator.process_due(limit=self._batch_limit)
-        except Exception:
-            self.logger.exception("broadcast worker tick failed")
+        except (RuntimeError, ValueError, ConnectionError) as exc:
+            self.logger.exception("broadcast worker tick failed", exc_info=exc)
             worker_metrics.inc("failed")
             return
 

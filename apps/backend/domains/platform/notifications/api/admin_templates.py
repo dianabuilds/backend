@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 from apps.backend import get_container
@@ -34,7 +34,9 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/templates",
-        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
     )
     async def list_templates(
         req: Request,
@@ -48,7 +50,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/templates",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def upsert_template(
         req: Request,
@@ -58,18 +62,24 @@ def make_router() -> APIRouter:
     ) -> dict[str, Any]:
         svc = get_container(req).notifications.templates
         try:
-            tmpl = await svc.save(payload.model_dump(exclude_none=True, exclude_unset=True))
+            tmpl = await svc.save(
+                payload.model_dump(exclude_none=True, exclude_unset=True)
+            )
         except ValueError as exc:
             detail = str(exc)
             status = 404 if detail == "template_not_found" else 400
             raise HTTPException(status_code=status, detail=detail) from exc
         except IntegrityError as exc:
-            raise HTTPException(status_code=409, detail="template slug already exists") from exc
+            raise HTTPException(
+                status_code=409, detail="template slug already exists"
+            ) from exc
         return {"template": asdict(tmpl)}
 
     @router.get(
         "/templates/{template_id}",
-        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
     )
     async def get_template(
         req: Request,
@@ -84,7 +94,9 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/templates/{template_id}",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def delete_template(
         req: Request,

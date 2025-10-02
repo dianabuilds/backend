@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -9,6 +10,13 @@ from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
 from domains.platform.notifications.logic.dispatcher import dispatch
 from packages.core import validate_notifications_request
+
+try:
+    from jsonschema.exceptions import ValidationError as JsonSchemaValidationError  # type: ignore
+except ImportError:  # pragma: no cover
+    JsonSchemaValidationError = ValueError  # type: ignore[assignment]
+
+logger = logging.getLogger(__name__)
 
 
 class PreferenceBody(BaseModel):
@@ -37,7 +45,9 @@ def make_router() -> APIRouter:
         if not user_id:
             raise HTTPException(status_code=401, detail="unauthenticated")
         container = get_container(req)
-        prefs = await container.notifications.preference_service.get_preferences(user_id)
+        prefs = await container.notifications.preference_service.get_preferences(
+            user_id
+        )
         return {"preferences": prefs}
 
     @router.put("/preferences", dependencies=[Depends(csrf_protect)])
@@ -50,7 +60,9 @@ def make_router() -> APIRouter:
         if not user_id:
             raise HTTPException(status_code=401, detail="unauthenticated")
         container = get_container(req)
-        await container.notifications.preference_service.set_preferences(user_id, body.preferences)
+        await container.notifications.preference_service.set_preferences(
+            user_id, body.preferences
+        )
         return {"ok": True}
 
     @router.post("/test", dependencies=[Depends(csrf_protect)])
@@ -69,12 +81,26 @@ def make_router() -> APIRouter:
         _csrf: None = Depends(csrf_protect),
     ) -> dict[str, Any]:
         try:
-            validate_notifications_request("/v1/notifications/send", "post", body.model_dump())
-        except Exception as exc:
-            raise HTTPException(status_code=422, detail="schema_validation_failed") from exc
+            validate_notifications_request(
+                "/v1/notifications/send", "post", body.model_dump()
+            )
+        except (JsonSchemaValidationError, TypeError, ValueError) as exc:
+            logger.info(
+                "notification_payload_invalid",
+                extra={"channel": body.channel},
+                exc_info=exc,
+            )
+            raise HTTPException(
+                status_code=422, detail="schema_validation_failed"
+            ) from exc
         try:
             dispatch(body.channel, body.payload)
-        except Exception as exc:  # pragma: no cover - thin wrapper around dispatcher
+        except RuntimeError as exc:  # pragma: no cover - thin wrapper around dispatcher
+            logger.warning(
+                "notification_dispatch_failed",
+                extra={"channel": body.channel},
+                exc_info=exc,
+            )
             raise HTTPException(status_code=502, detail="publish_failed") from exc
         return {"ok": True}
 

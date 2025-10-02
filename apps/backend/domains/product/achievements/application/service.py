@@ -1,9 +1,23 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from domains.platform.events.ports import OutboxPublisher
 from domains.product.achievements.application.ports import Repo
+
+logger = logging.getLogger(__name__)
+
+
+def _safe_publish(
+    outbox: OutboxPublisher | None, event: str, payload: dict[str, Any], *, context: str
+) -> None:
+    if not outbox:
+        return
+    try:
+        outbox.publish(event, payload)
+    except Exception:
+        logger.exception("Failed to publish %s for %s", event, context)
 
 
 class AchievementsService:
@@ -17,26 +31,24 @@ class AchievementsService:
 
     async def grant_manual(self, user_id: str, achievement_id: str) -> bool:
         ok = self.repo.grant(user_id, achievement_id)
-        try:
-            if ok and self.outbox:
-                self.outbox.publish(
-                    "achievement.granted.v1",
-                    {"user_id": user_id, "achievement_id": achievement_id},
-                )
-        except Exception:
-            pass
+        if ok:
+            _safe_publish(
+                self.outbox,
+                "achievement.granted.v1",
+                {"user_id": user_id, "achievement_id": achievement_id},
+                context=f"user:{user_id}",
+            )
         return ok
 
     async def revoke_manual(self, user_id: str, achievement_id: str) -> bool:
         ok = self.repo.revoke(user_id, achievement_id)
-        try:
-            if ok and self.outbox:
-                self.outbox.publish(
-                    "achievement.revoked.v1",
-                    {"user_id": user_id, "achievement_id": achievement_id},
-                )
-        except Exception:
-            pass
+        if ok:
+            _safe_publish(
+                self.outbox,
+                "achievement.revoked.v1",
+                {"user_id": user_id, "achievement_id": achievement_id},
+                context=f"user:{user_id}",
+            )
         return ok
 
 
@@ -58,14 +70,12 @@ class AchievementsAdminService:
         payload["created_by_user_id"] = actor_id
         payload["updated_by_user_id"] = actor_id
         res = self.repo.create(payload)
-        try:
-            if self.outbox:
-                self.outbox.publish(
-                    "achievement.created.v1",
-                    {"id": res.id, "code": res.code, "title": res.title},
-                )
-        except Exception:
-            pass
+        _safe_publish(
+            self.outbox,
+            "achievement.created.v1",
+            {"id": res.id, "code": res.code, "title": res.title},
+            context=f"achievement:{res.code}",
+        )
         return res
 
     async def update(self, achievement_id: str, data: dict[str, Any], actor_id: str):
@@ -76,14 +86,13 @@ class AchievementsAdminService:
         payload = dict(data)
         payload["updated_by_user_id"] = actor_id
         updated = self.repo.update(achievement_id, payload)
-        try:
-            if updated and self.outbox:
-                self.outbox.publish(
-                    "achievement.updated.v1",
-                    {"id": achievement_id, "fields": list(data.keys())},
-                )
-        except Exception:
-            pass
+        if updated:
+            _safe_publish(
+                self.outbox,
+                "achievement.updated.v1",
+                {"id": achievement_id, "fields": list(data.keys())},
+                context=f"achievement:{achievement_id}",
+            )
         if updated is None and ("code" in data and data["code"] is not None):
             # assume conflict
             raise ValueError("code_conflict")
@@ -91,9 +100,11 @@ class AchievementsAdminService:
 
     async def delete(self, achievement_id: str) -> bool:
         ok = self.repo.delete(achievement_id)
-        try:
-            if ok and self.outbox:
-                self.outbox.publish("achievement.deleted.v1", {"id": achievement_id})
-        except Exception:
-            pass
+        if ok:
+            _safe_publish(
+                self.outbox,
+                "achievement.deleted.v1",
+                {"id": achievement_id},
+                context=f"achievement:{achievement_id}",
+            )
         return ok

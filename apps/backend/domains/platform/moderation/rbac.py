@@ -1,7 +1,11 @@
+﻿import logging
 from collections.abc import Callable, Iterable
+from functools import lru_cache
+from typing import Any
 
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import ValidationError
 from starlette.requests import Request
 
 # Basic role names used across the system
@@ -70,7 +74,35 @@ ROLE_TO_SCOPES = {
 }
 
 
+logger = logging.getLogger(__name__)
 security = HTTPBearer(auto_error=False)
+
+
+@lru_cache(maxsize=1)
+def _load_settings_safe() -> Any | None:
+    try:
+        from packages.core.config import load_settings  # type: ignore
+    except ImportError as exc:
+        logger.warning("Moderation RBAC cannot import settings: %s", exc)
+        return None
+    try:
+        return load_settings()
+    except (ValidationError, RuntimeError, OSError) as exc:
+        logger.warning("Moderation RBAC cannot load settings: %s", exc)
+        return None
+
+
+def _normalize_roles(candidate: Any) -> list[str]:
+    if candidate is None:
+        return []
+    try:
+        return [str(role) for role in candidate]
+    except TypeError as exc:
+        logger.debug("Role container %r is not iterable: %s", candidate, exc)
+        return []
+    except AttributeError as exc:
+        logger.debug("Role container %r missing attribute access: %s", candidate, exc)
+        return []
 
 
 def _extract_roles(request: Request) -> Iterable[str]:
@@ -78,61 +110,47 @@ def _extract_roles(request: Request) -> Iterable[str]:
     Best-effort role extraction. Tries common locations used by apps:
     - request.state.user.roles
     - request.state.roles
-    - request.user.roles
+    - request.scope["user"].roles (set by AuthenticationMiddleware)
     - request.headers["X-Roles"] as comma-separated fallback
     Adjust this function to your actual auth pipeline.
     """
-    roles = []
+
+    roles: list[str] = []
     state = getattr(request, "state", None)
     if state is not None:
         user = getattr(state, "user", None)
-        if user is not None and hasattr(user, "roles"):
-            roles = list(user.roles)
-        elif hasattr(state, "roles"):
-            roles = list(state.roles)
-    # Avoid touching request.user property directly: it asserts when AuthenticationMiddleware is missing
+        roles = _normalize_roles(getattr(user, "roles", None))
+        if not roles:
+            roles = _normalize_roles(getattr(state, "roles", None))
+
     if not roles:
-        try:
-            scope_user = request.scope.get("user")  # set by AuthenticationMiddleware if present
-        except Exception:
-            scope_user = None
-        if scope_user is not None and hasattr(scope_user, "roles"):
-            try:
-                roles = list(scope_user.roles)
-            except Exception:
-                roles = roles
+        scope = request.scope if isinstance(request.scope, dict) else {}
+        scope_user = scope.get("user") if isinstance(scope, dict) else None
+        if scope_user is not None:
+            roles = _normalize_roles(getattr(scope_user, "roles", None))
+
     if not roles:
         header = request.headers.get("X-Roles")
         if header:
             roles = [r.strip() for r in header.split(",") if r.strip()]
 
-    # Admin override via X-Admin-Key (dev/admin tooling): if header matches configured key, grant Admin role
-    try:
-        admin_key = request.headers.get("X-Admin-Key") or request.headers.get("x-admin-key")
-        if admin_key:
-            try:
-                from packages.core.config import load_settings  # type: ignore
+    admin_key = request.headers.get("X-Admin-Key") or request.headers.get("x-admin-key")
+    if admin_key:
+        settings = _load_settings_safe()
+        configured = getattr(settings, "admin_api_key", None) if settings else None
+        if configured and str(admin_key) == str(configured) and ROLE_ADMIN not in roles:
+            roles = [*roles, ROLE_ADMIN]
+        elif admin_key and not configured:
+            logger.debug("Admin key provided but no configured admin_api_key found")
 
-                settings = load_settings()
-                configured = getattr(settings, "admin_api_key", None)
-            except Exception:
-                configured = None
-            if configured and str(admin_key) == str(configured):
-                if ROLE_ADMIN not in roles:
-                    roles = list(roles) + [ROLE_ADMIN]
-    except Exception:
-        pass
-
-    # Dev fallback: if environment is not 'prod' and roles still empty, grant Admin to ease local testing
-    try:
-        if not roles:
-            from packages.core.config import load_settings  # type: ignore
-
-            env = str(getattr(load_settings(), "env", "dev")).lower()
+    if not roles:
+        settings = _load_settings_safe()
+        if settings:
+            env = str(getattr(settings, "env", "dev")).lower()
             if env != "prod":
                 roles = [ROLE_ADMIN]
-    except Exception:
-        pass
+        else:
+            logger.debug("Settings unavailable; moderation dev fallback skipped")
     return roles
 
 

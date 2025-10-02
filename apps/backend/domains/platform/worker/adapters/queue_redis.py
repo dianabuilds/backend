@@ -1,19 +1,29 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 try:
-    import redis.asyncio as aioredis  # type: ignore
-except Exception:  # pragma: no cover - optional dependency
-    aioredis = None  # type: ignore
+    import redis.asyncio as aioredis  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover - optional dependency
+    aioredis = None  # type: ignore[assignment]
+
+try:
+    from redis.exceptions import RedisError  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover - optional dependency
+    RedisError = Exception  # type: ignore[misc, assignment]
+
+
+logger = logging.getLogger(__name__)
 
 
 class RedisWorkerQueue:
     """Sorted-set based queue for worker jobs (lower score dequeued first)."""
 
-    def __init__(self, client: aioredis.Redis, *, key: str = "worker:jobs") -> None:
+    def __init__(self, client: Any, *, key: str = "worker:jobs") -> None:
         self._client = client
         self._key = key
 
@@ -39,12 +49,13 @@ class RedisWorkerQueue:
     async def close(self) -> None:  # pragma: no cover - optional cleanup
         try:
             await self._client.close()
-        except Exception:
+        except (RedisError, RuntimeError) as exc:
+            logger.debug("redis queue close failed on close(): %s", exc)
             return
         try:
             await self._client.wait_closed()
-        except Exception:
-            pass
+        except (RedisError, RuntimeError) as exc:
+            logger.debug("redis queue close failed on wait_closed(): %s", exc)
 
     @staticmethod
     def _score(priority: int, *, offset: int = 0) -> float:

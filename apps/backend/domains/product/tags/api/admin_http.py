@@ -1,24 +1,25 @@
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
-from domains.product.tags.adapters.admin_repo_memory import (
-    MemoryAdminRepo,
-)
+from domains.product.tags.adapters.admin_repo_memory import MemoryAdminRepo
 from domains.product.tags.adapters.admin_repo_sql import SQLAdminRepo
-from domains.product.tags.application.admin_service import (
-    TagAdminService,
-)
+from domains.product.tags.application.admin_service import TagAdminService
 from packages.core.config import to_async_dsn
+
+logger = logging.getLogger(__name__)
 
 
 def make_router() -> APIRouter:
@@ -26,21 +27,29 @@ def make_router() -> APIRouter:
 
     def _svc(container) -> TagAdminService:
         # Prefer SQL repo if DB configured; if engine creation fails, fall back to memory
+        dsn: str | None = None
         try:
-            dsn = to_async_dsn(container.settings.database_url)
-            if dsn:
+            dsn = to_async_dsn(getattr(container.settings, "database_url", None))
+        except AttributeError as exc:
+            logger.debug("tag_admin_missing_settings", exc_info=exc)
+        except ValueError as exc:
+            logger.warning("tag_admin_invalid_database_url", exc_info=exc)
+        if dsn:
+            try:
                 repo = SQLAdminRepo(dsn)
+            except (SQLAlchemyError, RuntimeError) as exc:
+                logger.warning("tag_admin_sql_repository_unavailable", exc_info=exc)
+            else:
                 return TagAdminService(repo, outbox=container.events.outbox)
-        except Exception:
-            pass
-        # Reuse shared usage store from container via tags_service if possible
         usage_store = None
         try:
-            repo0 = getattr(container.tags_service, "repo", None)
+            repo0 = getattr(getattr(container, "tags_service", None), "repo", None)
             usage_store = getattr(repo0, "store", None)
-        except Exception:
-            usage_store = None
-        return TagAdminService(MemoryAdminRepo(usage_store), outbox=container.events.outbox)
+        except AttributeError as exc:
+            logger.debug("tag_admin_usage_store_unavailable", exc_info=exc)
+        return TagAdminService(
+            MemoryAdminRepo(usage_store), outbox=container.events.outbox
+        )
 
     @router.get("/groups", summary="List tag content groups")
     def list_groups(
@@ -105,7 +114,9 @@ def make_router() -> APIRouter:
     @router.post(
         "/{tag_id}/aliases",
         summary="Add tag alias",
-        dependencies=([Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
+        ),
     )
     def post_alias(
         tag_id: UUID,
@@ -127,22 +138,6 @@ def make_router() -> APIRouter:
         except ValueError as e:
             raise HTTPException(status_code=409, detail=str(e)) from e
 
-    @router.delete(
-        "/aliases/{alias_id}",
-        summary="Remove tag alias",
-        dependencies=([Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []),
-    )
-    def del_alias(
-        alias_id: UUID,
-        request: Request,
-        _: None = Depends(require_admin),
-        _csrf: None = Depends(csrf_protect),
-        container=Depends(get_container),
-    ):
-        svc = _svc(container)
-        svc.remove_alias(str(alias_id))
-        return {"ok": True}
-
     @router.get("/blacklist", summary="List blacklisted tags")
     def get_blacklist(
         q: str | None = Query(default=None),
@@ -151,12 +146,17 @@ def make_router() -> APIRouter:
     ):
         svc = _svc(container)
         items = svc.blacklist_list(q)
-        return [{"slug": i.slug, "reason": i.reason, "created_at": i.created_at} for i in items]
+        return [
+            {"slug": i.slug, "reason": i.reason, "created_at": i.created_at}
+            for i in items
+        ]
 
     @router.post(
         "/blacklist",
         summary="Add tag to blacklist",
-        dependencies=([Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
+        ),
     )
     def add_blacklist(
         payload: dict,
@@ -176,7 +176,9 @@ def make_router() -> APIRouter:
     @router.delete(
         "/blacklist/{slug}",
         summary="Remove tag from blacklist",
-        dependencies=([Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
+        ),
     )
     def delete_blacklist(
         slug: str,
@@ -192,7 +194,9 @@ def make_router() -> APIRouter:
     @router.post(
         "",
         summary="Create tag",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     def create_tag(
         body: dict,
@@ -223,7 +227,9 @@ def make_router() -> APIRouter:
     @router.delete(
         "/{tag_id}",
         summary="Delete tag",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     def delete_tag(
         tag_id: UUID,
@@ -239,7 +245,9 @@ def make_router() -> APIRouter:
     @router.post(
         "/merge",
         summary="Merge tags (dry-run/apply)",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
     )
     def merge_tags(
         body: dict,
@@ -260,13 +268,8 @@ def make_router() -> APIRouter:
         svc = _svc(container)
         if dry:
             return svc.merge_dry_run(str(from_id), str(to_id), content_type=type_)
-        # claims = getattr(request, "state", None)
-        actor_id = None
-        try:
-            # Try extract actor_id from IAM: not always available here
-            actor_id = None
-        except Exception:
-            pass
-        return svc.merge_apply(str(from_id), str(to_id), actor_id, reason, content_type=type_)
+        return svc.merge_apply(
+            str(from_id), str(to_id), None, reason, content_type=type_
+        )
 
     return router

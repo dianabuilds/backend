@@ -4,6 +4,7 @@ from typing import Any
 
 import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from jwt import PyJWTError
 
 from packages.core.config import load_settings
 
@@ -18,7 +19,9 @@ def make_router() -> APIRouter:
         token = websocket.cookies.get("access_token") or None
         if not token:
             # allow token via query for dev
-            token = websocket.query_params.get("token") if websocket.query_params else None
+            token = (
+                websocket.query_params.get("token") if websocket.query_params else None
+            )
         user_id: str | None = None
         if token:
             try:
@@ -29,7 +32,7 @@ def make_router() -> APIRouter:
                     options={"verify_aud": False},
                 )
                 user_id = str(claims.get("sub") or "")
-            except Exception:
+            except (PyJWTError, ValueError):
                 pass
         if not user_id:
             await websocket.close(code=4401)
@@ -38,7 +41,7 @@ def make_router() -> APIRouter:
         try:
             container = websocket.app.state.container  # type: ignore[attr-defined]
             manager = container.notifications.ws_manager
-        except Exception:
+        except AttributeError:
             await websocket.close(code=1011)
             return
         await manager.connect(user_id, websocket)
@@ -48,7 +51,7 @@ def make_router() -> APIRouter:
                 await websocket.receive_text()
         except WebSocketDisconnect:
             await manager.disconnect(user_id, websocket)
-        except Exception:
+        except (RuntimeError, ConnectionError, OSError):
             await manager.disconnect(user_id, websocket)
 
     return router

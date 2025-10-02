@@ -106,9 +106,13 @@ class SQLNotificationMatrixRepo(NotificationMatrixRepo):
                 key=str(row["key"]),
                 display_name=str(row["display_name"]),
                 category=str(row["category"]),
-                description=(str(row["description"]) if row.get("description") else None),
+                description=(
+                    str(row["description"]) if row.get("description") else None
+                ),
                 feature_flag=(
-                    str(row["feature_flag_slug"]) if row.get("feature_flag_slug") else None
+                    str(row["feature_flag_slug"])
+                    if row.get("feature_flag_slug")
+                    else None
                 ),
                 flag_fallback_enabled=bool(
                     row.get("flag_fallback_enabled")
@@ -128,7 +132,9 @@ class SQLNotificationMatrixRepo(NotificationMatrixRepo):
                 key=str(row["key"]),
                 category=str(row["category"]),
                 display_name=str(row["display_name"]),
-                description=(str(row["description"]) if row.get("description") else None),
+                description=(
+                    str(row["description"]) if row.get("description") else None
+                ),
                 default_digest=_coerce_digest(row.get("default_digest")),
                 default_quiet_hours=_coerce_quiet_hours(row.get("default_quiet_hours")),
                 position=int(row.get("position", 100)),
@@ -145,11 +151,15 @@ class SQLNotificationMatrixRepo(NotificationMatrixRepo):
                 channel_key=channel_key,
                 delivery=DeliveryRequirement(str(row["delivery_requirement"])),
                 default_opt_in=(
-                    bool(row["default_opt_in"]) if row.get("default_opt_in") is not None else None
+                    bool(row["default_opt_in"])
+                    if row.get("default_opt_in") is not None
+                    else None
                 ),
                 default_digest=_coerce_digest(row.get("default_digest")),
                 feature_flag=(
-                    str(row["feature_flag_slug"]) if row.get("feature_flag_slug") else None
+                    str(row["feature_flag_slug"])
+                    if row.get("feature_flag_slug")
+                    else None
                 ),
                 flag_fallback_enabled=(
                     bool(row.get("flag_fallback_enabled"))
@@ -160,8 +170,12 @@ class SQLNotificationMatrixRepo(NotificationMatrixRepo):
                 meta=_ensure_dict(row.get("meta")),
             )
         allowed_channels = {"in_app", "email", "broadcasts"}
-        channels = {key: value for key, value in channels.items() if key in allowed_channels}
-        rules = {key: value for key, value in rules.items() if key[1] in allowed_channels}
+        channels = {
+            key: value for key, value in channels.items() if key in allowed_channels
+        }
+        rules = {
+            key: value for key, value in rules.items() if key[1] in allowed_channels
+        }
         matrix = NotificationMatrix(topics=topics, channels=channels, rules=rules)
         self._cache = matrix
         return matrix
@@ -179,7 +193,7 @@ def _ensure_dict(value: Any) -> dict[str, Any]:
 def _coerce_digest(value: Any) -> DigestMode:
     try:
         textual = str(value).strip().lower()
-    except Exception:
+    except (AttributeError, ValueError):
         textual = DigestMode.INSTANT.value
     if textual not in {m.value for m in DigestMode}:
         textual = DigestMode.INSTANT.value

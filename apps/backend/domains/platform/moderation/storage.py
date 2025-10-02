@@ -51,8 +51,8 @@ class ModerationStorage:
                 return {}
             try:
                 return json.loads(row["payload"])
-            except Exception:
-                logger.warning("Failed to decode moderation snapshot, starting empty")
+            except (json.JSONDecodeError, TypeError) as exc:
+                logger.warning("Failed to decode moderation snapshot: %s", exc)
                 return {}
 
     async def save(self, payload: Mapping[str, Any]) -> None:

@@ -1,12 +1,14 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
 import logging
 import time
 from collections.abc import Sequence
 from threading import Lock
+from typing import Any
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from packages.core.db import get_async_engine
@@ -29,7 +31,9 @@ class SQLTagCatalog:
         cache_ttl: float = 30.0,
     ) -> None:
         self._engine: AsyncEngine = (
-            engine if isinstance(engine, AsyncEngine) else get_async_engine("tags", url=engine)
+            engine
+            if isinstance(engine, AsyncEngine)
+            else get_async_engine("tags", url=engine)
         )
         self._cache_ttl = max(float(cache_ttl), 0.0)
         self._lock = Lock()
@@ -75,8 +79,8 @@ class SQLTagCatalog:
         async def runner() -> None:
             try:
                 await self._refresh()
-            except Exception as exc:  # pragma: no cover - defensive logging
-                log.exception("tag_catalog_refresh_failed", exc_info=exc)
+            except SQLAlchemyError as exc:  # pragma: no cover - defensive logging
+                log.warning("tag_catalog_refresh_failed", exc_info=exc)
             finally:
                 with self._lock:
                     self._refreshing = False
@@ -86,12 +90,20 @@ class SQLTagCatalog:
         except RuntimeError:
             try:
                 asyncio.run(runner())
-            except Exception:
-                # already logged inside runner
-                pass
+            except SQLAlchemyError as exc:  # pragma: no cover
+                log.warning("tag_catalog_refresh_failed", exc_info=exc)
         else:
             task = loop.create_task(runner())
-            task.add_done_callback(lambda t: t.exception())
+
+            def _log_refresh_failure(task: asyncio.Task[Any]) -> None:
+                try:
+                    exc = task.exception()
+                except asyncio.CancelledError:
+                    return
+                if exc:
+                    log.exception("tag_catalog_refresh_failed", exc_info=exc)
+
+            task.add_done_callback(_log_refresh_failure)
 
     async def _refresh(self) -> None:
         aliases: dict[str, str] = {}

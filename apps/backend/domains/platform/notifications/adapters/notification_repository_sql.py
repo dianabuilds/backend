@@ -172,7 +172,9 @@ class NotificationRepository(INotificationRepository):
             message_id = message_result.scalar()
             if message_id is None:
                 lookup = await conn.execute(
-                    text("SELECT id FROM notification_messages WHERE payload_hash = :payload_hash"),
+                    text(
+                        "SELECT id FROM notification_messages WHERE payload_hash = :payload_hash"
+                    ),
                     {"payload_hash": payload_hash},
                 )
                 message_id = lookup.scalar()
@@ -187,7 +189,9 @@ class NotificationRepository(INotificationRepository):
                 "is_preview": bool(is_preview),
                 "event_id": event_id,
             }
-            receipt_row = (await conn.execute(_RECEIPT_UPSERT, receipt_params)).mappings().first()
+            receipt_row = (
+                (await conn.execute(_RECEIPT_UPSERT, receipt_params)).mappings().first()
+            )
             if receipt_row is None and event_id:
                 fallback = await conn.execute(_FETCH_BY_EVENT, {"event_id": event_id})
                 receipt_row = fallback.mappings().first()
@@ -216,7 +220,9 @@ class NotificationRepository(INotificationRepository):
             "offset": int(offset),
         }
         if placement:
-            where_clauses.append("r.placement = CAST(:placement AS notificationplacement)")
+            where_clauses.append(
+                "r.placement = CAST(:placement AS notificationplacement)"
+            )
             params["placement"] = placement
         sql = text(
             _BASE_SELECT
@@ -262,7 +268,11 @@ class NotificationRepository(INotificationRepository):
             """
         )
         async with self._engine.begin() as conn:
-            row = (await conn.execute(sql, {"id": notif_id, "uid": user_id})).mappings().first()
+            row = (
+                (await conn.execute(sql, {"id": notif_id, "uid": user_id}))
+                .mappings()
+                .first()
+            )
         if not row:
             return None
         return self._normalize_row(row)
@@ -291,7 +301,7 @@ class NotificationRepository(INotificationRepository):
             return dict(meta)
         try:
             return dict(meta)  # type: ignore[arg-type]
-        except Exception:
+        except (TypeError, ValueError):
             return {}
 
     @staticmethod
@@ -306,7 +316,9 @@ class NotificationRepository(INotificationRepository):
         cta_url: str | None,
         meta: dict[str, Any],
     ) -> str:
-        meta_text = json.dumps(meta, ensure_ascii=False, sort_keys=True) if meta else "{}"
+        meta_text = (
+            json.dumps(meta, ensure_ascii=False, sort_keys=True) if meta else "{}"
+        )
         parts = [
             title,
             message,

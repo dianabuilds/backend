@@ -1,7 +1,9 @@
-п»їimport React from 'react';
+import React from 'react';
 import { AlertTriangle, FileCode2 } from '@icons';
 import { Badge, Button, Card, Input, Select, Spinner, Surface, Table, TablePagination } from '@ui';
 import { apiGet } from '../../shared/api/client';
+import { usePaginatedQuery } from '../../shared/hooks/usePaginatedQuery';
+import { extractErrorMessage } from '../../shared/utils/errors';
 import { PlatformAdminFrame, PlatformAdminQuickLink } from './platform-admin/PlatformAdminFrame';
 
 type AuditEventMeta = {
@@ -63,9 +65,9 @@ type UserOption = {
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const RESULT_OPTIONS = [
-  { value: '', label: 'Р’СЃРµ СЂРµР·СѓР»СЊС‚Р°С‚С‹' },
-  { value: 'success', label: 'РЈСЃРїРµС…' },
-  { value: 'failure', label: 'РћС€РёР±РєР°' },
+  { value: '', label: 'Все результаты' },
+  { value: 'success', label: 'Успех' },
+  { value: 'failure', label: 'Ошибка' },
 ];
 
 function formatDateTime(value?: string | null): string {
@@ -86,10 +88,10 @@ type ResultBadge = {
 
 function getResultBadge(result?: string | null): ResultBadge {
   const normalized = (result || '').toLowerCase();
-  if (normalized === 'success') return { label: 'РЈСЃРїРµС…', color: 'success' };
-  if (normalized === 'failure') return { label: 'РћС€РёР±РєР°', color: 'error' };
-  if (normalized === 'warning') return { label: 'Р’РЅРёРјР°РЅРёРµ', color: 'warning' };
-  return { label: normalized ? normalized : 'РќРµРёР·РІРµСЃС‚РЅРѕ', color: 'neutral' };
+  if (normalized === 'success') return { label: 'Успех', color: 'success' };
+  if (normalized === 'failure') return { label: 'Ошибка', color: 'error' };
+  if (normalized === 'warning') return { label: 'Внимание', color: 'warning' };
+  return { label: normalized ? normalized : 'Неизвестно', color: 'neutral' };
 }
 
 function prettyJson(value: unknown): string {
@@ -118,11 +120,6 @@ function topEntries(source: Record<string, number> | undefined, limit = 6): Arra
 
 export default function ManagementAudit() {
   const [data, setData] = React.useState<AuditResponse | null>(null);
-  const [items, setItems] = React.useState<AuditEvent[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(20);
   const [refreshToken, setRefreshToken] = React.useState(0);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
 
@@ -141,6 +138,64 @@ export default function ManagementAudit() {
   const [userOpts, setUserOpts] = React.useState<UserOption[]>([]);
   const [showUserOpts, setShowUserOpts] = React.useState(false);
 
+  const {
+    items,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    hasNext,
+    loading,
+    error,
+  } = usePaginatedQuery<AuditEvent, AuditResponse>({
+    initialPageSize: 20,
+    dependencies: [
+      filters.search,
+      filters.module,
+      filters.action,
+      filters.resourceType,
+      filters.result,
+      filters.actorId,
+      filters.dateFrom,
+      filters.dateTo,
+      refreshToken,
+    ],
+    debounceMs: 250,
+    fetcher: async ({ page: currentPage, pageSize: currentPageSize, signal }) => {
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      params.set('page_size', String(currentPageSize));
+      if (filters.search.trim()) params.set('q', filters.search.trim());
+      if (filters.module) params.set('module', filters.module);
+      if (filters.action) params.set('action', filters.action);
+      if (filters.resourceType) params.set('resource_type', filters.resourceType);
+      if (filters.result) params.set('result', filters.result);
+      if (filters.actorId) params.set('actor_id', filters.actorId);
+      if (filters.dateFrom) params.set('from', filters.dateFrom);
+      if (filters.dateTo) params.set('to', filters.dateTo);
+      return apiGet<AuditResponse>(`/v1/audit?${params.toString()}`, { signal });
+    },
+    mapResponse: (response, { page: currentPage, pageSize: currentPageSize }) => {
+      const nextItems = Array.isArray(response?.items) ? response.items : [];
+      setData(response ?? null);
+      if (nextItems.every((item) => item.id !== expandedId)) {
+        setExpandedId(null);
+      }
+      const hasMore = Boolean(response?.has_more);
+      const total = hasMore ? undefined : (currentPage - 1) * currentPageSize + nextItems.length;
+      return {
+        items: nextItems,
+        hasNext: hasMore,
+        total,
+      };
+    },
+    onError: (err) => {
+      setData(null);
+      setExpandedId(null);
+      return extractErrorMessage(err, '?? ??????? ????????? ?????');
+    },
+  });
+
   const updateFilter = React.useCallback(
     <K extends keyof AuditFilters>(key: K, value: AuditFilters[K]) => {
       setFilters((prev) => ({ ...prev, [key]: value }));
@@ -151,6 +206,7 @@ export default function ManagementAudit() {
   React.useEffect(() => {
     setPage(1);
   }, [
+    setPage,
     filters.search,
     filters.module,
     filters.action,
@@ -182,43 +238,6 @@ export default function ManagementAudit() {
     };
   }, [actorQuery]);
 
-  React.useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setError(null);
-      const params = new URLSearchParams();
-      params.set('page', String(page));
-      params.set('page_size', String(pageSize));
-      if (filters.search.trim()) params.set('q', filters.search.trim());
-      if (filters.module) params.set('module', filters.module);
-      if (filters.action) params.set('action', filters.action);
-      if (filters.resourceType) params.set('resource_type', filters.resourceType);
-      if (filters.result) params.set('result', filters.result);
-      if (filters.actorId) params.set('actor_id', filters.actorId);
-      if (filters.dateFrom) params.set('from', filters.dateFrom);
-      if (filters.dateTo) params.set('to', filters.dateTo);
-      try {
-        const response = await apiGet<AuditResponse>(`/v1/audit?${params.toString()}`);
-        if (cancelled) return;
-        setData(response);
-        setItems(response.items || []);
-        if (response.items?.every((item) => item.id !== expandedId)) {
-          setExpandedId(null);
-        }
-      } catch (err: any) {
-        if (cancelled) return;
-        setError(String(err?.message || err || 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р°СѓРґРёС‚'));
-        setItems([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [page, pageSize, filters.search, filters.module, filters.action, filters.resourceType, filters.result, filters.actorId, filters.dateFrom, filters.dateTo, expandedId, refreshToken]);
 
   const moduleOptions = React.useMemo(() => {
     const entries = new Set<string>();
@@ -239,7 +258,6 @@ export default function ManagementAudit() {
     return Array.from(entries).sort();
   }, [data?.facets?.resource_types, filters.resourceType]);
 
-  const hasNext = data?.has_more ?? false;
   const totalItems = calculateTotalItems(data, page, pageSize);
   const currentCount = items.length;
 
@@ -265,29 +283,29 @@ export default function ManagementAudit() {
 
   const roleHint = (
     <div className="space-y-2 text-sm">
-      <p>Р”РѕСЃС‚СѓРї Рє Р°СѓРґРёС‚Сѓ РёРјРµРµС‚ С‚РѕР»СЊРєРѕ СЂРѕР»СЊ <code>admin</code>.</p>
-      <p className="text-xs text-gray-500 dark:text-dark-200">Р•СЃР»Рё РїСЂР°РІР° РѕС‚СЃСѓС‚СЃС‚РІСѓСЋС‚, РѕР±СЂР°С‚РёС‚РµСЃСЊ Рє РІР»Р°РґРµР»СЊС†Сѓ Р°РєРєР°СѓРЅС‚Р° Р·Р° СЌСЃРєР°Р»Р°С†РёРµР№.</p>
+      <p>Доступ к аудиту имеет только роль <code>admin</code>.</p>
+      <p className="text-xs text-gray-500 dark:text-dark-200">Если права отсутствуют, обратитесь к владельцу аккаунта за эскалацией.</p>
     </div>
   );
 
   const quickLinks: PlatformAdminQuickLink[] = [
     {
-      label: 'Р”РѕРєСѓРјРµРЅС‚Р°С†РёСЏ: Р°СѓРґРёС‚ РїР»Р°С‚С„РѕСЂРјС‹',
+      label: 'Документация: аудит платформы',
       href: 'https://docs.caves.dev/platform/audit',
-      description: 'РЎС‚СЂСѓРєС‚СѓСЂР° СЃРѕР±С‹С‚РёР№ Рё РїСЂРёРЅС†РёРїС‹ РІРµРґРµРЅРёСЏ Р¶СѓСЂРЅР°Р»Р° РґРµР№СЃС‚РІРёР№.',
+      description: 'Структура событий и принципы ведения журнала действий.',
       icon: <FileCode2 className="h-4 w-4" />,
     },
     {
       label: 'API reference: /v1/audit',
       href: 'https://docs.caves.dev/api/audit',
-      description: 'РџР°СЂР°РјРµС‚СЂС‹ С„РёР»СЊС‚СЂР°С†РёРё Рё РїСЂРёРјРµСЂС‹ СЌРєСЃРїРѕСЂС‚Р° Р¶СѓСЂРЅР°Р»Р°.',
+      description: 'Параметры фильтрации и примеры экспорта журнала.',
     },
   ];
 
   return (
     <PlatformAdminFrame
       title="Audit log"
-      description="Р–СѓСЂРЅР°Р» Р°РґРјРёРЅРёСЃС‚СЂР°С‚РёРІРЅС‹С… РґРµР№СЃС‚РІРёР№ Рё СЃРёСЃС‚РµРјРЅС‹С… РѕРїРµСЂР°С†РёР№ РїРѕ РІСЃРµР№ РїР»Р°С‚С„РѕСЂРјРµ."
+      description="Журнал административных действий и системных операций по всей платформе."
       breadcrumbs={[
         { label: 'Platform Admin', to: '/platform/audit' },
         { label: 'Audit log' },
@@ -302,18 +320,18 @@ export default function ManagementAudit() {
           color="primary"
           size="sm"
         >
-          Р­РєСЃРїРѕСЂС‚ CSV
+          Экспорт CSV
         </Button>
       }
       roleHint={roleHint}
       quickLinks={quickLinks}
-      helpText="РСЃРїРѕР»СЊР·СѓР№С‚Рµ С„РёР»СЊС‚СЂС‹, С‡С‚РѕР±С‹ РЅР°Р№С‚Рё РєРѕРЅРєСЂРµС‚РЅРѕРµ РґРµР№СЃС‚РІРёРµ. Р”Р»СЏ СЂР°СЃСЃР»РµРґРѕРІР°РЅРёР№ СЃРѕС…СЂР°РЅСЏР№С‚Рµ СЌРєСЃРїРѕСЂС‚ Рё РїСЂРёРєР»Р°РґС‹РІР°Р№С‚Рµ РІ С‚РёРєРµС‚С‹ РїРѕРґРґРµСЂР¶РєРё."
+      helpText="Используйте фильтры, чтобы найти конкретное действие. Для расследований сохраняйте экспорт и прикладывайте в тикеты поддержки."
     >
       <Surface variant="soft" className="space-y-6 p-6">
         <div className="grid gap-4 lg:grid-cols-4">
           <Input
-            label="РџРѕРёСЃРє"
-            placeholder="РЎРѕР±С‹С‚РёРµ, СЂРµСЃСѓСЂСЃ РёР»Рё IP"
+            label="Поиск"
+            placeholder="Событие, ресурс или IP"
             value={filters.search}
             onChange={(event) => updateFilter('search', event.target.value)}
           />
@@ -322,10 +340,10 @@ export default function ManagementAudit() {
             onChange={(event) => updateFilter('module', event.target.value)}
             className="h-[58px]"
           >
-            <option value="">Р’СЃРµ РјРѕРґСѓР»Рё</option>
+            <option value="">Все модули</option>
             {moduleOptions.map((option) => (
               <option key={option} value={option}>
-                {option || 'вЂ”'}
+                {option || '—'}
               </option>
             ))}
           </Select>
@@ -334,7 +352,7 @@ export default function ManagementAudit() {
             onChange={(event) => updateFilter('action', event.target.value)}
             className="h-[58px]"
           >
-            <option value="">Р’СЃРµ РґРµР№СЃС‚РІРёСЏ</option>
+            <option value="">Все действия</option>
             {actionOptions.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -346,10 +364,10 @@ export default function ManagementAudit() {
             onChange={(event) => updateFilter('resourceType', event.target.value)}
             className="h-[58px]"
           >
-            <option value="">Р’СЃРµ СЂРµСЃСѓСЂСЃС‹</option>
+            <option value="">Все ресурсы</option>
             {resourceOptions.map((option) => (
               <option key={option} value={option}>
-                {option || 'вЂ”'}
+                {option || '—'}
               </option>
             ))}
           </Select>
@@ -366,8 +384,8 @@ export default function ManagementAudit() {
           </Select>
           <div className="relative">
             <Input
-              label="РђРєС‚РѕСЂ"
-              placeholder="email РёР»Рё ID"
+              label="Актор"
+              placeholder="email или ID"
               value={actorQuery}
               onChange={(event) => {
                 setActorQuery(event.target.value);
@@ -385,7 +403,7 @@ export default function ManagementAudit() {
                   setActorQuery('');
                 }}
               >
-                РћС‡РёСЃС‚РёС‚СЊ
+                Очистить
               </button>
             ) : null}
             {showUserOpts && userOpts.length > 0 ? (
@@ -413,13 +431,13 @@ export default function ManagementAudit() {
           </div>
           <Input
             type="datetime-local"
-            label="РћС‚"
+            label="От"
             value={filters.dateFrom}
             onChange={(event) => updateFilter('dateFrom', event.target.value)}
           />
           <Input
             type="datetime-local"
-            label="Р”Рѕ"
+            label="До"
             value={filters.dateTo}
             onChange={(event) => updateFilter('dateTo', event.target.value)}
           />
@@ -427,15 +445,15 @@ export default function ManagementAudit() {
 
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600 dark:text-dark-200">
           <span>
-            РџРѕРєР°Р·Р°РЅРѕ {currentCount} СЃРѕР±С‹С‚РёР№ РЅР° СЃС‚СЂР°РЅРёС†Рµ.
-            {hasNext ? ' Р”РѕСЃС‚СѓРїРЅС‹ СЃР»РµРґСѓСЋС‰РёРµ СЃС‚СЂР°РЅРёС†С‹.' : ''}
+            Показано {currentCount} событий на странице.
+            {hasNext ? ' Доступны следующие страницы.' : ''}
           </span>
           <div className="flex items-center gap-2">
             <Button variant="ghost" color="neutral" size="sm" onClick={handleReset}>
-              РЎР±СЂРѕСЃРёС‚СЊ С„РёР»СЊС‚СЂС‹
+              Сбросить фильтры
             </Button>
             <Button variant="outlined" color="primary" size="sm" onClick={handleRefresh} disabled={loading}>
-              РћР±РЅРѕРІРёС‚СЊ
+              Обновить
             </Button>
           </div>
         </div>
@@ -444,12 +462,12 @@ export default function ManagementAudit() {
           <Table.Table className="min-w-[960px]" hover>
             <Table.THead>
               <Table.TR>
-                <Table.TH className="w-48">Р’СЂРµРјСЏ</Table.TH>
-                <Table.TH>РњРѕРґСѓР»СЊ</Table.TH>
-                <Table.TH>Р”РµР№СЃС‚РІРёРµ</Table.TH>
-                <Table.TH>Р РµСЃСѓСЂСЃ</Table.TH>
-                <Table.TH>РђРєС‚РѕСЂ</Table.TH>
-                <Table.TH className="w-28">Р РµР·СѓР»СЊС‚Р°С‚</Table.TH>
+                <Table.TH className="w-48">Время</Table.TH>
+                <Table.TH>Модуль</Table.TH>
+                <Table.TH>Действие</Table.TH>
+                <Table.TH>Ресурс</Table.TH>
+                <Table.TH>Актор</Table.TH>
+                <Table.TH className="w-28">Результат</Table.TH>
               </Table.TR>
             </Table.THead>
             <Table.TBody>
@@ -457,7 +475,7 @@ export default function ManagementAudit() {
                 <Table.TR>
                   <Table.TD colSpan={6} className="py-6 text-center text-sm text-gray-500">
                     <div className="inline-flex items-center gap-3">
-                      <Spinner size="sm" /> Р—Р°РіСЂСѓР·РєР° СЃРѕР±С‹С‚РёР№...
+                      <Spinner size="sm" /> Загрузка событий...
                     </div>
                   </Table.TD>
                 </Table.TR>
@@ -472,14 +490,14 @@ export default function ManagementAudit() {
               {!loading && !error && items.length === 0 ? (
                 <Table.TR>
                   <Table.TD colSpan={6} className="py-6 text-center text-sm text-gray-500">
-                    РќРµС‚ СЃРѕР±С‹С‚РёР№ РґР»СЏ РІС‹Р±СЂР°РЅРЅС‹С… С„РёР»СЊС‚СЂРѕРІ.
+                    Нет событий для выбранных фильтров.
                   </Table.TD>
                 </Table.TR>
               ) : null}
               {items.map((item, index) => {
                 const rowId = item.id || `row-${index}`;
                 const badge = getResultBadge(item.meta?.result);
-                const module = item.meta?.module || 'вЂ”';
+                const module = item.meta?.module || '—';
                 const verb = item.meta?.verb || '';
                 const resourceLabel = item.meta?.resource_label || [item.resource_type, item.resource_id].filter(Boolean).join(':');
                 return (
@@ -490,9 +508,9 @@ export default function ManagementAudit() {
                     >
                       <Table.TD className="text-xs text-gray-500 dark:text-dark-200">{formatDateTime(item.created_at)}</Table.TD>
                       <Table.TD className="text-sm font-medium text-gray-700 dark:text-white">{module}</Table.TD>
-                      <Table.TD className="text-sm text-gray-700 dark:text-dark-100">{item.action || verb || 'вЂ”'}</Table.TD>
-                      <Table.TD className="text-sm text-gray-600 dark:text-dark-100">{resourceLabel || 'вЂ”'}</Table.TD>
-                      <Table.TD className="text-sm text-gray-600 dark:text-dark-100">{item.actor_id || 'вЂ”'}</Table.TD>
+                      <Table.TD className="text-sm text-gray-700 dark:text-dark-100">{item.action || verb || '—'}</Table.TD>
+                      <Table.TD className="text-sm text-gray-600 dark:text-dark-100">{resourceLabel || '—'}</Table.TD>
+                      <Table.TD className="text-sm text-gray-600 dark:text-dark-100">{item.actor_id || '—'}</Table.TD>
                       <Table.TD>
                         <Badge color={badge.color} variant="soft" className="uppercase tracking-wide">
                           {badge.label}
@@ -504,40 +522,40 @@ export default function ManagementAudit() {
                         <Table.TD colSpan={6} className="bg-gray-50/70 px-6 py-4 text-xs text-gray-700 dark:bg-dark-800 dark:text-dark-100">
                           <div className="grid gap-4 md:grid-cols-2">
                             <div>
-                              <h4 className="mb-2 font-semibold text-gray-800 dark:text-white">РљРѕРЅС‚РµРєСЃС‚</h4>
+                              <h4 className="mb-2 font-semibold text-gray-800 dark:text-white">Контекст</h4>
                               <dl className="grid gap-2">
                                 <div className="flex justify-between gap-2">
                                   <dt className="text-gray-500 dark:text-dark-200">IP</dt>
-                                  <dd>{item.ip || 'вЂ”'}</dd>
+                                  <dd>{item.ip || '—'}</dd>
                                 </div>
                                 <div className="flex justify-between gap-2">
                                   <dt className="text-gray-500 dark:text-dark-200">User agent</dt>
                                   <dd className="truncate" title={item.user_agent || undefined}>
-                                    {item.user_agent || 'вЂ”'}
+                                    {item.user_agent || '—'}
                                   </dd>
                                 </div>
                                 <div className="flex justify-between gap-2">
-                                  <dt className="text-gray-500 dark:text-dark-200">РџСЂРёС‡РёРЅР°</dt>
-                                  <dd>{item.reason || (typeof item.extra === 'object' && (item.extra as any)?.reason) || 'вЂ”'}</dd>
+                                  <dt className="text-gray-500 dark:text-dark-200">Причина</dt>
+                                  <dd>{item.reason || (typeof item.extra === 'object' && (item.extra as any)?.reason) || '—'}</dd>
                                 </div>
                               </dl>
                             </div>
                             <div>
-                              <h4 className="mb-2 font-semibold text-gray-800 dark:text-white">Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕ</h4>
+                              <h4 className="mb-2 font-semibold text-gray-800 dark:text-white">Дополнительно</h4>
                               <pre className="max-h-48 overflow-auto rounded-lg bg-white/80 p-3 text-[11px] leading-relaxed text-gray-800 shadow-inner dark:bg-dark-900 dark:text-dark-50">
-                                {prettyJson(item.extra) || 'вЂ”'}
+                                {prettyJson(item.extra) || '—'}
                               </pre>
                             </div>
                             <div>
-                              <h4 className="mb-2 font-semibold text-gray-800 dark:text-white">Р‘С‹Р»Рѕ</h4>
+                              <h4 className="mb-2 font-semibold text-gray-800 dark:text-white">Было</h4>
                               <pre className="max-h-48 overflow-auto rounded-lg bg-white/80 p-3 text-[11px] leading-relaxed text-gray-800 shadow-inner dark:bg-dark-900 dark:text-dark-50">
-                                {prettyJson(item.before) || 'вЂ”'}
+                                {prettyJson(item.before) || '—'}
                               </pre>
                             </div>
                             <div>
-                              <h4 className="mb-2 font-semibold text-gray-800 dark:text-white">РЎС‚Р°Р»Рѕ</h4>
+                              <h4 className="mb-2 font-semibold text-gray-800 dark:text-white">Стало</h4>
                               <pre className="max-h-48 overflow-auto rounded-lg bg-white/80 p-3 text-[11px] leading-relaxed text-gray-800 shadow-inner dark:bg-dark-900 dark:text-dark-50">
-                                {prettyJson(item.after) || 'вЂ”'}
+                                {prettyJson(item.after) || '—'}
                               </pre>
                             </div>
                           </div>
@@ -569,30 +587,30 @@ export default function ManagementAudit() {
       <Card className="space-y-6 p-6">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
           <AlertTriangle className="h-5 w-5 text-primary-500" />
-          РЎРІРѕРґРєР° РїРѕ СЃРѕР±С‹С‚РёСЏРј
+          Сводка по событиям
         </div>
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">РњРѕРґСѓР»Рё</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Модули</h4>
             {topEntries(data?.facets?.modules).length === 0 ? (
               <div className="rounded-lg border border-dashed border-gray-200 px-3 py-3 text-xs text-gray-500 dark:border-dark-600 dark:text-dark-200">
-                Р”РµС‚Р°Р»РёР·Р°С†РёСЏ РїРѕСЏРІРёС‚СЃСЏ РїРѕСЃР»Рµ РїРµСЂРІС‹С… СЃРѕР±С‹С‚РёР№.
+                Детализация появится после первых событий.
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {topEntries(data?.facets?.modules).map(([module, count]) => (
                   <Badge key={module} color="neutral" variant="soft">
-                    {module || 'вЂ”'} В· {count}
+                    {module || '—'} · {count}
                   </Badge>
                 ))}
               </div>
             )}
           </div>
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Р РµР·СѓР»СЊС‚Р°С‚С‹</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Результаты</h4>
             {topEntries(data?.facets?.results).length === 0 ? (
               <div className="rounded-lg border border-dashed border-gray-200 px-3 py-3 text-xs text-gray-500 dark:border-dark-600 dark:text-dark-200">
-                Р‘СѓРґСѓС‚ РґРѕСЃС‚СѓРїРЅС‹ РїРѕСЃР»Рµ Р·Р°РіСЂСѓР·РєРё СЃРѕР±С‹С‚РёР№.
+                Будут доступны после загрузки событий.
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -600,7 +618,7 @@ export default function ManagementAudit() {
                   const badge = getResultBadge(result);
                   return (
                     <Badge key={result} color={badge.color} variant="soft">
-                      {badge.label} В· {count}
+                      {badge.label} · {count}
                     </Badge>
                   );
                 })}

@@ -17,20 +17,18 @@ def _safe_iso(value: Any) -> str | None:
     if value is None:
         return None
     if hasattr(value, "isoformat"):
+        iso_fn = value.isoformat  # type: ignore[attr-defined]
         try:
-            return value.isoformat()  # type: ignore[attr-defined]
-        except Exception:  # pragma: no cover - defensive
+            return iso_fn()  # type: ignore[misc]
+        except (TypeError, ValueError):  # pragma: no cover - defensive
             return str(value)
-    try:
-        return str(value)
-    except Exception:  # pragma: no cover - defensive
-        return None
+    return str(value)
 
 
 def _as_float(value: Any) -> float | None:
     try:
         return float(value) if value is not None else None
-    except Exception:
+    except (TypeError, ValueError):
         return None
 
 
@@ -45,7 +43,9 @@ class AdminService:
         settings = self.settings
         return {
             "env": settings.env,
-            "database_url": (str(settings.database_url) if settings.database_url else None),
+            "database_url": (
+                str(settings.database_url) if settings.database_url else None
+            ),
             "redis_url": str(settings.redis_url) if settings.redis_url else None,
             "event_topics": settings.event_topics,
             "event_group": settings.event_group,
@@ -54,7 +54,9 @@ class AdminService:
     def get_integrations(self) -> dict[str, Any]:
         settings = self.settings
         topics_raw = (
-            getattr(settings, "notify_topics", None) or getattr(settings, "event_topics", "") or ""
+            getattr(settings, "notify_topics", None)
+            or getattr(settings, "event_topics", "")
+            or ""
         )
         topics = [t.strip() for t in str(topics_raw).split(",") if t.strip()]
         slack_configured = bool(getattr(settings, "notify_webhook_url", None))
@@ -73,7 +75,9 @@ class AdminService:
             email_hint = "SMTP is configured. Monitor send failures and rate limits."
         else:
             email_status = "disconnected"
-            email_hint = "SMTP host is not configured. Notifications will not be delivered."
+            email_hint = (
+                "SMTP host is not configured. Notifications will not be delivered."
+            )
 
         return {
             "collected_at": datetime.now(UTC).isoformat(),
@@ -126,7 +130,9 @@ class AdminService:
         worker_signals, worker_summary = self.metrics_probe.worker_signals(
             _safe_iso(collected_at) or ""
         )
-        llm_signals, llm_summary = self.metrics_probe.llm_signals(_safe_iso(collected_at) or "")
+        llm_signals, llm_summary = self.metrics_probe.llm_signals(
+            _safe_iso(collected_at) or ""
+        )
         incidents = await self._collect_incident_data()
 
         signals = {
@@ -254,7 +260,9 @@ class AdminService:
         runbooks = getattr(settings, "system_runbooks_url", None)
         if runbooks:
             links["runbooks"] = str(runbooks)
-        links["alerts_channel"] = "https://slack.com/app_redirect?channel=platform-admin"
+        links["alerts_channel"] = (
+            "https://slack.com/app_redirect?channel=platform-admin"
+        )
         return links
 
 

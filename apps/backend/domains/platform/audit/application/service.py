@@ -31,7 +31,7 @@ class AuditService:
         elif isinstance(actor_id, str) and actor_id:
             try:
                 normalized_actor_id = UUID(actor_id)
-            except Exception:
+            except ValueError:
                 normalized_actor_id = None
         extras = {"reason": reason} if reason else (extra or None)
         entry = AuditEntry(

@@ -42,12 +42,16 @@ def _parse_vector(value) -> list[float] | None:
             if not stripped:
                 vec = []
             else:
-                parts = [p.strip() for p in stripped.replace(";", ",").split(",") if p.strip()]
+                parts = [
+                    p.strip()
+                    for p in stripped.replace(";", ",").split(",")
+                    if p.strip()
+                ]
                 vec = [float(p) for p in parts]
         else:
             try:
                 vec = [float(value)]
-            except Exception:
+            except (TypeError, ValueError):
                 return None
     target = _VECTOR_DIM
     if target and len(vec) > target:
@@ -63,11 +67,13 @@ _DATETIME_FMT = 'YYYY-MM-DD""T""HH24:MI:SS""Z""'
 _VECTOR_DIM_DEFAULT = 1536
 try:
     _VECTOR_DIM = int(
-        os.getenv("EMBEDDING_DIM") or os.getenv("APP_EMBEDDING_DIM") or _VECTOR_DIM_DEFAULT
+        os.getenv("EMBEDDING_DIM")
+        or os.getenv("APP_EMBEDDING_DIM")
+        or _VECTOR_DIM_DEFAULT
     )
     if _VECTOR_DIM <= 0:
         _VECTOR_DIM = _VECTOR_DIM_DEFAULT
-except Exception:
+except (TypeError, ValueError):
     _VECTOR_DIM = _VECTOR_DIM_DEFAULT
 _VECTOR_SQL_TYPE = f"vector({_VECTOR_DIM})"
 
@@ -272,7 +278,9 @@ class SQLNodesRepo(Repo):
             raise ValueError("node not found")
         return got
 
-    def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0) -> list[NodeDTO]:
+    def list_by_author(
+        self, author_id: str, *, limit: int = 50, offset: int = 0
+    ) -> list[NodeDTO]:
         import asyncio
 
         async def _run() -> list[NodeDTO]:
@@ -312,7 +320,10 @@ class SQLNodesRepo(Repo):
                 )
                 node_ids = [int(row["id"]) for row in rows]
                 tags_map = await self._load_tags(conn, node_ids)
-                return [self._row_to_dto(row, tags_map.get(int(row["id"]), [])) for row in rows]
+                return [
+                    self._row_to_dto(row, tags_map.get(int(row["id"]), []))
+                    for row in rows
+                ]
 
         try:
             asyncio.get_running_loop()
@@ -360,7 +371,9 @@ class SQLNodesRepo(Repo):
             )
             node_ids = [int(row["id"]) for row in rows]
             tags_map = await self._load_tags(conn, node_ids)
-            return [self._row_to_dto(row, tags_map.get(int(row["id"]), [])) for row in rows]
+            return [
+                self._row_to_dto(row, tags_map.get(int(row["id"]), [])) for row in rows
+            ]
 
     async def update(
         self,
@@ -422,10 +435,7 @@ class SQLNodesRepo(Repo):
                 ),
                 {"id": int(node_id)},
             )
-            try:
-                affected = res.rowcount  # type: ignore[attr-defined]
-            except Exception:
-                affected = None
+            affected = getattr(res, "rowcount", None)  # type: ignore[attr-defined]
         return bool(affected and affected > 0)
 
     async def _araw_get(self, node_id: int) -> NodeDTO | None:

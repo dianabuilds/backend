@@ -1,5 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
+import logging
 from dataclasses import asdict
 from typing import Any
 
@@ -7,8 +8,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 try:
     from prometheus_client import Counter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     Counter = None  # type: ignore
+
+logger = logging.getLogger(__name__)
 
 QUOTA_HIT = (
     Counter("quota_hit_total", "Total quota rejections", labelnames=("key", "scope"))
@@ -18,7 +21,7 @@ QUOTA_HIT = (
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 from apps.backend import get_container
@@ -33,7 +36,9 @@ def make_router() -> APIRouter:
     @router.post(
         "/consume",
         response_model=QuotaConsumeOut,
-        dependencies=([Depends(RateLimiter(times=120, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=120, seconds=60))] if RateLimiter else []
+        ),
     )
     async def consume(
         req: Request, body: QuotaConsumeIn, _admin: None = Depends(require_admin)
@@ -48,12 +53,19 @@ def make_router() -> APIRouter:
         )
         out = asdict(res)
         if not res.allowed:
-            try:
-                if QUOTA_HIT is not None:
+            if QUOTA_HIT is not None:
+                try:
                     QUOTA_HIT.labels(key=body.key, scope=body.scope).inc()
-            except Exception:
-                pass
-            raise HTTPException(status_code=429, detail={"code": "QUOTA_EXCEEDED", **out})
+                except (ValueError, RuntimeError) as exc:
+                    logger.debug(
+                        "quota metrics increment failed for key=%s scope=%s: %s",
+                        body.key,
+                        body.scope,
+                        exc,
+                    )
+            raise HTTPException(
+                status_code=429, detail={"code": "QUOTA_EXCEEDED", **out}
+            )
         return out
 
     return router

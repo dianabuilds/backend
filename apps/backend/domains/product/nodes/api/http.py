@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import logging
 import uuid as _uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import ValidationError
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, get_current_user
 from packages.core.config import to_async_dsn
 from packages.core.db import get_async_engine
+
+logger = logging.getLogger(__name__)
 
 
 def make_router() -> APIRouter:
@@ -18,13 +23,17 @@ def make_router() -> APIRouter:
     async def _ensure_engine(container) -> AsyncEngine | None:
         try:
             dsn = to_async_dsn(container.settings.database_url)
-            if not dsn:
-                return None
-            # Strip query params to avoid client unsupported params
-            if "?" in dsn:
-                dsn = dsn.split("?", 1)[0]
+        except (ValidationError, ValueError, TypeError) as exc:
+            logger.warning("nodes api invalid database configuration", exc_info=exc)
+            return None
+        if not dsn:
+            return None
+        if "?" in dsn:
+            dsn = dsn.split("?", 1)[0]
+        try:
             return get_async_engine("nodes-api", url=dsn, future=True)
-        except Exception:
+        except SQLAlchemyError as exc:
+            logger.error("nodes api failed to create engine", exc_info=exc)
             return None
 
     async def _resolve_node_ref(node_ref: str, svc):
@@ -33,19 +42,23 @@ def make_router() -> APIRouter:
         maybe_id: int | None = None
         try:
             maybe_id = int(node_ref)
-        except Exception:
+        except (TypeError, ValueError):
             maybe_id = None
         if maybe_id is not None:
             dto = await svc._repo_get_async(maybe_id)
             if dto is not None:
-                resolved_id = int(dto.id)
-                view = svc._to_view(dto)
+                try:
+                    resolved_id = int(dto.id)
+                except (TypeError, ValueError):
+                    resolved_id = None
+                else:
+                    view = svc._to_view(dto)
         if view is None:
             dto = await svc._repo_get_by_slug_async(str(node_ref))
             if dto is not None:
                 try:
                     resolved_id = int(dto.id)
-                except Exception:
+                except (TypeError, ValueError):
                     resolved_id = None
                 view = svc._to_view(dto)
         return view, resolved_id
@@ -157,7 +170,7 @@ def make_router() -> APIRouter:
         try:
             _uuid.UUID(sub)
             uid = sub
-        except Exception:
+        except (ValueError, TypeError):
             uid = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{sub}")) if sub else ""
         if not uid:
             raise HTTPException(status_code=401, detail="unauthorized")
@@ -281,7 +294,7 @@ def make_router() -> APIRouter:
         uid = str(claims.get("sub") or "") if claims else ""
         try:
             _uuid.UUID(uid)
-        except Exception:
+        except (ValueError, TypeError):
             uid = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{uid}")) if uid else ""
         if not uid:
             raise HTTPException(status_code=401, detail="unauthorized")
@@ -322,7 +335,7 @@ def make_router() -> APIRouter:
         uid = str(claims.get("sub") or "") if claims else ""
         try:
             _uuid.UUID(uid)
-        except Exception:
+        except (ValueError, TypeError):
             uid = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{uid}")) if uid else ""
         if not uid:
             raise HTTPException(status_code=401, detail="unauthorized")
@@ -339,7 +352,11 @@ def make_router() -> APIRouter:
         if filters is not None and not isinstance(filters, dict):
             raise HTTPException(status_code=400, detail="filters_invalid")
         if filters:
-            if "q" in filters and filters["q"] is not None and not isinstance(filters["q"], str):
+            if (
+                "q" in filters
+                and filters["q"] is not None
+                and not isinstance(filters["q"], str)
+            ):
                 raise HTTPException(status_code=400, detail="filters_q_invalid")
             if (
                 "slug" in filters
@@ -358,14 +375,18 @@ def make_router() -> APIRouter:
                     "archived",
                     "deleted",
                 ):
-                    raise HTTPException(status_code=400, detail="filters_status_invalid")
+                    raise HTTPException(
+                        status_code=400, detail="filters_status_invalid"
+                    )
         if "pageSize" in config and config["pageSize"] is not None:
             try:
                 ps = int(config["pageSize"])
                 if ps < 5 or ps > 200:
                     raise ValueError
-            except Exception:
-                raise HTTPException(status_code=400, detail="pageSize_invalid") from None
+            except (TypeError, ValueError):
+                raise HTTPException(
+                    status_code=400, detail="pageSize_invalid"
+                ) from None
         if "sort" in config and config["sort"] is not None:
             s = str(config["sort"]).lower()
             if s not in ("updated_at", "title", "author", "status"):
@@ -411,7 +432,7 @@ def make_router() -> APIRouter:
         uid = str(claims.get("sub") or "") if claims else ""
         try:
             _uuid.UUID(uid)
-        except Exception:
+        except (ValueError, TypeError):
             uid = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{uid}")) if uid else ""
         if not uid:
             raise HTTPException(status_code=401, detail="unauthorized")
@@ -438,7 +459,7 @@ def make_router() -> APIRouter:
         uid = str(claims.get("sub") or "") if claims else ""
         try:
             _uuid.UUID(uid)
-        except Exception:
+        except (ValueError, TypeError):
             uid = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{uid}")) if uid else ""
         if not uid:
             raise HTTPException(status_code=401, detail="unauthorized")

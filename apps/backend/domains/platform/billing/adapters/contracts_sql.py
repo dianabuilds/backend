@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.billing.ports import ContractsRepo
@@ -13,11 +15,15 @@ from packages.core.db import get_async_engine
 
 from .dsn_utils import normalize_async_dsn
 
+logger = logging.getLogger(__name__)
+
 
 class SQLContractsRepo(ContractsRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         if isinstance(engine, str):
-            self._engine = get_async_engine("billing-contracts", url=normalize_async_dsn(engine))
+            self._engine = get_async_engine(
+                "billing-contracts", url=normalize_async_dsn(engine)
+            )
         else:
             self._engine = engine
 
@@ -33,7 +39,8 @@ class SQLContractsRepo(ContractsRepo):
         async with self._engine.begin() as conn:
             try:
                 rows = (await conn.execute(sql)).mappings().all()
-            except Exception:
+            except SQLAlchemyError as exc:
+                logger.warning("Failed to list payment contracts: %s", exc)
                 return []
             out: JsonDictList = []
             for r in rows:
@@ -48,7 +55,9 @@ class SQLContractsRepo(ContractsRepo):
                         "enabled": bool(r["enabled"]),
                         "status": r["status"],
                         "testnet": bool(r["testnet"]),
-                        "methods": (dict(r["methods"]) if r["methods"] is not None else None),
+                        "methods": (
+                            dict(r["methods"]) if r["methods"] is not None else None
+                        ),
                         "abi_present": bool(r["abi_present"]),
                         "webhook_url": r["webhook_url"],
                         "created_at": r["created_at"],
@@ -187,7 +196,9 @@ class SQLContractsRepo(ContractsRepo):
                 "updated_at": r["updated_at"],
             }
 
-    async def list_events(self, id_or_slug: str | None, limit: int = 100) -> JsonDictList:
+    async def list_events(
+        self, id_or_slug: str | None, limit: int = 100
+    ) -> JsonDictList:
         if id_or_slug:
             sql = text(
                 """
@@ -212,7 +223,8 @@ class SQLContractsRepo(ContractsRepo):
         async with self._engine.begin() as conn:
             try:
                 rows = (await conn.execute(sql, params)).mappings().all()
-            except Exception:
+            except SQLAlchemyError as exc:
+                logger.warning("Failed to list payment contract events: %s", exc)
                 return []
             out: JsonDictList = []
             for r in rows:
@@ -242,7 +254,9 @@ class SQLContractsRepo(ContractsRepo):
         async with self._engine.begin() as conn:
             await conn.execute(sql, e)
 
-    async def metrics_methods(self, id_or_slug: str | None, window: int = 1000) -> JsonDictList:
+    async def metrics_methods(
+        self, id_or_slug: str | None, window: int = 1000
+    ) -> JsonDictList:
         if id_or_slug:
             sql = text(
                 """
@@ -263,11 +277,14 @@ class SQLContractsRepo(ContractsRepo):
         async with self._engine.begin() as conn:
             try:
                 rows = (await conn.execute(sql, params)).mappings().all()
-            except Exception:
+            except SQLAlchemyError as exc:
+                logger.warning("Failed to fetch contract method metrics: %s", exc)
                 return []
             return [{"method": r["method"], "calls": int(r["calls"])} for r in rows]
 
-    async def metrics_methods_ts(self, id_or_slug: str | None, days: int = 30) -> JsonDictList:
+    async def metrics_methods_ts(
+        self, id_or_slug: str | None, days: int = 30
+    ) -> JsonDictList:
         if id_or_slug:
             sql = text(
                 """
@@ -294,7 +311,10 @@ class SQLContractsRepo(ContractsRepo):
         async with self._engine.begin() as conn:
             try:
                 rows = (await conn.execute(sql, params)).mappings().all()
-            except Exception:
+            except SQLAlchemyError as exc:
+                logger.warning(
+                    "Failed to fetch contract method time-series metrics: %s", exc
+                )
                 return []
             return [
                 {
@@ -305,7 +325,9 @@ class SQLContractsRepo(ContractsRepo):
                 for r in rows
             ]
 
-    async def metrics_volume_ts(self, id_or_slug: str | None, days: int = 30) -> JsonDictList:
+    async def metrics_volume_ts(
+        self, id_or_slug: str | None, days: int = 30
+    ) -> JsonDictList:
         if id_or_slug:
             sql = text(
                 """
@@ -332,7 +354,10 @@ class SQLContractsRepo(ContractsRepo):
         async with self._engine.begin() as conn:
             try:
                 rows = (await conn.execute(sql, params)).mappings().all()
-            except Exception:
+            except SQLAlchemyError as exc:
+                logger.warning(
+                    "Failed to fetch contract volume time-series metrics: %s", exc
+                )
                 return []
             return [
                 {

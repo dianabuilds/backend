@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import Integer, String, bindparam, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.tags.application.admin_ports import AdminRepo
@@ -45,7 +46,9 @@ class SQLAdminRepo(AdminRepo):
             # Fall back to an obviously missing table to surface error early
             self._tbl_tag = "tag"
         # Optional tables
-        self._tbl_usage = "tag_usage_counters" if "tag_usage_counters" in names else None
+        self._tbl_usage = (
+            "tag_usage_counters" if "tag_usage_counters" in names else None
+        )
         self._tbl_alias = "tag_alias" if "tag_alias" in names else None
 
     async def _exists_tag(self, tag_id: str) -> bool:
@@ -196,8 +199,8 @@ class SQLAdminRepo(AdminRepo):
                         .mappings()
                         .first()
                     )
-                except Exception as e:  # unique violation
-                    raise ValueError("alias_conflict") from e
+                except IntegrityError as exc:
+                    raise ValueError("alias_conflict") from exc
                 assert r is not None
                 return AliasView(
                     id=str(r["id"]),
@@ -224,7 +227,9 @@ class SQLAdminRepo(AdminRepo):
         async def _run() -> list[BlacklistItem]:
             base = "SELECT slug, reason, created_at FROM tag_blacklist"
             if q:
-                sql = text(base + " WHERE slug ILIKE '%' || :q || '%' ORDER BY created_at DESC")
+                sql = text(
+                    base + " WHERE slug ILIKE '%' || :q || '%' ORDER BY created_at DESC"
+                )
                 params = {"q": q}
             else:
                 sql = text(base + " ORDER BY created_at DESC")
@@ -253,7 +258,11 @@ class SQLAdminRepo(AdminRepo):
                 """
             )
             async with self._engine.begin() as conn:
-                r = (await conn.execute(sql, {"slug": slug, "reason": reason})).mappings().first()
+                r = (
+                    (await conn.execute(sql, {"slug": slug, "reason": reason}))
+                    .mappings()
+                    .first()
+                )
                 assert r is not None
                 return BlacklistItem(
                     slug=str(r["slug"]), reason=r["reason"], created_at=r["created_at"]
@@ -279,7 +288,11 @@ class SQLAdminRepo(AdminRepo):
                 """
             )
             async with self._engine.begin() as conn:
-                r = (await conn.execute(sql, {"slug": slug, "name": name})).mappings().first()
+                r = (
+                    (await conn.execute(sql, {"slug": slug, "name": name}))
+                    .mappings()
+                    .first()
+                )
                 if r is None:
                     # slug conflict
                     raise ValueError("conflict")
@@ -287,7 +300,9 @@ class SQLAdminRepo(AdminRepo):
                 sql2 = text(
                     "SELECT COALESCE(SUM(count),0)::int AS c FROM tag_usage_counters WHERE slug = :slug"
                 )
-                usage_row = (await conn.execute(sql2, {"slug": slug})).mappings().first()
+                usage_row = (
+                    (await conn.execute(sql2, {"slug": slug})).mappings().first()
+                )
                 usage = int(usage_row["c"]) if usage_row else 0
                 return TagListItem(
                     id=str(r["id"]),
@@ -318,7 +333,9 @@ class SQLAdminRepo(AdminRepo):
                 if not r:
                     return
                 slug = str(r["slug"])
-                await conn.execute(text("DELETE FROM tag WHERE id = :id"), {"id": tag_id})
+                await conn.execute(
+                    text("DELETE FROM tag WHERE id = :id"), {"id": tag_id}
+                )
                 await conn.execute(
                     text("DELETE FROM tag_usage_counters WHERE slug = :slug"),
                     {"slug": slug},
@@ -326,7 +343,9 @@ class SQLAdminRepo(AdminRepo):
 
         run_sync(_run())
 
-    async def _merge_dry_run(self, from_id: str, to_id: str, content_type: str | None) -> dict:
+    async def _merge_dry_run(
+        self, from_id: str, to_id: str, content_type: str | None
+    ) -> dict:
         sql = text("SELECT id, slug, name FROM tag WHERE id = :id")
         async with self._engine.begin() as conn:
             f = (await conn.execute(sql, {"id": from_id})).mappings().first()
@@ -337,14 +356,20 @@ class SQLAdminRepo(AdminRepo):
                 "SELECT COALESCE(SUM(count),0)::int AS c FROM tag_usage_counters WHERE slug = :slug AND (:ctype IS NULL OR content_type = :ctype)"
             )
             usage_row = (
-                (await conn.execute(cnt_sql, {"slug": f["slug"], "ctype": content_type}))
+                (
+                    await conn.execute(
+                        cnt_sql, {"slug": f["slug"], "ctype": content_type}
+                    )
+                )
                 .mappings()
                 .first()
             )
             aliases_row = (
                 (
                     await conn.execute(
-                        text("SELECT COUNT(*)::int AS n FROM tag_alias WHERE tag_id = :tid"),
+                        text(
+                            "SELECT COUNT(*)::int AS n FROM tag_alias WHERE tag_id = :tid"
+                        ),
                         {"tid": from_id},
                     )
                 )
@@ -371,7 +396,9 @@ class SQLAdminRepo(AdminRepo):
                 "errors": [],
             }
 
-    def merge_dry_run(self, from_id: str, to_id: str, content_type: str | None = None) -> dict:
+    def merge_dry_run(
+        self, from_id: str, to_id: str, content_type: str | None = None
+    ) -> dict:
         return run_sync(self._merge_dry_run(from_id, to_id, content_type))
 
     def merge_apply(
@@ -436,7 +463,9 @@ class SQLAdminRepo(AdminRepo):
                     {"fslug": fslug},
                 )
                 # Delete old tag
-                await conn.execute(text("DELETE FROM tag WHERE id = :id"), {"id": from_id})
+                await conn.execute(
+                    text("DELETE FROM tag WHERE id = :id"), {"id": from_id}
+                )
             return report
 
         return run_sync(_run())

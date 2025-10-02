@@ -1,5 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
+import logging
 from typing import Any
 from uuid import UUID
 
@@ -7,6 +8,8 @@ from domains.platform.telemetry.domain.audit import AuditEntry
 from domains.platform.telemetry.ports.audit_port import (
     IAuditLogRepository,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AuditService:
@@ -33,7 +36,12 @@ class AuditService:
         elif isinstance(actor_id, str) and actor_id:
             try:
                 normalized_actor_id = UUID(actor_id)
-            except Exception:
+            except (TypeError, ValueError) as exc:
+                logger.debug(
+                    "Failed to coerce actor_id %r to UUID: %s",
+                    actor_id,
+                    exc,
+                )
                 normalized_actor_id = None
 
         extras = {"reason": reason} if reason else (extra or None)

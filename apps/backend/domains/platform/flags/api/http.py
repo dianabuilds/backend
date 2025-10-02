@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -7,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 from apps.backend import get_container
@@ -17,6 +18,8 @@ from domains.platform.iam.security import (
     get_current_user,
     require_admin,
 )
+
+logger = logging.getLogger(__name__)
 
 _FEATURE_FLAGS = {
     "nodes": "content.nodes",
@@ -62,23 +65,32 @@ def make_router() -> APIRouter:
 
     @router.get(
         "",
-        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
     )
-    async def list_flags(req: Request, _admin: None = Depends(require_admin)) -> dict[str, Any]:
+    async def list_flags(
+        req: Request, _admin: None = Depends(require_admin)
+    ) -> dict[str, Any]:
         c = get_container(req)
         items = await c.flags.service.list()
         response: list[dict[str, Any]] = []
         for flag in items:
             try:
                 effective_value = bool(c.flags.service._eval_flag(flag, {}))
-            except Exception:
+            except (RuntimeError, ValueError) as exc:
+                logger.warning(
+                    "flag_eval_failed", extra={"slug": flag.slug}, exc_info=exc
+                )
                 effective_value = False
             response.append(_serialize_flag(flag, effective=effective_value))
         return {"items": response}
 
     @router.post(
         "",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def upsert_flag(
         req: Request,
@@ -97,13 +109,16 @@ def make_router() -> APIRouter:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         try:
             effective_value = bool(c.flags.service._eval_flag(flag, {}))
-        except Exception:
+        except (RuntimeError, ValueError) as exc:
+            logger.warning("flag_eval_failed", extra={"slug": flag.slug}, exc_info=exc)
             effective_value = False
         return {"flag": _serialize_flag(flag, effective=effective_value)}
 
     @router.delete(
         "/{slug}",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def delete_flag(
         req: Request,
@@ -126,7 +141,9 @@ def make_router() -> APIRouter:
     return router
 
 
-def _serialize_flag(flag: FeatureFlag, *, effective: bool | None = None) -> dict[str, Any]:
+def _serialize_flag(
+    flag: FeatureFlag, *, effective: bool | None = None
+) -> dict[str, Any]:
     return {
         "slug": flag.slug,
         "label": _feature_label(flag.slug),

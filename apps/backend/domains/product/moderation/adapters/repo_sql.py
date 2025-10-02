@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import uuid
@@ -24,12 +24,12 @@ def _ensure_dict(value: object) -> dict:
     if isinstance(value, (bytes, bytearray)):
         try:
             value = value.decode("utf-8")
-        except Exception:
+        except UnicodeDecodeError:
             return {}
     if isinstance(value, str):
         try:
             return dict(json.loads(value))
-        except Exception:
+        except (json.JSONDecodeError, TypeError, ValueError):
             return {}
     return {}
 
@@ -199,7 +199,9 @@ class SQLModerationRepo(Repo):
             assert row is not None
             return str(row["id"])
 
-    async def add_note(self, case_id: str, note: dict, *, author_id: str | None) -> dict | None:
+    async def add_note(
+        self, case_id: str, note: dict, *, author_id: str | None
+    ) -> dict | None:
         chk = text("SELECT 1 FROM moderation_cases WHERE id = cast(:id as uuid)")
         ins = text(
             "INSERT INTO moderation_notes(case_id, author_id, data) "
@@ -207,7 +209,8 @@ class SQLModerationRepo(Repo):
             "RETURNING id::text AS id, created_at, data"
         )
         touch = text(
-            "UPDATE moderation_cases SET updated_at = now() " "WHERE id = cast(:cid as uuid)"
+            "UPDATE moderation_cases SET updated_at = now() "
+            "WHERE id = cast(:cid as uuid)"
         )
         payload_json = json.dumps(dict(note))
         async with self._engine.begin() as conn:
@@ -303,7 +306,9 @@ class SQLModerationRepo(Repo):
     async def update_case(
         self, case_id: str, payload: dict, *, actor_id: str | None
     ) -> dict | None:
-        select_sql = text("SELECT data, status FROM moderation_cases WHERE id = cast(:id as uuid)")
+        select_sql = text(
+            "SELECT data, status FROM moderation_cases WHERE id = cast(:id as uuid)"
+        )
         async with self._engine.begin() as conn:
             row = (await conn.execute(select_sql, {"id": case_id})).mappings().first()
             if not row:

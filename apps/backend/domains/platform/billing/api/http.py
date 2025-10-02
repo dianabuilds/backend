@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from apps.backend import get_container
 from domains.platform.iam.security import (
@@ -15,6 +18,8 @@ from domains.platform.iam.security import (
     get_current_user,
     require_admin,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def make_router() -> APIRouter:
@@ -28,7 +33,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/checkout",
-        dependencies=([Depends(RateLimiter(times=5, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=5, seconds=60))] if RateLimiter else []
+        ),
     )
     async def checkout(
         req: Request,
@@ -53,7 +60,9 @@ def make_router() -> APIRouter:
         return await c.billing.service.handle_webhook(payload, x_signature)
 
     @router.get("/subscriptions/me")
-    async def my_subscription(req: Request, claims=Depends(get_current_user)) -> dict[str, Any]:
+    async def my_subscription(
+        req: Request, claims=Depends(get_current_user)
+    ) -> dict[str, Any]:
         c = get_container(req)
         user_id = str(claims.get("sub"))
         sub = await c.billing.service.get_subscription_for_user(user_id)
@@ -118,7 +127,13 @@ def make_router() -> APIRouter:
             if body.get("slug"):
                 before_obj = await c.billing.plans.get_by_slug(str(body.get("slug")))
                 before = before_obj.__dict__ if before_obj else None
-        except Exception:
+        except (SQLAlchemyError, RuntimeError, ValueError) as exc:
+            logger.warning(
+                "Failed to load plan '%s' before update: %s",
+                body.get("slug"),
+                exc,
+                exc_info=exc,
+            )
             before = None
         plan = await c.billing.plans.upsert(body)
         # audit log
@@ -132,8 +147,8 @@ def make_router() -> APIRouter:
                 after=plan.__dict__,
                 extra={"route": "/v1/billing/admin/plans"},
             )
-        except Exception:
-            pass
+        except (SQLAlchemyError, RuntimeError) as exc:
+            logger.warning("Failed to write plan audit log: %s", exc, exc_info=exc)
         return {"plan": plan.__dict__}
 
     @router.delete("/admin/plans/{plan_id}")
@@ -179,7 +194,8 @@ def make_router() -> APIRouter:
                 "currency": base.get("currency"),
                 "is_active": base.get("is_active", True),
                 "order": base.get("order", 100),
-                "monthly_limits": it.get("monthly_limits") or base.get("monthly_limits"),
+                "monthly_limits": it.get("monthly_limits")
+                or base.get("monthly_limits"),
                 "features": base.get("features"),
             }
             plan = await c.billing.plans.upsert(payload)
@@ -195,7 +211,8 @@ def make_router() -> APIRouter:
         filtered = [
             it
             for it in items
-            if (it or {}).get("resource_type") == "plan" and (it or {}).get("resource_id") in {slug}
+            if (it or {}).get("resource_type") == "plan"
+            and (it or {}).get("resource_id") in {slug}
         ]
         return {"items": filtered}
 
@@ -225,10 +242,19 @@ def make_router() -> APIRouter:
         # Link provider to contract via config field `linked_contract`
         lc = body.get("contract_slug") or body.get("linked_contract")
         if lc:
-            try:
-                cfg = dict(payload["config"]) if payload["config"] else {}
-            except Exception:
-                cfg = {}
+            cfg: dict[str, Any] = {}
+            existing_cfg = payload.get("config")
+            if existing_cfg:
+                try:
+                    cfg = dict(existing_cfg)
+                except (TypeError, ValueError) as exc:
+                    logger.warning(
+                        "Invalid provider config for %s: %s",
+                        payload.get("slug"),
+                        exc,
+                        exc_info=exc,
+                    )
+                    cfg = {}
             cfg["linked_contract"] = str(lc)
             payload["config"] = cfg
         item = await c.billing.gateways.upsert(payload)
@@ -353,19 +379,22 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
     ) -> dict[str, Any]:
         c = get_container(req)
-        methods = await c.billing.contracts.metrics_methods(id_or_slug, window=int(window))
+        methods = await c.billing.contracts.metrics_methods(
+            id_or_slug, window=int(window)
+        )
         return {"methods": methods}
 
     # KPIs
     @router.get("/admin/kpi")
-    async def admin_kpi(req: Request, _admin: None = Depends(require_admin)) -> dict[str, Any]:
+    async def admin_kpi(
+        req: Request, _admin: None = Depends(require_admin)
+    ) -> dict[str, Any]:
         c = get_container(req)
-        # Basic KPIs from ledger (best-effort on schema)
+        ok = err = vol = 0
         try:
             from sqlalchemy import text  # type: ignore
 
-            dsn = c.billing.plans._engine  # reuse engine via repo when possible
-            engine = dsn
+            engine = c.billing.plans._engine
             async with engine.begin() as conn:
                 s_ok = await conn.execute(
                     text(
@@ -385,9 +414,15 @@ def make_router() -> APIRouter:
                 ok = int((s_ok.mappings().first() or {}).get("n", 0))
                 err = int((s_err.mappings().first() or {}).get("n", 0))
                 vol = int((s_vol.mappings().first() or {}).get("v", 0))
-        except Exception:
-            ok = err = vol = 0
-        # Avg confirmation time (requires meta.confirmed_at; best effort)
+        except ImportError as exc:
+            logger.warning(
+                "SQLAlchemy not available for billing KPI: %s", exc, exc_info=exc
+            )
+        except (SQLAlchemyError, AttributeError) as exc:
+            logger.warning(
+                "Failed to compute billing KPI totals: %s", exc, exc_info=exc
+            )
+
         avg_confirm_ms = 0.0
         try:
             from sqlalchemy import text  # type: ignore
@@ -404,8 +439,16 @@ def make_router() -> APIRouter:
                 r = (await conn.execute(sql)).mappings().first()
                 if r and r.get("ms") is not None:
                     avg_confirm_ms = float(r.get("ms") or 0.0)
-        except Exception:
-            avg_confirm_ms = 0.0
+        except ImportError as exc:
+            logger.warning(
+                "SQLAlchemy not available for confirmation metrics: %s",
+                exc,
+                exc_info=exc,
+            )
+        except (SQLAlchemyError, AttributeError) as exc:
+            logger.warning(
+                "Failed to compute confirmation metrics: %s", exc, exc_info=exc
+            )
         return {
             "success": ok,
             "errors": err,
@@ -414,7 +457,9 @@ def make_router() -> APIRouter:
         }
 
     @router.get("/admin/metrics")
-    async def admin_metrics(req: Request, _admin: None = Depends(require_admin)) -> dict[str, Any]:
+    async def admin_metrics(
+        req: Request, _admin: None = Depends(require_admin)
+    ) -> dict[str, Any]:
         c = get_container(req)
         active_subs = 0
         mrr = 0.0
@@ -425,18 +470,18 @@ def make_router() -> APIRouter:
 
             engine = c.billing.plans._engine
             async with engine.begin() as conn:
-                # Active subs
                 r = (
                     (
                         await conn.execute(
-                            text("SELECT count(*) n FROM user_subscriptions WHERE status='active'")
+                            text(
+                                "SELECT count(*) n FROM user_subscriptions WHERE status='active'"
+                            )
                         )
                     )
                     .mappings()
                     .first()
                 )
                 active_subs = int((r or {}).get("n", 0))
-                # MRR: sum of active subs plan price normalized to month (assume features.interval in subscription_plans.features)
                 sql = text(
                     """
                     SELECT coalesce(sum(CASE WHEN (sp.features->>'interval') = 'year' THEN (sp.price_cents/12.0) ELSE sp.price_cents END),0) AS cents
@@ -449,15 +494,18 @@ def make_router() -> APIRouter:
                 mrr_cents = float((r2 or {}).get("cents", 0.0))
                 mrr = mrr_cents / 100.0
                 arpu = mrr / max(active_subs, 1)
-                # churn 30d: ended subs in last 30d over active subs + ended
                 sql_ch = text(
                     "SELECT count(*) n FROM user_subscriptions WHERE status!='active' AND updated_at >= now() - interval '30 days'"
                 )
                 r3 = (await conn.execute(sql_ch)).mappings().first()
                 ended = int((r3 or {}).get("n", 0))
                 churn_30d = ended / max(active_subs + ended, 1)
-        except Exception:
-            pass
+        except ImportError as exc:
+            logger.warning(
+                "SQLAlchemy not available for billing metrics: %s", exc, exc_info=exc
+            )
+        except (SQLAlchemyError, AttributeError) as exc:
+            logger.warning("Failed to compute billing metrics: %s", exc, exc_info=exc)
         return {
             "active_subs": active_subs,
             "mrr": mrr,
@@ -488,10 +536,19 @@ def make_router() -> APIRouter:
             async with engine.begin() as conn:
                 res = await conn.execute(sql, {"days": int(max(1, min(days, 365)))})
                 rows = [
-                    {"day": r[0].isoformat(), "amount": float(r[1] or 0.0) / 100.0} for r in res
+                    {"day": r[0].isoformat(), "amount": float(r[1] or 0.0) / 100.0}
+                    for r in res
                 ]
-        except Exception:
-            rows = []
+        except ImportError as exc:
+            logger.warning(
+                "SQLAlchemy not available for revenue time series: %s",
+                exc,
+                exc_info=exc,
+            )
+        except (SQLAlchemyError, AttributeError) as exc:
+            logger.warning(
+                "Failed to compute revenue time series: %s", exc, exc_info=exc
+            )
         return {"series": rows}
 
     # Crypto config (in-memory; persist later if needed)
@@ -515,9 +572,13 @@ def make_router() -> APIRouter:
         base = dict((base_row or {}).get("config") or {})
         base.update(
             {
-                "rpc_endpoints": body.get("rpc_endpoints") or base.get("rpc_endpoints") or {},
+                "rpc_endpoints": body.get("rpc_endpoints")
+                or base.get("rpc_endpoints")
+                or {},
                 "retries": (
-                    body.get("retries") if body.get("retries") is not None else base.get("retries")
+                    body.get("retries")
+                    if body.get("retries") is not None
+                    else base.get("retries")
                 ),
                 "gas_price_cap": (
                     body.get("gas_price_cap")
@@ -553,8 +614,8 @@ def make_router() -> APIRouter:
         # Accept JSON payload
         try:
             payload = await req.json()
-        except Exception as e:
-            raise HTTPException(status_code=400, detail="invalid_json") from e
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="invalid_json") from exc
         c = get_container(req)
         # Resolve contract: by slug or address
         ct = None
@@ -587,7 +648,9 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
     ) -> dict[str, Any]:
         c = get_container(req)
-        methods = await c.billing.contracts.metrics_methods_ts(id_or_slug, days=int(days))
+        methods = await c.billing.contracts.metrics_methods_ts(
+            id_or_slug, days=int(days)
+        )
         volume = await c.billing.contracts.metrics_volume_ts(id_or_slug, days=int(days))
         return {"methods": methods, "volume": volume}
 

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 from apps.backend import get_container
@@ -21,16 +21,20 @@ from domains.platform.telemetry.application.worker_metrics_service import worker
 
 try:
     from prometheus_client import REGISTRY  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     REGISTRY = None  # type: ignore
 
 
 def make_router() -> APIRouter:
-    router = APIRouter(prefix="/v1/admin/telemetry", tags=["admin-telemetry"])  # guarded per-route
+    router = APIRouter(
+        prefix="/v1/admin/telemetry", tags=["admin-telemetry"]
+    )  # guarded per-route
 
     @router.get(
         "/rum",
-        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
     )
     async def list_rum_events(
         req: Request,
@@ -47,7 +51,9 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/rum/summary",
-        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
     )
     async def rum_summary(
         req: Request,
@@ -88,9 +94,9 @@ def make_router() -> APIRouter:
                     method = s.labels.get("method", "GET")
                     path = s.labels.get("path", "unknown")
                     status = s.labels.get("status", "200")
-                    reqs[(method, path, status)] = reqs.get((method, path, status), 0.0) + float(
-                        s.value
-                    )
+                    reqs[(method, path, status)] = reqs.get(
+                        (method, path, status), 0.0
+                    ) + float(s.value)
             elif metric.name == "http_request_duration_ms":
                 for s in metric.samples:
                     if s.name.endswith("_sum"):

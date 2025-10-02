@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from domains.platform.billing.domain.models import Plan
 from domains.platform.billing.ports import (
@@ -20,6 +23,8 @@ class BillingService:
     ledger: LedgerRepo
     provider: PaymentProvider
 
+    _log = logging.getLogger(__name__)
+
     async def list_plans(self) -> list[Plan]:
         return await self.plans.list_active()
 
@@ -29,7 +34,9 @@ class BillingService:
             raise ValueError("plan_not_found")
         return await self.provider.checkout(user_id, plan)
 
-    async def handle_webhook(self, payload: bytes, signature: str | None) -> dict[str, Any]:
+    async def handle_webhook(
+        self, payload: bytes, signature: str | None
+    ) -> dict[str, Any]:
         ok = await self.provider.verify_webhook(payload, signature)
         if not ok:
             return {"ok": False}
@@ -72,10 +79,15 @@ class BillingService:
                 }
         return summary
 
-    async def get_history_for_user(self, user_id: str, limit: int = 20) -> dict[str, Any]:
+    async def get_history_for_user(
+        self, user_id: str, limit: int = 20
+    ) -> dict[str, Any]:
         try:
             rows = await self.ledger.list_for_user(user_id, limit=limit)
-        except Exception:
+        except (SQLAlchemyError, RuntimeError, ValueError) as exc:
+            self._log.warning(
+                "billing_history_unavailable", extra={"user_id": user_id}, exc_info=exc
+            )
             return {"items": [], "coming_soon": True}
         items: list[dict[str, Any]] = []
         for row in rows:

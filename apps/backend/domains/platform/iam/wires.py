@@ -14,9 +14,6 @@ from domains.platform.iam.adapters.nonce_store_redis import (
     RedisNonceStore,
 )
 from domains.platform.iam.adapters.token_jwt import JWTTokenAdapter
-from domains.platform.iam.adapters.token_simple import (
-    SimpleTokenAdapter,
-)
 from domains.platform.iam.adapters.verification_store_redis import (
     RedisVerificationStore,
 )
@@ -34,12 +31,8 @@ class IAMContainer:
 def build_container(settings: Settings | None = None) -> IAMContainer:
     s = settings or load_settings()
     client = redis.from_url(str(s.redis_url), decode_responses=True)
-    # Prefer JWT adapter; fall back to simple tokens if something goes wrong
-    tokens: TokenPort
-    try:
-        tokens = JWTTokenAdapter(s)
-    except Exception:
-        tokens = SimpleTokenAdapter()
+    # Prefer JWT adapter; simple tokens remain available for tests
+    tokens: TokenPort = JWTTokenAdapter(s)
     nonces = RedisNonceStore(client)
     verification = RedisVerificationStore(client)
     mail = EmailViaNotifications()

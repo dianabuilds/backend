@@ -6,9 +6,23 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+try:  # optional dependency
+    from redis.exceptions import RedisError  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover - optional
+    RedisError = Exception  # type: ignore[misc, assignment]
+
+
+try:  # optional dependency
+    from sqlalchemy.exc import SQLAlchemyError
+except ImportError:  # pragma: no cover - optional
+    SQLAlchemyError = Exception  # type: ignore[misc, assignment]
+
+
 from domains.platform.telemetry.ports.rum_port import IRumRepository
 
 log = logging.getLogger(__name__)
+
+_STORAGE_ERRORS = (RedisError, SQLAlchemyError, RuntimeError, ValueError)
 
 
 class RUMEvent(BaseModel):
@@ -24,16 +38,22 @@ class RumMetricsService:
 
     async def record(self, payload: dict[str, Any]) -> None:
         if self._repo is None:
+            log.debug("RUM repository not configured; dropping event payload")
             return
         try:
             event = RUMEvent.model_validate(payload)
-        except ValidationError:
-            log.warning("invalid RUM event payload: %s", payload)
+        except ValidationError as exc:
+            log.warning("Invalid RUM event payload %s: %s", payload, exc.errors())
             return
         try:
             await self._repo.add(event.model_dump())
-        except Exception:  # pragma: no cover - safety
-            log.exception("failed to store RUM event")
+        except _STORAGE_ERRORS as exc:  # pragma: no cover - backend failure
+            log.exception(
+                "Failed to store RUM event %s at %s: %s",
+                event.event,
+                event.url,
+                exc,
+            )
 
     async def list_events(
         self,

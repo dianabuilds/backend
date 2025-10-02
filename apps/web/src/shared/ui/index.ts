@@ -1,4 +1,4 @@
-// Curated UI primitives styled with template CSS classes
+﻿// Curated UI primitives styled with template CSS classes
 export { Button } from './primitives/Button';
 export { Card } from './primitives/Card';
 export { Checkbox } from './primitives/Checkbox';
@@ -37,3 +37,9 @@ export { Tabs } from './primitives/Tabs';
 export { Accordion } from './primitives/Accordion';
 
 export { TablePagination } from './table/TablePagination';
+export { Dialog } from './primitives/Dialog';
+export { ConfirmDialog } from './primitives/ConfirmDialog';
+export { PromptDialog } from './primitives/PromptDialog';
+export { ToastProvider } from './ToastProvider';
+export { useToast } from './useToast';
+export type { ToastIntent, ToastOptions, ToastContextValue } from './ToastContext';

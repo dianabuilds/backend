@@ -6,11 +6,14 @@ from datetime import UTC, datetime
 from typing import Any
 
 try:
-    import redis.asyncio as aioredis  # type: ignore
-    from redis.exceptions import RedisError  # type: ignore[import]
-except Exception:  # pragma: no cover - optional dependency
-    aioredis = None
-    RedisError = Exception  # type: ignore
+    import redis.asyncio as aioredis  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover - optional dependency
+    aioredis = None  # type: ignore[assignment]
+
+try:
+    from redis.exceptions import RedisError  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover - optional dependency
+    RedisError = Exception  # type: ignore[misc, assignment]
 
 
 @dataclass
@@ -64,10 +67,11 @@ class RedisProbe:
                 }
             )
         finally:
-            try:
-                await client.close()
-            except Exception:  # pragma: no cover - defensive
-                pass
+            if aioredis is not None:
+                try:
+                    await client.close()
+                except (RedisError, RuntimeError):  # pragma: no cover - defensive
+                    pass
         return signal
 
 

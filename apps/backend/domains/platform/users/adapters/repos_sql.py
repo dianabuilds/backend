@@ -66,19 +66,27 @@ class SQLUsersRepo(UsersRepo):
         query.append(where_clause)
         return " ".join(query)
 
-    async def _fetch_one(self, where_clause: str, params: dict[str, Any]) -> User | None:
+    async def _fetch_one(
+        self, where_clause: str, params: dict[str, Any]
+    ) -> User | None:
         sql_text = text(self._build_query(where_clause))
         async with self._engine.begin() as conn:
             try:
                 row = (await conn.execute(sql_text, params)).mappings().first()
             except ProgrammingError as exc:
-                detail = "".join(str(x) for x in getattr(exc.orig, "args", [exc])).lower()
+                detail = "".join(
+                    str(x) for x in getattr(exc.orig, "args", [exc])
+                ).lower()
                 message = str(exc).lower()
                 combined = f"{detail} {message}"
                 if self._use_roles_table and "user_roles" in combined:
                     self._use_roles_table = False
                     return await self._fetch_one(where_clause, params)
-                if self._use_role_column and " column" in combined and "role" in combined:
+                if (
+                    self._use_role_column
+                    and " column" in combined
+                    and "role" in combined
+                ):
                     self._use_role_column = False
                     return await self._fetch_one(where_clause, params)
                 raise
@@ -89,12 +97,14 @@ class SQLUsersRepo(UsersRepo):
     async def get_by_id(self, user_id: str) -> User | None:
         try:
             _uuid.UUID(str(user_id))
-        except Exception:
+        except (ValueError, AttributeError):
             return await self.get_by_email(str(user_id))
         return await self._fetch_one("WHERE u.id = :id", {"id": user_id})
 
     async def get_by_email(self, email: str) -> User | None:
-        return await self._fetch_one("WHERE lower(u.email) = lower(:email)", {"email": email})
+        return await self._fetch_one(
+            "WHERE lower(u.email) = lower(:email)", {"email": email}
+        )
 
     async def get_by_wallet(self, wallet_address: str) -> User | None:
         return await self._fetch_one(

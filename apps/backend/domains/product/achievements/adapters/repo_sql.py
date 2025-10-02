@@ -18,11 +18,15 @@ from packages.core.db import get_async_engine
 class SQLRepo(Repo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            get_async_engine("achievements", url=engine) if isinstance(engine, str) else engine
+            get_async_engine("achievements", url=engine)
+            if isinstance(engine, str)
+            else engine
         )
 
     # --- User views ---
-    def list_for_user(self, user_id: str) -> Iterable[tuple[Achievement, UserAchievement | None]]:
+    def list_for_user(
+        self, user_id: str
+    ) -> Iterable[tuple[Achievement, UserAchievement | None]]:
         async def _run() -> list[tuple[Achievement, UserAchievement | None]]:
             sql = text(
                 """
@@ -77,10 +81,7 @@ class SQLRepo(Repo):
             )
             async with self._engine.begin() as conn:
                 res = await conn.execute(ins, {"uid": user_id, "aid": achievement_id})
-                try:
-                    rc = res.rowcount  # type: ignore[attr-defined]
-                except Exception:
-                    rc = None
+                rc = getattr(res, "rowcount", None)  # type: ignore[attr-defined]
             return bool(rc and rc > 0)
 
         return run_sync(_run())
@@ -92,10 +93,7 @@ class SQLRepo(Repo):
             )
             async with self._engine.begin() as conn:
                 res = await conn.execute(sql, {"uid": user_id, "aid": achievement_id})
-                try:
-                    rc = res.rowcount  # type: ignore[attr-defined]
-                except Exception:
-                    rc = None
+                rc = getattr(res, "rowcount", None)  # type: ignore[attr-defined]
             return bool(rc and rc > 0)
 
         return run_sync(_run())
@@ -230,7 +228,9 @@ class SQLRepo(Repo):
                 )
                 async with self._engine.begin() as conn:
                     conflict = (
-                        await conn.execute(chk, {"code": new_code, "id": achievement_id})
+                        await conn.execute(
+                            chk, {"code": new_code, "id": achievement_id}
+                        )
                     ).first()
                 if conflict:
                     return None
@@ -285,10 +285,7 @@ class SQLRepo(Repo):
             sql = text("DELETE FROM achievements WHERE id = cast(:id as uuid)")
             async with self._engine.begin() as conn:
                 res = await conn.execute(sql, {"id": achievement_id})
-                try:
-                    rc = res.rowcount  # type: ignore[attr-defined]
-                except Exception:
-                    rc = None
+                rc = getattr(res, "rowcount", None)  # type: ignore[attr-defined]
             return bool(rc and rc > 0)
 
         return run_sync(_run())

@@ -6,11 +6,11 @@ import re
 import time
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Protocol, cast, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
 try:
     from prometheus_client import Counter, Histogram  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     Counter = Histogram = None  # type: ignore
 
 from domains.product.nodes.application.embedding import EmbeddingClient
@@ -70,6 +70,24 @@ class NodeService:
         self.usage = usage
         self.embedding = embedding
 
+    def _safe_publish(
+        self,
+        event: str,
+        payload: dict[str, Any],
+        *,
+        key: str | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> None:
+        if self.outbox is None:
+            return
+        try:
+            self.outbox.publish(event, payload, key=key)  # type: ignore[attr-defined]
+        except Exception as exc:
+            extra = {"event": event}
+            if context:
+                extra.update(context)
+            logger.warning("node_outbox_publish_failed", extra=extra, exc_info=exc)
+
     def _record_embedding_metric(
         self,
         *,
@@ -79,14 +97,22 @@ class NodeService:
     ) -> None:
         if EMBEDDING_REQUESTS is not None:
             try:
-                EMBEDDING_REQUESTS.labels(status=status, provider=provider or "unknown").inc()
-            except Exception:
-                pass
-        if duration_ms is not None and EMBEDDING_LATENCY is not None and status == "success":
+                EMBEDDING_REQUESTS.labels(
+                    status=status, provider=provider or "unknown"
+                ).inc()
+            except Exception as exc:
+                logger.debug("embedding_metric_emit_failed", exc_info=exc)
+        if (
+            duration_ms is not None
+            and EMBEDDING_LATENCY is not None
+            and status == "success"
+        ):
             try:
-                EMBEDDING_LATENCY.labels(provider=provider or "unknown").observe(duration_ms)
-            except Exception:
-                pass
+                EMBEDDING_LATENCY.labels(provider=provider or "unknown").observe(
+                    duration_ms
+                )
+            except Exception as exc:
+                logger.debug("embedding_latency_emit_failed", exc_info=exc)
 
     async def _repo_get_async(self, node_id: int) -> NodeDTO | None:
         getter = getattr(self.repo, "_araw_get", None)
@@ -133,10 +159,12 @@ class NodeService:
             "reason": reason,
             "requested_at": datetime.now(UTC).isoformat(),
         }
-        try:
-            self.outbox.publish("node.embedding.requested.v1", payload, key=f"node:{node_id}")
-        except Exception:
-            logger.warning("embedding_enqueue_failed", extra={"node_id": node_id, "reason": reason})
+        self._safe_publish(
+            "node.embedding.requested.v1",
+            payload,
+            key=f"node:{node_id}",
+            context={"node_id": node_id, "reason": reason},
+        )
 
     def _to_view(self, dto: NodeDTO) -> NodeView:
         return NodeView(
@@ -182,7 +210,11 @@ class NodeService:
         tags: Sequence[str] | None,
         content_html: str | None,
     ) -> list[float] | None:
-        provider = getattr(self.embedding, "provider", None) if self.embedding is not None else None
+        provider = (
+            getattr(self.embedding, "provider", None)
+            if self.embedding is not None
+            else None
+        )
         if self.embedding is None or not self.embedding.enabled:
             self._record_embedding_metric(status="disabled", provider=provider)
             return None
@@ -210,7 +242,9 @@ class NodeService:
                 status="empty", provider=provider, duration_ms=duration_ms
             )
             return None
-        self._record_embedding_metric(status="success", provider=provider, duration_ms=duration_ms)
+        self._record_embedding_metric(
+            status="success", provider=provider, duration_ms=duration_ms
+        )
         return [float(v) for v in vector]
 
     def get(self, node_id: int) -> NodeView | None:
@@ -225,11 +259,15 @@ class NodeService:
             return None
         return self._to_view(dto)
 
-    def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0) -> list[NodeView]:
+    def list_by_author(
+        self, author_id: str, *, limit: int = 50, offset: int = 0
+    ) -> list[NodeView]:
         items = self.repo.list_by_author(author_id, limit=limit, offset=offset)
         return [self._to_view(item) for item in items]
 
-    def search_by_embedding(self, embedding: Sequence[float], *, limit: int = 64) -> list[NodeView]:
+    def search_by_embedding(
+        self, embedding: Sequence[float], *, limit: int = 64
+    ) -> list[NodeView]:
         if not isinstance(self.repo, _EmbeddingRepo):
             return []
         repo = cast(_EmbeddingRepo, self.repo)
@@ -250,27 +288,31 @@ class NodeService:
         new = set(slugs)
         added = sorted(new - old)
         removed = sorted(old - new)
-        try:
-            if before is not None and self.usage is not None and (added or removed):
+        if before is not None and self.usage is not None and (added or removed):
+            try:
                 self.usage.apply_diff(before.author_id, added, removed)
-        except Exception:
-            pass
-        try:
-            self.outbox.publish(
-                "node.tags.updated.v1",
-                {
-                    "id": updated.id,
-                    "author_id": (before.author_id if before is not None else updated.author_id),
-                    "tags": list(slugs),
-                    "added": added,
-                    "removed": removed,
-                    "content_type": "node",
-                    "actor_id": actor_id,
-                },
-                key=f"node:{updated.id}:tags",
-            )
-        except Exception:
-            pass
+            except Exception as exc:
+                logger.warning(
+                    "node_usage_diff_failed",
+                    extra={"author_id": before.author_id, "node_id": node_id},
+                    exc_info=exc,
+                )
+        self._safe_publish(
+            "node.tags.updated.v1",
+            {
+                "id": updated.id,
+                "author_id": (
+                    before.author_id if before is not None else updated.author_id
+                ),
+                "tags": list(slugs),
+                "added": added,
+                "removed": removed,
+                "content_type": "node",
+                "actor_id": actor_id,
+            },
+            key=f"node:{updated.id}:tags",
+            context={"node_id": updated.id},
+        )
         self._queue_embedding_job(updated.id, reason="tags")
         return self._to_view(updated)
 
@@ -312,37 +354,33 @@ class NodeService:
                 },
             )
             raise RuntimeError("node_create_failed")
-        try:
-            self.outbox.publish(
-                "node.created.v1",
+        self._safe_publish(
+            "node.created.v1",
+            {
+                "id": dto.id,
+                "author_id": dto.author_id,
+                "title": dto.title,
+                "tags": list(dto.tags),
+                "is_public": dto.is_public,
+            },
+            key=f"node:{dto.id}",
+            context={"node_id": dto.id},
+        )
+        if slugs:
+            self._safe_publish(
+                "node.tags.updated.v1",
                 {
                     "id": dto.id,
                     "author_id": dto.author_id,
-                    "title": dto.title,
-                    "tags": list(dto.tags),
-                    "is_public": dto.is_public,
+                    "content_type": "node",
+                    "tags": list(slugs),
+                    "added": list(slugs),
+                    "removed": [],
+                    "actor_id": author_id,
                 },
-                key=f"node:{dto.id}",
+                key=f"node:{dto.id}:tags",
+                context={"node_id": dto.id, "author_id": dto.author_id},
             )
-        except Exception:
-            pass
-        if slugs:
-            try:
-                self.outbox.publish(
-                    "node.tags.updated.v1",
-                    {
-                        "id": dto.id,
-                        "author_id": dto.author_id,
-                        "content_type": "node",
-                        "tags": list(slugs),
-                        "added": list(slugs),
-                        "removed": [],
-                        "actor_id": author_id,
-                    },
-                    key=f"node:{dto.id}:tags",
-                )
-            except Exception:
-                pass
         self._queue_embedding_job(dto.id, reason="create")
         return self._to_view(dto)
 
@@ -384,15 +422,13 @@ class NodeService:
             changed.append("content_html")
         if cover_url is not None:
             changed.append("cover_url")
-        try:
-            if changed:
-                self.outbox.publish(
-                    "node.updated.v1",
-                    {"id": dto.id, "fields": changed},
-                    key=f"node:{dto.id}",
-                )
-        except Exception:
-            pass
+        if changed:
+            self._safe_publish(
+                "node.updated.v1",
+                {"id": dto.id, "fields": changed},
+                key=f"node:{dto.id}",
+                context={"node_id": dto.id},
+            )
         need_embedding = any(field in changed for field in {"title", "content_html"})
         if need_embedding:
             reason = "update"
@@ -409,12 +445,10 @@ class NodeService:
         if dto is None:
             return None
         if reason:
-            try:
-                logger.debug(
-                    "embedding_recompute_requested", extra={"node_id": node_id, "reason": reason}
-                )
-            except Exception:
-                pass
+            logger.debug(
+                "embedding_recompute_requested",
+                extra={"node_id": node_id, "reason": reason},
+            )
         if self.embedding is None or not self.embedding.enabled:
             return self._to_view(dto)
         vector = await self._compute_embedding_vector(
@@ -429,20 +463,19 @@ class NodeService:
             return self._to_view(dto)
         dto = await self.repo.update(node_id, embedding=vector)
         if reason:
-            try:
-                logger.debug(
-                    "embedding_recompute_done", extra={"node_id": node_id, "reason": reason}
-                )
-            except Exception:
-                pass
+            logger.debug(
+                "embedding_recompute_done", extra={"node_id": node_id, "reason": reason}
+            )
         return self._to_view(dto)
 
     @with_trace
     async def delete(self, node_id: int) -> bool:
         ok = await self.repo.delete(node_id)
-        try:
-            if ok:
-                self.outbox.publish("node.deleted.v1", {"id": node_id}, key=f"node:{node_id}")
-        except Exception:
-            pass
+        if ok:
+            self._safe_publish(
+                "node.deleted.v1",
+                {"id": node_id},
+                key=f"node:{node_id}",
+                context={"node_id": node_id},
+            )
         return ok

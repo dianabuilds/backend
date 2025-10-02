@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from asyncio import TimeoutError as AsyncTimeoutError
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -23,6 +24,13 @@ from domains.platform.notifications.ports import BroadcastRepo
 
 DEFAULT_TOPIC_KEY = "marketing.campaign"
 DEFAULT_CHANNEL_KEY = "broadcasts"
+
+_ORCHESTRATOR_DELIVERY_ERRORS = (
+    RuntimeError,
+    ValueError,
+    ConnectionError,
+    AsyncTimeoutError,
+)
 
 
 @dataclass(frozen=True)
@@ -92,7 +100,7 @@ class BroadcastOrchestrator:
         if broadcast.template_id and self._templates is not None:
             try:
                 template = await self._templates.get(broadcast.template_id)
-            except Exception as exc:  # pragma: no cover - defensive
+            except (RuntimeError, ValueError) as exc:  # pragma: no cover - defensive
                 self._log.exception(
                     "failed to load broadcast template %s",
                     broadcast.template_id,
@@ -134,7 +142,9 @@ class BroadcastOrchestrator:
                     )
                     try:
                         result = await self._delivery.deliver_to_inbox(event)
-                    except Exception as exc:  # pragma: no cover - defensive
+                    except (
+                        _ORCHESTRATOR_DELIVERY_ERRORS
+                    ) as exc:  # pragma: no cover - defensive
                         failed += 1
                         self._log.exception(
                             "broadcast %s delivery failed for user %s",
@@ -146,7 +156,9 @@ class BroadcastOrchestrator:
                     if result:
                         sent += 1
         except AudienceResolutionError as exc:
-            self._log.error("broadcast %s audience resolution failed: %s", broadcast.id, exc)
+            self._log.error(
+                "broadcast %s audience resolution failed: %s", broadcast.id, exc
+            )
             finished = datetime.now(UTC)
             await self._repo.update_status(
                 broadcast.id,

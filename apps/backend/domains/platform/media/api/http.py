@@ -1,6 +1,7 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import io
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +10,7 @@ from fastapi.responses import FileResponse
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 from apps.backend import get_container
@@ -18,13 +19,17 @@ from domains.platform.media.application.storage_service import (
     StorageService,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def make_router() -> APIRouter:
     router = APIRouter(prefix="/v1", tags=["media"])
 
     @router.post(
         "/media",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
     )
     async def upload_media(
         req: Request, file: UploadFile = File(...), _csrf: None = Depends(csrf_protect)
@@ -48,8 +53,9 @@ def make_router() -> APIRouter:
         # Prevent path traversal by ensuring the resolved path stays under base
         try:
             candidate.relative_to(base)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail="invalid_path") from e
+        except ValueError as exc:
+            logger.warning("media fetch rejected for invalid path %s: %s", name, exc)
+            raise HTTPException(status_code=400, detail="invalid_path") from exc
         file_path = candidate
         if not file_path.exists():
             raise HTTPException(status_code=404)

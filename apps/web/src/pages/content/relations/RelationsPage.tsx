@@ -1,7 +1,9 @@
 ﻿import React from 'react';
 import { ContentLayout } from '../ContentLayout';
-import { Card, Button, Input, Switch, Badge, Spinner, Skeleton } from '@ui';
+import { Card, Button, Input, Switch, Badge, Spinner, Skeleton, useToast } from '@ui';
 import { apiGet, apiPatch } from '../../../shared/api/client';
+import { extractErrorMessage } from '../../../shared/utils/errors';
+import { translate } from '../../../shared/i18n/locale';
 
 type StrategyOverview = {
   key: string;
@@ -103,6 +105,10 @@ const STRATEGY_GUIDE: Record<string, StrategyGuide> = {
   },
 };
 
+const RELATIONS_TOASTS = {
+  updateError: { en: 'Failed to update strategy', ru: 'Не удалось обновить стратегию' },
+};
+
 function titleize(value: string): string {
   if (!value) return '';
   return value
@@ -169,6 +175,7 @@ export default function RelationsPage() {
   const [refreshing, setRefreshing] = React.useState(false);
   const [loadingOverview, setLoadingOverview] = React.useState(false);
   const [lastRefreshAt, setLastRefreshAt] = React.useState<Date | null>(null);
+  const { pushToast } = useToast();
 
   const selectedStrategy = React.useMemo(
     () => strategies.find((strategy) => strategy.key === selectedKey),
@@ -327,6 +334,7 @@ export default function RelationsPage() {
       return;
     }
     setSaving(true);
+    setError(null);
     try {
       await apiPatch(`/v1/navigation/relations/strategies/${encodeURIComponent(selectedKey)}`, {
         weight: editWeight,
@@ -334,7 +342,9 @@ export default function RelationsPage() {
       });
       await loadOverview(selectedKey);
     } catch (err: any) {
-      alert(String(err?.message || err || 'Failed to update strategy'));
+      const message = extractErrorMessage(err, translate(RELATIONS_TOASTS.updateError));
+      setError(message);
+      pushToast({ intent: 'error', description: message });
     } finally {
       setSaving(false);
     }

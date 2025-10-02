@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from apps.backend import get_container
@@ -13,6 +15,8 @@ from domains.platform.iam.security import (
 )
 from packages.core.config import to_async_dsn
 from packages.core.db import get_async_engine
+
+logger = logging.getLogger(__name__)
 
 
 def make_router() -> APIRouter:
@@ -38,13 +42,15 @@ def make_router() -> APIRouter:
     async def _ensure_engine(container) -> AsyncEngine | None:
         try:
             dsn = to_async_dsn(container.settings.database_url)
-        except Exception:
+        except (ValueError, TypeError) as exc:
+            logger.debug("users_search_dsn_invalid", exc_info=exc)
             return None
         if not dsn:
             return None
         try:
             return get_async_engine("platform-users-search", url=dsn, future=True)
-        except Exception:
+        except SQLAlchemyError as exc:
+            logger.debug("users_search_engine_failed", exc_info=exc)
             return None
 
     @router.get("/search")

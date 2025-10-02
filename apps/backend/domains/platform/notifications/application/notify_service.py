@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+from asyncio import TimeoutError as AsyncTimeoutError
 from collections.abc import Mapping
 from typing import Any
 
@@ -8,9 +10,21 @@ from domains.platform.notifications.ports_notify import (
     INotificationRepository,
 )
 
+logger = logging.getLogger(__name__)
+
+_PUSH_RETRY_EXCEPTIONS = (
+    RuntimeError,
+    ConnectionError,
+    OSError,
+    AsyncTimeoutError,
+    ValueError,
+)
+
 
 class NotifyService:
-    def __init__(self, repo: INotificationRepository, pusher: INotificationPusher) -> None:
+    def __init__(
+        self, repo: INotificationRepository, pusher: INotificationPusher
+    ) -> None:
         self._repo = repo
         self._pusher = pusher
 
@@ -53,8 +67,10 @@ class NotifyService:
     async def _safe_push(self, user_id: str, payload: dict[str, Any]) -> None:
         try:
             await self._pusher.send(user_id, payload)
-        except Exception:
-            pass
+        except _PUSH_RETRY_EXCEPTIONS as exc:
+            logger.warning(
+                "notification_push_failed", extra={"user_id": user_id}, exc_info=exc
+            )
 
 
 __all__ = ["NotifyService"]

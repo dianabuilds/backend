@@ -4,6 +4,7 @@ from typing import Any
 from apps.backend import get_container
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from packages.core.config import to_async_dsn
 from packages.core.db import get_async_engine
@@ -11,6 +12,7 @@ from packages.core.db import get_async_engine
 from ..dtos import SanctionDTO, UserDetail
 from ..rbac import require_scopes
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["moderation-users"])
 
 
@@ -36,7 +38,8 @@ async def list_users(
         qp = f"%{(q or '').strip()}%"
         try:
             offset = int(cursor or 0)
-        except Exception:
+        except (TypeError, ValueError) as exc:
+            logger.debug("moderation users: invalid cursor %r: %s", cursor, exc)
             offset = 0
         async with eng.begin() as conn:
             # Detect if user_roles table exists
@@ -143,8 +146,9 @@ async def list_users(
         def _cap(s: str) -> str:
             try:
                 return s[:1].upper() + s[1:].lower()
-            except Exception:
-                return s
+            except (AttributeError, TypeError) as exc:
+                logger.debug("moderation users: cannot normalise role %r: %s", s, exc)
+                return str(s)
 
         items = []
         for r in rows:
@@ -165,22 +169,27 @@ async def list_users(
             )
         return {
             "items": items,
-            "next_cursor": (str(offset + len(items)) if len(items) == int(limit) else None),
+            "next_cursor": (
+                str(offset + len(items)) if len(items) == int(limit) else None
+            ),
         }
-    except Exception as e:
-        logging.getLogger(__name__).warning("/api/moderation/users DB path failed: %s", e)
+    except (SQLAlchemyError, RuntimeError, ValueError, TypeError, ImportError) as exc:
+        logger.warning("/api/moderation/users DB path failed: %s", exc)
         # Fallback for common schema (id, email, username, display_name, created_at)
         try:
             dsn = to_async_dsn(container.settings.database_url)
             if not dsn:
                 return {"items": [], "next_cursor": None}
 
-            eng = get_async_engine("moderation-users-list-fallback", url=dsn, future=True)
+            eng = get_async_engine(
+                "moderation-users-list-fallback", url=dsn, future=True
+            )
 
             qp = f"%{(q or '').strip()}%"
             try:
                 offset = int(cursor or 0)
-            except Exception:
+            except (TypeError, ValueError) as exc:
+                logger.debug("moderation users: invalid cursor %r: %s", cursor, exc)
                 offset = 0
             sql = text(
                 """
@@ -227,10 +236,18 @@ async def list_users(
             ]
             return {
                 "items": items,
-                "next_cursor": (str(offset + len(items)) if len(items) == int(limit) else None),
+                "next_cursor": (
+                    str(offset + len(items)) if len(items) == int(limit) else None
+                ),
             }
-        except Exception as e2:
-            logging.getLogger(__name__).warning("/api/moderation/users fallback failed: %s", e2)
+        except (
+            SQLAlchemyError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            ImportError,
+        ) as exc:
+            logger.warning("/api/moderation/users fallback failed: %s", exc)
             return {"items": [], "next_cursor": None}
 
 
@@ -290,7 +307,9 @@ async def get_user(user_id: str, container=Depends(get_container)) -> UserDetail
             row = (await conn.execute(sql, {"id": str(user_id)})).mappings().first()
         if not row:
             raise KeyError(user_id)
-        roles = [(str(x)[:1].upper() + str(x)[1:].lower()) for x in (row.get("roles") or [])]
+        roles = [
+            (str(x)[:1].upper() + str(x)[1:].lower()) for x in (row.get("roles") or [])
+        ]
         return UserDetail(
             id=str(row["id"]),
             username=str(row.get("username") or row.get("email") or row["id"]),
@@ -419,7 +438,9 @@ async def update_roles(
                     else None
                 )
                 current = (
-                    str(current_row["role"]) if current_row and current_row.get("role") else "user"
+                    str(current_row["role"])
+                    if current_row and current_row.get("role")
+                    else "user"
                 )
                 target = current
                 if add:
@@ -439,16 +460,18 @@ async def update_roles(
         def _cap(s: str) -> str:
             try:
                 return s[:1].upper() + s[1:].lower()
-            except Exception:
-                return s
+            except (AttributeError, TypeError) as exc:
+                logger.debug("moderation users: cannot normalise role %r: %s", s, exc)
+                return str(s)
 
         return {"user_id": user_id, "roles": [_cap(r) for r in roles]}
 
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="user_not_found") from exc
-    except Exception as exc:
-        # surface as bad request to make debugging easier in dev
-        raise HTTPException(status_code=400, detail=f"roles_update_failed: {exc}") from exc
+    except (SQLAlchemyError, RuntimeError, ValueError, TypeError) as exc:
+        raise HTTPException(
+            status_code=400, detail=f"roles_update_failed: {exc}"
+        ) from exc
 
 
 @router.post(
@@ -470,7 +493,9 @@ async def issue_sanction(
         try:
             dsn = to_async_dsn(container.settings.database_url)
             if dsn:
-                eng = get_async_engine("moderation-users-sanction-bootstrap", url=dsn, future=True)
+                eng = get_async_engine(
+                    "moderation-users-sanction-bootstrap", url=dsn, future=True
+                )
                 async with eng.begin() as conn:
                     row = (
                         (
@@ -488,14 +513,23 @@ async def issue_sanction(
                         raise KeyError(user_id)
                     await svc.ensure_user_stub(
                         user_id=str(row["id"]),
-                        username=str(row.get("username") or row.get("email") or row["id"]),
+                        username=str(
+                            row.get("username") or row.get("email") or row["id"]
+                        ),
                         email=row.get("email"),
                     )
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="user_not_found") from exc
-        except Exception:
-            # If DB probe fails, continue — svc.issue_sanction may still work if user was seeded earlier
-            pass
+        except (
+            SQLAlchemyError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            ImportError,
+        ) as exc:
+            logger.warning(
+                "moderation users: failed to bootstrap user %s: %s", user_id, exc
+            )
 
         actor_id = body.get("issued_by")
         sanction = await svc.issue_sanction(
@@ -508,7 +542,9 @@ async def issue_sanction(
         try:
             dsn = to_async_dsn(container.settings.database_url)
             if dsn:
-                eng = get_async_engine("moderation-users-sanction-store", url=dsn, future=True)
+                eng = get_async_engine(
+                    "moderation-users-sanction-store", url=dsn, future=True
+                )
                 async with eng.begin() as conn:
                     # ensure table exists
                     exists_tbl = (
@@ -535,7 +571,9 @@ async def issue_sanction(
                                 "status": sanction.status.value,
                                 "reason": sanction.reason,
                                 "issued_by": (actor_id or "system"),
-                                "ends_at": body.get("ends_at") or body.get("expires_at") or None,
+                                "ends_at": body.get("ends_at")
+                                or body.get("expires_at")
+                                or None,
                                 "meta": (
                                     sanction.model_dump().get("meta")
                                     if hasattr(sanction, "model_dump")
@@ -582,8 +620,16 @@ async def issue_sanction(
                                         },
                                     },
                                 )
-        except Exception:
-            pass
+        except (
+            SQLAlchemyError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            ImportError,
+        ) as exc:
+            logger.warning(
+                "moderation users: failed to persist sanction for %s: %s", user_id, exc
+            )
         # Notifications: warning/ban
         try:
             notify = container.notifications.notify  # type: ignore[attr-defined]
@@ -617,8 +663,12 @@ async def issue_sanction(
                             message="You have been banned due to multiple warnings.",
                             type_="ban",
                         )
-                except Exception:
-                    pass
+                except (SQLAlchemyError, RuntimeError) as exc:
+                    logger.debug(
+                        "moderation users: unable to check auto-ban state for %s: %s",
+                        user_id,
+                        exc,
+                    )
             elif t == "ban":
                 await notify.create_notification(
                     user_id=user_id,
@@ -626,8 +676,12 @@ async def issue_sanction(
                     message=str(sanction.reason or "Your account has been banned"),
                     type_="ban",
                 )
-        except Exception:
-            pass
+        except (AttributeError, RuntimeError, TypeError) as exc:
+            logger.debug(
+                "moderation users: notification dispatch failed for %s: %s",
+                user_id,
+                exc,
+            )
         return sanction
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="user_not_found") from exc
@@ -648,7 +702,9 @@ async def update_sanction(
 ) -> SanctionDTO:
     svc = container.platform_moderation.service
     try:
-        return await svc.update_sanction(user_id, sanction_id, body, actor_id=body.get("actor_id"))
+        return await svc.update_sanction(
+            user_id, sanction_id, body, actor_id=body.get("actor_id")
+        )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="sanction_not_found") from exc
     except ValueError as exc:

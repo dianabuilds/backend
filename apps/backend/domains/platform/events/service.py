@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from domains.platform.events.ports import (
@@ -10,6 +11,8 @@ from domains.platform.events.ports import (
 from domains.platform.telemetry.application.event_metrics_service import (
     event_metrics,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -22,8 +25,10 @@ class Events:
         # Record basic event counter
         try:
             event_metrics.inc(topic)
-        except Exception:
-            pass
+        except (RuntimeError, ValueError) as exc:
+            logger.debug(
+                "event_metrics_inc_failed", extra={"topic": topic}, exc_info=exc
+            )
         self.outbox.publish(topic=topic, payload=payload, key=key)
 
     # Subscribe handler to topic

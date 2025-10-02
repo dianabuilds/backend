@@ -1,6 +1,7 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -10,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.telemetry.ports.rum_port import IRumRepository
 from packages.core.db import get_async_engine
+
+logger = logging.getLogger(__name__)
 
 
 class RumSQLRepository(IRumRepository):
@@ -69,7 +72,13 @@ class RumSQLRepository(IRumRepository):
             ts_value = payload.get("ts") or row.get("ts_ms")
             try:
                 ts_ms = int(ts_value)
-            except Exception:
+            except (TypeError, ValueError) as exc:
+                logger.debug(
+                    "Failed to coerce ts for RUM event %s (value=%r): %s",
+                    row.get("id"),
+                    ts_value,
+                    exc,
+                )
                 ts_ms = row.get("ts_ms")
             data = payload.get("data")
             created_at = row.get("created_at")
@@ -81,7 +90,9 @@ class RumSQLRepository(IRumRepository):
                     "url": payload.get("url") or row.get("url"),
                     "ts": ts_ms,
                     "data": data,
-                    "created_at": (created_at.astimezone(UTC).isoformat() if created_at else None),
+                    "created_at": (
+                        created_at.astimezone(UTC).isoformat() if created_at else None
+                    ),
                     "occurred_at": (
                         occurred_at.astimezone(UTC).isoformat() if occurred_at else None
                     ),

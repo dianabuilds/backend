@@ -8,7 +8,7 @@ from pydantic import BaseModel, model_validator
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 from apps.backend import get_container
@@ -44,7 +44,7 @@ class BroadcastAudiencePayload(BaseModel):
         raw_type = values.get("type")
         try:
             audience_type = BroadcastAudienceType(raw_type)
-        except Exception as exc:
+        except ValueError as exc:
             raise ValueError(f"unknown audience type: {raw_type!r}") from exc
         values["type"] = audience_type
         filters = values.get("filters")
@@ -52,7 +52,9 @@ class BroadcastAudiencePayload(BaseModel):
 
         if audience_type is BroadcastAudienceType.ALL_USERS:
             if filters or user_ids:
-                raise ValueError("all_users audience cannot include filters or user_ids")
+                raise ValueError(
+                    "all_users audience cannot include filters or user_ids"
+                )
         elif audience_type is BroadcastAudienceType.SEGMENT:
             if not filters:
                 raise ValueError("segment audience requires non-empty filters")
@@ -101,7 +103,9 @@ class BroadcastScheduleRequest(BaseModel):
     scheduled_at: datetime
 
     @model_validator(mode="after")
-    def ensure_timezone(cls, model: BroadcastScheduleRequest) -> BroadcastScheduleRequest:
+    def ensure_timezone(
+        cls, model: BroadcastScheduleRequest
+    ) -> BroadcastScheduleRequest:
         scheduled_at = model.scheduled_at
         if scheduled_at and scheduled_at.tzinfo is None:
             raise ValueError("scheduled_at must be timezone-aware")
@@ -195,7 +199,9 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/broadcasts",
-        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
         response_model=BroadcastListResponse,
     )
     async def list_broadcasts(
@@ -207,9 +213,14 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
     ) -> BroadcastListResponse:
         service = _get_service(req)
-        result = await service.list(limit=limit, offset=offset, statuses=status, query=q)
+        result = await service.list(
+            limit=limit, offset=offset, statuses=status, query=q
+        )
         items = [_broadcast_to_response(item) for item in result.items]
-        counts = {status.value: result.status_counts.get(status, 0) for status in BroadcastStatus}
+        counts = {
+            status.value: result.status_counts.get(status, 0)
+            for status in BroadcastStatus
+        }
         has_next = offset + len(items) < result.total
         return BroadcastListResponse(
             items=items,
@@ -223,7 +234,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/broadcasts",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
         response_model=BroadcastResponse,
     )
     async def create_broadcast(
@@ -250,7 +263,9 @@ def make_router() -> APIRouter:
 
     @router.put(
         "/broadcasts/{broadcast_id}",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
         response_model=BroadcastResponse,
     )
     async def update_broadcast(
@@ -281,7 +296,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/send-now",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
         response_model=BroadcastResponse,
     )
     async def send_now(
@@ -301,7 +318,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/schedule",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
         response_model=BroadcastResponse,
     )
     async def schedule(
@@ -324,7 +343,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/cancel",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
         response_model=BroadcastResponse,
     )
     async def cancel(

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import time
 from collections.abc import Sequence
+from typing import Any
 
+from domains.platform.events.errors import OutboxError
 from domains.product.quests.application.ports import (
     CreateQuestInput,
     Outbox,
@@ -13,10 +16,43 @@ from domains.product.quests.application.ports import (
 from domains.product.quests.domain.results import QuestView
 from packages.core import with_trace
 
+try:
+    from redis.exceptions import RedisError  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover
+    RedisError = Exception  # type: ignore[misc, assignment]
+
+
+logger = logging.getLogger(__name__)
+
+_OUTBOX_EXPECTED_ERRORS = (ValueError, RuntimeError, RedisError)
+
 
 class QuestService:
     def __init__(self, repo: Repo, tags: TagCatalog, outbox: Outbox):
         self.repo, self.tags, self.outbox = repo, tags, outbox
+
+    def _safe_publish(
+        self,
+        topic: str,
+        payload: dict[str, Any],
+        *,
+        key: str | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> None:
+        if not self.outbox:
+            return
+        extra = {"topic": topic}
+        if context:
+            extra.update(context)
+        try:
+            self.outbox.publish(topic, payload, key=key)
+        except _OUTBOX_EXPECTED_ERRORS as exc:
+            logger.warning("quest_outbox_publish_failed", extra=extra, exc_info=exc)
+        except Exception as exc:  # pragma: no cover - unexpected failure
+            logger.exception(
+                "quest_outbox_publish_unexpected", extra=extra, exc_info=exc
+            )
+            raise OutboxError("quest_outbox_publish_unexpected", topic=topic) from exc
 
     def get(self, quest_id: str) -> QuestView | None:
         q = self.repo.get(quest_id)
@@ -34,10 +70,9 @@ class QuestService:
 
     @with_trace
     def create(self, data: CreateQuestInput) -> QuestView:
-        # simple slug: could be replaced by a slugger
-        slug = hashlib.sha256(f"{data.author_id}-{data.title}-{time.time()}".encode()).hexdigest()[
-            :16
-        ]
+        slug = hashlib.sha256(
+            f"{data.author_id}-{data.title}-{time.time()}".encode()
+        ).hexdigest()[:16]
         tags = self.tags.ensure_canonical_slugs(list(data.tags or ()))
         created = self.repo.create(
             CreateQuestInput(
@@ -49,31 +84,30 @@ class QuestService:
             ),
             slug=slug,
         )
-        try:
-            self.outbox.publish(
-                "quest.created.v1",
+        self._safe_publish(
+            "quest.created.v1",
+            {
+                "id": created.id,
+                "author_id": created.author_id,
+                "slug": created.slug,
+                "title": created.title,
+            },
+            key=f"quest:{created.id}",
+            context={"quest_id": created.id},
+        )
+        if tags:
+            self._safe_publish(
+                "quest.tags.updated.v1",
                 {
                     "id": created.id,
                     "author_id": created.author_id,
-                    "slug": created.slug,
-                    "title": created.title,
+                    "added": list(tags),
+                    "removed": [],
+                    "content_type": "quest",
                 },
-                key=f"quest:{created.id}",
+                key=f"quest:{created.id}:tags",
+                context={"quest_id": created.id},
             )
-            if tags:
-                self.outbox.publish(
-                    "quest.tags.updated.v1",
-                    {
-                        "id": created.id,
-                        "author_id": created.author_id,
-                        "added": list(tags),
-                        "removed": [],
-                        "content_type": "quest",
-                    },
-                    key=f"quest:{created.id}:tags",
-                )
-        except Exception:
-            pass
         return self.get(created.id) or QuestView(
             id=created.id,
             author_id=created.author_id,
@@ -85,7 +119,9 @@ class QuestService:
         )
 
     @with_trace
-    def update_tags(self, quest_id: str, new_slugs: Sequence[str], *, actor_id: str) -> QuestView:
+    def update_tags(
+        self, quest_id: str, new_slugs: Sequence[str], *, actor_id: str
+    ) -> QuestView:
         tags = self.tags.ensure_canonical_slugs(list(new_slugs))
         before = self.repo.get(quest_id)
         updated = self.repo.set_tags(quest_id, tags)
@@ -93,22 +129,20 @@ class QuestService:
         new = set(tags)
         added = sorted(new - old)
         removed = sorted(old - new)
-        try:
-            if added or removed:
-                self.outbox.publish(
-                    "quest.tags.updated.v1",
-                    {
-                        "id": updated.id,
-                        "author_id": updated.author_id,
-                        "added": added,
-                        "removed": removed,
-                        "content_type": "quest",
-                        "actor_id": actor_id,
-                    },
-                    key=f"quest:{updated.id}:tags",
-                )
-        except Exception:
-            pass
+        if added or removed:
+            self._safe_publish(
+                "quest.tags.updated.v1",
+                {
+                    "id": updated.id,
+                    "author_id": updated.author_id,
+                    "added": added,
+                    "removed": removed,
+                    "content_type": "quest",
+                    "actor_id": actor_id,
+                },
+                key=f"quest:{updated.id}:tags",
+                context={"quest_id": updated.id, "actor_id": actor_id},
+            )
         return self.get(quest_id) or QuestView(
             id=updated.id,
             author_id=updated.author_id,

@@ -1,13 +1,17 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.events.service import Events
 from packages.core.db import get_async_engine
+
+logger = logging.getLogger(__name__)
 
 
 class SQLTagUsageWriter:
@@ -32,12 +36,19 @@ class SQLTagUsageWriter:
         if not aid:
             return
         ctype = str(payload.get("content_type") or "node").strip() or "node"
-        added = [str(s).strip().lower() for s in (payload.get("added") or []) if str(s).strip()]
-        removed = [str(s).strip().lower() for s in (payload.get("removed") or []) if str(s).strip()]
+        added = [
+            str(s).strip().lower()
+            for s in (payload.get("added") or [])
+            if str(s).strip()
+        ]
+        removed = [
+            str(s).strip().lower()
+            for s in (payload.get("removed") or [])
+            if str(s).strip()
+        ]
         if not added and not removed:
             return
         async with self._engine.begin() as conn:
-            # Upsert increments for added
             if added:
                 sql_inc = text(
                     """
@@ -49,7 +60,6 @@ class SQLTagUsageWriter:
                 )
                 for s in added:
                     await conn.execute(sql_inc, {"aid": aid, "ctype": ctype, "slug": s})
-            # Decrements for removed (and cleanup if zero)
             if removed:
                 sql_dec = text(
                     """
@@ -69,33 +79,54 @@ class SQLTagUsageWriter:
                     await conn.execute(sql_del, {"aid": aid, "ctype": ctype, "slug": s})
 
 
-def register_tags_usage_writer(events: Events, engine_or_dsn: AsyncEngine | str) -> None:
+def register_tags_usage_writer(
+    events: Events, engine_or_dsn: AsyncEngine | str
+) -> None:
     """Register event consumers for tags usage counters.
 
-    Safe to call without DB: failures are swallowed to avoid breaking API startup.
+    Safe to call without DB: failures are logged to avoid breaking API startup.
     """
     try:
         writer = SQLTagUsageWriter(engine_or_dsn)
-
-        async def _on_node_tags_updated(_topic: str, payload: dict[str, Any]) -> None:
-            try:
-                await writer.apply(payload)
-            except Exception:
-                # best-effort: do not crash relay
-                pass
-
-        def _schedule(topic: str, payload: dict[str, Any]) -> None:
-            try:
-                asyncio.create_task(_on_node_tags_updated(topic, payload))
-            except RuntimeError:
-                asyncio.run(_on_node_tags_updated(topic, payload))
-
-        events.on("node.tags.updated.v1", _schedule)
-        # Optionally, support quest tags event name if present in the system
-        events.on("quest.tags.updated.v1", _schedule)
-    except Exception:
-        # No DB / engine issues вЂ” skip registration silently
+    except SQLAlchemyError as exc:
+        logger.warning(
+            "Skipping tag usage writer registration due to database error: %s", exc
+        )
         return
+    except (ValueError, TypeError, RuntimeError) as exc:
+        logger.warning("Skipping tag usage writer registration: %s", exc)
+        return
+
+    async def _on_node_tags_updated(_topic: str, payload: dict[str, Any]) -> None:
+        try:
+            await writer.apply(payload)
+        except SQLAlchemyError as exc:
+            logger.warning("Failed to update tag usage counters: %s", exc)
+        except (ValueError, KeyError, TypeError, RuntimeError) as exc:
+            logger.warning("Invalid tag usage payload: %s", exc)
+
+    def _log_task_failure(task: asyncio.Task[Any]) -> None:
+        try:
+            exc = task.exception()
+        except asyncio.CancelledError:
+            return
+        if exc:
+            logger.exception(
+                "Unexpected error while updating tag usage counters", exc_info=exc
+            )
+
+    def _schedule(topic: str, payload: dict[str, Any]) -> None:
+        try:
+            task = asyncio.create_task(_on_node_tags_updated(topic, payload))
+            task.add_done_callback(_log_task_failure)
+        except RuntimeError:
+            logger.debug(
+                "No running event loop; executing tag usage handler synchronously"
+            )
+            asyncio.run(_on_node_tags_updated(topic, payload))
+
+    events.on("node.tags.updated.v1", _schedule)
+    events.on("quest.tags.updated.v1", _schedule)
 
 
 __all__ = ["SQLTagUsageWriter", "register_tags_usage_writer"]

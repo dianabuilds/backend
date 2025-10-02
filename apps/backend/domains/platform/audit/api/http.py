@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 # from apps.backend import get_container
@@ -28,7 +28,9 @@ def _normalize_row(row: dict[str, Any]) -> dict[str, Any]:
     if row.get("created_at") is None:
         ts = row.get("ts")
         if isinstance(ts, (int, float)):
-            row["created_at"] = datetime.fromtimestamp(float(ts) / 1000.0, tz=UTC).isoformat()
+            row["created_at"] = datetime.fromtimestamp(
+                float(ts) / 1000.0, tz=UTC
+            ).isoformat()
     elif isinstance(row.get("created_at"), datetime):
         row["created_at"] = row["created_at"].astimezone(UTC).isoformat()
     return row
@@ -43,7 +45,7 @@ def _safe_json(value: Any) -> Any:
         import json
 
         return json.loads(value)
-    except Exception:
+    except (ValueError, TypeError):
         return value
 
 
@@ -63,7 +65,11 @@ def _infer_result(action: str, extra: Any) -> str:
         return "failure"
     if isinstance(extra, dict):
         err = extra.get("error") or extra.get("status")
-        if err and isinstance(err, str) and err.lower() in {"error", "failed", "denied"}:
+        if (
+            err
+            and isinstance(err, str)
+            and err.lower() in {"error", "failed", "denied"}
+        ):
             return "failure"
     return "success"
 
@@ -164,7 +170,9 @@ def make_router() -> APIRouter:
             ),
             "results": Counter(item["meta"]["result"] for item in processed),
         }
-        taxonomy_actions = sorted({item["action"] for item in processed if item.get("action")})
+        taxonomy_actions = sorted(
+            {item["action"] for item in processed if item.get("action")}
+        )
 
         return {
             "items": processed,
@@ -173,7 +181,8 @@ def make_router() -> APIRouter:
             "has_more": has_more,
             "next_page": page + 1 if has_more else None,
             "facets": {
-                key: {k: v for k, v in counter.items() if v} for key, counter in facets.items()
+                key: {k: v for k, v in counter.items() if v}
+                for key, counter in facets.items()
             },
             "taxonomy": {
                 "actions": taxonomy_actions,
@@ -183,7 +192,9 @@ def make_router() -> APIRouter:
     @router.get("/export")
     async def export_events(
         req: Request,
-        export_format: str = Query(default="json", pattern="^(json|csv)$", alias="format"),
+        export_format: str = Query(
+            default="json", pattern="^(json|csv)$", alias="format"
+        ),
         limit: int = Query(default=5000, ge=1, le=20000),
         actions: list[str] | None = Query(default=None),
         action: str | None = Query(default=None),
@@ -237,7 +248,9 @@ def make_router() -> APIRouter:
                     "before": before_obj,
                     "after": after_obj,
                     "extra": extra_obj,
-                    "result": _infer_result(str(normalized.get("action", "")), extra_obj),
+                    "result": _infer_result(
+                        str(normalized.get("action", "")), extra_obj
+                    ),
                 }
             )
         if export_format == "json":
@@ -265,13 +278,17 @@ def make_router() -> APIRouter:
             flat = {key: row.get(key) for key in columns}
             writer.writerow(flat)
         response = PlainTextResponse(csv_buffer.getvalue())
-        response.headers["Content-Disposition"] = "attachment; filename=audit-export.csv"
+        response.headers["Content-Disposition"] = (
+            "attachment; filename=audit-export.csv"
+        )
         return response
 
     @router.post("")
     @router.post(
         "",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def log_event(
         req: Request,

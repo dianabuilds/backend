@@ -6,16 +6,16 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 try:  # optional dependency
     from prometheus_client import generate_latest  # type: ignore
-except Exception:  # pragma: no cover - optional import
+except ImportError:  # pragma: no cover - optional import
     generate_latest = None  # type: ignore
 try:  # optional dependency
     from fastapi_limiter import FastAPILimiter  # type: ignore
-except Exception:  # pragma: no cover - optional import
+except ImportError:  # pragma: no cover - optional import
     FastAPILimiter = None  # type: ignore
 
 from apps.backend import get_container
@@ -42,7 +42,9 @@ def make_router() -> APIRouter:
     @router.get("/metrics", include_in_schema=False)
     async def metrics() -> Response:
         if generate_latest is None:
-            raise HTTPException(status_code=503, detail="prometheus_client not installed")
+            raise HTTPException(
+                status_code=503, detail="prometheus_client not installed"
+            )
         text = (
             generate_latest().decode()
             + worker_metrics.prometheus()
@@ -57,7 +59,11 @@ def make_router() -> APIRouter:
         "/metrics/rum",
         dependencies=(
             [Depends(RateLimiter(times=600, seconds=60))]
-            if (RateLimiter and FastAPILimiter and getattr(FastAPILimiter, "redis", None))
+            if (
+                RateLimiter
+                and FastAPILimiter
+                and getattr(FastAPILimiter, "redis", None)
+            )
             else []
         ),
     )

@@ -23,7 +23,7 @@ def _db_reachable(url: str) -> bool:
         port = u.port or 5432
         with socket.create_connection((host, port), timeout=0.25):
             return True
-    except Exception:
+    except (OSError, ValueError):
         return False
 
 

@@ -1,9 +1,10 @@
-﻿import React from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ContentLayout } from "../ContentLayout";
 import { Card, Button, Spinner, Skeleton, Badge, Tabs, Input, PieChart } from "@ui";
 import { apiGet, apiDelete } from "../../../shared/api/client";
 
+import { useConfirmDialog } from "../../../shared/hooks/useConfirmDialog";
 type World = {
   id: string;
   title: string;
@@ -22,6 +23,7 @@ type DetailTab = "summary" | "characters" | "schematics";
 
 export default function WorldsPage() {
   const navigate = useNavigate();
+  const { confirm, confirmationElement } = useConfirmDialog();
   const [worlds, setWorlds] = React.useState<World[]>([]);
   const [selectedId, setSelectedId] = React.useState<string>("");
   const [characters, setCharacters] = React.useState<Character[]>([]);
@@ -165,7 +167,14 @@ export default function WorldsPage() {
   }
 
   async function handleDelete(world: World) {
-    if (!window.confirm(`Удалить мир «${world.title || "Без названия"}»?`)) {
+    const confirmed = await confirm({
+      title: 'Delete world',
+      description: `Delete world "${world.title || 'Untitled'}"?`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      destructive: true,
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -177,7 +186,8 @@ export default function WorldsPage() {
   }
 
   return (
-    <ContentLayout
+    <>
+      <ContentLayout
       context="quests"
       title="Работа с мирами"
       description="Компактный центр управления мирами: поиск, описание, персонажи и визуальные схемы связей."
@@ -511,6 +521,8 @@ export default function WorldsPage() {
         </div>
       </div>
     </ContentLayout>
+    {confirmationElement}
+    </>
   );
 }
 

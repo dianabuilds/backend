@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.billing.ports import CryptoConfigRepo
 from packages.core.db import get_async_engine
 
 from .dsn_utils import normalize_async_dsn
+
+logger = logging.getLogger(__name__)
 
 
 class SQLCryptoConfigRepo(CryptoConfigRepo):
@@ -21,11 +25,14 @@ class SQLCryptoConfigRepo(CryptoConfigRepo):
             self._engine = engine
 
     async def get(self, slug: str) -> dict[str, Any] | None:
-        sql = text("SELECT slug, config, updated_at FROM crypto_config WHERE slug=:slug")
+        sql = text(
+            "SELECT slug, config, updated_at FROM crypto_config WHERE slug=:slug"
+        )
         async with self._engine.begin() as conn:
             try:
                 r = (await conn.execute(sql, {"slug": slug})).mappings().first()
-            except Exception:
+            except SQLAlchemyError as exc:
+                logger.warning("Failed to load crypto config %s: %s", slug, exc)
                 return None
             if not r:
                 return None
@@ -42,7 +49,11 @@ class SQLCryptoConfigRepo(CryptoConfigRepo):
             """
         )
         async with self._engine.begin() as conn:
-            r = (await conn.execute(sql, {"slug": slug, "config": cfg})).mappings().first()
+            r = (
+                (await conn.execute(sql, {"slug": slug, "config": cfg}))
+                .mappings()
+                .first()
+            )
             assert r is not None
             return {
                 "slug": r["slug"],

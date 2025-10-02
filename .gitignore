@@ -224,3 +224,4 @@ apps/admin/coverage/
 /uploads/
 /.idea/
 /apps/web/vendor/
+/linter.txt

@@ -175,7 +175,9 @@ class FlagStoreSQL(FlagStore):
             async with session.begin():
                 await session.execute(_insert_flag_stmt(feature_flag))
                 await session.execute(
-                    RULES_TABLE.delete().where(RULES_TABLE.c.flag_slug == feature_flag.slug)
+                    RULES_TABLE.delete().where(
+                        RULES_TABLE.c.flag_slug == feature_flag.slug
+                    )
                 )
                 if feature_flag.rules:
                     await session.execute(
@@ -197,7 +199,9 @@ class FlagStoreSQL(FlagStore):
     async def delete(self, slug: str) -> None:
         async with self._session_factory() as session:
             async with session.begin():
-                await session.execute(FLAGS_TABLE.delete().where(FLAGS_TABLE.c.slug == slug))
+                await session.execute(
+                    FLAGS_TABLE.delete().where(FLAGS_TABLE.c.slug == slug)
+                )
 
 
 def _hydrate_feature_flags(flag_rows, rule_rows) -> list[FeatureFlag]:
@@ -207,7 +211,7 @@ def _hydrate_feature_flags(flag_rows, rule_rows) -> list[FeatureFlag]:
         raw_type = mapping.get("type")
         try:
             rule_type = FlagRuleType(raw_type)
-        except Exception:
+        except (ValueError, TypeError):
             continue
         grouped_rules.setdefault(slug, []).append(
             FlagRule(
@@ -230,7 +234,7 @@ def _hydrate_feature_flags(flag_rows, rule_rows) -> list[FeatureFlag]:
         raw_status = row.get("status")
         try:
             status = FlagStatus(raw_status) if raw_status else FlagStatus.DISABLED
-        except Exception:
+        except (ValueError, TypeError):
             status = FlagStatus.DISABLED
         feature_flags.append(
             FeatureFlag(

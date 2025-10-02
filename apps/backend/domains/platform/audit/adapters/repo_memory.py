@@ -69,7 +69,7 @@ class InMemoryAuditRepo(AuditLogRepository):
                 else:
                     dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
                 return int(dt.timestamp() * 1000)
-            except Exception:
+            except (ValueError, TypeError):
                 return None
 
         start_ms = _parse_iso(date_from)
@@ -82,12 +82,16 @@ class InMemoryAuditRepo(AuditLogRepository):
         if resource_types:
             rset = {str(r).strip().lower() for r in resource_types if r}
             if rset:
-                data = [d for d in data if str(d.get("resource_type", "")).lower() in rset]
+                data = [
+                    d for d in data if str(d.get("resource_type", "")).lower() in rset
+                ]
         if modules:
             mset = {str(m).strip().lower() for m in modules if m}
             if mset:
                 data = [
-                    d for d in data if str(d.get("action", "")).split(".", 1)[0].lower() in mset
+                    d
+                    for d in data
+                    if str(d.get("action", "")).split(".", 1)[0].lower() in mset
                 ]
         if search:
             needle = search.strip().lower()

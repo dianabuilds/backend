@@ -5,6 +5,7 @@ import { Badge, Button, Card, Drawer, Input, Select, Spinner, Table, TagInput } 
 import type { PageHeaderStat } from '@ui/patterns/PageHeader.tsx';
 import { apiDelete, apiGet, apiPost } from '../../shared/api/client';
 import { extractErrorMessage } from '../../shared/utils/errors';
+import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
 import {
   PlatformAdminFrame,
   type PlatformAdminQuickLink,
@@ -123,6 +124,7 @@ const audienceLabel = (flag: FlagRow): string => flag.audience ?? flag.status_la
 const friendlyName = (flag: FlagRow): string => FLAG_DISPLAY_LABELS[flag.slug] ?? flag.label ?? flag.slug;
 
 export default function ManagementFlags() {
+  const { confirm, confirmationElement } = useConfirmDialog();
   const [items, setItems] = React.useState<FlagRow[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -292,11 +294,18 @@ export default function ManagementFlags() {
   );
 
   const handleDelete = React.useCallback(
-    (slug: string) => {
-      if (!window.confirm(`Delete flag "${slug}"? This action cannot be undone.`)) return;
+    async (slug: string) => {
+      const confirmed = await confirm({
+        title: 'Delete flag',
+        description: `Delete flag "${slug}"? This action cannot be undone.`,
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel',
+        destructive: true,
+      });
+      if (!confirmed) return;
       void mutateFlag(slug, () => apiDelete(`/v1/flags/${slug}`));
     },
-    [mutateFlag],
+    [confirm, mutateFlag],
   );
 
   const handleKillSwitch = React.useCallback(
@@ -808,9 +817,11 @@ export default function ManagementFlags() {
           )}
         </div>
       </Drawer>
+      {confirmationElement}
     </>
   );
 }
+
 
 
 

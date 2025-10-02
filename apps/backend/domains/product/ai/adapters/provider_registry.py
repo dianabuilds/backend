@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Iterable
 from typing import Any
 
 import httpx
 
+from domains.product.ai.application.errors import ProviderError
 from domains.product.ai.application.ports import Provider
 from domains.product.ai.application.registry import (
     LLMModelCfg,
     LLMProviderCfg,
     LLMRegistry,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class RegistryBackedProvider(Provider):
@@ -34,23 +38,32 @@ class RegistryBackedProvider(Provider):
         provider: str | None = None,
         model_id: str | None = None,
     ) -> str:
+        model_cfg = await self._resolve_model(model_id=model_id, name=model)
+        provider_slug = provider or (model_cfg.provider_slug if model_cfg else None)
+        context = {
+            "requested_provider": provider_slug,
+            "requested_model": model or model_id,
+        }
         try:
-            model_cfg = await self._resolve_model(model_id=model_id, name=model)
-            provider_cfg = await self._resolve_provider(
-                provider or (model_cfg.provider_slug if model_cfg else None)
-            )
-            if not provider_cfg or provider_cfg.enabled is False or not provider_cfg.base_url:
-                raise RuntimeError("provider_not_configured")
+            provider_cfg = await self._resolve_provider(provider_slug)
+            if (
+                not provider_cfg
+                or provider_cfg.enabled is False
+                or not provider_cfg.base_url
+            ):
+                raise ProviderError(
+                    "provider_not_configured", code="provider_not_configured"
+                )
             text = await self._call_provider(provider_cfg, model_cfg, prompt)
             if not text:
-                raise RuntimeError("empty_response")
+                raise ProviderError("empty_response", code="empty_response")
             return text
-        except Exception as exc:
-            if (
-                isinstance(exc, RuntimeError)
-                and str(exc) == "provider_not_configured"
-                and self.fallback is not None
-            ):
+        except ProviderError as exc:
+            if exc.code == "provider_not_configured" and self.fallback is not None:
+                logger.info(
+                    "ai_provider_fallback_not_configured",
+                    extra={**context, "fallback": type(self.fallback).__name__},
+                )
                 return await self.fallback.generate(
                     prompt,
                     model=model,
@@ -58,8 +71,35 @@ class RegistryBackedProvider(Provider):
                     model_id=model_id,
                 )
             raise
+        except httpx.HTTPError as exc:
+            detailed_context = {
+                **context,
+                "fallback": type(self.fallback).__name__ if self.fallback else None,
+            }
+            if self.fallback is not None:
+                logger.warning(
+                    "ai_provider_http_error_fallback",
+                    extra=detailed_context,
+                    exc_info=exc,
+                )
+                return await self.fallback.generate(
+                    prompt,
+                    model=model,
+                    provider=provider,
+                    model_id=model_id,
+                )
+            raise ProviderError("provider_http_error", code="http_error") from exc
+        except Exception as exc:
+            logger.exception(
+                "ai_provider_unexpected_error",
+                extra={**context, "fallback": bool(self.fallback)},
+                exc_info=exc,
+            )
+            raise ProviderError("provider_unexpected_error", code="unexpected") from exc
 
-    async def _resolve_model(self, *, model_id: str | None, name: str | None) -> LLMModelCfg | None:
+    async def _resolve_model(
+        self, *, model_id: str | None, name: str | None
+    ) -> LLMModelCfg | None:
         models = await self.registry.list_models()
         for item in models:
             if model_id and item.id == model_id:
@@ -93,7 +133,11 @@ class RegistryBackedProvider(Provider):
         )
         prompt_key = str(
             extras.get("prompt_key")
-            or ("messages" if prompt_mode in {"openai_chat", "openai-chat"} else "prompt")
+            or (
+                "messages"
+                if prompt_mode in {"openai_chat", "openai-chat"}
+                else "prompt"
+            )
         )
         response_path = extras.get("response_path")
         if not response_path and prompt_mode in {"openai_chat", "openai-chat"}:
@@ -107,7 +151,9 @@ class RegistryBackedProvider(Provider):
         method = str(extras.get("method") or "POST").upper()
         url = str(extras.get("endpoint") or provider.base_url or "")
         if not url:
-            raise RuntimeError("provider_not_configured")
+            raise ProviderError(
+                "provider_not_configured", code="provider_not_configured"
+            )
 
         payload: dict[str, Any] = {}
         if prompt_mode in {"openai_chat", "openai-chat"}:
@@ -117,7 +163,9 @@ class RegistryBackedProvider(Provider):
             try:
                 payload[prompt_key] = json.loads(prompt)
             except json.JSONDecodeError as err:
-                raise ValueError("prompt_json_invalid") from err
+                raise ProviderError(
+                    "prompt_json_invalid", code="prompt_json_invalid"
+                ) from err
         else:
             payload[prompt_key] = prompt
 
@@ -147,10 +195,14 @@ class RegistryBackedProvider(Provider):
             headers.update({str(k): str(v) for k, v in headers_override.items()})
 
         params = (
-            extras.get("query_params") if isinstance(extras.get("query_params"), dict) else None
+            extras.get("query_params")
+            if isinstance(extras.get("query_params"), dict)
+            else None
         )
 
-        timeout_value = extras.get("timeout_sec") or provider.timeout_sec or self.timeout
+        timeout_value = (
+            extras.get("timeout_sec") or provider.timeout_sec or self.timeout
+        )
         timeout = httpx.Timeout(timeout_value, connect=min(5.0, timeout_value))
 
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -159,7 +211,9 @@ class RegistryBackedProvider(Provider):
                     url, params={**(params or {}), **payload}, headers=headers
                 )
             else:
-                response = await client.post(url, params=params, json=payload, headers=headers)
+                response = await client.post(
+                    url, params=params, json=payload, headers=headers
+                )
             response.raise_for_status()
             data = response.json()
 
@@ -190,11 +244,15 @@ class RegistryBackedProvider(Provider):
             if data.get("text"):
                 return data["text"]
             if isinstance(data.get("choices"), Iterable):
-                choices = list(data["choices"] if isinstance(data["choices"], Iterable) else [])
+                choices = list(
+                    data["choices"] if isinstance(data["choices"], Iterable) else []
+                )
                 if choices:
                     first = choices[0]
                     if isinstance(first, dict):
-                        return first.get("text") or first.get("message", {}).get("content")
+                        return first.get("text") or first.get("message", {}).get(
+                            "content"
+                        )
                     return first
         return data
 

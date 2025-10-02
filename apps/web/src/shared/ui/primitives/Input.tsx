@@ -1,7 +1,7 @@
-
+﻿
 import React from 'react';
 
-type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+type InputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix'> & {
   label?: React.ReactNode;
   error?: React.ReactNode;
   prefix?: React.ReactNode;
@@ -51,4 +51,5 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     );
   },
 );
+
 

@@ -68,7 +68,9 @@ class SQLBroadcastRepo(BroadcastRepo):
             assert row is not None
             return self._row_to_model(row)
 
-    async def update(self, broadcast_id: str, payload: BroadcastUpdateModel) -> Broadcast:
+    async def update(
+        self, broadcast_id: str, payload: BroadcastUpdateModel
+    ) -> Broadcast:
         sql = text(
             """
             UPDATE notification_broadcasts
@@ -224,11 +226,13 @@ class SQLBroadcastRepo(BroadcastRepo):
             recipient_total = int(sum_row[0]) if sum_row is not None else 0
 
             stats_rows = (await conn.execute(sql_stats, filters)).mappings().all()
-            status_counts: dict[BroadcastStatus, int] = {status: 0 for status in BroadcastStatus}
+            status_counts: dict[BroadcastStatus, int] = {
+                status: 0 for status in BroadcastStatus
+            }
             for row in stats_rows:
                 try:
                     status = BroadcastStatus(str(row.get("status")))
-                except Exception:
+                except ValueError:
                     continue
                 status_counts[status] = int(row.get("count") or 0)
 
@@ -239,7 +243,9 @@ class SQLBroadcastRepo(BroadcastRepo):
             recipient_total=recipient_total,
         )
 
-    async def claim_due(self, now: datetime, limit: int = 10) -> builtins.list[Broadcast]:
+    async def claim_due(
+        self, now: datetime, limit: int = 10
+    ) -> builtins.list[Broadcast]:
         if limit <= 0:
             return []
         scheduled = BroadcastStatus.SCHEDULED.value
@@ -340,9 +346,13 @@ class SQLBroadcastRepo(BroadcastRepo):
         payload: BroadcastCreateModel | BroadcastUpdateModel, *, created: bool
     ) -> dict[str, Any]:
         audience = payload.audience
-        audience_filters = json.dumps(audience.filters) if audience.filters is not None else None
+        audience_filters = (
+            json.dumps(audience.filters) if audience.filters is not None else None
+        )
         audience_user_ids = (
-            json.dumps(list(audience.user_ids)) if audience.user_ids is not None else None
+            json.dumps(list(audience.user_ids))
+            if audience.user_ids is not None
+            else None
         )
         params: dict[str, Any] = {
             "title": payload.title,
@@ -369,7 +379,9 @@ class SQLBroadcastRepo(BroadcastRepo):
             id=str(row["id"]),
             title=row["title"],
             body=row["body"],
-            template_id=(str(row["template_id"]) if row["template_id"] is not None else None),
+            template_id=(
+                str(row["template_id"]) if row["template_id"] is not None else None
+            ),
             audience=audience,
             status=BroadcastStatus(row["status"]),
             created_by=row["created_by"],

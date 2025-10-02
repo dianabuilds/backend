@@ -32,7 +32,7 @@ class FlagRule:
     def __post_init__(self) -> None:
         try:
             self.type = FlagRuleType(self.type)  # type: ignore[assignment]
-        except Exception as exc:  # pragma: no cover - defensive
+        except (ValueError, TypeError) as exc:  # pragma: no cover - defensive
             raise ValueError(f"invalid rule type: {self.type}") from exc
         self.value = str(self.value)
         if self.rollout is not None:
@@ -57,7 +57,7 @@ class FeatureFlag:
             raise ValueError("flag slug is required")
         try:
             self.status = FlagStatus(self.status)  # type: ignore[assignment]
-        except Exception as exc:
+        except (ValueError, TypeError) as exc:
             raise ValueError(f"invalid flag status: {self.status}") from exc
         if self.rollout is not None:
             self.rollout = max(0, min(100, int(self.rollout)))
@@ -68,18 +68,24 @@ class FeatureFlag:
 
     @property
     def testers(self) -> tuple[str, ...]:
-        return tuple(rule.value for rule in self.rules if rule.type is FlagRuleType.USER)
+        return tuple(
+            rule.value for rule in self.rules if rule.type is FlagRuleType.USER
+        )
 
     @property
     def roles(self) -> tuple[str, ...]:
         values = [rule.value for rule in self.rules if rule.type is FlagRuleType.ROLE]
-        if self.status is FlagStatus.PREMIUM and "premium" not in {v.lower() for v in values}:
+        if self.status is FlagStatus.PREMIUM and "premium" not in {
+            v.lower() for v in values
+        }:
             values.append("premium")
         return tuple(values)
 
     @property
     def segments(self) -> tuple[str, ...]:
-        return tuple(rule.value for rule in self.rules if rule.type is FlagRuleType.SEGMENT)
+        return tuple(
+            rule.value for rule in self.rules if rule.type is FlagRuleType.SEGMENT
+        )
 
 
 @dataclass(slots=True)

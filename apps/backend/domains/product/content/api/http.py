@@ -5,7 +5,9 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import ValidationError
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from apps.backend import get_container
@@ -26,7 +28,7 @@ def _iso(dt: Any) -> str | None:
         return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
     try:
         return _iso(datetime.fromisoformat(str(dt)))
-    except Exception:
+    except (ValueError, TypeError):
         return None
 
 
@@ -36,8 +38,11 @@ async def _ensure_engine(settings) -> AsyncEngine | None:
         if not dsn:
             return None
         return get_async_engine("content-analytics", url=dsn, future=True)
-    except Exception:
-        logger.exception("content analytics: failed to create engine")
+    except (ValidationError, ValueError, TypeError) as exc:
+        logger.warning("content analytics: invalid database configuration: %s", exc)
+        return None
+    except SQLAlchemyError as exc:
+        logger.exception("content analytics: failed to create engine", exc_info=exc)
         return None
 
 
@@ -67,12 +72,20 @@ async def _fetch_stats(engine: AsyncEngine) -> dict[str, Any]:
                 .first()
             )
             quest_row = (
-                (await conn.execute(text("SELECT COUNT(*)::bigint AS total FROM quests")))
+                (
+                    await conn.execute(
+                        text("SELECT COUNT(*)::bigint AS total FROM quests")
+                    )
+                )
                 .mappings()
                 .first()
             )
             world_row = (
-                (await conn.execute(text("SELECT COUNT(*)::bigint AS total FROM worlds")))
+                (
+                    await conn.execute(
+                        text("SELECT COUNT(*)::bigint AS total FROM worlds")
+                    )
+                )
                 .mappings()
                 .first()
             )
@@ -87,8 +100,8 @@ async def _fetch_stats(engine: AsyncEngine) -> dict[str, Any]:
                 .mappings()
                 .first()
             )
-    except Exception:
-        logger.exception("content analytics: stats query failed")
+    except SQLAlchemyError as exc:
+        logger.exception("content analytics: stats query failed", exc_info=exc)
         return defaults
     total_nodes = int(node_row.get("total", 0)) if node_row else 0
     published = int(node_row.get("published", 0)) if node_row else 0
@@ -129,8 +142,8 @@ async def _fetch_top_tags(engine: AsyncEngine, limit: int) -> list[dict[str, Any
                 .mappings()
                 .all()
             )
-    except Exception:
-        logger.exception("content analytics: top tags query failed")
+    except SQLAlchemyError as exc:
+        logger.exception("content analytics: top tags query failed", exc_info=exc)
         return []
     return [
         {
@@ -161,8 +174,8 @@ async def _fetch_recent_nodes(engine: AsyncEngine, limit: int) -> list[dict[str,
                 .mappings()
                 .all()
             )
-    except Exception:
-        logger.exception("content analytics: recent nodes query failed")
+    except SQLAlchemyError as exc:
+        logger.exception("content analytics: recent nodes query failed", exc_info=exc)
         return []
     return [
         {
@@ -194,8 +207,8 @@ async def _fetch_recent_quests(engine: AsyncEngine, limit: int) -> list[dict[str
                 .mappings()
                 .all()
             )
-    except Exception:
-        logger.exception("content analytics: recent quests query failed")
+    except SQLAlchemyError as exc:
+        logger.exception("content analytics: recent quests query failed", exc_info=exc)
         return []
     return [
         {

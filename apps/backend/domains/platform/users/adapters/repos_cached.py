@@ -41,7 +41,9 @@ def _user_from_map(r: dict[str, Any] | None) -> User | None:
 
 
 class CachedUsersRepo(UsersRepo):
-    def __init__(self, base: UsersRepo, client: redis.Redis, ttl_seconds: int = 60) -> None:
+    def __init__(
+        self, base: UsersRepo, client: redis.Redis, ttl_seconds: int = 60
+    ) -> None:
         self._base = base
         self._r = client
         self._ttl = ttl_seconds
@@ -67,7 +69,7 @@ class CachedUsersRepo(UsersRepo):
         if raw:
             try:
                 return _user_from_map(json.loads(raw))
-            except Exception:
+            except (json.JSONDecodeError, ValueError, TypeError):
                 pass
         u = await self._base.get_by_id(user_id)
         if u:

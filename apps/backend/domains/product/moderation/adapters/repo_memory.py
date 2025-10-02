@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
@@ -18,7 +18,7 @@ def _normalize_iso(value: str | None) -> datetime | None:
         return None
     try:
         return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(UTC)
-    except Exception:
+    except ValueError:
         return None
 
 
@@ -48,7 +48,9 @@ class MemoryModerationRepo(Repo):
 
         if statuses:
             statuses_set = {str(s).lower() for s in statuses}
-            items = [c for c in items if str(c.get("status", "")).lower() in statuses_set]
+            items = [
+                c for c in items if str(c.get("status", "")).lower() in statuses_set
+            ]
         if types:
             types_set = {str(t).lower() for t in types}
             items = [c for c in items if str(c.get("type", "")).lower() in types_set]
@@ -116,7 +118,9 @@ class MemoryModerationRepo(Repo):
         ]
         return cid
 
-    async def add_note(self, case_id: str, note: dict, *, author_id: str | None) -> dict | None:
+    async def add_note(
+        self, case_id: str, note: dict, *, author_id: str | None
+    ) -> dict | None:
         if case_id not in self._cases:
             return None
         now = datetime.now(UTC)
@@ -192,7 +196,7 @@ class MemoryModerationRepo(Repo):
                         "to": value,
                         "actor": actor_id,
                         "title": f"{key.replace('_', ' ').title()} updated",
-                        "description": f"{previous or '-'} → {value or '-'}",
+                        "description": f"{previous or '-'} > {value or '-'}",
                         "created_at": _to_iso(now),
                     },
                 )

@@ -1,8 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
+
+import logging
 
 from apps.backend import get_container
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from packages.core.config import to_async_dsn
 from packages.core.db import get_async_engine
@@ -10,6 +13,7 @@ from packages.core.db import get_async_engine
 from ..dtos import OverviewDTO
 from ..rbac import require_scopes
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/overview", tags=["moderation-overview"])
 
 
@@ -18,21 +22,17 @@ router = APIRouter(prefix="/overview", tags=["moderation-overview"])
     response_model=OverviewDTO,
     dependencies=[Depends(require_scopes("moderation:overview:read"))],
 )
-async def get_overview(limit: int = 10, container=Depends(get_container)) -> OverviewDTO:
+async def get_overview(
+    limit: int = 10, container=Depends(get_container)
+) -> OverviewDTO:
     complaints_new: dict[str, object] = {}
     tickets: dict[str, object] = {}
     content_queues: dict[str, int] = {}
     try:
         dsn = to_async_dsn(container.settings.database_url)
         if not dsn:
-            return OverviewDTO(
-                complaints_new=complaints_new,
-                tickets=tickets,
-                content_queues=content_queues,
-                last_sanctions=[],
-                charts={},
-                cards=[],
-            )
+            logger.debug("moderation overview: no database URL configured")
+            raise RuntimeError("moderation DB unavailable")
 
         eng = get_async_engine("moderation-overview", url=dsn, future=True)
 
@@ -41,7 +41,9 @@ async def get_overview(limit: int = 10, container=Depends(get_container)) -> Ove
                 rows = (
                     (
                         await conn.execute(
-                            text("SELECT status, count(*) as c FROM nodes GROUP BY status")
+                            text(
+                                "SELECT status, count(*) as c FROM nodes GROUP BY status"
+                            )
                         )
                     )
                     .mappings()
@@ -51,10 +53,15 @@ async def get_overview(limit: int = 10, container=Depends(get_container)) -> Ove
                     st = str(r.get("status") or "")
                     if st:
                         content_queues[st] = int(r.get("c") or 0)
-            except Exception:
-                pass
-    except Exception:
-        pass
+            except (SQLAlchemyError, RuntimeError) as exc:
+                logger.warning(
+                    "moderation overview: content status query failed: %s", exc
+                )
+    except (SQLAlchemyError, RuntimeError, ValueError, TypeError, ImportError) as exc:
+        logger.warning(
+            "moderation overview: failed to build overview fallbacking to empty: %s",
+            exc,
+        )
     return OverviewDTO(
         complaints_new=complaints_new,
         tickets=tickets,

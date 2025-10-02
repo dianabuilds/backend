@@ -228,21 +228,29 @@ async function handleResponse(res: Response) {
   return res;
 }
 
-export async function apiGetWithResponse<T = any>(u: string, opts: { omitCredentials?: boolean } = {}): Promise<{ data: T; response: Response }> {
-  const headers: Record<string, string> = {};
+export type GetOptions = { omitCredentials?: boolean; signal?: AbortSignal; headers?: Record<string, string> };
+
+export async function apiGetWithResponse<T = any>(
+  u: string,
+  opts: GetOptions = {},
+): Promise<{ data: T; response: Response }> {
+  const headers: Record<string, string> = { ...(opts.headers || {}) };
   maybeWithAdminKey(headers, u);
-  const res = await fetch(url(u), { credentials: opts.omitCredentials ? 'omit' : 'include', headers });
+  const res = await fetch(url(u), {
+    credentials: opts.omitCredentials ? 'omit' : 'include',
+    headers,
+    signal: opts.signal,
+  });
   const ok = await handleResponse(res);
   const text = await ok.text();
   const data = text ? (JSON.parse(text) as T) : (undefined as T);
   return { data, response: ok };
 }
 
-export async function apiGet<T = any>(u: string, opts: { omitCredentials?: boolean } = {}): Promise<T> {
+export async function apiGet<T = any>(u: string, opts: GetOptions = {}): Promise<T> {
   const { data } = await apiGetWithResponse<T>(u, opts);
   return data;
 }
-
 export async function apiPost<T = any>(u: string, body: any, opts: { omitCredentials?: boolean; headers?: Record<string, string> } = {}): Promise<T> {
   const res = await fetch(url(u), {
     method: 'POST',

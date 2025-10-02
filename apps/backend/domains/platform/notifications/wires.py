@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from asyncio import TimeoutError as AsyncTimeoutError
 from collections.abc import Awaitable
 from concurrent.futures import Future as ThreadFuture
 from dataclasses import dataclass
@@ -58,6 +59,20 @@ from packages.core.async_utils import run_sync
 from packages.core.config import Settings, load_settings, to_async_dsn
 
 logger = logging.getLogger(__name__)
+_DELIVERY_ERRORS = (
+    RuntimeError,
+    ValueError,
+    ConnectionError,
+    AsyncTimeoutError,
+    OSError,
+)
+
+
+def _dispatch_with_log(action: str, payload: dict[str, Any]) -> None:
+    try:
+        dispatch(action, payload)
+    except _DELIVERY_ERRORS as exc:
+        logger.debug("Notifications dispatcher '%s' failed", action, exc_info=exc)
 
 
 def register_event_relays(
@@ -73,15 +88,13 @@ def register_event_relays(
         target_loop = None
 
     def _log_future_result(fut: ThreadFuture[None]) -> None:
-        try:
-            fut.result()
-        except Exception as exc:
+        exc = fut.exception()
+        if exc:
             logger.exception("Notifications delivery task failed", exc_info=exc)
 
     def _log_task_result(task: asyncio.Future[Any]) -> None:
-        try:
-            task.result()
-        except Exception as exc:
+        exc = task.exception()
+        if exc:
             logger.exception("Notifications delivery task failed", exc_info=exc)
 
     def _submit_delivery(coro: Awaitable[None]) -> None:
@@ -92,42 +105,41 @@ def register_event_relays(
         else:
             try:
                 run_sync(coro)
-            except Exception as exc:
+            except _DELIVERY_ERRORS as exc:
                 logger.exception("Notifications delivery task failed", exc_info=exc)
 
     def _handler(topic: str, payload: dict[str, Any]) -> None:
-        if delivery is not None:
-            try:
-                event = NotificationEvent.from_payload(topic, payload)
-            except Exception:
-                try:
-                    dispatch("log", payload)
-                except Exception:
-                    pass
-                return
-
-            async def _deliver() -> None:
-                try:
-                    await delivery.deliver_to_inbox(event)
-                except Exception as exc:
-                    logger.exception("Notifications delivery failed", exc_info=exc)
-
-            try:
-                loop_running = asyncio.get_running_loop()
-            except RuntimeError:
-                _submit_delivery(_deliver())
-            else:
-                task = loop_running.create_task(_deliver())
-                task.add_done_callback(_log_task_result)
-            try:
-                dispatch("log", payload)
-            except Exception:
-                pass
+        if delivery is None:
+            _dispatch_with_log("log", payload)
             return
         try:
-            dispatch("log", payload)
-        except Exception:
-            pass
+            event = NotificationEvent.from_payload(topic, payload)
+        except (ValueError, TypeError) as exc:
+            logger.warning(
+                "Failed to convert notification payload for topic %s: %s", topic, exc
+            )
+            _dispatch_with_log("log", payload)
+            return
+
+        async def _deliver() -> None:
+            try:
+                await delivery.deliver_to_inbox(event)
+            except _DELIVERY_ERRORS as exc:
+                logger.exception(
+                    "Notifications delivery failed for topic=%s user=%s",
+                    event.topic,
+                    event.user_id,
+                    exc_info=exc,
+                )
+
+        try:
+            loop_running = asyncio.get_running_loop()
+        except RuntimeError:
+            _submit_delivery(_deliver())
+        else:
+            task = loop_running.create_task(_deliver())
+            task.add_done_callback(_log_task_result)
+        _dispatch_with_log("log", payload)
 
     for t in topics:
         events.on(t, _handler)

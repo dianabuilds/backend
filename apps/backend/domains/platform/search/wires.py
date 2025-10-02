@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 import redis.asyncio as redis  # type: ignore
+from pydantic import ValidationError
+from redis.exceptions import RedisError  # type: ignore[import]
+from sqlalchemy.exc import SQLAlchemyError
 
 from domains.platform.events.service import Events
 from domains.platform.search.adapters.cache_memory import (
@@ -22,6 +26,8 @@ from domains.platform.search.application.service import SearchService
 from domains.platform.search.ports import Doc, SearchCache
 from packages.core.config import Settings, load_settings, to_async_dsn
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class SearchContainer:
@@ -34,7 +40,8 @@ def _database_dsn(settings: Settings) -> str | None:
         return None
     try:
         dsn = to_async_dsn(raw)
-    except Exception:
+    except (ValidationError, ValueError, TypeError) as exc:
+        logger.warning("Invalid database DSN for search backend: %s", exc)
         return None
     if isinstance(dsn, str) and "?" in dsn:
         return dsn.split("?", 1)[0]
@@ -49,18 +56,19 @@ def build_container(settings: Settings | None = None) -> SearchContainer:
     if dsn:
         try:
             backend = SQLSearchIndex(dsn)
-        except Exception:
+        except SQLAlchemyError as exc:
+            logger.warning("Falling back to in-memory search index: %s", exc)
             backend = InMemoryIndex()
     else:
         backend = InMemoryIndex()
 
     cache: SearchCache = InMemorySearchCache(ttl_seconds=30)
-    try:
-        if s.redis_url:
+    if s.redis_url:
+        try:
             client = redis.from_url(str(s.redis_url), decode_responses=True)
             cache = RedisSearchCache(client, ttl_seconds=30)
-    except Exception:
-        pass
+        except (RedisError, ValueError, TypeError) as exc:
+            logger.warning("Falling back to in-memory search cache: %s", exc)
 
     persist = None
     path = getattr(s, "search_persist_path", None)
@@ -72,8 +80,10 @@ def build_container(settings: Settings | None = None) -> SearchContainer:
                 docs = await persist.load()  # type: ignore[union-attr]
                 for doc in docs:
                     await backend.upsert(doc)
-            except Exception:
-                pass
+            except (OSError, ValueError, RuntimeError) as exc:
+                logger.warning(
+                    "Failed to warm up search index from persistence: %s", exc
+                )
 
         try:
             loop = asyncio.get_running_loop()

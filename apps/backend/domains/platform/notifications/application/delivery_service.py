@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+from asyncio import TimeoutError as AsyncTimeoutError
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from jinja2 import Environment, StrictUndefined
+from jinja2 import Environment, StrictUndefined, TemplateError
 
 from domains.platform.flags.application.service import FlagService
 from domains.platform.notifications.application.notify_service import (
@@ -38,6 +40,15 @@ _JINJA_ENV = Environment(
     lstrip_blocks=True,
 )
 
+logger = logging.getLogger(__name__)
+_DELIVERY_ERRORS = (
+    RuntimeError,
+    ValueError,
+    ConnectionError,
+    AsyncTimeoutError,
+    OSError,
+)
+
 
 @dataclass(slots=True)
 class NotificationEvent:
@@ -62,11 +73,15 @@ class NotificationEvent:
 
     @classmethod
     def from_payload(cls, topic: str, payload: Mapping[str, Any]) -> NotificationEvent:
-        user_id = str(payload.get("user_id") or payload.get("recipient_id") or "").strip()
+        user_id = str(
+            payload.get("user_id") or payload.get("recipient_id") or ""
+        ).strip()
         if not user_id:
             raise ValueError("user_id_required")
         raw_title = str(payload.get("title") or "").strip() or None
-        raw_body = str(payload.get("body") or payload.get("message") or "").strip() or None
+        raw_body = (
+            str(payload.get("body") or payload.get("message") or "").strip() or None
+        )
         priority = str(payload.get("priority") or "normal").strip().lower() or "normal"
         type_ = str(payload.get("type") or "system").strip() or "system"
         cta = payload.get("cta") or {}
@@ -78,7 +93,11 @@ class NotificationEvent:
             if cta.get("url"):
                 cta_url = str(cta.get("url"))
         meta = payload.get("meta") if isinstance(payload.get("meta"), Mapping) else None
-        context = payload.get("context") if isinstance(payload.get("context"), Mapping) else None
+        context = (
+            payload.get("context")
+            if isinstance(payload.get("context"), Mapping)
+            else None
+        )
 
         template_slug = None
         template_locale = None
@@ -102,7 +121,10 @@ class NotificationEvent:
                 template_variables = dict(vars_candidate)
         else:
             template_slug = (
-                str(payload.get("template_slug") or payload.get("template") or "").strip() or None
+                str(
+                    payload.get("template_slug") or payload.get("template") or ""
+                ).strip()
+                or None
             )
             locale_value = payload.get("template_locale")
             if locale_value is not None:
@@ -110,7 +132,9 @@ class NotificationEvent:
                 template_locale = locale_str or None
 
         if template_variables is None:
-            alt_variables = payload.get("template_variables") or payload.get("variables")
+            alt_variables = payload.get("template_variables") or payload.get(
+                "variables"
+            )
             if isinstance(alt_variables, Mapping):
                 template_variables = dict(alt_variables)
 
@@ -124,7 +148,8 @@ class NotificationEvent:
 
         event_id = _extract_event_id(topic, user_id, payload)
         channel_key = (
-            str(payload.get("channel") or payload.get("channel_key") or "").strip() or None
+            str(payload.get("channel") or payload.get("channel_key") or "").strip()
+            or None
         )
         return cls(
             topic=topic,
@@ -147,7 +172,9 @@ class NotificationEvent:
         )
 
 
-def _extract_event_id(topic: str, user_id: str, payload: Mapping[str, Any]) -> str | None:
+def _extract_event_id(
+    topic: str, user_id: str, payload: Mapping[str, Any]
+) -> str | None:
     for key in ("event_id", "dedupe_key", "resource_id", "id"):
         value = payload.get(key)
         if value:
@@ -156,11 +183,17 @@ def _extract_event_id(topic: str, user_id: str, payload: Mapping[str, Any]) -> s
     source_id = None
     if isinstance(source, Mapping):
         source_id = source.get("source_id") or source.get("id")
-    template = payload.get("template") if isinstance(payload.get("template"), Mapping) else None
+    template = (
+        payload.get("template")
+        if isinstance(payload.get("template"), Mapping)
+        else None
+    )
     template_slug: str | None = None
     template_vars: Mapping[str, Any] | None = None
     if template:
-        template_slug = template.get("slug") or template.get("id") or template.get("key")
+        template_slug = (
+            template.get("slug") or template.get("id") or template.get("key")
+        )
         vars_candidate = template.get("variables")
         if isinstance(vars_candidate, Mapping):
             template_vars = vars_candidate
@@ -183,7 +216,7 @@ def _extract_event_id(topic: str, user_id: str, payload: Mapping[str, Any]) -> s
         for key in sorted(str(k) for k in template_vars.keys()):
             try:
                 value = template_vars[key]
-            except Exception:  # pragma: no cover - defensive
+            except KeyError:  # pragma: no cover - defensive
                 value = template_vars.get(key)
             serialized.append(f"{key}={value!r}")
         if serialized:
@@ -227,7 +260,9 @@ class DeliveryService:
             return None
 
         records = await self._preference_repo.list_for_user(event.user_id)
-        if not self._is_allowed_by_preferences(records, topic_key, "in_app", in_app_rule):
+        if not self._is_allowed_by_preferences(
+            records, topic_key, "in_app", in_app_rule
+        ):
             return None
 
         materialized = await self._materialize_event_content(event)
@@ -237,7 +272,9 @@ class DeliveryService:
 
         payload_meta = dict(event.meta or {})
         payload_meta.setdefault("topic", topic_key)
-        sanitized_priority = event.priority if event.priority in _ALLOWED_PRIORITIES else "normal"
+        sanitized_priority = (
+            event.priority if event.priority in _ALLOWED_PRIORITIES else "normal"
+        )
         payload_meta.setdefault("priority", sanitized_priority)
 
         dto = await self._notify.create_notification(
@@ -304,10 +341,16 @@ class DeliveryService:
                 payload["html"] = html
         try:
             dispatch("email", payload)
-        except Exception:
-            pass
+        except _DELIVERY_ERRORS as exc:
+            logger.warning(
+                "notification_email_dispatch_failed",
+                extra={"recipients": recipients},
+                exc_info=exc,
+            )
 
-    async def _materialize_event_content(self, event: NotificationEvent) -> tuple[str, str] | None:
+    async def _materialize_event_content(
+        self, event: NotificationEvent
+    ) -> tuple[str, str] | None:
         title = event.title or ""
         body = event.body or ""
         if event.template_slug and self._templates is not None:
@@ -335,7 +378,11 @@ class DeliveryService:
                     return None
                 body = self._render_template(body_source, variables)
                 title_source = title or template.subject or template.name or ""
-                title = self._render_template(title_source, variables) if title_source else ""
+                title = (
+                    self._render_template(title_source, variables)
+                    if title_source
+                    else ""
+                )
             except ValueError:
                 return None
         if not title:
@@ -361,7 +408,7 @@ class DeliveryService:
     def _render_template(self, template: str, variables: Mapping[str, Any]) -> str:
         try:
             return _JINJA_ENV.from_string(template).render(**variables)
-        except Exception as exc:
+        except (TemplateError, TypeError, ValueError) as exc:
             raise ValueError("template_render_failed") from exc
 
 
@@ -380,7 +427,10 @@ class _FlagEvaluator:
             return self._cache[slug]
         try:
             flag = await self._service.store.get(slug)
-        except Exception:
+        except (RuntimeError, ValueError) as exc:
+            logger.warning(
+                "delivery_flag_fetch_failed", extra={"slug": slug}, exc_info=exc
+            )
             enabled = fallback
         else:
             if flag is None:

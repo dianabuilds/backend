@@ -14,9 +14,8 @@ class RedisOutbox:
         # Validate against JSON schema if available
         try:
             validate_event_payload(topic, payload)
-        except Exception:
-            # Keep strict: raise to let caller handle/report
-            raise
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"invalid event payload for {topic}") from exc
         self._core.publish(topic=topic, payload=payload, key=key)
 
 

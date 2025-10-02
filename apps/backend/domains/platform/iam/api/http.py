@@ -1,19 +1,23 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response
 
 try:
     from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 from secrets import token_urlsafe
 
 from pydantic import BaseModel, Field, model_validator
+from sqlalchemy.exc import SQLAlchemyError
 
 from apps.backend import get_container
 from domains.platform.iam.application.auth_service import AuthError, LoginIn
+
+logger = logging.getLogger(__name__)
 
 
 class LoginSchema(BaseModel):
@@ -58,9 +62,13 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/login",
-        dependencies=([Depends(RateLimiter(times=5, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=5, seconds=60))] if RateLimiter else []
+        ),
     )
-    async def login(req: Request, payload: LoginSchema, response: Response) -> dict[str, Any]:
+    async def login(
+        req: Request, payload: LoginSchema, response: Response
+    ) -> dict[str, Any]:
         c = get_container(req)
         try:
             login_value = payload.login or ""
@@ -116,8 +124,10 @@ def make_router() -> APIRouter:
                 ip=req.client.host if req and req.client else None,
                 user_agent=req.headers.get("user-agent"),
             )
-        except Exception:
-            pass
+        except (SQLAlchemyError, RuntimeError, ValueError) as exc:
+            logger.warning(
+                "auth_login_audit_failed", extra={"user_id": identity.id}, exc_info=exc
+            )
         return {
             "access_token": pair.access_token,
             "refresh_token": pair.refresh_token,
@@ -135,7 +145,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/refresh",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
     )
     async def refresh(
         req: Request, payload: Token = token_body, response: Response = None
@@ -178,7 +190,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/signup",
-        dependencies=([Depends(RateLimiter(times=3, seconds=3600))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=3, seconds=3600))] if RateLimiter else []
+        ),
     )
     async def signup(req: Request, payload: SignupSchema) -> dict[str, Any]:
         c = get_container(req)
@@ -200,7 +214,9 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/evm/nonce",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
     )
     async def evm_nonce(req: Request, user_id: str = Query(...)) -> dict[str, Any]:
         c = get_container(req)
@@ -208,14 +224,18 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/evm/verify",
-        dependencies=([Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
+        ),
     )
-    async def evm_verify(req: Request, payload: EVMVerify, response: Response) -> dict[str, Any]:
+    async def evm_verify(
+        req: Request, payload: EVMVerify, response: Response
+    ) -> dict[str, Any]:
         c = get_container(req)
         try:
             pair = await c.iam.service.evm_verify(payload)  # type: ignore[arg-type]
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
+        except RuntimeError as exc:
+            return {"ok": False, "error": str(exc)}
         s = c.settings
         response.set_cookie(
             "access_token",

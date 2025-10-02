@@ -9,6 +9,7 @@ from typing import Any
 from apps.backend import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from packages.core.config import to_async_dsn
@@ -93,8 +94,10 @@ async def _ensure_nodes_moderation_schema(conn) -> None:
             )
             if col_check.scalar() is not None and tbl_check.scalar() is not None:
                 _SCHEMA_READY = True
-        except Exception as exc:
-            logger.warning("moderation content: failed to ensure node moderation schema: %s", exc)
+        except (TimeoutError, SQLAlchemyError, RuntimeError, OSError) as exc:
+            logger.warning(
+                "moderation content: failed to ensure node moderation schema: %s", exc
+            )
 
 
 def _iso(dt: Any) -> str | None:
@@ -108,7 +111,10 @@ def _iso(dt: Any) -> str | None:
         return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
     try:
         return _iso(datetime.fromisoformat(str(dt)))
-    except Exception:
+    except (TypeError, ValueError) as exc:
+        logger.debug(
+            "moderation content: failed to normalise timestamp %r: %s", dt, exc
+        )
         return None
 
 
@@ -117,7 +123,8 @@ def _coerce_status(value: Any) -> ContentStatus:
         if isinstance(value, ContentStatus):
             return value
         return ContentStatus(str(value))
-    except Exception:
+    except (TypeError, ValueError) as exc:
+        logger.debug("moderation content: unknown status %r: %s", value, exc)
         return ContentStatus.pending
 
 
@@ -140,26 +147,31 @@ def _normalize_actor(actor: Any) -> str | None:
     try:
         actor_str = str(actor).strip()
         return actor_str or None
-    except Exception:
+    except (TypeError, ValueError) as exc:
+        logger.debug("moderation content: cannot normalise actor %r: %s", actor, exc)
         return None
 
 
 def _get_engine(settings) -> AsyncEngine | None:
     try:
         dsn = to_async_dsn(settings.database_url)
-    except Exception:
-        logger.debug("moderation content: unable to derive DSN", exc_info=True)
+    except (TypeError, ValueError) as exc:
+        logger.debug("moderation content: unable to derive DSN: %s", exc, exc_info=True)
         return None
     if not dsn:
         return None
     try:
         return get_async_engine("moderation-content", url=dsn, future=True)
-    except Exception:
-        logger.exception("moderation content: failed to create async engine")
+    except (SQLAlchemyError, RuntimeError, ImportError) as exc:
+        logger.error(
+            "moderation content: failed to create async engine: %s", exc, exc_info=True
+        )
         return None
 
 
-async def _load_content_details(engine: AsyncEngine, content_id: str) -> dict[str, Any] | None:
+async def _load_content_details(
+    engine: AsyncEngine, content_id: str
+) -> dict[str, Any] | None:
     try:
         node_id = int(content_id)
     except (TypeError, ValueError):
@@ -290,7 +302,9 @@ async def _record_decision(
             "payload": hist_row.get("payload"),
         }
     return {
-        "status": _coerce_status(node_row.get("moderation_status") if node_row else status).value,
+        "status": _coerce_status(
+            node_row.get("moderation_status") if node_row else status
+        ).value,
         "status_updated_at": _iso(
             node_row.get("moderation_status_updated_at") if node_row else None
         ),
@@ -320,7 +334,8 @@ async def list_queue(
         return {"items": [], "next_cursor": None}
     try:
         offset = int(cursor or 0)
-    except Exception:
+    except (TypeError, ValueError) as exc:
+        logger.debug("moderation content: invalid cursor %r: %s", cursor, exc)
         offset = 0
     where: list[str] = []
     params: dict[str, Any] = {"lim": int(limit), "off": int(offset)}
@@ -353,8 +368,8 @@ async def list_queue(
     try:
         async with engine.begin() as conn:
             rows = (await conn.execute(text(sql_txt), params)).mappings().all()
-    except Exception:
-        logger.exception("moderation content: list_queue query failed")
+    except (SQLAlchemyError, RuntimeError) as exc:
+        logger.exception("moderation content: list_queue query failed: %s", exc)
         return {"items": [], "next_cursor": None}
     items: list[dict[str, Any]] = []
     for row in rows:
@@ -383,7 +398,9 @@ async def list_queue(
                 "meta": {
                     "node_status": row.get("node_status"),
                     "moderation_status": mod_status.value,
-                    "moderation_status_updated_at": _iso(row.get("moderation_status_updated_at")),
+                    "moderation_status_updated_at": _iso(
+                        row.get("moderation_status_updated_at")
+                    ),
                     "last_decision": hist_entry,
                 },
             }
@@ -397,7 +414,9 @@ async def list_queue(
     response_model=ContentSummary,
     dependencies=[Depends(require_scopes("moderation:content:read"))],
 )
-async def get_content(content_id: str, container=Depends(get_container)) -> ContentSummary:
+async def get_content(
+    content_id: str, container=Depends(get_container)
+) -> ContentSummary:
     svc = container.platform_moderation.service
     try:
         summary = await svc.get_content(content_id)
@@ -408,8 +427,10 @@ async def get_content(content_id: str, container=Depends(get_container)) -> Cont
         return summary
     try:
         db_info = await _load_content_details(engine, content_id)
-    except Exception:
-        logger.exception("moderation content: failed to load db details for %s", content_id)
+    except (SQLAlchemyError, RuntimeError) as exc:
+        logger.exception(
+            "moderation content: failed to load db details for %s: %s", content_id, exc
+        )
         db_info = None
     if not db_info:
         return summary
@@ -432,7 +453,8 @@ async def get_content(content_id: str, container=Depends(get_container)) -> Cont
             "created_at": db_info.get("created_at") or summary.created_at,
             "preview": db_info.get("title") or summary.preview,
             "status": status,
-            "moderation_history": db_info.get("moderation_history") or summary.moderation_history,
+            "moderation_history": db_info.get("moderation_history")
+            or summary.moderation_history,
             "meta": merged_meta,
         }
     )
@@ -467,16 +489,20 @@ async def decide_content(
                 actor_id=body.get("actor"),
                 payload=body,
             )
-        except Exception:
-            logger.exception("moderation content: failed to persist decision for %s", content_id)
+        except (SQLAlchemyError, RuntimeError) as exc:
+            logger.exception(
+                "moderation content: failed to persist decision for %s: %s",
+                content_id,
+                exc,
+            )
     response = {"content_id": content_id, **result}
     if record:
         response["moderation_status"] = record.get("status")
         if record.get("history_entry"):
             response.setdefault("decision", result.get("decision", {}))
-            response["decision"]["decided_at"] = response["decision"].get("decided_at") or record[
-                "history_entry"
-            ].get("decided_at")
+            response["decision"]["decided_at"] = response["decision"].get(
+                "decided_at"
+            ) or record["history_entry"].get("decided_at")
             response["decision"]["status"] = record["history_entry"].get("status")
         response["db_state"] = record
     return response

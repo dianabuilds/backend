@@ -22,12 +22,12 @@ def _normalize_db_url(url: str) -> str:
             import psycopg  # type: ignore  # noqa: F401
 
             return "postgresql+psycopg" + url[len("postgresql+asyncpg") :]
-        except Exception:
+        except ImportError:
             try:
                 import psycopg2  # type: ignore  # noqa: F401
 
                 return "postgresql+psycopg2" + url[len("postgresql+asyncpg") :]
-            except Exception:
+            except ImportError:
                 return "postgresql" + url[len("postgresql+asyncpg") :]
     return url
 
@@ -58,7 +58,9 @@ def _session_settings() -> dict:
         "refresh_days": refresh_days,
         "secure": secure,
         "samesite": (
-            "strict" if samesite == "strict" else ("none" if samesite == "none" else "lax")
+            "strict"
+            if samesite == "strict"
+            else ("none" if samesite == "none" else "lax")
         ),
         "domain": domain,
     }
@@ -150,7 +152,9 @@ def _require_session(request: Request):
 @router.post("/register", response_model=MeOut)
 def register(data: RegisterIn, response: Response):
     if len(data.username) < 3 or len(data.password) < 6:
-        raise HTTPException(status_code=400, detail="Invalid username or password length")
+        raise HTTPException(
+            status_code=400, detail="Invalid username or password length"
+        )
     with ENGINE.begin() as conn:
         exists = conn.execute(
             text("SELECT 1 FROM users WHERE lower(username)=lower(:u)"),
@@ -326,7 +330,9 @@ def logout(request: Request, response: Response):
     if token:
         with ENGINE.begin() as conn:
             conn.execute(
-                text("UPDATE user_sessions SET revoked_at = now() WHERE session_token_hash = :h"),
+                text(
+                    "UPDATE user_sessions SET revoked_at = now() WHERE session_token_hash = :h"
+                ),
                 {"h": _hash(token)},
             )
     _clear_cookies(response)
@@ -342,7 +348,9 @@ def require_roles(*required: str):
     def dep(user=Depends(_require_session)):
         roles = set(user.get("roles") or [])
         if not roles.intersection(required):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role"
+            )
         return user
 
     return dep

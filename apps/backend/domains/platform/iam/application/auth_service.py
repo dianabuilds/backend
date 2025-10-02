@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import hmac
+import logging
+import re
 from dataclasses import dataclass
 from typing import Any
+
+from sqlalchemy.exc import SQLAlchemyError
 
 try:  # eth-account is in requirements; guard for safety
     from eth_account import Account  # type: ignore
     from eth_account.messages import encode_defunct  # type: ignore
     from web3 import Web3  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     Account = None  # type: ignore
     encode_defunct = None  # type: ignore
     Web3 = None  # type: ignore
-import re
 
 from domains.platform.iam.ports.credentials_port import AuthIdentity, CredentialsPort
 from domains.platform.iam.ports.email_port import EmailSender
@@ -22,6 +25,8 @@ from domains.platform.iam.ports.verification_port import (
     VerificationTokenStore,
 )
 from packages.core.config import Settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -106,7 +111,10 @@ class AuthService:
         source = "credentials"
         try:
             user = await self.credentials.authenticate(data.login, data.password)
-        except Exception:
+        except (SQLAlchemyError, RuntimeError) as exc:
+            logger.warning(
+                "credentials_auth_failed", extra={"login": data.login}, exc_info=exc
+            )
             user = None
         if not user:
             user = self._bootstrap_identity(data.login, data.password)
@@ -138,21 +146,20 @@ class AuthService:
             recovered = Account.recover_message(msg, signature=data.signature)
             rec = Web3.to_checksum_address(recovered)
             want = Web3.to_checksum_address(data.wallet_address)
-        except Exception as e:  # pragma: no cover - library/parsing errors
-            raise RuntimeError(f"siwe_verification_failed: {e}") from e
+        except (
+            ValueError,
+            TypeError,
+        ) as exc:  # pragma: no cover - library/parsing errors
+            raise RuntimeError(f"siwe_verification_failed: {exc}") from exc
         if rec != want:
             raise RuntimeError("siwe_signature_mismatch")
         # Extract and verify nonce if present in message
         m = re.search(r"Nonce:\s*([A-Za-z0-9-]+)", data.message, re.IGNORECASE)
         if m:
             nonce = m.group(1)
-            try:
-                ok = await self.nonces.verify(want, nonce)
-                if not ok:
-                    raise RuntimeError("siwe_nonce_invalid_or_used")
-            except Exception:
-                # If nonce backend unavailable, continue but warn via error message if needed
-                pass
+            ok = await self.nonces.verify(want, nonce)
+            if not ok:
+                raise RuntimeError("siwe_nonce_invalid_or_used")
         return self.tokens.issue(subject=want)
 
 

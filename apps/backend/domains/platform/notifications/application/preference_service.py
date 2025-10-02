@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -22,6 +23,9 @@ from domains.platform.notifications.ports import (
 )
 
 _DIGEST_VALUES = {mode.value for mode in DigestMode}
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -47,7 +51,10 @@ class _FlagEvaluator:
             return self._cache[slug]
         try:
             enabled = bool(await self.service.evaluate(slug, dict(self.context)))
-        except Exception:
+        except (RuntimeError, ValueError) as exc:
+            logger.warning(
+                "preference_flag_eval_failed", extra={"slug": slug}, exc_info=exc
+            )
             self._cache[slug] = fallback
             return fallback
         if enabled:
@@ -57,7 +64,8 @@ class _FlagEvaluator:
             try:
                 flags = await self.service.list()
                 self._known_slugs = {f.slug for f in flags}
-            except Exception:
+            except (RuntimeError, ValueError) as exc:
+                logger.warning("preference_flag_list_failed", exc_info=exc)
                 self._known_slugs = set()
         if slug not in (self._known_slugs or set()):
             enabled = fallback
@@ -87,7 +95,9 @@ class PreferenceService:
     ) -> dict[str, Any]:
         matrix = await self._matrix_repo.load()
         stored = await self._preference_repo.list_for_user(user_id)
-        stored_map = {(record.topic_key, record.channel_key): record for record in stored}
+        stored_map = {
+            (record.topic_key, record.channel_key): record for record in stored
+        }
         version = max((record.consent_version for record in stored), default=0)
 
         evaluator = _FlagEvaluator(self._flags, context or {"sub": user_id})
@@ -123,7 +133,9 @@ class PreferenceService:
         matrix = await self._matrix_repo.load()
         records = await self._preference_repo.list_for_user(user_id)
         evaluator = _FlagEvaluator(self._flags, context or {"sub": user_id})
-        record_map = {(record.topic_key, record.channel_key): record for record in records}
+        record_map = {
+            (record.topic_key, record.channel_key): record for record in records
+        }
 
         topics: list[dict[str, Any]] = []
         channels_acc: dict[str, dict[str, Any]] = {}
@@ -174,7 +186,9 @@ class PreferenceService:
                     and channel_summary["status"] != "required"
                 ):
                     channel_summary["status"] = "recommended"
-                channel_summary["opt_in"] = channel_summary["opt_in"] or bool(payload["opt_in"])
+                channel_summary["opt_in"] = channel_summary["opt_in"] or bool(
+                    payload["opt_in"]
+                )
                 if channel.key == "email" and payload.get("supports_digest"):
                     email_digests.append(str(payload["digest"]))
 
@@ -234,7 +248,9 @@ class PreferenceService:
     ) -> None:
         matrix = await self._matrix_repo.load()
         stored = await self._preference_repo.list_for_user(user_id)
-        stored_map = {(record.topic_key, record.channel_key): record for record in stored}
+        stored_map = {
+            (record.topic_key, record.channel_key): record for record in stored
+        }
         evaluator = _FlagEvaluator(self._flags, context or {"sub": user_id})
         next_version = max((record.consent_version for record in stored), default=0) + 1
 
@@ -344,7 +360,9 @@ def _compose_preference_payload(
         opt_in = True
     digest = _resolve_digest_value(topic, channel, rule, record)
     quiet_hours = (
-        list(record.quiet_hours) if record is not None else list(topic.default_quiet_hours)
+        list(record.quiet_hours)
+        if record is not None
+        else list(topic.default_quiet_hours)
     )
     return {
         "opt_in": opt_in,
@@ -410,8 +428,12 @@ def _parse_incoming(
     incoming: Any,
 ) -> tuple[bool | None, str | None, tuple[int, ...] | None]:
     if isinstance(incoming, Mapping):
-        opt_in = incoming.get("opt_in") if isinstance(incoming.get("opt_in"), bool) else None
-        digest = incoming.get("digest") if isinstance(incoming.get("digest"), str) else None
+        opt_in = (
+            incoming.get("opt_in") if isinstance(incoming.get("opt_in"), bool) else None
+        )
+        digest = (
+            incoming.get("digest") if isinstance(incoming.get("digest"), str) else None
+        )
         quiet_hours = _normalize_quiet_hours(incoming.get("quiet_hours"))
         return opt_in, digest, quiet_hours
     if isinstance(incoming, bool):
@@ -448,7 +470,9 @@ def _resolve_digest_value(
     )
     if not channel.supports_digest:
         return DigestMode.INSTANT.value
-    return default_digest if default_digest in _DIGEST_VALUES else DigestMode.INSTANT.value
+    return (
+        default_digest if default_digest in _DIGEST_VALUES else DigestMode.INSTANT.value
+    )
 
 
 def _normalize_digest(
@@ -477,7 +501,9 @@ def _default_opt_in(rule: TopicChannelRule) -> bool:
     return False
 
 
-def _preference_changed(previous: PreferenceRecord | None, current: PreferenceRecord) -> bool:
+def _preference_changed(
+    previous: PreferenceRecord | None, current: PreferenceRecord
+) -> bool:
     if previous is None:
         return True
     if previous.opt_in != current.opt_in:

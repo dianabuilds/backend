@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.billing.domain.models import Plan, Subscription
@@ -14,11 +16,15 @@ from domains.platform.billing.ports import (
 )
 from packages.core.db import get_async_engine
 
+logger = logging.getLogger(__name__)
+
 
 class SQLPlanRepo(PlanRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            get_async_engine("billing", url=engine) if isinstance(engine, str) else engine
+            get_async_engine("billing", url=engine)
+            if isinstance(engine, str)
+            else engine
         )
 
     async def list_active(self) -> list[Plan]:
@@ -33,14 +39,20 @@ class SQLPlanRepo(PlanRepo):
                     id=str(r["id"]),
                     slug=str(r["slug"]),
                     title=str(r["title"]),
-                    price_cents=(int(r["price_cents"]) if r["price_cents"] is not None else None),
+                    price_cents=(
+                        int(r["price_cents"]) if r["price_cents"] is not None else None
+                    ),
                     currency=(str(r["currency"]) if r["currency"] else None),
                     is_active=bool(r["is_active"]),
                     order=int(r["order"]),
                     monthly_limits=(
-                        dict(r["monthly_limits"]) if r["monthly_limits"] is not None else None
+                        dict(r["monthly_limits"])
+                        if r["monthly_limits"] is not None
+                        else None
                     ),
-                    features=(dict(r["features"]) if r["features"] is not None else None),
+                    features=(
+                        dict(r["features"]) if r["features"] is not None else None
+                    ),
                     created_at=r["created_at"],
                     updated_at=r["updated_at"],
                 )
@@ -59,14 +71,20 @@ class SQLPlanRepo(PlanRepo):
                     id=str(r["id"]),
                     slug=str(r["slug"]),
                     title=str(r["title"]),
-                    price_cents=(int(r["price_cents"]) if r["price_cents"] is not None else None),
+                    price_cents=(
+                        int(r["price_cents"]) if r["price_cents"] is not None else None
+                    ),
                     currency=(str(r["currency"]) if r["currency"] else None),
                     is_active=bool(r["is_active"]),
                     order=int(r["order"]),
                     monthly_limits=(
-                        dict(r["monthly_limits"]) if r["monthly_limits"] is not None else None
+                        dict(r["monthly_limits"])
+                        if r["monthly_limits"] is not None
+                        else None
                     ),
-                    features=(dict(r["features"]) if r["features"] is not None else None),
+                    features=(
+                        dict(r["features"]) if r["features"] is not None else None
+                    ),
                     created_at=r["created_at"],
                     updated_at=r["updated_at"],
                 )
@@ -86,12 +104,16 @@ class SQLPlanRepo(PlanRepo):
                 id=str(r["id"]),
                 slug=str(r["slug"]),
                 title=str(r["title"]),
-                price_cents=(int(r["price_cents"]) if r["price_cents"] is not None else None),
+                price_cents=(
+                    int(r["price_cents"]) if r["price_cents"] is not None else None
+                ),
                 currency=(str(r["currency"]) if r["currency"] else None),
                 is_active=bool(r["is_active"]),
                 order=int(r["order"]),
                 monthly_limits=(
-                    dict(r["monthly_limits"]) if r["monthly_limits"] is not None else None
+                    dict(r["monthly_limits"])
+                    if r["monthly_limits"] is not None
+                    else None
                 ),
                 features=(dict(r["features"]) if r["features"] is not None else None),
                 created_at=r["created_at"],
@@ -110,12 +132,16 @@ class SQLPlanRepo(PlanRepo):
                 id=str(r["id"]),
                 slug=str(r["slug"]),
                 title=str(r["title"]),
-                price_cents=(int(r["price_cents"]) if r["price_cents"] is not None else None),
+                price_cents=(
+                    int(r["price_cents"]) if r["price_cents"] is not None else None
+                ),
                 currency=(str(r["currency"]) if r["currency"] else None),
                 is_active=bool(r["is_active"]),
                 order=int(r["order"]),
                 monthly_limits=(
-                    dict(r["monthly_limits"]) if r["monthly_limits"] is not None else None
+                    dict(r["monthly_limits"])
+                    if r["monthly_limits"] is not None
+                    else None
                 ),
                 features=(dict(r["features"]) if r["features"] is not None else None),
                 created_at=r["created_at"],
@@ -160,12 +186,16 @@ class SQLPlanRepo(PlanRepo):
                 id=str(r["id"]),
                 slug=str(r["slug"]),
                 title=str(r["title"]),
-                price_cents=(int(r["price_cents"]) if r["price_cents"] is not None else None),
+                price_cents=(
+                    int(r["price_cents"]) if r["price_cents"] is not None else None
+                ),
                 currency=(str(r["currency"]) if r["currency"] else None),
                 is_active=bool(r["is_active"]),
                 order=int(r["order"]),
                 monthly_limits=(
-                    dict(r["monthly_limits"]) if r["monthly_limits"] is not None else None
+                    dict(r["monthly_limits"])
+                    if r["monthly_limits"] is not None
+                    else None
                 ),
                 features=(dict(r["features"]) if r["features"] is not None else None),
                 created_at=r["created_at"],
@@ -181,7 +211,9 @@ class SQLPlanRepo(PlanRepo):
 class SQLSubscriptionRepo(SubscriptionRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            get_async_engine("billing", url=engine) if isinstance(engine, str) else engine
+            get_async_engine("billing", url=engine)
+            if isinstance(engine, str)
+            else engine
         )
 
     async def get_active_for_user(self, user_id: str) -> Subscription | None:
@@ -247,7 +279,9 @@ class SQLSubscriptionRepo(SubscriptionRepo):
 class SQLLedgerRepo(LedgerRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            get_async_engine("billing", url=engine) if isinstance(engine, str) else engine
+            get_async_engine("billing", url=engine)
+            if isinstance(engine, str)
+            else engine
         )
 
     async def add_tx(self, tx: dict[str, Any]) -> None:
@@ -260,7 +294,9 @@ class SQLLedgerRepo(LedgerRepo):
         async with self._engine.begin() as conn:
             await conn.execute(sql, tx)
 
-    async def list_for_user(self, user_id: str, limit: int = 20) -> list[dict[str, Any]]:
+    async def list_for_user(
+        self, user_id: str, limit: int = 20
+    ) -> list[dict[str, Any]]:
         sql = text(
             """
             SELECT id, user_id, gateway_slug, currency, gross_cents, fee_cents, net_cents, status, created_at, meta
@@ -273,40 +309,49 @@ class SQLLedgerRepo(LedgerRepo):
         try:
             async with self._engine.begin() as conn:
                 rows = (
-                    (await conn.execute(sql, {"uid": user_id, "lim": int(max(1, min(limit, 100)))}))
+                    (
+                        await conn.execute(
+                            sql, {"uid": user_id, "lim": int(max(1, min(limit, 100)))}
+                        )
+                    )
                     .mappings()
                     .all()
                 )
-                return [dict(r) for r in rows]
-        except Exception:
+        except SQLAlchemyError as exc:
+            logger.error(
+                "Failed to list ledger transactions for user %s: %s", user_id, exc
+            )
             raise
+        return [dict(r) for r in rows]
 
     async def list_recent(self, limit: int = 100) -> list[dict[str, Any]]:
+        sql = text(
+            """
+            SELECT id, user_id, gateway_slug, currency, gross_cents, fee_cents, net_cents, status, created_at, meta
+            FROM payment_transactions
+            ORDER BY created_at DESC
+            LIMIT :lim
+            """
+        )
         try:
-            sql = text(
-                """
-                SELECT id, user_id, gateway_slug, currency, gross_cents, fee_cents, net_cents, status, created_at, meta
-                FROM payment_transactions
-                ORDER BY created_at DESC
-                LIMIT :lim
-                """
-            )
             async with self._engine.begin() as conn:
                 rows = (
                     (await conn.execute(sql, {"lim": int(max(1, min(limit, 1000)))}))
                     .mappings()
                     .all()
                 )
-                return [dict(r) for r in rows]
-        except Exception:
-            # Table may be absent or schema incompatible; return empty for admin list
+        except SQLAlchemyError as exc:
+            logger.warning("Failed to list recent ledger transactions: %s", exc)
             return []
+        return [dict(r) for r in rows]
 
 
 class SQLGatewaysRepo(GatewayRepo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            get_async_engine("billing", url=engine) if isinstance(engine, str) else engine
+            get_async_engine("billing", url=engine)
+            if isinstance(engine, str)
+            else engine
         )
 
     async def list(self) -> list[dict[str, Any]]:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 import random
 import time
@@ -11,12 +12,20 @@ from typing import Any, cast
 
 try:
     from prometheus_client import Counter  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     Counter = None  # type: ignore
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from domains.product.navigation.application.ports import (
     NodesPort,
     TransitionRequest,
+)
+from domains.product.navigation.config import (
+    DEFAULT_BADGES_BY_PROVIDER,
+    DEFAULT_BASE_WEIGHTS,
+    DEFAULT_MODE_CONFIGS,
+    ModeConfig,
 )
 from domains.product.navigation.domain.transition import (
     TransitionCandidate,
@@ -24,18 +33,7 @@ from domains.product.navigation.domain.transition import (
     TransitionDecision,
 )
 
-
-@dataclass(frozen=True)
-class ModeConfig:
-    name: str
-    providers: tuple[str, ...]
-    k_base: int
-    temperature: float
-    epsilon: float
-    author_threshold: int
-    tag_threshold: int
-    allow_random: bool
-    curated_boost: float = 0.6
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -48,83 +46,9 @@ class NodeSnapshot:
     embedding: tuple[float, ...] | None = None
 
 
-BASE_WEIGHTS = {
-    "curated": 1.2,
-    "tag_sim": 0.35,
-    "echo": 0.25,
-    "fresh": 0.15,
-    "diversity_bonus": 0.2,
-}
-
-BADGES_BY_PROVIDER = {
-    "curated": "trail",
-    "compass": "similar",
-    "echo": "similar",
-    "random": "explore",
-}
-
-MODE_CONFIGS: dict[str, ModeConfig] = {
-    "normal": ModeConfig(
-        name="normal",
-        providers=("curated", "compass", "echo", "random"),
-        k_base=48,
-        temperature=0.30,
-        epsilon=0.05,
-        author_threshold=3,
-        tag_threshold=3,
-        allow_random=True,
-    ),
-    "echo_boost": ModeConfig(
-        name="echo_boost",
-        providers=("curated", "compass", "echo"),
-        k_base=48,
-        temperature=0.25,
-        epsilon=0.0,
-        author_threshold=3,
-        tag_threshold=3,
-        allow_random=False,
-    ),
-    "discover": ModeConfig(
-        name="discover",
-        providers=("curated", "compass", "random"),
-        k_base=64,
-        temperature=0.50,
-        epsilon=0.15,
-        author_threshold=2,
-        tag_threshold=2,
-        allow_random=True,
-    ),
-    "editorial": ModeConfig(
-        name="editorial",
-        providers=("curated", "compass"),
-        k_base=32,
-        temperature=0.10,
-        epsilon=0.0,
-        author_threshold=4,
-        tag_threshold=4,
-        allow_random=False,
-    ),
-    "near_limit": ModeConfig(
-        name="near_limit",
-        providers=("curated", "compass", "echo"),
-        k_base=36,
-        temperature=0.20,
-        epsilon=0.0,
-        author_threshold=3,
-        tag_threshold=3,
-        allow_random=False,
-    ),
-    "lite": ModeConfig(
-        name="lite",
-        providers=("curated", "compass"),
-        k_base=16,
-        temperature=0.15,
-        epsilon=0.0,
-        author_threshold=4,
-        tag_threshold=4,
-        allow_random=False,
-    ),
-}
+BASE_WEIGHTS: dict[str, float] = DEFAULT_BASE_WEIGHTS.copy()
+BADGES_BY_PROVIDER: dict[str, str] = DEFAULT_BADGES_BY_PROVIDER.copy()
+MODE_CONFIGS: dict[str, ModeConfig] = DEFAULT_MODE_CONFIGS.copy()
 
 UI_SLOTS: dict[str, dict[str, int]] = {
     "normal": {"free": 3, "premium": 3, "premium+": 4},
@@ -163,8 +87,10 @@ class NavigationService:
             return
         try:
             NAV_EMBEDDING_QUERIES.labels(status=status).inc()
-        except Exception:
-            pass
+        except (RuntimeError, ValueError) as exc:
+            logger.debug(
+                "nav_embedding_metric_failed", extra={"status": status}, exc_info=exc
+            )
 
     def next(self, data: TransitionRequest) -> TransitionDecision:
         context = self._build_context(data)
@@ -220,9 +146,25 @@ class NavigationService:
             elif relaxation_step == 3:
                 if context.mode != "lite":
                     random_enabled = True
+                    logger.info(
+                        "nav_relaxation_enable_random",
+                        extra={
+                            "mode": context.mode,
+                            "limit_state": context.limit_state,
+                            "relaxation_step": relaxation_step,
+                        },
+                    )
                 else:
                     # Lite mode disallows random; mark for final fallback
                     random_enabled = False
+                    logger.info(
+                        "nav_relaxation_random_blocked",
+                        extra={
+                            "mode": context.mode,
+                            "limit_state": context.limit_state,
+                            "reason": "lite_mode",
+                        },
+                    )
             else:
                 empty_pool = True
                 empty_pool_reason = "relaxation_exhausted"
@@ -233,6 +175,28 @@ class NavigationService:
                 empty_pool_reason = empty_pool_reason or "no_candidates"
                 break
 
+        if curated_blocked_reason:
+            logger.debug(
+                "nav_curated_blocked",
+                extra={
+                    "mode": context.mode,
+                    "limit_state": context.limit_state,
+                    "reason": curated_blocked_reason,
+                },
+            )
+        if empty_pool or not candidates:
+            logger.warning(
+                "nav_candidates_fallback",
+                extra={
+                    "mode": context.mode,
+                    "limit_state": context.limit_state,
+                    "pool_size": pool_size,
+                    "relaxation_step": relaxation_step,
+                    "empty_pool_reason": empty_pool_reason
+                    or ("no_candidates" if not candidates else None),
+                    "curated_blocked_reason": curated_blocked_reason,
+                },
+            )
         elapsed_ms = (time.perf_counter() - start) * 1000.0
         decision = TransitionDecision(
             context=context,
@@ -260,7 +224,9 @@ class NavigationService:
             mode = "lite"
         mode = mode if mode in MODE_CONFIGS else "normal"
         limit_state = (
-            limit_state if limit_state in {"normal", "near_limit", "exceeded_lite"} else "normal"
+            limit_state
+            if limit_state in {"normal", "near_limit", "exceeded_lite"}
+            else "normal"
         )
         premium = self._normalize_premium(data.premium_level)
         slots_map = UI_SLOTS.get(mode, UI_SLOTS["normal"])
@@ -337,7 +303,9 @@ class NavigationService:
         route_author_ids = [snap.author_id for snap in route_nodes]
         recent_authors = route_author_ids[-3:]
         target_tags = self._aggregate_tags(origin_node, route_nodes)
-        query_embedding = self._compose_query_embedding(origin_node, route_nodes, context)
+        query_embedding = self._compose_query_embedding(
+            origin_node, route_nodes, context
+        )
 
         nodes_by_id: dict[int, NodeSnapshot] = {snap.id: snap for snap in nodes}
         ann_nodes: list[NodeSnapshot] = []
@@ -351,7 +319,22 @@ class NavigationService:
                     )
                 )
                 embedding_status = "used" if ann_raw else "empty"
-            except Exception:
+            except (
+                SQLAlchemyError,
+                RuntimeError,
+                ValueError,
+                TypeError,
+                TimeoutError,
+            ) as exc:
+                logger.warning(
+                    "nav_embedding_search_failed",
+                    extra={
+                        "source": "embedding",
+                        "mode": context.mode,
+                        "limit_state": context.limit_state,
+                    },
+                    exc_info=exc,
+                )
                 ann_raw = []
                 embedding_status = "error"
             for item in ann_raw:
@@ -371,7 +354,9 @@ class NavigationService:
 
         # Curated candidate: next node by origin author if available
         if origin_node is not None:
-            same_author = [snap for snap in nodes if snap.author_id == origin_node.author_id]
+            same_author = [
+                snap for snap in nodes if snap.author_id == origin_node.author_id
+            ]
             same_author_sorted = sorted(same_author, key=lambda s: s.id)
             curated_candidate = None
             for snap in same_author_sorted:
@@ -460,7 +445,9 @@ class NavigationService:
                 "tag_sim": float(seed.get("tag_sim") or 0.0),
                 "echo": float(seed.get("echo") or 0.0),
                 "fresh": 1.0 - ((max_rank - seed["fresh_rank"]) / max(1, max_rank)),
-                "diversity_bonus": 1.0 if node.author_id not in route_author_ids else 0.0,
+                "diversity_bonus": (
+                    1.0 if node.author_id not in route_author_ids else 0.0
+                ),
                 "policy_penalty": 0.0,
             }
             penalty = 0.0
@@ -480,7 +467,9 @@ class NavigationService:
                     "node": node,
                     "provider": seed["provider"],
                     "score": score,
-                    "factors": {k: factors[k] for k in ALLOWED_REASON_KEYS if k in factors},
+                    "factors": {
+                        k: factors[k] for k in ALLOWED_REASON_KEYS if k in factors
+                    },
                 }
             )
         results.sort(key=lambda item: item["score"], reverse=True)
@@ -561,7 +550,12 @@ class NavigationService:
         if isinstance(embedding_field, (list, tuple)):
             try:
                 embedding = tuple(float(v) for v in embedding_field)
-            except Exception:
+            except (TypeError, ValueError) as exc:
+                logger.debug(
+                    "nav_embedding_parse_failed",
+                    extra={"node_id": node_id},
+                    exc_info=exc,
+                )
                 embedding = None
         is_public = bool(raw.get("is_public", True))
         return NodeSnapshot(
@@ -596,7 +590,9 @@ class NavigationService:
             if norm is not None:
                 vectors.append(tuple(norm))
                 weights.append(0.6)
-        history = [snap.embedding for snap in route_nodes[-3:] if snap.embedding is not None]
+        history = [
+            snap.embedding for snap in route_nodes[-3:] if snap.embedding is not None
+        ]
         if history:
             mean_vec = self._mean_vector(history)
             norm_mean = self._normalize_vector(mean_vec)

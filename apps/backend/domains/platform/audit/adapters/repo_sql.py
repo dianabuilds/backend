@@ -1,14 +1,18 @@
 ﻿from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.audit.domain.audit import AuditEntry
 from domains.platform.audit.ports.repo import AuditLogRepository
 from packages.core.db import get_async_engine
+
+logger = logging.getLogger(__name__)
 
 
 class SQLAuditRepo(AuditLogRepository):
@@ -23,12 +27,10 @@ class SQLAuditRepo(AuditLogRepository):
         )
 
     async def add(self, entry: AuditEntry) -> None:
-        reason: str | None = None
-        if isinstance(entry.extra, dict) and "reason" in entry.extra:
-            try:
-                reason = str(entry.extra.get("reason"))
-            except Exception:
-                reason = None
+        reason_value = (
+            entry.extra.get("reason") if isinstance(entry.extra, dict) else None
+        )
+        reason = str(reason_value) if reason_value is not None else None
         sql = text(
             """
             INSERT INTO audit_logs(
@@ -59,11 +61,12 @@ class SQLAuditRepo(AuditLogRepository):
             # Retention: keep only last 30 days
             try:
                 await conn.execute(
-                    text("DELETE FROM audit_logs WHERE created_at < now() - interval '30 days'")
+                    text(
+                        "DELETE FROM audit_logs WHERE created_at < now() - interval '30 days'"
+                    )
                 )
-            except Exception:
-                # Best-effort; ignore retention failures
-                pass
+            except SQLAlchemyError as exc:
+                logger.debug("audit_retention_cleanup_failed", exc_info=exc)
 
     async def list(
         self,

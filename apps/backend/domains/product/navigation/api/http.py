@@ -4,10 +4,13 @@ import json
 import logging
 import math
 from datetime import UTC, datetime, timedelta
+from json import JSONDecodeError
 from typing import Any, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import ValidationError
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from apps.backend import get_container
@@ -52,7 +55,7 @@ def _iso(dt: Any) -> str | None:
         return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
     try:
         return _iso(datetime.fromisoformat(str(dt)))
-    except Exception:
+    except (ValueError, TypeError):
         return None
 
 
@@ -80,7 +83,7 @@ async def _strategy_rows(engine: AsyncEngine) -> list[dict[str, Any]]:
                 .mappings()
                 .all()
             )
-    except Exception:
+    except SQLAlchemyError:
         logger.exception("navigation relations: failed to load strategy config")
         return []
     result: list[dict[str, Any]] = []
@@ -89,7 +92,7 @@ async def _strategy_rows(engine: AsyncEngine) -> list[dict[str, Any]]:
         if isinstance(meta, str):
             try:
                 meta = json.loads(meta)
-            except Exception:
+            except (JSONDecodeError, TypeError, ValueError):
                 meta = {"raw": meta}
         result.append(
             {
@@ -126,7 +129,7 @@ async def _usage_rows(engine: AsyncEngine) -> dict[str, dict[str, Any]]:
                 .mappings()
                 .all()
             )
-    except Exception:
+    except SQLAlchemyError:
         logger.exception("navigation relations: failed to load usage stats")
         return {}
     usage: dict[str, dict[str, Any]] = {}
@@ -171,8 +174,10 @@ async def _fetch_top_relations(
                 .mappings()
                 .all()
             )
-    except Exception:
-        logger.exception("navigation relations: failed to load top relations for %s", key)
+    except SQLAlchemyError:
+        logger.exception(
+            "navigation relations: failed to load top relations for %s", key
+        )
         return []
     return [
         {
@@ -202,7 +207,12 @@ def make_router() -> APIRouter:
             if "?" in dsn:
                 dsn = dsn.split("?", 1)[0]
             return get_async_engine("navigation-api", url=dsn, future=True)
-        except Exception:
+        except (ValidationError, ValueError, TypeError) as exc:
+            logger.warning(
+                "navigation relations: invalid database configuration: %s", exc
+            )
+            return None
+        except SQLAlchemyError:
             logger.exception("navigation relations: failed to create engine")
             return None
 
@@ -227,28 +237,38 @@ def make_router() -> APIRouter:
             raise HTTPException(status_code=400, detail="session_id_required")
         origin_node_id_raw = body.get("origin_node_id")
         try:
-            origin_node_id = int(origin_node_id_raw) if origin_node_id_raw is not None else None
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail="invalid_origin_node_id") from exc
+            origin_node_id = (
+                int(origin_node_id_raw) if origin_node_id_raw is not None else None
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=400, detail="invalid_origin_node_id"
+            ) from exc
         route_raw = body.get("route_window") or []
         if not isinstance(route_raw, (list, tuple)):
             raise HTTPException(status_code=400, detail="invalid_route_window")
         try:
             route_window = [int(x) for x in route_raw if x is not None]
-        except Exception as exc:
+        except (TypeError, ValueError) as exc:
             raise HTTPException(status_code=400, detail="invalid_route_window") from exc
         requested_slots_raw = body.get("ui_slots")
         try:
-            requested_slots = int(requested_slots_raw) if requested_slots_raw is not None else 0
-        except Exception as exc:
+            requested_slots = (
+                int(requested_slots_raw) if requested_slots_raw is not None else 0
+            )
+        except (TypeError, ValueError) as exc:
             raise HTTPException(status_code=400, detail="invalid_ui_slots") from exc
         provider_overrides_raw = body.get("requested_provider_overrides") or []
         if not isinstance(provider_overrides_raw, (list, tuple)):
             provider_overrides_raw = []
-        provider_overrides = [str(item) for item in provider_overrides_raw if isinstance(item, str)]
+        provider_overrides = [
+            str(item) for item in provider_overrides_raw if isinstance(item, str)
+        ]
         limit_state = str(body.get("limit_state") or "normal")
         mode = str(body.get("mode") or "normal")
-        premium_level = str(body.get("premium_level") or claims.get("premium_level") or "free")
+        premium_level = str(
+            body.get("premium_level") or claims.get("premium_level") or "free"
+        )
         policies_hash = body.get("policies_hash")
         emergency = bool(body.get("emergency"))
 
@@ -275,13 +295,17 @@ def make_router() -> APIRouter:
                 "badge": item.badge,
                 "score": round(item.score, 4),
                 "probability": round(item.probability, 4),
-                "reason": {key: round(float(value), 4) for key, value in item.factors.items()},
+                "reason": {
+                    key: round(float(value), 4) for key, value in item.factors.items()
+                },
                 "explain": item.explain,
                 "provider": item.provider,
             }
 
         requested_echo = (
-            requested_slots if requested_slots > 0 else decision.context.requested_ui_slots
+            requested_slots
+            if requested_slots > 0
+            else decision.context.requested_ui_slots
         )
         response = {
             "query_id": f"q-{decision.context.cache_seed[:12]}",
@@ -291,7 +315,9 @@ def make_router() -> APIRouter:
             "mode": decision.mode,
             "emergency_used": decision.emergency_used,
             "decision": {
-                "candidates": [_candidate_payload(item) for item in decision.candidates],
+                "candidates": [
+                    _candidate_payload(item) for item in decision.candidates
+                ],
                 "curated_blocked_reason": decision.curated_blocked_reason,
                 "empty_pool": decision.empty_pool,
                 "empty_pool_reason": decision.empty_pool_reason,
@@ -344,7 +370,9 @@ def make_router() -> APIRouter:
             raise HTTPException(status_code=404, detail="not_found")
         uid = str(claims.get("sub") or "") if claims else ""
         role = str(claims.get("role") or "").lower()
-        allow_private = bool(uid and (uid == str(cur.get("author_id") or "") or role == "admin"))
+        allow_private = bool(
+            uid and (uid == str(cur.get("author_id") or "") or role == "admin")
+        )
         algo = (algo or "tags").lower()
 
         async def _load_tags(conn, lim: int) -> list[dict]:
@@ -396,12 +424,14 @@ def make_router() -> APIRouter:
                     }
                     for r in rows
                 ]
-            except Exception as exc:
-                logger.debug("navigation related: tags query fallback triggered", exc_info=exc)
+            except SQLAlchemyError:
+                logger.debug(
+                    "navigation related: tags query fallback triggered", exc_info=True
+                )
                 try:
                     if conn.in_transaction():
                         await conn.rollback()
-                except Exception:
+                except SQLAlchemyError:
                     pass
                 # Fallback to minimal projection for older schema using fresh connection
                 sql2 = text(
@@ -474,7 +504,8 @@ def make_router() -> APIRouter:
                             sql,
                             {
                                 "nid": int(node_id),
-                                "query": " & ".join(filter(None, query.split()[:6])) or "",
+                                "query": " & ".join(filter(None, query.split()[:6]))
+                                or "",
                                 "lim": int(lim),
                                 "allow": bool(allow_private),
                             },
@@ -483,7 +514,7 @@ def make_router() -> APIRouter:
                     .mappings()
                     .all()
                 )
-            except Exception:
+            except SQLAlchemyError:
                 return []
             return [
                 {
@@ -502,7 +533,9 @@ def make_router() -> APIRouter:
             row = (
                 (
                     await conn.execute(
-                        text("SELECT COALESCE(title,'') AS title FROM nodes WHERE id = :id"),
+                        text(
+                            "SELECT COALESCE(title,'') AS title FROM nodes WHERE id = :id"
+                        ),
                         {"id": int(node_id)},
                     )
                 )
@@ -513,7 +546,9 @@ def make_router() -> APIRouter:
 
         # Cache helpers
         async def _get_cached(conn, algo_key: str, lim: int) -> list[dict]:
-            ttl_sec = int(getattr(container.settings, "nav_related_ttl", 21600) or 21600)
+            ttl_sec = int(
+                getattr(container.settings, "nav_related_ttl", 21600) or 21600
+            )
             cutoff = datetime.now(UTC) - timedelta(seconds=ttl_sec)
             try:
                 async with eng.begin() as c2:
@@ -539,7 +574,7 @@ def make_router() -> APIRouter:
                         .mappings()
                         .all()
                     )
-            except Exception:
+            except SQLAlchemyError:
                 return []
             return [
                 {
@@ -573,7 +608,7 @@ def make_router() -> APIRouter:
                                 "score": float(it.get("score") or 0.0),
                             },
                         )
-            except Exception:
+            except SQLAlchemyError:
                 # cache table may be missing; ignore storing
                 return
 
@@ -633,7 +668,9 @@ def make_router() -> APIRouter:
             stats = usage.get(item["strategy"], {})
             item["links"] = int(stats.get("links", 0))
             item["score"] = float(stats.get("score", 0.0))
-            item["usage_share"] = float(item["links"]) / float(total_links) if total_links else 0.0
+            item["usage_share"] = (
+                float(item["links"]) / float(total_links) if total_links else 0.0
+            )
         return config
 
     @router.patch(
@@ -657,7 +694,9 @@ def make_router() -> APIRouter:
             except (TypeError, ValueError) as exc:
                 raise HTTPException(status_code=400, detail="invalid_weight") from exc
             if weight_val < 0:
-                raise HTTPException(status_code=400, detail="weight_must_be_non_negative")
+                raise HTTPException(
+                    status_code=400, detail="weight_must_be_non_negative"
+                )
         enabled_val = None
         if payload.get("enabled") is not None:
             enabled_val = bool(payload.get("enabled"))
@@ -666,7 +705,7 @@ def make_router() -> APIRouter:
         if meta_val is not None:
             try:
                 meta_json = json.dumps(meta_val)
-            except Exception as exc:
+            except (TypeError, ValueError) as exc:
                 raise HTTPException(status_code=400, detail="invalid_meta") from exc
         try:
             async with eng.begin() as conn:
@@ -693,9 +732,9 @@ def make_router() -> APIRouter:
                     .mappings()
                     .first()
                 )
-        except Exception:
+        except SQLAlchemyError as exc:
             logger.exception("navigation relations: failed to update strategy %s", norm)
-            raise HTTPException(status_code=500, detail="update_failed") from None
+            raise HTTPException(status_code=500, detail="update_failed") from exc
         if not row:
             raise HTTPException(status_code=404, detail="strategy_not_found")
         usage = await _usage_rows(eng)
@@ -709,7 +748,9 @@ def make_router() -> APIRouter:
             "meta": row.get("meta") or {},
             "links": int(stats.get("links", 0)),
             "usage_share": (
-                float(stats.get("links", 0)) / float(total_links) if total_links else 0.0
+                float(stats.get("links", 0)) / float(total_links)
+                if total_links
+                else 0.0
             ),
         }
 
@@ -731,7 +772,9 @@ def make_router() -> APIRouter:
                 "updated_at": item["updated_at"],
                 "links": int(stats.get("links", 0)),
                 "usage_share": (
-                    float(stats.get("links", 0)) / float(total_links) if total_links else 0.0
+                    float(stats.get("links", 0)) / float(total_links)
+                    if total_links
+                    else 0.0
                 ),
             }
             strategies_payload.append(payload)

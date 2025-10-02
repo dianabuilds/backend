@@ -51,14 +51,16 @@ def register_email_channel(settings: Settings, name: str = "email") -> None:
             msg.set_content(str(text or ""))
 
         try:
-            with smtplib.SMTP(settings.smtp_host, int(settings.smtp_port or 25), timeout=10) as s:
+            with smtplib.SMTP(
+                settings.smtp_host, int(settings.smtp_port or 25), timeout=10
+            ) as s:
                 if settings.smtp_tls:
                     s.starttls()
                 if settings.smtp_username and settings.smtp_password:
                     s.login(settings.smtp_username, settings.smtp_password)
                 s.send_message(msg)
-        except Exception:
-            log.exception("SMTP send failed")
+        except (smtplib.SMTPException, OSError) as exc:
+            log.exception("SMTP send failed", exc_info=exc)
 
     register_channel(name, _send)
 

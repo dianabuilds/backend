@@ -102,14 +102,16 @@ class FlagService:
         else:
             try:
                 rollout = int(rollout_value)
-            except Exception as exc:
+            except (TypeError, ValueError) as exc:
                 raise ValueError("invalid_rollout") from exc
             rollout = max(0, min(100, rollout))
         if status is FlagStatus.DISABLED:
             rollout = 0
 
         description = data.get("description")
-        description_str = str(description).strip() if isinstance(description, str) else None
+        description_str = (
+            str(description).strip() if isinstance(description, str) else None
+        )
         meta_raw = data.get("meta") if isinstance(data.get("meta"), dict) else None
         meta_dict = dict(meta_raw) if isinstance(meta_raw, dict) else None
 

@@ -25,7 +25,7 @@ class RedisFlagStore(FlagStore):
         try:
             data = json.loads(raw)
             return Flag(
-                slug=data["slug"],
+                slug=str(data["slug"]),
                 enabled=bool(data.get("enabled", True)),
                 description=data.get("description"),
                 rollout=int(data.get("rollout", 100)),
@@ -33,7 +33,7 @@ class RedisFlagStore(FlagStore):
                 roles=set(data.get("roles") or ()),
                 meta=data.get("meta"),
             )
-        except Exception:
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
             return None
 
     async def upsert(self, flag: Flag) -> Flag:
