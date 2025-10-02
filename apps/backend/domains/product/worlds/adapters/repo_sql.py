@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Any
 
@@ -9,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.worlds.application.ports import Repo
 from domains.product.worlds.domain.entities import Character, WorldTemplate
+from packages.core.async_utils import run_sync
 from packages.core.config import sanitize_async_dsn
 from packages.core.db import get_async_engine
 
@@ -414,12 +414,7 @@ class SQLWorldsRepo(Repo):
 
     # Helpers
     def _run_sync(self, coro):
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(coro)
-        else:
-            return loop.run_until_complete(coro)  # type: ignore[misc]
+        return run_sync(coro)
 
 
 __all__ = ["SQLWorldsRepo"]

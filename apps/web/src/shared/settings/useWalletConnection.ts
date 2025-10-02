@@ -97,7 +97,7 @@ export function useWalletConnection({ initialWalletAddress, initialWalletChainId
       const providerChainId = await ethereum.request({ method: 'eth_chainId' }).catch(() => null);
       const normalizedChain = typeof providerChainId === 'string' ? providerChainId : null;
 
-      let signature: string | null = null;
+      let signature: string | null;
       try {
         const message = `Connect wallet to Caves at ${new Date().toISOString()}`;
         signature = await ethereum.request({

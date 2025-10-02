@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   ChevronDownIcon,
@@ -126,18 +126,14 @@ const sections: Section[] = [
         icon: <ShieldCheckIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
           { to: '/moderation', label: 'Overview' },
+          { to: '/moderation/cases', label: 'Cases' },
           { to: '/moderation/users', label: 'Users' },
-          { to: '/moderation/content', label: 'Content' },
-          { to: '/moderation/reports', label: 'Reports' },
-          { to: '/moderation/tickets', label: 'Tickets' },
-          { to: '/moderation/appeals', label: 'Appeals' },
           { to: '/moderation/ai-rules', label: 'AI Rules' },
         ],
       },
     ],
   },
 ];
-
 
 function buildInitialState(pathname: string) {
   const state: Record<string, boolean> = {};
@@ -278,5 +274,3 @@ export function Sidebar() {
     </aside>
   );
 }
-
-

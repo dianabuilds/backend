@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime
@@ -18,6 +19,82 @@ from ..rbac import require_scopes
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/content", tags=["moderation-content"])
+
+_SCHEMA_LOCK = asyncio.Lock()
+_SCHEMA_READY = False
+
+_MODERATION_SCHEMA_STATEMENTS = [
+    "CREATE EXTENSION IF NOT EXISTS pgcrypto",
+    "ALTER TABLE nodes ADD COLUMN IF NOT EXISTS moderation_status text",
+    "ALTER TABLE nodes ADD COLUMN IF NOT EXISTS moderation_status_updated_at timestamptz",
+    """
+    UPDATE nodes
+    SET moderation_status = CASE
+      WHEN moderation_status IS NOT NULL THEN moderation_status
+      WHEN status IN ('published') THEN 'resolved'
+      WHEN status IN ('deleted','archived') THEN 'hidden'
+      ELSE 'pending'
+    END,
+        moderation_status_updated_at = COALESCE(moderation_status_updated_at, updated_at)
+    WHERE moderation_status IS NULL
+    """,
+    "ALTER TABLE nodes ALTER COLUMN moderation_status SET DEFAULT 'pending'",
+    "CREATE INDEX IF NOT EXISTS ix_nodes_moderation_status ON nodes (moderation_status, updated_at DESC)",
+]
+
+_MODERATION_SCHEMA_DO_BLOCKS = [
+    """
+DO $$
+BEGIN
+    ALTER TABLE nodes ADD CONSTRAINT nodes_moderation_status_chk CHECK (moderation_status IN ('pending','resolved','hidden','restricted','escalated'));
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN others THEN NULL;
+END $$;
+""",
+    """
+DO $$
+BEGIN
+    ALTER TABLE nodes ALTER COLUMN moderation_status SET NOT NULL;
+EXCEPTION
+    WHEN others THEN NULL;
+END $$;
+""",
+]
+
+
+async def _apply_nodes_moderation_schema(conn) -> None:
+    for stmt in _MODERATION_SCHEMA_STATEMENTS:
+        await conn.execute(text(stmt))
+    for stmt in _MODERATION_SCHEMA_DO_BLOCKS:
+        await conn.execute(text(stmt))
+
+
+async def _ensure_nodes_moderation_schema(conn) -> None:
+    global _SCHEMA_READY
+    if _SCHEMA_READY:
+        return
+    async with _SCHEMA_LOCK:
+        if _SCHEMA_READY:
+            return
+        try:
+            await _apply_nodes_moderation_schema(conn)
+            col_check = await conn.execute(
+                text(
+                    "SELECT 1 FROM information_schema.columns"
+                    " WHERE table_schema = 'public' AND table_name = 'nodes' AND column_name = 'moderation_status'"
+                )
+            )
+            tbl_check = await conn.execute(
+                text(
+                    "SELECT 1 FROM information_schema.tables"
+                    " WHERE table_schema = 'public' AND table_name = 'node_moderation_history'"
+                )
+            )
+            if col_check.scalar() is not None and tbl_check.scalar() is not None:
+                _SCHEMA_READY = True
+        except Exception as exc:
+            logger.warning("moderation content: failed to ensure node moderation schema: %s", exc)
 
 
 def _iso(dt: Any) -> str | None:
@@ -88,6 +165,7 @@ async def _load_content_details(engine: AsyncEngine, content_id: str) -> dict[st
     except (TypeError, ValueError):
         return None
     async with engine.begin() as conn:
+        await _ensure_nodes_moderation_schema(conn)
         row = (
             (
                 await conn.execute(
@@ -158,6 +236,7 @@ async def _record_decision(
     reason_text = None if reason is None else str(reason)
     payload_json = json.dumps(payload or {}, default=str)
     async with engine.begin() as conn:
+        await _ensure_nodes_moderation_schema(conn)
         await conn.execute(
             text(
                 "UPDATE nodes SET moderation_status = :status,"
@@ -339,7 +418,11 @@ async def get_content(content_id: str, container=Depends(get_container)) -> Cont
         **dict(summary.meta or {}),
         **{
             k: db_info.get(k)
-            for k in ("node_status", "moderation_status", "moderation_status_updated_at")
+            for k in (
+                "node_status",
+                "moderation_status",
+                "moderation_status_updated_at",
+            )
             if db_info.get(k) is not None
         },
     }

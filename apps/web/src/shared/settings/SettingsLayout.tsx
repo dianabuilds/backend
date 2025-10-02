@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { Card } from '../ui';
+import { Card } from "@ui";
 
 export type SettingsNavItem = {
   key: string;

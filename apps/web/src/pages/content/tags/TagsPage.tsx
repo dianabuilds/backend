@@ -1,6 +1,6 @@
 import React from 'react';
 import { ContentLayout } from '../ContentLayout';
-import { Card, Input, Button, Checkbox, Select, Badge, Drawer, TablePagination } from '../../../shared/ui';
+import { Card, Input, Button, Checkbox, Select, Badge, Drawer, TablePagination } from "@ui";
 import { apiGet, apiPost, apiDelete } from '../../../shared/api/client';
 
 import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';

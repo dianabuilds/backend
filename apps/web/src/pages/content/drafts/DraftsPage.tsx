@@ -1,6 +1,6 @@
 import React from 'react';
 import { ContentLayout } from '../ContentLayout';
-import { Card } from '../../../shared/ui';
+import { Card } from "@ui";
 import { apiGet } from '../../../shared/api/client';
 
 type Draft = { id: string; type: 'Нода'|'Квест'; title: string; world: string; updatedAt: string };

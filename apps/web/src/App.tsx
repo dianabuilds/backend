@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import LoginPage from './pages/auth/Login';
 import { AuthProvider, useAuth } from './shared/auth';
@@ -46,11 +46,8 @@ import ManagementIntegrations from './pages/management/Integrations';
 import ManagementSystem from './pages/management/System';
 import ManagementAudit from './pages/management/Audit';
 import ModerationOverview from './pages/moderation/Overview';
+import ModerationCases, { CaseDetailPage } from './pages/moderation/Cases';
 import ModerationUsers from './pages/moderation/Users';
-import ModerationContent from './pages/moderation/Content';
-import ModerationReports from './pages/moderation/Reports';
-import ModerationTickets from './pages/moderation/Tickets';
-import ModerationAppeals from './pages/moderation/Appeals';
 import ModerationAIRules from './pages/moderation/AIRules';
 
 const ADMIN_ROLES = ['admin'];
@@ -138,11 +135,12 @@ export default function App() {
 
           {/* Moderation */}
           <Route path="/moderation" element={<RequireAuth><AppLayout><ModerationOverview /></AppLayout></RequireAuth>} />
+          <Route path="/moderation/cases" element={<RequireAuth><AppLayout><ModerationCases /></AppLayout></RequireAuth>} />
+          <Route path="/moderation/cases/:caseId" element={<RequireAuth><AppLayout><CaseDetailPage /></AppLayout></RequireAuth>} />
+          <Route path="/moderation/reports" element={<Navigate to="/moderation/cases?type=report" replace />} />
+          <Route path="/moderation/tickets" element={<Navigate to="/moderation/cases?type=ticket" replace />} />
+          <Route path="/moderation/appeals" element={<Navigate to="/moderation/cases?type=appeal" replace />} />
           <Route path="/moderation/users" element={<RequireAuth><AppLayout><ModerationUsers /></AppLayout></RequireAuth>} />
-          <Route path="/moderation/content" element={<RequireAuth><AppLayout><ModerationContent /></AppLayout></RequireAuth>} />
-          <Route path="/moderation/reports" element={<RequireAuth><AppLayout><ModerationReports /></AppLayout></RequireAuth>} />
-          <Route path="/moderation/tickets" element={<RequireAuth><AppLayout><ModerationTickets /></AppLayout></RequireAuth>} />
-          <Route path="/moderation/appeals" element={<RequireAuth><AppLayout><ModerationAppeals /></AppLayout></RequireAuth>} />
           <Route path="/moderation/ai-rules" element={<RequireAuth><AppLayout><ModerationAIRules /></AppLayout></RequireAuth>} />
 
           {/* Observability */}

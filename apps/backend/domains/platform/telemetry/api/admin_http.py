@@ -13,7 +13,9 @@ from apps.backend import get_container
 from domains.platform.iam.security import require_admin
 from domains.platform.telemetry.application.event_metrics_service import event_metrics
 from domains.platform.telemetry.application.metrics_registry import llm_metrics
-from domains.platform.telemetry.application.transition_metrics_service import transition_metrics
+from domains.platform.telemetry.application.transition_metrics_service import (
+    transition_metrics,
+)
 from domains.platform.telemetry.application.ux_metrics_service import ux_metrics
 from domains.platform.telemetry.application.worker_metrics_service import worker_metrics
 
@@ -148,7 +150,9 @@ def make_router() -> APIRouter:
         }
 
     @router.get("/transitions/summary")
-    async def transitions_summary(_admin: None = Depends(require_admin)) -> list[dict[str, Any]]:
+    async def transitions_summary(
+        _admin: None = Depends(require_admin),
+    ) -> list[dict[str, Any]]:
         return transition_metrics.snapshot()
 
     @router.get("/ux/summary")

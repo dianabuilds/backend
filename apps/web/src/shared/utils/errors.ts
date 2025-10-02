@@ -34,9 +34,9 @@ function translateMessage(message: unknown): string | null {
 
 export function extractErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
   if (err == null) return fallback;
-  let raw: string | null = null;
+  let raw: string | null;
   if (typeof err === 'string') raw = err;
-  else if (err instanceof Error && typeof err.message === 'string') raw = err.message;
+  else if (err instanceof Error) raw = err.message;
   else if (typeof (err as any)?.message === 'string') raw = String((err as any).message);
   else raw = String(err);
 

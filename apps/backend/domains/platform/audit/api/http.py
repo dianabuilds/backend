@@ -13,7 +13,8 @@ try:
 except Exception:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
-from apps.backend import get_container
+# from apps.backend import get_container
+from app.api_gateway.routers import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
 
 

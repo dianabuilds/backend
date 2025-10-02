@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "backend"
 version = "0.1.0"
@@ -9,6 +13,25 @@ dependencies = [
   "fakeredis>=2.23",
   "httpx>=0.27",
   "pydantic-settings>=2.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+  "app*",
+  "domains*",
+  "packages*",
+  "workers*",
+  "apps.backend*",
+]
+exclude = [
+  "tests*",
+  "infra*",
+  "docs*",
+  "var*",
+  "evals*",
+  ".venv*",
+  "scripts*",
 ]
 
 [tool.pytest.ini_options]
@@ -33,8 +56,10 @@ ignore = ["E501","E402","B008"]
 extend-ignore = ["UP038","B017"]
 
 [tool.mypy]
+mypy_path = ["."]
 python_version = "3.11"
 strict = true
+explicit_package_bases = true
 warn_unused_configs = true
 disallow_any_generics = true
 no_implicit_optional = true

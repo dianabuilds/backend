@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+from collections.abc import Awaitable
+from concurrent.futures import Future as ThreadFuture
 from dataclasses import dataclass
 from typing import Any
 
@@ -51,12 +54,47 @@ from domains.platform.notifications.application.template_service import (
     TemplateService,
 )
 from domains.platform.notifications.logic.dispatcher import dispatch
+from packages.core.async_utils import run_sync
 from packages.core.config import Settings, load_settings, to_async_dsn
+
+logger = logging.getLogger(__name__)
 
 
 def register_event_relays(
-    events: Events, topics: list[str], delivery: DeliveryService | None = None
+    events: Events,
+    topics: list[str],
+    delivery: DeliveryService | None = None,
+    *,
+    loop: asyncio.AbstractEventLoop | None = None,
 ) -> None:
+    try:
+        target_loop = loop or asyncio.get_running_loop()
+    except RuntimeError:
+        target_loop = None
+
+    def _log_future_result(fut: ThreadFuture[None]) -> None:
+        try:
+            fut.result()
+        except Exception as exc:
+            logger.exception("Notifications delivery task failed", exc_info=exc)
+
+    def _log_task_result(task: asyncio.Future[Any]) -> None:
+        try:
+            task.result()
+        except Exception as exc:
+            logger.exception("Notifications delivery task failed", exc_info=exc)
+
+    def _submit_delivery(coro: Awaitable[None]) -> None:
+        nonlocal target_loop
+        if target_loop and not target_loop.is_closed():
+            future = asyncio.run_coroutine_threadsafe(coro, target_loop)
+            future.add_done_callback(_log_future_result)
+        else:
+            try:
+                run_sync(coro)
+            except Exception as exc:
+                logger.exception("Notifications delivery task failed", exc_info=exc)
+
     def _handler(topic: str, payload: dict[str, Any]) -> None:
         if delivery is not None:
             try:
@@ -71,18 +109,16 @@ def register_event_relays(
             async def _deliver() -> None:
                 try:
                     await delivery.deliver_to_inbox(event)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.exception("Notifications delivery failed", exc_info=exc)
 
             try:
-                loop = asyncio.get_running_loop()
+                loop_running = asyncio.get_running_loop()
             except RuntimeError:
-                try:
-                    asyncio.run(delivery.deliver_to_inbox(event))
-                except Exception:
-                    pass
+                _submit_delivery(_deliver())
             else:
-                loop.create_task(_deliver())
+                task = loop_running.create_task(_deliver())
+                task.add_done_callback(_log_task_result)
             try:
                 dispatch("log", payload)
             except Exception:

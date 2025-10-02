@@ -325,7 +325,7 @@ def make_router() -> APIRouter:
         if eng is None:
             return []
         # Load minimal current node info and decide visibility
-        async with eng.begin() as _conn:
+        async with eng.connect() as _conn:
             cur = (
                 (
                     await _conn.execute(
@@ -338,6 +338,8 @@ def make_router() -> APIRouter:
                 .mappings()
                 .first()
             )
+            if _conn.in_transaction():
+                await _conn.rollback()
         if not cur:
             raise HTTPException(status_code=404, detail="not_found")
         uid = str(claims.get("sub") or "") if claims else ""
@@ -394,7 +396,13 @@ def make_router() -> APIRouter:
                     }
                     for r in rows
                 ]
-            except Exception:
+            except Exception as exc:
+                logger.debug("navigation related: tags query fallback triggered", exc_info=exc)
+                try:
+                    if conn.in_transaction():
+                        await conn.rollback()
+                except Exception:
+                    pass
                 # Fallback to minimal projection for older schema using fresh connection
                 sql2 = text(
                     """
@@ -569,7 +577,7 @@ def make_router() -> APIRouter:
                 # cache table may be missing; ignore storing
                 return
 
-        async with eng.begin() as conn:
+        async with eng.connect() as conn:
             if algo in ("tags", "auto"):
                 cached = await _get_cached(conn, "tags", limit)
                 if cached:

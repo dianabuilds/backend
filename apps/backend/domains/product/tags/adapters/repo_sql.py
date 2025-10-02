@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.tags.application.ports import Repo
 from domains.product.tags.domain.results import TagView
+from packages.core.async_utils import run_sync
 from packages.core.db import get_async_engine
 
 
@@ -52,10 +53,6 @@ class SQLTagsRepo(Repo):
         offset: int,
         content_type: str | None = None,
     ) -> list[TagView]:
-        # Synchronous API expected by ports; run query synchronously via async engine .run_sync
-        # but we can instead use asyncio loop. To keep a simple interface, use run_until_complete pattern
-        import asyncio
-
         async def _run() -> list[TagView]:
             sql = text(self._build_query(popular))
             params: dict[str, Any] = {
@@ -72,12 +69,7 @@ class SQLTagsRepo(Repo):
                     for r in rows
                 ]
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
 
 __all__ = ["SQLTagsRepo"]

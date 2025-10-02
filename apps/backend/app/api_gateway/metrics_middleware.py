@@ -1,34 +1,34 @@
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 from typing import Any
 
 from fastapi import FastAPI, Request
 
+logger = logging.getLogger(__name__)
+
 try:
     from prometheus_client import Counter, Histogram  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     Counter = Histogram = None  # type: ignore
-
 
 HTTP_REQUESTS: Any | None = None
 HTTP_REQUEST_DURATION: Any | None = None
 
 
-def _ensure_metrics():
+def _ensure_metrics() -> None:
     global HTTP_REQUESTS, HTTP_REQUEST_DURATION
     if HTTP_REQUESTS is not None and HTTP_REQUEST_DURATION is not None:
         return
     if Counter is None or Histogram is None:
         return
-    # Cardinality guard: use route path templates as labels
     HTTP_REQUESTS = Counter(
         "http_requests_total",
         "Total HTTP requests",
         labelnames=("method", "path", "status"),
     )
-    # Milliseconds histogram with sensible web buckets
     HTTP_REQUEST_DURATION = Histogram(
         "http_request_duration_ms",
         "HTTP request duration in milliseconds",
@@ -39,10 +39,11 @@ def _ensure_metrics():
 
 def _route_template(request: Request) -> str:
     try:
-        r = request.scope.get("route")
-        # FastAPI has .path; Starlette has .path_format in recent versions
-        return getattr(r, "path", None) or getattr(r, "path_format", None) or request.url.path
-    except Exception:
+        route = request.scope.get("route")
+        return (
+            getattr(route, "path", None) or getattr(route, "path_format", None) or request.url.path
+        )
+    except AttributeError:
         return request.url.path
 
 
@@ -69,8 +70,8 @@ def setup_http_metrics(app: FastAPI) -> None:
                 try:
                     counter.labels(method=method, path=path, status=status).inc()
                     duration.labels(method=method, path=path).observe(dt_ms)
-                except Exception:
-                    pass
+                except (ValueError, RuntimeError):
+                    logger.exception("Failed to record HTTP metrics for %s %s", method, path)
 
 
 __all__ = ["setup_http_metrics"]

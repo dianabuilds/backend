@@ -1,6 +1,6 @@
-import React from 'react';
+ï»¿import React from 'react';
 import { ContentLayout } from '../ContentLayout';
-import { Card } from '../../../shared/ui';
+import { Card } from "@ui";
 import { apiGet } from '../../../shared/api/client';
 import type { KPIs } from '../PageViews/Statistics';
 
@@ -55,7 +55,7 @@ export default function NodesOverviewPage() {
             </p>
           </div>
           <div className="rounded-2xl border border-dashed border-primary-200 bg-primary-50 p-4 text-sm text-primary-800 dark:border-primary-700/60 dark:bg-primary-950/30 dark:text-primary-200">
-            Node-specific trend charts will live here next — retention by world hops, broken edges, and high-friction relations.
+            Node-specific trend charts will live here next ï¿½ retention by world hops, broken edges, and high-friction relations.
           </div>
         </Card>
         <Card className="space-y-4 p-6">
@@ -66,9 +66,9 @@ export default function NodesOverviewPage() {
             </p>
           </div>
           <ul className="space-y-3 text-sm text-gray-700 dark:text-dark-100">
-            <li>• Audit relation strategies with the tuning panel.</li>
-            <li>• Refresh outdated tags so discovery continues to improve.</li>
-            <li>• Warm up drafts that have been inactive for more than 14 days.</li>
+            <li>ï¿½ Audit relation strategies with the tuning panel.</li>
+            <li>ï¿½ Refresh outdated tags so discovery continues to improve.</li>
+            <li>ï¿½ Warm up drafts that have been inactive for more than 14 days.</li>
           </ul>
         </Card>
       </div>

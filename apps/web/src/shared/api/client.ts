@@ -1,11 +1,28 @@
+import { extractErrorMessage } from '../utils/errors';
 
 export function getCookie(nameContains: string): string | null {
   try {
-    const cookies = document.cookie.split(';').map((c) => c.trim());
-    const found = cookies.find((c) => c.toLowerCase().startsWith(nameContains.toLowerCase()));
-    if (!found) return null;
-    const idx = found.indexOf('=');
-    return idx >= 0 ? decodeURIComponent(found.slice(idx + 1)) : null;
+    if (typeof document === 'undefined') return null;
+    const normalized = nameContains.trim();
+    if (!normalized) return null;
+    const exact = parseCookie(normalized);
+    if (exact !== null) return exact;
+    const cookies = document.cookie.split(';');
+    for (const entry of cookies) {
+      const trimmed = entry.trim();
+      if (!trimmed) continue;
+      const eq = trimmed.indexOf('=');
+      const key = eq === -1 ? trimmed : trimmed.slice(0, eq);
+      if (key.toLowerCase().includes(normalized.toLowerCase())) {
+        const value = eq >= 0 ? trimmed.slice(eq + 1) : '';
+        try {
+          return decodeURIComponent(value);
+        } catch {
+          return value;
+        }
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -122,13 +139,37 @@ export function primeCsrfFromCookies() {
   if (token) rememberCsrfToken(token);
 }
 
+function decodeBase64UrlSegment(segment: string): string {
+  const normalized = segment.replace(/-/g, '+').replace(/_/g, '/');
+  const padLength = (4 - (normalized.length % 4 || 4)) % 4;
+  const padded = normalized.padEnd(normalized.length + padLength, '=');
+  const binary = atob(padded);
+  if (typeof TextDecoder !== 'undefined') {
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  }
+  let percentEncoded = '';
+  for (let i = 0; i < binary.length; i += 1) {
+    const hex = binary.charCodeAt(i).toString(16).padStart(2, '0');
+    percentEncoded += `%${hex}`;
+  }
+  try {
+    return decodeURIComponent(percentEncoded);
+  } catch {
+    return binary;
+  }
+}
+
 export function decodeJwt<T = any>(token: string | undefined | null): T | null {
   try {
     if (!token) return null;
     const parts = token.split('.');
     if (parts.length < 2) return null;
-    const json = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
-    return JSON.parse(decodeURIComponent(escape(json)));
+    const json = decodeBase64UrlSegment(parts[1]);
+    return JSON.parse(json);
   } catch {
     return null;
   }
@@ -165,11 +206,24 @@ function maybeWithAdminKey(headers: Record<string, string>, u: string) {
 async function handleResponse(res: Response) {
   syncCsrfFromResponse(res);
   if (!res.ok) {
-    const errorBody = await res.text();
-    if (res.status === 401 || (res.status === 403 && errorBody.includes('missing_token'))) {
+    let errorBody = '';
+    try {
+      errorBody = await res.text();
+    } catch {
+      errorBody = '';
+    }
+    const normalizedBody = errorBody || '';
+    if (res.status === 401 || (res.status === 403 && normalizedBody.includes('missing_token'))) {
       notifyAuthLost();
     }
-    throw new Error(errorBody || `HTTP ${res.status}`);
+    const fallback = `Request failed (HTTP ${res.status})`;
+    const message = normalizedBody ? extractErrorMessage(normalizedBody, fallback) : fallback;
+    const error = new Error(message);
+    (error as any).status = res.status;
+    if (normalizedBody) {
+      (error as any).body = normalizedBody;
+    }
+    throw error;
   }
   return res;
 }
@@ -310,8 +364,4 @@ export async function apiUploadMedia(
     return true;
   }
 }
-
-
-
-
 

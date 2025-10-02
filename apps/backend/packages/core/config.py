@@ -118,6 +118,10 @@ class Settings(BaseSettings):
         default=False,
         validation_alias=AliasChoices("DATABASE_ALLOW_REMOTE", "APP_DATABASE_ALLOW_REMOTE"),
     )
+    database_ssl_ca: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("DATABASE_SSL_CA", "APP_DATABASE_SSL_CA"),
+    )
 
     # events platform
     event_topics: str = "profile.updated.v1"  # CSV
@@ -168,19 +172,24 @@ class Settings(BaseSettings):
     billing_webhook_secret: str | None = None
 
     embedding_provider: str | None = Field(
-        default=None, validation_alias=AliasChoices("EMBEDDING_PROVIDER", "APP_EMBEDDING_PROVIDER")
+        default=None,
+        validation_alias=AliasChoices("EMBEDDING_PROVIDER", "APP_EMBEDDING_PROVIDER"),
     )
     embedding_api_base: str | None = Field(
-        default=None, validation_alias=AliasChoices("EMBEDDING_API_BASE", "APP_EMBEDDING_API_BASE")
+        default=None,
+        validation_alias=AliasChoices("EMBEDDING_API_BASE", "APP_EMBEDDING_API_BASE"),
     )
     embedding_model: str | None = Field(
-        default=None, validation_alias=AliasChoices("EMBEDDING_MODEL", "APP_EMBEDDING_MODEL")
+        default=None,
+        validation_alias=AliasChoices("EMBEDDING_MODEL", "APP_EMBEDDING_MODEL"),
     )
     embedding_api_key: str | None = Field(
-        default=None, validation_alias=AliasChoices("EMBEDDING_API_KEY", "APP_EMBEDDING_API_KEY")
+        default=None,
+        validation_alias=AliasChoices("EMBEDDING_API_KEY", "APP_EMBEDDING_API_KEY"),
     )
     embedding_dim: int | None = Field(
-        default=None, validation_alias=AliasChoices("EMBEDDING_DIM", "APP_EMBEDDING_DIM")
+        default=None,
+        validation_alias=AliasChoices("EMBEDDING_DIM", "APP_EMBEDDING_DIM"),
     )
     embedding_enabled: bool = True
     embedding_timeout: float = Field(default=10.0)

@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { AlertTriangle, ExternalLink, FileCode2, Link2, Users } from '@icons';
 import { Badge, Button, Card, PageHeader } from '@ui';
-import type { PageHeaderStat } from '../../../shared/ui/patterns/PageHeader';
+import type { PageHeaderStat } from "@ui/patterns/PageHeader.tsx";
 
 export type PlatformAdminQuickLink = {
   label: string;

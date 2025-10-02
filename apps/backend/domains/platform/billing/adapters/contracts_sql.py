@@ -48,7 +48,7 @@ class SQLContractsRepo(ContractsRepo):
                         "enabled": bool(r["enabled"]),
                         "status": r["status"],
                         "testnet": bool(r["testnet"]),
-                        "methods": dict(r["methods"]) if r["methods"] is not None else None,
+                        "methods": (dict(r["methods"]) if r["methods"] is not None else None),
                         "abi_present": bool(r["abi_present"]),
                         "webhook_url": r["webhook_url"],
                         "created_at": r["created_at"],
@@ -297,7 +297,11 @@ class SQLContractsRepo(ContractsRepo):
             except Exception:
                 return []
             return [
-                {"day": r["day"].isoformat(), "method": r["method"], "calls": int(r["calls"])}
+                {
+                    "day": r["day"].isoformat(),
+                    "method": r["method"],
+                    "calls": int(r["calls"]),
+                }
                 for r in rows
             ]
 

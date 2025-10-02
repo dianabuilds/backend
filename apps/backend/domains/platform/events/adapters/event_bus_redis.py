@@ -30,5 +30,8 @@ class RedisEventBus(EventBus):
     def run(self, block_ms: int | None = None, count: int | None = None) -> None:
         self._relay.loop(routes=self._routes, block_ms=block_ms, count=count)
 
+    def stop(self) -> None:
+        self._relay.stop()
+
 
 __all__ = ["RedisEventBus"]

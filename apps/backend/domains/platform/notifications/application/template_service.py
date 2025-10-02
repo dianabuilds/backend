@@ -4,7 +4,7 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-from slugify import slugify
+from slugify import slugify  # type: ignore[import]
 
 from domains.platform.notifications.domain.template import Template
 from domains.platform.notifications.ports import TemplateRepo
@@ -67,7 +67,14 @@ class TemplateService:
             data.get("locale") if "locale" in data else (existing.locale if existing else None)
         )
         data["locale"] = self._normalize_locale(locale_source)
-        optional_fields = ("description", "subject", "locale", "variables", "meta", "created_at")
+        optional_fields = (
+            "description",
+            "subject",
+            "locale",
+            "variables",
+            "meta",
+            "created_at",
+        )
         if existing:
             data.setdefault("id", existing.id)
             if not data.get("created_by"):

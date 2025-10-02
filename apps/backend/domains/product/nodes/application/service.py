@@ -23,6 +23,7 @@ from domains.product.nodes.application.ports import (
 )
 from domains.product.nodes.domain.results import NodeView
 from packages.core import with_trace
+from packages.core.async_utils import run_sync
 
 
 @runtime_checkable
@@ -236,12 +237,7 @@ class NodeService:
         async def _run() -> list[NodeDTO]:
             return await repo.search_by_embedding(embedding, limit=limit)
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            dtos = asyncio.run(_run())
-        else:
-            dtos = loop.run_until_complete(_run())  # type: ignore[misc]
+        dtos = run_sync(_run())
         return [self._to_view(dto) for dto in dtos]
 
     async def update_tags(

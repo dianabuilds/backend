@@ -72,7 +72,11 @@ def make_router() -> APIRouter:
                 (
                     await conn.execute(
                         sql,
-                        {"q": str(q or ""), "qp": f"%{str(q or '').strip()}%", "lim": int(limit)},
+                        {
+                            "q": str(q or ""),
+                            "qp": f"%{str(q or '').strip()}%",
+                            "lim": int(limit),
+                        },
                     )
                 )
                 .mappings()

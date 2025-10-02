@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { ContentLayout } from '../ContentLayout';
-import { Card } from '../../../shared/ui';
+import { Card } from "@ui";
 
 const questActions = (
   <div className="flex flex-wrap items-center gap-2">

@@ -38,7 +38,8 @@ class SQLUsageProjection:
                     )
                     for slug in added_slugs:
                         await conn.execute(
-                            sql_inc, {"aid": aid, "ctype": self._content_type, "slug": slug}
+                            sql_inc,
+                            {"aid": aid, "ctype": self._content_type, "slug": slug},
                         )
                 if removed_slugs:
                     sql_dec = text(
@@ -61,10 +62,12 @@ class SQLUsageProjection:
                     )
                     for slug in removed_slugs:
                         await conn.execute(
-                            sql_dec, {"aid": aid, "ctype": self._content_type, "slug": slug}
+                            sql_dec,
+                            {"aid": aid, "ctype": self._content_type, "slug": slug},
                         )
                         await conn.execute(
-                            sql_del, {"aid": aid, "ctype": self._content_type, "slug": slug}
+                            sql_del,
+                            {"aid": aid, "ctype": self._content_type, "slug": slug},
                         )
 
         try:

@@ -10,6 +10,7 @@ from domains.product.tags.domain.admin_models import (
     TagGroupSummary,
     TagListItem,
 )
+from packages.core.async_utils import run_sync
 from packages.core.db import get_async_engine
 
 
@@ -57,8 +58,6 @@ class SQLAdminRepo(AdminRepo):
     def list_with_counters(
         self, q: str | None, limit: int, offset: int, content_type: str | None = None
     ) -> list[TagListItem]:
-        import asyncio
-
         async def _run() -> list[TagListItem]:
             async with self._engine.begin() as conn:
                 await self._ensure_introspected(conn)
@@ -121,16 +120,9 @@ class SQLAdminRepo(AdminRepo):
                     for r in rows
                 ]
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def list_groups(self) -> list[TagGroupSummary]:
-        import asyncio
-
         async def _run() -> list[TagGroupSummary]:
             async with self._engine.begin() as conn:
                 await self._ensure_introspected(conn)
@@ -158,16 +150,9 @@ class SQLAdminRepo(AdminRepo):
                     for r in rows
                 ]
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def list_aliases(self, tag_id: str) -> list[AliasView]:
-        import asyncio
-
         async def _run() -> list[AliasView]:
             async with self._engine.begin() as conn:
                 await self._ensure_introspected(conn)
@@ -188,16 +173,9 @@ class SQLAdminRepo(AdminRepo):
                     for r in rows
                 ]
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def add_alias(self, tag_id: str, alias: str) -> AliasView:
-        import asyncio
-
         async def _run() -> AliasView:
             if not await self._exists_tag(tag_id):
                 raise ValueError("tag_not_found")
@@ -229,16 +207,9 @@ class SQLAdminRepo(AdminRepo):
                     created_at=r["created_at"],
                 )
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def remove_alias(self, alias_id: str) -> None:
-        import asyncio
-
         async def _run() -> None:
             async with self._engine.begin() as conn:
                 await self._ensure_introspected(conn)
@@ -247,16 +218,9 @@ class SQLAdminRepo(AdminRepo):
                 sql = text(f"DELETE FROM {self._tbl_alias} WHERE id = :id")
                 await conn.execute(sql, {"id": alias_id})
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            asyncio.run(_run())
-        else:
-            loop.run_until_complete(_run())  # type: ignore[misc]
+        run_sync(_run())
 
     def blacklist_list(self, q: str | None) -> list[BlacklistItem]:
-        import asyncio
-
         async def _run() -> list[BlacklistItem]:
             base = "SELECT slug, reason, created_at FROM tag_blacklist"
             if q:
@@ -276,16 +240,9 @@ class SQLAdminRepo(AdminRepo):
                     for r in rows
                 ]
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def blacklist_add(self, slug: str, reason: str | None) -> BlacklistItem:
-        import asyncio
-
         async def _run() -> BlacklistItem:
             sql = text(
                 """
@@ -302,31 +259,17 @@ class SQLAdminRepo(AdminRepo):
                     slug=str(r["slug"]), reason=r["reason"], created_at=r["created_at"]
                 )
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def blacklist_delete(self, slug: str) -> None:
-        import asyncio
-
         async def _run() -> None:
             sql = text("DELETE FROM tag_blacklist WHERE slug = :slug")
             async with self._engine.begin() as conn:
                 await conn.execute(sql, {"slug": slug})
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            asyncio.run(_run())
-        else:
-            loop.run_until_complete(_run())  # type: ignore[misc]
+        run_sync(_run())
 
     def create_tag(self, slug: str, name: str) -> TagListItem:
-        import asyncio
-
         async def _run() -> TagListItem:
             sql = text(
                 """
@@ -356,16 +299,9 @@ class SQLAdminRepo(AdminRepo):
                     aliases_count=0,
                 )
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def delete_tag(self, tag_id: str) -> None:
-        import asyncio
-
         async def _run() -> None:
             # Capture slug then delete tag and related data
             async with self._engine.begin() as conn:
@@ -388,67 +324,55 @@ class SQLAdminRepo(AdminRepo):
                     {"slug": slug},
                 )
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            asyncio.run(_run())
-        else:
-            loop.run_until_complete(_run())  # type: ignore[misc]
+        run_sync(_run())
+
+    async def _merge_dry_run(self, from_id: str, to_id: str, content_type: str | None) -> dict:
+        sql = text("SELECT id, slug, name FROM tag WHERE id = :id")
+        async with self._engine.begin() as conn:
+            f = (await conn.execute(sql, {"id": from_id})).mappings().first()
+            t = (await conn.execute(sql, {"id": to_id})).mappings().first()
+            if not f or not t:
+                return {"errors": ["tag not found"], "warnings": []}
+            cnt_sql = text(
+                "SELECT COALESCE(SUM(count),0)::int AS c FROM tag_usage_counters WHERE slug = :slug AND (:ctype IS NULL OR content_type = :ctype)"
+            )
+            usage_row = (
+                (await conn.execute(cnt_sql, {"slug": f["slug"], "ctype": content_type}))
+                .mappings()
+                .first()
+            )
+            aliases_row = (
+                (
+                    await conn.execute(
+                        text("SELECT COUNT(*)::int AS n FROM tag_alias WHERE tag_id = :tid"),
+                        {"tid": from_id},
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            usage = int(usage_row["c"]) if usage_row else 0
+            aliases = int(aliases_row["n"]) if aliases_row else 0
+            return {
+                "from": {
+                    "id": str(f["id"]),
+                    "name": str(f["name"]),
+                    "slug": str(f["slug"]),
+                },
+                "to": {
+                    "id": str(t["id"]),
+                    "name": str(t["name"]),
+                    "slug": str(t["slug"]),
+                },
+                "content_touched": 0,
+                "usage_counters": usage,
+                "aliases_moved": aliases,
+                "warnings": [],
+                "errors": [],
+            }
 
     def merge_dry_run(self, from_id: str, to_id: str, content_type: str | None = None) -> dict:
-        import asyncio
-
-        async def _run() -> dict:
-            sql = text("SELECT id, slug, name FROM tag WHERE id = :id")
-            async with self._engine.begin() as conn:
-                f = (await conn.execute(sql, {"id": from_id})).mappings().first()
-                t = (await conn.execute(sql, {"id": to_id})).mappings().first()
-                if not f or not t:
-                    return {"errors": ["tag not found"], "warnings": []}
-                cnt_sql = text(
-                    "SELECT COALESCE(SUM(count),0)::int AS c FROM tag_usage_counters WHERE slug = :slug AND (:ctype IS NULL OR content_type = :ctype)"
-                )
-                usage_row = (
-                    (await conn.execute(cnt_sql, {"slug": f["slug"], "ctype": content_type}))
-                    .mappings()
-                    .first()
-                )
-                aliases_row = (
-                    (
-                        await conn.execute(
-                            text("SELECT COUNT(*)::int AS n FROM tag_alias WHERE tag_id = :tid"),
-                            {"tid": from_id},
-                        )
-                    )
-                    .mappings()
-                    .first()
-                )
-                usage = int(usage_row["c"]) if usage_row else 0
-                aliases = int(aliases_row["n"]) if aliases_row else 0
-                return {
-                    "from": {
-                        "id": str(f["id"]),
-                        "name": str(f["name"]),
-                        "slug": str(f["slug"]),
-                    },
-                    "to": {
-                        "id": str(t["id"]),
-                        "name": str(t["name"]),
-                        "slug": str(t["slug"]),
-                    },
-                    "content_touched": 0,
-                    "usage_counters": usage,
-                    "aliases_moved": aliases,
-                    "warnings": [],
-                    "errors": [],
-                }
-
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(self._merge_dry_run(from_id, to_id, content_type))
 
     def merge_apply(
         self,
@@ -458,10 +382,8 @@ class SQLAdminRepo(AdminRepo):
         reason: str | None,
         content_type: str | None = None,
     ) -> dict:
-        import asyncio
-
         async def _run() -> dict:
-            report = self.merge_dry_run(from_id, to_id, content_type)
+            report = await self._merge_dry_run(from_id, to_id, content_type)
             if report.get("errors"):
                 return report
             async with self._engine.begin() as conn:
@@ -517,12 +439,7 @@ class SQLAdminRepo(AdminRepo):
                 await conn.execute(text("DELETE FROM tag WHERE id = :id"), {"id": from_id})
             return report
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
 
 __all__ = ["SQLAdminRepo"]

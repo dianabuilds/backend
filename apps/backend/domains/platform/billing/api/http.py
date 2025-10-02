@@ -303,7 +303,10 @@ def make_router() -> APIRouter:
 
     @router.get("/admin/contracts/{id_or_slug}/events")
     async def admin_contract_events(
-        req: Request, id_or_slug: str, limit: int = 100, _admin: None = Depends(require_admin)
+        req: Request,
+        id_or_slug: str,
+        limit: int = 100,
+        _admin: None = Depends(require_admin),
     ) -> dict[str, Any]:
         c = get_container(req)
         items = await c.billing.contracts.list_events(id_or_slug, limit=int(limit))
@@ -455,7 +458,12 @@ def make_router() -> APIRouter:
                 churn_30d = ended / max(active_subs + ended, 1)
         except Exception:
             pass
-        return {"active_subs": active_subs, "mrr": mrr, "arpu": arpu, "churn_30d": churn_30d}
+        return {
+            "active_subs": active_subs,
+            "mrr": mrr,
+            "arpu": arpu,
+            "churn_30d": churn_30d,
+        }
 
     @router.get("/admin/revenue_ts")
     async def admin_revenue_ts(

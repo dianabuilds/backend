@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Card, Button, Input, Badge, Spinner, Select } from '../../shared/ui';
+import { Card, Button, Input, Badge, Spinner, Select } from "@ui";
 import { SettingsLayout } from '../../shared/settings/SettingsLayout';
 import { SecurityCard } from '../../shared/settings/SecurityCard';
 import { WalletConnectionCard } from '../../shared/settings/WalletConnectionCard';

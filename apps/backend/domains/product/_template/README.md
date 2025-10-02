@@ -41,3 +41,12 @@ Do not import or run code from `_template` directly. Duplicate it for a new doma
 - Wire container in `wires.py` and integrate with app
 - Update docs/ADR and API/UI schemas with versioning
 
+
+### Адаптеры
+
+- `adapters/repo_sql.py` уже содержит минимально рабочую реализацию. Если передать DSN,
+  он создаст таблицу `product_template_items`; иначе будет хранить данные в памяти.
+  Допишите схему/ORM, как только определите персистентный стор.
+- `adapters/iam_client.py` возвращает детерминированные заглушки. Замените вызовом
+  вашего IAM (HTTP/gRPC), настройте кэш/ретраи и специфику домена.
+

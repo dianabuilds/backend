@@ -1,4 +1,4 @@
-import { Card } from '../../../shared/ui';
+import { Card } from "@ui";
 import React from 'react';
 import { apiGet } from '../../../shared/api/client';
 

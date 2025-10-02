@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Button, Badge, Spinner, CopyButton } from '../ui';
+import { Card, Button, Badge, Spinner, CopyButton } from "@ui";
 import { CheckCircle2, Copy as CopyIcon } from '../icons';
 import { useWalletConnection } from './useWalletConnection';
 

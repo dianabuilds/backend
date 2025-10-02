@@ -1,32 +1,29 @@
 from __future__ import annotations
 
+import inspect
 import logging
-import threading
 from contextlib import asynccontextmanager
+from importlib import import_module
+from types import ModuleType
 from typing import Any, cast
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from sqlalchemy import text as sa_text
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.applications import Starlette
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 from packages.core.db import get_async_engine
 from packages.core.errors import ApiError
 
+from .events_relay import ShutdownHook, start_events_relay
 from .metrics_middleware import setup_http_metrics
 from .settings import me_router as settings_me_router
 from .settings import router as settings_router
 from .wires import build_container
-
-try:
-    import redis.asyncio as aioredis  # type: ignore
-    from fastapi_limiter import FastAPILimiter  # type: ignore
-except Exception:  # pragma: no cover
-    FastAPILimiter = None  # type: ignore
-    aioredis = None  # type: ignore
-
 
 DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
@@ -34,15 +31,17 @@ DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 def _configure_cors(app: FastAPI) -> None:
     origins = DEFAULT_CORS_ORIGINS
     try:
-        from packages.core.config import load_settings  # local import to avoid cycle at import time
+        from packages.core.config import (
+            load_settings,
+        )  # local import to avoid cycle at import time
 
         configured = load_settings().cors_origins or ""
         if configured:
             parsed = [o.strip() for o in configured.split(",") if o.strip()]
             if parsed:
                 origins = parsed
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.exception("Failed to load CORS settings", exc_info=exc)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -55,62 +54,148 @@ def _configure_cors(app: FastAPI) -> None:
 logger = logging.getLogger(__name__)
 
 
+redis_asyncio: ModuleType | None
+RedisError: type[Exception]
+try:
+    redis_asyncio = import_module("redis.asyncio")
+    from redis.exceptions import RedisError as _RedisError  # type: ignore
+
+    RedisError = _RedisError
+except ImportError:  # pragma: no cover
+    redis_asyncio = None
+
+    RedisError = type("RedisErrorFallback", (Exception,), {})
+
+
+fastapi_limiter_module: ModuleType | None
+try:
+    fastapi_limiter_module = import_module("fastapi_limiter")
+except ImportError:  # pragma: no cover
+    fastapi_limiter_module = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # FastAPI inherits from Starlette; cast for type checkers to see `.state`.
     sapp = cast(Starlette, app)
-    sapp.state.container = build_container(env="dev")
-    # Start events relay in background (if supported)
     try:
+        sapp.state.container = build_container(env="dev")
+    except Exception as exc:
+        logger.exception("Failed to build dependency container", exc_info=exc)
+        raise
 
-        def _run_events():
-            try:
-                sapp.state.container.events.run(block_ms=5000)
-            except Exception:
-                pass
+    shutdown_callbacks: list[ShutdownHook] = []
 
-        t = threading.Thread(target=_run_events, name="events-relay", daemon=True)
-        t.start()
-        sapp.state._events_thread = t  # type: ignore[attr-defined]
-    except Exception:
-        pass
-    # Initialize rate limiter (if Redis reachable). Do not block startup on failure.
     try:
-        if FastAPILimiter is not None and aioredis is not None:
-            s = sapp.state.container.settings
-            if s.redis_url:
-                url = str(s.redis_url)
-                r = aioredis.from_url(url, encoding="utf-8", decode_responses=True)
-                try:
-                    await r.ping()
-                    await FastAPILimiter.init(r)
-                    logger.info("FastAPILimiter initialized with Redis %s", url)
-                except Exception as e:
-                    logger.warning("Redis not reachable (%s): limiter disabled. %s", url, e)
-    except Exception as e:
-        logger.warning("Limiter init error (non-fatal): %s", e)
-    try:
+        try:
+            shutdown_callbacks.append(await start_events_relay(app))
+        except Exception as exc:
+            logger.exception("Failed to start events relay", exc_info=exc)
+        try:
+            shutdown_callbacks.extend(await _setup_rate_limiter(sapp))
+        except Exception as exc:
+            logger.exception("Failed to initialize rate limiter", exc_info=exc)
         yield
     finally:
+        while shutdown_callbacks:
+            callback = shutdown_callbacks.pop()
+            try:
+                await callback()
+            except Exception as exc:
+                logger.exception("Error during shutdown callback", exc_info=exc)
         sapp.state.container = None
+
+
+async def _setup_rate_limiter(app: Starlette) -> list[ShutdownHook]:
+    hooks: list[ShutdownHook] = []
+    if fastapi_limiter_module is None or redis_asyncio is None:
+        return hooks
+
+    limiter_cls = getattr(fastapi_limiter_module, "FastAPILimiter", None)
+    if limiter_cls is None:
+        return hooks
+
+    container = getattr(app.state, "container", None)
+    settings = getattr(container, "settings", None)
+    redis_url = getattr(settings, "redis_url", None)
+    if not redis_url:
+        return hooks
+
+    url = str(redis_url)
+    try:
+        redis_client = redis_asyncio.from_url(url, encoding="utf-8", decode_responses=True)
+    except (RedisError, ValueError):
+        logger.exception("Failed to create Redis client for limiter: %s", url)
+        return hooks
+
+    try:
+        await redis_client.ping()
+    except RedisError:
+        logger.warning("Redis not reachable (%s): limiter disabled", url)
+        await _close_redis_client(redis_client)
+        return hooks
+
+    try:
+        await limiter_cls.init(redis_client)
+    except Exception as exc:
+        logger.exception("Failed to initialize FastAPILimiter for %s", url, exc_info=exc)
+        await _close_redis_client(redis_client)
+        return hooks
+
+    logger.info("FastAPILimiter initialized with Redis %s", url)
+
+    async def _shutdown() -> None:
+        try:
+            close = getattr(limiter_cls, "close", None)
+            if callable(close):
+                result = close()
+                if inspect.isawaitable(result):
+                    await result
+        except Exception as exc:
+            logger.exception("FastAPILimiter.close failed", exc_info=exc)
+        await _close_redis_client(redis_client)
+
+    hooks.append(_shutdown)
+    return hooks
+
+
+async def _close_redis_client(client: Any) -> None:
+    close = getattr(client, "close", None)
+    if callable(close):
+        result = close()
+        if inspect.isawaitable(result):
+            await result
+    wait_closed = getattr(client, "wait_closed", None)
+    if callable(wait_closed):
+        result = wait_closed()
+        if inspect.isawaitable(result):
+            await result
+    pool = getattr(client, "connection_pool", None)
+    disconnect = getattr(pool, "disconnect", None)
+    if callable(disconnect):
+        result = disconnect()
+        if inspect.isawaitable(result):
+            await result
 
 
 app = FastAPI(lifespan=lifespan, swagger_ui_parameters={"persistAuthorization": True})
 
 # Observability bootstrap (optional deps, non-fatal)
+observability_module: ModuleType | None
 try:
-    # OpenTelemetry (Prometheus metric reader, OTLP traces)
-    from apps.backend.infra.observability.opentelemetry import setup_otel  # type: ignore
+    observability_module = import_module("apps.backend.infra.observability.opentelemetry")
+except ImportError:  # pragma: no cover
+    observability_module = None
+else:
+    try:
+        setup_otel = observability_module.setup_otel
+        setup_otel(service_name="backend")
+    except Exception as exc:
+        logger.exception("Failed to configure OpenTelemetry", exc_info=exc)
 
-    setup_otel(service_name="backend")
-except Exception:
-    pass
-
-# HTTP metrics (Prometheus counters/histograms with templated paths)
 try:
     setup_http_metrics(app)
-except Exception:
-    pass
+except Exception as exc:
+    logger.exception("Failed to configure HTTP metrics", exc_info=exc)
 
 _configure_cors(app)
 
@@ -123,7 +208,7 @@ def _setup_openapi_security() -> None:
     - CsrfHeader: X-CSRF header for state-changing requests
     """
 
-    def custom_openapi():  # type: ignore[override]
+    def custom_openapi() -> dict[str, Any]:
         if app.openapi_schema:
             return app.openapi_schema
         schema = get_openapi(
@@ -138,15 +223,24 @@ def _setup_openapi_security() -> None:
             s = load_settings()
             csrf_header = s.auth_csrf_header_name
             csrf_cookie = s.auth_csrf_cookie_name
-        except Exception:
+        except Exception as exc:
+            logger.debug("Using default CSRF configuration", exc_info=exc)
             csrf_header = "X-CSRF-Token"
             csrf_cookie = "XSRF-TOKEN"
 
         comps = schema.setdefault("components", {}).setdefault("securitySchemes", {})
         comps.update(
             {
-                "BearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
-                "CookieAuth": {"type": "apiKey", "in": "cookie", "name": "access_token"},
+                "BearerAuth": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "bearerFormat": "JWT",
+                },
+                "CookieAuth": {
+                    "type": "apiKey",
+                    "in": "cookie",
+                    "name": "access_token",
+                },
                 "CsrfHeader": {"type": "apiKey", "in": "header", "name": csrf_header},
                 "CsrfCookie": {"type": "apiKey", "in": "cookie", "name": csrf_cookie},
                 "AdminKey": {"type": "apiKey", "in": "header", "name": "X-Admin-Key"},
@@ -166,16 +260,15 @@ def _setup_openapi_security() -> None:
         app.openapi_schema = schema
         return schema
 
-    app.openapi = custom_openapi  # type: ignore[assignment]
+    app.openapi = custom_openapi
 
 
 _setup_openapi_security()
 
 
 # Return 400 for payload validation errors to match legacy API
-def _validation_handler(request, exc: RequestValidationError):  # type: ignore[override]
+def _validation_handler(request: Request, exc: RequestValidationError) -> Response:
     try:
-        # Keep FastAPI error structure but standardize wrapper
         return JSONResponse(
             status_code=400,
             content={
@@ -183,7 +276,8 @@ def _validation_handler(request, exc: RequestValidationError):  # type: ignore[o
                 "errors": exc.errors(),
             },
         )
-    except Exception:
+    except Exception as exc:
+        logger.exception("Validation handler fallback applied", exc_info=exc)
         return JSONResponse(status_code=400, content={"detail": "invalid_payload"})
 
 
@@ -197,52 +291,53 @@ def healthz() -> dict:
 
 
 @app.get("/readyz", include_in_schema=False)
-async def readyz() -> dict:
-
-    # Access container via global app state (Starlette)
-    # This handler is async to allow DB ping via async engine
-    # We build a minimal result with components
-    ok = True
+async def readyz() -> dict[str, object]:
     details: dict[str, object] = {"redis": False, "database": False, "search": False}
     try:
-        # Redis check
-        try:
-            import redis  # type: ignore
-
-            s = load_settings()
-            r = redis.Redis.from_url(str(s.redis_url), decode_responses=True)
-            r.ping()
-            details["redis"] = True
-        except Exception:
-            details["redis"] = False
-            ok = False
-        # DB check
-        try:
-            from sqlalchemy import text as _text  # type: ignore
-
-            s = load_settings()
-            engine = get_async_engine("readyz", url=s.database_url)
-            async with engine.begin() as conn:
-                await conn.execute(_text("SELECT 1"))
-            details["database"] = True
-        except Exception:
-            details["database"] = False
-            # keep ok for non-DB setups
-        # Search check (container presence)
-        try:
-            # If container exists and has search, mark as ready
-            # Note: FastAPI app.state.container is set in lifespan
-
-            # We can't access Request here easily; rely on app state
-            # noinspection PyUnresolvedReferences
-            # type: ignore[attr-defined]
-            c = app.state.container  # type: ignore[attr-defined]
-            details["search"] = bool(getattr(c, "search", None))
-        except Exception:
-            details["search"] = False
-        return {"ok": bool(ok), "components": details}
-    except Exception:
+        settings = load_settings()
+    except Exception as exc:
+        logger.exception("Readyz settings load failed", exc_info=exc)
         return {"ok": False}
+
+    ok = True
+    redis_url = getattr(settings, "redis_url", None)
+    redis_client = None
+    if redis_url:
+        try:
+            redis_module = import_module("redis")
+            redis_client = redis_module.Redis.from_url(str(redis_url), decode_responses=True)
+            redis_client.ping()
+        except ModuleNotFoundError:
+            logger.warning("Redis package not installed; readyz will report redis=false")
+            ok = False
+        except RedisError as exc:
+            logger.warning("Redis health check failed: %s", exc)
+            ok = False
+        else:
+            details["redis"] = True
+        finally:
+            if redis_client is not None:
+                try:
+                    redis_client.close()
+                except Exception as exc:
+                    logger.debug("Failed to close Redis client during readyz", exc_info=exc)
+    else:
+        ok = False
+
+    try:
+        engine = get_async_engine("readyz", url=settings.database_url)
+        async with engine.begin() as conn:
+            await conn.execute(sa_text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        logger.warning("Database health check failed: %s", exc)
+        ok = False
+    else:
+        details["database"] = True
+
+    container = getattr(app.state, "container", None)
+    details["search"] = bool(getattr(container, "search", None))
+
+    return {"ok": ok, "components": details}
 
 
 # Product routers registration
@@ -321,7 +416,7 @@ app.include_router(profile_router())
 app.include_router(settings_router)
 app.include_router(settings_me_router)
 # Product routers behind flags from DDD Settings
-from packages.core.config import load_settings  # type: ignore  # noqa: E402
+from packages.core.config import load_settings  # noqa: E402
 
 _s = load_settings()
 if _s.nodes_enabled:
@@ -374,11 +469,11 @@ register_platform_moderation(app)
 try:
     if _s.env != "prod":
         app.include_router(debug_router())
-except Exception:
-    pass
+except Exception as exc:
+    logger.warning("Failed to register debug router", exc_info=exc)
 
 
-def _api_error_handler(request, exc: ApiError):  # type: ignore[override]
+def _api_error_handler(request: Request, exc: ApiError) -> Response:
     body: dict[str, dict[str, Any]] = {"error": {"code": exc.code}}
     if exc.message:
         body["error"]["message"] = exc.message

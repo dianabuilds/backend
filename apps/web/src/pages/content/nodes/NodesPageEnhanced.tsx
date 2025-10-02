@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ContentLayout } from '../ContentLayout';
 import { Card, Spinner, TablePagination } from '@ui';
@@ -92,6 +92,10 @@ export default function NodesPageEnhanced() {
   const [authorQuery, setAuthorQuery] = React.useState<string>('');
   const [userOpts, setUserOpts] = React.useState<{ id: string; username: string }[]>([]);
   const [showUserOpts, setShowUserOpts] = React.useState<boolean>(false);
+  const authorLookupCacheRef = React.useRef(new Map<string, string | null>());
+  const authorSearchTimeoutRef = React.useRef<number | undefined>(undefined);
+  const authorSearchSeqRef = React.useRef(0);
+  const lastAuthorSearchRef = React.useRef('');
 
   const selectedCount = selected.size;
   const embeddingStats = React.useMemo(() => {
@@ -172,6 +176,12 @@ export default function NodesPageEnhanced() {
     return () => window.removeEventListener('click', handler);
   }, []);
 
+  React.useEffect(() => () => {
+    if (authorSearchTimeoutRef.current !== undefined) {
+      window.clearTimeout(authorSearchTimeoutRef.current);
+    }
+  }, []);
+
   React.useEffect(() => {
     const params = new URLSearchParams(location.search);
     const preset = params.get('status') as NodeStatus | null;
@@ -199,32 +209,85 @@ export default function NodesPageEnhanced() {
     return /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(s);
   }
 
-  async function enrichAuthorNames(list: NodeItem[]) {
-    try {
-      const needIds = Array.from(
-        new Set(
-          list
-            .filter((it) => (!it.author_name || it.author_name === it.author_id || isUUIDLike(it.author_name)) && it.author_id)
-            .map((it) => String(it.author_id))
-        )
-      );
-      if (needIds.length === 0) return list;
-      const cache = new Map<string, string | null>();
-      for (const uid of needIds) {
-        try {
-          const res = await apiGet(`/v1/users/${encodeURIComponent(uid)}`);
-          const u = res?.user || res?.data?.user;
-          const name = (u?.username || u?.email || null) as string | null;
-          cache.set(uid, name);
-        } catch {
-          cache.set(uid, null);
+  const enrichAuthorNames = React.useCallback(
+    async (list: NodeItem[]) => {
+      if (!list.length) return list;
+      try {
+        const needIds = Array.from(
+          new Set(
+            list
+              .filter((it) => (!it.author_name || it.author_name === it.author_id || isUUIDLike(it.author_name)) && it.author_id)
+              .map((it) => String(it.author_id))
+          )
+        );
+        if (needIds.length === 0) return list;
+        const cache = authorLookupCacheRef.current;
+        const missing = needIds.filter((id) => !cache.has(id));
+        if (missing.length > 0) {
+          await Promise.all(
+            missing.map(async (uid) => {
+              try {
+                const res = await apiGet(`/v1/users/${encodeURIComponent(uid)}`);
+                const u = res?.user || res?.data?.user;
+                const rawName = (u?.username || u?.email || null) as string | null;
+                cache.set(uid, rawName && rawName.trim().length ? rawName : null);
+              } catch (err) {
+                cache.set(uid, null);
+                console.error('Failed to resolve author info', uid, err);
+              }
+            })
+          );
+        }
+        return list.map((it) => {
+          if (!it.author_id || (it.author_name && it.author_name !== it.author_id && !isUUIDLike(it.author_name))) {
+            return it;
+          }
+          const cached = cache.get(String(it.author_id));
+          if (typeof cached === 'string' && cached.length) {
+            return { ...it, author_name: cached };
+          }
+          return it;
+        });
+      } catch (err) {
+        console.error('Failed to enrich author names', err);
+        return list;
+      }
+    },
+    [authorLookupCacheRef],
+  );
+
+  const fetchUserOptions = React.useCallback(
+    async (value: string, force = false) => {
+      const query = value.trim();
+      authorSearchSeqRef.current += 1;
+      const seq = authorSearchSeqRef.current;
+      if (!query) {
+        lastAuthorSearchRef.current = '';
+        setUserOpts([]);
+        return;
+      }
+      if (!force && lastAuthorSearchRef.current === query) {
+        return;
+      }
+      lastAuthorSearchRef.current = query;
+      try {
+        const opts = await apiGet(`/v1/users/search?q=${encodeURIComponent(query)}&limit=10`);
+        if (authorSearchSeqRef.current !== seq) return;
+        if (Array.isArray(opts)) {
+          setUserOpts(opts);
+        } else {
+          setUserOpts([]);
+        }
+      } catch (err) {
+        if (authorSearchSeqRef.current === seq) {
+          console.error('User search failed', err);
+          setUserOpts([]);
+          lastAuthorSearchRef.current = '';
         }
       }
-      return list.map((it) => ({ ...it, author_name: it.author_name || cache.get(String(it.author_id)) || it.author_name }));
-    } catch {
-      return list;
-    }
-  }
+    },
+    [],
+  );
 
   async function load() {
     setLoading(true);
@@ -315,25 +378,29 @@ export default function NodesPageEnhanced() {
                   className="h-9 w-56 bg-transparent text-sm outline-none placeholder:text-gray-400"
                   placeholder="Search username..."
                   value={authorQuery}
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const v = e.target.value;
                     setAuthorQuery(v);
                     setShowUserOpts(true);
-                    try {
-                      const opts = await apiGet(`/v1/users/search?q=${encodeURIComponent(v)}&limit=10`);
-                      if (Array.isArray(opts)) setUserOpts(opts);
-                    } catch {}
+                    if (authorSearchTimeoutRef.current !== undefined) {
+                      window.clearTimeout(authorSearchTimeoutRef.current);
+                    }
+                    authorSearchTimeoutRef.current = window.setTimeout(() => {
+                      void fetchUserOptions(v);
+                    }, 250);
                   }}
-                  onFocus={async () => {
+                  onFocus={() => {
                     setShowUserOpts(true);
-                    try {
-                      const opts = await apiGet(`/v1/users/search?q=${encodeURIComponent(authorQuery)}&limit=10`);
-                      if (Array.isArray(opts)) setUserOpts(opts);
-                    } catch {}
+                    if (authorQuery.trim()) {
+                      void fetchUserOptions(authorQuery, true);
+                    } else {
+                      lastAuthorSearchRef.current = '';
+                      setUserOpts([]);
+                    }
                   }}
                 />
                 {authorId && (
-                  <button className="rounded bg-gray-200 px-2 text-xs hover:bg-gray-300 dark:bg-dark-600" onClick={() => { setAuthorId(''); setAuthorQuery(''); setPage(1); }}>
+                  <button className="rounded bg-gray-200 px-2 text-xs hover:bg-gray-300 dark:bg-dark-600" onClick={() => { setAuthorId(''); setAuthorQuery(''); lastAuthorSearchRef.current = ''; setUserOpts([]); setPage(1); }}>
                     Clear
                   </button>
                 )}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { apiGet } from '../../shared/api/client';
+import { sanitizeHtml } from '../../shared/utils/sanitize';
 
 type NodePublic = {
   id: number;
@@ -17,6 +18,7 @@ export default function NodePublicPage() {
   const [data, setData] = React.useState<NodePublic | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const sanitizedContent = React.useMemo(() => sanitizeHtml(data?.content ?? ''), [data?.content]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -64,13 +66,10 @@ export default function NodePublicPage() {
       )}
       {data.content && (
         <article className="prose max-w-none dark:prose-invert">
-          {/* Content is assumed sanitized on backend */}
-          <div dangerouslySetInnerHTML={{ __html: String(data.content) }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
         </article>
       )}
     </div>
   );
 }
-
-
 

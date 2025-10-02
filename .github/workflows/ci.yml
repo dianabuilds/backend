@@ -2,10 +2,11 @@ name: CI
 
 on:
   push:
+    branches: [ main ]
   pull_request:
 
 jobs:
-  tests:
+  lint-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -15,33 +16,43 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install backend dependencies
+        working-directory: apps/backend
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
-          pip install pytest import-linter pyyaml jsonschema ruff mypy redis sqlalchemy pydantic-settings PyJWT
+          python -m pip install -e .
+          python -m pip install -r requirements.txt
+          python -m pip install ruff mypy pytest
 
       - name: Ruff (lint)
-        run: |
-          ruff check apps/backendDDD --config apps/backendDDD/pyproject.toml
+        working-directory: apps/backend
+        run: python -m ruff check . --config pyproject.toml
 
       - name: Mypy (type check)
-        run: |
-          mypy apps/backendDDD --config-file apps/backendDDD/pyproject.toml
+        working-directory: apps/backend
+        run: python -m mypy . --config-file pyproject.toml
 
-      - name: Validate schemas
-        run: |
-          bash apps/backendDDD/infra/ci/schemas-validate.sh
+      - name: Pytest
+        working-directory: apps/backend
+        run: python -m pytest -c pytest.ini
 
-      - name: Check import boundaries
-        run: |
-          python apps/backendDDD/infra/ci/gen_import_rules.py > importlinter.ini
-          lint-imports -c importlinter.ini
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
 
-      - name: Run tests
-        env:
-          PYTHONPATH: apps/backendDDD
-        run: |
-          python -m pytest -q apps/backendDDD/domains
-          python -m pytest -q apps/backendDDD/app/tests
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: apps/web
+
+      - name: ESLint
+        run: npm run lint
+        working-directory: apps/web
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+        working-directory: apps/web

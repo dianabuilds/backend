@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 
 from fastapi import Depends, Header, Request, status
@@ -11,6 +12,8 @@ from packages.core.db import get_async_engine
 from packages.core.errors import ApiError
 
 from .routers import get_container
+
+logger = logging.getLogger(__name__)
 
 IDEMPOTENCY_HEADER = "Idempotency-Key"
 IDEMPOTENCY_RETRY_SECONDS = 5
@@ -41,7 +44,8 @@ class IdempotencyStore:
 def _get_store(settings) -> IdempotencyStore | None:
     try:
         dsn = to_async_dsn(settings.database_url)
-    except Exception:
+    except Exception as exc:
+        logger.exception("Failed to derive DSN for idempotency storage", exc_info=exc)
         return None
     if not dsn:
         return None

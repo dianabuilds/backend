@@ -176,7 +176,10 @@ class SQLProfileRepo(Repo):
                 if key in {"bio", "avatar_url"}:
                     profile_table_updates[key] = value
                 if key in {"username", "bio", "avatar_url"}:
-                    if key in self._missing_user_columns and key in {"bio", "avatar_url"}:
+                    if key in self._missing_user_columns and key in {
+                        "bio",
+                        "avatar_url",
+                    }:
                         continue
                     filtered_updates[key] = value
 

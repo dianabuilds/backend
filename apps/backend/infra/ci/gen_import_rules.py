@@ -11,14 +11,14 @@ def main() -> int:
     print("[importlinter]")
     print("root_package = apps")
     print()
-    for f in glob.glob("apps/apps/backend/packages/domain-registry/*.yaml"):
+    for f in glob.glob("apps/backend/packages/domain-registry/*.yaml"):
         if f.endswith("index.yaml"):
             continue
         spec = yaml.safe_load(open(f, encoding="utf-8"))
         # File name is domain name (e.g., profile.yaml) and spec.type is kind (product/platform)
         name = Path(f).stem
         kind = (spec.get("type") or "product").strip()
-        base = f"apps.apps/backend.domains.{kind}.{name}"
+        base = f"apps.backend.domains.{kind}.{name}"
         print(f"[contract:layers_{kind}_{name}]")
         print(f"name = layers for {kind}/{name}")
         print("type = layers")

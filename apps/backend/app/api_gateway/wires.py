@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from sqlalchemy.exc import SQLAlchemyError
+
+from domains.platform.admin.wires import AdminContainer
+from domains.platform.admin.wires import build_container as build_admin_container
 from domains.platform.audit.wires import AuditContainer
 from domains.platform.audit.wires import build_container as build_audit_container
 from domains.platform.billing.wires import BillingContainer
@@ -71,6 +77,9 @@ from packages.core.config import Settings, load_settings, to_async_dsn
 """DI wiring for DDD app: only DDD imports, no monolith references."""
 
 
+logger = logging.getLogger(__name__)
+
+
 # Simple reachability check to decide SQL vs Memory repos
 def _db_reachable(url: str, *, allow_remote: bool = False) -> bool:
     try:
@@ -80,11 +89,9 @@ def _db_reachable(url: str, *, allow_remote: bool = False) -> bool:
         u = urlparse(url)
         host = u.hostname or "localhost"
         port = u.port or 5432
-        # When allow_remote is False we still attempt the connection; callers can tighten behaviour
-        # via settings.database_allow_remote but we do not block ahead of time.
         with socket.create_connection((host, port), timeout=0.25):
             return True
-    except Exception:
+    except OSError:
         return False
 
 
@@ -181,6 +188,7 @@ class Container:
     flags: FlagsContainer
     notifications: NotificationsContainer
     users: UsersContainer
+    admin: AdminContainer
 
 
 def build_container(env: str = "dev") -> Container:
@@ -197,13 +205,24 @@ def build_container(env: str = "dev") -> Container:
         topics.append("node.embedding.requested.v1")
     try:
         import redis  # type: ignore
+        from redis.exceptions import RedisError as SyncRedisError  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError(
+            "Redis is required for platform events; ensure APP_REDIS_URL is installed"
+        ) from exc
 
+    try:
         rc = redis.Redis.from_url(str(settings.redis_url), decode_responses=True)
         rc.ping()
-    except Exception as e:
+    except SyncRedisError as exc:
         raise RuntimeError(
             "Redis is required for platform events; ensure APP_REDIS_URL is reachable"
-        ) from e
+        ) from exc
+    finally:
+        try:
+            rc.close()
+        except Exception:
+            logger.debug("Failed to close Redis connection during wiring", exc_info=True)
     outbox: ProfileOutbox = ProfileOutboxRedis(str(settings.redis_url))
     bus = RedisEventBus(
         redis_url=str(settings.redis_url),
@@ -222,12 +241,14 @@ def build_container(env: str = "dev") -> Container:
     tag_catalog: NodesTagCatalog
     try:
         tag_catalog = SQLTagCatalog(dsn_primary)
-    except Exception:
+    except SQLAlchemyError as exc:
+        logger.warning("Falling back to in-memory tag catalog: %s", exc)
         tag_catalog = MemoryTagCatalog()
     usage_proj: NodesUsageProjection
     try:
         usage_proj = SQLUsageProjection(dsn_primary, content_type="node")
-    except Exception:
+    except SQLAlchemyError as exc:
+        logger.warning("Falling back to in-memory usage projection: %s", exc)
         usage_proj = MemoryUsageProjection(TagUsageStore(), content_type="node")
     embedding_client = EmbeddingClient(
         base_url=settings.embedding_api_base,
@@ -352,16 +373,21 @@ def build_container(env: str = "dev") -> Container:
         dsn = _to_async(settings.database_url)
         if dsn:
             register_tags_usage_writer(events, dsn)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Failed to register tags usage writer: %s", exc)
     media = build_media_container()
     platform_moderation = build_platform_moderation_container(settings)
     audit = build_audit_container()
     billing = build_billing_container(settings)
     flags = build_flags_container(settings)
     notifications = build_notifications_container(settings, flag_service=flags.service)
-    register_event_relays(events, notify_topics, delivery=notifications.delivery)
+    try:
+        notify_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        notify_loop = None
+    register_event_relays(events, notify_topics, delivery=notifications.delivery, loop=notify_loop)
     users = build_users_container(settings)
+    admin = build_admin_container(settings)
     return Container(
         settings=settings,
         events=events,
@@ -391,4 +417,5 @@ def build_container(env: str = "dev") -> Container:
         flags=flags,
         notifications=notifications,
         users=users,
+        admin=admin,
     )

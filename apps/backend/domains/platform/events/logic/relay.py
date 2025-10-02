@@ -39,6 +39,7 @@ class RedisRelay:
         self._group = group
         self._consumer = consumer or f"c-{os.getpid()}"
         self._topics = topics
+        self._stopped = False
         self._idem = RedisIdempotency(
             self._r, ttl_seconds=int(os.getenv("EVENT_IDEMPOTENCY_TTL", "86400"))
         )
@@ -54,10 +55,12 @@ class RedisRelay:
     ) -> None:
         block = int(os.getenv("EVENT_BLOCK_MS", str(block_ms or 5000)))
         batch = int(os.getenv("EVENT_COUNT", str(count or 100)))
-        while True:
+        while not self._stopped:
             try:
                 resp = self._bus.read_batch(self._topics, self._group, self._consumer, batch, block)
             except Exception:
+                if self._stopped:
+                    break
                 time.sleep(1.0)
                 continue
             if not resp:
@@ -119,3 +122,10 @@ class RedisRelay:
                             )
                         finally:
                             self._bus.ack(topic, self._group, msg_id)
+
+    def stop(self) -> None:
+        self._stopped = True
+        try:
+            self._r.close()
+        except Exception:
+            pass

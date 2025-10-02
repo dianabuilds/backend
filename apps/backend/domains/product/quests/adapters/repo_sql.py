@@ -10,6 +10,7 @@ from domains.product.quests.application.ports import (
     QuestDTO,
     Repo,
 )
+from packages.core.async_utils import run_sync
 from packages.core.db import get_async_engine
 
 
@@ -34,7 +35,6 @@ class SQLQuestsRepo(Repo):
         return out
 
     def get(self, quest_id: str) -> QuestDTO | None:
-        import asyncio
 
         async def _run() -> QuestDTO | None:
             sql = text(
@@ -55,15 +55,9 @@ class SQLQuestsRepo(Repo):
                 is_public=bool(r["is_public"]),
             )
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def get_by_slug(self, slug: str) -> QuestDTO | None:
-        import asyncio
 
         async def _run() -> QuestDTO | None:
             sql = text(
@@ -85,15 +79,9 @@ class SQLQuestsRepo(Repo):
                 is_public=bool(r["is_public"]),
             )
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0) -> list[QuestDTO]:
-        import asyncio
 
         async def _run() -> list[QuestDTO]:
             sql = text(
@@ -138,15 +126,9 @@ class SQLQuestsRepo(Repo):
                 )
             return out
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def create(self, data: CreateQuestInput, slug: str) -> QuestDTO:
-        import asyncio
 
         async def _run() -> QuestDTO:
             async with self._engine.begin() as conn:
@@ -188,15 +170,9 @@ class SQLQuestsRepo(Repo):
             assert got is not None
             return got
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def set_tags(self, quest_id: str, tags: Sequence[str]) -> QuestDTO:
-        import asyncio
 
         async def _run() -> QuestDTO:
             norm: list[str] = []
@@ -231,12 +207,7 @@ class SQLQuestsRepo(Repo):
             assert got is not None
             return got
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def update(
         self,
@@ -246,7 +217,6 @@ class SQLQuestsRepo(Repo):
         description: str | None,
         is_public: bool | None,
     ) -> QuestDTO:
-        import asyncio
 
         async def _run() -> QuestDTO:
             sets = []
@@ -273,12 +243,7 @@ class SQLQuestsRepo(Repo):
                 raise ValueError("quest not found")
             return got
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     # --- internal async helpers ---
     async def _araw_get(self, quest_id: str) -> QuestDTO | None:

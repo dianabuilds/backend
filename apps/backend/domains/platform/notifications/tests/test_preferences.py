@@ -129,7 +129,11 @@ async def test_preference_roundtrip(sample_matrix: NotificationMatrix) -> None:
         user_id,
         {
             "account.security": {
-                "email": {"opt_in": False, "digest": "weekly", "quiet_hours": [22, 23, 0]}
+                "email": {
+                    "opt_in": False,
+                    "digest": "weekly",
+                    "quiet_hours": [22, 23, 0],
+                }
             }
         },
         actor_id=user_id,

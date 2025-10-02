@@ -81,8 +81,10 @@ class RumSQLRepository(IRumRepository):
                     "url": payload.get("url") or row.get("url"),
                     "ts": ts_ms,
                     "data": data,
-                    "created_at": created_at.astimezone(UTC).isoformat() if created_at else None,
-                    "occurred_at": occurred_at.astimezone(UTC).isoformat() if occurred_at else None,
+                    "created_at": (created_at.astimezone(UTC).isoformat() if created_at else None),
+                    "occurred_at": (
+                        occurred_at.astimezone(UTC).isoformat() if occurred_at else None
+                    ),
                 }
             )
         return result

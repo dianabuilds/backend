@@ -58,3 +58,47 @@ async def test_nodes_crud_and_tags():
         r = client.delete(f"/v1/nodes/{nid}", headers=headers)
         assert r.status_code == 200
         assert r.json()["ok"] is True
+
+
+@pytest.mark.asyncio
+async def test_admin_node_moderation_decision_flow():
+    token = _user_token("moderation-author", role="user")
+    headers = {load_settings().auth_csrf_header_name: "t1"}
+    admin_headers = {"X-Admin-Key": "adminkey"}
+    with TestClient(app) as client:
+        _set_auth(client, token)
+        create = client.post(
+            "/v1/nodes",
+            json={"title": "Needs review", "tags": ["alpha"], "is_public": True},
+            headers=headers,
+        )
+        assert create.status_code == 200, create.text
+        node_id = create.json()["id"]
+
+        detail_before = client.get(f"/v1/admin/nodes/{node_id}/moderation", headers=admin_headers)
+        assert detail_before.status_code == 200, detail_before.text
+        assert detail_before.json()["status"] == "pending"
+
+        decision = client.post(
+            f"/v1/admin/nodes/{node_id}/moderation/decision",
+            json={"action": "hide", "reason": "spam"},
+            headers=admin_headers,
+        )
+        assert decision.status_code == 200, decision.text
+        body = decision.json()
+        assert body.get("status") == "hidden"
+
+        detail_after = client.get(f"/v1/admin/nodes/{node_id}/moderation", headers=admin_headers)
+        assert detail_after.status_code == 200, detail_after.text
+        data = detail_after.json()
+        assert data["status"] == "hidden"
+        history = data.get("moderation_history") or []
+        assert history and history[0].get("action") == "hide"
+
+        listing = client.get("/v1/admin/nodes/list", headers=admin_headers)
+        assert listing.status_code == 200, listing.text
+        entries = listing.json()
+        match = next((item for item in entries if item.get("id") == str(node_id)), None)
+        assert match is not None
+        assert match.get("moderation_status") == "hidden"
+        assert match.get("moderation_status_updated_at")

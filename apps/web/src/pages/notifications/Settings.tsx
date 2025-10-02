@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Button, Switch, Input, Select, Badge, Spinner } from '../../shared/ui';
+import { Card, Button, Switch, Input, Select, Badge, Spinner } from "@ui";
 import { SettingsLayout } from '../../shared/settings/SettingsLayout';
 import { WalletConnectionCard } from '../../shared/settings/WalletConnectionCard';
 import { apiGetWithResponse, apiPutWithResponse } from '../../shared/api/client';

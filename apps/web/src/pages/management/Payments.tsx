@@ -77,7 +77,7 @@ export default function ManagementPayments() {
     const payload: any = {
       slug: provEditing.slug,
       type: provEditing.type || 'custom',
-      enabled: !!provEditing.enabled,
+      enabled: provEditing.enabled,
       priority: Number(provEditing.priority || 100),
       config: provEditing.config || {},
       contract_slug: provEditing.config?.linked_contract || undefined,
@@ -278,7 +278,7 @@ export default function ManagementPayments() {
                       </Table.TR>
                       <Table.TR>
                         <Table.TD colSpan={8}>
-                          <Collapse open={!!provExpanded[it.slug]}>
+                          <Collapse open={provExpanded[it.slug]}>
                             <pre className="mt-2 rounded bg-gray-50 p-3 text-xs overflow-auto">{JSON.stringify(it.config || {}, null, 2)}</pre>
                           </Collapse>
                         </Table.TD>

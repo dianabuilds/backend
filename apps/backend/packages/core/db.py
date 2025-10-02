@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 """Async database engine helpers and FastAPI dependency utilities."""
+import re
 import ssl
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from pathlib import Path
+from threading import Lock
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -13,10 +15,74 @@ from .config import load_settings, sanitize_async_dsn
 
 EngineKey = tuple[str, tuple[tuple[str, str], ...], tuple[tuple[str, str], ...]]
 
-_engine_cache: dict[str, AsyncEngine] = {}
-_engine_shared_cache: dict[EngineKey, AsyncEngine] = {}
-_engine_alias_to_key: dict[str, EngineKey] = {}
-_engine_key_refcounts: dict[EngineKey, int] = {}
+
+class EngineRegistry:
+    def __init__(self) -> None:
+        self._lock = Lock()
+        self._alias_cache: dict[str, AsyncEngine] = {}
+        self._canonical_cache: dict[EngineKey, AsyncEngine] = {}
+        self._alias_to_key: dict[str, EngineKey] = {}
+        self._refcounts: dict[EngineKey, int] = {}
+
+    def get_or_create(
+        self,
+        alias: str,
+        canonical_key: EngineKey,
+        factory: Callable[[], AsyncEngine],
+    ) -> AsyncEngine:
+        with self._lock:
+            engine = self._alias_cache.get(alias)
+            if engine is not None:
+                return engine
+            engine = self._canonical_cache.get(canonical_key)
+            if engine is None:
+                engine = factory()
+                self._canonical_cache[canonical_key] = engine
+            self._alias_cache[alias] = engine
+            self._alias_to_key[alias] = canonical_key
+            self._refcounts[canonical_key] = self._refcounts.get(canonical_key, 0) + 1
+            return engine
+
+    async def dispose(self, prefixes: tuple[str, ...] | None = None) -> None:
+        to_dispose: list[AsyncEngine] = []
+        with self._lock:
+            if prefixes:
+                prefix_set = set(prefixes)
+                alias_keys = [
+                    key
+                    for key in list(self._alias_cache.keys())
+                    if key.split(":", 1)[0] in prefix_set
+                ]
+            else:
+                alias_keys = list(self._alias_cache.keys())
+
+            for alias in alias_keys:
+                engine = self._alias_cache.pop(alias, None)
+                if engine is None:
+                    continue
+                canonical = self._alias_to_key.pop(alias, None)
+                if canonical is None:
+                    to_dispose.append(engine)
+                    continue
+                remaining = self._refcounts.get(canonical, 0) - 1
+                if remaining <= 0:
+                    self._refcounts.pop(canonical, None)
+                    shared = self._canonical_cache.pop(canonical, None)
+                    if shared is not None:
+                        to_dispose.append(shared)
+                else:
+                    self._refcounts[canonical] = remaining
+
+        seen: set[int] = set()
+        for engine in to_dispose:
+            marker = id(engine)
+            if marker in seen:
+                continue
+            seen.add(marker)
+            await engine.dispose()
+
+
+_ENGINE_REGISTRY = EngineRegistry()
 
 
 _SSL_TRUE = {"1", "true", "yes", "on", "require", "verify-ca", "verify-full"}
@@ -28,7 +94,14 @@ def _peel_ssl_connect_args(url: str) -> tuple[str, dict[str, Any], dict[str, str
 
     parsed = urlparse(url)
     if not parsed.query:
-        return url, {}, {}
+        env_ca = _resolve_env_cert()
+        connect_args: dict[str, Any] = {}
+        fingerprint: dict[str, str] = {}
+        if env_ca is not None:
+            context = ssl.create_default_context(cafile=str(env_ca))
+            connect_args["ssl"] = context
+            fingerprint["ssl"] = f"context:{env_ca}"
+        return url, connect_args, fingerprint
 
     pairs = parse_qsl(parsed.query, keep_blank_values=True)
     filtered: list[tuple[str, str]] = []
@@ -72,24 +145,53 @@ def _peel_ssl_connect_args(url: str) -> tuple[str, dict[str, Any], dict[str, str
         )
     )
 
-    connect_args: dict[str, Any] = {}
-    fingerprint: dict[str, str] = {}
-    ssl_context = None
+    env_ca = _resolve_env_cert()
+    if cert_path is None and env_ca is not None:
+        cert_path = env_ca
+
+    try:
+        sanitized = re.sub(
+            r"([?&])sslmode=[^&]*(&|$)",
+            lambda m: m.group(1) if m.group(2) == "&" else "",
+            sanitized,
+            flags=re.IGNORECASE,
+        )
+        sanitized = re.sub(r"[?&]$", "", sanitized)
+    except Exception:
+        pass
+
+    connect_args_final: dict[str, Any] = {}
+    fingerprint_final: dict[str, str] = {}
+    ssl_context: ssl.SSLContext | None = None
 
     if cert_path is not None:
         resolved = cert_path.expanduser()
         if not resolved.is_absolute():
             resolved = (Path.cwd() / resolved).resolve()
         ssl_context = ssl.create_default_context(cafile=str(resolved))
-        fingerprint["ssl"] = f"context:{resolved}"
+        fingerprint_final["ssl"] = f"context:{resolved}"
 
     if ssl_context is not None:
-        connect_args["ssl"] = ssl_context
+        connect_args_final["ssl"] = ssl_context
     elif ssl_flag is not None:
-        connect_args["ssl"] = "require" if ssl_flag else False
-        fingerprint["ssl"] = f"flag:{'require' if ssl_flag else 'disable'}"
+        connect_args_final["ssl"] = "require" if ssl_flag else False
+        fingerprint_final["ssl"] = f"flag:{'require' if ssl_flag else 'disable'}"
 
-    return sanitized, connect_args, fingerprint
+    return sanitized, connect_args_final, fingerprint_final
+
+
+def _resolve_env_cert() -> Path | None:
+    try:
+        cfg = load_settings()
+        raw = getattr(cfg, "database_ssl_ca", None)
+    except Exception:
+        return None
+    if not raw:
+        return None
+    candidate = Path(str(raw)).expanduser()
+    if not candidate.is_absolute():
+        candidate = (Path.cwd() / candidate).resolve()
+    return candidate
 
 
 def _stable_items(
@@ -165,19 +267,11 @@ def get_async_engine(
         return create_async_engine(sanitized, **effective_kwargs)
 
     alias_key = f"{name}:{repr(canonical_key)}"
-    engine = _engine_cache.get(alias_key)
-    if engine is not None:
-        return engine
 
-    engine = _engine_shared_cache.get(canonical_key)
-    if engine is None:
-        engine = create_async_engine(sanitized, **effective_kwargs)
-        _engine_shared_cache[canonical_key] = engine
+    def _factory() -> AsyncEngine:
+        return create_async_engine(sanitized, **effective_kwargs)
 
-    _engine_cache[alias_key] = engine
-    _engine_alias_to_key[alias_key] = canonical_key
-    _engine_key_refcounts[canonical_key] = _engine_key_refcounts.get(canonical_key, 0) + 1
-    return engine
+    return _ENGINE_REGISTRY.get_or_create(alias_key, canonical_key, _factory)
 
 
 async def dispose_async_engines(*names: str) -> None:
@@ -186,32 +280,21 @@ async def dispose_async_engines(*names: str) -> None:
     If `names` is empty, all cached engines are disposed.
     """
 
-    if names:
-        prefixes = set(names)
-        keys = [k for k in list(_engine_cache.keys()) if k.split(":", 1)[0] in prefixes]
-    else:
-        keys = list(_engine_cache.keys())
-
-    for key in keys:
-        engine = _engine_cache.pop(key, None)
-        if engine is None:
-            continue
-        canonical = _engine_alias_to_key.pop(key, None)
-        if canonical is None:
-            await engine.dispose()
-            continue
-        remaining = _engine_key_refcounts.get(canonical, 0) - 1
-        if remaining <= 0:
-            _engine_key_refcounts.pop(canonical, None)
-            shared = _engine_shared_cache.pop(canonical, None)
-            if shared is not None:
-                await shared.dispose()
-        else:
-            _engine_key_refcounts[canonical] = remaining
+    prefixes = tuple(names) if names else None
+    await _ENGINE_REGISTRY.dispose(prefixes)
 
 
 async def db_session_dep() -> AsyncIterator[object]:  # pragma: no cover - placeholder
     yield None
 
 
-__all__ = ["db_session_dep", "dispose_async_engines", "get_async_engine"]
+def engine_registry() -> EngineRegistry:
+    return _ENGINE_REGISTRY
+
+
+__all__ = [
+    "db_session_dep",
+    "dispose_async_engines",
+    "engine_registry",
+    "get_async_engine",
+]

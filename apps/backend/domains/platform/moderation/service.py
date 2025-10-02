@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from functools import wraps
 from statistics import mean
 from typing import Any
 from uuid import uuid4
@@ -31,6 +32,7 @@ from .dtos import (
     UserDetail,
     UserSummary,
 )
+from .storage import ModerationStorage
 
 
 @dataclass
@@ -174,8 +176,29 @@ class UserRecord:
     ticket_ids: list[str] = field(default_factory=list)
 
 
+def _ensure_loaded_decorator(func):
+    @wraps(func)
+    async def wrapper(self: PlatformModerationService, *args, **kwargs):
+        await self._ensure_loaded()
+        return await func(self, *args, **kwargs)
+
+    return wrapper
+
+
+def _mutating_operation(func):
+    @wraps(func)
+    async def wrapper(self: PlatformModerationService, *args, **kwargs):
+        await self._ensure_loaded()
+        result = await func(self, *args, **kwargs)
+        self._dirty = True
+        await self._persist()
+        return result
+
+    return wrapper
+
+
 class PlatformModerationService:
-    def __init__(self, *, seed_demo: bool = True):
+    def __init__(self, storage: ModerationStorage | None = None, *, seed_demo: bool = True):
         self._lock = asyncio.Lock()
         self._users: dict[str, UserRecord] = {}
         self._sanctions: dict[str, SanctionRecord] = {}
@@ -187,8 +210,10 @@ class PlatformModerationService:
         self._appeals: dict[str, AppealRecord] = {}
         self._ai_rules: dict[str, AIRuleRecord] = {}
         self._idempotency: dict[str, str] = {}
-        if seed_demo:
-            self._seed_demo()
+        self._storage = storage
+        self._seed_requested = seed_demo
+        self._loaded = False
+        self._dirty = False
 
     def _now(self) -> datetime:
         return datetime.now(UTC)
@@ -199,6 +224,359 @@ class PlatformModerationService:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=UTC)
         return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+    async def _ensure_loaded(self) -> None:
+        if self._loaded:
+            return
+        if self._storage and self._storage.enabled():
+            snapshot = await self._storage.load()
+            if snapshot:
+                await self._restore_from_snapshot(snapshot)
+            elif self._seed_requested:
+                async with self._lock:
+                    self._seed_demo()
+                self._dirty = True
+                await self._persist()
+        elif self._seed_requested:
+            async with self._lock:
+                self._seed_demo()
+        self._loaded = True
+        self._dirty = False
+
+    async def _snapshot(self) -> dict[str, Any]:
+        async with self._lock:
+            return {
+                "users": {uid: self._serialize_user(rec) for uid, rec in self._users.items()},
+                "sanctions": {
+                    sid: self._serialize_sanction(rec) for sid, rec in self._sanctions.items()
+                },
+                "notes": {nid: self._serialize_note(rec) for nid, rec in self._notes.items()},
+                "reports": {rid: self._serialize_report(rec) for rid, rec in self._reports.items()},
+                "content": {
+                    cid: self._serialize_content(rec) for cid, rec in self._content.items()
+                },
+                "tickets": {tid: self._serialize_ticket(rec) for tid, rec in self._tickets.items()},
+                "ticket_messages": {
+                    mid: self._serialize_ticket_message(rec)
+                    for mid, rec in self._ticket_messages.items()
+                },
+                "appeals": {aid: self._serialize_appeal(rec) for aid, rec in self._appeals.items()},
+                "ai_rules": {rid: self._serialize_rule(rec) for rid, rec in self._ai_rules.items()},
+                "idempotency": dict(self._idempotency),
+            }
+
+    async def _restore_from_snapshot(self, payload: Mapping[str, Any]) -> None:
+        async with self._lock:
+            self._users = {
+                uid: self._deserialize_user(data) for uid, data in payload.get("users", {}).items()
+            }
+            self._sanctions = {
+                sid: self._deserialize_sanction(data)
+                for sid, data in payload.get("sanctions", {}).items()
+            }
+            self._notes = {
+                nid: self._deserialize_note(data) for nid, data in payload.get("notes", {}).items()
+            }
+            self._reports = {
+                rid: self._deserialize_report(data)
+                for rid, data in payload.get("reports", {}).items()
+            }
+            self._content = {
+                cid: self._deserialize_content(data)
+                for cid, data in payload.get("content", {}).items()
+            }
+            self._tickets = {
+                tid: self._deserialize_ticket(data)
+                for tid, data in payload.get("tickets", {}).items()
+            }
+            self._ticket_messages = {
+                mid: self._deserialize_ticket_message(data)
+                for mid, data in payload.get("ticket_messages", {}).items()
+            }
+            self._appeals = {
+                aid: self._deserialize_appeal(data)
+                for aid, data in payload.get("appeals", {}).items()
+            }
+            self._ai_rules = {
+                rid: self._deserialize_rule(data)
+                for rid, data in payload.get("ai_rules", {}).items()
+            }
+            self._idempotency = {str(k): str(v) for k, v in payload.get("idempotency", {}).items()}
+            self._dirty = False
+
+    async def _persist(self) -> None:
+        if not self._storage or not self._storage.enabled() or not self._dirty:
+            self._dirty = False
+            return
+        snapshot = await self._snapshot()
+        await self._storage.save(snapshot)
+        self._dirty = False
+
+    def _serialize_user(self, record: UserRecord) -> dict[str, Any]:
+        return {
+            "id": record.id,
+            "username": record.username,
+            "email": record.email,
+            "roles": list(record.roles),
+            "status": record.status,
+            "registered_at": self._iso(record.registered_at),
+            "last_seen_at": self._iso(record.last_seen_at),
+            "meta": dict(record.meta),
+            "sanction_ids": list(record.sanction_ids),
+            "note_ids": list(record.note_ids),
+            "report_ids": list(record.report_ids),
+            "ticket_ids": list(record.ticket_ids),
+        }
+
+    def _serialize_sanction(self, record: SanctionRecord) -> dict[str, Any]:
+        return {
+            "id": record.id,
+            "user_id": record.user_id,
+            "type": record.type.value,
+            "status": record.status.value,
+            "reason": record.reason,
+            "issued_by": record.issued_by,
+            "issued_at": self._iso(record.issued_at),
+            "starts_at": self._iso(record.starts_at),
+            "ends_at": self._iso(record.ends_at),
+            "evidence": list(record.evidence),
+            "meta": dict(record.meta),
+            "revoked_at": self._iso(record.revoked_at),
+            "revoked_by": record.revoked_by,
+        }
+
+    def _serialize_note(self, record: ModeratorNoteRecord) -> dict[str, Any]:
+        return {
+            "id": record.id,
+            "user_id": record.user_id,
+            "text": record.text,
+            "created_at": self._iso(record.created_at),
+            "author_id": record.author_id,
+            "author_name": record.author_name,
+            "pinned": record.pinned,
+            "meta": dict(record.meta),
+        }
+
+    def _serialize_report(self, record: ReportRecord) -> dict[str, Any]:
+        return {
+            "id": record.id,
+            "object_type": record.object_type,
+            "object_id": record.object_id,
+            "reporter_id": record.reporter_id,
+            "category": record.category,
+            "text": record.text,
+            "status": record.status.value,
+            "source": record.source,
+            "created_at": self._iso(record.created_at),
+            "resolved_at": self._iso(record.resolved_at),
+            "decision": record.decision,
+            "notes": record.notes,
+            "updates": list(record.updates),
+            "meta": dict(record.meta),
+        }
+
+    def _serialize_content(self, record: ContentRecord) -> dict[str, Any]:
+        return {
+            "id": record.id,
+            "content_type": record.content_type.value,
+            "author_id": record.author_id,
+            "created_at": self._iso(record.created_at),
+            "preview": record.preview,
+            "ai_labels": list(record.ai_labels),
+            "status": record.status.value,
+            "report_ids": list(record.report_ids),
+            "moderation_history": list(record.moderation_history),
+            "meta": dict(record.meta),
+        }
+
+    def _serialize_ticket(self, record: TicketRecord) -> dict[str, Any]:
+        return {
+            "id": record.id,
+            "title": record.title,
+            "priority": record.priority.value,
+            "author_id": record.author_id,
+            "assignee_id": record.assignee_id,
+            "status": record.status.value,
+            "created_at": self._iso(record.created_at),
+            "updated_at": self._iso(record.updated_at),
+            "last_message_at": self._iso(record.last_message_at),
+            "unread_count": record.unread_count,
+            "message_ids": list(record.message_ids),
+            "meta": dict(record.meta),
+        }
+
+    def _serialize_ticket_message(self, record: TicketMessageRecord) -> dict[str, Any]:
+        return {
+            "id": record.id,
+            "ticket_id": record.ticket_id,
+            "author_id": record.author_id,
+            "text": record.text,
+            "attachments": list(record.attachments),
+            "internal": record.internal,
+            "author_name": record.author_name,
+            "created_at": self._iso(record.created_at),
+        }
+
+    def _serialize_appeal(self, record: AppealRecord) -> dict[str, Any]:
+        return {
+            "id": record.id,
+            "target_type": record.target_type,
+            "target_id": record.target_id,
+            "user_id": record.user_id,
+            "text": record.text,
+            "status": record.status,
+            "created_at": self._iso(record.created_at),
+            "decided_at": self._iso(record.decided_at),
+            "decided_by": record.decided_by,
+            "decision_reason": record.decision_reason,
+            "meta": dict(record.meta),
+        }
+
+    def _serialize_rule(self, record: AIRuleRecord) -> dict[str, Any]:
+        return {
+            "id": record.id,
+            "category": record.category,
+            "thresholds": dict(record.thresholds),
+            "actions": dict(record.actions),
+            "enabled": record.enabled,
+            "updated_by": record.updated_by,
+            "updated_at": self._iso(record.updated_at),
+            "description": record.description,
+            "history": list(record.history),
+        }
+
+    def _deserialize_user(self, data: Mapping[str, Any]) -> UserRecord:
+        return UserRecord(
+            id=str(data.get("id")),
+            username=str(data.get("username")),
+            email=data.get("email"),
+            roles=list(data.get("roles", [])),
+            status=str(data.get("status")),
+            registered_at=self._parse_datetime(data.get("registered_at")) or self._now(),
+            last_seen_at=self._parse_datetime(data.get("last_seen_at")),
+            meta=dict(data.get("meta", {})),
+            sanction_ids=list(data.get("sanction_ids", [])),
+            note_ids=list(data.get("note_ids", [])),
+            report_ids=list(data.get("report_ids", [])),
+            ticket_ids=list(data.get("ticket_ids", [])),
+        )
+
+    def _deserialize_sanction(self, data: Mapping[str, Any]) -> SanctionRecord:
+        return SanctionRecord(
+            id=str(data.get("id")),
+            user_id=str(data.get("user_id")),
+            type=SanctionType(str(data.get("type", SanctionType.mute.value))),
+            status=SanctionStatus(str(data.get("status", SanctionStatus.active.value))),
+            reason=data.get("reason"),
+            issued_by=data.get("issued_by"),
+            issued_at=self._parse_datetime(data.get("issued_at")) or self._now(),
+            starts_at=self._parse_datetime(data.get("starts_at")) or self._now(),
+            ends_at=self._parse_datetime(data.get("ends_at")),
+            evidence=list(data.get("evidence", [])),
+            meta=dict(data.get("meta", {})),
+            revoked_at=self._parse_datetime(data.get("revoked_at")),
+            revoked_by=data.get("revoked_by"),
+        )
+
+    def _deserialize_note(self, data: Mapping[str, Any]) -> ModeratorNoteRecord:
+        return ModeratorNoteRecord(
+            id=str(data.get("id")),
+            user_id=str(data.get("user_id")),
+            text=str(data.get("text", "")),
+            created_at=self._parse_datetime(data.get("created_at")) or self._now(),
+            author_id=data.get("author_id"),
+            author_name=data.get("author_name"),
+            pinned=bool(data.get("pinned", False)),
+            meta=dict(data.get("meta", {})),
+        )
+
+    def _deserialize_report(self, data: Mapping[str, Any]) -> ReportRecord:
+        return ReportRecord(
+            id=str(data.get("id")),
+            object_type=str(data.get("object_type", "unknown")),
+            object_id=str(data.get("object_id", "")),
+            reporter_id=str(data.get("reporter_id", "")),
+            category=str(data.get("category", "")),
+            text=data.get("text"),
+            status=ReportStatus(str(data.get("status", ReportStatus.new.value))),
+            source=data.get("source"),
+            created_at=self._parse_datetime(data.get("created_at")),
+            resolved_at=self._parse_datetime(data.get("resolved_at")),
+            decision=data.get("decision"),
+            notes=data.get("notes"),
+            updates=list(data.get("updates", [])),
+            meta=dict(data.get("meta", {})),
+        )
+
+    def _deserialize_content(self, data: Mapping[str, Any]) -> ContentRecord:
+        return ContentRecord(
+            id=str(data.get("id")),
+            content_type=ContentType(str(data.get("content_type", ContentType.node.value))),
+            author_id=str(data.get("author_id", "")),
+            created_at=self._parse_datetime(data.get("created_at")) or self._now(),
+            preview=data.get("preview"),
+            ai_labels=list(data.get("ai_labels", [])),
+            status=ContentStatus(str(data.get("status", ContentStatus.pending.value))),
+            report_ids=list(data.get("report_ids", [])),
+            moderation_history=list(data.get("moderation_history", [])),
+            meta=dict(data.get("meta", {})),
+        )
+
+    def _deserialize_ticket(self, data: Mapping[str, Any]) -> TicketRecord:
+        return TicketRecord(
+            id=str(data.get("id")),
+            title=str(data.get("title", "")),
+            priority=TicketPriority(str(data.get("priority", TicketPriority.normal.value))),
+            author_id=str(data.get("author_id", "")),
+            assignee_id=data.get("assignee_id"),
+            status=TicketStatus(str(data.get("status", TicketStatus.new.value))),
+            created_at=self._parse_datetime(data.get("created_at")),
+            updated_at=self._parse_datetime(data.get("updated_at")),
+            last_message_at=self._parse_datetime(data.get("last_message_at")),
+            unread_count=int(data.get("unread_count", 0)),
+            message_ids=list(data.get("message_ids", [])),
+            meta=dict(data.get("meta", {})),
+        )
+
+    def _deserialize_ticket_message(self, data: Mapping[str, Any]) -> TicketMessageRecord:
+        return TicketMessageRecord(
+            id=str(data.get("id")),
+            ticket_id=str(data.get("ticket_id", "")),
+            author_id=str(data.get("author_id", "")),
+            text=str(data.get("text", "")),
+            attachments=list(data.get("attachments", [])),
+            internal=bool(data.get("internal", False)),
+            author_name=data.get("author_name"),
+            created_at=self._parse_datetime(data.get("created_at")),
+        )
+
+    def _deserialize_appeal(self, data: Mapping[str, Any]) -> AppealRecord:
+        return AppealRecord(
+            id=str(data.get("id")),
+            target_type=str(data.get("target_type", "")),
+            target_id=str(data.get("target_id", "")),
+            user_id=str(data.get("user_id", "")),
+            text=data.get("text"),
+            status=str(data.get("status", "new")),
+            created_at=self._parse_datetime(data.get("created_at")),
+            decided_at=self._parse_datetime(data.get("decided_at")),
+            decided_by=data.get("decided_by"),
+            decision_reason=data.get("decision_reason"),
+            meta=dict(data.get("meta", {})),
+        )
+
+    def _deserialize_rule(self, data: Mapping[str, Any]) -> AIRuleRecord:
+        return AIRuleRecord(
+            id=str(data.get("id")),
+            category=str(data.get("category", "default")),
+            thresholds=dict(data.get("thresholds", {})),
+            actions=dict(data.get("actions", {})),
+            enabled=bool(data.get("enabled", True)),
+            updated_by=data.get("updated_by"),
+            updated_at=self._parse_datetime(data.get("updated_at")),
+            description=data.get("description"),
+            history=list(data.get("history", [])),
+        )
 
     def _parse_datetime(self, value: Any) -> datetime | None:
         if value is None:
@@ -237,6 +615,7 @@ class PlatformModerationService:
         return chunk, next_cursor
 
     # Ensure a minimal in?memory user exists for operations that attach to a user (e.g., sanctions/notes)
+    @_mutating_operation
     async def ensure_user_stub(
         self, *, user_id: str, username: str, email: str | None = None
     ) -> None:
@@ -252,6 +631,7 @@ class PlatformModerationService:
                 registered_at=self._now(),
             )
 
+    @_ensure_loaded_decorator
     async def warnings_count_recent(self, user_id: str, *, days: int = 10) -> int:
         """Count active warnings for `user_id` issued within the last `days`.
 
@@ -943,6 +1323,7 @@ class PlatformModerationService:
             }
         )
 
+    @_ensure_loaded_decorator
     async def list_users(
         self,
         *,
@@ -996,6 +1377,7 @@ class PlatformModerationService:
             "next_cursor": next_cursor,
         }
 
+    @_ensure_loaded_decorator
     async def get_user(self, user_id: str) -> UserDetail:
         async with self._lock:
             record = self._users.get(user_id)
@@ -1003,6 +1385,7 @@ class PlatformModerationService:
                 raise KeyError(user_id)
             return self._user_to_detail(record)
 
+    @_mutating_operation
     async def update_roles(
         self, user_id: str, add: Iterable[str], remove: Iterable[str]
     ) -> list[str]:
@@ -1020,6 +1403,7 @@ class PlatformModerationService:
             record.roles = sorted(current, key=lambda r: r.lower())
             return list(record.roles)
 
+    @_mutating_operation
     async def issue_sanction(
         self,
         user_id: str,
@@ -1101,6 +1485,7 @@ class PlatformModerationService:
                     )
             return self._sanction_to_dto(sanction)
 
+    @_mutating_operation
     async def update_sanction(
         self,
         user_id: str,
@@ -1150,6 +1535,7 @@ class PlatformModerationService:
                 user.status = "banned" if has_active_ban else "active"
             return self._sanction_to_dto(sanction)
 
+    @_mutating_operation
     async def add_note(
         self,
         user_id: str,
@@ -1176,6 +1562,7 @@ class PlatformModerationService:
             user.note_ids.insert(0, note.id)
             return self._note_to_dto(note)
 
+    @_ensure_loaded_decorator
     async def list_content(
         self,
         *,
@@ -1227,6 +1614,7 @@ class PlatformModerationService:
             "next_cursor": next_cursor,
         }
 
+    @_ensure_loaded_decorator
     async def get_content(self, content_id: str) -> ContentSummary:
         async with self._lock:
             content = self._content.get(content_id)
@@ -1234,6 +1622,7 @@ class PlatformModerationService:
                 raise KeyError(content_id)
             return self._content_to_summary(content)
 
+    @_mutating_operation
     async def decide_content(
         self,
         content_id: str,
@@ -1271,6 +1660,7 @@ class PlatformModerationService:
                 "decision": decision_entry,
             }
 
+    @_mutating_operation
     async def edit_content(self, content_id: str, patch: dict[str, Any]) -> dict[str, Any]:
         async with self._lock:
             content = self._content.get(content_id)
@@ -1281,6 +1671,7 @@ class PlatformModerationService:
                 content.meta.update(update)
             return {"content_id": content_id, "meta": dict(content.meta)}
 
+    @_ensure_loaded_decorator
     async def list_reports(
         self,
         *,
@@ -1330,6 +1721,7 @@ class PlatformModerationService:
             "next_cursor": next_cursor,
         }
 
+    @_ensure_loaded_decorator
     async def get_report(self, report_id: str) -> ReportDTO:
         async with self._lock:
             report = self._reports.get(report_id)
@@ -1337,6 +1729,7 @@ class PlatformModerationService:
                 raise KeyError(report_id)
             return self._report_to_dto(report)
 
+    @_mutating_operation
     async def resolve_report(
         self,
         report_id: str,
@@ -1386,6 +1779,7 @@ class PlatformModerationService:
                 "notes": notes,
             }
 
+    @_ensure_loaded_decorator
     async def list_tickets(
         self,
         *,
@@ -1443,6 +1837,7 @@ class PlatformModerationService:
             "next_cursor": next_cursor,
         }
 
+    @_ensure_loaded_decorator
     async def get_ticket(self, ticket_id: str) -> TicketDTO:
         async with self._lock:
             ticket = self._tickets.get(ticket_id)
@@ -1450,6 +1845,7 @@ class PlatformModerationService:
                 raise KeyError(ticket_id)
             return self._ticket_to_dto(ticket)
 
+    @_ensure_loaded_decorator
     async def list_ticket_messages(
         self, ticket_id: str, limit: int = 50, cursor: str | None = None
     ) -> dict[str, Any]:
@@ -1469,6 +1865,7 @@ class PlatformModerationService:
             "next_cursor": next_cursor,
         }
 
+    @_mutating_operation
     async def add_ticket_message(
         self,
         ticket_id: str,
@@ -1499,6 +1896,7 @@ class PlatformModerationService:
                 ticket.unread_count = max(ticket.unread_count, 0) + 1
             return self._ticket_message_to_dto(message)
 
+    @_mutating_operation
     async def update_ticket(self, ticket_id: str, patch: dict[str, Any]) -> dict[str, Any]:
         async with self._lock:
             ticket = self._tickets.get(ticket_id)
@@ -1531,6 +1929,7 @@ class PlatformModerationService:
                 "assignee_id": ticket.assignee_id,
             }
 
+    @_mutating_operation
     async def escalate_ticket(
         self,
         ticket_id: str,
@@ -1557,6 +1956,7 @@ class PlatformModerationService:
                 "escalated": True,
             }
 
+    @_ensure_loaded_decorator
     async def list_appeals(
         self,
         *,
@@ -1602,6 +2002,7 @@ class PlatformModerationService:
             "next_cursor": next_cursor,
         }
 
+    @_ensure_loaded_decorator
     async def get_appeal(self, appeal_id: str) -> AppealDTO:
         async with self._lock:
             appeal = self._appeals.get(appeal_id)
@@ -1609,6 +2010,7 @@ class PlatformModerationService:
                 raise KeyError(appeal_id)
             return self._appeal_to_dto(appeal)
 
+    @_mutating_operation
     async def decide_appeal(
         self,
         appeal_id: str,
@@ -1645,6 +2047,7 @@ class PlatformModerationService:
                 "decided_at": self._iso(appeal.decided_at),
             }
 
+    @_ensure_loaded_decorator
     async def list_rules(self, limit: int = 50, cursor: str | None = None) -> dict[str, Any]:
         async with self._lock:
             rules = list(self._ai_rules.values())
@@ -1658,6 +2061,7 @@ class PlatformModerationService:
             "next_cursor": next_cursor,
         }
 
+    @_mutating_operation
     async def create_rule(
         self,
         body: dict[str, Any],
@@ -1686,6 +2090,7 @@ class PlatformModerationService:
             self._ai_rules[rule.id] = rule
             return self._ai_rule_to_dto(rule)
 
+    @_ensure_loaded_decorator
     async def get_rule(self, rule_id: str) -> AIRuleDTO:
         async with self._lock:
             rule = self._ai_rules.get(rule_id)
@@ -1693,6 +2098,7 @@ class PlatformModerationService:
                 raise KeyError(rule_id)
             return self._ai_rule_to_dto(rule)
 
+    @_mutating_operation
     async def update_rule(
         self,
         rule_id: str,
@@ -1732,11 +2138,13 @@ class PlatformModerationService:
                 )
             return self._ai_rule_to_dto(rule)
 
+    @_mutating_operation
     async def delete_rule(self, rule_id: str) -> bool:
         async with self._lock:
             removed = self._ai_rules.pop(rule_id, None)
             return bool(removed)
 
+    @_ensure_loaded_decorator
     async def test_rule(self, payload: dict[str, Any]) -> dict[str, Any]:
         rule_id = payload.get("rule_id")
         async with self._lock:
@@ -1767,6 +2175,7 @@ class PlatformModerationService:
             "rule": self._ai_rule_to_dto(rule),
         }
 
+    @_ensure_loaded_decorator
     async def rules_history(self, limit: int = 50, cursor: str | None = None) -> dict[str, Any]:
         async with self._lock:
             history_entries: list[dict[str, Any]] = []
@@ -1777,6 +2186,7 @@ class PlatformModerationService:
         chunk, next_cursor = self._paginate(history_entries, limit, cursor)
         return {"items": chunk, "next_cursor": next_cursor}
 
+    @_ensure_loaded_decorator
     async def get_overview(self, limit: int = 10) -> OverviewDTO:
         async with self._lock:
             reports = list(self._reports.values())

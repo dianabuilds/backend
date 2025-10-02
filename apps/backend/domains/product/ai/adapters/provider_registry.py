@@ -7,7 +7,11 @@ from typing import Any
 import httpx
 
 from domains.product.ai.application.ports import Provider
-from domains.product.ai.application.registry import LLMModelCfg, LLMProviderCfg, LLMRegistry
+from domains.product.ai.application.registry import (
+    LLMModelCfg,
+    LLMProviderCfg,
+    LLMRegistry,
+)
 
 
 class RegistryBackedProvider(Provider):

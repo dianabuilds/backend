@@ -14,7 +14,10 @@ SETTINGS_SCHEMA_HEADER = "X-Settings-Schema"
 
 
 def attach_settings_schema(
-    payload: dict[str, Any], response: Response, *, version: str = SETTINGS_SCHEMA_VERSION
+    payload: dict[str, Any],
+    response: Response,
+    *,
+    version: str = SETTINGS_SCHEMA_VERSION,
 ) -> dict[str, Any]:
     """Inject schema metadata into response payload and headers."""
     response.headers[SETTINGS_SCHEMA_HEADER] = version

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Input, Button, Badge } from '../ui';
+import { Card, Input, Button, Badge } from "@ui";
 import { apiPost } from '../api/client';
 import { useSettingsIdempotencyHeader } from './';
 import { extractErrorMessage } from '../utils/errors';

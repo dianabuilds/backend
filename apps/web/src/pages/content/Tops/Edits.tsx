@@ -1,9 +1,9 @@
-import { Card } from '../../../shared/ui';
+ï»¿import { Card } from "@ui";
 import React from 'react';
 import { apiGet } from '../../../shared/api/client';
 
 const fallback = [
-  { id: 'e1', who: 'System', what: 'Initial import', when: '—' },
+  { id: 'e1', who: 'System', what: 'Initial import', when: 'ï¿½' },
 ];
 
 type EditRow = {

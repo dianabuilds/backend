@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Iterable
 from typing import Any
 
@@ -12,6 +11,7 @@ from domains.product.achievements.domain.entities import (
     Achievement,
     UserAchievement,
 )
+from packages.core.async_utils import run_sync
 from packages.core.db import get_async_engine
 
 
@@ -64,12 +64,7 @@ class SQLRepo(Repo):
                 out.append((a, ua))
             return out
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def grant(self, user_id: str, achievement_id: str) -> bool:
         async def _run() -> bool:
@@ -88,12 +83,7 @@ class SQLRepo(Repo):
                     rc = None
             return bool(rc and rc > 0)
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def revoke(self, user_id: str, achievement_id: str) -> bool:
         async def _run() -> bool:
@@ -108,12 +98,7 @@ class SQLRepo(Repo):
                     rc = None
             return bool(rc and rc > 0)
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     # --- Admin ---
     def list_all(self) -> list[Achievement]:
@@ -147,12 +132,7 @@ class SQLRepo(Repo):
                 for r in rows
             ]
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def get(self, achievement_id: str) -> Achievement | None:
         async def _run() -> Achievement | None:
@@ -183,12 +163,7 @@ class SQLRepo(Repo):
                 updated_at=r["updated_at"],
             )
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def exists_code(self, code: str) -> bool:
         async def _run() -> bool:
@@ -197,12 +172,7 @@ class SQLRepo(Repo):
                 r = (await conn.execute(sql, {"code": code})).first()
             return bool(r)
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def create(self, data: dict) -> Achievement:
         async def _run() -> Achievement:
@@ -248,12 +218,7 @@ class SQLRepo(Repo):
                     updated_at=r["updated_at"],
                 )
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def update(self, achievement_id: str, data: dict) -> Achievement | None:
         async def _run() -> Achievement | None:
@@ -313,12 +278,7 @@ class SQLRepo(Repo):
                 updated_at=r["updated_at"],
             )
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
     def delete(self, achievement_id: str) -> bool:
         async def _run() -> bool:
@@ -331,12 +291,7 @@ class SQLRepo(Repo):
                     rc = None
             return bool(rc and rc > 0)
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(_run())
-        else:
-            return loop.run_until_complete(_run())  # type: ignore[misc]
+        return run_sync(_run())
 
 
 __all__ = ["SQLRepo"]

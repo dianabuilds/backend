@@ -17,8 +17,12 @@ export {
   TrendingDown,
   Copy,
   Edit3,
+  Plus,
   Trash2,
   BarChart3,
   Settings2,
   Send,
+  Paperclip,
+  Image,
+
 } from 'lucide-react';

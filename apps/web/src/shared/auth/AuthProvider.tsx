@@ -12,13 +12,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const base = (import.meta as any).env.VITE_API_BASE as string | undefined;
   const endpoint = (import.meta as any).env.VITE_AUTH_ENDPOINT || '/v1/auth/login';
 
-  const login = useCallback(async ({ login: identifier, password }: LoginArgs) => {
+  const login = useCallback(async ({ login: identifier, password, remember }: LoginArgs) => {
     setError(null);
     try {
-      const res = await apiPost(((import.meta as any).env.DEV ? '' : base || '') + endpoint, {
+      const payload: Record<string, unknown> = {
         login: identifier,
         password,
-      });
+      };
+      if (typeof remember === 'boolean') {
+        payload.remember = remember;
+      }
+      const res = await apiPost(((import.meta as any).env.DEV ? '' : base || '') + endpoint, payload);
       setCsrfToken((res as any)?.csrf_token as string | undefined);
       const access = res?.access_token as string | undefined;
       const userData = res?.user as any;
@@ -104,3 +108,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+

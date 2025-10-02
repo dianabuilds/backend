@@ -7,6 +7,7 @@ backend (demo)
 Среда:
 - Файл `apps/backend/.env` (пример):
   - `DATABASE_URL=postgresql://app:app@localhost:5432/app`
+  - `APP_DATABASE_SSL_CA=apps/backend/infra/certs/rootCA.pem` (при необходимости доверенного сертификата)
   - `REDIS_URL=redis://localhost:6379/0`
 
 События:
@@ -28,3 +29,13 @@ Dev: ручная публикация события
 Проверка счётчиков тегов (SQL)
 - После публикации события проверьте таблицу `product_tag_usage_counters`:
   SELECT * FROM product_tag_usage_counters WHERE author_id = '<uuid>' ORDER BY slug;
+
+## Установка пакета
+
+```bash
+cd apps/backend
+python -m pip install -e .
+```
+
+Команда устанавливает backend как локальный пакет и упрощает запуск mypy/pytest из любой директории.
+

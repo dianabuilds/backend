@@ -46,7 +46,7 @@ export default function TariffsPage() {
         description: editing.description,
         price_cents: editing.price_cents,
         currency: editing.currency,
-        is_active: !!editing.is_active,
+        is_active: editing.is_active,
         order: editing.order ?? 100,
         monthly_limits: editing.monthly_limits || {},
         features: editing.features || {},

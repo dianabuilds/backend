@@ -1,14 +1,21 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
+
+yaml: Any | None
+jsonschema_validate: Callable[..., None] | None
 
 try:  # optional deps
-    import yaml
-    from jsonschema import validate as jsonschema_validate
+    import yaml as _yaml
+    from jsonschema import validate as _jsonschema_validate
 except Exception:  # pragma: no cover
     yaml = None
     jsonschema_validate = None
+else:
+    yaml = _yaml
+    jsonschema_validate = _jsonschema_validate
 
 
 def _load_openapi_yaml(rel_path: str) -> dict[str, Any] | None:
@@ -16,7 +23,10 @@ def _load_openapi_yaml(rel_path: str) -> dict[str, Any] | None:
     p = base / rel_path
     if not p.exists() or yaml is None:
         return None
-    return yaml.safe_load(p.read_text(encoding="utf-8"))
+    loaded = yaml.safe_load(p.read_text(encoding="utf-8"))
+    if isinstance(loaded, dict):
+        return cast(dict[str, Any], loaded)
+    return None
 
 
 def _find_request_schema(spec: dict[str, Any], path: str, method: str) -> dict[str, Any] | None:
