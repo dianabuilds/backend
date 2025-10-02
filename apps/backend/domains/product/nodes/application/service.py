@@ -14,8 +14,17 @@ except ImportError:  # pragma: no cover
     Counter = Histogram = None  # type: ignore
 
 from domains.product.nodes.application.embedding import EmbeddingClient
+from domains.product.nodes.application.engagement import (
+    NodeCommentsService,
+    NodeReactionsService,
+    NodeViewsService,
+)
 from domains.product.nodes.application.ports import (
+    NodeCommentBanDTO,
+    NodeCommentDTO,
     NodeDTO,
+    NodeReactionsSummary,
+    NodeViewStat,
     Outbox,
     Repo,
     TagCatalog,
@@ -63,12 +72,33 @@ class NodeService:
         outbox: Outbox,
         usage: UsageProjection | None = None,
         embedding: EmbeddingClient | None = None,
+        views: NodeViewsService | None = None,
+        reactions: NodeReactionsService | None = None,
+        comments: NodeCommentsService | None = None,
     ) -> None:
         self.repo = repo
         self.tags = tags
         self.outbox = outbox
         self.usage = usage
         self.embedding = embedding
+        self.views_service = views
+        self.reactions_service = reactions
+        self.comments_service = comments
+
+    def _require_views_service(self) -> NodeViewsService:
+        if self.views_service is None:
+            raise RuntimeError("node_views_service_not_configured")
+        return self.views_service
+
+    def _require_reactions_service(self) -> NodeReactionsService:
+        if self.reactions_service is None:
+            raise RuntimeError("node_reactions_service_not_configured")
+        return self.reactions_service
+
+    def _require_comments_service(self) -> NodeCommentsService:
+        if self.comments_service is None:
+            raise RuntimeError("node_comments_service_not_configured")
+        return self.comments_service
 
     def _safe_publish(
         self,
@@ -180,6 +210,11 @@ class NodeService:
             content_html=dto.content_html,
             cover_url=dto.cover_url,
             embedding=list(dto.embedding) if dto.embedding is not None else None,
+            views_count=dto.views_count,
+            reactions_like_count=dto.reactions_like_count,
+            comments_disabled=dto.comments_disabled,
+            comments_locked_by=dto.comments_locked_by,
+            comments_locked_at=dto.comments_locked_at,
         )
 
     def _prepare_embedding_text(
@@ -383,6 +418,304 @@ class NodeService:
             )
         self._queue_embedding_job(dto.id, reason="create")
         return self._to_view(dto)
+
+    @with_trace
+    async def register_view(
+        self,
+        node_id: int,
+        *,
+        viewer_id: str | None = None,
+        fingerprint: str | None = None,
+        amount: int = 1,
+        at: datetime | None = None,
+    ) -> int:
+        service = self._require_views_service()
+        when = (at or datetime.now(UTC)).replace(microsecond=0)
+        total = await service.register_view(
+            node_id,
+            viewer_id=viewer_id,
+            fingerprint=fingerprint,
+            amount=amount,
+            at=when,
+        )
+        self._safe_publish(
+            "node.viewed.v1",
+            {
+                "id": node_id,
+                "viewer_id": viewer_id,
+                "fingerprint": fingerprint,
+                "amount": amount,
+                "total": total,
+                "at": when.isoformat(),
+            },
+            key=f"node:{node_id}:views",
+            context={"node_id": node_id},
+        )
+        return total
+
+    async def get_total_views(self, node_id: int) -> int:
+        service = self._require_views_service()
+        return await service.get_total(node_id)
+
+    async def get_view_stats(
+        self, node_id: int, *, limit: int = 30, offset: int = 0
+    ) -> list[NodeViewStat]:
+        service = self._require_views_service()
+        return await service.get_daily(node_id, limit=limit, offset=offset)
+
+    @with_trace
+    async def add_like(self, node_id: int, *, user_id: str) -> bool:
+        service = self._require_reactions_service()
+        created = await service.add_like(node_id, user_id)
+        if created:
+            self._safe_publish(
+                "node.reaction.added.v1",
+                {"id": node_id, "user_id": user_id, "reaction_type": "like"},
+                key=f"node:{node_id}:reaction:{user_id}",
+                context={"node_id": node_id, "user_id": user_id},
+            )
+        return created
+
+    @with_trace
+    async def remove_like(self, node_id: int, *, user_id: str) -> bool:
+        service = self._require_reactions_service()
+        removed = await service.remove_like(node_id, user_id)
+        if removed:
+            self._safe_publish(
+                "node.reaction.removed.v1",
+                {"id": node_id, "user_id": user_id, "reaction_type": "like"},
+                key=f"node:{node_id}:reaction:{user_id}",
+                context={"node_id": node_id, "user_id": user_id},
+            )
+        return removed
+
+    @with_trace
+    async def toggle_like(self, node_id: int, *, user_id: str) -> bool:
+        service = self._require_reactions_service()
+        added = await service.toggle_like(node_id, user_id)
+        event = "node.reaction.added.v1" if added else "node.reaction.removed.v1"
+        self._safe_publish(
+            event,
+            {"id": node_id, "user_id": user_id, "reaction_type": "like"},
+            key=f"node:{node_id}:reaction:{user_id}",
+            context={"node_id": node_id, "user_id": user_id},
+        )
+        return added
+
+    async def get_reactions_summary(
+        self, node_id: int, *, user_id: str | None = None
+    ) -> NodeReactionsSummary:
+        service = self._require_reactions_service()
+        return await service.get_summary(node_id, user_id=user_id)
+
+    @with_trace
+    async def create_comment(
+        self,
+        *,
+        node_id: int,
+        author_id: str,
+        content: str,
+        parent_comment_id: int | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> NodeCommentDTO:
+        service = self._require_comments_service()
+        comment = await service.create_comment(
+            node_id=node_id,
+            author_id=author_id,
+            content=content,
+            parent_comment_id=parent_comment_id,
+            metadata=metadata,
+        )
+        self._safe_publish(
+            "node.comment.created.v1",
+            {
+                "id": comment.id,
+                "node_id": comment.node_id,
+                "author_id": comment.author_id,
+                "parent_comment_id": comment.parent_comment_id,
+                "status": comment.status,
+            },
+            key=f"node:{node_id}:comment:{comment.id}",
+            context={"node_id": node_id, "comment_id": comment.id},
+        )
+        return comment
+
+    async def get_comment(self, comment_id: int) -> NodeCommentDTO | None:
+        service = self._require_comments_service()
+        return await service.get_comment(comment_id)
+
+    async def list_comments(
+        self,
+        node_id: int,
+        *,
+        parent_comment_id: int | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        include_deleted: bool = False,
+    ) -> list[NodeCommentDTO]:
+        service = self._require_comments_service()
+        return await service.list_comments(
+            node_id,
+            parent_comment_id=parent_comment_id,
+            limit=limit,
+            offset=offset,
+            include_deleted=include_deleted,
+        )
+
+    @with_trace
+    async def delete_comment(
+        self,
+        comment_id: int,
+        *,
+        actor_id: str,
+        hard: bool = False,
+        reason: str | None = None,
+    ) -> bool:
+        service = self._require_comments_service()
+        comment = await service.get_comment(comment_id)
+        if comment is None:
+            return False
+        removed = await service.delete_comment(
+            comment_id, actor_id=actor_id, hard=hard, reason=reason
+        )
+        if removed:
+            self._safe_publish(
+                "node.comment.deleted.v1",
+                {
+                    "id": comment_id,
+                    "node_id": comment.node_id,
+                    "actor_id": actor_id,
+                    "hard": hard,
+                },
+                key=f"node:{comment.node_id}:comment:{comment_id}",
+                context={"node_id": comment.node_id, "comment_id": comment_id},
+            )
+        return removed
+
+    @with_trace
+    async def update_comment_status(
+        self,
+        comment_id: int,
+        *,
+        status: str,
+        actor_id: str | None = None,
+        reason: str | None = None,
+    ) -> NodeCommentDTO:
+        service = self._require_comments_service()
+        updated = await service.update_status(
+            comment_id, status=status, actor_id=actor_id, reason=reason
+        )
+        self._safe_publish(
+            "node.comment.status_changed.v1",
+            {
+                "id": updated.id,
+                "node_id": updated.node_id,
+                "status": updated.status,
+                "actor_id": actor_id,
+            },
+            key=f"node:{updated.node_id}:comment:{updated.id}:status",
+            context={"node_id": updated.node_id, "comment_id": updated.id},
+        )
+        return updated
+
+    @with_trace
+    async def lock_comments(
+        self, node_id: int, *, actor_id: str, reason: str | None = None
+    ) -> None:
+        service = self._require_comments_service()
+        await service.lock_comments(node_id, actor_id=actor_id, reason=reason)
+        self._safe_publish(
+            "node.comments.locked.v1",
+            {"id": node_id, "actor_id": actor_id, "reason": reason},
+            key=f"node:{node_id}:comments:lock",
+            context={"node_id": node_id},
+        )
+
+    @with_trace
+    async def unlock_comments(
+        self, node_id: int, *, actor_id: str | None = None
+    ) -> None:
+        service = self._require_comments_service()
+        await service.unlock_comments(node_id, actor_id=actor_id)
+        self._safe_publish(
+            "node.comments.unlocked.v1",
+            {"id": node_id, "actor_id": actor_id},
+            key=f"node:{node_id}:comments:lock",
+            context={"node_id": node_id},
+        )
+
+    @with_trace
+    async def disable_comments(
+        self, node_id: int, *, actor_id: str | None = None, reason: str | None = None
+    ) -> None:
+        service = self._require_comments_service()
+        await service.disable_comments(node_id, actor_id=actor_id, reason=reason)
+        self._safe_publish(
+            "node.comments.disabled.v1",
+            {"id": node_id, "actor_id": actor_id, "reason": reason},
+            key=f"node:{node_id}:comments:disable",
+            context={"node_id": node_id},
+        )
+
+    @with_trace
+    async def enable_comments(
+        self, node_id: int, *, actor_id: str | None = None, reason: str | None = None
+    ) -> None:
+        service = self._require_comments_service()
+        await service.enable_comments(node_id, actor_id=actor_id, reason=reason)
+        self._safe_publish(
+            "node.comments.enabled.v1",
+            {"id": node_id, "actor_id": actor_id, "reason": reason},
+            key=f"node:{node_id}:comments:disable",
+            context={"node_id": node_id},
+        )
+
+    @with_trace
+    async def ban_comment_user(
+        self,
+        node_id: int,
+        target_user_id: str,
+        *,
+        actor_id: str,
+        reason: str | None = None,
+    ) -> NodeCommentBanDTO:
+        service = self._require_comments_service()
+        ban = await service.ban_user(
+            node_id, target_user_id=target_user_id, actor_id=actor_id, reason=reason
+        )
+        self._safe_publish(
+            "node.comments.user_banned.v1",
+            {
+                "node_id": node_id,
+                "target_user_id": target_user_id,
+                "set_by": actor_id,
+                "reason": reason,
+            },
+            key=f"node:{node_id}:comments:ban:{target_user_id}",
+            context={"node_id": node_id, "target_user_id": target_user_id},
+        )
+        return ban
+
+    @with_trace
+    async def unban_comment_user(self, node_id: int, target_user_id: str) -> bool:
+        service = self._require_comments_service()
+        result = await service.unban_user(node_id, target_user_id)
+        if result:
+            self._safe_publish(
+                "node.comments.user_unbanned.v1",
+                {"node_id": node_id, "target_user_id": target_user_id},
+                key=f"node:{node_id}:comments:ban:{target_user_id}",
+                context={"node_id": node_id, "target_user_id": target_user_id},
+            )
+        return result
+
+    async def is_comment_user_banned(self, node_id: int, target_user_id: str) -> bool:
+        service = self._require_comments_service()
+        return await service.is_user_banned(node_id, target_user_id)
+
+    async def list_comment_bans(self, node_id: int) -> list[NodeCommentBanDTO]:
+        service = self._require_comments_service()
+        return await service.list_bans(node_id)
 
     @with_trace
     async def update(

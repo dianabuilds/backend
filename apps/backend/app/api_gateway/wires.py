@@ -5,8 +5,6 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from sqlalchemy.exc import SQLAlchemyError
-
 from domains.platform.admin.wires import AdminContainer
 from domains.platform.admin.wires import build_container as build_admin_container
 from domains.platform.audit.wires import AuditContainer
@@ -222,7 +220,9 @@ def build_container(env: str = "dev") -> Container:
         try:
             rc.close()
         except Exception:
-            logger.debug("Failed to close Redis connection during wiring", exc_info=True)
+            logger.debug(
+                "Failed to close Redis connection during wiring", exc_info=True
+            )
     outbox: ProfileOutbox = ProfileOutboxRedis(str(settings.redis_url))
     bus = RedisEventBus(
         redis_url=str(settings.redis_url),
@@ -232,7 +232,9 @@ def build_container(env: str = "dev") -> Container:
     events = Events(outbox=outbox, bus=bus)
     profile_iam: ProfileIam = ProfileIamClient()
     profile_repo: ProfileRepo = SQLProfileRepo(dsn_primary)
-    svc = ProfileService(repo=profile_repo, outbox=outbox, iam=profile_iam, flags=Flags())
+    svc = ProfileService(
+        repo=profile_repo, outbox=outbox, iam=profile_iam, flags=Flags()
+    )
 
     # --- Product domains wiring (DDD-only) ---
     # Nodes / tags helpers
@@ -241,13 +243,13 @@ def build_container(env: str = "dev") -> Container:
     tag_catalog: NodesTagCatalog
     try:
         tag_catalog = SQLTagCatalog(dsn_primary)
-    except SQLAlchemyError as exc:
+    except Exception as exc:
         logger.warning("Falling back to in-memory tag catalog: %s", exc)
         tag_catalog = MemoryTagCatalog()
     usage_proj: NodesUsageProjection
     try:
         usage_proj = SQLUsageProjection(dsn_primary, content_type="node")
-    except SQLAlchemyError as exc:
+    except Exception as exc:
         logger.warning("Falling back to in-memory usage projection: %s", exc)
         usage_proj = MemoryUsageProjection(TagUsageStore(), content_type="node")
     embedding_client = EmbeddingClient(
@@ -287,7 +289,9 @@ def build_container(env: str = "dev") -> Container:
                     "author_id": it.author_id,
                     "title": it.title,
                     "tags": list(it.tags),
-                    "embedding": (list(it.embedding) if it.embedding is not None else None),
+                    "embedding": (
+                        list(it.embedding) if it.embedding is not None else None
+                    ),
                     "is_public": it.is_public,
                 }
                 for it in items
@@ -318,7 +322,9 @@ def build_container(env: str = "dev") -> Container:
                     "author_id": it.author_id,
                     "title": it.title,
                     "tags": list(it.tags),
-                    "embedding": (list(it.embedding) if it.embedding is not None else None),
+                    "embedding": (
+                        list(it.embedding) if it.embedding is not None else None
+                    ),
                     "is_public": it.is_public,
                 }
                 for it in items
@@ -385,7 +391,9 @@ def build_container(env: str = "dev") -> Container:
         notify_loop = asyncio.get_running_loop()
     except RuntimeError:
         notify_loop = None
-    register_event_relays(events, notify_topics, delivery=notifications.delivery, loop=notify_loop)
+    register_event_relays(
+        events, notify_topics, delivery=notifications.delivery, loop=notify_loop
+    )
     users = build_users_container(settings)
     admin = build_admin_container(settings)
     return Container(

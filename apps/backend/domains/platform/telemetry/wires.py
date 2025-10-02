@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 class TelemetryContainer:
     settings: Settings
     rum_service: RumMetricsService
+    rum_repository: IRumRepository | None
 
 
 def _redis_reachable(url: str) -> bool:
@@ -101,7 +102,7 @@ def build_container(settings: Settings | None = None) -> TelemetryContainer:
         repo = RumMemoryRepository(maxlen=1000)
 
     rum_service = RumMetricsService(repo)
-    return TelemetryContainer(settings=s, rum_service=rum_service)
+    return TelemetryContainer(settings=s, rum_service=rum_service, rum_repository=repo)
 
 
 __all__ = ["TelemetryContainer", "build_container"]

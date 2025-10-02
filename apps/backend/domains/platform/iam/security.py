@@ -131,8 +131,6 @@ async def csrf_protect(req: Request) -> None:
         accepted_admin: set[str] = set()
         if s.admin_api_key:
             accepted_admin.add(str(s.admin_api_key))
-        if s.env != "prod":
-            accepted_admin.add("adminkey")
         if admin_key and admin_key in accepted_admin:
             return
         cookie_name = s.auth_csrf_cookie_name
@@ -152,8 +150,6 @@ async def require_admin(req: Request) -> None:
     accepted_keys: set[str] = set()
     if s.admin_api_key:
         accepted_keys.add(str(s.admin_api_key))
-    if s.env != "prod":
-        accepted_keys.add("adminkey")
     if key and key in accepted_keys:
         info = {"auth_via": "admin-key"}
     else:

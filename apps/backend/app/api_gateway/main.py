@@ -122,7 +122,9 @@ async def _setup_rate_limiter(app: Starlette) -> list[ShutdownHook]:
 
     url = str(redis_url)
     try:
-        redis_client = redis_asyncio.from_url(url, encoding="utf-8", decode_responses=True)
+        redis_client = redis_asyncio.from_url(
+            url, encoding="utf-8", decode_responses=True
+        )
     except (RedisError, ValueError):
         logger.exception("Failed to create Redis client for limiter: %s", url)
         return hooks
@@ -137,7 +139,9 @@ async def _setup_rate_limiter(app: Starlette) -> list[ShutdownHook]:
     try:
         await limiter_cls.init(redis_client)
     except Exception as exc:
-        logger.exception("Failed to initialize FastAPILimiter for %s", url, exc_info=exc)
+        logger.exception(
+            "Failed to initialize FastAPILimiter for %s", url, exc_info=exc
+        )
         await _close_redis_client(redis_client)
         return hooks
 
@@ -182,7 +186,9 @@ app = FastAPI(lifespan=lifespan, swagger_ui_parameters={"persistAuthorization": 
 # Observability bootstrap (optional deps, non-fatal)
 observability_module: ModuleType | None
 try:
-    observability_module = import_module("apps.backend.infra.observability.opentelemetry")
+    observability_module = import_module(
+        "apps.backend.infra.observability.opentelemetry"
+    )
 except ImportError:  # pragma: no cover
     observability_module = None
 else:
@@ -305,10 +311,14 @@ async def readyz() -> dict[str, object]:
     if redis_url:
         try:
             redis_module = import_module("redis")
-            redis_client = redis_module.Redis.from_url(str(redis_url), decode_responses=True)
+            redis_client = redis_module.Redis.from_url(
+                str(redis_url), decode_responses=True
+            )
             redis_client.ping()
         except ModuleNotFoundError:
-            logger.warning("Redis package not installed; readyz will report redis=false")
+            logger.warning(
+                "Redis package not installed; readyz will report redis=false"
+            )
             ok = False
         except RedisError as exc:
             logger.warning("Redis health check failed: %s", exc)
@@ -320,7 +330,9 @@ async def readyz() -> dict[str, object]:
                 try:
                     redis_client.close()
                 except Exception as exc:
-                    logger.debug("Failed to close Redis client during readyz", exc_info=exc)
+                    logger.debug(
+                        "Failed to close Redis client during readyz", exc_info=exc
+                    )
     else:
         ok = False
 
@@ -467,8 +479,11 @@ app.include_router(users_router())
 register_platform_moderation(app)
 # Debug only in non-prod
 try:
-    if _s.env != "prod":
-        app.include_router(debug_router())
+    if getattr(_s, "enable_debug_routes", False):
+        if _s.env == "prod":
+            logger.warning("Debug router requested in prod; skipping registration")
+        else:
+            app.include_router(debug_router())
 except Exception as exc:
     logger.warning("Failed to register debug router", exc_info=exc)
 

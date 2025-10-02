@@ -116,7 +116,9 @@ class Settings(BaseSettings):
     redis_url: AnyUrl = Field(default="redis://localhost:6379/0")
     database_allow_remote: bool = Field(
         default=False,
-        validation_alias=AliasChoices("DATABASE_ALLOW_REMOTE", "APP_DATABASE_ALLOW_REMOTE"),
+        validation_alias=AliasChoices(
+            "DATABASE_ALLOW_REMOTE", "APP_DATABASE_ALLOW_REMOTE"
+        ),
     )
     database_ssl_ca: str | None = Field(
         default=None,
@@ -132,6 +134,48 @@ class Settings(BaseSettings):
     # notifications
     notify_topics: str | None = None  # CSV; if None, reuse event_topics
     notify_webhook_url: AnyUrl | None = None
+
+    # telemetry / rum
+    rum_rollup_interval_sec: float = Field(
+        default=60.0,
+        validation_alias=AliasChoices(
+            "RUM_ROLLUP_INTERVAL_SEC", "APP_RUM_ROLLUP_INTERVAL_SEC"
+        ),
+    )
+    rum_rollup_min_age_sec: float = Field(
+        default=120.0,
+        validation_alias=AliasChoices(
+            "RUM_ROLLUP_MIN_AGE_SEC", "APP_RUM_ROLLUP_MIN_AGE_SEC"
+        ),
+    )
+    rum_rollup_batch_size: int = Field(
+        default=200,
+        validation_alias=AliasChoices(
+            "RUM_ROLLUP_BATCH_SIZE", "APP_RUM_ROLLUP_BATCH_SIZE"
+        ),
+    )
+    rum_export_s3_bucket: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "RUM_EXPORT_S3_BUCKET", "APP_RUM_EXPORT_S3_BUCKET"
+        ),
+    )
+    rum_export_s3_prefix: str = Field(
+        default="rum/rollup/",
+        validation_alias=AliasChoices(
+            "RUM_EXPORT_S3_PREFIX", "APP_RUM_EXPORT_S3_PREFIX"
+        ),
+    )
+    rum_export_s3_region: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "RUM_EXPORT_S3_REGION", "APP_RUM_EXPORT_S3_REGION"
+        ),
+    )
+    rum_export_compress: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("RUM_EXPORT_COMPRESS", "APP_RUM_EXPORT_COMPRESS"),
+    )
 
     # SMTP (email notifications)
     smtp_mock: bool = True
@@ -154,6 +198,7 @@ class Settings(BaseSettings):
     auth_bootstrap_password: str | None = None
     auth_bootstrap_role: str = "admin"
     auth_bootstrap_user_id: str = "bootstrap-root"
+    auth_bootstrap_enabled: bool = False
     cors_origins: str | None = None
 
     # admin guard
@@ -195,6 +240,8 @@ class Settings(BaseSettings):
     embedding_timeout: float = Field(default=10.0)
     embedding_connect_timeout: float = Field(default=2.0)
     embedding_retries: int = 3
+
+    enable_debug_routes: bool = False
 
     # normalize optional URL envs: empty string -> None
     @field_validator("notify_webhook_url", mode="before")

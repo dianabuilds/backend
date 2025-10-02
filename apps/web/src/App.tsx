@@ -32,7 +32,7 @@ import NotificationsChannelsPage from './pages/notifications/ChannelsPage';
 import NotificationsHistoryPage from './pages/notifications/HistoryPage';
 import { rumEvent } from './shared/rum';
 import ObservabilityOverview from './pages/observability/Overview';
-import ObservabilityAPI from './pages/observability/API';
+import ObservabilityAPI from './pages/observability/API.tsx';
 import ObservabilityLLM from './pages/observability/LLM';
 import ObservabilityWorkers from './pages/observability/Workers';
 import ObservabilityTransitions from './pages/observability/Transitions';
@@ -146,13 +146,13 @@ export default function App() {
           <Route path="/moderation/ai-rules" element={<RequireAuth><AppLayout><ModerationAIRules /></AppLayout></RequireAuth>} />
 
           {/* Observability */}
-          <Route path="/observability" element={<RequireAuth><AppLayout><ObservabilityOverview /></AppLayout></RequireAuth>} />
-          <Route path="/observability/api" element={<RequireAuth><AppLayout><ObservabilityAPI /></AppLayout></RequireAuth>} />
-          <Route path="/observability/llm" element={<RequireAuth><AppLayout><ObservabilityLLM /></AppLayout></RequireAuth>} />
-          <Route path="/observability/workers" element={<RequireAuth><AppLayout><ObservabilityWorkers /></AppLayout></RequireAuth>} />
-          <Route path="/observability/transitions" element={<RequireAuth><AppLayout><ObservabilityTransitions /></AppLayout></RequireAuth>} />
-          <Route path="/observability/events" element={<RequireAuth><AppLayout><ObservabilityEvents /></AppLayout></RequireAuth>} />
-          <Route path="/observability/rum" element={<RequireAuth><AppLayout><ObservabilityRUM /></AppLayout></RequireAuth>} />
+          <Route path="/observability" element={<RequireAdmin><AppLayout><ObservabilityOverview /></AppLayout></RequireAdmin>} />
+          <Route path="/observability/api" element={<RequireAdmin><AppLayout><ObservabilityAPI /></AppLayout></RequireAdmin>} />
+          <Route path="/observability/llm" element={<RequireAdmin><AppLayout><ObservabilityLLM /></AppLayout></RequireAdmin>} />
+          <Route path="/observability/workers" element={<RequireAdmin><AppLayout><ObservabilityWorkers /></AppLayout></RequireAdmin>} />
+          <Route path="/observability/transitions" element={<RequireAdmin><AppLayout><ObservabilityTransitions /></AppLayout></RequireAdmin>} />
+          <Route path="/observability/events" element={<RequireAdmin><AppLayout><ObservabilityEvents /></AppLayout></RequireAdmin>} />
+          <Route path="/observability/rum" element={<RequireAdmin><AppLayout><ObservabilityRUM /></AppLayout></RequireAdmin>} />
 
           {/* Account & personal settings */}
           <Route path="/profile" element={<RequireAuth><AppLayout><ProfilePage /></AppLayout></RequireAuth>} />
@@ -204,6 +204,7 @@ function RumRouteTracker() {
   }, [loc.pathname, loc.search]);
   return null;
 }
+
 
 
 

@@ -4,7 +4,7 @@ import argparse
 import logging
 from collections.abc import Sequence
 
-from . import events_worker, notifications_worker, schedule_worker
+from . import events_worker, notifications_worker, schedule_worker, telemetry_worker
 
 
 def _configure_logging(level: str | None) -> None:
@@ -32,7 +32,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--log-level", dest="log_level", help="Logging level", default="INFO"
     )
 
-    scheduler_parser = subparsers.add_parser("scheduler", help="Run the scheduler worker")
+    scheduler_parser = subparsers.add_parser(
+        "scheduler", help="Run the scheduler worker"
+    )
     scheduler_parser.add_argument(
         "--interval",
         type=int,
@@ -55,6 +57,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--log-level", dest="log_level", help="Logging level", default="INFO"
     )
 
+    telemetry_parser = subparsers.add_parser(
+        "telemetry",
+        help="Run the telemetry RUM rollup worker",
+    )
+    telemetry_parser.add_argument(
+        "extra",
+        nargs=argparse.REMAINDER,
+        help="Additional arguments forwarded to packages.worker runner",
+    )
+    telemetry_parser.add_argument(
+        "--log-level", dest="log_level", help="Logging level", default="INFO"
+    )
+
     args = parser.parse_args(argv)
 
     _configure_logging(getattr(args, "log_level", None))
@@ -66,6 +81,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     elif args.worker == "notifications":
         extra = getattr(args, "extra", None) or []
         notifications_worker.run(list(extra))
+    elif args.worker == "telemetry":
+        extra = getattr(args, "extra", None) or []
+        telemetry_worker.run(list(extra))
     else:  # pragma: no cover - argparse prevents this
         parser.error(f"Unknown worker: {args.worker}")
     return 0

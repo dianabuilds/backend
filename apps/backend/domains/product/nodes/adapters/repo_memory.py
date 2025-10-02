@@ -21,6 +21,11 @@ class _Node:
     content_html: str | None = None
     cover_url: str | None = None
     embedding: list[float] | None = None
+    views_count: int = 0
+    reactions_like_count: int = 0
+    comments_disabled: bool = False
+    comments_locked_by: str | None = None
+    comments_locked_at: str | None = None
 
 
 class MemoryNodesRepo(Repo):
@@ -44,7 +49,9 @@ class MemoryNodesRepo(Repo):
         node.tags = list(tags)
         return self._to_dto(node)
 
-    def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0) -> list[NodeDTO]:
+    def list_by_author(
+        self, author_id: str, *, limit: int = 50, offset: int = 0
+    ) -> list[NodeDTO]:
         items = [node for node in self._nodes.values() if node.author_id == author_id]
         items.sort(key=lambda n: n.id)
         sliced = items[offset : offset + limit]
@@ -65,6 +72,11 @@ class MemoryNodesRepo(Repo):
         content_html: str | None = None,
         cover_url: str | None = None,
         embedding: Sequence[float] | None = None,
+        views_count: int = 0,
+        reactions_like_count: int = 0,
+        comments_disabled: bool = False,
+        comments_locked_by: str | None = None,
+        comments_locked_at: str | None = None,
     ) -> None:
         slug = secrets.token_hex(8)
         self._nodes[int(node_id)] = _Node(
@@ -80,6 +92,13 @@ class MemoryNodesRepo(Repo):
             content_html=content_html,
             cover_url=cover_url,
             embedding=list(embedding) if embedding is not None else None,
+            views_count=int(views_count),
+            reactions_like_count=int(reactions_like_count),
+            comments_disabled=bool(comments_disabled),
+            comments_locked_by=(
+                str(comments_locked_by) if comments_locked_by is not None else None
+            ),
+            comments_locked_at=comments_locked_at,
         )
 
     async def create(
@@ -95,6 +114,11 @@ class MemoryNodesRepo(Repo):
         content_html: str | None = None,
         cover_url: str | None = None,
         embedding: Sequence[float] | None = None,
+        views_count: int = 0,
+        reactions_like_count: int = 0,
+        comments_disabled: bool = False,
+        comments_locked_by: str | None = None,
+        comments_locked_at: str | None = None,
     ) -> NodeDTO:
         new_id = max(self._nodes.keys() or [0]) + 1
         # naive uniqueness check in memory (extremely unlikely collision)
@@ -109,12 +133,23 @@ class MemoryNodesRepo(Repo):
             title=title,
             tags=list(tags or []),
             is_public=bool(is_public),
-            status=status if status is not None else ("published" if is_public else "draft"),
+            status=(
+                status
+                if status is not None
+                else ("published" if is_public else "draft")
+            ),
             publish_at=publish_at,
             unpublish_at=unpublish_at,
             content_html=content_html,
             cover_url=cover_url,
             embedding=list(embedding) if embedding is not None else None,
+            views_count=int(views_count),
+            reactions_like_count=int(reactions_like_count),
+            comments_disabled=bool(comments_disabled),
+            comments_locked_by=(
+                str(comments_locked_by) if comments_locked_by is not None else None
+            ),
+            comments_locked_at=comments_locked_at,
         )
         return self._to_dto(self._nodes[new_id])
 
@@ -184,6 +219,11 @@ class MemoryNodesRepo(Repo):
             content_html=node.content_html,
             cover_url=node.cover_url,
             embedding=list(node.embedding) if node.embedding is not None else None,
+            views_count=int(node.views_count),
+            reactions_like_count=int(node.reactions_like_count),
+            comments_disabled=bool(node.comments_disabled),
+            comments_locked_by=node.comments_locked_by,
+            comments_locked_at=node.comments_locked_at,
         )
 
     async def search_by_embedding(

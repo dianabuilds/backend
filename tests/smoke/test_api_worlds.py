@@ -1,15 +1,24 @@
-﻿from __future__ import annotations
-
+from __future__ import annotations
 from uuid import uuid4
 
+import pytest
+
+from packages.core.config import load_settings
+
 from tests.conftest import add_auth, make_jwt
+
+ADMIN_KEY = str(load_settings().admin_api_key or "")
+if not ADMIN_KEY:
+    pytest.skip(
+        "APP_ADMIN_API_KEY is required for admin endpoints", allow_module_level=True
+    )
 
 
 def test_worlds_crud_and_characters(app_client):
     uid = str(uuid4())
     tok = make_jwt(uid, role="admin")
     add_auth(app_client, tok)
-    headers = {"X-Admin-Key": "adminkey"}
+    headers = {"X-Admin-Key": ADMIN_KEY}
 
     # List initial state
     r0 = app_client.get("/v1/admin/worlds", headers=headers)

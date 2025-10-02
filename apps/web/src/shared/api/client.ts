@@ -180,24 +180,41 @@ function url(u: string) {
   return (isDev ? '' : base || '') + u;
 }
 
+const ADMIN_KEY_STORAGE_KEYS = ['admin.api.key', 'admin.apiKey'];
+
+function readRuntimeAdminKey(): string | null {
+  if (typeof window === 'undefined') return null;
+  const candidates: Array<unknown> = [
+    (window as any).__ADMIN_API_KEY,
+    (window as any).__ADMIN_KEY__,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+  }
+  for (const storageName of ['sessionStorage', 'localStorage']) {
+    try {
+      const storage = (window as any)[storageName] as Storage | undefined;
+      if (!storage) continue;
+      for (const key of ADMIN_KEY_STORAGE_KEYS) {
+        const value = storage.getItem(key);
+        if (typeof value === 'string' && value.trim()) return value.trim();
+      }
+    } catch {}
+  }
+  return null;
+}
+
 function maybeWithAdminKey(headers: Record<string, string>, u: string) {
   try {
-    const env: any = (import.meta as any)?.env || {};
-    const adminKey = env?.VITE_ADMIN_API_KEY as string | undefined;
     const needsAdmin = (
       u.includes('/admin') ||
       u.startsWith('/v1/flags') ||
       u.startsWith('/v1/audit') ||
       u.startsWith('/v1/notifications/send')
     );
-    if (adminKey && needsAdmin) headers['X-Admin-Key'] = adminKey;
-
-    // Dev helper: force Admin role for moderation API in dev
-    const dev = !!env?.DEV;
-    const isModerationApi = u.startsWith('/api/moderation') || u.startsWith('/api/');
-    if (dev && isModerationApi) {
-      headers['X-Roles'] = headers['X-Roles'] || 'Admin';
-      if (adminKey && !headers['X-Admin-Key']) headers['X-Admin-Key'] = adminKey;
+    if (needsAdmin) {
+      const adminKey = readRuntimeAdminKey();
+      if (adminKey) headers['X-Admin-Key'] = adminKey;
     }
   } catch {}
   return headers;

@@ -90,6 +90,10 @@ class AuthService:
         return {"ok": True, "email": email}
 
     def _bootstrap_identity(self, login: str, password: str) -> AuthIdentity | None:
+        if not getattr(self.settings, "auth_bootstrap_enabled", False):
+            return None
+        if getattr(self.settings, "env", "prod") == "prod":
+            return None
         configured_login = (self.settings.auth_bootstrap_login or "").strip()
         configured_password = self.settings.auth_bootstrap_password
         if not configured_login or configured_password is None:

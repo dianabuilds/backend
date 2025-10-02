@@ -14,7 +14,7 @@ except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
 from apps.backend import get_container
-from domains.platform.iam.security import csrf_protect
+from domains.platform.iam.security import csrf_protect, get_current_user
 from domains.platform.media.application.storage_service import (
     StorageService,
 )
@@ -32,7 +32,10 @@ def make_router() -> APIRouter:
         ),
     )
     async def upload_media(
-        req: Request, file: UploadFile = File(...), _csrf: None = Depends(csrf_protect)
+        req: Request,
+        file: UploadFile = File(...),
+        _csrf: None = Depends(csrf_protect),
+        _claims: dict[str, Any] = Depends(get_current_user),
     ) -> dict[str, Any]:  # noqa: B008
         c = get_container(req)
         if file.content_type not in {"image/jpeg", "image/png", "image/webp"}:
@@ -46,7 +49,9 @@ def make_router() -> APIRouter:
         return {"success": 1, "file": {"url": url}, "url": url}
 
     @router.get("/media/file/{name:path}")
-    async def fetch_file(req: Request, name: str) -> FileResponse:
+    async def fetch_file(
+        req: Request, name: str, _claims: dict[str, Any] = Depends(get_current_user)
+    ) -> FileResponse:
         c = get_container(req)
         base = Path(c.media.upload_dir).resolve()
         candidate = (base / name).resolve()

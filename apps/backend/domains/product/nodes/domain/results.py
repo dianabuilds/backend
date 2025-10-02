@@ -17,3 +17,8 @@ class NodeView:
     content_html: str | None = None
     cover_url: str | None = None
     embedding: list[float] | None = None
+    views_count: int = 0
+    reactions_like_count: int = 0
+    comments_disabled: bool = False
+    comments_locked_by: str | None = None
+    comments_locked_at: str | None = None

@@ -8,7 +8,6 @@ from threading import Lock
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from packages.core.db import get_async_engine
@@ -79,7 +78,7 @@ class SQLTagCatalog:
         async def runner() -> None:
             try:
                 await self._refresh()
-            except SQLAlchemyError as exc:  # pragma: no cover - defensive logging
+            except Exception as exc:  # pragma: no cover - defensive logging
                 log.warning("tag_catalog_refresh_failed", exc_info=exc)
             finally:
                 with self._lock:
@@ -90,7 +89,7 @@ class SQLTagCatalog:
         except RuntimeError:
             try:
                 asyncio.run(runner())
-            except SQLAlchemyError as exc:  # pragma: no cover
+            except Exception as exc:  # pragma: no cover
                 log.warning("tag_catalog_refresh_failed", exc_info=exc)
         else:
             task = loop.create_task(runner())

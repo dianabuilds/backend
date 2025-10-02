@@ -2,54 +2,62 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import time
+from collections.abc import Generator
 from pathlib import Path
 
-_backend_path = Path(__file__).resolve().parents[1] / "apps/backend"
-if str(_backend_path) not in sys.path:
-    sys.path.insert(0, str(_backend_path))
-
+import jwt
 import pytest
+from fastapi.testclient import TestClient
+
+_BACKEND_PATH = Path(__file__).resolve().parents[1] / "apps/backend"
+
+
+def _ensure_backend_on_path() -> str:
+    backend_str = str(_BACKEND_PATH)
+    if backend_str not in sys.path:
+        sys.path.insert(0, backend_str)
+    return backend_str
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _add_backend_to_sys_path() -> None:
-    backend_path = Path(__file__).resolve().parents[1] / "apps/backend"
-    sys.path.insert(0, str(backend_path))
+def _add_backend_to_sys_path() -> Generator[None, None, None]:
+    backend_str = _ensure_backend_on_path()
     yield
-    sys.path.remove(str(backend_path))
+    if backend_str in sys.path:
+        sys.path.remove(backend_str)
 
 
 @pytest.fixture(autouse=True)
-def _ensure_event_loop() -> None:
+def _ensure_event_loop() -> Generator[None, None, None]:
     asyncio.set_event_loop(asyncio.new_event_loop())
     yield
 
 
-import time
-
-import jwt
-
-from packages.core.config import load_settings
-
-
 def make_jwt(sub: str, role: str = "user") -> str:
+    _ensure_backend_on_path()
+    from packages.core.config import load_settings
+
     settings = load_settings()
     payload = {"sub": sub, "role": role, "exp": int(time.time()) + 600}
-    return jwt.encode(payload, key=settings.auth_jwt_secret, algorithm=settings.auth_jwt_algorithm)
+    return jwt.encode(
+        payload, key=settings.auth_jwt_secret, algorithm=settings.auth_jwt_algorithm
+    )
 
 
-def add_auth(client, token: str) -> None:
+def add_auth(client: TestClient, token: str) -> None:
+    _ensure_backend_on_path()
+    from packages.core.config import load_settings
+
     settings = load_settings()
     client.cookies.set("access_token", token)
     client.cookies.set(settings.auth_csrf_cookie_name, "csrf-test")
 
 
-from fastapi.testclient import TestClient
-
-from app.api_gateway.main import app as fastapi_app
-
-
 @pytest.fixture(scope="session")
-def app_client():
+def app_client() -> Generator[TestClient, None, None]:
+    _ensure_backend_on_path()
+    from app.api_gateway.main import app as fastapi_app
+
     with TestClient(fastapi_app) as client:
         yield client

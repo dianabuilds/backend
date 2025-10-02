@@ -1,4 +1,7 @@
+import json
 import logging
+from collections.abc import Mapping
+from datetime import UTC, datetime
 from typing import Any
 
 from apps.backend import get_container
@@ -9,11 +12,31 @@ from sqlalchemy.exc import SQLAlchemyError
 from packages.core.config import to_async_dsn
 from packages.core.db import get_async_engine
 
-from ..dtos import SanctionDTO, UserDetail
+from ..dtos import ModeratorNoteDTO, SanctionDTO, UserDetail
 from ..rbac import require_scopes
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["moderation-users"])
+
+
+def _to_iso(dt: datetime | None) -> str | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _note_row_to_dict(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "id": str(row.get("id")),
+        "text": str(row.get("text") or ""),
+        "author_id": row.get("author_id"),
+        "author_name": row.get("author_name"),
+        "created_at": _to_iso(row.get("created_at")),
+        "pinned": bool(row.get("pinned")),
+        "meta": dict(row.get("meta") or {}),
+    }
 
 
 @router.get("", dependencies=[Depends(require_scopes("moderation:users:read"))])
@@ -27,7 +50,7 @@ async def list_users(
     cursor: str | None = None,
     container=Depends(get_container),
 ) -> dict[str, Any]:
-    # Prefer real DB data; if БД недоступна — вернуть пустой список
+    # Prefer real DB data; if Р‘Р” РЅРµРґРѕСЃС‚СѓРїРЅР° вЂ” РІРµСЂРЅСѓС‚СЊ РїСѓСЃС‚РѕР№ СЃРїРёСЃРѕРє
     try:
         dsn = to_async_dsn(container.settings.database_url)
         if not dsn:
@@ -55,6 +78,24 @@ async def list_users(
                         )
                     )
                 ).first()
+            )
+            have_notes_table = bool(
+                (
+                    await conn.execute(
+                        text(
+                            """
+                        SELECT 1 FROM information_schema.tables
+                        WHERE table_schema = current_schema() AND table_name = 'moderator_user_notes'
+                        LIMIT 1
+                        """
+                        )
+                    )
+                ).first()
+            )
+            notes_select = (
+                "(SELECT COUNT(*) FROM moderator_user_notes mn WHERE mn.user_id = u.id) AS notes_count"
+                if have_notes_table
+                else "0 AS notes_count"
             )
 
             # Detect user columns
@@ -119,7 +160,8 @@ async def list_users(
                        {name_expr} AS username,
                        u.email,
                        {roles_select},
-                       {ban_exists} AS is_banned
+                       {ban_exists} AS is_banned,
+                       {notes_select}
                 FROM users u
                 {roles_join}
                 WHERE {' OR '.join(where_parts)}
@@ -155,6 +197,7 @@ async def list_users(
             roles_list = r.get("roles") or []
             roles = [_cap(str(x)) for x in roles_list]
             status = "banned" if bool(r.get("is_banned")) else "active"
+            notes_count = int(r.get("notes_count") or 0)
             items.append(
                 {
                     "id": str(r["id"]),
@@ -163,7 +206,7 @@ async def list_users(
                     "roles": roles,
                     "status": status,
                     "complaints_count": 0,
-                    "notes_count": 0,
+                    "notes_count": notes_count,
                     "sanction_count": 0,
                 }
             )
@@ -191,21 +234,41 @@ async def list_users(
             except (TypeError, ValueError) as exc:
                 logger.debug("moderation users: invalid cursor %r: %s", cursor, exc)
                 offset = 0
-            sql = text(
-                """
-                SELECT id::text AS id,
-                       COALESCE(username, display_name, email) AS username,
-                       email,
-                       'user' AS role
-                FROM users
-                WHERE (:q = '' OR lower(COALESCE(username, '')) LIKE lower(:qp)
-                               OR lower(COALESCE(display_name, '')) LIKE lower(:qp)
-                               OR lower(COALESCE(email, '')) LIKE lower(:qp))
-                ORDER BY created_at DESC NULLS LAST, id DESC
-                LIMIT :lim OFFSET :off
-                """
-            )
+
             async with eng.begin() as conn:
+                have_notes_table_fb = bool(
+                    (
+                        await conn.execute(
+                            text(
+                                """
+                        SELECT 1 FROM information_schema.tables
+                        WHERE table_schema = current_schema() AND table_name = 'moderator_user_notes'
+                        LIMIT 1
+                                """
+                            )
+                        )
+                    ).first()
+                )
+                notes_select_fb = (
+                    "(SELECT COUNT(*) FROM moderator_user_notes mn WHERE mn.user_id = u.id) AS notes_count"
+                    if have_notes_table_fb
+                    else "0 AS notes_count"
+                )
+                sql = text(
+                    f"""
+                    SELECT u.id::text AS id,
+                           COALESCE(u.username, u.display_name, u.email) AS username,
+                           u.email,
+                           'user' AS role,
+                           {notes_select_fb}
+                    FROM users u
+                    WHERE (:q = '' OR lower(COALESCE(u.username, '')) LIKE lower(:qp)
+                                   OR lower(COALESCE(u.display_name, '')) LIKE lower(:qp)
+                                   OR lower(COALESCE(u.email, '')) LIKE lower(:qp))
+                    ORDER BY u.created_at DESC NULLS LAST, u.id DESC
+                    LIMIT :lim OFFSET :off
+                    """
+                )
                 rows = (
                     (
                         await conn.execute(
@@ -229,7 +292,7 @@ async def list_users(
                     "roles": [str(r.get("role") or "user").capitalize()],
                     "status": "active",
                     "complaints_count": 0,
-                    "notes_count": 0,
+                    "notes_count": int(r.get("notes_count") or 0),
                     "sanction_count": 0,
                 }
                 for r in rows
@@ -276,6 +339,15 @@ async def get_user(user_id: str, container=Depends(get_container)) -> UserDetail
                     )
                 ).first()
             )
+            have_notes_table = bool(
+                (
+                    await conn.execute(
+                        text(
+                            "SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'moderator_user_notes' LIMIT 1"
+                        )
+                    )
+                ).first()
+            )
             if have_user_roles:
                 sql = text(
                     """
@@ -305,11 +377,39 @@ async def get_user(user_id: str, container=Depends(get_container)) -> UserDetail
                     """
                 )
             row = (await conn.execute(sql, {"id": str(user_id)})).mappings().first()
-        if not row:
-            raise KeyError(user_id)
+            if not row:
+                raise KeyError(user_id)
+            if have_notes_table:
+                notes_rows = (
+                    (
+                        await conn.execute(
+                            text(
+                                """
+                        SELECT id::text AS id,
+                               text,
+                               author_id,
+                               author_name,
+                               pinned,
+                               created_at,
+                               meta
+                        FROM moderator_user_notes
+                        WHERE user_id = cast(:id as uuid)
+                        ORDER BY pinned DESC, created_at DESC, id DESC
+                            """
+                            ),
+                            {"id": str(row["id"])},
+                        )
+                    )
+                    .mappings()
+                    .all()
+                )
+            else:
+                notes_rows = []
+        notes = [ModeratorNoteDTO(**_note_row_to_dict(note)) for note in notes_rows]
         roles = [
             (str(x)[:1].upper() + str(x)[1:].lower()) for x in (row.get("roles") or [])
         ]
+        notes_count = len(notes)
         return UserDetail(
             id=str(row["id"]),
             username=str(row.get("username") or row.get("email") or row["id"]),
@@ -319,7 +419,7 @@ async def get_user(user_id: str, container=Depends(get_container)) -> UserDetail
             registered_at=None,
             last_seen_at=None,
             complaints_count=0,
-            notes_count=0,
+            notes_count=notes_count,
             sanction_count=0,
             active_sanctions=[],
             last_sanction=None,
@@ -327,7 +427,7 @@ async def get_user(user_id: str, container=Depends(get_container)) -> UserDetail
             sanctions=[],
             reports=[],
             tickets=[],
-            notes=[],
+            notes=notes,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="user_not_found") from exc
@@ -718,13 +818,110 @@ async def update_sanction(
 async def add_note(
     user_id: str, body: dict[str, Any], container=Depends(get_container)
 ) -> dict[str, Any]:
+    text_value = str(body.get("text") or "").strip()
+    if not text_value:
+        raise HTTPException(status_code=400, detail="text_required")
+    pinned = bool(body.get("pinned") or False)
+    raw_meta = body.get("meta")
+    meta = dict(raw_meta) if isinstance(raw_meta, dict) else {}
+    author_id = body.get("author_id")
+    author_name = body.get("author_name")
+    note_payload = {
+        "text": text_value,
+        "author_id": author_id,
+        "author_name": author_name,
+        "pinned": pinned,
+        "meta": meta,
+    }
+    sql_meta = json.dumps(meta, ensure_ascii=False)
+    try:
+        dsn = to_async_dsn(container.settings.database_url)
+        if not dsn:
+            raise RuntimeError("no_dsn")
+        eng = get_async_engine("moderation-users-notes", url=dsn, future=True)
+        async with eng.begin() as conn:
+            exists = (
+                await conn.execute(
+                    text("SELECT 1 FROM users WHERE id = cast(:id as uuid) LIMIT 1"),
+                    {"id": str(user_id)},
+                )
+            ).scalar()
+            if not exists:
+                raise HTTPException(status_code=404, detail="user_not_found")
+            have_notes_table = bool(
+                (
+                    await conn.execute(
+                        text(
+                            """
+                        SELECT 1 FROM information_schema.tables
+                        WHERE table_schema = current_schema() AND table_name = 'moderator_user_notes'
+                        LIMIT 1
+                            """
+                        )
+                    )
+                ).first()
+            )
+            if not have_notes_table:
+                raise RuntimeError("moderator_user_notes_missing")
+            note_row = (
+                (
+                    await conn.execute(
+                        text(
+                            """
+                        INSERT INTO moderator_user_notes (
+                            user_id,
+                            text,
+                            author_id,
+                            author_name,
+                            pinned,
+                            meta
+                        )
+                        VALUES (
+                            cast(:uid as uuid),
+                            :text,
+                            :author_id,
+                            :author_name,
+                            :pinned,
+                            :meta
+                        )
+                        RETURNING id::text AS id,
+                                  text,
+                                  author_id,
+                                  author_name,
+                                  pinned,
+                                  created_at,
+                                  meta
+                        """
+                        ),
+                        {
+                            "uid": str(user_id),
+                            "text": text_value,
+                            "author_id": author_id,
+                            "author_name": author_name,
+                            "pinned": pinned,
+                            "meta": sql_meta,
+                        },
+                    )
+                )
+                .mappings()
+                .first()
+            )
+        if not note_row:
+            raise HTTPException(status_code=500, detail="note_not_created")
+        return _note_row_to_dict(note_row)
+    except HTTPException:
+        raise
+    except (SQLAlchemyError, RuntimeError, ValueError, TypeError, ImportError) as exc:
+        logger.warning(
+            "moderation users: SQL note persist failed for %s: %s", user_id, exc
+        )
     svc = container.platform_moderation.service
     try:
         note = await svc.add_note(
             user_id,
-            body,
-            actor_id=body.get("author_id"),
-            actor_name=body.get("author_name"),
+            note_payload,
+            actor_id=author_id,
+            actor_name=author_name,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="user_not_found") from exc

@@ -9,6 +9,12 @@ from fastapi.testclient import TestClient
 from app.api_gateway.main import app
 from packages.core.config import load_settings
 
+ADMIN_KEY = str(load_settings().admin_api_key or "")
+if not ADMIN_KEY:
+    pytest.skip(
+        "APP_ADMIN_API_KEY is required for admin endpoints", allow_module_level=True
+    )
+
 
 def _user_token(sub: str = "u1", role: str = "user") -> str:
     s = load_settings()
@@ -50,7 +56,9 @@ async def test_nodes_crud_and_tags():
         assert r.json()["title"] == "Updated"
 
         # Set tags
-        r = client.put(f"/v1/nodes/{nid}/tags", json={"tags": ["ai", "ml"]}, headers=headers)
+        r = client.put(
+            f"/v1/nodes/{nid}/tags", json={"tags": ["ai", "ml"]}, headers=headers
+        )
         assert r.status_code == 200
         assert set(r.json()["tags"]) == {"ai", "ml"}
 
@@ -64,7 +72,7 @@ async def test_nodes_crud_and_tags():
 async def test_admin_node_moderation_decision_flow():
     token = _user_token("moderation-author", role="user")
     headers = {load_settings().auth_csrf_header_name: "t1"}
-    admin_headers = {"X-Admin-Key": "adminkey"}
+    admin_headers = {"X-Admin-Key": ADMIN_KEY}
     with TestClient(app) as client:
         _set_auth(client, token)
         create = client.post(
@@ -75,7 +83,9 @@ async def test_admin_node_moderation_decision_flow():
         assert create.status_code == 200, create.text
         node_id = create.json()["id"]
 
-        detail_before = client.get(f"/v1/admin/nodes/{node_id}/moderation", headers=admin_headers)
+        detail_before = client.get(
+            f"/v1/admin/nodes/{node_id}/moderation", headers=admin_headers
+        )
         assert detail_before.status_code == 200, detail_before.text
         assert detail_before.json()["status"] == "pending"
 
@@ -88,7 +98,9 @@ async def test_admin_node_moderation_decision_flow():
         body = decision.json()
         assert body.get("status") == "hidden"
 
-        detail_after = client.get(f"/v1/admin/nodes/{node_id}/moderation", headers=admin_headers)
+        detail_after = client.get(
+            f"/v1/admin/nodes/{node_id}/moderation", headers=admin_headers
+        )
         assert detail_after.status_code == 200, detail_after.text
         data = detail_after.json()
         assert data["status"] == "hidden"

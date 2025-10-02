@@ -119,6 +119,11 @@ class SQLNodesRepo(Repo):
             content_html=row.get("content_html"),
             cover_url=row.get("cover_url"),
             embedding=_parse_vector(row.get("embedding")),
+            views_count=int(row.get("views_count") or 0),
+            reactions_like_count=int(row.get("reactions_like_count") or 0),
+            comments_disabled=bool(row.get("comments_disabled")),
+            comments_locked_by=row.get("comments_locked_by"),
+            comments_locked_at=row.get("comments_locked_at"),
         )
 
     async def create(
@@ -165,6 +170,11 @@ class SQLNodesRepo(Repo):
                                   to_char(unpublish_at, :fmt) AS unpublish_at,
                                   content_html,
                                   cover_url,
+                                  views_count,
+                                  reactions_like_count,
+                                  comments_disabled,
+                                  comments_locked_by::text AS comments_locked_by,
+                                  to_char(comments_locked_at, :fmt) AS comments_locked_at,
                                   embedding
                     """
                     stmt = text(stmt_sql).bindparams(bindparam("embedding", type_=Text))
@@ -227,7 +237,12 @@ class SQLNodesRepo(Repo):
                                to_char(unpublish_at, :fmt) AS unpublish_at,
                                content_html,
                                cover_url,
-                               embedding
+                                  views_count,
+                                  reactions_like_count,
+                                  comments_disabled,
+                                  comments_locked_by::text AS comments_locked_by,
+                                  to_char(comments_locked_at, :fmt) AS comments_locked_at,
+                                  embedding
                         FROM nodes
                         WHERE slug = :slug
                         """
@@ -300,7 +315,12 @@ class SQLNodesRepo(Repo):
                                    to_char(unpublish_at, :fmt) AS unpublish_at,
                                    content_html,
                                    cover_url,
-                                   embedding
+                                  views_count,
+                                  reactions_like_count,
+                                  comments_disabled,
+                                  comments_locked_by::text AS comments_locked_by,
+                                  to_char(comments_locked_at, :fmt) AS comments_locked_at,
+                                  embedding
                             FROM nodes
                             WHERE author_id = cast(:aid as uuid)
                             ORDER BY id ASC
@@ -348,7 +368,12 @@ class SQLNodesRepo(Repo):
                        to_char(unpublish_at, :fmt) AS unpublish_at,
                        content_html,
                        cover_url,
-                       embedding
+                                  views_count,
+                                  reactions_like_count,
+                                  comments_disabled,
+                                  comments_locked_by::text AS comments_locked_by,
+                                  to_char(comments_locked_at, :fmt) AS comments_locked_at,
+                                  embedding
                 FROM nodes
                 WHERE embedding IS NOT NULL
                 ORDER BY embedding <-> CAST(:embedding AS {_VECTOR_SQL_TYPE})
@@ -455,7 +480,12 @@ class SQLNodesRepo(Repo):
                                to_char(unpublish_at, :fmt) AS unpublish_at,
                                content_html,
                                cover_url,
-                               embedding
+                                  views_count,
+                                  reactions_like_count,
+                                  comments_disabled,
+                                  comments_locked_by::text AS comments_locked_by,
+                                  to_char(comments_locked_at, :fmt) AS comments_locked_at,
+                                  embedding
                         FROM nodes
                         WHERE id = :id
                         """

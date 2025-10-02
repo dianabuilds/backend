@@ -8,7 +8,6 @@ from typing import Any
 import redis.asyncio as redis  # type: ignore
 from pydantic import ValidationError
 from redis.exceptions import RedisError  # type: ignore[import]
-from sqlalchemy.exc import SQLAlchemyError
 
 from domains.platform.events.service import Events
 from domains.platform.search.adapters.cache_memory import (
@@ -43,9 +42,9 @@ def _database_dsn(settings: Settings) -> str | None:
     except (ValidationError, ValueError, TypeError) as exc:
         logger.warning("Invalid database DSN for search backend: %s", exc)
         return None
-    if isinstance(dsn, str) and "?" in dsn:
-        return dsn.split("?", 1)[0]
-    return dsn if isinstance(dsn, str) else None
+    if isinstance(dsn, str):
+        return dsn
+    return None
 
 
 def build_container(settings: Settings | None = None) -> SearchContainer:
@@ -56,7 +55,7 @@ def build_container(settings: Settings | None = None) -> SearchContainer:
     if dsn:
         try:
             backend = SQLSearchIndex(dsn)
-        except SQLAlchemyError as exc:
+        except Exception as exc:
             logger.warning("Falling back to in-memory search index: %s", exc)
             backend = InMemoryIndex()
     else:
@@ -83,6 +82,10 @@ def build_container(settings: Settings | None = None) -> SearchContainer:
             except (OSError, ValueError, RuntimeError) as exc:
                 logger.warning(
                     "Failed to warm up search index from persistence: %s", exc
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Failed to warm up SQL search backend from persistence: %s", exc
                 )
 
         try:

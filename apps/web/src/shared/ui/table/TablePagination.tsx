@@ -51,7 +51,7 @@ export function TablePagination({
         <div className="flex items-center gap-2">
           <span className="text-gray-500 dark:text-dark-300">Rows per page</span>
           <select
-            className="form-select h-8 w-24"
+            className="form-select h-9 w-24 py-1.5 leading-tight"
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
           >
@@ -76,4 +76,3 @@ export function TablePagination({
     </div>
   );
 }
-
