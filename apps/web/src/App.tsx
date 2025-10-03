@@ -13,6 +13,7 @@ import BillingPage from './pages/billing/Billing';
 import NodesOverviewPage from './pages/content/nodes/NodesOverviewPage';
 import NodesPage from './pages/content/nodes/NodesPage';
 import NodeCreatePage from './pages/content/nodes/NodeCreatePage';
+import { NodeEngagementPage } from './pages/admin/nodes';
 import NodePublicPage from './pages/public/NodePublicPage';
 import QuestsOverviewPage from './pages/content/quests/QuestsOverviewPage';
 import QuestsPage from './pages/content/quests/QuestsPage';
@@ -99,6 +100,7 @@ export default function App() {
           <Route path="/nodes/new" element={<RequireAuth><AppLayout><NodeCreatePage /></AppLayout></RequireAuth>} />
           <Route path="/nodes/tags" element={<RequireAuth><AppLayout><NodeTagsPage /></AppLayout></RequireAuth>} />
           <Route path="/nodes/relations" element={<RequireAuth><AppLayout><RelationsPage /></AppLayout></RequireAuth>} />
+          <Route path="/admin/nodes/:nodeId" element={<RequireAdmin><AppLayout><NodeEngagementPage /></AppLayout></RequireAdmin>} />
 
           {/* Quests workspace */}
           <Route path="/quests" element={<RequireAuth><AppLayout><QuestsOverviewPage /></AppLayout></RequireAuth>} />

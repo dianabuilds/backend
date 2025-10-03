@@ -72,6 +72,11 @@ from domains.product.tags.adapters.usage_sql_writer import (
 from packages.core import Flags
 from packages.core.config import Settings, load_settings, to_async_dsn
 
+try:
+    import redis.asyncio as aioredis  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover - optional dependency
+    aioredis = None  # type: ignore[assignment]
+
 """DI wiring for DDD app: only DDD imports, no monolith references."""
 
 
@@ -128,10 +133,21 @@ from domains.product.navigation.application.ports import (
 from domains.product.navigation.application.service import (
     NavigationService as NavigationService,
 )
+from domains.product.nodes.adapters import (
+    RedisNodeViewLimiter,
+    SQLNodeCommentsRepo,
+    SQLNodeReactionsRepo,
+    SQLNodeViewsRepo,
+)
 from domains.product.nodes.adapters.repo_sql import SQLNodesRepo
 from domains.product.nodes.adapters.tag_catalog_memory import MemoryTagCatalog
 from domains.product.nodes.adapters.usage_memory import MemoryUsageProjection
 from domains.product.nodes.adapters.usage_sql import SQLUsageProjection
+from domains.product.nodes.application import (
+    NodeCommentsService,
+    NodeReactionsService,
+    NodeViewsService,
+)
 from domains.product.nodes.application.embedding import EmbeddingClient
 from domains.product.nodes.application.embedding_worker import register_embedding_worker
 from domains.product.nodes.application.ports import (
@@ -220,9 +236,7 @@ def build_container(env: str = "dev") -> Container:
         try:
             rc.close()
         except Exception:
-            logger.debug(
-                "Failed to close Redis connection during wiring", exc_info=True
-            )
+            logger.debug("Failed to close Redis connection during wiring", exc_info=True)
     outbox: ProfileOutbox = ProfileOutboxRedis(str(settings.redis_url))
     bus = RedisEventBus(
         redis_url=str(settings.redis_url),
@@ -232,13 +246,27 @@ def build_container(env: str = "dev") -> Container:
     events = Events(outbox=outbox, bus=bus)
     profile_iam: ProfileIam = ProfileIamClient()
     profile_repo: ProfileRepo = SQLProfileRepo(dsn_primary)
-    svc = ProfileService(
-        repo=profile_repo, outbox=outbox, iam=profile_iam, flags=Flags()
-    )
+    svc = ProfileService(repo=profile_repo, outbox=outbox, iam=profile_iam, flags=Flags())
 
     # --- Product domains wiring (DDD-only) ---
     # Nodes / tags helpers
     nodes_repo = SQLNodesRepo(dsn_primary)
+    node_views_repo = SQLNodeViewsRepo(dsn_primary)
+    node_reactions_repo = SQLNodeReactionsRepo(dsn_primary)
+    node_comments_repo = SQLNodeCommentsRepo(dsn_primary)
+    node_views_limiter = None
+    if aioredis is not None and settings.redis_url:
+        try:
+            node_views_limiter_client = aioredis.from_url(
+                str(settings.redis_url), decode_responses=False
+            )
+            node_views_limiter = RedisNodeViewLimiter(node_views_limiter_client, per_day=True)
+        except Exception as exc:
+            logger.warning("Failed to initialize node view limiter: %s", exc)
+            node_views_limiter = None
+    node_views_service = NodeViewsService(node_views_repo, limiter=node_views_limiter)
+    node_reactions_service = NodeReactionsService(node_reactions_repo)
+    node_comments_service = NodeCommentsService(node_comments_repo)
     outbox_bridge = outbox  # unify events outbox across services
     tag_catalog: NodesTagCatalog
     try:
@@ -268,6 +296,9 @@ def build_container(env: str = "dev") -> Container:
         outbox=outbox_bridge,
         usage=usage_proj,
         embedding=embedding_client,
+        views=node_views_service,
+        reactions=node_reactions_service,
+        comments=node_comments_service,
     )
     register_embedding_worker(events, nodes)
 
@@ -289,9 +320,7 @@ def build_container(env: str = "dev") -> Container:
                     "author_id": it.author_id,
                     "title": it.title,
                     "tags": list(it.tags),
-                    "embedding": (
-                        list(it.embedding) if it.embedding is not None else None
-                    ),
+                    "embedding": (list(it.embedding) if it.embedding is not None else None),
                     "is_public": it.is_public,
                 }
                 for it in items
@@ -322,9 +351,7 @@ def build_container(env: str = "dev") -> Container:
                     "author_id": it.author_id,
                     "title": it.title,
                     "tags": list(it.tags),
-                    "embedding": (
-                        list(it.embedding) if it.embedding is not None else None
-                    ),
+                    "embedding": (list(it.embedding) if it.embedding is not None else None),
                     "is_public": it.is_public,
                 }
                 for it in items
@@ -391,9 +418,7 @@ def build_container(env: str = "dev") -> Container:
         notify_loop = asyncio.get_running_loop()
     except RuntimeError:
         notify_loop = None
-    register_event_relays(
-        events, notify_topics, delivery=notifications.delivery, loop=notify_loop
-    )
+    register_event_relays(events, notify_topics, delivery=notifications.delivery, loop=notify_loop)
     users = build_users_container(settings)
     admin = build_admin_container(settings)
     return Container(

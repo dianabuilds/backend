@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
 
 
@@ -133,18 +134,24 @@ class NodeViewsRepo(Protocol):
 
 
 @runtime_checkable
+class NodeViewsLimiter(Protocol):
+    async def should_count(
+        self,
+        node_id: int,
+        *,
+        viewer_id: str | None,
+        fingerprint: str | None,
+        at: datetime,
+    ) -> bool: ...
+
+
+@runtime_checkable
 class NodeReactionsRepo(Protocol):
-    async def add(
-        self, node_id: int, user_id: str, reaction_type: str = "like"
-    ) -> bool: ...
+    async def add(self, node_id: int, user_id: str, reaction_type: str = "like") -> bool: ...
 
-    async def remove(
-        self, node_id: int, user_id: str, reaction_type: str = "like"
-    ) -> bool: ...
+    async def remove(self, node_id: int, user_id: str, reaction_type: str = "like") -> bool: ...
 
-    async def has(
-        self, node_id: int, user_id: str, reaction_type: str = "like"
-    ) -> bool: ...
+    async def has(self, node_id: int, user_id: str, reaction_type: str = "like") -> bool: ...
 
     async def counts(self, node_id: int) -> dict[str, int]: ...
 
@@ -242,6 +249,4 @@ class Outbox(Protocol):
 
 @runtime_checkable
 class UsageProjection(Protocol):
-    def apply_diff(
-        self, author_id: str, added: Sequence[str], removed: Sequence[str]
-    ) -> None: ...
+    def apply_diff(self, author_id: str, added: Sequence[str], removed: Sequence[str]) -> None: ...

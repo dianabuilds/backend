@@ -10,6 +10,7 @@ from domains.product.nodes.application.ports import (
     NodeCommentsRepo,
     NodeReactionsRepo,
     NodeReactionsSummary,
+    NodeViewsLimiter,
     NodeViewsRepo,
     NodeViewStat,
 )
@@ -19,9 +20,14 @@ _DEFAULT_REACTION = "like"
 
 class NodeViewsService:
     def __init__(
-        self, repo: NodeViewsRepo, *, clock: Callable[[], datetime] | None = None
+        self,
+        repo: NodeViewsRepo,
+        *,
+        limiter: NodeViewsLimiter | None = None,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self.repo = repo
+        self.limiter = limiter
         self._clock = clock or (lambda: datetime.now(UTC))
 
     async def register_view(
@@ -35,13 +41,19 @@ class NodeViewsService:
     ) -> int:
         if amount <= 0:
             raise ValueError("amount_positive_required")
-        when = at or self._clock()
+        when = (at or self._clock()).astimezone(UTC).replace(microsecond=0)
+        if self.limiter is not None:
+            should = await self.limiter.should_count(
+                node_id, viewer_id=viewer_id, fingerprint=fingerprint, at=when
+            )
+            if not should:
+                return await self.repo.get_total(node_id)
         return await self.repo.increment(
             node_id,
             amount=amount,
             viewer_id=viewer_id,
             fingerprint=fingerprint,
-            at=when.replace(microsecond=0).isoformat(),
+            at=when.isoformat(),
         )
 
     async def get_total(self, node_id: int) -> int:
@@ -79,9 +91,7 @@ class NodeReactionsService:
         if user_id:
             if await self.repo.has(node_id, user_id, _DEFAULT_REACTION):
                 user_reaction = _DEFAULT_REACTION
-        return NodeReactionsSummary(
-            node_id=node_id, totals=totals, user_reaction=user_reaction
-        )
+        return NodeReactionsSummary(node_id=node_id, totals=totals, user_reaction=user_reaction)
 
 
 class NodeCommentsService:
@@ -172,17 +182,15 @@ class NodeCommentsService:
         actor_id: str,
         reason: str | None = None,
     ) -> None:
-        locked_at = self._clock().replace(microsecond=0).isoformat()
+        locked_at_dt = self._clock().replace(microsecond=0)
         await self.repo.lock_node(
             node_id,
             locked_by=actor_id,
-            locked_at=locked_at,
+            locked_at=locked_at_dt,
             reason=reason,
         )
 
-    async def unlock_comments(
-        self, node_id: int, *, actor_id: str | None = None
-    ) -> None:
+    async def unlock_comments(self, node_id: int, *, actor_id: str | None = None) -> None:
         await self.repo.lock_node(
             node_id,
             locked_by=None,
